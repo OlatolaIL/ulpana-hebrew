@@ -55,7 +55,7 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
                 translation: 'Привет, меня зовут...',
               },
               {
-                hebrew: 'בֹּקֶר טוֹב! מָה נִשְׁמַע?',
+                hebrew: 'בּוֹקֶר טוֹב! מָה נִשְׁמַע?',
                 transcription: 'бóкер тов! ма нишмá?',
                 translation: 'Доброе утро! Как дела?',
               },
