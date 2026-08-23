@@ -6,67 +6,69 @@ import {
   ArrowRight,
   BookOpen,
   Layers,
-  Sparkles,
+  ListTodo,
   Bot,
   CheckCircle2,
-  ListTodo,
 } from 'lucide-react';
 import { Lesson, UserProfile, Word } from '@/types';
 import { LessonTheory } from './LessonTheory';
 import { LessonVocabulary } from './LessonVocabulary';
 import { LessonExercises } from './LessonExercises';
 import { LessonAiChat } from './LessonAiChat';
-import { getLessonById, LESSONS_CATALOG } from '@/data/lessonsData';
+import { getLessonProgress } from '@/lib/storage';
 
 interface LessonViewProps {
-  lessonId: number;
+  lesson: Lesson;
   userProfile: UserProfile;
   onBack: () => void;
-  onSelectLesson: (id: number) => void;
+  onSelectLesson: (lessonId: number) => void;
+  onUpdateProfile: (newProfile: UserProfile) => void;
   onStartFlashcards: (words: Word[]) => void;
-  onUpdateProfile: (profile: UserProfile) => void;
 }
 
-type LessonTab = 'theory' | 'vocab' | 'exercises' | 'chat';
+type TabType = 'theory' | 'vocab' | 'exercises' | 'chat';
 
 export const LessonView: React.FC<LessonViewProps> = ({
-  lessonId,
+  lesson,
   userProfile,
   onBack,
   onSelectLesson,
-  onStartFlashcards,
   onUpdateProfile,
+  onStartFlashcards,
 }) => {
-  const [activeTab, setActiveTab] = useState<LessonTab>('theory');
-  const lesson = getLessonById(lessonId);
+  const [activeTab, setActiveTab] = useState<TabType>('theory');
 
-  const prevLesson = lessonId > 1 ? lessonId - 1 : null;
-  const nextLesson = lessonId < 100 ? lessonId + 1 : null;
-
-  const progress = userProfile.lessonProgress[lessonId];
+  const progress = getLessonProgress(lesson.id);
   const completedTabs = progress?.completedTabs || [];
 
+  const prevLesson = lesson.number > 1 ? lesson.number - 1 : null;
+  const nextLesson = lesson.number < 100 ? lesson.number + 1 : null;
+
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-zinc-900 p-4 rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-sm">
+    <div className="max-w-5xl mx-auto space-y-6 pb-12">
+      {/* Навигационная панель урока */}
+      <div className="flex flex-wrap items-center justify-between gap-4 bg-white dark:bg-zinc-900 p-4 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm">
         <div className="flex items-center gap-3">
           <button
             onClick={onBack}
-            className="p-2.5 rounded-2xl border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
-            title="Назад к карте курса"
+            className="p-2 rounded-xl border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+            title="Назад к списку уроков"
           >
-            <ArrowLeft className="w-4 h-4" />
+            <ArrowLeft className="w-5 h-5 text-zinc-600 dark:text-zinc-400" />
           </button>
 
           <div>
             <div className="flex items-center gap-2">
-              <span className="px-2 py-0.5 rounded-lg text-xs font-bold bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400">
-                Урок {lesson.number} ({lesson.level === 'alef' ? 'Алеф' : 'Бет'})
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300">
+                Урок {lesson.number} • Уровень {lesson.level === 'alef' ? 'Алеф (א)' : 'Бет (ב)'}
               </span>
-              <span className="text-xs text-zinc-400 font-medium">{lesson.category}</span>
+              <span className="text-xs text-zinc-400">• {lesson.category}</span>
             </div>
-            <h1 className="text-lg font-bold text-zinc-900 dark:text-zinc-50 mt-0.5">
-              {lesson.titleRussian}
+            <h1 className="text-lg md:text-xl font-bold text-zinc-900 dark:text-zinc-50 flex items-center gap-2 mt-0.5">
+              <span>{lesson.titleRussian}</span>
+              <span dir="rtl" className="font-hebrew text-blue-600 dark:text-blue-400 text-base">
+                ({lesson.titleHebrew})
+              </span>
             </h1>
           </div>
         </div>
@@ -93,6 +95,7 @@ export const LessonView: React.FC<LessonViewProps> = ({
         </div>
       </div>
 
+      {/* Вкладки урока */}
       <div className="flex p-1.5 bg-zinc-100 dark:bg-zinc-800/60 rounded-2xl border border-zinc-200 dark:border-zinc-700/60 overflow-x-auto">
         <button
           onClick={() => setActiveTab('theory')}
@@ -155,6 +158,7 @@ export const LessonView: React.FC<LessonViewProps> = ({
         </button>
       </div>
 
+      {/* Контент выбранной вкладки */}
       <div className="pt-2">
         {activeTab === 'theory' && (
           <LessonTheory
@@ -185,6 +189,7 @@ export const LessonView: React.FC<LessonViewProps> = ({
           <LessonAiChat
             lesson={lesson}
             userProfile={userProfile}
+            onUpdateProfile={onUpdateProfile}
             onWordAdded={() => onUpdateProfile({ ...userProfile })}
           />
         )}
