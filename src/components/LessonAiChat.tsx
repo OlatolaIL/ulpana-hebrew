@@ -16,17 +16,115 @@ import { Lesson, UserProfile, ChatMessage, Word } from '@/types';
 import { tokenizeText, TextToken, stripNikkud } from '@/lib/transcription';
 import { speakHebrew, HebrewSpeechRecognizer } from '@/lib/speech';
 import { WordLookupModal } from './WordLookupModal';
-import { markLessonTabCompleted } from '@/lib/storage';
+import { markLessonTabCompleted, saveUserProfile } from '@/lib/storage';
 
 interface LessonAiChatProps {
   lesson: Lesson;
   userProfile: UserProfile;
+  onUpdateProfile?: (profile: UserProfile) => void;
   onWordAdded?: (word: Word) => void;
+}
+
+function getInitialMessageForGender(lesson: Lesson, gender: 'male' | 'female'): {
+  hebrew: string;
+  transcription: string;
+  translation: string;
+  suggestedReplies: Array<{ hebrew: string; transcription: string; translation: string }>;
+} {
+  const isFemale = gender === 'female';
+
+  if (lesson.number === 1) {
+    return {
+      hebrew: isFemale
+        ? 'שָׁלוֹם! בּוֹקֶר טוֹב. אֲנִי נוֹעַם. אֵיךְ קוֹרְאִים לָךְ?'
+        : 'שָׁלוֹם! בּוֹקֶר טוֹב. אֲנִי נוֹעַם. אֵיךְ קוֹרְאִים לְךָ?',
+      transcription: isFemale
+        ? 'шалóм! бóкер тов. анӣ Нóам. эйх коръӣм лах?'
+        : 'шалóм! бóкер тов. анӣ Нóам. эйх коръӣм лэхá?',
+      translation: isFemale
+        ? 'Привет! Доброе утро. Я Ноам. Как тебя зовут?'
+        : 'Привет! Доброе утро. Я Ноам. Как тебя зовут?',
+      suggestedReplies: [
+        {
+          hebrew: 'שָׁלוֹם, קוֹרְאִים לִי...',
+          transcription: 'шалóм, коръӣм ли...',
+          translation: 'Привет, меня зовут...',
+        },
+        {
+          hebrew: 'בּוֹקֶר טוֹב! מָה נִשְׁמַע?',
+          transcription: 'бóкер тов! ма нишмá?',
+          translation: 'Доброе утро! Как дела?',
+        },
+        {
+          hebrew: isFemale ? 'אֲנִי לוֹמֶדֶת עִבְרִית.' : 'אֲנִי לוֹמֵד עִבְרִית.',
+          transcription: isFemale ? 'анӣ ломéдет иврӣт.' : 'анӣ ломéд иврӣт.',
+          translation: isFemale ? 'Я учу иврит.' : 'Я учу иврит.',
+        },
+      ],
+    };
+  }
+
+  if (lesson.number === 2) {
+    return {
+      hebrew: isFemale
+        ? 'שָׁלוֹם! מָה תִּרְצִי לִשְׁתּוֹת הַיּוֹם?'
+        : 'שָׁלוֹם! מָה תִּרְצֶה לִשְׁתּוֹת הַיּוֹם?',
+      transcription: isFemale
+        ? 'шалóм! ма тирцӣ лишто́т hайóм?'
+        : 'шалóм! ма тирцé лишто́т hайóм?',
+      translation: 'Здравствуйте! Что вы хотите выпить сегодня?',
+      suggestedReplies: [
+        {
+          hebrew: isFemale
+            ? 'אֲנִי רוֹצָה קָפֶה עִם חָלָב, בְּבַקָּשָׁה.'
+            : 'אֲנִי רוֹצֶה קָפֶה עִם חָלָב, בְּבַקָּשָׁה.',
+          transcription: isFemale
+            ? 'анӣ роцá кафэ́ им халáв, бэвакашá.'
+            : 'анӣ роцé кафэ́ им халáв, бэвакашá.',
+          translation: 'Я хочу кофе с молоком, пожалуйста.',
+        },
+        {
+          hebrew: 'אֶפְשָׁר תֵּה עִם סוּכָּר?',
+          transcription: 'эфшáр тэ им сукáр?',
+          translation: 'Можно чай с сахаром?',
+        },
+        {
+          hebrew: 'מַיִם קָרִים, בְּבַקָּשָׁה.',
+          transcription: 'мáйим карӣм, бэвакашá.',
+          translation: 'Холодную воду, пожалуйста.',
+        },
+      ],
+    };
+  }
+
+  let heb = lesson.dialogue.initialMessage.hebrew;
+  let tr = lesson.dialogue.initialMessage.transcription;
+  if (!isFemale) {
+    heb = heb.replace(/לָךְ \/ לְךָ/g, 'לְךָ').replace(/תִּרְצֶה \/ תִּרְצִי/g, 'תִּרְצֶה');
+    tr = tr.replace(/лах \/ лэхá/g, 'лэхá').replace(/тирцé \/ тирцӣ/g, 'тирцé');
+  } else {
+    heb = heb.replace(/לָךְ \/ לְךָ/g, 'לָךְ').replace(/תִּרְצֶה \/ תִּרְצִי/g, 'תִּרְצִי');
+    tr = tr.replace(/лах \/ лэхá/g, 'лах').replace(/тирцé \/ тирцӣ/g, 'тирцӣ');
+  }
+
+  return {
+    hebrew: heb,
+    transcription: tr,
+    translation: lesson.dialogue.initialMessage.translation,
+    suggestedReplies: [
+      {
+        hebrew: 'שָׁלוֹם, אֲנִי כָּאן.',
+        transcription: 'шалóм, анӣ кан.',
+        translation: 'Привет, я здесь.',
+      },
+    ],
+  };
 }
 
 export const LessonAiChat: React.FC<LessonAiChatProps> = ({
   lesson,
   userProfile,
+  onUpdateProfile,
   onWordAdded,
 }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -38,62 +136,34 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
   const [recognizer, setRecognizer] = useState<HebrewSpeechRecognizer | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
+  const initChat = (gender: 'male' | 'female') => {
+    const data = getInitialMessageForGender(lesson, gender);
     const initial: ChatMessage = {
       id: 'init-1',
       role: 'assistant',
-      hebrew: lesson.dialogue.initialMessage.hebrew,
-      transcription: lesson.dialogue.initialMessage.transcription,
-      translation: lesson.dialogue.initialMessage.translation,
+      hebrew: data.hebrew,
+      transcription: data.transcription,
+      translation: data.translation,
       timestamp: Date.now(),
-      suggestedReplies:
-        lesson.number === 1
-          ? [
-              {
-                hebrew: 'שָׁלוֹם, קוֹרְאִים לִי...',
-                transcription: 'шалóм, коръӣм ли...',
-                translation: 'Привет, меня зовут...',
-              },
-              {
-                hebrew: 'בּוֹקֶר טוֹב! מָה נִשְׁמַע?',
-                transcription: 'бóкер тов! ма нишмá?',
-                translation: 'Доброе утро! Как дела?',
-              },
-              {
-                hebrew: 'נָעִים מְאוֹד!',
-                transcription: 'наӣм мэóд!',
-                translation: 'Очень приятно!',
-              },
-            ]
-          : [
-              {
-                hebrew:
-                  userProfile.gender === 'female'
-                    ? 'אֲנִי רוֹצָה קָפֶה עִם חָלָב, בְּבַקָּשָׁה.'
-                    : 'אֲנִי רוֹצֶה קָפֶה עִם חָלָב, בְּבַקָּשָׁה.',
-                transcription:
-                  userProfile.gender === 'female'
-                    ? 'анӣ роцá кафэ́ им халáв, бэвакашá.'
-                    : 'анӣ роцé кафэ́ им халáв, бэвакашá.',
-                translation: 'Я хочу кофе с молоком, пожалуйста.',
-              },
-              {
-                hebrew: 'אֶפְשָׁר תֵּה עִם סוּכָּר?',
-                transcription: 'эфшáр тэ им сукáр?',
-                translation: 'Можно чай с сахаром?',
-              },
-              {
-                hebrew: 'מַיִם קָרִים, בְּבַקָּשָׁה.',
-                transcription: 'мáйим карӣм, бэвакашá.',
-                translation: 'Холодную воду, пожалуйста.',
-              },
-            ],
+      suggestedReplies: data.suggestedReplies,
     };
     setMessages([initial]);
+  };
+
+  useEffect(() => {
+    initChat(userProfile.gender);
 
     const rec = new HebrewSpeechRecognizer();
     setRecognizer(rec);
   }, [lesson, userProfile.gender]);
+
+  const handleGenderSwitch = (newGender: 'male' | 'female') => {
+    if (newGender === userProfile.gender) return;
+    const updated = { ...userProfile, gender: newGender };
+    saveUserProfile(updated);
+    if (onUpdateProfile) onUpdateProfile(updated);
+    initChat(newGender);
+  };
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -157,7 +227,9 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
 
       setMessages((prev) => [...prev, aiMsg]);
       markLessonTabCompleted(lesson.id, 'chat');
-      speakHebrew(aiMsg.hebrew);
+
+      // Автоматически озвучиваем ответ ИИ
+      speakHebrew(aiMsg.hebrew, { rate: userProfile.speechRate || 0.7 });
     } catch (err) {
       console.error(err);
     } finally {
@@ -183,8 +255,13 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
             setIsRecording(false);
           }
         },
-        () => setIsRecording(false),
-        () => setIsRecording(false)
+        (err) => {
+          console.error('Speech error:', err);
+          setIsRecording(false);
+        },
+        () => {
+          setIsRecording(false);
+        }
       );
     }
   };
@@ -196,23 +273,15 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
   };
 
   const handleResetChat = () => {
-    setMessages([
-      {
-        id: `reset-${Date.now()}`,
-        role: 'assistant',
-        hebrew: lesson.dialogue.initialMessage.hebrew,
-        transcription: lesson.dialogue.initialMessage.transcription,
-        translation: lesson.dialogue.initialMessage.translation,
-        timestamp: Date.now(),
-      },
-    ]);
+    initChat(userProfile.gender);
   };
 
   const lastAiMessage = [...messages].reverse().find((m) => m.role === 'assistant');
 
   return (
     <div className="flex flex-col h-[700px] max-h-[80vh] bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm overflow-hidden">
-      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-zinc-800 dark:to-zinc-800/60 p-4 border-b border-zinc-200 dark:border-zinc-700/80 flex items-center justify-between">
+      {/* Шапка сценария с переключателем пола */}
+      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-zinc-800 dark:to-zinc-800/60 p-3.5 border-b border-zinc-200 dark:border-zinc-700/80 flex flex-wrap items-center justify-between gap-2">
         <div>
           <div className="flex items-center gap-2">
             <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-600 text-white">
@@ -222,19 +291,51 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
               {lesson.dialogue.title}
             </h3>
           </div>
-          <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1 line-clamp-1">
+          <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5 line-clamp-1">
             {lesson.dialogue.situation}
           </p>
         </div>
-        <button
-          onClick={handleResetChat}
-          className="p-2 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 rounded-lg hover:bg-white dark:hover:bg-zinc-700 transition"
-          title="Начать диалог сначала"
-        >
-          <RotateCcw className="w-4 h-4" />
-        </button>
+
+        <div className="flex items-center gap-2">
+          {/* Интерактивный переключатель пола говорящего */}
+          <div className="flex items-center bg-white dark:bg-zinc-900 p-0.5 rounded-xl border border-zinc-200 dark:border-zinc-700 shadow-sm text-xs">
+            <button
+              type="button"
+              onClick={() => handleGenderSwitch('male')}
+              className={`px-2.5 py-1 rounded-lg font-semibold flex items-center gap-1 transition ${
+                userProfile.gender === 'male'
+                  ? 'bg-blue-600 text-white shadow-sm'
+                  : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-200'
+              }`}
+              title="Переключить на обращение к мужчине (זָכָר)"
+            >
+              <span>👨 Мужчина</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => handleGenderSwitch('female')}
+              className={`px-2.5 py-1 rounded-lg font-semibold flex items-center gap-1 transition ${
+                userProfile.gender === 'female'
+                  ? 'bg-pink-600 text-white shadow-sm'
+                  : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-200'
+              }`}
+              title="Переключить на обращение к женщине (נְקֵבָה)"
+            >
+              <span>👩 Женщина</span>
+            </button>
+          </div>
+
+          <button
+            onClick={handleResetChat}
+            className="p-1.5 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 rounded-lg hover:bg-white dark:hover:bg-zinc-700 transition"
+            title="Начать диалог сначала"
+          >
+            <RotateCcw className="w-4 h-4" />
+          </button>
+        </div>
       </div>
 
+      {/* Подсказка для клика по словам */}
       <div className="bg-blue-500/10 px-4 py-1.5 border-b border-blue-500/20 text-xs text-blue-800 dark:text-blue-300 flex items-center justify-between">
         <span className="flex items-center gap-1.5">
           <Sparkles className="w-3.5 h-3.5" />
@@ -242,6 +343,7 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
         </span>
       </div>
 
+      {/* Список сообщений */}
       <div className="flex-1 p-4 overflow-y-auto space-y-4 bg-zinc-50/50 dark:bg-zinc-950/30">
         {messages.map((msg) => {
           const isAi = msg.role === 'assistant';
@@ -310,7 +412,7 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
                   {isAi && (
                     <div className="mt-2 pt-2 border-t border-zinc-100 dark:border-zinc-700/60 flex items-center justify-end">
                       <button
-                        onClick={() => speakHebrew(msg.hebrew)}
+                        onClick={() => speakHebrew(msg.hebrew, { rate: userProfile.speechRate || 0.7 })}
                         className="text-xs text-zinc-400 hover:text-blue-600 dark:hover:text-blue-400 flex items-center gap-1 transition"
                       >
                         <Volume2 className="w-3.5 h-3.5" />
@@ -371,6 +473,7 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
         <div ref={messagesEndRef} />
       </div>
 
+      {/* Поле ввода */}
       <div className="p-3 bg-white dark:bg-zinc-900 border-t border-zinc-200 dark:border-zinc-800">
         <form
           onSubmit={(e) => {
