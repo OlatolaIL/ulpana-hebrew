@@ -1,8 +1,3 @@
-/**
- * База данных программы обучения ивриту (100 уроков: Алеф 1-50, Бет 51-100)
- * Методика классического израильского ульпана с транскрипцией по стандарту (h для ה).
- */
-
 import { Lesson, Level } from '@/types';
 
 // Полный каталог 100 уроков программы Ульпана
@@ -83,7 +78,7 @@ export const LESSONS_CATALOG: Array<{
     id: 8,
     level: 'alef',
     number: 8,
-    titleHebrew: 'פָּעֳלֵי פָּעַל - הוֹלֵךְ וְלוֹמֵד',
+    titleHebrew: 'פּוֹעֳלֵי פָּעַל - הוֹלֵךְ וְלוֹמֵד',
     titleRussian: 'Биньян Пааль: глаголы действия',
     category: 'Глаголы',
     description: 'Спряжение правильных глаголов Пааль: לוֹמֵד (учит), הוֹלֵךְ (идет), כּוֹתֵב (пишет), קוֹרֵא (читает).',
@@ -95,7 +90,7 @@ export const LESSONS_CATALOG: Array<{
     titleHebrew: 'מָה הַשָּׁעָה?',
     titleRussian: 'Который час? Распорядок дня',
     category: 'Время',
-    description: 'Время, части суток (בֹּקֶר, צָהֳרַיִם, עֶרֶב, לַיְלָה), глагол ק-ו-ם (קָם/קָמָה - вставать).',
+    description: 'Время, части суток (בּוֹקֶר, צוֹהֳרַיִם, עֶרֶב, לַיְלָה), глагол ק-ו-ם (קָם/קָמָה - вставать).',
   },
   {
     id: 10,
@@ -206,6 +201,24 @@ export const DETAILED_LESSONS: Record<number, Lesson> = {
       },
       {
         id: 'w1-2',
+        hebrew: 'בּוֹקֶר טוֹב',
+        hebrewPlain: 'בוקר טוב',
+        transcription: 'бóкер тов',
+        translation: 'доброе утро',
+        partOfSpeech: 'expression',
+        lessonId: 1,
+      },
+      {
+        id: 'w1-3',
+        hebrew: 'עֶרֶב טוֹב',
+        hebrewPlain: 'ערב טוב',
+        transcription: 'э́рев тов',
+        translation: 'добрый вечер',
+        partOfSpeech: 'expression',
+        lessonId: 1,
+      },
+      {
+        id: 'w1-4',
         hebrew: 'תוֹדָה',
         hebrewPlain: 'תודה',
         transcription: 'тодá',
@@ -214,7 +227,7 @@ export const DETAILED_LESSONS: Record<number, Lesson> = {
         lessonId: 1,
       },
       {
-        id: 'w1-3',
+        id: 'w1-5',
         hebrew: 'בְּבַקָּשָׁה',
         hebrewPlain: 'בבקשה',
         transcription: 'бэвакашá',
@@ -223,7 +236,7 @@ export const DETAILED_LESSONS: Record<number, Lesson> = {
         lessonId: 1,
       },
       {
-        id: 'w1-4',
+        id: 'w1-6',
         hebrew: 'נָעִים מְאוֹד',
         hebrewPlain: 'נעים מאוד',
         transcription: 'наӣм мэóд',
@@ -246,12 +259,12 @@ export const DETAILED_LESSONS: Record<number, Lesson> = {
       aiRole: 'Студент ульпана Ноам',
       userRole: 'Новый студент ульпана',
       initialMessage: {
-        hebrew: 'שָׁלוֹם! בֹּקֶר טוֹב. אֲנִי נֹעַם. אֵיךְ קוֹרְאִים לָךְ / לְךָ?',
+        hebrew: 'שָׁלוֹם! בּוֹקֶר טוֹב. אֲנִי נוֹעַם. אֵיךְ קוֹרְאִים לָךְ / לְךָ?',
         transcription: 'шалóм! бóкер тов. анӣ Нóам. эйх коръӣм лах / лэхá?',
         translation: 'Привет! Доброе утро. Я Ноам. Как тебя зовут?',
       },
       goals: ['Поздороваться в ответ', 'Назвать свое имя', 'Сказать «Очень приятно»'],
-      vocabularyHints: ['שָׁלוֹם', 'נָעִים מְאוֹד', 'קוֹרְאִים לִי', 'תוֹדָה'],
+      vocabularyHints: ['שָׁלוֹם', 'בּוֹקֶר טוֹב', 'נָעִים מְאוֹד', 'קוֹרְאִים לִי', 'תוֹדָה'],
     },
     exercises: [
       {
