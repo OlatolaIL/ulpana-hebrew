@@ -11,6 +11,7 @@ import {
   User as UserIcon,
   RotateCcw,
   AlertCircle,
+  HelpCircle,
 } from 'lucide-react';
 import { Lesson, UserProfile, ChatMessage, Word } from '@/types';
 import { tokenizeText, TextToken, stripNikkud } from '@/lib/transcription';
@@ -42,8 +43,8 @@ function getInitialMessageForGender(lesson: Lesson, gender: 'male' | 'female'): 
         ? 'шалóм! бóкер тов. анӣ Нóам. эйх коръӣм лах?'
         : 'шалóм! бóкер тов. анӣ Нóам. эйх коръӣм лэхá?',
       translation: isFemale
-        ? 'Привет! Доброе утро. Я Ноам. Как тебя зовут?'
-        : 'Привет! Доброе утро. Я Ноам. Как тебя зовут?',
+        ? 'Привет! Доброе утро. Я Ноам. Как тебя зовут? (к женщине)'
+        : 'Привет! Доброе утро. Я Ноам. Как тебя зовут? (к мужчине)',
       suggestedReplies: [
         {
           hebrew: 'שָׁלוֹם, קוֹרְאִים לִי...',
@@ -58,7 +59,7 @@ function getInitialMessageForGender(lesson: Lesson, gender: 'male' | 'female'): 
         {
           hebrew: isFemale ? 'אֲנִי לוֹמֶדֶת עִבְרִית.' : 'אֲנִי לוֹמֵד עִבְרִית.',
           transcription: isFemale ? 'анӣ ломéдет иврӣт.' : 'анӣ ломéд иврӣт.',
-          translation: isFemale ? 'Я учу иврит.' : 'Я учу иврит.',
+          translation: isFemale ? 'Я учу иврит (женщина).' : 'Я учу иврит (мужчина).',
         },
       ],
     };
@@ -72,7 +73,9 @@ function getInitialMessageForGender(lesson: Lesson, gender: 'male' | 'female'): 
       transcription: isFemale
         ? 'шалóм! ма тирцӣ лишто́т hайóм?'
         : 'шалóм! ма тирцé лишто́т hайóм?',
-      translation: 'Здравствуйте! Что вы хотите выпить сегодня?',
+      translation: isFemale
+        ? 'Здравствуйте! Что вы хотите выпить сегодня? (к женщине)'
+        : 'Здравствуйте! Что вы хотите выпить сегодня? (к мужчине)',
       suggestedReplies: [
         {
           hebrew: isFemale
@@ -81,7 +84,9 @@ function getInitialMessageForGender(lesson: Lesson, gender: 'male' | 'female'): 
           transcription: isFemale
             ? 'анӣ роцá кафэ́ им халáв, бэвакашá.'
             : 'анӣ роцé кафэ́ им халáв, бэвакашá.',
-          translation: 'Я хочу кофе с молоком, пожалуйста.',
+          translation: isFemale
+            ? 'Я хочу кофе с молоком, пожалуйста (женщина).'
+            : 'Я хочу кофе с молоком, пожалуйста (мужчина).',
         },
         {
           hebrew: 'אֶפְשָׁר תֵּה עִם סוּכָּר?',
@@ -97,6 +102,7 @@ function getInitialMessageForGender(lesson: Lesson, gender: 'male' | 'female'): 
     };
   }
 
+  // Общий шаблон для остальных уроков
   let heb = lesson.dialogue.initialMessage.hebrew;
   let tr = lesson.dialogue.initialMessage.transcription;
   if (!isFemale) {
@@ -113,7 +119,7 @@ function getInitialMessageForGender(lesson: Lesson, gender: 'male' | 'female'): 
     translation: lesson.dialogue.initialMessage.translation,
     suggestedReplies: [
       {
-        hebrew: 'שָׁלוֹם, אֲנִי כָּאן.',
+        hebrew: isFemale ? 'שָׁלוֹם, אֲנִי כָּאן.' : 'שָׁלוֹם, אֲנִי כָּאן.',
         transcription: 'шалóм, анӣ кан.',
         translation: 'Привет, я здесь.',
       },
@@ -368,6 +374,7 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
                       : 'bg-blue-600 text-white rounded-br-sm'
                   }`}
                 >
+                  {/* Текст на иврите с учетом настройки showNikkud */}
                   <div
                     dir="rtl"
                     className="text-xl md:text-2xl font-bold font-hebrew leading-loose text-right"
@@ -397,18 +404,21 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
                       : stripNikkud(msg.hebrew)}
                   </div>
 
+                  {/* Транскрипция с 'h' для ה */}
                   {userProfile.showTranscription && msg.transcription && (
                     <p className="text-xs text-blue-600 dark:text-blue-400 font-medium mt-1.5">
                       [{msg.transcription}]
                     </p>
                   )}
 
+                  {/* Перевод на русский */}
                   {msg.translation && (
                     <p className="text-xs text-zinc-600 dark:text-zinc-300 mt-1">
                       {msg.translation}
                     </p>
                   )}
 
+                  {/* Кнопка озвучки */}
                   {isAi && (
                     <div className="mt-2 pt-2 border-t border-zinc-100 dark:border-zinc-700/60 flex items-center justify-end">
                       <button
@@ -429,6 +439,7 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
                 )}
               </div>
 
+              {/* Обратная связь от ИИ по грамматике */}
               {msg.feedback && (
                 <div className="ml-10 max-w-[80%] bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/60 p-2.5 rounded-xl text-xs text-amber-800 dark:text-amber-200 flex items-start gap-2">
                   <AlertCircle className="w-4 h-4 shrink-0 text-amber-600 mt-0.5" />
@@ -442,6 +453,7 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
           );
         })}
 
+        {/* Подсказки быстрых ответов под последним сообщением с учетом showNikkud */}
         {lastAiMessage && lastAiMessage.suggestedReplies && lastAiMessage.suggestedReplies.length > 0 && (
           <div className="pt-2 pl-10 flex flex-wrap gap-2 animate-in fade-in">
             {lastAiMessage.suggestedReplies.map((reply, i) => (
@@ -473,7 +485,7 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Поле ввода */}
+      {/* Поле ввода сообщения */}
       <div className="p-3 bg-white dark:bg-zinc-900 border-t border-zinc-200 dark:border-zinc-800">
         <form
           onSubmit={(e) => {
@@ -514,6 +526,7 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
         </form>
       </div>
 
+      {/* Модалка разбора слова */}
       {selectedWord && (
         <WordLookupModal
           word={selectedWord}
