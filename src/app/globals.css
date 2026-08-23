@@ -1,0 +1,39 @@
+@import "tailwindcss";
+
+:root {
+  --background: #fafafa;
+  --foreground: #18181b;
+  --font-hebrew: var(--font-assistant), var(--font-rubik), 'Segoe UI', Arial, sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #09090b;
+    --foreground: #fafafa;
+  }
+}
+
+body {
+  font-family: var(--font-assistant), var(--font-rubik), 'Segoe UI', Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.font-hebrew {
+  font-family: var(--font-assistant), var(--font-rubik), 'Segoe UI', Arial, sans-serif;
+  font-feature-settings: "kern" 1, "mark" 1, "mkmk" 1, "liga" 1;
+  text-rendering: optimizeLegibility;
+}
+
+/* Красивое отображение огласовок */
+[dir="rtl"] {
+  direction: rtl;
+  text-align: right;
+  unicode-bidi: isolate;
+}
+
+[dir="ltr"] {
+  direction: ltr;
+  text-align: left;
+  unicode-bidi: isolate;
+}
