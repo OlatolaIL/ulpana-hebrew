@@ -1,7 +1,10 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Volume2, Award } from 'lucide-react';
+import {
+  Volume2,
+  Award,
+} from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { Word, UserProfile } from '@/types';
 import { speakHebrew } from '@/lib/speech';
@@ -128,9 +131,6 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
           <p className="text-sm font-semibold text-emerald-600 dark:text-emerald-400 mt-1">
             Отличная работа! Тренировка завершена.
           </p>
-          <p className="text-xs text-zinc-500 mt-2">
-            Вы повторили {words.length} слов(а). Прогресс сохранен в интервальной памяти.
-          </p>
         </div>
 
         <div className="flex gap-3">
@@ -247,20 +247,6 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
                 <div className="text-2xl md:text-3xl font-bold text-zinc-900 dark:text-zinc-100">
                   {currentWord.translation}
                 </div>
-                <div
-                  dir="rtl"
-                  className="text-xl text-zinc-500 dark:text-zinc-400 font-hebrew"
-                >
-                  {currentWord.hebrew}
-                </div>
-                {currentWord.root && (
-                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300">
-                    <span>Шореш:</span>
-                    <span dir="rtl" className="font-bold">
-                      {currentWord.root}
-                    </span>
-                  </div>
-                )}
               </div>
             )}
           </div>
@@ -295,11 +281,6 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
             <div className="text-xl font-bold text-zinc-800 dark:text-zinc-100">
               {currentWord.translation}
             </div>
-            {userProfile.showTranscription && (
-              <p className="text-xs text-blue-600 dark:text-blue-400">
-                [{currentWord.transcription}]
-              </p>
-            )}
           </div>
 
           <div
@@ -336,7 +317,6 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
             >
               <Volume2 className="w-8 h-8" />
             </button>
-            <p className="text-xs text-zinc-400 mt-3">Нажмите, чтобы прослушать слово еще раз</p>
           </div>
 
           <div className="grid grid-cols-1 gap-2.5">
