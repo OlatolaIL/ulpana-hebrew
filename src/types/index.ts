@@ -134,6 +134,7 @@ export interface UserProfile {
   showNikkud: boolean;
   showTranscription: boolean;
   fontStyle: 'print' | 'cursive';
+  speechRate?: number;
   completedLessons: number[];
   lessonProgress: Record<
     number,

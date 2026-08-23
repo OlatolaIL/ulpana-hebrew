@@ -41,20 +41,31 @@ export function speakHebrew(
 ): Promise<void> {
   return new Promise((resolve) => {
     if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
+      console.warn('Speech synthesis is not supported in this browser.');
       resolve();
       return;
     }
 
     window.speechSynthesis.cancel();
+
     const cleanText = stripNikkud(text);
     if (!cleanText.trim()) {
       resolve();
       return;
     }
 
+    let userRate = 0.7;
+    try {
+      const stored = localStorage.getItem('hebrew_app_profile_v1');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (typeof parsed.speechRate === 'number') userRate = parsed.speechRate;
+      }
+    } catch {}
+
     const utterance = new SpeechSynthesisUtterance(cleanText);
     utterance.lang = 'he-IL';
-    utterance.rate = options.rate ?? 0.85;
+    utterance.rate = options.rate ?? userRate;
     utterance.pitch = options.pitch ?? 1.0;
 
     if (preferredHebrewVoice) {
@@ -66,7 +77,11 @@ export function speakHebrew(
     }
 
     utterance.onend = () => resolve();
-    utterance.onerror = () => resolve();
+    utterance.onerror = (e) => {
+      console.error('TTS error:', e);
+      resolve();
+    };
+
     window.speechSynthesis.speak(utterance);
   });
 }

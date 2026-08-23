@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useState } from 'react';
-import { X, Key, User, Volume2, Eye, HelpCircle, CheckCircle2 } from 'lucide-react';
+import React from 'react';
+import { X, Key, User, Volume2, Eye, CheckCircle2 } from 'lucide-react';
 import { UserProfile, UserGender, AiProvider } from '@/types';
 import { saveUserProfile } from '@/lib/storage';
+import { speakHebrew } from '@/lib/speech';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -38,7 +39,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               <h2 className="font-bold text-base text-zinc-900 dark:text-zinc-50">
                 Настройки обучения
               </h2>
-              <p className="text-xs text-zinc-500">Грамматический пол, ИИ и отображение</p>
+              <p className="text-xs text-zinc-500">Грамматический пол, скорость речи, ИИ и отображение</p>
             </div>
           </div>
           <button
@@ -86,6 +87,74 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 <span dir="rtl" className="text-xs text-zinc-500 font-hebrew">
                   זָכָר (אַתָּה רוֹצֶה)
                 </span>
+              </button>
+            </div>
+          </div>
+
+          <hr className="border-zinc-200 dark:border-zinc-800" />
+
+          {/* Скорость речи */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+                <Volume2 className="w-4 h-4 text-emerald-600" />
+                <span>Скорость речи и озвучки</span>
+              </h3>
+              <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300">
+                {(profile.speechRate ?? 0.7).toFixed(2)}x
+              </span>
+            </div>
+
+            <p className="text-xs text-zinc-500">
+              Настройте темп голоса, чтобы отчетливо слышать каждый звук и окончание.
+            </p>
+
+            <div className="grid grid-cols-4 gap-2 pt-1">
+              {[
+                { label: '0.55x Медленно', rate: 0.55 },
+                { label: '0.70x Учебная', rate: 0.7 },
+                { label: '0.85x Средняя', rate: 0.85 },
+                { label: '1.00x Обычная', rate: 1.0 },
+              ].map((p) => (
+                <button
+                  key={p.rate}
+                  type="button"
+                  onClick={() => {
+                    handleChange({ speechRate: p.rate });
+                    speakHebrew('שָׁלוֹם, בּוֹקֶר טוֹב!', { rate: p.rate });
+                  }}
+                  className={`py-2 px-1 text-center rounded-xl border text-xs font-medium transition ${
+                    (profile.speechRate ?? 0.7) === p.rate
+                      ? 'border-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 font-bold ring-2 ring-emerald-600/20'
+                      : 'border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800'
+                  }`}
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
+
+            <div className="pt-1 flex items-center gap-3">
+              <input
+                type="range"
+                min="0.4"
+                max="1.2"
+                step="0.05"
+                value={profile.speechRate ?? 0.7}
+                onChange={(e) => handleChange({ speechRate: parseFloat(e.target.value) })}
+                className="flex-1 accent-emerald-600 cursor-pointer"
+              />
+              <button
+                type="button"
+                onClick={() =>
+                  speakHebrew('שָׁלוֹם! בּוֹקֶר טוֹב. אֲנִי לוֹמֵד עִבְרִית.', {
+                    rate: profile.speechRate ?? 0.7,
+                  })
+                }
+                className="px-3 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 hover:bg-emerald-100 text-emerald-700 dark:text-emerald-300 text-xs font-semibold flex items-center gap-1.5 transition"
+              >
+                <Volume2 className="w-3.5 h-3.5" />
+                <span>Проверить</span>
               </button>
             </div>
           </div>
@@ -180,58 +249,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 <p className="text-xs text-zinc-500 mt-1">Gemini 2.0 Flash • Google AI Studio</p>
               </button>
             </div>
-
-            {profile.aiProvider === 'groq' ? (
-              <div className="space-y-2">
-                <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300">
-                  Ключ Groq API (gsk_...)
-                </label>
-                <input
-                  type="password"
-                  value={profile.groqApiKey || ''}
-                  onChange={(e) => handleChange({ groqApiKey: e.target.value })}
-                  placeholder="Вставьте бесплатный ключ Groq"
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600"
-                />
-                <p className="text-xs text-zinc-500">
-                  Ключ можно получить бесплатно на сайте{' '}
-                  <a
-                    href="https://console.groq.com/keys"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-blue-600 underline font-medium"
-                  >
-                    console.groq.com
-                  </a>
-                  . Работает без оплаты и кредитных карт.
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300">
-                  Ключ Google Gemini API (AIzaSy...)
-                </label>
-                <input
-                  type="password"
-                  value={profile.geminiApiKey || ''}
-                  onChange={(e) => handleChange({ geminiApiKey: e.target.value })}
-                  placeholder="Вставьте ключ Gemini"
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600"
-                />
-                <p className="text-xs text-zinc-500">
-                  Ключ доступен бесплатно на{' '}
-                  <a
-                    href="https://aistudio.google.com/app/apikey"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-blue-600 underline font-medium"
-                  >
-                    aistudio.google.com
-                  </a>
-                  .
-                </p>
-              </div>
-            )}
           </div>
         </div>
 
