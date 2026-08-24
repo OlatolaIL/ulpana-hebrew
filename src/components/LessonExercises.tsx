@@ -10,12 +10,14 @@ interface LessonExercisesProps {
   lesson: Lesson;
   userProfile: UserProfile;
   onCompleted?: () => void;
+  onUpdateProfile?: (profile: UserProfile) => void;
 }
 
 export const LessonExercises: React.FC<LessonExercisesProps> = ({
   lesson,
   userProfile,
   onCompleted,
+  onUpdateProfile,
 }) => {
   const [currentIdx, setCurrentIdx] = useState(0);
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
@@ -100,10 +102,32 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
 
   return (
     <div className="max-w-xl mx-auto space-y-6">
-      {/* Прогресс упражнений */}
-      <div className="flex items-center justify-between text-xs font-semibold text-zinc-500">
+      {/* Прогресс упражнений и переключатель шрифта */}
+      <div className="flex items-center justify-between gap-3 text-xs font-semibold text-zinc-500">
         <span>Упражнение {currentIdx + 1} из {exercises.length}</span>
-        <span>Тема: {lesson.titleRussian}</span>
+
+        <button
+          type="button"
+          onClick={() => {
+            const nextStyle: 'print' | 'cursive' = userProfile.fontStyle === 'cursive' ? 'print' : 'cursive';
+            const updated: UserProfile = { ...userProfile, fontStyle: nextStyle };
+            if (onUpdateProfile) onUpdateProfile(updated);
+          }}
+          className="px-2.5 py-1.5 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-sm text-xs font-semibold flex items-center gap-1.5 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition"
+          title="Переключить шрифт упражнений: Печатный / Рукописный"
+        >
+          {userProfile.fontStyle === 'cursive' ? (
+            <>
+              <span className="font-cursive font-bold text-base text-blue-600 dark:text-blue-400 leading-none">כתב</span>
+              <span className="text-zinc-700 dark:text-zinc-300">Рукописный</span>
+            </>
+          ) : (
+            <>
+              <span className="font-hebrew font-bold text-xs text-zinc-700 dark:text-zinc-300 leading-none">דפוס</span>
+              <span className="text-zinc-700 dark:text-zinc-300">Печатный</span>
+            </>
+          )}
+        </button>
       </div>
 
       <div className="w-full bg-zinc-200 dark:bg-zinc-800 h-2 rounded-full overflow-hidden">
