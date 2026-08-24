@@ -74,8 +74,19 @@ export const PersonalDictionary: React.FC<PersonalDictionaryProps> = ({
     setIsAddingCustom(false);
   };
 
+  const isCursive = userProfile.fontStyle === 'cursive';
+
+  const handleToggleFont = () => {
+    const nextStyle: 'print' | 'cursive' = userProfile.fontStyle === 'cursive' ? 'print' : 'cursive';
+    const updated: UserProfile = { ...userProfile, fontStyle: nextStyle };
+    try {
+      localStorage.setItem('ulpana_user_profile', JSON.stringify(updated));
+    } catch {}
+    onUpdateProfile(updated);
+  };
+
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
+    <div data-font-style={userProfile.fontStyle || 'print'} className="max-w-4xl mx-auto space-y-6">
       {/* Шапка страницы */}
       <div className="bg-gradient-to-r from-blue-600 to-indigo-700 text-white rounded-3xl p-6 shadow-md flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
@@ -91,15 +102,11 @@ export const PersonalDictionary: React.FC<PersonalDictionaryProps> = ({
         <div className="flex items-center gap-2">
           <button
             type="button"
-            onClick={() => {
-              const nextStyle: 'print' | 'cursive' = userProfile.fontStyle === 'cursive' ? 'print' : 'cursive';
-              const updated: UserProfile = { ...userProfile, fontStyle: nextStyle };
-              onUpdateProfile(updated);
-            }}
+            onClick={handleToggleFont}
             className="px-3 py-2.5 rounded-xl bg-white/20 hover:bg-white/30 text-white text-xs font-semibold flex items-center gap-1.5 backdrop-blur transition"
             title="Переключить шрифт словарика: Печатный / Рукописный"
           >
-            {userProfile.fontStyle === 'cursive' ? (
+            {isCursive ? (
               <>
                 <span className="font-cursive font-bold text-base leading-none">כתב</span>
                 <span>Рукописный</span>
@@ -172,7 +179,11 @@ export const PersonalDictionary: React.FC<PersonalDictionaryProps> = ({
                 <div>
                   <div
                     dir="rtl"
-                    className="text-xl font-bold text-zinc-900 dark:text-zinc-50 font-hebrew"
+                    className={`font-bold ${
+                      isCursive
+                        ? 'font-cursive text-2xl md:text-3xl text-blue-600 dark:text-blue-400'
+                        : 'font-hebrew text-xl text-zinc-900 dark:text-zinc-50'
+                    }`}
                   >
                     {userProfile.showNikkud ? word.hebrew : word.hebrewPlain}
                   </div>
@@ -189,7 +200,7 @@ export const PersonalDictionary: React.FC<PersonalDictionaryProps> = ({
 
               <div className="flex items-center gap-2">
                 {word.root && (
-                  <span className="hidden sm:inline-block px-2 py-0.5 rounded text-[11px] bg-amber-50 dark:bg-amber-950/50 text-amber-800 dark:text-amber-300 font-mono">
+                  <span className={`hidden sm:inline-block px-2 py-0.5 rounded text-[11px] bg-amber-50 dark:bg-amber-950/50 text-amber-800 dark:text-amber-300 ${isCursive ? 'font-cursive text-base' : 'font-mono'}`}>
                     {word.root}
                   </span>
                 )}
