@@ -6,13 +6,14 @@ import { CourseMap } from '@/components/CourseMap';
 import { LessonView } from '@/components/LessonView';
 import { FlashcardTrainer } from '@/components/FlashcardTrainer';
 import { PersonalDictionary } from '@/components/PersonalDictionary';
+import { AlphabetTrainer } from '@/components/AlphabetTrainer';
 import { SettingsModal } from '@/components/SettingsModal';
 import { UserProfile, Word } from '@/types';
 import { loadUserProfile, saveUserProfile } from '@/lib/storage';
 import { initHebrewVoices } from '@/lib/speech';
 import { DETAILED_LESSONS, getLessonById } from '@/data/lessonsData';
 
-type ViewMode = 'map' | 'lesson' | 'flashcards' | 'dictionary';
+type ViewMode = 'map' | 'lesson' | 'flashcards' | 'dictionary' | 'alphabet';
 
 export default function Home() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -52,15 +53,18 @@ export default function Home() {
   };
 
   const handleLaunchGeneralFlashcards = () => {
+    // Собираем слова из текущего открытого урока или первого урока
     const currentLessonWords = getLessonById(activeLessonId).vocabulary;
     const personal = profile.personalVocabulary;
     const combined = [...personal, ...currentLessonWords];
+    // Уникализируем
     const unique = Array.from(new Map(combined.map((w) => [w.hebrewPlain, w])).values());
     handleStartFlashcards(unique.length > 0 ? unique : currentLessonWords);
   };
 
   return (
     <div className="min-h-screen flex flex-col bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-50 font-sans">
+      {/* Навбар */}
       <Navbar
         currentView={currentView}
         onNavigate={(view) => {
@@ -74,6 +78,7 @@ export default function Home() {
         onOpenSettings={() => setIsSettingsOpen(true)}
       />
 
+      {/* Основная рабочая область */}
       <main className="flex-1 max-w-6xl w-full mx-auto px-4 py-6 md:py-8">
         {currentView === 'map' && (
           <CourseMap
@@ -114,6 +119,10 @@ export default function Home() {
           </div>
         )}
 
+        {currentView === 'alphabet' && (
+          <AlphabetTrainer userProfile={profile} />
+        )}
+
         {currentView === 'dictionary' && (
           <PersonalDictionary
             userProfile={profile}
@@ -126,6 +135,7 @@ export default function Home() {
         )}
       </main>
 
+      {/* Модалка настроек */}
       <SettingsModal
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
