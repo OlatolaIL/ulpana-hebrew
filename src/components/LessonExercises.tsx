@@ -100,23 +100,30 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
     );
   }
 
+  const isCursive = userProfile.fontStyle === 'cursive';
+
+  const handleToggleFont = () => {
+    const nextStyle: 'print' | 'cursive' = userProfile.fontStyle === 'cursive' ? 'print' : 'cursive';
+    const updated: UserProfile = { ...userProfile, fontStyle: nextStyle };
+    try {
+      localStorage.setItem('ulpana_user_profile', JSON.stringify(updated));
+    } catch {}
+    if (onUpdateProfile) onUpdateProfile(updated);
+  };
+
   return (
-    <div className="max-w-xl mx-auto space-y-6">
+    <div data-font-style={userProfile.fontStyle || 'print'} className="max-w-xl mx-auto space-y-6">
       {/* Прогресс упражнений и переключатель шрифта */}
       <div className="flex items-center justify-between gap-3 text-xs font-semibold text-zinc-500">
         <span>Упражнение {currentIdx + 1} из {exercises.length}</span>
 
         <button
           type="button"
-          onClick={() => {
-            const nextStyle: 'print' | 'cursive' = userProfile.fontStyle === 'cursive' ? 'print' : 'cursive';
-            const updated: UserProfile = { ...userProfile, fontStyle: nextStyle };
-            if (onUpdateProfile) onUpdateProfile(updated);
-          }}
+          onClick={handleToggleFont}
           className="px-2.5 py-1.5 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-sm text-xs font-semibold flex items-center gap-1.5 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition"
           title="Переключить шрифт упражнений: Печатный / Рукописный"
         >
-          {userProfile.fontStyle === 'cursive' ? (
+          {isCursive ? (
             <>
               <span className="font-cursive font-bold text-base text-blue-600 dark:text-blue-400 leading-none">כתב</span>
               <span className="text-zinc-700 dark:text-zinc-300">Рукописный</span>
@@ -150,6 +157,7 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
               {currentEx.options.map((opt, i) => {
                 const isSelected = selectedOption === opt;
                 const isCorrectOpt = opt === currentEx.correctAnswer;
+                const isOptHebrew = /[\u0590-\u05FF]/.test(opt);
 
                 let btnClass =
                   'border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-800 dark:text-zinc-200';
@@ -169,9 +177,20 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
                     key={i}
                     disabled={isAnswered}
                     onClick={() => handleSelectOption(opt)}
-                    className={`p-4 rounded-2xl border text-sm font-medium text-left flex items-center justify-between transition ${btnClass}`}
+                    className={`p-4 rounded-2xl border text-left flex items-center justify-between transition ${btnClass}`}
                   >
-                    <span dir={/[\u0590-\u05FF]/.test(opt) ? 'rtl' : 'ltr'}>{opt}</span>
+                    <span
+                      dir={isOptHebrew ? 'rtl' : 'ltr'}
+                      className={
+                        isOptHebrew
+                          ? isCursive
+                            ? 'font-cursive text-2xl md:text-3xl font-bold'
+                            : 'font-hebrew text-lg font-bold'
+                          : 'text-sm font-medium'
+                      }
+                    >
+                      {opt}
+                    </span>
                     {isAnswered && isCorrectOpt && (
                       <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
                     )}
@@ -189,7 +208,9 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
           <div className="space-y-4">
             <div
               dir="rtl"
-              className="min-h-[56px] p-3 rounded-2xl border-2 border-dashed border-blue-400 bg-blue-50/40 dark:bg-blue-950/20 flex flex-wrap gap-2 items-center font-hebrew text-lg font-bold"
+              className={`min-h-[56px] p-3 rounded-2xl border-2 border-dashed border-blue-400 bg-blue-50/40 dark:bg-blue-950/20 flex flex-wrap gap-2 items-center font-bold ${
+                isCursive ? 'font-cursive text-2xl text-blue-600 dark:text-blue-400' : 'font-hebrew text-lg'
+              }`}
             >
               {selectedSentenceWords.map((w, i) => (
                 <span
@@ -209,10 +230,12 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
                     key={i}
                     disabled={isUsed || isAnswered}
                     onClick={() => handleSentenceWordClick(w, i)}
-                    className={`px-4 py-2 rounded-xl text-base font-bold font-hebrew border transition ${
+                    className={`px-4 py-2 rounded-xl font-bold border transition ${
+                      isCursive ? 'font-cursive text-2xl md:text-3xl' : 'font-hebrew text-base'
+                    } ${
                       isUsed
                         ? 'opacity-30 border-transparent bg-zinc-100 dark:bg-zinc-800'
-                        : 'bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 hover:border-blue-500 shadow-sm'
+                        : 'bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 hover:border-blue-500 shadow-sm text-zinc-900 dark:text-zinc-50'
                     }`}
                   >
                     {w}
