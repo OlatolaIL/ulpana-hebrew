@@ -279,16 +279,7 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
   };
 
   const handleResetChat = () => {
-    setMessages([
-      {
-        id: `reset-${Date.now()}`,
-        role: 'assistant',
-        hebrew: lesson.dialogue.initialMessage.hebrew,
-        transcription: lesson.dialogue.initialMessage.transcription,
-        translation: lesson.dialogue.initialMessage.translation,
-        timestamp: Date.now(),
-      },
-    ]);
+    initChat(userProfile.gender);
   };
 
   const lastAiMessage = [...messages].reverse().find((m) => m.role === 'assistant');
