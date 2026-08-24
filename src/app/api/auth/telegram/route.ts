@@ -8,35 +8,45 @@ export async function POST(req: NextRequest) {
     const data: TelegramAuthData = await req.json();
     const botToken = process.env.TELEGRAM_BOT_TOKEN || '8857824092:AAE3sCbuElBPEctBBXlfTCZfjmPPZTJjdnY';
 
-    if (!data.id) {
-      return NextResponse.json({ error: 'Missing Telegram ID' }, { status: 400 });
+    if (!data.id && !data.username) {
+      return NextResponse.json({ error: 'Укажите Telegram ID или @username' }, { status: 400 });
     }
 
-    // Если токен бота указан, проводим строгую криптографическую проверку
-    if (botToken) {
+    // Если передан hash (официальный виджет или WebApp) — проводим криптографическую проверку
+    if (data.hash && botToken) {
       const isValid = verifyTelegramAuth(data, botToken);
       if (!isValid) {
         return NextResponse.json({ error: 'Invalid Telegram signature' }, { status: 401 });
       }
-    } else {
-      console.warn('[Auth] TELEGRAM_BOT_TOKEN not configured in env. Allowing dev authentication.');
     }
 
-    await initDatabase();
-    const db = getDbPool();
+    let rawId = String(data.id || data.username || '').trim();
+    let numericId = parseInt(rawId.replace(/\D/g, ''), 10);
+    if (isNaN(numericId) || numericId <= 0) {
+      let hash = 0;
+      for (let i = 0; i < rawId.length; i++) {
+        hash = (hash << 5) - hash + rawId.charCodeAt(i);
+        hash |= 0;
+      }
+      numericId = Math.abs(hash) || 1000000;
+    }
 
-    const fullName = [data.first_name, data.last_name].filter(Boolean).join(' ') || data.username || 'Ученик';
-    const userId = `tg_${data.id}`;
+    const cleanUsername = (data.username || rawId.replace(/^@/, '')).trim();
+    const fullName = [data.first_name, data.last_name].filter(Boolean).join(' ') || (cleanUsername ? `@${cleanUsername}` : `Telegram ID: ${numericId}`);
+    const userId = `tg_${numericId}`;
     let tier: 'free' | 'pro' | 'admin' = 'free';
     let expiresAt: number | null = null;
     let gender: 'male' | 'female' = 'female';
     let fontStyle: 'print' | 'cursive' = 'print';
 
+    await initDatabase();
+    const db = getDbPool();
+
     if (db) {
       // Ищем существующего пользователя
       const existingUser = await db.query(
         'SELECT * FROM ulpana_users WHERE telegram_id = $1 OR id = $2',
-        [data.id, userId]
+        [numericId, userId]
       );
 
       if (existingUser.rows.length > 0) {
@@ -49,24 +59,24 @@ export async function POST(req: NextRequest) {
         // Обновляем данные пользователя при входе
         await db.query(
           `UPDATE ulpana_users
-           SET name = $1, username = $2, avatar_url = $3, updated_at = NOW()
+           SET name = $1, username = $2, avatar_url = COALESCE($3, avatar_url), updated_at = NOW()
            WHERE id = $4`,
-          [fullName, data.username || null, data.photo_url || null, userId]
+          [fullName, cleanUsername || null, data.photo_url || null, userId]
         );
       } else {
         // Создаем нового пользователя
         await db.query(
           `INSERT INTO ulpana_users (id, telegram_id, name, username, avatar_url, gender, font_style, subscription_tier)
            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-          [userId, data.id, fullName, data.username || null, data.photo_url || null, gender, fontStyle, tier]
+          [userId, numericId, fullName, cleanUsername || null, data.photo_url || null, gender, fontStyle, tier]
         );
       }
     }
 
     const session: UserSession = {
       id: userId,
-      telegramId: data.id,
-      username: data.username,
+      telegramId: numericId,
+      username: cleanUsername,
       name: fullName,
       avatarUrl: data.photo_url,
       subscriptionTier: tier,
