@@ -279,7 +279,16 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
   };
 
   const handleResetChat = () => {
-    initChat(userProfile.gender);
+    setMessages([
+      {
+        id: `reset-${Date.now()}`,
+        role: 'assistant',
+        hebrew: lesson.dialogue.initialMessage.hebrew,
+        transcription: lesson.dialogue.initialMessage.transcription,
+        translation: lesson.dialogue.initialMessage.translation,
+        timestamp: Date.now(),
+      },
+    ]);
   };
 
   const lastAiMessage = [...messages].reverse().find((m) => m.role === 'assistant');
@@ -322,7 +331,7 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
               onClick={() => handleGenderSwitch('female')}
               className={`px-2.5 py-1 rounded-lg font-semibold flex items-center gap-1 transition ${
                 userProfile.gender === 'female'
-                  ? 'bg-pink-600 text-white shadow-sm'
+                  ? 'bg-blue-600 text-white shadow-sm'
                   : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-200'
               }`}
               title="Переключить на обращение к женщине (נְקֵבָה)"
