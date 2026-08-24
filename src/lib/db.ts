@@ -1,4 +1,4 @@
-﻿import { Pool } from 'pg';
+import { Pool } from 'pg';
 
 let pool: Pool | null = null;
 
@@ -92,6 +92,17 @@ export async function initDatabase() {
         used_count INT DEFAULT 0,
         is_active BOOLEAN DEFAULT TRUE,
         created_at TIMESTAMPTZ DEFAULT NOW()
+      );
+    `);
+
+    // 5. Таблица токенов авторизации через Telegram-бота (DeepLink 1-Click)
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS ulpana_auth_tokens (
+        token TEXT PRIMARY KEY,
+        status TEXT DEFAULT 'pending',
+        user_data JSONB,
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        expires_at TIMESTAMPTZ DEFAULT (NOW() + INTERVAL '10 minutes')
       );
     `);
 
