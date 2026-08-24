@@ -9,6 +9,7 @@ import {
   BookOpen,
   Layers,
   Sparkles,
+  ExternalLink,
 } from 'lucide-react';
 import { Word, UserProfile } from '@/types';
 import { speakHebrew } from '@/lib/speech';
@@ -75,6 +76,7 @@ export const PersonalDictionary: React.FC<PersonalDictionaryProps> = ({
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
+      {/* Шапка страницы */}
       <div className="bg-gradient-to-r from-blue-600 to-indigo-700 text-white rounded-3xl p-6 shadow-md flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
@@ -106,6 +108,7 @@ export const PersonalDictionary: React.FC<PersonalDictionaryProps> = ({
         </div>
       </div>
 
+      {/* Поиск */}
       <div className="relative">
         <Search className="w-5 h-5 text-zinc-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
         <input
@@ -117,6 +120,7 @@ export const PersonalDictionary: React.FC<PersonalDictionaryProps> = ({
         />
       </div>
 
+      {/* Список слов */}
       {filteredWords.length === 0 ? (
         <div className="text-center py-16 bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200 dark:border-zinc-800 p-8 space-y-3">
           <Sparkles className="w-12 h-12 text-zinc-300 mx-auto" />
@@ -179,6 +183,7 @@ export const PersonalDictionary: React.FC<PersonalDictionaryProps> = ({
         </div>
       )}
 
+      {/* Модалка добавления кастомного слова */}
       {isAddingCustom && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in">
           <div className="bg-white dark:bg-zinc-900 rounded-2xl p-6 max-w-md w-full border border-zinc-200 dark:border-zinc-800 shadow-2xl space-y-4">
@@ -189,7 +194,7 @@ export const PersonalDictionary: React.FC<PersonalDictionaryProps> = ({
             <form onSubmit={handleCreateWord} className="space-y-3">
               <div>
                 <label className="block text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-1">
-                  Слово на иврите
+                  Слово на иврите (с огласовками или без)
                 </label>
                 <input
                   type="text"
@@ -204,7 +209,7 @@ export const PersonalDictionary: React.FC<PersonalDictionaryProps> = ({
 
               <div>
                 <label className="block text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-1">
-                  Транскрипция (с буквой h для ה)
+                  Транскрипция (русскими буквами с буквой h для ה)
                 </label>
                 <input
                   type="text"
@@ -231,7 +236,7 @@ export const PersonalDictionary: React.FC<PersonalDictionaryProps> = ({
 
               <div>
                 <label className="block text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-1">
-                  Корень слова (не обязательно)
+                  Корень слова (Шореш, не обязательно)
                 </label>
                 <input
                   type="text"
