@@ -74,8 +74,19 @@ export const LessonVocabulary: React.FC<LessonVocabularyProps> = ({
     }
   };
 
+  const isCursive = userProfile.fontStyle === 'cursive';
+
+  const handleToggleFont = () => {
+    const nextStyle: 'print' | 'cursive' = userProfile.fontStyle === 'cursive' ? 'print' : 'cursive';
+    const updated: UserProfile = { ...userProfile, fontStyle: nextStyle };
+    try {
+      localStorage.setItem('ulpana_user_profile', JSON.stringify(updated));
+    } catch {}
+    if (onUpdateProfile) onUpdateProfile(updated);
+  };
+
   return (
-    <div className="space-y-6">
+    <div data-font-style={userProfile.fontStyle || 'print'} className="space-y-6">
       {/* Верхняя панель управления */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-zinc-900 p-4 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm">
         <div className="flex-1 flex items-center gap-3">
@@ -106,15 +117,11 @@ export const LessonVocabulary: React.FC<LessonVocabularyProps> = ({
         <div className="flex items-center gap-2">
           <button
             type="button"
-            onClick={() => {
-              const nextStyle: 'print' | 'cursive' = userProfile.fontStyle === 'cursive' ? 'print' : 'cursive';
-              const updated: UserProfile = { ...userProfile, fontStyle: nextStyle };
-              if (onUpdateProfile) onUpdateProfile(updated);
-            }}
+            onClick={handleToggleFont}
             className="px-3 py-2.5 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-xs font-semibold flex items-center gap-1.5 hover:bg-zinc-50 dark:hover:bg-zinc-700 transition"
             title="Переключить шрифт словаря: Печатный / Рукописный"
           >
-            {userProfile.fontStyle === 'cursive' ? (
+            {isCursive ? (
               <>
                 <span className="font-cursive font-bold text-base text-blue-600 dark:text-blue-400 leading-none">כתב</span>
                 <span className="text-zinc-700 dark:text-zinc-300">Рукописный</span>
@@ -178,7 +185,11 @@ export const LessonVocabulary: React.FC<LessonVocabularyProps> = ({
                 {/* Слово на иврите */}
                 <div
                   dir="rtl"
-                  className="text-2xl font-bold text-zinc-900 dark:text-zinc-50 font-hebrew"
+                  className={`font-bold ${
+                    isCursive
+                      ? 'font-cursive text-3xl md:text-4xl text-blue-600 dark:text-blue-400'
+                      : 'font-hebrew text-2xl text-zinc-900 dark:text-zinc-50'
+                  }`}
                 >
                   {userProfile.showNikkud ? word.hebrew : word.hebrewPlain}
                 </div>
@@ -202,7 +213,7 @@ export const LessonVocabulary: React.FC<LessonVocabularyProps> = ({
                   {word.root && (
                     <div className="flex items-center gap-1.5 text-xs text-amber-700 dark:text-amber-400">
                       <span className="text-[11px] text-zinc-400">Шореш (корень):</span>
-                      <span dir="rtl" className="font-bold">
+                      <span dir="rtl" className={`font-bold ${isCursive ? 'font-cursive text-xl' : ''}`}>
                         {word.root}
                       </span>
                     </div>
@@ -210,7 +221,7 @@ export const LessonVocabulary: React.FC<LessonVocabularyProps> = ({
 
                   {word.exampleSentence && (
                     <div className="text-xs text-zinc-500 bg-zinc-50 dark:bg-zinc-800/40 p-2 rounded-lg">
-                      <p dir="rtl" className="font-hebrew text-zinc-800 dark:text-zinc-200 font-medium">
+                      <p dir="rtl" className={`font-medium ${isCursive ? 'font-cursive text-xl text-blue-600 dark:text-blue-400' : 'font-hebrew text-zinc-800 dark:text-zinc-200'}`}>
                         {word.exampleSentence.hebrew}
                       </p>
                       <p className="text-[11px] text-zinc-500 mt-0.5">
