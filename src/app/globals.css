@@ -1,9 +1,11 @@
+@import url('https://fonts.googleapis.com/css2?family=Gveret+Levin&display=swap');
 @import "tailwindcss";
 
 :root {
   --background: #fafafa;
   --foreground: #18181b;
   --font-hebrew: var(--font-assistant), var(--font-rubik), 'Segoe UI', Arial, sans-serif;
+  --font-cursive: 'Gveret Levin', cursive, var(--font-assistant), sans-serif;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -21,6 +23,13 @@ body {
 
 .font-hebrew {
   font-family: var(--font-assistant), var(--font-rubik), 'Segoe UI', Arial, sans-serif;
+  font-feature-settings: "kern" 1, "mark" 1, "mkmk" 1, "liga" 1;
+  text-rendering: optimizeLegibility;
+}
+
+.font-cursive,
+.font-handwriting {
+  font-family: 'Gveret Levin', cursive, var(--font-assistant), sans-serif !important;
   font-feature-settings: "kern" 1, "mark" 1, "mkmk" 1, "liga" 1;
   text-rendering: optimizeLegibility;
 }
