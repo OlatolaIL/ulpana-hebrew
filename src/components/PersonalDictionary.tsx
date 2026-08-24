@@ -90,6 +90,29 @@ export const PersonalDictionary: React.FC<PersonalDictionaryProps> = ({
 
         <div className="flex items-center gap-2">
           <button
+            type="button"
+            onClick={() => {
+              const nextStyle: 'print' | 'cursive' = userProfile.fontStyle === 'cursive' ? 'print' : 'cursive';
+              const updated: UserProfile = { ...userProfile, fontStyle: nextStyle };
+              onUpdateProfile(updated);
+            }}
+            className="px-3 py-2.5 rounded-xl bg-white/20 hover:bg-white/30 text-white text-xs font-semibold flex items-center gap-1.5 backdrop-blur transition"
+            title="Переключить шрифт словарика: Печатный / Рукописный"
+          >
+            {userProfile.fontStyle === 'cursive' ? (
+              <>
+                <span className="font-cursive font-bold text-base leading-none">כתב</span>
+                <span>Рукописный</span>
+              </>
+            ) : (
+              <>
+                <span className="font-hebrew font-bold text-xs leading-none">דפוס</span>
+                <span>Печатный</span>
+              </>
+            )}
+          </button>
+
+          <button
             onClick={() => setIsAddingCustom(true)}
             className="px-4 py-2.5 rounded-xl bg-white/20 hover:bg-white/30 text-white text-sm font-semibold flex items-center gap-2 backdrop-blur transition"
           >
