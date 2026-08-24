@@ -17,6 +17,7 @@ interface NavbarProps {
   onNavigate: (view: 'map' | 'flashcards' | 'dictionary' | 'alphabet') => void;
   userProfile: UserProfile;
   onOpenSettings: () => void;
+  onToggleFontStyle?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -24,6 +25,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onNavigate,
   userProfile,
   onOpenSettings,
+  onToggleFontStyle,
 }) => {
   const dictCount = userProfile.personalVocabulary?.length || 0;
 
@@ -111,6 +113,25 @@ export const Navbar: React.FC<NavbarProps> = ({
 
         {/* Правая часть: пол, статус ИИ и Настройки */}
         <div className="flex items-center gap-2">
+          {/* Быстрый переключатель шрифта (Печатный / Рукописный) */}
+          <button
+            onClick={onToggleFontStyle}
+            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-zinc-200 dark:border-zinc-800 text-xs font-semibold hover:bg-zinc-50 dark:hover:bg-zinc-800 transition"
+            title="Быстрое переключение шрифта иврита: Печатный (דפוס) / Рукописный (כתב)"
+          >
+            {userProfile.fontStyle === 'cursive' ? (
+              <>
+                <span className="font-cursive font-bold text-base text-blue-600 dark:text-blue-400 leading-none">כתב</span>
+                <span className="hidden sm:inline text-zinc-700 dark:text-zinc-300">Рукописный</span>
+              </>
+            ) : (
+              <>
+                <span className="font-hebrew font-bold text-xs text-zinc-700 dark:text-zinc-200 leading-none">דפוס</span>
+                <span className="hidden sm:inline text-zinc-700 dark:text-zinc-300">Печатный</span>
+              </>
+            )}
+          </button>
+
           {/* Бейдж пола */}
           <button
             onClick={onOpenSettings}
