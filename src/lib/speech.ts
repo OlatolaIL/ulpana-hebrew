@@ -47,6 +47,19 @@ export function initHebrewVoices(): Promise<SpeechSynthesisVoice | null> {
 /**
  * Воспроизведение текста на иврите с помощью встроенного движка браузера
  */
+function fixHebrewPhonetics(text: string): string {
+  let res = text;
+  // 1. ספרי לי -> סַפְּרִי לִי (расскажи мне [ж.р.], чтобы движок не читал как sifri li)
+  res = res.replace(/(^|\s)ספרי(\s+לי)/g, '$1סַפְּרִי$2');
+  // 2. ספר לי -> סַפֵּר לִי (расскажи мне [м.р.], чтобы движок не читал как sefer li)
+  res = res.replace(/(^|\s)ספר(\s+לי)/g, '$1סַפֵּר$2');
+  // 3. תספרי לי -> תְּסַפְּרִי לִי
+  res = res.replace(/(^|\s)תספרי(\s+לי)/g, '$1תְּסַפְּרִי$2');
+  // 4. תספר לי -> תְּסַפֵּר לִי
+  res = res.replace(/(^|\s)תספר(\s+לי)/g, '$1תְּסַפֵּר$2');
+  return res;
+}
+
 export function speakHebrew(
   text: string,
   options: { rate?: number; pitch?: number } = {}
@@ -60,8 +73,8 @@ export function speakHebrew(
 
     window.speechSynthesis.cancel(); // останавливаем предыдущую речь
 
-    // Сохраняем огласовки (ניקוד) для точного различения мужского и женского рода (напр. לָךְ [lakh] vs לְךָ [lekha])
-    const speechText = text.trim();
+    // Сохраняем и нормализуем огласовки (ניקוד) для точного произношения
+    const speechText = fixHebrewPhonetics(text.trim());
     if (!speechText) {
       resolve();
       return;
