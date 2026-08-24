@@ -60,9 +60,9 @@ export function speakHebrew(
 
     window.speechSynthesis.cancel(); // останавливаем предыдущую речь
 
-    // Очищаем огласовки перед чтением
-    const cleanText = stripNikkud(text);
-    if (!cleanText.trim()) {
+    // Сохраняем огласовки (ניקוד) для точного различения мужского и женского рода (напр. לָךְ [lakh] vs לְךָ [lekha])
+    const speechText = text.trim();
+    if (!speechText) {
       resolve();
       return;
     }
@@ -76,7 +76,7 @@ export function speakHebrew(
       }
     } catch {}
 
-    const utterance = new SpeechSynthesisUtterance(cleanText);
+    const utterance = new SpeechSynthesisUtterance(speechText);
     utterance.lang = 'he-IL';
     utterance.rate = options.rate ?? userRate;
     utterance.pitch = options.pitch ?? 1.0;
