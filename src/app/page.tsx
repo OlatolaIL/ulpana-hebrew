@@ -117,7 +117,23 @@ export default function Home() {
           tg.expand();
           if (tg.initDataUnsafe?.user) {
             const u = tg.initDataUnsafe.user;
-            const res = await fetch('/api/auth/telegram', {
+            const fullName = [u.first_name, u.last_name].filter(Boolean).join(' ') || (u.username ? `@${u.username}` : 'Ученик');
+            
+            // СРАЗУ МГНОВЕННО обновляем интерфейс, не дожидаясь ответа сервера!
+            const instantProfile: UserProfile = {
+              ...p,
+              id: `tg_${u.id}`,
+              telegramId: u.id,
+              username: u.username,
+              name: fullName,
+              avatarUrl: u.photo_url,
+              isLoggedIn: true,
+            };
+            setProfile(instantProfile);
+            saveUserProfile(instantProfile);
+
+            // В фоне сохраняем сессию и синхронизируем данные
+            fetch('/api/auth/telegram', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
@@ -129,38 +145,31 @@ export default function Home() {
                 auth_date: Math.floor(Date.now() / 1000),
                 hash: 'webapp_validated',
               }),
-            });
-            const data = await res.json();
-            if (res.ok && data.success && data.user) {
-              const syncRes = await fetch('/api/user/sync');
-              const syncData = await syncRes.json();
-
-              const merged: UserProfile = {
-                ...p,
-                id: data.user.id,
-                telegramId: data.user.telegramId,
-                username: data.user.username,
-                name: data.user.name,
-                avatarUrl: data.user.avatarUrl,
-                isLoggedIn: true,
-                subscriptionTier: data.user.subscriptionTier,
-                subscriptionExpiresAt: data.user.subscriptionExpiresAt,
-                gender: data.gender || p.gender,
-                fontStyle: data.fontStyle || p.fontStyle,
-                lessonProgress: {
-                  ...p.lessonProgress,
-                  ...(syncData.lessonProgress || {}),
-                },
-                personalVocabulary:
-                  syncData.personalVocabulary && syncData.personalVocabulary.length > 0
-                    ? syncData.personalVocabulary
-                    : p.personalVocabulary,
-              };
-
-              setProfile(merged);
-              saveUserProfile(merged);
-              return;
-            }
+            }).then(async (res) => {
+              const data = await res.json();
+              if (res.ok && data.success && data.user) {
+                try {
+                  const syncRes = await fetch('/api/user/sync');
+                  const syncData = await syncRes.json();
+                  const finalProfile: UserProfile = {
+                    ...instantProfile,
+                    subscriptionTier: data.user.subscriptionTier || instantProfile.subscriptionTier,
+                    subscriptionExpiresAt: data.user.subscriptionExpiresAt || instantProfile.subscriptionExpiresAt,
+                    lessonProgress: {
+                      ...instantProfile.lessonProgress,
+                      ...(syncData.lessonProgress || {}),
+                    },
+                    personalVocabulary:
+                      syncData.personalVocabulary && syncData.personalVocabulary.length > 0
+                        ? syncData.personalVocabulary
+                        : instantProfile.personalVocabulary,
+                  };
+                  setProfile(finalProfile);
+                  saveUserProfile(finalProfile);
+                } catch {}
+              }
+            }).catch((err) => console.warn('[WebApp BG Auth] error:', err));
+            return;
           }
         }
       } catch (e) {

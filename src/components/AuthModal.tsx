@@ -189,69 +189,57 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           </div>
         )}
 
-        {/* Форма прямого входа по Нику / ID (без ожидания и без номеров!) */}
-        <form onSubmit={handleCustomSubmit} className="space-y-3 pt-1">
+        {/* Кнопка 1-клика через Telegram бота */}
+        <div className="space-y-3 pt-1">
+          <a
+            href={`https://t.me/${botUsername}?start=login`}
+            target="_blank"
+            rel="noreferrer"
+            className="w-full py-3.5 px-5 rounded-2xl bg-[#229ED9] hover:bg-[#1E8CC0] active:scale-98 text-white font-bold text-sm flex items-center justify-center gap-2.5 shadow-lg shadow-blue-500/25 transition"
+          >
+            <Send className="w-5 h-5" />
+            <span>Войти через Telegram в 1 клик</span>
+          </a>
+          <p className="text-[11px] text-center text-zinc-400">
+            Бот мгновенно авторизует вас и вернет на сайт
+          </p>
+        </div>
+
+        <div className="relative flex py-1 items-center">
+          <div className="flex-grow border-t border-zinc-200 dark:border-zinc-800"></div>
+          <span className="flex-shrink mx-3 text-[10px] text-zinc-400 uppercase font-bold tracking-wider">
+            или ввести имя / ник
+          </span>
+          <div className="flex-grow border-t border-zinc-200 dark:border-zinc-800"></div>
+        </div>
+
+        {/* Форма прямого входа по Нику / Имени */}
+        <form onSubmit={handleCustomSubmit} className="space-y-3">
           <div className="space-y-1.5">
-            <label className="block text-xs font-bold text-zinc-800 dark:text-zinc-200">
-              Ваш Telegram ник (@username) или ID:
-            </label>
             <div className="relative">
               <input
                 type="text"
                 value={telegramInput}
                 onChange={(e) => setTelegramInput(e.target.value)}
-                placeholder="Например: @olatola или 8215851"
-                autoFocus
-                className="w-full px-4 py-3 text-sm font-medium rounded-2xl border-2 border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/80 text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-[#229ED9]/40 focus:border-[#229ED9] transition"
+                placeholder="Ваш ник (например: Osa_IL или @ник)"
+                className="w-full px-4 py-2.5 text-sm font-medium rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/80 text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-[#229ED9]/40 transition"
               />
-            </div>
-            <div className="flex items-center justify-between text-[11px] text-zinc-400 px-1">
-              <span>Без паролей и номеров телефонов</span>
-              <a
-                href="https://t.me/userinfobot"
-                target="_blank"
-                rel="noreferrer"
-                className="text-[#229ED9] hover:underline font-semibold"
-              >
-                Узнать в @userinfobot →
-              </a>
             </div>
           </div>
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3.5 px-5 rounded-2xl bg-[#229ED9] hover:bg-[#1E8CC0] active:scale-98 text-white font-bold text-sm flex items-center justify-center gap-2.5 shadow-lg shadow-blue-500/25 transition disabled:opacity-50"
+            className="w-full py-2.5 px-4 rounded-xl bg-zinc-800 hover:bg-zinc-700 dark:bg-zinc-700 dark:hover:bg-zinc-600 text-white font-semibold text-xs flex items-center justify-center gap-2 transition disabled:opacity-50"
           >
             {loading ? (
-              <Loader2 className="w-5 h-5 animate-spin" />
+              <Loader2 className="w-4 h-4 animate-spin" />
             ) : (
-              <Send className="w-5 h-5" />
+              <CheckCircle2 className="w-4 h-4" />
             )}
-            <span>{loading ? 'Вход...' : 'Войти в аккаунт'}</span>
+            <span>{loading ? 'Вход...' : 'Войти по нику'}</span>
           </button>
         </form>
-
-        <div className="relative flex py-1 items-center">
-          <div className="flex-grow border-t border-zinc-200 dark:border-zinc-800"></div>
-          <span className="flex-shrink mx-3 text-[10px] text-zinc-400 uppercase font-bold tracking-wider">
-            или бот
-          </span>
-          <div className="flex-grow border-t border-zinc-200 dark:border-zinc-800"></div>
-        </div>
-
-        {/* Кнопка открытия бота */}
-        <div className="text-center">
-          <a
-            href={`https://t.me/${botUsername}`}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-xs font-semibold text-zinc-700 dark:text-zinc-300 transition"
-          >
-            <Send className="w-3.5 h-3.5 text-[#229ED9]" />
-            <span>Открыть бота @{botUsername} в Telegram</span>
-          </a>
-        </div>
 
         {/* Преимущества авторизации */}
         <div className="bg-zinc-50 dark:bg-zinc-800/50 rounded-2xl p-3 border border-zinc-200/80 dark:border-zinc-700/60 space-y-1.5 text-xs text-zinc-600 dark:text-zinc-300">
