@@ -62,8 +62,18 @@ export default function Home() {
     handleStartFlashcards(unique.length > 0 ? unique : currentLessonWords);
   };
 
+  const handleToggleFontStyle = () => {
+    const nextStyle = profile.fontStyle === 'cursive' ? 'print' : 'cursive';
+    const updated: UserProfile = { ...profile, fontStyle: nextStyle };
+    setProfile(updated);
+    saveUserProfile(updated);
+  };
+
   return (
-    <div className="min-h-screen flex flex-col bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-50 font-sans">
+    <div
+      data-font-style={profile.fontStyle || 'print'}
+      className="min-h-screen flex flex-col bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-50 font-sans"
+    >
       {/* Навбар */}
       <Navbar
         currentView={currentView}
@@ -76,6 +86,7 @@ export default function Home() {
         }}
         userProfile={profile}
         onOpenSettings={() => setIsSettingsOpen(true)}
+        onToggleFontStyle={handleToggleFontStyle}
       />
 
       {/* Основная рабочая область */}
