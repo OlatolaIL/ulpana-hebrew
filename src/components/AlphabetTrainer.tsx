@@ -724,132 +724,95 @@ export const AlphabetTrainer: React.FC<AlphabetTrainerProps> = () => {
                   >
                     <defs>
                       <marker
-                        id="arrowhead"
-                        markerWidth="10"
-                        markerHeight="10"
-                        refX="6"
-                        refY="4.5"
+                        id="arrowhead-clean"
+                        markerWidth="6"
+                        markerHeight="6"
+                        refX="5"
+                        refY="3"
                         orient="auto"
                       >
-                        <polygon points="0 1, 8 4.5, 0 8" fill="#0284c7" />
+                        <path d="M 0 0 L 6 3 L 0 6 z" fill="#38bdf8" />
                       </marker>
                       <marker
-                        id="arrowhead-active"
-                        markerWidth="11"
-                        markerHeight="11"
-                        refX="7"
-                        refY="5"
+                        id="arrowhead-clean-active"
+                        markerWidth="7"
+                        markerHeight="7"
+                        refX="6"
+                        refY="3.5"
                         orient="auto"
                       >
-                        <polygon points="0 1, 9 5, 0 9" fill="#e11d48" />
+                        <path d="M 0 0 L 7 3.5 L 0 7 z" fill="#10b981" />
                       </marker>
                     </defs>
 
-                    {/* Отрисовка траекторий штрихов */}
+                    {/* Отрисовка траекторий штрихов с встроенными наконечниками стрелок */}
                     {showDirectionArrows &&
                       currentRule.strokes.map((stroke) => {
                         const isCurrentActive = isAnimating && activeAnimStroke === stroke.id;
                         return (
                           <g key={stroke.id}>
-                            {/* Направляющая пунктирная траектория */}
+                            {/* Направляющая плавная пунктирная траектория со стрелкой на конце */}
                             <path
                               d={stroke.path}
                               fill="none"
-                              stroke={isCurrentActive ? '#e11d48' : '#0284c7'}
-                              strokeWidth={isCurrentActive ? '5' : '3.5'}
-                              strokeDasharray={isCurrentActive ? '8 4' : '6 4'}
+                              stroke={isCurrentActive ? '#10b981' : '#38bdf8'}
+                              strokeWidth={isCurrentActive ? '3.5' : '2.5'}
+                              strokeDasharray={isCurrentActive ? '6 3' : '4 4'}
                               strokeLinecap="round"
-                              strokeOpacity={isCurrentActive ? '1' : '0.8'}
+                              strokeOpacity={isCurrentActive ? '1' : '0.75'}
+                              markerEnd={isCurrentActive ? 'url(#arrowhead-clean-active)' : 'url(#arrowhead-clean)'}
                               className={isCurrentActive ? 'animate-pulse' : ''}
                             />
-
-                            {/* Стрелка направления */}
-                            {stroke.arrow && (
-                              <line
-                                x1={stroke.arrow.from.x}
-                                y1={stroke.arrow.from.y}
-                                x2={stroke.arrow.to.x}
-                                y2={stroke.arrow.to.y}
-                                stroke={isCurrentActive ? '#e11d48' : '#0284c7'}
-                                strokeWidth="3.5"
-                                strokeOpacity="0.95"
-                                markerEnd={isCurrentActive ? 'url(#arrowhead-active)' : 'url(#arrowhead)'}
-                              />
-                            )}
                           </g>
                         );
                       })}
 
-                    {/* Начальные точки с номерами (❶, ❷) */}
+                    {/* Минималистичные аккуратные точки старта с номерами (❶, ❷) */}
                     {showStartingPoints &&
                       currentRule.strokes.map((stroke) => {
                         const isCurrentActive = isAnimating && activeAnimStroke === stroke.id;
                         const isFirst = stroke.id === 1;
-                        const mainColor = isFirst ? '#059669' : '#2563eb';
+                        const mainColor = isFirst ? '#10b981' : '#3b82f6';
 
                         return (
                           <g
                             key={`start-${stroke.id}`}
                             className="transition-all duration-300"
                           >
-                            {/* Пульсирующий внешний ореол */}
+                            {/* Мягкий внешний ореол */}
                             <circle
                               cx={stroke.startPoint.x}
                               cy={stroke.startPoint.y}
-                              r={isCurrentActive ? '22' : '17'}
+                              r={isCurrentActive ? '16' : '12'}
                               fill={mainColor}
-                              fillOpacity="0.3"
-                              className="animate-ping"
+                              fillOpacity={isCurrentActive ? '0.35' : '0.2'}
+                              className={isCurrentActive ? 'animate-ping' : ''}
                               style={{ transformOrigin: `${stroke.startPoint.x}px ${stroke.startPoint.y}px` }}
                             />
 
-                            {/* Основной кружок точки старта */}
+                            {/* Основной аккуратный кружок */}
                             <circle
                               cx={stroke.startPoint.x}
                               cy={stroke.startPoint.y}
-                              r="13"
+                              r="10"
                               fill={mainColor}
                               stroke="#ffffff"
-                              strokeWidth="2.5"
-                              className="drop-shadow-md"
+                              strokeWidth="2"
+                              className="drop-shadow-sm"
                             />
 
                             {/* Номер штриха */}
                             <text
                               x={stroke.startPoint.x}
-                              y={stroke.startPoint.y + 4.5}
+                              y={stroke.startPoint.y + 3.5}
                               textAnchor="middle"
                               fill="#ffffff"
-                              fontSize="13"
-                              fontWeight="900"
+                              fontSize="11"
+                              fontWeight="bold"
                               fontFamily="system-ui, -apple-system, sans-serif"
                             >
                               {stroke.id}
                             </text>
-
-                            {/* Плашка "Старт X" над точкой */}
-                            <g transform={`translate(${stroke.startPoint.x - 24}, ${stroke.startPoint.y - 30})`}>
-                              <rect
-                                width="48"
-                                height="18"
-                                rx="9"
-                                fill={mainColor}
-                                stroke="#ffffff"
-                                strokeWidth="1.5"
-                                className="drop-shadow-sm"
-                              />
-                              <text
-                                x="24"
-                                y="12"
-                                textAnchor="middle"
-                                fill="#ffffff"
-                                fontSize="10"
-                                fontWeight="bold"
-                                fontFamily="system-ui, -apple-system, sans-serif"
-                              >
-                                Старт {stroke.id}
-                              </text>
-                            </g>
                           </g>
                         );
                       })}
