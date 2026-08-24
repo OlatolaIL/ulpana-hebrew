@@ -1,10 +1,11 @@
 'use client';
 
 import React, { useState } from 'react';
-import { CheckCircle2, XCircle, Award, HelpCircle, ArrowRight } from 'lucide-react';
+import { CheckCircle2, XCircle, Award, HelpCircle, ArrowRight, Volume2 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { Lesson, UserProfile, Exercise } from '@/types';
 import { markLessonTabCompleted } from '@/lib/storage';
+import { speakHebrew } from '@/lib/speech';
 
 interface LessonExercisesProps {
   lesson: Lesson;
@@ -191,12 +192,27 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
                     >
                       {opt}
                     </span>
-                    {isAnswered && isCorrectOpt && (
-                      <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
-                    )}
-                    {isAnswered && isSelected && !isCorrectOpt && (
-                      <XCircle className="w-5 h-5 text-rose-600 shrink-0" />
-                    )}
+                    <div className="flex items-center gap-2">
+                      {isOptHebrew && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            speakHebrew(opt);
+                          }}
+                          className="p-1.5 rounded-lg text-zinc-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition"
+                          title="Прослушать произношение"
+                        >
+                          <Volume2 className="w-4 h-4" />
+                        </button>
+                      )}
+                      {isAnswered && isCorrectOpt && (
+                        <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+                      )}
+                      {isAnswered && isSelected && !isCorrectOpt && (
+                        <XCircle className="w-5 h-5 text-rose-600 shrink-0" />
+                      )}
+                    </div>
                   </button>
                 );
               })}
@@ -206,20 +222,32 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
         {/* Режим сборки предложения из слов (build_sentence) */}
         {currentEx.type === 'build_sentence' && currentEx.options && (
           <div className="space-y-4">
-            <div
-              dir="rtl"
-              className={`min-h-[56px] p-3 rounded-2xl border-2 border-dashed border-blue-400 bg-blue-50/40 dark:bg-blue-950/20 flex flex-wrap gap-2 items-center font-bold ${
-                isCursive ? 'font-cursive text-2xl text-blue-600 dark:text-blue-400' : 'font-hebrew text-lg'
-              }`}
-            >
-              {selectedSentenceWords.map((w, i) => (
-                <span
-                  key={i}
-                  className="px-3 py-1 bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700"
+            <div className="flex items-center justify-between gap-2">
+              <div
+                dir="rtl"
+                className={`flex-1 min-h-[56px] p-3 rounded-2xl border-2 border-dashed border-blue-400 bg-blue-50/40 dark:bg-blue-950/20 flex flex-wrap gap-2 items-center font-bold ${
+                  isCursive ? 'font-cursive text-2xl text-blue-600 dark:text-blue-400' : 'font-hebrew text-lg'
+                }`}
+              >
+                {selectedSentenceWords.map((w, i) => (
+                  <span
+                    key={i}
+                    className="px-3 py-1 bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700"
+                  >
+                    {w}
+                  </span>
+                ))}
+              </div>
+              {selectedSentenceWords.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => speakHebrew(selectedSentenceWords.join(' '))}
+                  className="p-3 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white shadow-sm transition active:scale-95 shrink-0"
+                  title="Прослушать собранное предложение"
                 >
-                  {w}
-                </span>
-              ))}
+                  <Volume2 className="w-5 h-5" />
+                </button>
+              )}
             </div>
 
             <div dir="rtl" className="flex flex-wrap gap-2 justify-center">

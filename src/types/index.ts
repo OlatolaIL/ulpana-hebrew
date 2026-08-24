@@ -7,16 +7,49 @@ export type PartOfSpeech =
   | 'verb'
   | 'adjective'
   | 'preposition'
+  | 'conjunction'
   | 'expression'
   | 'pronoun'
   | 'adverb'
   | 'number'
   | 'other';
 
+export interface StrokePoint {
+  x: number;
+  y: number;
+}
+
+export interface LetterStroke {
+  id: number;
+  label: string;
+  startPoint: StrokePoint;
+  path: string;
+  arrow?: {
+    from: StrokePoint;
+    to: StrokePoint;
+  };
+  instruction: string;
+}
+
+export interface LetterWritingRule {
+  letterId: string;
+  strokesCount: number;
+  description: string;
+  penLifts: boolean;
+  startingPointSummary: string;
+  directionSummary: string;
+  proportions: {
+    ascender: boolean;
+    baseline: boolean;
+    descender: boolean;
+  };
+  strokes: LetterStroke[];
+}
+
 export interface HebrewLetter {
   id: string;
   letter: string; // печатная буква (דפוס)
-  cursiveLetter: string; // рукописная буква (כתב יד)
+  cursiveLetter: string; // рукописная буква (כתв יד)
   nameHebrew: string; // אָלֶף
   nameRussian: string; // Алеф
   transcription: string; // [’] / звук

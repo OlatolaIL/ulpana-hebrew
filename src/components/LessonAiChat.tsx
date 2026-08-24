@@ -210,6 +210,9 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
           aiRole: lesson.dialogue.aiRole,
           userRole: lesson.dialogue.userRole,
           goals: lesson.dialogue.goals,
+          topic: lesson.titleRussian,
+          vocabulary: (lesson.vocabulary || []).map((w) => `${w.hebrew} (${w.translation})`),
+          grammarTopic: lesson.grammar?.[0]?.title || lesson.titleRussian,
           provider: userProfile.aiProvider,
           apiKey:
             userProfile.aiProvider === 'groq'
@@ -455,7 +458,7 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
                   )}
 
                   {/* Кнопка озвучки и бейдж движка */}
-                  {isAi && (
+                  {isAi ? (
                     <div className="mt-2 pt-2 border-t border-zinc-100 dark:border-zinc-700/60 flex items-center justify-between">
                       {msg.engine ? (
                         <div className="flex items-center gap-1 text-[10px] font-medium text-emerald-600 dark:text-emerald-400">
@@ -464,8 +467,22 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
                         </div>
                       ) : <div />}
                       <button
+                        type="button"
                         onClick={() => speakHebrew(msg.hebrew, { rate: userProfile.speechRate || 0.7 })}
                         className="text-xs text-zinc-400 hover:text-blue-600 dark:hover:text-blue-400 flex items-center gap-1 transition"
+                        title="Прослушать фразу собеседника"
+                      >
+                        <Volume2 className="w-3.5 h-3.5" />
+                        <span>Прослушать</span>
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="mt-2 pt-1.5 border-t border-blue-500/40 flex items-center justify-end">
+                      <button
+                        type="button"
+                        onClick={() => speakHebrew(msg.hebrew, { rate: userProfile.speechRate || 0.7 })}
+                        className="text-[11px] text-blue-100 hover:text-white flex items-center gap-1 transition"
+                        title="Прослушать вашу фразу"
                       >
                         <Volume2 className="w-3.5 h-3.5" />
                         <span>Прослушать</span>
@@ -495,22 +512,40 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
           );
         })}
 
-        {/* Подсказки быстрых ответов под последним сообщением с учетом showNikkud */}
+        {/* Подсказки быстрых ответов под последним сообщением с кнопкой прослушивания */}
         {lastAiMessage && lastAiMessage.suggestedReplies && lastAiMessage.suggestedReplies.length > 0 && (
           <div className="pt-2 pl-10 flex flex-wrap gap-2 animate-in fade-in">
             {lastAiMessage.suggestedReplies.map((reply, i) => (
-              <button
+              <div
                 key={i}
                 onClick={() => handleSendMessage(reply.hebrew)}
-                className="text-left bg-white dark:bg-zinc-800 border border-blue-200 dark:border-blue-900 hover:border-blue-500 dark:hover:border-blue-400 p-2.5 rounded-xl text-xs transition shadow-sm hover:scale-101 active:scale-98"
+                className="group cursor-pointer text-left bg-white dark:bg-zinc-800 border border-blue-200 dark:border-blue-900 hover:border-blue-500 dark:hover:border-blue-400 p-2.5 rounded-xl text-xs transition shadow-sm hover:scale-[1.01] active:scale-[0.99] flex flex-col justify-between"
               >
-                <div dir="rtl" className={`font-bold text-sm ${isCursive ? 'font-cursive text-lg text-blue-600 dark:text-blue-400' : 'font-hebrew text-zinc-900 dark:text-zinc-100'}`}>
-                  {userProfile.showNikkud ? reply.hebrew : stripNikkud(reply.hebrew)}
+                <div className="flex items-start justify-between gap-2">
+                  <div dir="rtl" className={`font-bold text-sm ${isCursive ? 'font-cursive text-lg text-blue-600 dark:text-blue-400' : 'font-hebrew text-zinc-900 dark:text-zinc-100'}`}>
+                    {userProfile.showNikkud ? reply.hebrew : stripNikkud(reply.hebrew)}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      speakHebrew(reply.hebrew, { rate: userProfile.speechRate || 0.7 });
+                    }}
+                    className="p-1 rounded-lg text-zinc-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-zinc-700 transition"
+                    title="Прослушать эту подсказку"
+                  >
+                    <Volume2 className="w-3.5 h-3.5" />
+                  </button>
                 </div>
+                {userProfile.showTranscription && reply.transcription && (
+                  <div className="text-[10px] text-blue-600 dark:text-blue-400 font-medium mt-0.5">
+                    [{reply.transcription}]
+                  </div>
+                )}
                 <div className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5">
                   {reply.translation}
                 </div>
-              </button>
+              </div>
             ))}
           </div>
         )}
