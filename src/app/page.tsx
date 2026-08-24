@@ -14,9 +14,56 @@ import { UserProfile, Word, UserSession } from '@/types';
 import { loadUserProfile, saveUserProfile } from '@/lib/storage';
 import { initHebrewVoices } from '@/lib/speech';
 import { DETAILED_LESSONS, getLessonById } from '@/data/lessonsData';
-import { isVipUser, VIP_EXPIRES_AT } from '@/lib/vipUsers';
+import { isVipUser, VIP_EXPIRES_AT, applyVipProfileEnhancements } from '@/lib/vipUsers';
 
 type ViewMode = 'map' | 'lesson' | 'flashcards' | 'dictionary' | 'alphabet';
+
+function getTelegramUser(): any | null {
+  if (typeof window === 'undefined') return null;
+
+  // 1. Из window.Telegram.WebApp
+  const tg = (window as any).Telegram?.WebApp;
+  if (tg) {
+    try {
+      tg.ready();
+      tg.expand();
+    } catch {}
+    if (tg.initDataUnsafe?.user) {
+      return tg.initDataUnsafe.user;
+    }
+  }
+
+  // 2. Из window.location.hash (tgWebAppData)
+  try {
+    const hash = window.location.hash.slice(1);
+    if (hash) {
+      const params = new URLSearchParams(hash);
+      const tgWebAppData = params.get('tgWebAppData');
+      if (tgWebAppData) {
+        const dataParams = new URLSearchParams(tgWebAppData);
+        const userStr = dataParams.get('user');
+        if (userStr) {
+          return JSON.parse(decodeURIComponent(userStr));
+        }
+      }
+    }
+  } catch {}
+
+  // 3. Из window.location.search
+  try {
+    const searchParams = new URLSearchParams(window.location.search);
+    const tgWebAppData = searchParams.get('tgWebAppData');
+    if (tgWebAppData) {
+      const dataParams = new URLSearchParams(tgWebAppData);
+      const userStr = dataParams.get('user');
+      if (userStr) {
+        return JSON.parse(decodeURIComponent(userStr));
+      }
+    }
+  } catch {}
+
+  return null;
+}
 
 export default function Home() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -57,13 +104,57 @@ export default function Home() {
   );
 
   useEffect(() => {
-    const p = loadUserProfile();
-    if (isVipUser(p.username, p.telegramId)) {
-      p.subscriptionTier = 'pro';
-      p.subscriptionExpiresAt = VIP_EXPIRES_AT;
-    }
+    let p = loadUserProfile();
+    p = applyVipProfileEnhancements(p);
     setProfile(p);
     initHebrewVoices();
+
+    const handleTgUserFound = (u: any) => {
+      const fullName = [u.first_name, u.last_name].filter(Boolean).join(' ') || (u.username ? `@${u.username}` : 'Ученик');
+      const instantProfile: UserProfile = applyVipProfileEnhancements({
+        ...p,
+        id: `tg_${u.id}`,
+        telegramId: u.id,
+        username: u.username,
+        name: fullName,
+        avatarUrl: u.photo_url,
+        isLoggedIn: true,
+      });
+      setProfile(instantProfile);
+      saveUserProfile(instantProfile);
+
+      fetch('/api/auth/telegram', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: u.id,
+          first_name: u.first_name,
+          last_name: u.last_name,
+          username: u.username,
+          photo_url: u.photo_url,
+          auth_date: Math.floor(Date.now() / 1000),
+          hash: 'webapp_validated',
+        }),
+      }).catch((err) => console.warn('[WebApp Auth BG] Error:', err));
+    };
+
+    // 1. Проверяем Telegram WebApp немедленно или с повторными попытками
+    const initialTgUser = getTelegramUser();
+    if (initialTgUser) {
+      handleTgUserFound(initialTgUser);
+    } else {
+      let attempts = 0;
+      const tgInterval = setInterval(() => {
+        attempts++;
+        const delayedTgUser = getTelegramUser();
+        if (delayedTgUser) {
+          clearInterval(tgInterval);
+          handleTgUserFound(delayedTgUser);
+        } else if (attempts >= 20) {
+          clearInterval(tgInterval);
+        }
+      }, 100);
+    }
 
     const initAuth = async () => {
       // 0. Проверяем токен в URL (Magic Link из Telegram-бота для браузера)
@@ -83,8 +174,7 @@ export default function Home() {
             const syncRes = await fetch('/api/user/sync');
             const syncData = await syncRes.json();
 
-            const isVip = isVipUser(tokenData.user.username, tokenData.user.telegramId);
-            const merged: UserProfile = {
+            const merged: UserProfile = applyVipProfileEnhancements({
               ...p,
               id: tokenData.user.id,
               telegramId: tokenData.user.telegramId,
@@ -92,8 +182,8 @@ export default function Home() {
               name: tokenData.user.name,
               avatarUrl: tokenData.user.avatarUrl,
               isLoggedIn: true,
-              subscriptionTier: isVip ? 'pro' : tokenData.user.subscriptionTier,
-              subscriptionExpiresAt: isVip ? VIP_EXPIRES_AT : tokenData.user.subscriptionExpiresAt,
+              subscriptionTier: tokenData.user.subscriptionTier,
+              subscriptionExpiresAt: tokenData.user.subscriptionExpiresAt,
               gender: tokenData.gender || p.gender,
               fontStyle: tokenData.fontStyle || p.fontStyle,
               lessonProgress: {
@@ -104,7 +194,7 @@ export default function Home() {
                 syncData.personalVocabulary && syncData.personalVocabulary.length > 0
                   ? syncData.personalVocabulary
                   : p.personalVocabulary,
-            };
+            });
 
             setProfile(merged);
             saveUserProfile(merged);
@@ -115,76 +205,6 @@ export default function Home() {
         console.warn('[Magic Link] Auth failed:', err);
       }
 
-      // 1. Проверяем Telegram WebApp (если открыто внутри Telegram)
-      try {
-        const tg = (window as any).Telegram?.WebApp;
-        if (tg) {
-          tg.ready();
-          tg.expand();
-          if (tg.initDataUnsafe?.user) {
-            const u = tg.initDataUnsafe.user;
-            const fullName = [u.first_name, u.last_name].filter(Boolean).join(' ') || (u.username ? `@${u.username}` : 'Ученик');
-            
-            // СРАЗУ МГНОВЕННО обновляем интерфейс, не дожидаясь ответа сервера!
-            const isVip = isVipUser(u.username, u.id);
-            const instantProfile: UserProfile = {
-              ...p,
-              id: `tg_${u.id}`,
-              telegramId: u.id,
-              username: u.username,
-              name: fullName,
-              avatarUrl: u.photo_url,
-              isLoggedIn: true,
-              subscriptionTier: isVip ? 'pro' : p.subscriptionTier,
-              subscriptionExpiresAt: isVip ? VIP_EXPIRES_AT : p.subscriptionExpiresAt,
-            };
-            setProfile(instantProfile);
-            saveUserProfile(instantProfile);
-
-            // В фоне сохраняем сессию и синхронизируем данные
-            fetch('/api/auth/telegram', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                id: u.id,
-                first_name: u.first_name,
-                last_name: u.last_name,
-                username: u.username,
-                photo_url: u.photo_url,
-                auth_date: Math.floor(Date.now() / 1000),
-                hash: 'webapp_validated',
-              }),
-            }).then(async (res) => {
-              const data = await res.json();
-              if (res.ok && data.success && data.user) {
-                try {
-                  const syncRes = await fetch('/api/user/sync');
-                  const syncData = await syncRes.json();
-                  const finalProfile: UserProfile = {
-                    ...instantProfile,
-                    subscriptionTier: data.user.subscriptionTier || instantProfile.subscriptionTier,
-                    subscriptionExpiresAt: data.user.subscriptionExpiresAt || instantProfile.subscriptionExpiresAt,
-                    lessonProgress: {
-                      ...instantProfile.lessonProgress,
-                      ...(syncData.lessonProgress || {}),
-                    },
-                    personalVocabulary:
-                      syncData.personalVocabulary && syncData.personalVocabulary.length > 0
-                        ? syncData.personalVocabulary
-                        : instantProfile.personalVocabulary,
-                  };
-                  setProfile(finalProfile);
-                  saveUserProfile(finalProfile);
-                } catch {}
-              }
-            }).catch((err) => console.warn('[WebApp BG Auth] error:', err));
-            return;
-          }
-        }
-      } catch (e) {
-        console.warn('[WebApp Auth] Check failed:', e);
-      }
-
       // 2. Проверяем обычную сессию cookie на сервере
       try {
         const meRes = await fetch('/api/auth/me');
@@ -193,7 +213,7 @@ export default function Home() {
           const syncRes = await fetch('/api/user/sync');
           const syncData = await syncRes.json();
 
-          const mergedProfile: UserProfile = {
+          const mergedProfile: UserProfile = applyVipProfileEnhancements({
             ...p,
             id: data.user.id,
             telegramId: data.user.telegramId,
@@ -213,7 +233,7 @@ export default function Home() {
               syncData.personalVocabulary && syncData.personalVocabulary.length > 0
                 ? syncData.personalVocabulary
                 : p.personalVocabulary,
-          };
+          });
 
           setProfile(mergedProfile);
           saveUserProfile(mergedProfile);

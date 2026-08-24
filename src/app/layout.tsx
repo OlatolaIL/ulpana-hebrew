@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { Rubik, Assistant } from 'next/font/google';
+import Script from 'next/script';
 import './globals.css';
 
 const rubik = Rubik({
@@ -37,7 +38,10 @@ export default function RootLayout({
       className={`${rubik.variable} ${assistant.variable} h-full antialiased`}
     >
       <head>
-        <script src="https://telegram.org/js/telegram-web-app.js" async />
+        <Script
+          src="https://telegram.org/js/telegram-web-app.js"
+          strategy="beforeInteractive"
+        />
       </head>
       <body className="min-h-full flex flex-col font-sans bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-50">
         {children}
