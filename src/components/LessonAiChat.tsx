@@ -46,8 +46,7 @@ function getInitialMessageForGender(lesson: Lesson, gender: 'male' | 'female'): 
         ? 'Привет! Доброе утро. Я Ноам. Как тебя зовут? (к женщине)'
         : 'Привет! Доброе утро. Я Ноам. Как тебя зовут? (к мужчине)',
       suggestedReplies: [
-        {
-          hebrew: 'שָׁלוֹם, קוֹרְאִים לִי...',
+        {\n          hebrew: 'שָׁלוֹם, קוֹרְאִים לִי...',
           transcription: 'шалóм, коръӣм ли...',
           translation: 'Привет, меня зовут...',
         },
@@ -284,8 +283,10 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
 
   const lastAiMessage = [...messages].reverse().find((m) => m.role === 'assistant');
 
+  const isCursive = userProfile.fontStyle === 'cursive';
+
   return (
-    <div className="flex flex-col h-[700px] max-h-[80vh] bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm overflow-hidden">
+    <div data-font-style={userProfile.fontStyle || 'print'} className="flex flex-col h-[700px] max-h-[80vh] bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm overflow-hidden">
       {/* Шапка сценария с переключателем пола */}
       <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-zinc-800 dark:to-zinc-800/60 p-3.5 border-b border-zinc-200 dark:border-zinc-700/80 flex flex-wrap items-center justify-between gap-2">
         <div>
@@ -309,12 +310,13 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
             onClick={() => {
               const nextStyle: 'print' | 'cursive' = userProfile.fontStyle === 'cursive' ? 'print' : 'cursive';
               const updated: UserProfile = { ...userProfile, fontStyle: nextStyle };
+              saveUserProfile(updated);
               if (onUpdateProfile) onUpdateProfile(updated);
             }}
             className="px-2.5 py-1.5 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-sm text-xs font-semibold flex items-center gap-1.5 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition"
             title="Переключить шрифт диалога: Печатный / Рукописный"
           >
-            {userProfile.fontStyle === 'cursive' ? (
+            {isCursive ? (
               <>
                 <span className="font-cursive font-bold text-base text-blue-600 dark:text-blue-400 leading-none">כתב</span>
                 <span className="text-zinc-700 dark:text-zinc-300">Рукописный</span>
@@ -401,7 +403,11 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
                   {/* Текст на иврите с учетом настройки showNikkud */}
                   <div
                     dir="rtl"
-                    className="text-xl md:text-2xl font-bold font-hebrew leading-loose text-right"
+                    className={`font-bold leading-loose text-right ${
+                      isCursive
+                        ? 'font-cursive text-2xl md:text-3xl text-blue-600 dark:text-blue-400'
+                        : 'font-hebrew text-xl md:text-2xl'
+                    }`}
                   >
                     {isAi
                       ? tokens.map((token) => {
@@ -478,14 +484,15 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
         })}
 
         {/* Подсказки быстрых ответов под последним сообщением с учетом showNikkud */}
-        {lastAiMessage && lastAiMessage.suggestedReplies && lastAiMessage.suggestedReplies.length > 0 && (\n          <div className="pt-2 pl-10 flex flex-wrap gap-2 animate-in fade-in">
+        {lastAiMessage && lastAiMessage.suggestedReplies && lastAiMessage.suggestedReplies.length > 0 && (
+          <div className="pt-2 pl-10 flex flex-wrap gap-2 animate-in fade-in">
             {lastAiMessage.suggestedReplies.map((reply, i) => (
               <button
                 key={i}
                 onClick={() => handleSendMessage(reply.hebrew)}
                 className="text-left bg-white dark:bg-zinc-800 border border-blue-200 dark:border-blue-900 hover:border-blue-500 dark:hover:border-blue-400 p-2.5 rounded-xl text-xs transition shadow-sm hover:scale-101 active:scale-98"
               >
-                <div dir="rtl" className="font-bold text-zinc-900 dark:text-zinc-100 font-hebrew text-sm">
+                <div dir="rtl" className={`font-bold text-sm ${isCursive ? 'font-cursive text-lg text-blue-600 dark:text-blue-400' : 'font-hebrew text-zinc-900 dark:text-zinc-100'}`}>
                   {userProfile.showNikkud ? reply.hebrew : stripNikkud(reply.hebrew)}
                 </div>
                 <div className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5">
