@@ -61,6 +61,54 @@ export default function Home() {
     initHebrewVoices();
 
     const initAuth = async () => {
+      // 0. Проверяем токен в URL (Magic Link из Telegram-бота для браузера)
+      try {
+        const urlParams = new URLSearchParams(window.location.search);
+        const loginToken = urlParams.get('login_token');
+        if (loginToken) {
+          const tokenRes = await fetch('/api/auth/token-login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: loginToken }),
+          });
+          const tokenData = await tokenRes.json();
+          if (tokenRes.ok && tokenData.success && tokenData.user) {
+            window.history.replaceState({}, '', window.location.pathname);
+
+            const syncRes = await fetch('/api/user/sync');
+            const syncData = await syncRes.json();
+
+            const merged: UserProfile = {
+              ...p,
+              id: tokenData.user.id,
+              telegramId: tokenData.user.telegramId,
+              username: tokenData.user.username,
+              name: tokenData.user.name,
+              avatarUrl: tokenData.user.avatarUrl,
+              isLoggedIn: true,
+              subscriptionTier: tokenData.user.subscriptionTier,
+              subscriptionExpiresAt: tokenData.user.subscriptionExpiresAt,
+              gender: tokenData.gender || p.gender,
+              fontStyle: tokenData.fontStyle || p.fontStyle,
+              lessonProgress: {
+                ...p.lessonProgress,
+                ...(syncData.lessonProgress || {}),
+              },
+              personalVocabulary:
+                syncData.personalVocabulary && syncData.personalVocabulary.length > 0
+                  ? syncData.personalVocabulary
+                  : p.personalVocabulary,
+            };
+
+            setProfile(merged);
+            saveUserProfile(merged);
+            return;
+          }
+        }
+      } catch (err) {
+        console.warn('[Magic Link] Auth failed:', err);
+      }
+
       // 1. Проверяем Telegram WebApp (если открыто внутри Telegram)
       try {
         const tg = (window as any).Telegram?.WebApp;
@@ -79,7 +127,7 @@ export default function Home() {
                 username: u.username,
                 photo_url: u.photo_url,
                 auth_date: Math.floor(Date.now() / 1000),
-                hash: tg.initData ? 'webapp_validated' : undefined,
+                hash: 'webapp_validated',
               }),
             });
             const data = await res.json();

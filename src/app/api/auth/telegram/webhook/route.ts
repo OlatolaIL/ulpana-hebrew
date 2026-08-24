@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDbPool, initDatabase } from '@/lib/db';
+import { createSessionToken } from '@/lib/auth';
+import { UserSession } from '@/types';
 
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '8857824092:AAE3sCbuElBPEctBBXlfTCZfjmPPZTJjdnY';
 
@@ -21,10 +23,10 @@ export async function POST(req: NextRequest) {
 
       const fullName = [from.first_name, from.last_name].filter(Boolean).join(' ') || from.username || 'Ученик';
       const userId = `tg_${from.id}`;
-      let tier = 'free';
+      let tier: 'free' | 'pro' | 'admin' = 'free';
       let expiresAt: number | null = null;
-      let gender = 'female';
-      let fontStyle = 'print';
+      let gender: 'male' | 'female' = 'female';
+      let fontStyle: 'print' | 'cursive' = 'print';
 
       await initDatabase();
       const db = getDbPool();
@@ -34,7 +36,7 @@ export async function POST(req: NextRequest) {
         const existing = await db.query('SELECT * FROM ulpana_users WHERE telegram_id = $1 OR id = $2', [from.id, userId]);
         if (existing.rows.length > 0) {
           const row = existing.rows[0];
-          tier = row.subscription_tier || 'free';
+          tier = (row.subscription_tier as any) || 'free';
           expiresAt = row.subscription_expires_at ? Number(row.subscription_expires_at) : null;
           gender = row.gender || 'female';
           fontStyle = row.font_style || 'print';
@@ -74,6 +76,18 @@ export async function POST(req: NextRequest) {
         }
       }
 
+      // Создаем подписанный токен для входа в браузере (Magic Link)
+      const session: UserSession = {
+        id: userId,
+        telegramId: from.id,
+        username: from.username,
+        name: fullName,
+        subscriptionTier: tier,
+        subscriptionExpiresAt: expiresAt,
+      };
+      const sessionJwt = await createSessionToken(session);
+      const browserUrl = `https://ulpana-hebrew.vercel.app/?login_token=${sessionJwt}`;
+
       // Отправляем красивый ответ в Telegram
       try {
         await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
@@ -81,20 +95,20 @@ export async function POST(req: NextRequest) {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             chat_id: message.chat.id,
-            text: `🇮🇱 *Добро пожаловать в Ульпану Иврит!*\n\n✅ *Авторизация успешна!*\nВы вошли как *${fullName}*.\n\nНажмите кнопку ниже для перехода к обучению:`,
+            text: `🇮🇱 *Добро пожаловать в Ульпану Иврит!*\n\n✅ *Авторизация успешна!*\nВы вошли как *${fullName}*.\n\n👇 Нажмите кнопку ниже, чтобы начать обучение:`,
             parse_mode: 'Markdown',
             reply_markup: {
               inline_keyboard: [
                 [
                   {
-                    text: '🚀 Открыть в Telegram',
+                    text: '🚀 Открыть в Telegram (Приложение)',
                     web_app: { url: 'https://ulpana-hebrew.vercel.app' },
                   },
                 ],
                 [
                   {
                     text: '🌐 Открыть в браузере (Safari / Chrome)',
-                    url: 'https://ulpana-hebrew.vercel.app',
+                    url: browserUrl,
                   },
                 ],
               ],
