@@ -725,23 +725,23 @@ export const AlphabetTrainer: React.FC<AlphabetTrainerProps> = () => {
                     <defs>
                       <marker
                         id="arrowhead"
-                        markerWidth="7"
-                        markerHeight="7"
-                        refX="4"
-                        refY="3.5"
+                        markerWidth="10"
+                        markerHeight="10"
+                        refX="6"
+                        refY="4.5"
                         orient="auto"
                       >
-                        <polygon points="0 0, 7 3.5, 0 7" fill="#0284c7" />
+                        <polygon points="0 1, 8 4.5, 0 8" fill="#0284c7" />
                       </marker>
                       <marker
                         id="arrowhead-active"
-                        markerWidth="8"
-                        markerHeight="8"
-                        refX="5"
-                        refY="4"
+                        markerWidth="11"
+                        markerHeight="11"
+                        refX="7"
+                        refY="5"
                         orient="auto"
                       >
-                        <polygon points="0 0, 8 4, 0 8" fill="#e11d48" />
+                        <polygon points="0 1, 9 5, 0 9" fill="#e11d48" />
                       </marker>
                     </defs>
 
@@ -756,10 +756,10 @@ export const AlphabetTrainer: React.FC<AlphabetTrainerProps> = () => {
                               d={stroke.path}
                               fill="none"
                               stroke={isCurrentActive ? '#e11d48' : '#0284c7'}
-                              strokeWidth={isCurrentActive ? '4.5' : '3'}
-                              strokeDasharray={isCurrentActive ? '6 4' : '4 4'}
+                              strokeWidth={isCurrentActive ? '5' : '3.5'}
+                              strokeDasharray={isCurrentActive ? '8 4' : '6 4'}
                               strokeLinecap="round"
-                              strokeOpacity={isCurrentActive ? '0.9' : '0.45'}
+                              strokeOpacity={isCurrentActive ? '1' : '0.8'}
                               className={isCurrentActive ? 'animate-pulse' : ''}
                             />
 
@@ -771,8 +771,8 @@ export const AlphabetTrainer: React.FC<AlphabetTrainerProps> = () => {
                                 x2={stroke.arrow.to.x}
                                 y2={stroke.arrow.to.y}
                                 stroke={isCurrentActive ? '#e11d48' : '#0284c7'}
-                                strokeWidth="2.5"
-                                strokeOpacity="0.8"
+                                strokeWidth="3.5"
+                                strokeOpacity="0.95"
                                 markerEnd={isCurrentActive ? 'url(#arrowhead-active)' : 'url(#arrowhead)'}
                               />
                             )}
@@ -796,9 +796,9 @@ export const AlphabetTrainer: React.FC<AlphabetTrainerProps> = () => {
                             <circle
                               cx={stroke.startPoint.x}
                               cy={stroke.startPoint.y}
-                              r={isCurrentActive ? '18' : '14'}
+                              r={isCurrentActive ? '22' : '17'}
                               fill={mainColor}
-                              fillOpacity="0.25"
+                              fillOpacity="0.3"
                               className="animate-ping"
                               style={{ transformOrigin: `${stroke.startPoint.x}px ${stroke.startPoint.y}px` }}
                             />
@@ -807,38 +807,49 @@ export const AlphabetTrainer: React.FC<AlphabetTrainerProps> = () => {
                             <circle
                               cx={stroke.startPoint.x}
                               cy={stroke.startPoint.y}
-                              r="10"
+                              r="13"
                               fill={mainColor}
                               stroke="#ffffff"
-                              strokeWidth="2"
-                              className="drop-shadow-sm"
+                              strokeWidth="2.5"
+                              className="drop-shadow-md"
                             />
 
                             {/* Номер штриха */}
                             <text
                               x={stroke.startPoint.x}
-                              y={stroke.startPoint.y + 3.5}
+                              y={stroke.startPoint.y + 4.5}
                               textAnchor="middle"
                               fill="#ffffff"
-                              fontSize="11"
-                              fontWeight="bold"
-                              fontFamily="sans-serif"
+                              fontSize="13"
+                              fontWeight="900"
+                              fontFamily="system-ui, -apple-system, sans-serif"
                             >
                               {stroke.id}
                             </text>
 
-                            {/* Подпись "Старт" */}
-                            <text
-                              x={stroke.startPoint.x}
-                              y={stroke.startPoint.y - 13}
-                              textAnchor="middle"
-                              fill={mainColor}
-                              fontSize="10"
-                              fontWeight="bold"
-                              fontFamily="sans-serif"
-                            >
-                              Старт {stroke.id}
-                            </text>
+                            {/* Плашка "Старт X" над точкой */}
+                            <g transform={`translate(${stroke.startPoint.x - 24}, ${stroke.startPoint.y - 30})`}>
+                              <rect
+                                width="48"
+                                height="18"
+                                rx="9"
+                                fill={mainColor}
+                                stroke="#ffffff"
+                                strokeWidth="1.5"
+                                className="drop-shadow-sm"
+                              />
+                              <text
+                                x="24"
+                                y="12"
+                                textAnchor="middle"
+                                fill="#ffffff"
+                                fontSize="10"
+                                fontWeight="bold"
+                                fontFamily="system-ui, -apple-system, sans-serif"
+                              >
+                                Старт {stroke.id}
+                              </text>
+                            </g>
                           </g>
                         );
                       })}
