@@ -1,7 +1,16 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Volume2, Plus, Check, Search, Layers } from 'lucide-react';
+import {
+  Volume2,
+  Plus,
+  Check,
+  Search,
+  Sparkles,
+  Play,
+  Layers,
+  Filter,
+} from 'lucide-react';
 import { Word, UserProfile, PartOfSpeech } from '@/types';
 import { speakHebrew } from '@/lib/speech';
 import { addWordToPersonalDict, removeWordFromPersonalDict, isWordInPersonalDict } from '@/lib/storage';
@@ -64,6 +73,7 @@ export const LessonVocabulary: React.FC<LessonVocabularyProps> = ({
 
   return (
     <div className="space-y-6">
+      {/* Верхняя панель управления */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-zinc-900 p-4 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm">
         <div className="flex-1 flex items-center gap-3">
           <div className="relative flex-1 max-w-sm">
@@ -101,6 +111,7 @@ export const LessonVocabulary: React.FC<LessonVocabularyProps> = ({
         )}
       </div>
 
+      {/* Список слов карточками / таблицей */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {filteredWords.map((word) => {
           const inDict = isWordInPersonalDict(word.hebrew);
@@ -136,6 +147,7 @@ export const LessonVocabulary: React.FC<LessonVocabularyProps> = ({
                   </div>
                 </div>
 
+                {/* Слово на иврите */}
                 <div
                   dir="rtl"
                   className="text-2xl font-bold text-zinc-900 dark:text-zinc-50 font-hebrew"
@@ -143,17 +155,20 @@ export const LessonVocabulary: React.FC<LessonVocabularyProps> = ({
                   {userProfile.showNikkud ? word.hebrew : word.hebrewPlain}
                 </div>
 
+                {/* Транскрипция с 'h' для ה */}
                 {userProfile.showTranscription && (
                   <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 mt-1">
                     [{word.transcription}]
                   </p>
                 )}
 
+                {/* Перевод */}
                 <p className="text-sm font-medium text-zinc-700 dark:text-zinc-200 mt-2">
                   {word.translation}
                 </p>
               </div>
 
+              {/* Нижняя часть (корень / пример) */}
               {(word.root || word.exampleSentence) && (
                 <div className="mt-4 pt-3 border-t border-zinc-100 dark:border-zinc-800/80 space-y-1.5">
                   {word.root && (
