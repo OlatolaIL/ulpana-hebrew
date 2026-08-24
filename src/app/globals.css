@@ -28,10 +28,34 @@ body {
 }
 
 .font-cursive,
-.font-handwriting,
+.font-handwriting {
+  font-family: 'Gveret Levin', cursive, var(--font-assistant), sans-serif !important;
+  font-feature-settings: "kern" 1, "mark" 1, "mkmk" 1, "liga" 1;
+  text-rendering: optimizeLegibility;
+}
+
+/* Глобальное переключение на рукописный шрифт для всех текстов, таблиц, карточек и диалогов */
+[data-font-style="cursive"],
+[data-font-style="cursive"] body,
+[data-font-style="cursive"] main,
+[data-font-style="cursive"] div,
+[data-font-style="cursive"] p,
+[data-font-style="cursive"] span,
+[data-font-style="cursive"] h1,
+[data-font-style="cursive"] h2,
+[data-font-style="cursive"] h3,
+[data-font-style="cursive"] h4,
+[data-font-style="cursive"] h5,
+[data-font-style="cursive"] table,
+[data-font-style="cursive"] tr,
+[data-font-style="cursive"] td,
+[data-font-style="cursive"] th,
+[data-font-style="cursive"] button,
+[data-font-style="cursive"] input,
+[data-font-style="cursive"] li,
 [data-font-style="cursive"] .font-hebrew,
 [data-font-style="cursive"] [dir="rtl"] {
-  font-family: 'Gveret Levin', cursive, var(--font-assistant), sans-serif !important;
+  font-family: 'Gveret Levin', var(--font-assistant), var(--font-rubik), 'Segoe UI', Arial, sans-serif !important;
   font-feature-settings: "kern" 1, "mark" 1, "mkmk" 1, "liga" 1;
   text-rendering: optimizeLegibility;
 }
