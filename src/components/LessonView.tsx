@@ -72,8 +72,29 @@ export const LessonView: React.FC<LessonViewProps> = ({
           </div>
         </div>
 
-        {/* Переход к предыдущему / следующему уроку */}
+        {/* Переход к предыдущему / следующему уроку и переключатель шрифта */}
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => {
+              const nextStyle = userProfile.fontStyle === 'cursive' ? 'print' : 'cursive';
+              onUpdateProfile({ ...userProfile, fontStyle: nextStyle });
+            }}
+            className="px-2.5 py-2 rounded-xl border border-zinc-200 dark:border-zinc-700 text-xs font-semibold hover:bg-zinc-50 dark:hover:bg-zinc-800 transition flex items-center gap-1.5"
+            title="Переключить шрифт урока: Печатный / Рукописный"
+          >
+            {userProfile.fontStyle === 'cursive' ? (
+              <>
+                <span className="font-cursive font-bold text-base text-blue-600 dark:text-blue-400 leading-none">כתב</span>
+                <span className="text-zinc-700 dark:text-zinc-300">Рукописный</span>
+              </>
+            ) : (
+              <>
+                <span className="font-hebrew font-bold text-xs text-zinc-700 dark:text-zinc-300 leading-none">דפוס</span>
+                <span className="text-zinc-700 dark:text-zinc-300">Печатный</span>
+              </>
+            )}
+          </button>
+
           {prevLesson && (
             <button
               onClick={() => onSelectLesson(prevLesson)}
