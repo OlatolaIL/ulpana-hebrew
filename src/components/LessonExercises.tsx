@@ -100,6 +100,7 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
 
   return (
     <div className="max-w-xl mx-auto space-y-6">
+      {/* Прогресс упражнений */}
       <div className="flex items-center justify-between text-xs font-semibold text-zinc-500">
         <span>Упражнение {currentIdx + 1} из {exercises.length}</span>
         <span>Тема: {lesson.titleRussian}</span>
@@ -112,11 +113,13 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
         />
       </div>
 
+      {/* Карточка вопроса */}
       <div className="bg-white dark:bg-zinc-900 rounded-3xl p-6 border border-zinc-200 dark:border-zinc-800 shadow-sm space-y-6">
         <h3 className="text-lg font-bold text-zinc-900 dark:text-zinc-100">
           {currentEx.question}
         </h3>
 
+        {/* Варианты выбора (word_match или fill_blank) */}
         {(currentEx.type === 'word_match' || currentEx.type === 'fill_blank') &&
           currentEx.options && (
             <div className="grid grid-cols-1 gap-2.5">
@@ -157,6 +160,7 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
             </div>
           )}
 
+        {/* Режим сборки предложения из слов (build_sentence) */}
         {currentEx.type === 'build_sentence' && currentEx.options && (
           <div className="space-y-4">
             <div
@@ -195,6 +199,7 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
           </div>
         )}
 
+        {/* Пояснение после ответа */}
         {isAnswered && currentEx.explanation && (
           <div
             className={`p-4 rounded-2xl border text-xs leading-relaxed animate-in fade-in ${
@@ -210,6 +215,7 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
           </div>
         )}
 
+        {/* Кнопка следующего вопроса */}
         {isAnswered && (
           <button
             onClick={handleNext}
