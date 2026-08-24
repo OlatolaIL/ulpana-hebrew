@@ -20,6 +20,7 @@ interface LessonVocabularyProps {
   userProfile: UserProfile;
   onWordToggled?: () => void;
   onStartPractice?: (words: Word[]) => void;
+  onUpdateProfile?: (profile: UserProfile) => void;
 }
 
 export const LessonVocabulary: React.FC<LessonVocabularyProps> = ({
@@ -27,6 +28,7 @@ export const LessonVocabulary: React.FC<LessonVocabularyProps> = ({
   userProfile,
   onWordToggled,
   onStartPractice,
+  onUpdateProfile,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedPos, setSelectedPos] = useState<string>('all');
@@ -44,6 +46,7 @@ export const LessonVocabulary: React.FC<LessonVocabularyProps> = ({
 
   const handleToggleDict = (word: Word) => {
     if (isWordInPersonalDict(word.hebrew)) {
+      // Ищем ID в словарике и удаляем
       const existing = userProfile.personalVocabulary.find(
         (pw) => pw.hebrewPlain === word.hebrewPlain
       );
@@ -100,15 +103,40 @@ export const LessonVocabulary: React.FC<LessonVocabularyProps> = ({
           </select>
         </div>
 
-        {onStartPractice && (
+        <div className="flex items-center gap-2">
           <button
-            onClick={() => onStartPractice(filteredWords)}
-            className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold flex items-center justify-center gap-2 shadow-sm transition active:scale-95"
+            type="button"
+            onClick={() => {
+              const nextStyle: 'print' | 'cursive' = userProfile.fontStyle === 'cursive' ? 'print' : 'cursive';
+              const updated: UserProfile = { ...userProfile, fontStyle: nextStyle };
+              if (onUpdateProfile) onUpdateProfile(updated);
+            }}
+            className="px-3 py-2.5 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-xs font-semibold flex items-center gap-1.5 hover:bg-zinc-50 dark:hover:bg-zinc-700 transition"
+            title="Переключить шрифт словаря: Печатный / Рукописный"
           >
-            <Layers className="w-4 h-4" />
-            <span>Тренировать карточками ({filteredWords.length})</span>
+            {userProfile.fontStyle === 'cursive' ? (
+              <>
+                <span className="font-cursive font-bold text-base text-blue-600 dark:text-blue-400 leading-none">כתב</span>
+                <span className="text-zinc-700 dark:text-zinc-300">Рукописный</span>
+              </>
+            ) : (
+              <>
+                <span className="font-hebrew font-bold text-xs text-zinc-700 dark:text-zinc-300 leading-none">דפוס</span>
+                <span className="text-zinc-700 dark:text-zinc-300">Печатный</span>
+              </>
+            )}
           </button>
-        )}
+
+          {onStartPractice && (
+            <button
+              onClick={() => onStartPractice(filteredWords)}
+              className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold flex items-center justify-center gap-2 shadow-sm transition active:scale-95"
+            >
+              <Layers className="w-4 h-4" />
+              <span>Тренировать карточками ({filteredWords.length})</span>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Список слов карточками / таблицей */}
