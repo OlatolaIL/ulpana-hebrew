@@ -3,6 +3,14 @@
 import React, { useState, useEffect } from 'react';
 import {
   Volume2,
+  RotateCw,
+  CheckCircle,
+  XCircle,
+  Sparkles,
+  ArrowRight,
+  ArrowLeft,
+  Layers,
+  HelpCircle,
   Award,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
@@ -29,10 +37,12 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
   const [mode, setMode] = useState<TrainerMode>('flip');
   const [isCompleted, setIsCompleted] = useState(false);
 
+  // Для режима конструктора букв
   const [builderLetters, setBuilderLetters] = useState<string[]>([]);
   const [selectedLetters, setSelectedLetters] = useState<string[]>([]);
   const [builderError, setBuilderError] = useState(false);
 
+  // Для режима аудирования
   const [quizOptions, setQuizOptions] = useState<string[]>([]);
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
 
@@ -44,14 +54,18 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
     setSelectedAnswer(null);
     setBuilderError(false);
 
+    // Озвучиваем слово при показе в режиме аудирования
     if (mode === 'listening') {
       speakHebrew(currentWord.hebrew);
     }
 
+    // Подготовка для режима конструктора букв
     const letters = currentWord.hebrewPlain.split('').filter((c) => c !== ' ');
+    // Перемешиваем буквы
     setBuilderLetters([...letters].sort(() => Math.random() - 0.5));
     setSelectedLetters([]);
 
+    // Подготовка вариантов для аудирования
     const otherTranslations = words
       .filter((w) => w.id !== currentWord.id)
       .map((w) => w.translation);
@@ -93,12 +107,14 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
     const currentInput = nextSelected.join('');
 
     if (currentInput === targetWord) {
+      // Успешно собрали слово!
       speakHebrew(currentWord.hebrew);
       setTimeout(() => handleNextWord(5), 700);
     } else if (!targetWord.startsWith(currentInput)) {
       setBuilderError(true);
       setTimeout(() => {
         setBuilderError(false);
+        // Сброс
         const fullLetters = currentWord.hebrewPlain.split('').filter((c) => c !== ' ');
         setBuilderLetters([...fullLetters].sort(() => Math.random() - 0.5));
         setSelectedLetters([]);
@@ -131,6 +147,9 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
           <p className="text-sm font-semibold text-emerald-600 dark:text-emerald-400 mt-1">
             Отличная работа! Тренировка завершена.
           </p>
+          <p className="text-xs text-zinc-500 mt-2">
+            Вы повторили {words.length} слов(а). Прогресс сохранен в интервальной памяти.
+          </p>
         </div>
 
         <div className="flex gap-3">
@@ -158,6 +177,7 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
 
   return (
     <div className="max-w-xl mx-auto space-y-6">
+      {/* Шапка тренировки и выбор режима */}
       <div className="bg-white dark:bg-zinc-900 p-4 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
         <div className="flex items-center gap-2">
           <button
@@ -197,6 +217,7 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
         </div>
       </div>
 
+      {/* Прогресс-бар */}
       <div className="w-full bg-zinc-200 dark:bg-zinc-800 h-2 rounded-full overflow-hidden">
         <div
           className="bg-blue-600 h-full transition-all duration-300"
@@ -204,6 +225,7 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
         />
       </div>
 
+      {/* РЕЖИМ 1: ФЛИП-КАРТОЧКА */}
       {mode === 'flip' && (
         <div className="space-y-6">
           <div
@@ -247,10 +269,25 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
                 <div className="text-2xl md:text-3xl font-bold text-zinc-900 dark:text-zinc-100">
                   {currentWord.translation}
                 </div>
+                <div
+                  dir="rtl"
+                  className="text-xl text-zinc-500 dark:text-zinc-400 font-hebrew"
+                >
+                  {currentWord.hebrew}
+                </div>
+                {currentWord.root && (
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300">
+                    <span>Шореш:</span>
+                    <span dir="rtl" className="font-bold">
+                      {currentWord.root}
+                    </span>
+                  </div>
+                )}
               </div>
             )}
           </div>
 
+          {/* Кнопки оценки легкости (SRS) */}
           <div className="grid grid-cols-3 gap-3">
             <button
               onClick={() => handleNextWord(1)}
@@ -274,6 +311,7 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
         </div>
       )}
 
+      {/* РЕЖИМ 2: КОНСТРУКТОР БУКВ */}
       {mode === 'builder' && (
         <div className="bg-white dark:bg-zinc-900 rounded-3xl p-6 border border-zinc-200 dark:border-zinc-800 shadow-lg space-y-6">
           <div className="text-center space-y-2">
@@ -281,8 +319,14 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
             <div className="text-xl font-bold text-zinc-800 dark:text-zinc-100">
               {currentWord.translation}
             </div>
+            {userProfile.showTranscription && (
+              <p className="text-xs text-blue-600 dark:text-blue-400">
+                [{currentWord.transcription}]
+              </p>
+            )}
           </div>
 
+          {/* Поле собранных букв */}
           <div
             dir="rtl"
             className={`min-h-[64px] p-3 rounded-2xl border-2 flex items-center justify-center gap-2 font-hebrew text-3xl font-bold transition ${
@@ -294,6 +338,7 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
             {selectedLetters.length > 0 ? selectedLetters.join('') : '...'}
           </div>
 
+          {/* Плитки доступных букв */}
           <div dir="rtl" className="flex flex-wrap gap-2.5 justify-center">
             {builderLetters.map((char, i) => (
               <button
@@ -308,6 +353,7 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
         </div>
       )}
 
+      {/* РЕЖИМ 3: АУДИРОВАНИЕ */}
       {mode === 'listening' && (
         <div className="bg-white dark:bg-zinc-900 rounded-3xl p-6 border border-zinc-200 dark:border-zinc-800 shadow-lg space-y-6">
           <div className="text-center py-4">
@@ -317,8 +363,10 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
             >
               <Volume2 className="w-8 h-8" />
             </button>
+            <p className="text-xs text-zinc-400 mt-3">Нажмите, чтобы прослушать слово еще раз</p>
           </div>
 
+          {/* Варианты ответов */}
           <div className="grid grid-cols-1 gap-2.5">
             {quizOptions.map((opt, i) => {
               const isSelected = selectedAnswer === opt;
