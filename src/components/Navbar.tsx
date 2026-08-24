@@ -13,8 +13,8 @@ import {
 import { UserProfile } from '@/types';
 
 interface NavbarProps {
-  currentView: 'map' | 'lesson' | 'flashcards' | 'dictionary';
-  onNavigate: (view: 'map' | 'flashcards' | 'dictionary') => void;
+  currentView: 'map' | 'lesson' | 'flashcards' | 'dictionary' | 'alphabet';
+  onNavigate: (view: 'map' | 'flashcards' | 'dictionary' | 'alphabet') => void;
   userProfile: UserProfile;
   onOpenSettings: () => void;
 }
@@ -65,6 +65,18 @@ export const Navbar: React.FC<NavbarProps> = ({
           >
             <BookOpen className="w-4 h-4" />
             <span>Уроки</span>
+          </button>
+
+          <button
+            onClick={() => onNavigate('alphabet')}
+            className={`px-3.5 py-2 rounded-xl text-sm font-semibold flex items-center gap-2 transition ${
+              currentView === 'alphabet'
+                ? 'bg-zinc-100 dark:bg-zinc-800 text-blue-600 dark:text-blue-400'
+                : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100'
+            }`}
+          >
+            <span className="font-cursive font-bold text-lg leading-none text-blue-600 dark:text-blue-400">א</span>
+            <span>Прописи</span>
           </button>
 
           <button
@@ -134,6 +146,18 @@ export const Navbar: React.FC<NavbarProps> = ({
         >
           <BookOpen className="w-5 h-5" />
           <span>Уроки</span>
+        </button>
+
+        <button
+          onClick={() => onNavigate('alphabet')}
+          className={`flex flex-col items-center gap-1 text-xs font-semibold ${
+            currentView === 'alphabet'
+              ? 'text-blue-600 dark:text-blue-400'
+              : 'text-zinc-400'
+          }`}
+        >
+          <span className="font-cursive font-bold text-xl leading-none text-blue-600 dark:text-blue-400">א</span>
+          <span>Прописи</span>
         </button>
 
         <button
