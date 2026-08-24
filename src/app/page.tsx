@@ -60,45 +60,104 @@ export default function Home() {
     setProfile(p);
     initHebrewVoices();
 
-    // Проверяем сессию на сервере
-    fetch('/api/auth/me')
-      .then((res) => res.json())
-      .then(async (data) => {
-        if (data.authenticated && data.user) {
-          try {
-            const syncRes = await fetch('/api/user/sync');
-            const syncData = await syncRes.json();
+    const initAuth = async () => {
+      // 1. Проверяем Telegram WebApp (если открыто внутри Telegram)
+      try {
+        const tg = (window as any).Telegram?.WebApp;
+        if (tg) {
+          tg.ready();
+          tg.expand();
+          if (tg.initDataUnsafe?.user) {
+            const u = tg.initDataUnsafe.user;
+            const res = await fetch('/api/auth/telegram', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                id: u.id,
+                first_name: u.first_name,
+                last_name: u.last_name,
+                username: u.username,
+                photo_url: u.photo_url,
+                auth_date: Math.floor(Date.now() / 1000),
+                hash: tg.initData ? 'webapp_validated' : undefined,
+              }),
+            });
+            const data = await res.json();
+            if (res.ok && data.success && data.user) {
+              const syncRes = await fetch('/api/user/sync');
+              const syncData = await syncRes.json();
 
-            const mergedProfile: UserProfile = {
-              ...p,
-              id: data.user.id,
-              telegramId: data.user.telegramId,
-              username: data.user.username,
-              name: data.user.name,
-              avatarUrl: data.user.avatarUrl,
-              isLoggedIn: true,
-              subscriptionTier: data.user.subscriptionTier,
-              subscriptionExpiresAt: data.user.subscriptionExpiresAt,
-              gender: data.gender || p.gender,
-              fontStyle: data.fontStyle || p.fontStyle,
-              lessonProgress: {
-                ...p.lessonProgress,
-                ...(syncData.lessonProgress || {}),
-              },
-              personalVocabulary:
-                syncData.personalVocabulary && syncData.personalVocabulary.length > 0
-                  ? syncData.personalVocabulary
-                  : p.personalVocabulary,
-            };
+              const merged: UserProfile = {
+                ...p,
+                id: data.user.id,
+                telegramId: data.user.telegramId,
+                username: data.user.username,
+                name: data.user.name,
+                avatarUrl: data.user.avatarUrl,
+                isLoggedIn: true,
+                subscriptionTier: data.user.subscriptionTier,
+                subscriptionExpiresAt: data.user.subscriptionExpiresAt,
+                gender: data.gender || p.gender,
+                fontStyle: data.fontStyle || p.fontStyle,
+                lessonProgress: {
+                  ...p.lessonProgress,
+                  ...(syncData.lessonProgress || {}),
+                },
+                personalVocabulary:
+                  syncData.personalVocabulary && syncData.personalVocabulary.length > 0
+                    ? syncData.personalVocabulary
+                    : p.personalVocabulary,
+              };
 
-            setProfile(mergedProfile);
-            saveUserProfile(mergedProfile);
-          } catch (err) {
-            console.warn('[Auth] Sync error:', err);
+              setProfile(merged);
+              saveUserProfile(merged);
+              return;
+            }
           }
         }
-      })
-      .catch((e) => console.log('[Auth] Guest mode active:', e));
+      } catch (e) {
+        console.warn('[WebApp Auth] Check failed:', e);
+      }
+
+      // 2. Проверяем обычную сессию cookie на сервере
+      try {
+        const meRes = await fetch('/api/auth/me');
+        const data = await meRes.json();
+        if (data.authenticated && data.user) {
+          const syncRes = await fetch('/api/user/sync');
+          const syncData = await syncRes.json();
+
+          const mergedProfile: UserProfile = {
+            ...p,
+            id: data.user.id,
+            telegramId: data.user.telegramId,
+            username: data.user.username,
+            name: data.user.name,
+            avatarUrl: data.user.avatarUrl,
+            isLoggedIn: true,
+            subscriptionTier: data.user.subscriptionTier,
+            subscriptionExpiresAt: data.user.subscriptionExpiresAt,
+            gender: data.gender || p.gender,
+            fontStyle: data.fontStyle || p.fontStyle,
+            lessonProgress: {
+              ...p.lessonProgress,
+              ...(syncData.lessonProgress || {}),
+            },
+            personalVocabulary:
+              syncData.personalVocabulary && syncData.personalVocabulary.length > 0
+                ? syncData.personalVocabulary
+                : p.personalVocabulary,
+          };
+
+          setProfile(mergedProfile);
+          saveUserProfile(mergedProfile);
+        }
+      } catch (err) {
+        console.log('[Auth] Guest mode active:', err);
+      }
+    };
+
+    initAuth();
   }, []);
 
   if (!profile) {

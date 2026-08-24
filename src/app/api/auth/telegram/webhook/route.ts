@@ -81,14 +81,20 @@ export async function POST(req: NextRequest) {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             chat_id: message.chat.id,
-            text: `🇮🇱 *Добро пожаловать в Ульпану Иврит!*\n\n✅ *Авторизация успешна!*\nВы вошли как *${fullName}*.\n\nВернитесь на сайт — вход уже выполнен автоматически.`,
+            text: `🇮🇱 *Добро пожаловать в Ульпану Иврит!*\n\n✅ *Авторизация успешна!*\nВы вошли как *${fullName}*.\n\nНажмите кнопку ниже для перехода к обучению:`,
             parse_mode: 'Markdown',
             reply_markup: {
               inline_keyboard: [
                 [
                   {
-                    text: '🚀 Открыть Ульпану Иврит',
+                    text: '🚀 Открыть в Telegram',
                     web_app: { url: 'https://ulpana-hebrew.vercel.app' },
+                  },
+                ],
+                [
+                  {
+                    text: '🌐 Открыть в браузере (Safari / Chrome)',
+                    url: 'https://ulpana-hebrew.vercel.app',
                   },
                 ],
               ],

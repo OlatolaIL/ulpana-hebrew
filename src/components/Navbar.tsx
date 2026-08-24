@@ -158,21 +158,21 @@ export const Navbar: React.FC<NavbarProps> = ({
             <div className="flex items-center gap-1.5">
               <button
                 onClick={onOpenSettings}
-                className="flex items-center gap-1.5 px-2 py-1 rounded-xl border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition"
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/80 dark:bg-zinc-800/80 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition shadow-sm"
                 title={`Профиль: ${userProfile.name} (@${userProfile.username || 'user'})`}
               >
                 {userProfile.avatarUrl ? (
                   <img
                     src={userProfile.avatarUrl}
                     alt={userProfile.name}
-                    className="w-6 h-6 rounded-full object-cover"
+                    className="w-5 h-5 rounded-full object-cover shrink-0"
                   />
                 ) : (
-                  <div className="w-6 h-6 rounded-full bg-blue-600 text-white text-[11px] font-bold flex items-center justify-center">
+                  <div className="w-5 h-5 rounded-full bg-blue-600 text-white text-[10px] font-bold flex items-center justify-center shrink-0">
                     {userProfile.name.charAt(0).toUpperCase()}
                   </div>
                 )}
-                <span className="text-xs font-semibold text-zinc-800 dark:text-zinc-200 hidden sm:inline max-w-[90px] truncate">
+                <span className="text-xs font-bold text-zinc-900 dark:text-zinc-100 max-w-[70px] sm:max-w-[110px] truncate">
                   {userProfile.name}
                 </span>
               </button>
