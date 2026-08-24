@@ -28,7 +28,9 @@ body {
 }
 
 .font-cursive,
-.font-handwriting {
+.font-handwriting,
+[data-font-style="cursive"] .font-hebrew,
+[data-font-style="cursive"] [dir="rtl"] {
   font-family: 'Gveret Levin', cursive, var(--font-assistant), sans-serif !important;
   font-feature-settings: "kern" 1, "mark" 1, "mkmk" 1, "liga" 1;
   text-rendering: optimizeLegibility;
