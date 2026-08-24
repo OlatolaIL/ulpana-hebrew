@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Volume2, Plus, Check, X, Loader2, Sparkles } from 'lucide-react';
+import { Volume2, Plus, Check, X, Loader2, Sparkles, BookOpen } from 'lucide-react';
 import { Word, UserProfile } from '@/types';
 import { speakHebrew } from '@/lib/speech';
 import { addWordToPersonalDict, isWordInPersonalDict } from '@/lib/storage';
@@ -93,6 +93,7 @@ export const WordLookupModal: React.FC<WordLookupModalProps> = ({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in">
       <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl border border-zinc-200 dark:border-zinc-800 max-w-md w-full overflow-hidden">
+        {/* Шапка */}
         <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Sparkles className="w-5 h-5 text-yellow-300" />
@@ -106,6 +107,7 @@ export const WordLookupModal: React.FC<WordLookupModalProps> = ({
           </button>
         </div>
 
+        {/* Тело модалки */}
         <div className="p-6 space-y-4">
           {loading ? (
             <div className="py-12 flex flex-col items-center justify-center space-y-3 text-zinc-500">
@@ -114,6 +116,7 @@ export const WordLookupModal: React.FC<WordLookupModalProps> = ({
             </div>
           ) : wordData ? (
             <>
+              {/* Главная карточка слова */}
               <div className="text-center py-2 bg-blue-50 dark:bg-blue-950/40 rounded-xl p-4 border border-blue-100 dark:border-blue-900/50">
                 <div className="flex items-center justify-center gap-3">
                   <span
@@ -151,6 +154,7 @@ export const WordLookupModal: React.FC<WordLookupModalProps> = ({
                 )}
               </div>
 
+              {/* Пример предложения */}
               {wordData.exampleSentence && (
                 <div className="bg-zinc-50 dark:bg-zinc-800/60 p-3.5 rounded-xl border border-zinc-200 dark:border-zinc-700/60 space-y-1">
                   <div className="flex items-center justify-between text-xs text-zinc-500 dark:text-zinc-400 font-medium">
@@ -178,6 +182,7 @@ export const WordLookupModal: React.FC<WordLookupModalProps> = ({
                 </div>
               )}
 
+              {/* Кнопка добавления в словарик */}
               <div className="pt-2">
                 <button
                   onClick={handleAdd}
