@@ -1,7 +1,14 @@
+/**
+ * Бесплатный браузерный голосовой движок (Text-to-Speech и Speech-to-Text) для иврита
+ */
+
 import { stripNikkud } from './transcription';
 
 let preferredHebrewVoice: SpeechSynthesisVoice | null = null;
 
+/**
+ * Инициализация и поиск лучшего голоса для иврита в системе
+ */
 export function initHebrewVoices(): Promise<SpeechSynthesisVoice | null> {
   return new Promise((resolve) => {
     if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
@@ -11,6 +18,7 @@ export function initHebrewVoices(): Promise<SpeechSynthesisVoice | null> {
 
     const findVoice = () => {
       const voices = window.speechSynthesis.getVoices();
+      // Ищем голос с кодом he-IL или he
       const heVoice =
         voices.find((v) => v.lang === 'he-IL' || v.lang === 'he') ||
         voices.find((v) => v.lang.startsWith('he')) ||
@@ -29,12 +37,16 @@ export function initHebrewVoices(): Promise<SpeechSynthesisVoice | null> {
       resolve(findVoice());
     };
 
+    // Таймаут на случай, если голоса уже загружены
     setTimeout(() => {
       resolve(findVoice());
     }, 500);
   });
 }
 
+/**
+ * Воспроизведение текста на иврите с помощью встроенного движка браузера
+ */
 export function speakHebrew(
   text: string,
   options: { rate?: number; pitch?: number } = {}
@@ -46,8 +58,9 @@ export function speakHebrew(
       return;
     }
 
-    window.speechSynthesis.cancel();
+    window.speechSynthesis.cancel(); // останавливаем предыдущую речь
 
+    // Очищаем огласовки перед чтением
     const cleanText = stripNikkud(text);
     if (!cleanText.trim()) {
       resolve();
@@ -86,12 +99,18 @@ export function speakHebrew(
   });
 }
 
+/**
+ * Остановка любой воспроизводимой речи
+ */
 export function stopSpeech(): void {
   if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
     window.speechSynthesis.cancel();
   }
 }
 
+/**
+ * Интерфейс распознавания речи (Speech-to-Text) через браузерный API
+ */
 export class HebrewSpeechRecognizer {
   private recognition: any = null;
   private isListening = false;
