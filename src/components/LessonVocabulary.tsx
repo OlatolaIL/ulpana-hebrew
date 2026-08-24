@@ -45,18 +45,38 @@ export const LessonVocabulary: React.FC<LessonVocabularyProps> = ({
   });
 
   const handleToggleDict = (word: Word) => {
-    if (isWordInPersonalDict(word.hebrew)) {
-      // Ищем ID в словарике и удаляем
-      const existing = userProfile.personalVocabulary.find(
-        (pw) => pw.hebrewPlain === word.hebrewPlain
+    const cleanWordHeb = stripNikkud(word.hebrew);
+    let updatedVocab = [...(userProfile.personalVocabulary || [])];
+    const isAlreadyIn = updatedVocab.some(
+      (pw) => stripNikkud(pw.hebrew) === cleanWordHeb
+    );
+
+    if (isAlreadyIn) {
+      updatedVocab = updatedVocab.filter(
+        (pw) => stripNikkud(pw.hebrew) !== cleanWordHeb
       );
-      if (existing) {
-        removeWordFromPersonalDict(existing.id);
-      }
     } else {
-      addWordToPersonalDict(word);
+      const newWord: Word = {
+        ...word,
+        id: `user-word-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+        isUserAdded: true,
+        dateAdded: Date.now(),
+      };
+      updatedVocab.unshift(newWord);
     }
-    if (onWordToggled) onWordToggled();
+
+    const updatedProfile: UserProfile = {
+      ...userProfile,
+      personalVocabulary: updatedVocab,
+    };
+
+    saveUserProfile(updatedProfile);
+    if (onUpdateProfile) {
+      onUpdateProfile(updatedProfile);
+    }
+    if (onWordToggled) {
+      onWordToggled();
+    }
   };
 
   const getPosBadge = (pos: PartOfSpeech) => {
@@ -149,7 +169,9 @@ export const LessonVocabulary: React.FC<LessonVocabularyProps> = ({
       {/* Список слов карточками / таблицей */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {filteredWords.map((word) => {
-          const inDict = isWordInPersonalDict(word.hebrew);
+          const inDict = (userProfile.personalVocabulary || []).some(
+            (pw) => stripNikkud(pw.hebrew) === stripNikkud(word.hebrew)
+          );
 
           return (
             <div
