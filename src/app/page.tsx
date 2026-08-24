@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Navbar } from '@/components/Navbar';
 import { CourseMap } from '@/components/CourseMap';
 import { LessonView } from '@/components/LessonView';
@@ -8,7 +8,9 @@ import { FlashcardTrainer } from '@/components/FlashcardTrainer';
 import { PersonalDictionary } from '@/components/PersonalDictionary';
 import { AlphabetTrainer } from '@/components/AlphabetTrainer';
 import { SettingsModal } from '@/components/SettingsModal';
-import { UserProfile, Word } from '@/types';
+import { AuthModal } from '@/components/AuthModal';
+import { SubscriptionModal } from '@/components/SubscriptionModal';
+import { UserProfile, Word, UserSession } from '@/types';
 import { loadUserProfile, saveUserProfile } from '@/lib/storage';
 import { initHebrewVoices } from '@/lib/speech';
 import { DETAILED_LESSONS, getLessonById } from '@/data/lessonsData';
@@ -21,12 +23,82 @@ export default function Home() {
   const [activeLessonId, setActiveLessonId] = useState<number>(1);
   const [flashcardWords, setFlashcardWords] = useState<Word[]>([]);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState(false);
+
+  // Синхронизация данных с облаком
+  const syncToCloud = useCallback(async (updated: UserProfile) => {
+    if (updated.isLoggedIn) {
+      try {
+        await fetch('/api/user/sync', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            lessonProgress: updated.lessonProgress,
+            personalVocabulary: updated.personalVocabulary,
+            gender: updated.gender,
+            fontStyle: updated.fontStyle,
+          }),
+        });
+      } catch (e) {
+        console.warn('[Sync] Cloud sync failed:', e);
+      }
+    }
+  }, []);
+
+  const handleUpdateProfile = useCallback(
+    (updated: UserProfile) => {
+      setProfile(updated);
+      saveUserProfile(updated);
+      syncToCloud(updated);
+    },
+    [syncToCloud]
+  );
 
   useEffect(() => {
-    // Загрузка профиля из LocalStorage
     const p = loadUserProfile();
     setProfile(p);
     initHebrewVoices();
+
+    // Проверяем сессию на сервере
+    fetch('/api/auth/me')
+      .then((res) => res.json())
+      .then(async (data) => {
+        if (data.authenticated && data.user) {
+          try {
+            const syncRes = await fetch('/api/user/sync');
+            const syncData = await syncRes.json();
+
+            const mergedProfile: UserProfile = {
+              ...p,
+              id: data.user.id,
+              telegramId: data.user.telegramId,
+              username: data.user.username,
+              name: data.user.name,
+              avatarUrl: data.user.avatarUrl,
+              isLoggedIn: true,
+              subscriptionTier: data.user.subscriptionTier,
+              subscriptionExpiresAt: data.user.subscriptionExpiresAt,
+              gender: data.gender || p.gender,
+              fontStyle: data.fontStyle || p.fontStyle,
+              lessonProgress: {
+                ...p.lessonProgress,
+                ...(syncData.lessonProgress || {}),
+              },
+              personalVocabulary:
+                syncData.personalVocabulary && syncData.personalVocabulary.length > 0
+                  ? syncData.personalVocabulary
+                  : p.personalVocabulary,
+            };
+
+            setProfile(mergedProfile);
+            saveUserProfile(mergedProfile);
+          } catch (err) {
+            console.warn('[Auth] Sync error:', err);
+          }
+        }
+      })
+      .catch((e) => console.log('[Auth] Guest mode active:', e));
   }, []);
 
   if (!profile) {
@@ -40,7 +112,13 @@ export default function Home() {
     );
   }
 
+  const isPro = profile.subscriptionTier === 'pro' || profile.subscriptionTier === 'admin';
+
   const handleSelectLesson = (id: number) => {
+    if (id > 3 && !isPro) {
+      setIsSubscriptionModalOpen(true);
+      return;
+    }
     setActiveLessonId(id);
     setCurrentView('lesson');
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -53,11 +131,9 @@ export default function Home() {
   };
 
   const handleLaunchGeneralFlashcards = () => {
-    // Собираем слова из текущего открытого урока или первого урока
     const currentLessonWords = getLessonById(activeLessonId).vocabulary;
     const personal = profile.personalVocabulary;
     const combined = [...personal, ...currentLessonWords];
-    // Уникализируем
     const unique = Array.from(new Map(combined.map((w) => [w.hebrewPlain, w])).values());
     handleStartFlashcards(unique.length > 0 ? unique : currentLessonWords);
   };
@@ -65,8 +141,72 @@ export default function Home() {
   const handleToggleFontStyle = () => {
     const nextStyle = profile.fontStyle === 'cursive' ? 'print' : 'cursive';
     const updated: UserProfile = { ...profile, fontStyle: nextStyle };
-    setProfile(updated);
-    saveUserProfile(updated);
+    handleUpdateProfile(updated);
+  };
+
+  const handleLoginSuccess = async (
+    session: UserSession,
+    gender?: 'male' | 'female',
+    fontStyle?: 'print' | 'cursive'
+  ) => {
+    const updated: UserProfile = {
+      ...profile,
+      id: session.id,
+      telegramId: session.telegramId,
+      username: session.username,
+      name: session.name,
+      avatarUrl: session.avatarUrl,
+      isLoggedIn: true,
+      subscriptionTier: session.subscriptionTier,
+      subscriptionExpiresAt: session.subscriptionExpiresAt,
+      gender: gender || profile.gender,
+      fontStyle: fontStyle || profile.fontStyle,
+    };
+
+    handleUpdateProfile(updated);
+
+    // Сразу загружаем в облако локальный прогресс
+    try {
+      await fetch('/api/user/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          lessonProgress: updated.lessonProgress,
+          personalVocabulary: updated.personalVocabulary,
+          gender: updated.gender,
+          fontStyle: updated.fontStyle,
+        }),
+      });
+    } catch (e) {
+      console.warn('[Sync] Initial push failed:', e);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+    } catch {}
+    const guestProfile: UserProfile = {
+      ...profile,
+      id: undefined,
+      telegramId: undefined,
+      username: undefined,
+      avatarUrl: undefined,
+      isLoggedIn: false,
+      subscriptionTier: 'free',
+      subscriptionExpiresAt: null,
+      name: 'Ученик',
+    };
+    handleUpdateProfile(guestProfile);
+  };
+
+  const handlePromoActivated = (updatedSession: UserSession) => {
+    const updated: UserProfile = {
+      ...profile,
+      subscriptionTier: updatedSession.subscriptionTier,
+      subscriptionExpiresAt: updatedSession.subscriptionExpiresAt,
+    };
+    handleUpdateProfile(updated);
   };
 
   return (
@@ -87,6 +227,9 @@ export default function Home() {
         userProfile={profile}
         onOpenSettings={() => setIsSettingsOpen(true)}
         onToggleFontStyle={handleToggleFontStyle}
+        onOpenAuth={() => setIsAuthModalOpen(true)}
+        onOpenSubscription={() => setIsSubscriptionModalOpen(true)}
+        onLogout={handleLogout}
       />
 
       {/* Основная рабочая область */}
@@ -95,6 +238,7 @@ export default function Home() {
           <CourseMap
             userProfile={profile}
             onSelectLesson={handleSelectLesson}
+            onRequirePro={() => setIsSubscriptionModalOpen(true)}
           />
         )}
 
@@ -105,10 +249,7 @@ export default function Home() {
             onBack={() => setCurrentView('map')}
             onSelectLesson={handleSelectLesson}
             onStartFlashcards={handleStartFlashcards}
-            onUpdateProfile={(updated) => {
-              setProfile(updated);
-              saveUserProfile(updated);
-            }}
+            onUpdateProfile={handleUpdateProfile}
           />
         )}
 
@@ -126,6 +267,7 @@ export default function Home() {
               initialWords={flashcardWords}
               userProfile={profile}
               onClose={() => setCurrentView('map')}
+              onUpdateProfile={handleUpdateProfile}
             />
           </div>
         )}
@@ -137,10 +279,7 @@ export default function Home() {
         {currentView === 'dictionary' && (
           <PersonalDictionary
             userProfile={profile}
-            onUpdateProfile={(updated) => {
-              setProfile(updated);
-              saveUserProfile(updated);
-            }}
+            onUpdateProfile={handleUpdateProfile}
             onStartPractice={(words) => handleStartFlashcards(words)}
           />
         )}
@@ -151,11 +290,28 @@ export default function Home() {
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
         profile={profile}
-        onUpdateProfile={(updated) => {
-          setProfile(updated);
-          saveUserProfile(updated);
-        }}
+        onUpdateProfile={handleUpdateProfile}
+        onOpenAuth={() => setIsAuthModalOpen(true)}
+        onOpenSubscription={() => setIsSubscriptionModalOpen(true)}
+        onLogout={handleLogout}
+      />
+
+      {/* Модалка авторизации через Telegram */}
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        onLoginSuccess={handleLoginSuccess}
+      />
+
+      {/* Модалка подписки PRO и промокодов */}
+      <SubscriptionModal
+        isOpen={isSubscriptionModalOpen}
+        onClose={() => setIsSubscriptionModalOpen(false)}
+        userProfile={profile}
+        onPromoActivated={handlePromoActivated}
+        onOpenAuth={() => setIsAuthModalOpen(true)}
       />
     </div>
   );
 }
+

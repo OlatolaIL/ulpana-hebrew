@@ -18,6 +18,9 @@ interface NavbarProps {
   userProfile: UserProfile;
   onOpenSettings: () => void;
   onToggleFontStyle?: () => void;
+  onOpenAuth?: () => void;
+  onOpenSubscription?: () => void;
+  onLogout?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -26,16 +29,20 @@ export const Navbar: React.FC<NavbarProps> = ({
   userProfile,
   onOpenSettings,
   onToggleFontStyle,
+  onOpenAuth,
+  onOpenSubscription,
+  onLogout,
 }) => {
   const dictCount = userProfile.personalVocabulary?.length || 0;
+  const isPro = userProfile.subscriptionTier === 'pro' || userProfile.subscriptionTier === 'admin';
 
   return (
     <header className="sticky top-0 z-40 bg-white/90 dark:bg-zinc-900/90 backdrop-blur border-b border-zinc-200 dark:border-zinc-800">
-      <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between gap-4">
+      <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between gap-3">
         {/* Логотип */}
         <div
           onClick={() => onNavigate('map')}
-          className="flex items-center gap-2.5 cursor-pointer select-none group"
+          className="flex items-center gap-2.5 cursor-pointer select-none group shrink-0"
         >
           <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-md group-hover:scale-105 transition">
             <span className="font-bold text-lg font-hebrew">א</span>
@@ -111,8 +118,22 @@ export const Navbar: React.FC<NavbarProps> = ({
           </button>
         </nav>
 
-        {/* Правая часть: пол, статус ИИ и Настройки */}
+        {/* Правая часть: PRO, пол, авторизация и Настройки */}
         <div className="flex items-center gap-2">
+          {/* Кнопка подписки PRO */}
+          <button
+            onClick={onOpenSubscription}
+            className={`px-2.5 py-1.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 shadow-sm transition active:scale-95 ${
+              isPro
+                ? 'border-amber-400/80 bg-gradient-to-r from-amber-500 to-yellow-400 text-white shadow-amber-500/20'
+                : 'border-amber-300 dark:border-amber-900/60 bg-amber-50 dark:bg-amber-950/30 text-amber-800 dark:text-amber-300 hover:bg-amber-100'
+            }`}
+            title="Управление подпиской PRO и промокоды"
+          >
+            <span>👑</span>
+            <span>{isPro ? 'PRO' : 'Купить PRO'}</span>
+          </button>
+
           {/* Быстрый переключатель шрифта (Печатный / Рукописный) */}
           <button
             onClick={onToggleFontStyle}
@@ -132,25 +153,47 @@ export const Navbar: React.FC<NavbarProps> = ({
             )}
           </button>
 
-          {/* Бейдж пола */}
-          <button
-            onClick={onOpenSettings}
-            className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-zinc-200 dark:border-zinc-800 text-xs font-semibold text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition"
-            title="Грамматический пол для спряжений ИИ"
-          >
-            <span>{userProfile.gender === 'female' ? '👩 Жен.' : '👨 Муж.'}</span>
-            <span dir="rtl" className="text-[10px] font-hebrew text-zinc-400">
-              {userProfile.gender === 'female' ? 'נְקֵבָה' : 'זָכָר'}
-            </span>
-          </button>
+          {/* Кнопка входа / Профиль пользователя */}
+          {userProfile.isLoggedIn ? (
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={onOpenSettings}
+                className="flex items-center gap-1.5 px-2 py-1 rounded-xl border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition"
+                title={`Профиль: ${userProfile.name} (@${userProfile.username || 'user'})`}
+              >
+                {userProfile.avatarUrl ? (
+                  <img
+                    src={userProfile.avatarUrl}
+                    alt={userProfile.name}
+                    className="w-6 h-6 rounded-full object-cover"
+                  />
+                ) : (
+                  <div className="w-6 h-6 rounded-full bg-blue-600 text-white text-[11px] font-bold flex items-center justify-center">
+                    {userProfile.name.charAt(0).toUpperCase()}
+                  </div>
+                )}
+                <span className="text-xs font-semibold text-zinc-800 dark:text-zinc-200 hidden sm:inline max-w-[90px] truncate">
+                  {userProfile.name}
+                </span>
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={onOpenAuth}
+              className="px-3 py-1.5 rounded-xl bg-[#229ED9] hover:bg-[#1E8CC0] text-white text-xs font-semibold flex items-center gap-1.5 shadow-sm transition active:scale-95"
+              title="Войти через Telegram для синхронизации прогресса"
+            >
+              <span>Войти</span>
+            </button>
+          )}
 
           {/* Кнопка настроек */}
           <button
             onClick={onOpenSettings}
-            className="p-2.5 rounded-2xl border border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+            className="p-2 rounded-xl border border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
             title="Настройки обучения"
           >
-            <Settings className="w-5 h-5" />
+            <Settings className="w-4 h-4" />
           </button>
         </div>
       </div>

@@ -46,7 +46,8 @@ function getInitialMessageForGender(lesson: Lesson, gender: 'male' | 'female'): 
         ? 'Привет! Доброе утро. Я Ноам. Как тебя зовут? (к женщине)'
         : 'Привет! Доброе утро. Я Ноам. Как тебя зовут? (к мужчине)',
       suggestedReplies: [
-        {\n          hebrew: 'שָׁלוֹם, קוֹרְאִים לִי...',
+        {
+          hebrew: 'שָׁלוֹם, קוֹרְאִים לִי...',
           transcription: 'шалóм, коръӣм ли...',
           translation: 'Привет, меня зовут...',
         },

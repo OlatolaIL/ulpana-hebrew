@@ -17,15 +17,19 @@ import { Level, UserProfile } from '@/types';
 interface CourseMapProps {
   userProfile: UserProfile;
   onSelectLesson: (lessonId: number) => void;
+  onRequirePro?: (lessonId: number) => void;
 }
 
 export const CourseMap: React.FC<CourseMapProps> = ({
   userProfile,
   onSelectLesson,
+  onRequirePro,
 }) => {
   const [selectedLevel, setSelectedLevel] = useState<Level>('alef');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
+
+  const isPro = userProfile.subscriptionTier === 'pro' || userProfile.subscriptionTier === 'admin';
 
   const filteredCatalog = LESSONS_CATALOG.filter((lesson) => {
     const matchesLevel = lesson.level === selectedLevel;
@@ -148,12 +152,25 @@ export const CourseMap: React.FC<CourseMapProps> = ({
           const isCompleted = userProfile.completedLessons.includes(lesson.id);
           const progress = userProfile.lessonProgress[lesson.id];
           const completedTabsCount = progress?.completedTabs?.length || 0;
+          const isLessonLocked = lesson.id > 3 && !isPro;
+
+          const handleCardClick = () => {
+            if (isLessonLocked) {
+              if (onRequirePro) onRequirePro(lesson.id);
+            } else {
+              onSelectLesson(lesson.id);
+            }
+          };
 
           return (
             <div
               key={lesson.id}
-              onClick={() => onSelectLesson(lesson.id)}
-              className="group bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-5 shadow-sm hover:shadow-md hover:border-blue-500/50 dark:hover:border-blue-500/40 transition duration-200 cursor-pointer flex flex-col justify-between"
+              onClick={handleCardClick}
+              className={`group bg-white dark:bg-zinc-900 border rounded-3xl p-5 shadow-sm transition duration-200 cursor-pointer flex flex-col justify-between ${
+                isLessonLocked
+                  ? 'border-amber-200/80 dark:border-amber-900/40 hover:border-amber-400 dark:hover:border-amber-600 bg-amber-50/20 dark:bg-amber-950/10'
+                  : 'border-zinc-200 dark:border-zinc-800 hover:shadow-md hover:border-blue-500/50 dark:hover:border-blue-500/40'
+              }`}
             >
               <div className="space-y-3">
                 {/* Номер урока и бейдж статуса */}
@@ -162,7 +179,12 @@ export const CourseMap: React.FC<CourseMapProps> = ({
                     Урок {lesson.number}
                   </span>
 
-                  {isCompleted ? (
+                  {isLessonLocked ? (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-xs font-bold bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300">
+                      <span>🔒</span>
+                      <span>PRO</span>
+                    </span>
+                  ) : isCompleted ? (
                     <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
                       <CheckCircle className="w-4 h-4" />
                       <span>Пройден</span>
@@ -197,8 +219,10 @@ export const CourseMap: React.FC<CourseMapProps> = ({
               {/* Футер карточки урока */}
               <div className="mt-4 pt-3 border-t border-zinc-100 dark:border-zinc-800 flex items-center justify-between text-xs text-zinc-400">
                 <span className="font-medium text-zinc-500">{lesson.category}</span>
-                <span className="inline-flex items-center gap-1 font-semibold text-blue-600 dark:text-blue-400 group-hover:translate-x-0.5 transition">
-                  <span>Начать</span>
+                <span className={`inline-flex items-center gap-1 font-semibold group-hover:translate-x-0.5 transition ${
+                  isLessonLocked ? 'text-amber-600 dark:text-amber-400' : 'text-blue-600 dark:text-blue-400'
+                }`}>
+                  <span>{isLessonLocked ? 'Открыть в PRO' : 'Начать'}</span>
                   <ChevronRight className="w-3.5 h-3.5" />
                 </span>
               </div>

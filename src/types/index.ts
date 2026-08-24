@@ -143,7 +143,37 @@ export interface FlashcardProgress {
   history: number[]; // оценки качества 0-5
 }
 
+export type SubscriptionTier = 'free' | 'pro' | 'admin';
+
+export interface UserSession {
+  id: string;
+  telegramId?: number;
+  username?: string;
+  name: string;
+  avatarUrl?: string;
+  email?: string;
+  subscriptionTier: SubscriptionTier;
+  subscriptionExpiresAt?: number | null;
+}
+
+export interface PromoCode {
+  id: string;
+  code: string;
+  daysValid: number;
+  maxUses: number;
+  usedCount: number;
+  isActive: boolean;
+  expiresAt?: number | null;
+}
+
 export interface UserProfile {
+  id?: string;
+  telegramId?: number;
+  username?: string;
+  avatarUrl?: string;
+  isLoggedIn?: boolean;
+  subscriptionTier?: SubscriptionTier;
+  subscriptionExpiresAt?: number | null;
   name: string;
   gender: UserGender;
   aiProvider: AiProvider;

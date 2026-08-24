@@ -123,4 +123,105 @@ export const LessonView: React.FC<LessonViewProps> = ({
       {/* Вкладки урока */}
       <div className="flex p-1.5 bg-zinc-100 dark:bg-zinc-800/60 rounded-2xl border border-zinc-200 dark:border-zinc-700/60 overflow-x-auto">
         <button
-          onClick={() => setActiveTab('theory')}\n          className={`flex-1 min-w-[130px] py-2.5 px-3 rounded-xl font-semibold text-xs md:text-sm flex items-center justify-center gap-2 transition ${\n            activeTab === 'theory'\n              ? 'bg-white dark:bg-zinc-900 text-blue-600 dark:text-blue-400 shadow-sm'\n              : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900'\n          }`}\n        >\n          <BookOpen className=\"w-4 h-4\" />\n          <span>1. Теория</span>\n          {completedTabs.includes('theory') && (\n            <CheckCircle2 className=\"w-3.5 h-3.5 text-emerald-500 shrink-0\" />\n          )}\n        </button>\n\n        <button\n          onClick={() => setActiveTab('vocab')}\n          className={`flex-1 min-w-[130px] py-2.5 px-3 rounded-xl font-semibold text-xs md:text-sm flex items-center justify-center gap-2 transition ${\n            activeTab === 'vocab'\n              ? 'bg-white dark:bg-zinc-900 text-blue-600 dark:text-blue-400 shadow-sm'\n              : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900'\n          }`}\n        >\n          <Layers className=\"w-4 h-4\" />\n          <span>2. Словарь ({lesson.vocabulary.length})</span>\n          {completedTabs.includes('vocab') && (\n            <CheckCircle2 className=\"w-3.5 h-3.5 text-emerald-500 shrink-0\" />\n          )}\n        </button>\n\n        <button\n          onClick={() => setActiveTab('exercises')}\n          className={`flex-1 min-w-[130px] py-2.5 px-3 rounded-xl font-semibold text-xs md:text-sm flex items-center justify-center gap-2 transition ${\n            activeTab === 'exercises'\n              ? 'bg-white dark:bg-zinc-900 text-blue-600 dark:text-blue-400 shadow-sm'\n              : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900'\n          }`}\n        >\n          <ListTodo className=\"w-4 h-4\" />\n          <span>3. Упражнения</span>\n          {completedTabs.includes('exercises') && (\n            <CheckCircle2 className=\"w-3.5 h-3.5 text-emerald-500 shrink-0\" />\n          )}\n        </button>\n\n        <button\n          onClick={() => setActiveTab('chat')}\n          className={`flex-1 min-w-[130px] py-2.5 px-3 rounded-xl font-semibold text-xs md:text-sm flex items-center justify-center gap-2 transition ${\n            activeTab === 'chat'\n              ? 'bg-white dark:bg-zinc-900 text-blue-600 dark:text-blue-400 shadow-sm'\n              : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900'\n          }`}\n        >\n          <Bot className=\"w-4 h-4 text-purple-500\" />\n          <span>4. Живой ИИ-диалог</span>\n          {completedTabs.includes('chat') && (\n            <CheckCircle2 className=\"w-3.5 h-3.5 text-emerald-500 shrink-0\" />\n          )}\n        </button>\n      </div>\n\n      {/* Контент выбранной вкладки */}\n      <div className=\"pt-2\">\n        {activeTab === 'theory' && (\n          <LessonTheory\n            lesson={lesson}\n            userProfile={userProfile}\n            onCompleted={() => setActiveTab('vocab')}\n            onUpdateProfile={onUpdateProfile}\n          />\n        )}\n\n        {activeTab === 'vocab' && (\n          <LessonVocabulary\n            words={lesson.vocabulary}\n            userProfile={userProfile}\n            onWordToggled={() => onUpdateProfile({ ...userProfile })}\n            onStartPractice={(wordsToTrain) => onStartFlashcards(wordsToTrain)}\n            onUpdateProfile={onUpdateProfile}\n          />\n        )}\n\n        {activeTab === 'exercises' && (\n          <LessonExercises\n            lesson={lesson}\n            userProfile={userProfile}\n            onCompleted={() => setActiveTab('chat')}\n            onUpdateProfile={onUpdateProfile}\n          />\n        )}\n\n        {activeTab === 'chat' && (\n          <LessonAiChat\n            lesson={lesson}\n            userProfile={userProfile}\n            onUpdateProfile={onUpdateProfile}\n            onWordAdded={() => onUpdateProfile({ ...userProfile })}\n          />\n        )}\n      </div>\n    </div>\n  );\n};\n
+          onClick={() => setActiveTab('theory')}
+          className={`flex-1 min-w-[130px] py-2.5 px-3 rounded-xl font-semibold text-xs md:text-sm flex items-center justify-center gap-2 transition ${
+            activeTab === 'theory'
+              ? 'bg-white dark:bg-zinc-900 text-blue-600 dark:text-blue-400 shadow-sm'
+              : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900'
+          }`}
+        >
+          <BookOpen className="w-4 h-4" />
+          <span>1. Теория</span>
+          {completedTabs.includes('theory') && (
+            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+          )}
+        </button>
+
+        <button
+          onClick={() => setActiveTab('vocab')}
+          className={`flex-1 min-w-[130px] py-2.5 px-3 rounded-xl font-semibold text-xs md:text-sm flex items-center justify-center gap-2 transition ${
+            activeTab === 'vocab'
+              ? 'bg-white dark:bg-zinc-900 text-blue-600 dark:text-blue-400 shadow-sm'
+              : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900'
+          }`}
+        >
+          <Layers className="w-4 h-4" />
+          <span>2. Словарь ({lesson.vocabulary.length})</span>
+          {completedTabs.includes('vocab') && (
+            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+          )}
+        </button>
+
+        <button
+          onClick={() => setActiveTab('exercises')}
+          className={`flex-1 min-w-[130px] py-2.5 px-3 rounded-xl font-semibold text-xs md:text-sm flex items-center justify-center gap-2 transition ${
+            activeTab === 'exercises'
+              ? 'bg-white dark:bg-zinc-900 text-blue-600 dark:text-blue-400 shadow-sm'
+              : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900'
+          }`}
+        >
+          <ListTodo className="w-4 h-4" />
+          <span>3. Упражнения</span>
+          {completedTabs.includes('exercises') && (
+            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+          )}
+        </button>
+
+        <button
+          onClick={() => setActiveTab('chat')}
+          className={`flex-1 min-w-[130px] py-2.5 px-3 rounded-xl font-semibold text-xs md:text-sm flex items-center justify-center gap-2 transition ${
+            activeTab === 'chat'
+              ? 'bg-white dark:bg-zinc-900 text-blue-600 dark:text-blue-400 shadow-sm'
+              : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900'
+          }`}
+        >
+          <Bot className="w-4 h-4 text-purple-500" />
+          <span>4. Живой ИИ-диалог</span>
+          {completedTabs.includes('chat') && (
+            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+          )}
+        </button>
+      </div>
+
+      {/* Контент выбранной вкладки */}
+      <div className="pt-2">
+        {activeTab === 'theory' && (
+          <LessonTheory
+            lesson={lesson}
+            userProfile={userProfile}
+            onCompleted={() => setActiveTab('vocab')}
+            onUpdateProfile={onUpdateProfile}
+          />
+        )}
+
+        {activeTab === 'vocab' && (
+          <LessonVocabulary
+            words={lesson.vocabulary}
+            userProfile={userProfile}
+            onWordToggled={() => onUpdateProfile({ ...userProfile })}
+            onStartPractice={(wordsToTrain) => onStartFlashcards(wordsToTrain)}
+            onUpdateProfile={onUpdateProfile}
+          />
+        )}
+
+        {activeTab === 'exercises' && (
+          <LessonExercises
+            lesson={lesson}
+            userProfile={userProfile}
+            onCompleted={() => setActiveTab('chat')}
+            onUpdateProfile={onUpdateProfile}
+          />
+        )}
+
+        {activeTab === 'chat' && (
+          <LessonAiChat
+            lesson={lesson}
+            userProfile={userProfile}
+            onUpdateProfile={onUpdateProfile}
+            onWordAdded={() => onUpdateProfile({ ...userProfile })}
+          />
+        )}
+      </div>
+    </div>
+  );
+};

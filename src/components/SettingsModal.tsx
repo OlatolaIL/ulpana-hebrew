@@ -11,6 +11,9 @@ interface SettingsModalProps {
   onClose: () => void;
   profile: UserProfile;
   onUpdateProfile: (newProfile: UserProfile) => void;
+  onOpenAuth?: () => void;
+  onOpenSubscription?: () => void;
+  onLogout?: () => void;
 }
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({
@@ -18,8 +21,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   onClose,
   profile,
   onUpdateProfile,
+  onOpenAuth,
+  onOpenSubscription,
+  onLogout,
 }) => {
   if (!isOpen) return null;
+
+  const isPro = profile.subscriptionTier === 'pro' || profile.subscriptionTier === 'admin';
 
   const handleChange = (fields: Partial<UserProfile>) => {
     const updated = { ...profile, ...fields };
@@ -31,16 +39,16 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in">
       <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl border border-zinc-200 dark:border-zinc-800 max-w-lg w-full max-h-[90vh] overflow-y-auto">
         {/* Заголовок */}
-        <div className="sticky top-0 bg-white/90 dark:bg-zinc-900/90 backdrop-blur border-b border-zinc-200 dark:border-zinc-800 p-4 flex items-center justify-between">
+        <div className="sticky top-0 bg-white/90 dark:bg-zinc-900/90 backdrop-blur border-b border-zinc-200 dark:border-zinc-800 p-4 flex items-center justify-between z-10">
           <div className="flex items-center gap-2">
             <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400">
               <User className="w-5 h-5" />
             </div>
             <div>
               <h2 className="font-bold text-base text-zinc-900 dark:text-zinc-50">
-                Настройки обучения
+                Настройки и профиль
               </h2>
-              <p className="text-xs text-zinc-500">Грамматический пол, ИИ и отображение</p>
+              <p className="text-xs text-zinc-500">Аккаунт, подписка, пол и ИИ</p>
             </div>
           </div>
           <button
@@ -52,6 +60,78 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         </div>
 
         <div className="p-6 space-y-6">
+          {/* 0. Секция аккаунта и подписки */}
+          <div className="bg-zinc-50 dark:bg-zinc-800/50 rounded-2xl p-4 border border-zinc-200/80 dark:border-zinc-700/60 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                {profile.avatarUrl ? (
+                  <img
+                    src={profile.avatarUrl}
+                    alt={profile.name}
+                    className="w-10 h-10 rounded-full object-cover shadow-sm"
+                  />
+                ) : (
+                  <div className="w-10 h-10 rounded-full bg-blue-600 text-white font-bold flex items-center justify-center shadow-sm">
+                    {profile.name.charAt(0).toUpperCase()}
+                  </div>
+                )}
+                <div>
+                  <h3 className="font-bold text-sm text-zinc-900 dark:text-zinc-100">
+                    {profile.name}
+                  </h3>
+                  <p className="text-xs text-zinc-500">
+                    {profile.isLoggedIn ? `@${profile.username || 'telegram_user'}` : 'Гостевой режим (локально)'}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClose();
+                    if (onOpenSubscription) onOpenSubscription();
+                  }}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-bold ${
+                    isPro
+                      ? 'bg-amber-500 text-white shadow-sm'
+                      : 'bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300'
+                  }`}
+                >
+                  {isPro ? '👑 PRO' : 'Купить PRO'}
+                </button>
+              </div>
+            </div>
+
+            <div className="pt-1 flex items-center justify-between text-xs">
+              {profile.isLoggedIn ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (onLogout) onLogout();
+                    onClose();
+                  }}
+                  className="text-red-600 hover:underline font-semibold"
+                >
+                  Выйти из аккаунта
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClose();
+                    if (onOpenAuth) onOpenAuth();
+                  }}
+                  className="text-blue-600 dark:text-blue-400 font-semibold hover:underline"
+                >
+                  Войти через Telegram для синхронизации →
+                </button>
+              )}
+            </div>
+          </div>
+
+          <hr className="border-zinc-200 dark:border-zinc-800" />
+
           {/* 1. Грамматический пол ученика (Критично для иврита!) */}
           <div className="space-y-2">
             <label className="block text-sm font-semibold text-zinc-900 dark:text-zinc-100">
