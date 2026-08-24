@@ -24,8 +24,21 @@ export const LessonTheory: React.FC<LessonTheoryProps> = ({
     if (onCompleted) onCompleted();
   };
 
+  const handleToggleFont = () => {
+    const nextStyle: 'print' | 'cursive' = userProfile.fontStyle === 'cursive' ? 'print' : 'cursive';
+    const updated: UserProfile = { ...userProfile, fontStyle: nextStyle };
+    markLessonTabCompleted(lesson.id, 'theory');
+    // Save to LocalStorage immediately
+    try {
+      localStorage.setItem('ulpana_user_profile', JSON.stringify(updated));
+    } catch {}
+    if (onUpdateProfile) onUpdateProfile(updated);
+  };
+
+  const isCursive = userProfile.fontStyle === 'cursive';
+
   return (
-    <div className="space-y-8 max-w-3xl mx-auto">
+    <div data-font-style={userProfile.fontStyle || 'print'} className="space-y-8 max-w-3xl mx-auto">
       {/* Описание темы урока */}
       <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-zinc-800 dark:to-zinc-800/60 p-6 rounded-3xl border border-blue-100 dark:border-zinc-700/80 shadow-sm space-y-3">
         <div className="flex items-center justify-between gap-3">
@@ -38,15 +51,11 @@ export const LessonTheory: React.FC<LessonTheoryProps> = ({
 
           <button
             type="button"
-            onClick={() => {
-              const nextStyle: 'print' | 'cursive' = userProfile.fontStyle === 'cursive' ? 'print' : 'cursive';
-              const updated: UserProfile = { ...userProfile, fontStyle: nextStyle };
-              if (onUpdateProfile) onUpdateProfile(updated);
-            }}
+            onClick={handleToggleFont}
             className="px-2.5 py-1.5 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-sm text-xs font-semibold flex items-center gap-1.5 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition"
             title="Переключить шрифт теории: Печатный / Рукописный"
           >
-            {userProfile.fontStyle === 'cursive' ? (
+            {isCursive ? (
               <>
                 <span className="font-cursive font-bold text-base text-blue-600 dark:text-blue-400 leading-none">כתב</span>
                 <span className="text-zinc-700 dark:text-zinc-300">Рукописный</span>
@@ -112,18 +121,28 @@ export const LessonTheory: React.FC<LessonTheoryProps> = ({
                           key={rIdx}
                           className="hover:bg-zinc-50/50 dark:hover:bg-zinc-800/50 transition"
                         >
-                          {row.map((cell, cIdx) => (
-                            <td
-                              key={cIdx}
-                              className={`px-4 py-3 ${
-                                cIdx === 0
-                                  ? 'font-medium text-zinc-900 dark:text-zinc-100'
-                                  : 'text-zinc-600 dark:text-zinc-400'
-                              }`}
-                            >
-                              {cell}
-                            </td>
-                          ))}
+                          {row.map((cell, cIdx) => {
+                            const isHebrew = /[\u0590-\u05FF]/.test(cell);
+                            return (
+                              <td
+                                key={cIdx}
+                                dir={isHebrew ? 'rtl' : 'ltr'}
+                                className={`px-4 py-3 ${
+                                  cIdx === 0
+                                    ? `font-bold text-zinc-900 dark:text-zinc-100 ${
+                                        isCursive
+                                          ? 'font-cursive text-2xl md:text-3xl text-blue-600 dark:text-blue-400'
+                                          : 'font-hebrew text-lg'
+                                      }`
+                                    : isHebrew && isCursive
+                                    ? 'font-cursive text-xl font-bold text-blue-600 dark:text-blue-400'
+                                    : 'text-zinc-600 dark:text-zinc-400'
+                                }`}
+                              >
+                                {cell}
+                              </td>
+                            );
+                          })}
                         </tr>
                       ))}
                     </tbody>
@@ -133,7 +152,8 @@ export const LessonTheory: React.FC<LessonTheoryProps> = ({
             ))}
 
           {/* Правила и памятки */}
-          {topic.rules && topic.rules.length > 0 && (\n            <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/50 rounded-2xl p-4 space-y-2">
+          {topic.rules && topic.rules.length > 0 && (
+            <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/50 rounded-2xl p-4 space-y-2">
               <div className="flex items-center gap-2 text-amber-800 dark:text-amber-300 font-bold text-xs">
                 <Lightbulb className="w-4 h-4" />
                 <span>Важные правила ульпана</span>
@@ -164,7 +184,11 @@ export const LessonTheory: React.FC<LessonTheoryProps> = ({
                 <div className="space-y-1">
                   <p
                     dir="rtl"
-                    className="text-lg font-bold text-zinc-900 dark:text-zinc-50 font-hebrew"
+                    className={`font-bold ${
+                      isCursive
+                        ? 'font-cursive text-2xl md:text-3xl text-blue-600 dark:text-blue-400'
+                        : 'font-hebrew text-lg text-zinc-900 dark:text-zinc-50'
+                    }`}
                   >
                     {userProfile.showNikkud ? sentence.hebrew : sentence.hebrew}
                   </p>
