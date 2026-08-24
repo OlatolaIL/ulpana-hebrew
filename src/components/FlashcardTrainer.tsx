@@ -251,7 +251,11 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
                 </span>
                 <div
                   dir="rtl"
-                  className="text-4xl md:text-5xl font-bold text-zinc-900 dark:text-zinc-50 font-hebrew"
+                  className={`text-4xl md:text-5xl font-bold text-zinc-900 dark:text-zinc-50 ${
+                    userProfile.fontStyle === 'cursive'
+                      ? 'font-cursive text-blue-600 dark:text-blue-400'
+                      : 'font-hebrew'
+                  }`}
                 >
                   {userProfile.showNikkud ? currentWord.hebrew : currentWord.hebrewPlain}
                 </div>
@@ -329,7 +333,9 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
           {/* Поле собранных букв */}
           <div
             dir="rtl"
-            className={`min-h-[64px] p-3 rounded-2xl border-2 flex items-center justify-center gap-2 font-hebrew text-3xl font-bold transition ${
+            className={`min-h-[64px] p-3 rounded-2xl border-2 flex items-center justify-center gap-2 text-3xl font-bold transition ${
+              userProfile.fontStyle === 'cursive' ? 'font-cursive text-blue-600 dark:text-blue-400 text-4xl' : 'font-hebrew'
+            } ${
               builderError
                 ? 'border-red-500 bg-red-50 dark:bg-red-950/30'
                 : 'border-dashed border-blue-400 bg-blue-50/50 dark:bg-blue-950/20 text-zinc-900 dark:text-zinc-50'
@@ -344,7 +350,9 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
               <button
                 key={i}
                 onClick={() => handleLetterClick(char, i)}
-                className="w-12 h-12 rounded-xl bg-zinc-100 dark:bg-zinc-800 hover:bg-blue-600 hover:text-white dark:hover:bg-blue-600 font-hebrew text-2xl font-bold shadow-sm transition active:scale-90"
+                className={`w-12 h-12 rounded-xl bg-zinc-100 dark:bg-zinc-800 hover:bg-blue-600 hover:text-white dark:hover:bg-blue-600 text-2xl font-bold shadow-sm transition active:scale-90 ${
+                  userProfile.fontStyle === 'cursive' ? 'font-cursive text-3xl text-blue-600 dark:text-blue-400' : 'font-hebrew'
+                }`}
               >
                 {char}
               </button>
