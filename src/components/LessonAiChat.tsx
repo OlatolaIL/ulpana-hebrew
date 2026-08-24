@@ -180,8 +180,7 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
     if (!text || loading) return;
 
     const userMsg: ChatMessage = {
-      id: `user-${Date.now()}`,
-      role: 'user',
+      id: `user-${Date.now()}`,\n      role: 'user',
       hebrew: text,
       timestamp: Date.now(),
     };
@@ -303,6 +302,30 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
         </div>
 
         <div className="flex items-center gap-2">
+          {/* Быстрый переключатель шрифта диалога */}
+          <button
+            type="button"
+            onClick={() => {
+              const nextStyle: 'print' | 'cursive' = userProfile.fontStyle === 'cursive' ? 'print' : 'cursive';
+              const updated: UserProfile = { ...userProfile, fontStyle: nextStyle };
+              if (onUpdateProfile) onUpdateProfile(updated);
+            }}
+            className="px-2.5 py-1.5 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-sm text-xs font-semibold flex items-center gap-1.5 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition"
+            title="Переключить шрифт диалога: Печатный / Рукописный"
+          >
+            {userProfile.fontStyle === 'cursive' ? (
+              <>
+                <span className="font-cursive font-bold text-base text-blue-600 dark:text-blue-400 leading-none">כתב</span>
+                <span className="text-zinc-700 dark:text-zinc-300">Рукописный</span>
+              </>
+            ) : (
+              <>
+                <span className="font-hebrew font-bold text-xs text-zinc-700 dark:text-zinc-300 leading-none">דפוס</span>
+                <span className="text-zinc-700 dark:text-zinc-300">Печатный</span>
+              </>
+            )}
+          </button>
+
           {/* Интерактивный переключатель пола говорящего */}
           <div className="flex items-center bg-white dark:bg-zinc-900 p-0.5 rounded-xl border border-zinc-200 dark:border-zinc-700 shadow-sm text-xs">
             <button
