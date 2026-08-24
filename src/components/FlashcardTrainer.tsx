@@ -4,7 +4,9 @@ import React, { useState, useEffect } from 'react';
 import {
   Volume2,
   RotateCw,
+  RotateCcw,
   CheckCircle,
+  CheckCircle2,
   XCircle,
   Sparkles,
   ArrowRight,
@@ -12,6 +14,8 @@ import {
   Layers,
   HelpCircle,
   Award,
+  Delete,
+  Space,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { Word, UserProfile } from '@/types';
@@ -22,14 +26,21 @@ interface FlashcardTrainerProps {
   initialWords: Word[];
   userProfile: UserProfile;
   onClose?: () => void;
+  onUpdateProfile?: (profile: UserProfile) => void;
 }
 
 type TrainerMode = 'flip' | 'builder' | 'listening';
+
+interface Tile {
+  id: string;
+  char: string;
+}
 
 export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
   initialWords,
   userProfile,
   onClose,
+  onUpdateProfile,
 }) => {
   const [words, setWords] = useState<Word[]>(initialWords);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -38,8 +49,9 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
   const [isCompleted, setIsCompleted] = useState(false);
 
   // Для режима конструктора букв
-  const [builderLetters, setBuilderLetters] = useState<string[]>([]);
-  const [selectedLetters, setSelectedLetters] = useState<string[]>([]);
+  const [builderAvailable, setBuilderAvailable] = useState<Tile[]>([]);
+  const [builderSelected, setBuilderSelected] = useState<Tile[]>([]);
+  const [builderSuccess, setBuilderSuccess] = useState(false);
   const [builderError, setBuilderError] = useState(false);
 
   // Для режима аудирования
@@ -53,17 +65,22 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
     setIsFlipped(false);
     setSelectedAnswer(null);
     setBuilderError(false);
+    setBuilderSuccess(false);
 
     // Озвучиваем слово при показе в режиме аудирования
     if (mode === 'listening') {
       speakHebrew(currentWord.hebrew);
     }
 
-    // Подготовка для режима конструктора букв
-    const letters = currentWord.hebrewPlain.split('').filter((c) => c !== ' ');
+    // Подготовка для режима конструктора букв (сохраняем пробелы как плитки)
+    const rawChars = currentWord.hebrewPlain.split('');
+    const tiles: Tile[] = rawChars.map((char, index) => ({
+      id: `tile-${index}-${char}-${Math.random().toString(36).substr(2, 4)}`,
+      char: char,
+    }));
     // Перемешиваем буквы
-    setBuilderLetters([...letters].sort(() => Math.random() - 0.5));
-    setSelectedLetters([]);
+    setBuilderAvailable([...tiles].sort(() => Math.random() - 0.5));
+    setBuilderSelected([]);
 
     // Подготовка вариантов для аудирования
     const otherTranslations = words
@@ -95,32 +112,96 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
     }
   };
 
-  const handleLetterClick = (letter: string, index: number) => {
-    const nextSelected = [...selectedLetters, letter];
-    setSelectedLetters(nextSelected);
+  const handleSelectTile = (tile: Tile) => {
+    if (builderSuccess) return;
+    const nextSelected = [...builderSelected, tile];
+    const nextAvailable = builderAvailable.filter((t) => t.id !== tile.id);
 
-    const remaining = [...builderLetters];
-    remaining.splice(index, 1);
-    setBuilderLetters(remaining);
+    setBuilderSelected(nextSelected);
+    setBuilderAvailable(nextAvailable);
 
-    const targetWord = currentWord.hebrewPlain.replace(/\s+/g, '');
-    const currentInput = nextSelected.join('');
+    const targetWord = currentWord.hebrewPlain;
+    const currentInput = nextSelected.map((t) => t.char).join('');
 
     if (currentInput === targetWord) {
       // Успешно собрали слово!
+      setBuilderSuccess(true);
+      setBuilderError(false);
       speakHebrew(currentWord.hebrew);
-      setTimeout(() => handleNextWord(5), 700);
+      confetti({ particleCount: 50, spread: 60, origin: { y: 0.7 } });
     } else if (!targetWord.startsWith(currentInput)) {
       setBuilderError(true);
       setTimeout(() => {
         setBuilderError(false);
-        // Сброс
-        const fullLetters = currentWord.hebrewPlain.split('').filter((c) => c !== ' ');
-        setBuilderLetters([...fullLetters].sort(() => Math.random() - 0.5));
-        setSelectedLetters([]);
-      }, 800);
+      }, 700);
+    } else {
+      setBuilderError(false);
     }
   };
+
+  const handleUnselectTile = (tile: Tile) => {
+    if (builderSuccess) return;
+    setBuilderSelected((prev) => prev.filter((t) => t.id !== tile.id));
+    setBuilderAvailable((prev) => [...prev, tile]);
+    setBuilderError(false);
+  };
+
+  const handleBackspace = () => {
+    if (builderSuccess || builderSelected.length === 0) return;
+    const lastTile = builderSelected[builderSelected.length - 1];
+    handleUnselectTile(lastTile);
+  };
+
+  const handleResetBuilder = () => {
+    if (builderSuccess) return;
+    const rawChars = currentWord.hebrewPlain.split('');
+    const tiles: Tile[] = rawChars.map((char, index) => ({
+      id: `tile-${index}-${char}-${Math.random().toString(36).substr(2, 4)}`,
+      char: char,
+    }));
+    setBuilderAvailable([...tiles].sort(() => Math.random() - 0.5));
+    setBuilderSelected([]);
+    setBuilderError(false);
+    setBuilderSuccess(false);
+  };
+
+  useEffect(() => {
+    if (mode !== 'builder' || !currentWord) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (builderSuccess) {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          handleNextWord(5);
+        }
+        return;
+      }
+
+      if (e.key === 'Backspace') {
+        e.preventDefault();
+        handleBackspace();
+        return;
+      }
+
+      if (e.key === ' ') {
+        e.preventDefault();
+        const spaceTile = builderAvailable.find((t) => t.char === ' ');
+        if (spaceTile) {
+          handleSelectTile(spaceTile);
+        }
+        return;
+      }
+
+      const tile = builderAvailable.find((t) => t.char === e.key);
+      if (tile) {
+        e.preventDefault();
+        handleSelectTile(tile);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [mode, currentWord, builderAvailable, builderSelected, builderSuccess]);
 
   const handleQuizSelect = (option: string) => {
     setSelectedAnswer(option);
@@ -212,8 +293,33 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
           </button>
         </div>
 
-        <div className="text-xs font-semibold text-zinc-500">
-          Слово {currentIndex + 1} из {words.length}
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => {
+              const nextStyle: 'print' | 'cursive' = userProfile.fontStyle === 'cursive' ? 'print' : 'cursive';
+              const updated: UserProfile = { ...userProfile, fontStyle: nextStyle };
+              if (onUpdateProfile) onUpdateProfile(updated);
+            }}
+            className="px-2.5 py-1.5 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-sm text-xs font-semibold flex items-center gap-1.5 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition"
+            title="Переключить шрифт карточек: Печатный / Рукописный"
+          >
+            {userProfile.fontStyle === 'cursive' ? (
+              <>
+                <span className="font-cursive font-bold text-base text-blue-600 dark:text-blue-400 leading-none">כתב</span>
+                <span className="text-zinc-700 dark:text-zinc-300">Рукописный</span>
+              </>
+            ) : (
+              <>
+                <span className="font-hebrew font-bold text-xs text-zinc-700 dark:text-zinc-300 leading-none">דפוס</span>
+                <span className="text-zinc-700 dark:text-zinc-300">Печатный</span>
+              </>
+            )}
+          </button>
+
+          <div className="text-xs font-semibold text-zinc-500">
+            Слово {currentIndex + 1} из {words.length}
+          </div>
         </div>
       </div>
 
@@ -333,31 +439,135 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
           {/* Поле собранных букв */}
           <div
             dir="rtl"
-            className={`min-h-[64px] p-3 rounded-2xl border-2 flex items-center justify-center gap-2 text-3xl font-bold transition ${
-              userProfile.fontStyle === 'cursive' ? 'font-cursive text-blue-600 dark:text-blue-400 text-4xl' : 'font-hebrew'
+            className={`min-h-[80px] p-4 rounded-2xl border-2 flex flex-wrap items-center justify-center gap-2 transition ${
+              userProfile.fontStyle === 'cursive' ? 'font-cursive text-blue-600 dark:text-blue-400' : 'font-hebrew'
             } ${
-              builderError
-                ? 'border-red-500 bg-red-50 dark:bg-red-950/30'
-                : 'border-dashed border-blue-400 bg-blue-50/50 dark:bg-blue-950/20 text-zinc-900 dark:text-zinc-50'
+              builderSuccess
+                ? 'border-emerald-500 bg-emerald-50/80 dark:bg-emerald-950/40'
+                : builderError
+                ? 'border-rose-500 bg-rose-50 dark:bg-rose-950/30 animate-shake'
+                : 'border-dashed border-blue-400 bg-blue-50/40 dark:bg-blue-950/20'
             }`}
           >
-            {selectedLetters.length > 0 ? selectedLetters.join('') : '...'}
+            {builderSelected.length > 0 ? (
+              builderSelected.map((tile) => (
+                <button
+                  key={tile.id}
+                  type="button"
+                  onClick={() => handleUnselectTile(tile)}
+                  className={`px-3 py-1.5 rounded-xl font-bold shadow-sm transition active:scale-95 ${
+                    tile.char === ' '
+                      ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 text-xs border border-amber-300 dark:border-amber-800'
+                      : 'bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-50 border border-zinc-200 dark:border-zinc-700 text-2xl md:text-3xl'
+                  }`}
+                  title="Нажмите, чтобы вернуть букву"
+                >
+                  {tile.char === ' ' ? '␣ Пробел' : tile.char}
+                </button>
+              ))
+            ) : (
+              <span className="text-zinc-400 text-sm font-sans font-medium">
+                Нажимайте на буквы ниже...
+              </span>
+            )}
           </div>
 
-          {/* Плитки доступных букв */}
-          <div dir="rtl" className="flex flex-wrap gap-2.5 justify-center">
-            {builderLetters.map((char, i) => (
+          {/* Панель кнопок управления конструктором (Стереть / Сброс) */}
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-xs text-zinc-500 font-medium">
+              Букв: {builderSelected.length} из {currentWord.hebrewPlain.length}
+            </span>
+
+            <div className="flex items-center gap-2">
               <button
-                key={i}
-                onClick={() => handleLetterClick(char, i)}
-                className={`w-12 h-12 rounded-xl bg-zinc-100 dark:bg-zinc-800 hover:bg-blue-600 hover:text-white dark:hover:bg-blue-600 text-2xl font-bold shadow-sm transition active:scale-90 ${
-                  userProfile.fontStyle === 'cursive' ? 'font-cursive text-3xl text-blue-600 dark:text-blue-400' : 'font-hebrew'
+                type="button"
+                disabled={builderSelected.length === 0 || builderSuccess}
+                onClick={handleBackspace}
+                className="px-3 py-1.5 rounded-xl border border-zinc-200 dark:border-zinc-700 text-xs font-semibold text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-30 transition flex items-center gap-1.5"
+                title="Удалить последнюю букву (Backspace)"
+              >
+                <Delete className="w-3.5 h-3.5" />
+                <span>Стереть</span>
+              </button>
+
+              <button
+                type="button"
+                disabled={builderSelected.length === 0 || builderSuccess}
+                onClick={handleResetBuilder}
+                className="px-3 py-1.5 rounded-xl border border-zinc-200 dark:border-zinc-700 text-xs font-semibold text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-30 transition flex items-center gap-1.5"
+                title="Сбросить все буквы"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>Сбросить</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Блок подтверждения успеха (Появляется сразу при верном сборе) */}
+          {builderSuccess && (
+            <div className="bg-emerald-50 dark:bg-emerald-950/50 border-2 border-emerald-500 rounded-2xl p-5 text-center space-y-3 animate-in zoom-in-95">
+              <div className="flex items-center justify-center gap-2 text-emerald-600 dark:text-emerald-400 font-bold text-lg">
+                <CheckCircle2 className="w-6 h-6 shrink-0" />
+                <span>!מְצוּיָן! נָכוֹן (Верно!)</span>
+              </div>
+
+              <div
+                dir="rtl"
+                className={`text-3xl md:text-4xl font-bold text-emerald-700 dark:text-emerald-300 ${
+                  userProfile.fontStyle === 'cursive' ? 'font-cursive' : 'font-hebrew'
                 }`}
               >
-                {char}
+                {userProfile.showNikkud ? currentWord.hebrew : currentWord.hebrewPlain}
+              </div>
+
+              {userProfile.showTranscription && (
+                <p className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                  [{currentWord.transcription}]
+                </p>
+              )}
+
+              <button
+                type="button"
+                onClick={() => handleNextWord(5)}
+                className="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm shadow-md transition flex items-center justify-center gap-2 active:scale-98"
+              >
+                <span>Следующее слово</span>
+                <ArrowRight className="w-4 h-4" />
               </button>
-            ))}
-          </div>
+            </div>
+          )}
+
+          {/* Плитки доступных букв и пробела */}
+          {!builderSuccess && (
+            <div dir="rtl" className="flex flex-wrap gap-2.5 justify-center pt-2">
+              {builderAvailable.map((tile) => (
+                <button
+                  key={tile.id}
+                  type="button"
+                  onClick={() => handleSelectTile(tile)}
+                  className={`rounded-2xl font-bold shadow-sm transition active:scale-90 ${
+                    tile.char === ' '
+                      ? 'px-4 py-3 bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-500 hover:text-white border-2 border-amber-300 dark:border-amber-700 text-amber-800 dark:text-amber-200 text-sm flex items-center gap-1.5'
+                      : `w-13 h-13 min-w-[50px] min-h-[50px] bg-zinc-100 dark:bg-zinc-800 hover:bg-blue-600 hover:text-white dark:hover:bg-blue-600 text-2xl md:text-3xl border border-zinc-200 dark:border-zinc-700 ${
+                          userProfile.fontStyle === 'cursive'
+                            ? 'font-cursive text-3xl text-blue-600 dark:text-blue-400'
+                            : 'font-hebrew'
+                        }`
+                  }`}
+                  title={tile.char === ' ' ? 'Пробел (Space)' : tile.char}
+                >
+                  {tile.char === ' ' ? (
+                    <>
+                      <Space className="w-4 h-4" />
+                      <span>Пробел</span>
+                    </>
+                  ) : (
+                    tile.char
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
