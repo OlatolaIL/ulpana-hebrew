@@ -24,6 +24,7 @@ export const LessonTheory: React.FC<LessonTheoryProps> = ({
 
   return (
     <div className="space-y-8 max-w-3xl mx-auto">
+      {/* Описание темы урока */}
       <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-zinc-800 dark:to-zinc-800/60 p-6 rounded-3xl border border-blue-100 dark:border-zinc-700/80 shadow-sm space-y-2">
         <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400">
           <BookOpen className="w-5 h-5" />
@@ -39,6 +40,7 @@ export const LessonTheory: React.FC<LessonTheoryProps> = ({
         </p>
       </div>
 
+      {/* Грамматические темы */}
       {lesson.grammar.map((topic, i) => (
         <div
           key={i}
@@ -51,10 +53,12 @@ export const LessonTheory: React.FC<LessonTheoryProps> = ({
             <p className="text-sm text-zinc-500 font-medium">{topic.summary}</p>
           </div>
 
+          {/* Текст объяснения */}
           <div className="text-sm text-zinc-700 dark:text-zinc-300 leading-relaxed whitespace-pre-line">
             {topic.explanation}
           </div>
 
+          {/* Таблицы спряжения или форм */}
           {topic.tables &&
             topic.tables.map((table, tIdx) => (
               <div key={tIdx} className="space-y-2">
@@ -101,6 +105,7 @@ export const LessonTheory: React.FC<LessonTheoryProps> = ({
               </div>
             ))}
 
+          {/* Правила и памятки */}
           {topic.rules && topic.rules.length > 0 && (
             <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/50 rounded-2xl p-4 space-y-2">
               <div className="flex items-center gap-2 text-amber-800 dark:text-amber-300 font-bold text-xs">
@@ -117,6 +122,7 @@ export const LessonTheory: React.FC<LessonTheoryProps> = ({
         </div>
       ))}
 
+      {/* Базовые примеры предложений с озвучкой */}
       {lesson.basicSentences.length > 0 && (
         <div className="bg-white dark:bg-zinc-900 rounded-3xl p-6 border border-zinc-200 dark:border-zinc-800 shadow-sm space-y-4">
           <h3 className="text-base font-bold text-zinc-900 dark:text-zinc-100">
@@ -159,6 +165,7 @@ export const LessonTheory: React.FC<LessonTheoryProps> = ({
         </div>
       )}
 
+      {/* Завершение этапа теории */}
       <div className="text-center pt-2">
         <button
           onClick={handleMarkDone}
