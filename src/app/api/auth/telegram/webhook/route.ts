@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDbPool, initDatabase } from '@/lib/db';
 import { createSessionToken } from '@/lib/auth';
+import { isVipUser, VIP_EXPIRES_AT } from '@/lib/vipUsers';
 import { UserSession } from '@/types';
 
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '8857824092:AAE3sCbuElBPEctBBXlfTCZfjmPPZTJjdnY';
@@ -23,8 +24,10 @@ export async function POST(req: NextRequest) {
 
       const fullName = [from.first_name, from.last_name].filter(Boolean).join(' ') || from.username || 'Ученик';
       const userId = `tg_${from.id}`;
-      let tier: 'free' | 'pro' | 'admin' = 'free';
-      let expiresAt: number | null = null;
+      
+      const isVip = isVipUser(from.username, from.id);
+      let tier: 'free' | 'pro' | 'admin' = isVip ? 'pro' : 'free';
+      let expiresAt: number | null = isVip ? VIP_EXPIRES_AT : null;
       let gender: 'male' | 'female' = 'female';
       let fontStyle: 'print' | 'cursive' = 'print';
 

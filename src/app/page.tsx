@@ -14,6 +14,7 @@ import { UserProfile, Word, UserSession } from '@/types';
 import { loadUserProfile, saveUserProfile } from '@/lib/storage';
 import { initHebrewVoices } from '@/lib/speech';
 import { DETAILED_LESSONS, getLessonById } from '@/data/lessonsData';
+import { isVipUser, VIP_EXPIRES_AT } from '@/lib/vipUsers';
 
 type ViewMode = 'map' | 'lesson' | 'flashcards' | 'dictionary' | 'alphabet';
 
@@ -57,6 +58,10 @@ export default function Home() {
 
   useEffect(() => {
     const p = loadUserProfile();
+    if (isVipUser(p.username, p.telegramId)) {
+      p.subscriptionTier = 'pro';
+      p.subscriptionExpiresAt = VIP_EXPIRES_AT;
+    }
     setProfile(p);
     initHebrewVoices();
 
@@ -78,6 +83,7 @@ export default function Home() {
             const syncRes = await fetch('/api/user/sync');
             const syncData = await syncRes.json();
 
+            const isVip = isVipUser(tokenData.user.username, tokenData.user.telegramId);
             const merged: UserProfile = {
               ...p,
               id: tokenData.user.id,
@@ -86,8 +92,8 @@ export default function Home() {
               name: tokenData.user.name,
               avatarUrl: tokenData.user.avatarUrl,
               isLoggedIn: true,
-              subscriptionTier: tokenData.user.subscriptionTier,
-              subscriptionExpiresAt: tokenData.user.subscriptionExpiresAt,
+              subscriptionTier: isVip ? 'pro' : tokenData.user.subscriptionTier,
+              subscriptionExpiresAt: isVip ? VIP_EXPIRES_AT : tokenData.user.subscriptionExpiresAt,
               gender: tokenData.gender || p.gender,
               fontStyle: tokenData.fontStyle || p.fontStyle,
               lessonProgress: {
@@ -120,6 +126,7 @@ export default function Home() {
             const fullName = [u.first_name, u.last_name].filter(Boolean).join(' ') || (u.username ? `@${u.username}` : 'Ученик');
             
             // СРАЗУ МГНОВЕННО обновляем интерфейс, не дожидаясь ответа сервера!
+            const isVip = isVipUser(u.username, u.id);
             const instantProfile: UserProfile = {
               ...p,
               id: `tg_${u.id}`,
@@ -128,6 +135,8 @@ export default function Home() {
               name: fullName,
               avatarUrl: u.photo_url,
               isLoggedIn: true,
+              subscriptionTier: isVip ? 'pro' : p.subscriptionTier,
+              subscriptionExpiresAt: isVip ? VIP_EXPIRES_AT : p.subscriptionExpiresAt,
             };
             setProfile(instantProfile);
             saveUserProfile(instantProfile);

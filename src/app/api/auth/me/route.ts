@@ -1,6 +1,7 @@
-﻿import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { verifySessionToken } from '@/lib/auth';
 import { getDbPool } from '@/lib/db';
+import { isVipUser, VIP_EXPIRES_AT } from '@/lib/vipUsers';
 
 export async function GET(req: NextRequest) {
   try {
@@ -18,6 +19,14 @@ export async function GET(req: NextRequest) {
     let updatedSession = session;
     let gender = 'female';
     let fontStyle = 'print';
+
+    if (isVipUser(session.username, session.telegramId)) {
+      updatedSession = {
+        ...session,
+        subscriptionTier: 'pro',
+        subscriptionExpiresAt: VIP_EXPIRES_AT,
+      };
+    }
 
     if (db) {
       const res = await db.query('SELECT * FROM ulpana_users WHERE id = $1', [session.id]);

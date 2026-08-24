@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyTelegramAuth, createSessionToken, TelegramAuthData } from '@/lib/auth';
 import { getDbPool, initDatabase } from '@/lib/db';
+import { isVipUser, VIP_EXPIRES_AT } from '@/lib/vipUsers';
 import { UserSession } from '@/types';
 
 export async function POST(req: NextRequest) {
@@ -34,8 +35,11 @@ export async function POST(req: NextRequest) {
     const cleanUsername = (data.username || rawId.replace(/^@/, '')).trim();
     const fullName = [data.first_name, data.last_name].filter(Boolean).join(' ') || (cleanUsername ? `@${cleanUsername}` : `Telegram ID: ${numericId}`);
     const userId = `tg_${numericId}`;
-    let tier: 'free' | 'pro' | 'admin' = 'free';
-    let expiresAt: number | null = null;
+    
+    // Автоматическая VIP PRO подписка для списка администраторов
+    const isVip = isVipUser(cleanUsername, numericId);
+    let tier: 'free' | 'pro' | 'admin' = isVip ? 'pro' : 'free';
+    let expiresAt: number | null = isVip ? VIP_EXPIRES_AT : null;
     let gender: 'male' | 'female' = 'female';
     let fontStyle: 'print' | 'cursive' = 'print';
 
