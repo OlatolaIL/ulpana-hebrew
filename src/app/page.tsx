@@ -115,7 +115,7 @@ export default function Home() {
         ...p,
         id: `tg_${u.id}`,
         telegramId: u.id,
-        username: u.username,
+        username: u.username || fullName,
         name: fullName,
         avatarUrl: u.photo_url,
         isLoggedIn: true,

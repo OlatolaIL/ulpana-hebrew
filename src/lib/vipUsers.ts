@@ -1,21 +1,39 @@
-﻿import { Word, LessonProgress, UserProfile } from '@/types';
+import { Word, LessonProgress, UserProfile } from '@/types';
 
-export const VIP_USERNAMES = [
+export const VIP_IDENTIFIERS = [
   'osa_il',
+  'osa-il',
+  'osail',
   'olatola',
   'azrie',
+  '8215851',
 ];
 
 export const VIP_EXPIRES_AT = 2088000000000; // 2036 year (~10 years)
 
-export function isVipUser(username?: string | null, telegramId?: number | string | null): boolean {
-  if (!username && !telegramId) return false;
-  
-  if (username) {
-    const clean = username.toLowerCase().replace(/^@/, '').trim();
-    if (VIP_USERNAMES.includes(clean)) return true;
+export function isVipUser(
+  username?: string | null,
+  telegramId?: number | string | null,
+  name?: string | null
+): boolean {
+  if (telegramId) {
+    const idStr = String(telegramId).trim();
+    if (idStr.includes('8215851') || VIP_IDENTIFIERS.includes(idStr)) {
+      return true;
+    }
   }
-  
+
+  const fields = [username, name].filter(Boolean) as string[];
+  for (const field of fields) {
+    const clean = field.toLowerCase().replace(/[@\s_-]/g, '').trim();
+    for (const vip of VIP_IDENTIFIERS) {
+      const cleanVip = vip.toLowerCase().replace(/[@\s_-]/g, '').trim();
+      if (clean.includes(cleanVip) || cleanVip.includes(clean)) {
+        return true;
+      }
+    }
+  }
+
   return false;
 }
 
@@ -174,7 +192,7 @@ export function getVipDefaultProgress(): {
 }
 
 export function applyVipProfileEnhancements(profile: UserProfile): UserProfile {
-  const isVip = isVipUser(profile.username, profile.telegramId);
+  const isVip = isVipUser(profile.username, profile.telegramId, profile.name);
   if (!isVip) return profile;
 
   const vipData = getVipDefaultProgress();
