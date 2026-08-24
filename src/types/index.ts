@@ -125,6 +125,7 @@ export interface ChatMessage {
   transcription?: string;
   translation?: string;
   feedback?: string; // Поправки грамматики от ИИ
+  engine?: string;
   suggestedReplies?: Array<{
     hebrew: string;
     transcription: string;
@@ -166,6 +167,13 @@ export interface PromoCode {
   expiresAt?: number | null;
 }
 
+export interface LessonProgress {
+  completedTabs: string[]; // 'theory', 'vocab', 'sentences', 'chat', 'exercises'
+  isCompleted: boolean;
+  score?: number;
+  lastVisited: number;
+}
+
 export interface UserProfile {
   id?: string;
   telegramId?: number;
@@ -184,15 +192,7 @@ export interface UserProfile {
   fontStyle: 'print' | 'cursive';
   speechRate?: number; // 0.5 - 1.0 (по умолчанию 0.7 для начинающих)
   completedLessons: number[];
-  lessonProgress: Record<
-    number,
-    {
-      completedTabs: string[]; // 'theory', 'vocab', 'sentences', 'chat', 'exercises'
-      isCompleted: boolean;
-      score?: number;
-      lastVisited: number;
-    }
-  >;
+  lessonProgress: Record<number, LessonProgress>;
   personalVocabulary: Word[];
   flashcardStats: Record<string, FlashcardProgress>;
 }

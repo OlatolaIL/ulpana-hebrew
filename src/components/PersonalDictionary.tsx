@@ -39,13 +39,16 @@ export const PersonalDictionary: React.FC<PersonalDictionaryProps> = ({
 
   const words = userProfile.personalVocabulary || [];
 
-  const filteredWords = words.filter(
-    (w) =>
-      w.hebrew.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      w.hebrewPlain.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      w.translation.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      w.transcription.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredWords = words.filter((w) => {
+    const q = searchQuery.toLowerCase().trim();
+    if (!q) return true;
+    return (
+      (w.hebrew || '').toLowerCase().includes(q) ||
+      (w.hebrewPlain || '').toLowerCase().includes(q) ||
+      (w.translation || '').toLowerCase().includes(q) ||
+      (w.transcription || '').toLowerCase().includes(q)
+    );
+  });
 
   const handleDelete = (wordId: string) => {
     removeWordFromPersonalDict(wordId);

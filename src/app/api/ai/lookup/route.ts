@@ -46,8 +46,8 @@ export async function POST(req: NextRequest) {
     }
 
     // 3. Если слово новое/нестандартное и есть ключ Groq/Gemini — запрашиваем ИИ
-    const groqKey = apiKey || process.env.GROQ_API_KEY || '';
-    const geminiKey = apiKey || process.env.GEMINI_API_KEY || '';
+    const groqKey = (apiKey || process.env.GROQ_API_KEY || '').trim();
+    const geminiKey = (apiKey || process.env.GEMINI_API_KEY || '').trim();
 
     const systemPrompt = `Ты — лингвистический анализатор иврита для русскоговорящих студентов ульпана.
 Пользователь выделил слово или фразу на иврите: "${word}".
@@ -78,25 +78,38 @@ export async function POST(req: NextRequest) {
 
     // Запрос через Groq
     if (provider === 'groq' && groqKey) {
-      const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${groqKey}`,
-        },
-        body: JSON.stringify({
-          model: 'llama-3.3-70b-versatile',
-          messages: [{ role: 'system', content: systemPrompt }],
-          response_format: { type: 'json_object' },
-          temperature: 0.1,
-          max_tokens: 500,
-        }),
-      });
+      const modelsToTry = [
+        process.env.GROQ_MODEL,
+        'openai/gpt-oss-120b',
+        'openai/gpt-oss-20b',
+        'qwen/qwen3.6-27b',
+      ].filter(Boolean) as string[];
 
-      if (groqRes.ok) {
-        const data = await groqRes.json();
-        const contentStr = data.choices[0]?.message?.content || '{}';
-        return NextResponse.json(JSON.parse(contentStr));
+      for (const groqModel of modelsToTry) {
+        try {
+          const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${groqKey}`,
+            },
+            body: JSON.stringify({
+              model: groqModel,
+              messages: [{ role: 'system', content: systemPrompt }],
+              response_format: { type: 'json_object' },
+              temperature: 0.1,
+              max_tokens: 500,
+            }),
+          });
+
+          if (groqRes.ok) {
+            const data = await groqRes.json();
+            const contentStr = data.choices[0]?.message?.content || '{}';
+            return NextResponse.json(JSON.parse(contentStr));
+          }
+        } catch (groqErr) {
+          console.error(`Groq lookup error with model ${groqModel}:`, groqErr);
+        }
       }
     }
 

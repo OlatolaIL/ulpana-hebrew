@@ -13,7 +13,8 @@ import {
 } from 'lucide-react';
 import { Word, UserProfile, PartOfSpeech } from '@/types';
 import { speakHebrew } from '@/lib/speech';
-import { addWordToPersonalDict, removeWordFromPersonalDict, isWordInPersonalDict } from '@/lib/storage';
+import { stripNikkud } from '@/lib/transcription';
+import { addWordToPersonalDict, removeWordFromPersonalDict, isWordInPersonalDict, saveUserProfile } from '@/lib/storage';
 
 interface LessonVocabularyProps {
   words: Word[];
@@ -34,11 +35,15 @@ export const LessonVocabulary: React.FC<LessonVocabularyProps> = ({
   const [selectedPos, setSelectedPos] = useState<string>('all');
 
   const filteredWords = words.filter((w) => {
+    const q = searchQuery.toLowerCase().trim();
+    if (!q) {
+      return selectedPos === 'all' || w.partOfSpeech === selectedPos;
+    }
     const matchesSearch =
-      w.hebrew.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      w.hebrewPlain.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      w.translation.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      w.transcription.toLowerCase().includes(searchQuery.toLowerCase());
+      (w.hebrew || '').toLowerCase().includes(q) ||
+      (w.hebrewPlain || '').toLowerCase().includes(q) ||
+      (w.translation || '').toLowerCase().includes(q) ||
+      (w.transcription || '').toLowerCase().includes(q);
 
     const matchesPos = selectedPos === 'all' || w.partOfSpeech === selectedPos;
     return matchesSearch && matchesPos;

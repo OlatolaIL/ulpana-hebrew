@@ -227,6 +227,7 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
         transcription: data.transcription,
         translation: data.translation,
         feedback: data.feedback,
+        engine: data.engine || 'Groq (Живой ИИ)',
         suggestedReplies: data.suggestedReplies || [],
         timestamp: Date.now(),
       };
@@ -298,6 +299,10 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
             <h3 className="font-bold text-sm text-zinc-900 dark:text-zinc-100">
               {lesson.dialogue.title}
             </h3>
+            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800/80 text-[11px] font-semibold text-emerald-700 dark:text-emerald-300">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              <span>Groq ИИ</span>
+            </div>
           </div>
           <p className="text-xs text-zinc-600 dark:text-zinc-300 mt-1 leading-relaxed">
             {lesson.dialogue.situation}
@@ -449,9 +454,15 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
                     </p>
                   )}
 
-                  {/* Кнопка озвучки */}
+                  {/* Кнопка озвучки и бейдж движка */}
                   {isAi && (
-                    <div className="mt-2 pt-2 border-t border-zinc-100 dark:border-zinc-700/60 flex items-center justify-end">
+                    <div className="mt-2 pt-2 border-t border-zinc-100 dark:border-zinc-700/60 flex items-center justify-between">
+                      {msg.engine ? (
+                        <div className="flex items-center gap-1 text-[10px] font-medium text-emerald-600 dark:text-emerald-400">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
+                          <span>{msg.engine}</span>
+                        </div>
+                      ) : <div />}
                       <button
                         onClick={() => speakHebrew(msg.hebrew, { rate: userProfile.speechRate || 0.7 })}
                         className="text-xs text-zinc-400 hover:text-blue-600 dark:hover:text-blue-400 flex items-center gap-1 transition"
@@ -518,6 +529,22 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
 
       {/* Поле ввода сообщения */}
       <div className="p-3 bg-white dark:bg-zinc-900 border-t border-zinc-200 dark:border-zinc-800">
+        {isRecording && (
+          <div className="mb-2.5 px-3.5 py-2 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-700/80 rounded-xl text-xs text-emerald-800 dark:text-emerald-200 flex items-center justify-between gap-2 shadow-sm animate-pulse">
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping shrink-0" />
+              <span className="font-semibold">🎙️ Микрофон активен: говорите на иврите...</span>
+            </div>
+            <button
+              type="button"
+              onClick={toggleRecording}
+              className="text-[11px] font-bold underline text-emerald-700 dark:text-emerald-300 hover:text-emerald-900"
+            >
+              Завершить
+            </button>
+          </div>
+        )}
+
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -528,14 +555,14 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
           <button
             type="button"
             onClick={toggleRecording}
-            className={`p-2.5 rounded-xl border transition ${
+            className={`p-2.5 rounded-xl border transition duration-200 ${
               isRecording
-                ? 'bg-red-500 text-white border-red-600 animate-pulse'
-                : 'border-zinc-200 dark:border-zinc-700 text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800'
+                ? 'bg-emerald-500 hover:bg-emerald-600 text-white border-emerald-600 ring-4 ring-emerald-400/40 shadow-lg shadow-emerald-500/30 scale-105 animate-pulse'
+                : 'border-zinc-200 dark:border-zinc-700 text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-800 dark:hover:text-zinc-200'
             }`}
-            title="Голосовой ввод на иврите"
+            title={isRecording ? 'Идет запись... Нажмите для остановки' : 'Голосовой ввод на иврите'}
           >
-            {isRecording ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
+            {isRecording ? <Mic className="w-5 h-5 animate-pulse text-white" /> : <Mic className="w-5 h-5" />}
           </button>
 
           <input

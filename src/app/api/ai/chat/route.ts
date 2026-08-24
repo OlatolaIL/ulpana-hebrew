@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
     const geminiKey = (apiKey || process.env.GEMINI_API_KEY || '').trim();
     const isFemale = userGender === 'female';
 
-    // 1. Попытка запроса через живой Groq API (Llama 3.3 70B)
+    // 1. Попытка запроса через живой Groq API (GPT-OSS 120B / 20B)
     if (provider === 'groq' && groqKey) {
       const genderInstruction = isFemale
         ? 'Ученик — ЖЕНЩИНА (נקבה). Обращайся исключительно в женском роде (את רוצה, את שותה, לך, אותך). Ожидай от нее форм женского рода.'
@@ -68,36 +68,45 @@ ${genderInstruction}
   ]
 }`;
 
-      try {
-        const groqResponse = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${groqKey}`,
-          },
-          body: JSON.stringify({
-            model: 'llama-3.3-70b-versatile',
-            messages: [
-              { role: 'system', content: systemPrompt },
-              ...messages.map((m) => ({ role: m.role, content: m.content })),
-            ],
-            response_format: { type: 'json_object' },
-            temperature: 0.6,
-            max_tokens: 800,
-          }),
-        });
+      const modelsToTry = [
+        process.env.GROQ_MODEL,
+        'openai/gpt-oss-120b',
+        'openai/gpt-oss-20b',
+        'qwen/qwen3.6-27b',
+      ].filter(Boolean) as string[];
 
-        if (groqResponse.ok) {
-          const data = await groqResponse.json();
-          const contentStr = data.choices[0]?.message?.content || '{}';
-          const parsed = JSON.parse(contentStr);
-          return NextResponse.json({
-            ...parsed,
-            engine: 'Groq Llama 3.3 70B (Живой ИИ)',
+      for (const groqModel of modelsToTry) {
+        try {
+          const groqResponse = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${groqKey}`,
+            },
+            body: JSON.stringify({
+              model: groqModel,
+              messages: [
+                { role: 'system', content: systemPrompt },
+                ...messages.map((m) => ({ role: m.role, content: m.content })),
+              ],
+              response_format: { type: 'json_object' },
+              temperature: 0.6,
+              max_tokens: 800,
+            }),
           });
+
+          if (groqResponse.ok) {
+            const data = await groqResponse.json();
+            const contentStr = data.choices[0]?.message?.content || '{}';
+            const parsed = JSON.parse(contentStr);
+            return NextResponse.json({
+              ...parsed,
+              engine: 'Groq (Живой ИИ)',
+            });
+          }
+        } catch (groqErr) {
+          console.error(`Groq fetch error with model ${groqModel}:`, groqErr);
         }
-      } catch (groqErr) {
-        console.error('Groq fetch error:', groqErr);
       }
     }
 
