@@ -16,6 +16,7 @@ const DEFAULT_PROFILE: UserProfile = {
   showNikkud: true,
   showTranscription: true,
   fontStyle: 'print',
+  speechRate: 0.7,
   completedLessons: [],
   lessonProgress: {},
   personalVocabulary: [],
@@ -43,10 +44,14 @@ export function saveUserProfile(profile: UserProfile): void {
   }
 }
 
+/**
+ * Добавление слова в личный словарик пользователя
+ */
 export function addWordToPersonalDict(word: Omit<Word, 'id' | 'dateAdded' | 'isUserAdded'>): Word {
   const profile = loadUserProfile();
   const cleanHeb = stripNikkud(word.hebrew);
 
+  // Проверяем, нет ли уже такого слова
   const existing = profile.personalVocabulary.find(
     (w) => stripNikkud(w.hebrew) === cleanHeb
   );
@@ -66,18 +71,27 @@ export function addWordToPersonalDict(word: Omit<Word, 'id' | 'dateAdded' | 'isU
   return newWord;
 }
 
+/**
+ * Удаление слова из личного словарика
+ */
 export function removeWordFromPersonalDict(wordId: string): void {
   const profile = loadUserProfile();
   profile.personalVocabulary = profile.personalVocabulary.filter((w) => w.id !== wordId);
   saveUserProfile(profile);
 }
 
+/**
+ * Проверка, находится ли слово в личном словаре
+ */
 export function isWordInPersonalDict(hebrew: string): boolean {
   const profile = loadUserProfile();
   const clean = stripNikkud(hebrew);
   return profile.personalVocabulary.some((w) => stripNikkud(w.hebrew) === clean);
 }
 
+/**
+ * Обновление прогресса по вкладке урока (theory, vocab, sentences, chat, exercises)
+ */
 export function markLessonTabCompleted(lessonId: number, tab: string): void {
   const profile = loadUserProfile();
   const current = profile.lessonProgress[lessonId] || {
@@ -91,6 +105,7 @@ export function markLessonTabCompleted(lessonId: number, tab: string): void {
   }
   current.lastVisited = Date.now();
 
+  // Если пройдены базовые этапы — отмечаем урок завершенным
   if (
     current.completedTabs.includes('theory') &&
     current.completedTabs.includes('vocab') &&
@@ -106,6 +121,9 @@ export function markLessonTabCompleted(lessonId: number, tab: string): void {
   saveUserProfile(profile);
 }
 
+/**
+ * Алгоритм SuperMemo 2 (SM-2) для интервального повторения карточек
+ */
 export function updateCardSRS(wordId: string, quality: number): FlashcardProgress {
   const profile = loadUserProfile();
   const prev: FlashcardProgress = profile.flashcardStats[wordId] || {
@@ -134,6 +152,7 @@ export function updateCardSRS(wordId: string, quality: number): FlashcardProgres
     interval = 1;
   }
 
+  // Обновление фактора легкости
   easeFactor = easeFactor + (0.1 - (5 - quality) * (0.08 + (5 - quality) * 0.02));
   if (easeFactor < 1.3) easeFactor = 1.3;
 
