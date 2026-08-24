@@ -180,7 +180,8 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
     if (!text || loading) return;
 
     const userMsg: ChatMessage = {
-      id: `user-${Date.now()}`,\n      role: 'user',
+      id: `user-${Date.now()}`,
+      role: 'user',
       hebrew: text,
       timestamp: Date.now(),
     };
@@ -477,8 +478,7 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
         })}
 
         {/* Подсказки быстрых ответов под последним сообщением с учетом showNikkud */}
-        {lastAiMessage && lastAiMessage.suggestedReplies && lastAiMessage.suggestedReplies.length > 0 && (
-          <div className="pt-2 pl-10 flex flex-wrap gap-2 animate-in fade-in">
+        {lastAiMessage && lastAiMessage.suggestedReplies && lastAiMessage.suggestedReplies.length > 0 && (\n          <div className="pt-2 pl-10 flex flex-wrap gap-2 animate-in fade-in">
             {lastAiMessage.suggestedReplies.map((reply, i) => (
               <button
                 key={i}
