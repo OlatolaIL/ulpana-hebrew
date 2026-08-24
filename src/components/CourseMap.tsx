@@ -156,6 +156,7 @@ export const CourseMap: React.FC<CourseMapProps> = ({
               className="group bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-5 shadow-sm hover:shadow-md hover:border-blue-500/50 dark:hover:border-blue-500/40 transition duration-200 cursor-pointer flex flex-col justify-between"
             >
               <div className="space-y-3">
+                {/* Номер урока и бейдж статуса */}
                 <div className="flex items-center justify-between">
                   <span className="px-2.5 py-1 rounded-xl text-xs font-bold bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400">
                     Урок {lesson.number}
@@ -175,6 +176,7 @@ export const CourseMap: React.FC<CourseMapProps> = ({
                   )}
                 </div>
 
+                {/* Название на иврите и русском */}
                 <div>
                   <div
                     dir="rtl"
@@ -192,6 +194,7 @@ export const CourseMap: React.FC<CourseMapProps> = ({
                 </p>
               </div>
 
+              {/* Футер карточки урока */}
               <div className="mt-4 pt-3 border-t border-zinc-100 dark:border-zinc-800 flex items-center justify-between text-xs text-zinc-400">
                 <span className="font-medium text-zinc-500">{lesson.category}</span>
                 <span className="inline-flex items-center gap-1 font-semibold text-blue-600 dark:text-blue-400 group-hover:translate-x-0.5 transition">
