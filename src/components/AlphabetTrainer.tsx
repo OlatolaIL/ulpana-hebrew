@@ -716,106 +716,60 @@ export const AlphabetTrainer: React.FC<AlphabetTrainerProps> = () => {
                   </div>
                 )}
 
-                {/* 3. SVG-слой траекторий штрихов, стрелок и точек начала */}
-                {currentRule && (
+                {/* 3. SVG-слой: аккуратные точки начала штрихов (❶, ❷) */}
+                {currentRule && showStartingPoints && (
                   <svg
                     viewBox="0 0 360 360"
                     className="absolute inset-0 w-full h-full pointer-events-none z-10"
                   >
-                    <defs>
-                      <marker
-                        id="arrowhead-clean"
-                        markerWidth="6"
-                        markerHeight="6"
-                        refX="5"
-                        refY="3"
-                        orient="auto"
-                      >
-                        <path d="M 0 0 L 6 3 L 0 6 z" fill="#38bdf8" />
-                      </marker>
-                      <marker
-                        id="arrowhead-clean-active"
-                        markerWidth="7"
-                        markerHeight="7"
-                        refX="6"
-                        refY="3.5"
-                        orient="auto"
-                      >
-                        <path d="M 0 0 L 7 3.5 L 0 7 z" fill="#10b981" />
-                      </marker>
-                    </defs>
+                    {/* Точки начала с номерами (❶, ❷) */}
+                    {currentRule.strokes.map((stroke) => {
+                      const isCurrentActive = isAnimating && activeAnimStroke === stroke.id;
+                      const isFirst = stroke.id === 1;
+                      const mainColor = isFirst ? '#10b981' : '#3b82f6';
 
-                    {/* Отрисовка траекторий штрихов с встроенными наконечниками стрелок */}
-                    {showDirectionArrows &&
-                      currentRule.strokes.map((stroke) => {
-                        const isCurrentActive = isAnimating && activeAnimStroke === stroke.id;
-                        return (
-                          <g key={stroke.id}>
-                            {/* Направляющая плавная пунктирная траектория со стрелкой на конце */}
-                            <path
-                              d={stroke.path}
-                              fill="none"
-                              stroke={isCurrentActive ? '#10b981' : '#38bdf8'}
-                              strokeWidth={isCurrentActive ? '3.5' : '2.5'}
-                              strokeDasharray={isCurrentActive ? '6 3' : '4 4'}
-                              strokeLinecap="round"
-                              strokeOpacity={isCurrentActive ? '1' : '0.75'}
-                              markerEnd={isCurrentActive ? 'url(#arrowhead-clean-active)' : 'url(#arrowhead-clean)'}
-                              className={isCurrentActive ? 'animate-pulse' : ''}
-                            />
-                          </g>
-                        );
-                      })}
+                      return (
+                        <g
+                          key={`start-${stroke.id}`}
+                          className="transition-all duration-300"
+                        >
+                          {/* Мягкий внешний светящийся ореол */}
+                          <circle
+                            cx={stroke.startPoint.x}
+                            cy={stroke.startPoint.y}
+                            r={isCurrentActive ? '18' : '14'}
+                            fill={mainColor}
+                            fillOpacity={isCurrentActive ? '0.4' : '0.25'}
+                            className="animate-pulse"
+                            style={{ transformOrigin: `${stroke.startPoint.x}px ${stroke.startPoint.y}px` }}
+                          />
 
-                    {/* Минималистичные аккуратные точки старта с номерами (❶, ❷) */}
-                    {showStartingPoints &&
-                      currentRule.strokes.map((stroke) => {
-                        const isCurrentActive = isAnimating && activeAnimStroke === stroke.id;
-                        const isFirst = stroke.id === 1;
-                        const mainColor = isFirst ? '#10b981' : '#3b82f6';
+                          {/* Основной аккуратный кружок */}
+                          <circle
+                            cx={stroke.startPoint.x}
+                            cy={stroke.startPoint.y}
+                            r="11"
+                            fill={mainColor}
+                            stroke="#ffffff"
+                            strokeWidth="2.5"
+                            className="drop-shadow-md"
+                          />
 
-                        return (
-                          <g
-                            key={`start-${stroke.id}`}
-                            className="transition-all duration-300"
+                          {/* Номер штриха */}
+                          <text
+                            x={stroke.startPoint.x}
+                            y={stroke.startPoint.y + 4}
+                            textAnchor="middle"
+                            fill="#ffffff"
+                            fontSize="12"
+                            fontWeight="900"
+                            fontFamily="system-ui, -apple-system, sans-serif"
                           >
-                            {/* Мягкий внешний ореол */}
-                            <circle
-                              cx={stroke.startPoint.x}
-                              cy={stroke.startPoint.y}
-                              r={isCurrentActive ? '16' : '12'}
-                              fill={mainColor}
-                              fillOpacity={isCurrentActive ? '0.35' : '0.2'}
-                              className={isCurrentActive ? 'animate-ping' : ''}
-                              style={{ transformOrigin: `${stroke.startPoint.x}px ${stroke.startPoint.y}px` }}
-                            />
-
-                            {/* Основной аккуратный кружок */}
-                            <circle
-                              cx={stroke.startPoint.x}
-                              cy={stroke.startPoint.y}
-                              r="10"
-                              fill={mainColor}
-                              stroke="#ffffff"
-                              strokeWidth="2"
-                              className="drop-shadow-sm"
-                            />
-
-                            {/* Номер штриха */}
-                            <text
-                              x={stroke.startPoint.x}
-                              y={stroke.startPoint.y + 3.5}
-                              textAnchor="middle"
-                              fill="#ffffff"
-                              fontSize="11"
-                              fontWeight="bold"
-                              fontFamily="system-ui, -apple-system, sans-serif"
-                            >
-                              {stroke.id}
-                            </text>
-                          </g>
-                        );
-                      })}
+                            {stroke.id}
+                          </text>
+                        </g>
+                      );
+                    })}
                   </svg>
                 )}
 
@@ -834,7 +788,9 @@ export const AlphabetTrainer: React.FC<AlphabetTrainerProps> = () => {
 
                 {!hasDrawn && (
                   <div className="absolute bottom-3 text-center pointer-events-none z-30 text-[11px] text-zinc-500 dark:text-zinc-400 bg-white/90 dark:bg-zinc-900/90 px-3 py-1 rounded-full shadow-sm backdrop-blur border border-zinc-200/50 dark:border-zinc-800/50">
-                    Начните с зеленой точки ❶ и ведите по стрелке
+                    {currentRule && currentRule.strokesCount > 1
+                      ? 'Начните с точки ❶, затем перейдите к точке ❷'
+                      : 'Начните с зеленой точки ❶'}
                   </div>
                 )}
               </div>
