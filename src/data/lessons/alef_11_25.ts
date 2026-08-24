@@ -2171,7 +2171,7 @@ export const ALEF_LESSONS_11_25: Record<number, Lesson> = {
       {
         id: 's20-3',
         hebrew: 'אַבָּא מְבַשֵּׁל אֲרוּחַת עֶרֶב בַּמִּטְבָּח.',
-        transcription: 'áбба мэвашэ́ль арухáт э́рев ба-митбáх.',
+        transcription: 'áба мэвашэ́ль арухáт э́рев ба-митбáх.',
         translation: 'Папа готовит ужин на кухне.',
       },
       {

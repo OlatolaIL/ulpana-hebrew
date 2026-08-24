@@ -546,7 +546,7 @@ export const BET_LESSONS_81_90: Record<number, Lesson> = {
         id: 'w83-8',
         hebrew: 'יַאלְלָה בַּי',
         hebrewPlain: 'יאללה ביי',
-        transcription: 'я́лла бай',
+        transcription: 'я́ла бай',
         translation: 'ну всё, давай пока!',
         partOfSpeech: 'expression',
         lessonId: 83,
@@ -612,7 +612,7 @@ export const BET_LESSONS_81_90: Record<number, Lesson> = {
       {
         id: 's83-4',
         hebrew: 'יַאלְלָה כַּפָּרָה, נִפָּגֵשׁ בָּעֶרֶב, אֵשׁ!',
-        transcription: 'я́лла капáра, нипагéш ба-э́рев, эш!',
+        transcription: 'я́ла капáра, нипагéш ба-э́рев, эш!',
         translation: 'Давай, дорогой, увидимся вечером, огонь!',
       },
     ],
