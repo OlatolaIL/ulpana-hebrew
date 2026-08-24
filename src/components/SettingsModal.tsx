@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { X, Key, User, Volume2, Eye, CheckCircle2 } from 'lucide-react';
+import { X, Key, User, Volume2, Eye, HelpCircle, CheckCircle2 } from 'lucide-react';
 import { UserProfile, UserGender, AiProvider } from '@/types';
 import { saveUserProfile } from '@/lib/storage';
 import { speakHebrew } from '@/lib/speech';
@@ -30,6 +30,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in">
       <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl border border-zinc-200 dark:border-zinc-800 max-w-lg w-full max-h-[90vh] overflow-y-auto">
+        {/* Заголовок */}
         <div className="sticky top-0 bg-white/90 dark:bg-zinc-900/90 backdrop-blur border-b border-zinc-200 dark:border-zinc-800 p-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400">
@@ -39,7 +40,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               <h2 className="font-bold text-base text-zinc-900 dark:text-zinc-50">
                 Настройки обучения
               </h2>
-              <p className="text-xs text-zinc-500">Грамматический пол, скорость речи, ИИ и отображение</p>
+              <p className="text-xs text-zinc-500">Грамматический пол, ИИ и отображение</p>
             </div>
           </div>
           <button
@@ -51,6 +52,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         </div>
 
         <div className="p-6 space-y-6">
+          {/* 1. Грамматический пол ученика (Критично для иврита!) */}
           <div className="space-y-2">
             <label className="block text-sm font-semibold text-zinc-900 dark:text-zinc-100">
               Грамматический пол говорящего
@@ -93,7 +95,92 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
           <hr className="border-zinc-200 dark:border-zinc-800" />
 
-          {/* Скорость речи */}
+          {/* 2. Настройки отображения иврита */}
+          <div className="space-y-3">
+            <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+              <Eye className="w-4 h-4 text-blue-600" />
+              <span>Отображение текста</span>
+            </h3>
+
+            <div className="space-y-2">
+              <label className="flex items-center justify-between p-3 rounded-xl border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 cursor-pointer">
+                <div>
+                  <span className="text-sm font-medium text-zinc-800 dark:text-zinc-200">
+                    Показывать огласовки (Никуд - נִקּוּד)
+                  </span>
+                  <p className="text-xs text-zinc-500">
+                    Рекомендуется для уровня Алеф для правильного чтения
+                  </p>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={profile.showNikkud}
+                  onChange={(e) => handleChange({ showNikkud: e.target.checked })}
+                  className="w-5 h-5 accent-blue-600 rounded cursor-pointer"
+                />
+              </label>
+
+              <label className="flex items-center justify-between p-3 rounded-xl border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 cursor-pointer">
+                <div>
+                  <span className="text-sm font-medium text-zinc-800 dark:text-zinc-200">
+                    Русская транскрипция (с буквой h для ה)
+                  </span>
+                  <p className="text-xs text-zinc-500">
+                    Помогает освоить звуки и правильные ударения
+                  </p>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={profile.showTranscription}
+                  onChange={(e) => handleChange({ showTranscription: e.target.checked })}
+                  className="w-5 h-5 accent-blue-600 rounded cursor-pointer"
+                />
+              </label>
+
+              {/* Переключатель печатного / рукописного шрифта */}
+              <div className="p-3 rounded-xl border border-zinc-200 dark:border-zinc-800 space-y-2">
+                <div>
+                  <span className="text-sm font-medium text-zinc-800 dark:text-zinc-200">
+                    Стиль шрифта иврита
+                  </span>
+                  <p className="text-xs text-zinc-500">
+                    Печатный для учебников или рукописный (Ктав Яд) для записок и практики
+                  </p>
+                </div>
+                <div className="grid grid-cols-2 gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => handleChange({ fontStyle: 'print' })}
+                    className={`py-2 px-3 rounded-xl border text-xs font-semibold flex items-center justify-center gap-2 transition ${
+                      profile.fontStyle !== 'cursive'
+                        ? 'border-blue-600 bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 font-bold ring-2 ring-blue-600/20'
+                        : 'border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400'
+                    }`}
+                  >
+                    <span className="text-base font-hebrew font-bold">דפוס</span>
+                    <span>Печатный</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleChange({ fontStyle: 'cursive' })}
+                    className={`py-2 px-3 rounded-xl border text-xs font-semibold flex items-center justify-center gap-2 transition ${
+                      profile.fontStyle === 'cursive'
+                        ? 'border-blue-600 bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 font-bold ring-2 ring-blue-600/20'
+                        : 'border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400'
+                    }`}
+                  >
+                    <span className="text-2xl font-cursive font-bold text-blue-600 dark:text-blue-400">כתב</span>
+                    <span>Рукописный</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <hr className="border-zinc-200 dark:border-zinc-800" />
+
+          {/* 3. Скорость речи и озвучки */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
@@ -161,51 +248,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
           <hr className="border-zinc-200 dark:border-zinc-800" />
 
-          <div className="space-y-3">
-            <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
-              <Eye className="w-4 h-4 text-blue-600" />
-              <span>Отображение текста</span>
-            </h3>
-
-            <div className="space-y-2">
-              <label className="flex items-center justify-between p-3 rounded-xl border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 cursor-pointer">
-                <div>
-                  <span className="text-sm font-medium text-zinc-800 dark:text-zinc-200">
-                    Показывать огласовки (Никуд - נִקּוּד)
-                  </span>
-                  <p className="text-xs text-zinc-500">
-                    Рекомендуется для уровня Алеф для правильного чтения
-                  </p>
-                </div>
-                <input
-                  type="checkbox"
-                  checked={profile.showNikkud}
-                  onChange={(e) => handleChange({ showNikkud: e.target.checked })}
-                  className="w-5 h-5 accent-blue-600 rounded cursor-pointer"
-                />
-              </label>
-
-              <label className="flex items-center justify-between p-3 rounded-xl border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 cursor-pointer">
-                <div>
-                  <span className="text-sm font-medium text-zinc-800 dark:text-zinc-200">
-                    Русская транскрипция (с буквой h для ה)
-                  </span>
-                  <p className="text-xs text-zinc-500">
-                    Помогает освоить звуки и правильные ударения
-                  </p>
-                </div>
-                <input
-                  type="checkbox"
-                  checked={profile.showTranscription}
-                  onChange={(e) => handleChange({ showTranscription: e.target.checked })}
-                  className="w-5 h-5 accent-blue-600 rounded cursor-pointer"
-                />
-              </label>
-            </div>
-          </div>
-
-          <hr className="border-zinc-200 dark:border-zinc-800" />
-
+          {/* 3. Настройка бесплатного ИИ (Groq / Gemini) */}
           <div className="space-y-4">
             <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
               <Key className="w-4 h-4 text-amber-500" />
@@ -249,9 +292,62 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 <p className="text-xs text-zinc-500 mt-1">Gemini 2.0 Flash • Google AI Studio</p>
               </button>
             </div>
+
+            {profile.aiProvider === 'groq' ? (
+              <div className="space-y-2">
+                <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300">
+                  Ключ Groq API (gsk_...)
+                </label>
+                <input
+                  type="password"
+                  value={profile.groqApiKey || ''}
+                  onChange={(e) => handleChange({ groqApiKey: e.target.value })}
+                  placeholder="Вставьте бесплатный ключ Groq"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600"
+                />
+                <p className="text-xs text-zinc-500">
+                  Ключ можно получить бесплатно на сайте{' '}
+                  <a
+                    href="https://console.groq.com/keys"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-blue-600 underline font-medium"
+                  >
+                    console.groq.com
+                  </a>
+                  . Работает без оплаты и кредитных карт.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300">
+                  Ключ Google Gemini API (AIzaSy...)
+                </label>
+                <input
+                  type="password"
+                  value={profile.geminiApiKey || ''}
+                  onChange={(e) => handleChange({ geminiApiKey: e.target.value })}
+                  placeholder="Вставьте ключ Gemini"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600"
+                />
+                <p className="text-xs text-zinc-500">
+                  Ключ доступен бесплатно на{' '}
+                  <a
+                    href="https://aistudio.google.com/app/apikey"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-blue-600 underline font-medium"
+                  >
+                    aistudio.google.com
+                  </a>
+                  .
+                </p>
+              </div>
+            )}
           </div>
         </div>
 
+        {/* Кнопка закрытия */}
         <div className="sticky bottom-0 bg-zinc-50 dark:bg-zinc-900 border-t border-zinc-200 dark:border-zinc-800 p-4">
           <button
             onClick={onClose}
