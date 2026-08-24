@@ -1,4 +1,4 @@
-﻿import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { verifyTelegramAuth, createSessionToken, TelegramAuthData } from '@/lib/auth';
 import { getDbPool, initDatabase } from '@/lib/db';
 import { UserSession } from '@/types';
@@ -6,7 +6,7 @@ import { UserSession } from '@/types';
 export async function POST(req: NextRequest) {
   try {
     const data: TelegramAuthData = await req.json();
-    const botToken = process.env.TELEGRAM_BOT_TOKEN;
+    const botToken = process.env.TELEGRAM_BOT_TOKEN || '8857824092:AAE3sCbuElBPEctBBXlfTCZfjmPPZTJjdnY';
 
     if (!data.id) {
       return NextResponse.json({ error: 'Missing Telegram ID' }, { status: 400 });
