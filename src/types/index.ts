@@ -13,16 +13,34 @@ export type PartOfSpeech =
   | 'number'
   | 'other';
 
+export interface HebrewLetter {
+  id: string;
+  letter: string; // печатная буква (דפוס)
+  cursiveLetter: string; // рукописная буква (כתב יד)
+  nameHebrew: string; // אָלֶף
+  nameRussian: string; // Алеф
+  transcription: string; // [’] / звук
+  sound: string; // описание звука
+  gematria: number; // числовое значение
+  strokeHint: string; // подсказка по направлению штрихов
+  exampleWord: {
+    hebrew: string;
+    transcription: string;
+    translation: string;
+  };
+  isSofit?: boolean; // конечная форма
+}
+
 export interface Word {
   id: string;
-  hebrew: string;
-  hebrewPlain: string;
-  transcription: string;
-  translation: string;
+  hebrew: string; // עם ניקוד
+  hebrewPlain: string; // ללא ניקוד для поиска и сравнения
+  transcription: string; // русская транскрипция с 'h' для ה и знаком ударения
+  translation: string; // русский перевод
   partOfSpeech: PartOfSpeech;
-  root?: string;
+  root?: string; // שורש (например: כ-ת-ב)
   gender?: 'm' | 'f' | 'both';
-  plural?: string;
+  plural?: string; // форма мн. числа
   exampleSentence?: {
     hebrew: string;
     transcription: string;
@@ -45,7 +63,7 @@ export interface Sentence {
 export interface GrammarTopic {
   title: string;
   summary: string;
-  explanation: string;
+  explanation: string; // Markdown / структурированный текст
   rules?: string[];
   tables?: Array<{
     title: string;
@@ -62,16 +80,16 @@ export interface GrammarTopic {
 
 export interface DialogueScenario {
   title: string;
-  situation: string;
-  aiRole: string;
-  userRole: string;
+  situation: string; // Описание контекста (напр. "Вы в кафе в Тель-Авиве")
+  aiRole: string; // Роль ИИ (напр. "Официант Дани")
+  userRole: string; // Роль пользователя (напр. "Посетитель кафе")
   initialMessage: {
     hebrew: string;
     transcription: string;
     translation: string;
   };
-  goals: string[];
-  vocabularyHints: string[];
+  goals: string[]; // Цели диалога для ученика
+  vocabularyHints: string[]; // Ключевые слова урока для подсказок
 }
 
 export interface Exercise {
@@ -88,7 +106,7 @@ export interface Exercise {
 export interface Lesson {
   id: number;
   level: Level;
-  number: number;
+  number: number; // 1 - 100
   titleHebrew: string;
   titleRussian: string;
   category: string;
@@ -106,7 +124,7 @@ export interface ChatMessage {
   hebrew: string;
   transcription?: string;
   translation?: string;
-  feedback?: string;
+  feedback?: string; // Поправки грамматики от ИИ
   suggestedReplies?: Array<{
     hebrew: string;
     transcription: string;
@@ -117,12 +135,12 @@ export interface ChatMessage {
 
 export interface FlashcardProgress {
   wordId: string;
-  interval: number;
-  easeFactor: number;
+  interval: number; // дни до повторения
+  easeFactor: number; // SM-2 коэффициент
   repetitions: number;
   nextReviewDate: number;
   lastReviewDate: number;
-  history: number[];
+  history: number[]; // оценки качества 0-5
 }
 
 export interface UserProfile {
@@ -134,12 +152,12 @@ export interface UserProfile {
   showNikkud: boolean;
   showTranscription: boolean;
   fontStyle: 'print' | 'cursive';
-  speechRate?: number;
+  speechRate?: number; // 0.5 - 1.0 (по умолчанию 0.7 для начинающих)
   completedLessons: number[];
   lessonProgress: Record<
     number,
     {
-      completedTabs: string[];
+      completedTabs: string[]; // 'theory', 'vocab', 'sentences', 'chat', 'exercises'
       isCompleted: boolean;
       score?: number;
       lastVisited: number;
