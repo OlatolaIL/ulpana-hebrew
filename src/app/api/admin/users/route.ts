@@ -79,7 +79,7 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    // 2. Список всех пользователей с поиском и агрегацией прогресса
+    // 2. Список всех пользователей с поиском и агрегацией прогресса (без декартова произведения таблиц)
     let query = `
       SELECT 
         u.id,
@@ -94,14 +94,29 @@ export async function GET(req: NextRequest) {
         u.subscription_expires_at,
         u.created_at,
         u.updated_at,
-        COUNT(CASE WHEN lp.is_completed THEN 1 END) as completed_lessons_count,
-        COALESCE(MAX(lp.lesson_id), 0) as max_lesson_id,
-        ROUND(COALESCE(AVG(lp.score), 0)) as avg_score,
-        MAX(lp.updated_at) as last_active_at,
-        COUNT(DISTINCT v.id) as vocab_words_count
+        COALESCE(lp_stats.completed_count, 0) as completed_lessons_count,
+        COALESCE(lp_stats.max_lesson_id, 0) as max_lesson_id,
+        COALESCE(lp_stats.avg_score, 0) as avg_score,
+        lp_stats.last_active_at,
+        COALESCE(v_stats.vocab_count, 0) as vocab_words_count
       FROM ulpana_users u
-      LEFT JOIN ulpana_lesson_progress lp ON u.id = lp.user_id
-      LEFT JOIN ulpana_vocabulary v ON u.id = v.user_id
+      LEFT JOIN (
+        SELECT 
+          user_id,
+          COUNT(CASE WHEN is_completed THEN 1 END) as completed_count,
+          MAX(lesson_id) as max_lesson_id,
+          ROUND(AVG(NULLIF(score, 0))) as avg_score,
+          MAX(updated_at) as last_active_at
+        FROM ulpana_lesson_progress
+        GROUP BY user_id
+      ) lp_stats ON u.id = lp_stats.user_id
+      LEFT JOIN (
+        SELECT 
+          user_id,
+          COUNT(*) as vocab_count
+        FROM ulpana_vocabulary
+        GROUP BY user_id
+      ) v_stats ON u.id = v_stats.user_id
     `;
 
     const queryParams: any[] = [];
@@ -116,8 +131,7 @@ export async function GET(req: NextRequest) {
     }
 
     query += `
-      GROUP BY u.id
-      ORDER BY COALESCE(MAX(lp.updated_at), u.created_at) DESC
+      ORDER BY COALESCE(lp_stats.last_active_at, u.created_at) DESC
       LIMIT 100
     `;
 

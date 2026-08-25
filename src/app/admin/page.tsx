@@ -561,7 +561,7 @@ export default function AdminPage() {
                     {stats?.totalCompletedLessons || 0}
                   </div>
                   <div className="text-xs text-zinc-500 font-medium mt-1">
-                    Суммарно по всем 80 урокам курса
+                    Суммарно по всем 100 урокам курса
                   </div>
                 </div>
               </div>
@@ -666,7 +666,7 @@ export default function AdminPage() {
                               )}
                             </td>
                             <td className="px-5 py-3.5 font-bold">
-                              {act.score}%
+                              {act.score > 0 ? `${act.score}%` : '—'}
                             </td>
                             <td className="px-5 py-3.5 text-zinc-400 text-xs">
                               {new Date(act.updatedAt).toLocaleString('ru-RU')}
@@ -779,11 +779,11 @@ export default function AdminPage() {
                                 <div className="w-24 bg-zinc-200 dark:bg-zinc-800 rounded-full h-2 overflow-hidden">
                                   <div
                                     className="bg-blue-600 h-2 rounded-full transition-all"
-                                    style={{ width: `${Math.min(100, (u.completedLessonsCount / 80) * 100)}%` }}
+                                    style={{ width: `${Math.min(100, (u.completedLessonsCount / 100) * 100)}%` }}
                                   />
                                 </div>
                                 <span className="font-bold text-xs text-zinc-700 dark:text-zinc-300">
-                                  {u.completedLessonsCount} / 80
+                                  {u.completedLessonsCount} / 100
                                 </span>
                               </div>
                             </td>
@@ -1216,7 +1216,7 @@ export default function AdminPage() {
                     <div>
                       <div className="text-xs text-zinc-400 font-medium">Пройдено уроков</div>
                       <div className="text-sm font-bold mt-0.5 text-blue-600 dark:text-blue-400">
-                        {userDetail.progress.filter((p) => p.isCompleted).length} / 80
+                        {userDetail.progress.filter((p) => p.isCompleted).length} / 100
                       </div>
                     </div>
                     <div>
