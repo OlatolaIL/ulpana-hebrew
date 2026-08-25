@@ -325,57 +325,123 @@ export const ThematicDecksView: React.FC<ThematicDecksViewProps> = ({
     Boolean(w.root);
 
   return (
-    <div className="space-y-6">
-      {/* Шапка с описанием */}
-      <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 rounded-3xl p-5 sm:p-7 text-white shadow-xl relative overflow-hidden">
-        <div className="relative z-10">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/20 backdrop-blur-md text-xs font-semibold uppercase tracking-wider mb-3">
-            <Sparkles className="w-3.5 h-3.5 text-yellow-300" />
-            Тематические словари Ульпана
+    <div className="space-y-4 sm:space-y-6">
+      {/* Компактная шапка тематических словарей */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-1">
+        <div>
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+            <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white">
+              Тематические словари
+            </h2>
+            <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-purple-100 dark:bg-purple-950/80 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800">
+              {filteredDecks.length} колод
+            </span>
           </div>
-          <h2 className="text-2xl sm:text-3xl font-black mb-2">
-            Специальные наборы слов по темам
-          </h2>
-          <p className="text-blue-100 text-xs sm:text-sm max-w-2xl leading-relaxed">
-            В глагольных колодах собраны ключевые инфинитивы с интерактивной кнопкой **«Пеалим»** для просмотра всех спряжений, форм и семьи корня. Каждую колоду можно открыть списком, скопировать или тренировать на карточках.
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+            Специальные подборки слов: 100 глаголов с Pealim, еда, кафе, тело, транспорт, работа и сленг
           </p>
         </div>
       </div>
 
+      {/* Быстрые фильтры по категориям */}
+      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
+        <button
+          onClick={() => setSelectedCategory('all')}
+          className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition cursor-pointer ${
+            selectedCategory === 'all'
+              ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-sm'
+              : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+          }`}
+        >
+          Все темы ({THEMATIC_DECKS.length})
+        </button>
+        <button
+          onClick={() => setSelectedCategory('verbs')}
+          className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap flex items-center gap-1 transition cursor-pointer ${
+            selectedCategory === 'verbs'
+              ? 'bg-blue-600 text-white shadow-sm'
+              : 'bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/60'
+          }`}
+        >
+          <span>⚡ Глаголы</span>
+        </button>
+        <button
+          onClick={() => setSelectedCategory('food')}
+          className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap flex items-center gap-1 transition cursor-pointer ${
+            selectedCategory === 'food'
+              ? 'bg-amber-600 text-white shadow-sm'
+              : 'bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/60'
+          }`}
+        >
+          <span>🥐 Еда и кафе</span>
+        </button>
+        <button
+          onClick={() => setSelectedCategory('body')}
+          className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap flex items-center gap-1 transition cursor-pointer ${
+            selectedCategory === 'body'
+              ? 'bg-rose-600 text-white shadow-sm'
+              : 'bg-rose-50 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 hover:bg-rose-100 dark:hover:bg-rose-900/60'
+          }`}
+        >
+          <span>🏥 Здоровье</span>
+        </button>
+        <button
+          onClick={() => setSelectedCategory('city')}
+          className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap flex items-center gap-1 transition cursor-pointer ${
+            selectedCategory === 'city'
+              ? 'bg-emerald-600 text-white shadow-sm'
+              : 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/60'
+          }`}
+        >
+          <span>🏙️ Город и быт</span>
+        </button>
+        <button
+          onClick={() => setSelectedCategory('slang')}
+          className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap flex items-center gap-1 transition cursor-pointer ${
+            selectedCategory === 'slang'
+              ? 'bg-purple-600 text-white shadow-sm'
+              : 'bg-purple-50 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900/60'
+          }`}
+        >
+          <span>🗣️ Сленг</span>
+        </button>
+      </div>
+
       {/* Панель фильтров и переключатель вида */}
-      <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
+      <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
         {/* Вкладки уровней */}
         <div className="flex items-center gap-1.5 p-1 bg-slate-100 dark:bg-slate-800/80 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-x-auto">
           <button
             onClick={() => setSelectedLevel('all')}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
               selectedLevel === 'all'
                 ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm'
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
             }`}
           >
-            Все уровни ({THEMATIC_DECKS.length})
+            Все уровни
           </button>
           <button
             onClick={() => setSelectedLevel('alef')}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 ${
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 ${
               selectedLevel === 'alef'
                 ? 'bg-blue-600 text-white shadow-sm'
                 : 'text-slate-600 dark:text-slate-400 hover:text-blue-600'
             }`}
           >
-            <span>Уровень Алеф (א)</span>
+            <span>Алеф (א)</span>
             <span className="text-[10px] bg-white/20 px-1.5 py-0.2 rounded-full">1-50</span>
           </button>
           <button
             onClick={() => setSelectedLevel('bet')}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 ${
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 ${
               selectedLevel === 'bet'
                 ? 'bg-purple-600 text-white shadow-sm'
                 : 'text-slate-600 dark:text-slate-400 hover:text-purple-600'
             }`}
           >
-            <span>Уровень Бет (ב)</span>
+            <span>Бет (ב)</span>
             <span className="text-[10px] bg-white/20 px-1.5 py-0.2 rounded-full">51-100</span>
           </button>
         </div>

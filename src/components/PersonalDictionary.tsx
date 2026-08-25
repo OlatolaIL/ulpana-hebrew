@@ -31,6 +31,7 @@ import {
 import { stripNikkud } from '@/lib/transcription';
 import { findOfflineVerbConjugation } from '@/lib/verbConjugations';
 import { VerbConjugationView } from '@/components/VerbConjugationView';
+import { THEMATIC_DECKS } from '@/data/thematicDecks';
 import { ThematicDecksView } from './ThematicDecksView';
 
 interface PersonalDictionaryProps {
@@ -207,37 +208,51 @@ export const PersonalDictionary: React.FC<PersonalDictionaryProps> = ({
   };
 
   return (
-    <div data-font-style={userProfile.fontStyle || 'print'} className="max-w-5xl mx-auto space-y-6">
+    <div data-font-style={userProfile.fontStyle || 'print'} className="max-w-5xl mx-auto space-y-4 sm:space-y-6">
       {/* Главные вкладки раздела: Личный словарь / Тематические колоды / Слова по урокам */}
-      <div className="flex items-center gap-2 p-1.5 bg-slate-100 dark:bg-slate-800/80 rounded-2xl border border-slate-200 dark:border-slate-700/80">
+      <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 p-1.5 bg-slate-200/90 dark:bg-slate-800 rounded-2xl border border-slate-300/80 dark:border-slate-700 shadow-inner">
         <button
           onClick={() => setActiveTab('personal')}
-          className={`flex-1 py-2.5 px-3 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition-all ${
+          className={`py-2.5 px-3 rounded-xl text-xs sm:text-sm font-extrabold flex items-center justify-center gap-2 transition-all cursor-pointer ${
             activeTab === 'personal'
-              ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm'
-              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+              ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
+              : 'text-slate-700 dark:text-slate-200 hover:bg-white/40 dark:hover:bg-slate-700/60'
           }`}
         >
-          <BookOpen className="w-4 h-4" />
-          <span>Мой словарик ({words.length})</span>
+          <BookOpen className="w-4 h-4 shrink-0" />
+          <span>Мой словарик</span>
+          <span className={`text-[11px] px-2 py-0.5 rounded-full font-black ${
+            activeTab === 'personal'
+              ? 'bg-white/20 text-white'
+              : 'bg-slate-300 dark:bg-slate-700 text-slate-800 dark:text-slate-200'
+          }`}>
+            {words.length}
+          </span>
         </button>
 
         <button
           onClick={() => setActiveTab('thematic')}
-          className={`flex-1 py-2.5 px-3 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition-all ${
+          className={`py-2.5 px-3 rounded-xl text-xs sm:text-sm font-extrabold flex items-center justify-center gap-2 transition-all cursor-pointer ${
             activeTab === 'thematic'
-              ? 'bg-white dark:bg-slate-700 text-purple-600 dark:text-purple-400 shadow-sm'
-              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+              ? 'bg-purple-600 text-white shadow-md shadow-purple-600/30'
+              : 'text-slate-700 dark:text-slate-200 hover:bg-white/40 dark:hover:bg-slate-700/60'
           }`}
         >
-          <Sparkles className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+          <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
           <span>Тематические колоды</span>
+          <span className={`text-[11px] px-2 py-0.5 rounded-full font-black ${
+            activeTab === 'thematic'
+              ? 'bg-white/20 text-white'
+              : 'bg-purple-100 dark:bg-purple-950/80 text-purple-700 dark:text-purple-300 border border-purple-300/50 dark:border-purple-800'
+          }`}>
+            {THEMATIC_DECKS.length}
+          </span>
         </button>
 
         {onOpenMultiLessonSetup && (
           <button
             onClick={onOpenMultiLessonSetup}
-            className="hidden sm:flex py-2.5 px-3 rounded-xl text-xs sm:text-sm font-bold items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-sm hover:opacity-95 transition"
+            className="col-span-2 sm:col-auto sm:ml-auto py-2.5 px-3 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-sm hover:opacity-95 transition"
           >
             <Layers className="w-4 h-4" />
             <span>Тренировать уроки (1–100)</span>
@@ -258,76 +273,121 @@ export const PersonalDictionary: React.FC<PersonalDictionaryProps> = ({
 
       {/* РЕНДЕР ВКЛАДКИ «МОЙ ЛИЧНЫЙ СЛОВАРЬ» */}
       {activeTab === 'personal' && (
-        <div className="space-y-6">
-          {/* Шапка страницы */}
-          <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white rounded-3xl p-5 sm:p-7 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-5 relative overflow-hidden">
-            <div className="relative z-10">
-              <div className="flex items-center gap-2">
-                <BookOpen className="w-6 h-6 text-yellow-300" />
-                <h1 className="text-2xl font-black">Личный словарь</h1>
+        <div className="space-y-4 sm:space-y-6">
+          {/* Быстрый доступ к популярным тематическим колодам прямо из словаря */}
+          <div className="bg-slate-100/90 dark:bg-slate-800/80 border border-slate-200/90 dark:border-slate-700/80 rounded-2xl p-3 sm:p-3.5 shadow-sm space-y-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5">
+                <Sparkles className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                <span className="text-xs font-extrabold text-slate-900 dark:text-white uppercase tracking-wider">
+                  Готовые тематические наборы ({THEMATIC_DECKS.length})
+                </span>
               </div>
-              <p className="text-xs sm:text-sm text-blue-100 mt-1 max-w-xl">
-                Слова, добавленные вами из уроков, карточек и диалогов. Знание каждого слова оценивается от 0% до 100% по алгоритму SuperMemo-2.
-              </p>
-
-              {/* Метрики знания */}
-              {words.length > 0 && (
-                <div className="flex flex-wrap gap-2 sm:gap-3 mt-4 pt-3 border-t border-white/20">
-                  <div className="bg-white/15 backdrop-blur-sm px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5">
-                    <Award className="w-3.5 h-3.5 text-yellow-300" />
-                    <span>Среднее освоение: {dictStats.avgScore}%</span>
-                  </div>
-                  <div className="bg-white/15 backdrop-blur-sm px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-300" />
-                    <span>Выучено: {dictStats.masteredCount}</span>
-                  </div>
-                  {dictStats.dueCount > 0 && (
-                    <div className="bg-amber-400/30 backdrop-blur-sm border border-amber-300/40 px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 text-yellow-200 animate-pulse">
-                      <Clock className="w-3.5 h-3.5" />
-                      <span>{dictStats.dueCount} слов к повторению</span>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-
-            <div className="flex flex-wrap items-center gap-2 relative z-10">
               <button
                 type="button"
-                onClick={handleToggleFont}
-                className="px-3 py-2 rounded-xl bg-white/20 hover:bg-white/30 text-white text-xs font-semibold flex items-center gap-1.5 backdrop-blur transition"
-                title="Переключить шрифт: Печатный / Рукописный"
+                onClick={() => setActiveTab('thematic')}
+                className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
               >
-                {isCursive ? (
-                  <>
-                    <span className="font-cursive font-bold text-base leading-none">כתב</span>
-                    <span>Рукописный</span>
-                  </>
-                ) : (
-                  <>
-                    <span className="font-hebrew font-bold text-xs leading-none">דפוס</span>
-                    <span>Печатный</span>
-                  </>
-                )}
+                <span>Все колоды</span>
+                <span className="text-[10px]">➔</span>
               </button>
+            </div>
+
+            {/* Горизонтальный скролл популярных колод */}
+            <div className="flex items-center gap-2 overflow-x-auto pb-1 pt-0.5 no-scrollbar">
+              {THEMATIC_DECKS.slice(0, 6).map((deck) => (
+                <button
+                  key={deck.id}
+                  type="button"
+                  onClick={() => {
+                    setActiveTab('thematic');
+                  }}
+                  className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-700/80 hover:border-purple-400 dark:hover:border-purple-500 text-left shrink-0 transition-all hover:shadow-sm group active:scale-98"
+                >
+                  <span className="text-sm">
+                    {deck.id.includes('verb') ? '⚡' : deck.id.includes('food') ? '🥐' : deck.id.includes('cafe') ? '☕' : deck.id.includes('body') ? '🏥' : deck.id.includes('slang') ? '🗣️' : '🏙️'}
+                  </span>
+                  <div className="min-w-0">
+                    <div className="text-xs font-bold text-slate-800 dark:text-slate-200 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition truncate max-w-[130px]">
+                      {deck.title}
+                    </div>
+                    <div className="text-[10px] text-slate-400 font-medium">
+                      {deck.words.length} слов • {deck.level === 'alef' ? 'Алеф (א)' : 'Бет (ב)'}
+                    </div>
+                  </div>
+                </button>
+              ))}
 
               <button
-                onClick={() => setIsAddingCustom(true)}
-                className="px-3.5 py-2 rounded-xl bg-white/20 hover:bg-white/30 text-white text-xs font-semibold flex items-center gap-1.5 backdrop-blur transition"
+                type="button"
+                onClick={() => setActiveTab('thematic')}
+                className="px-3 py-2 rounded-xl bg-purple-50 dark:bg-purple-950/60 border border-purple-200 dark:border-purple-800/80 text-purple-700 dark:text-purple-300 text-xs font-bold shrink-0 hover:bg-purple-100 transition whitespace-nowrap"
               >
-                <Plus className="w-4 h-4" />
-                <span>Добавить слово</span>
+                + Ещё {THEMATIC_DECKS.length - 6} колод ➔
               </button>
+            </div>
+          </div>
 
-              {words.length > 0 && (
+          {/* Компактная, мобильная шапка Личного словаря */}
+          <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white rounded-2xl sm:rounded-3xl p-4 sm:p-5 shadow-lg relative overflow-hidden">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 relative z-10">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center text-yellow-300 font-bold shrink-0 shadow-inner">
+                  <BookOpen className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h1 className="text-lg sm:text-xl font-black">Личный словарь</h1>
+                    <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-white/20">
+                      {words.length} слов
+                    </span>
+                  </div>
+                  {/* Микро-метрики в 1 строчку */}
+                  <div className="flex items-center gap-2 text-xs text-blue-100 mt-0.5">
+                    <span>Освоение: <strong>{dictStats.avgScore}%</strong></span>
+                    <span>•</span>
+                    <span>Выучено: <strong>{dictStats.masteredCount}</strong></span>
+                    {dictStats.dueCount > 0 && (
+                      <>
+                        <span>•</span>
+                        <span className="text-yellow-300 font-bold">⚡ {dictStats.dueCount} к повторению</span>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Панель быстрых действий */}
+              <div className="flex items-center gap-2 shrink-0 self-stretch sm:self-auto pt-2 sm:pt-0 border-t sm:border-t-0 border-white/15">
                 <button
-                  onClick={() => onStartPractice(filteredWords.length > 0 ? filteredWords : words, 'Мой словарик')}
-                  className="px-4 py-2 rounded-xl bg-white text-blue-600 hover:bg-blue-50 text-xs sm:text-sm font-bold flex items-center gap-1.5 shadow-lg transition active:scale-98"
+                  type="button"
+                  onClick={handleToggleFont}
+                  className="p-2 sm:px-3 sm:py-2 rounded-xl bg-white/15 hover:bg-white/25 text-white text-xs font-semibold flex items-center justify-center gap-1 backdrop-blur transition shrink-0"
+                  title="Переключить шрифт: Печатный / Рукописный"
                 >
-                  <Layers className="w-4 h-4" />
-                  <span>Тренировать ({filteredWords.length})</span>
+                  <span className={isCursive ? 'font-cursive text-sm font-bold' : 'font-hebrew text-xs font-bold'}>
+                    {isCursive ? 'כתב' : 'דפוס'}
+                  </span>
                 </button>
-              )}
+
+                <button
+                  onClick={() => setIsAddingCustom(true)}
+                  className="p-2 sm:px-3 sm:py-2 rounded-xl bg-white/15 hover:bg-white/25 text-white text-xs font-semibold flex items-center justify-center gap-1 backdrop-blur transition shrink-0"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span className="hidden sm:inline">Добавить слово</span>
+                </button>
+
+                {words.length > 0 && (
+                  <button
+                    onClick={() => onStartPractice(filteredWords.length > 0 ? filteredWords : words, 'Мой словарик')}
+                    className="flex-1 sm:flex-initial px-4 py-2 rounded-xl bg-white text-blue-600 hover:bg-blue-50 text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 shadow-md transition active:scale-95"
+                  >
+                    <Layers className="w-4 h-4" />
+                    <span>Тренировать ({filteredWords.length})</span>
+                  </button>
+                )}
+              </div>
             </div>
           </div>
 
