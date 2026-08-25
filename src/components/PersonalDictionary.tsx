@@ -20,6 +20,7 @@ import {
   addWordToPersonalDict,
   loadUserProfile,
 } from '@/lib/storage';
+import { stripNikkud } from '@/lib/transcription';
 
 interface PersonalDictionaryProps {
   userProfile: UserProfile;
@@ -64,7 +65,7 @@ export const PersonalDictionary: React.FC<PersonalDictionaryProps> = ({
 
     addWordToPersonalDict({
       hebrew: newHebrew.trim(),
-      hebrewPlain: newHebrew.trim(),
+      hebrewPlain: stripNikkud(newHebrew.trim()),
       transcription: newTranscription.trim(),
       translation: newTranslation.trim(),
       partOfSpeech: 'other',

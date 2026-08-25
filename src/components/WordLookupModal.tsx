@@ -73,9 +73,10 @@ export const WordLookupModal: React.FC<WordLookupModalProps> = ({
 
   const handleAdd = () => {
     if (!wordData) return;
+    const cleanHebrew = wordData.hebrew || word;
     const newWord = addWordToPersonalDict({
-      hebrew: wordData.hebrew || word,
-      hebrewPlain: word,
+      hebrew: cleanHebrew,
+      hebrewPlain: stripNikkud(cleanHebrew),
       transcription: wordData.transcription || '',
       translation: wordData.translation || '',
       partOfSpeech: (wordData.partOfSpeech as any) || 'other',

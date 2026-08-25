@@ -17,6 +17,7 @@ import { LessonVocabulary } from './LessonVocabulary';
 import { LessonExercises } from './LessonExercises';
 import { LessonAiChat } from './LessonAiChat';
 import { getLessonById, LESSONS_CATALOG } from '@/data/lessonsData';
+import { loadUserProfile } from '@/lib/storage';
 
 interface LessonViewProps {
   lessonId: number;
@@ -205,7 +206,6 @@ export const LessonView: React.FC<LessonViewProps> = ({
           <LessonVocabulary
             words={lesson.vocabulary}
             userProfile={userProfile}
-            onWordToggled={() => onUpdateProfile({ ...userProfile })}
             onStartPractice={(wordsToTrain) => onStartFlashcards(wordsToTrain)}
             onUpdateProfile={onUpdateProfile}
           />
@@ -225,7 +225,7 @@ export const LessonView: React.FC<LessonViewProps> = ({
             lesson={lesson}
             userProfile={userProfile}
             onUpdateProfile={onUpdateProfile}
-            onWordAdded={() => onUpdateProfile({ ...userProfile })}
+            onWordAdded={() => onUpdateProfile(loadUserProfile())}
           />
         )}
       </div>

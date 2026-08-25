@@ -16,12 +16,11 @@ import {
 import { Word, UserProfile, PartOfSpeech } from '@/types';
 import { speakHebrew } from '@/lib/speech';
 import { stripNikkud } from '@/lib/transcription';
-import { addWordToPersonalDict, removeWordFromPersonalDict, isWordInPersonalDict, saveUserProfile } from '@/lib/storage';
+import { saveUserProfile } from '@/lib/storage';
 
 interface LessonVocabularyProps {
   words: Word[];
   userProfile: UserProfile;
-  onWordToggled?: () => void;
   onStartPractice?: (words: Word[]) => void;
   onUpdateProfile?: (profile: UserProfile) => void;
 }
@@ -29,7 +28,6 @@ interface LessonVocabularyProps {
 export const LessonVocabulary: React.FC<LessonVocabularyProps> = ({
   words,
   userProfile,
-  onWordToggled,
   onStartPractice,
   onUpdateProfile,
 }) => {
@@ -95,9 +93,6 @@ export const LessonVocabulary: React.FC<LessonVocabularyProps> = ({
     saveUserProfile(updatedProfile);
     if (onUpdateProfile) {
       onUpdateProfile(updatedProfile);
-    }
-    if (onWordToggled) {
-      onWordToggled();
     }
   };
 

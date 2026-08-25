@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { CheckCircle2, XCircle, Award, HelpCircle, ArrowRight, Volume2 } from 'lucide-react';
+import { CheckCircle2, XCircle, Award, HelpCircle, ArrowRight, Volume2, RotateCcw, Sparkles } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { Lesson, UserProfile, Exercise } from '@/types';
 import { markLessonTabCompleted } from '@/lib/storage';
@@ -58,6 +58,16 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
         confetti({ particleCount: 50, spread: 60, origin: { y: 0.7 } });
       }
     }
+  };
+
+  const handleUnselectSentenceWord = (index: number) => {
+    if (isAnswered) return;
+    setSelectedSentenceWords((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleResetSentence = () => {
+    if (isAnswered) return;
+    setSelectedSentenceWords([]);
   };
 
   const handleNext = () => {
@@ -230,25 +240,47 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
                   isCursive ? 'font-cursive text-2xl text-blue-600 dark:text-blue-400' : 'font-hebrew text-lg'
                 }`}
               >
-                {selectedSentenceWords.map((w, i) => (
-                  <span
-                    key={i}
-                    className="px-3 py-1 bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700"
-                  >
-                    {userProfile.showNikkud ? w : stripNikkud(w)}
+                {selectedSentenceWords.length > 0 ? (
+                  selectedSentenceWords.map((w, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      disabled={isAnswered}
+                      onClick={() => handleUnselectSentenceWord(i)}
+                      className="px-3 py-1 bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700 hover:border-rose-400 transition cursor-pointer active:scale-95"
+                      title="Нажмите, чтобы убрать слово"
+                    >
+                      {userProfile.showNikkud ? w : stripNikkud(w)}
+                    </button>
+                  ))
+                ) : (
+                  <span className="text-zinc-400 text-xs font-sans font-normal">
+                    Нажимайте на слова ниже для составления фразы...
                   </span>
-                ))}
+                )}
               </div>
-              {selectedSentenceWords.length > 0 && (
-                <button
-                  type="button"
-                  onClick={() => speakHebrew(selectedSentenceWords.join(' '))}
-                  className="p-3 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white shadow-sm transition active:scale-95 shrink-0"
-                  title="Прослушать собранное предложение"
-                >
-                  <Volume2 className="w-4 h-4" />
-                </button>
-              )}
+              <div className="flex items-center gap-1.5 shrink-0">
+                {selectedSentenceWords.length > 0 && !isAnswered && (
+                  <button
+                    type="button"
+                    onClick={handleResetSentence}
+                    className="p-3 rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-700 shadow-sm transition active:scale-95"
+                    title="Сбросить выбранные слова"
+                  >
+                    <RotateCcw className="w-4 h-4" />
+                  </button>
+                )}
+                {selectedSentenceWords.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => speakHebrew(selectedSentenceWords.join(' '))}
+                    className="p-3 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white shadow-sm transition active:scale-95"
+                    title="Прослушать собранное предложение"
+                  >
+                    <Volume2 className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
             </div>
 
             <div dir="rtl" className="flex flex-wrap gap-2 justify-center">
@@ -257,6 +289,7 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
                 return (
                   <button
                     key={i}
+                    type="button"
                     disabled={isUsed || isAnswered}
                     onClick={() => handleSentenceWordClick(w, i)}
                     className={`px-4 py-2 rounded-xl font-bold border transition ${
