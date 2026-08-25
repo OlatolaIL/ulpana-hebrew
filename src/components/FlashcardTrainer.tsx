@@ -25,6 +25,7 @@ import { stripNikkud } from '@/lib/transcription';
 import { findOfflineVerbConjugation } from '@/lib/verbConjugations';
 import { VerbConjugationView } from '@/components/VerbConjugationView';
 import { getHebrewPictogram } from '@/lib/pictograms';
+import { WordVisual } from '@/components/WordVisual';
 
 interface FlashcardTrainerProps {
   initialWords: Word[];
@@ -559,7 +560,7 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
                   speakHebrew(currentWord.hebrew);
                 }}
                 className="p-2 rounded-full bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 hover:bg-blue-100 transition shadow-sm"
-                title="Озвучить"
+                title={isUlpan ? 'הַשְׁמַע' : 'Озвучить'}
               >
                 <Volume2 className="w-4 h-4" />
               </button>
@@ -571,25 +572,35 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
                   {userProfile.ulpanMode ? 'עִבְרִית (לחצו להצגת מידע)' : 'Иврит (нажмите для перевода)'}
                 </span>
 
-                {/* Пиктограмма со стилями */}
-                {getHebrewPictogram(currentWord.hebrew) && (() => {
-                  const icon = getHebrewPictogram(currentWord.hebrew)!;
-                  const isMale = icon.includes('♂');
-                  const isFemale = icon.includes('♀');
-                  return (
-                    <div
-                      className={`inline-flex items-center justify-center text-2xl sm:text-3xl px-4 py-1.5 rounded-2xl border font-bold select-none my-1 shadow-xs animate-in zoom-in-75 ${
-                        isMale
-                          ? 'bg-sky-50 dark:bg-sky-950/60 text-sky-600 dark:text-sky-300 border-sky-200 dark:border-sky-800'
-                          : isFemale
-                          ? 'bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-300 border-rose-200 dark:border-rose-800'
-                          : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border-zinc-200 dark:border-zinc-700'
-                      }`}
-                    >
-                      {icon}
-                    </div>
-                  );
-                })()}
+                {/* Visual: large image in ulpan mode, small badge in normal mode */}
+                {isUlpan ? (
+                  <WordVisual
+                    hebrew={currentWord.hebrew}
+                    hebrewPlain={currentWord.hebrewPlain}
+                    size="lg"
+                    ulpanMode={true}
+                    className="my-2"
+                  />
+                ) : (
+                  getHebrewPictogram(currentWord.hebrew) && (() => {
+                    const icon = getHebrewPictogram(currentWord.hebrew)!;
+                    const isMale = icon.includes('♂');
+                    const isFemale = icon.includes('♀');
+                    return (
+                      <div
+                        className={`inline-flex items-center justify-center text-2xl sm:text-3xl px-4 py-1.5 rounded-2xl border font-bold select-none my-1 shadow-xs animate-in zoom-in-75 ${
+                          isMale
+                            ? 'bg-sky-50 dark:bg-sky-950/60 text-sky-600 dark:text-sky-300 border-sky-200 dark:border-sky-800'
+                            : isFemale
+                            ? 'bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-300 border-rose-200 dark:border-rose-800'
+                            : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border-zinc-200 dark:border-zinc-700'
+                        }`}
+                      >
+                        {icon}
+                      </div>
+                    );
+                  })()
+                )}
 
                 <div
                   dir="rtl"
@@ -613,24 +624,34 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
                   {userProfile.ulpanMode ? 'פֵּרוּשׁ וּפְרָטִים' : 'Перевод и детали'}
                 </span>
 
-                {getHebrewPictogram(currentWord.hebrew) && (() => {
-                  const icon = getHebrewPictogram(currentWord.hebrew)!;
-                  const isMale = icon.includes('♂');
-                  const isFemale = icon.includes('♀');
-                  return (
-                    <div
-                      className={`inline-flex items-center justify-center text-xl sm:text-2xl px-3 py-1 rounded-xl border font-bold select-none shadow-xs ${
-                        isMale
-                          ? 'bg-sky-50 dark:bg-sky-950/60 text-sky-600 dark:text-sky-300 border-sky-200 dark:border-sky-800'
-                          : isFemale
-                          ? 'bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-300 border-rose-200 dark:border-rose-800'
-                          : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border-zinc-200 dark:border-zinc-700'
-                      }`}
-                    >
-                      {icon}
-                    </div>
-                  );
-                })()}
+                {/* Visual on flipped side */}
+                {isUlpan ? (
+                  <WordVisual
+                    hebrew={currentWord.hebrew}
+                    hebrewPlain={currentWord.hebrewPlain}
+                    size="sm"
+                    ulpanMode={true}
+                  />
+                ) : (
+                  getHebrewPictogram(currentWord.hebrew) && (() => {
+                    const icon = getHebrewPictogram(currentWord.hebrew)!;
+                    const isMale = icon.includes('♂');
+                    const isFemale = icon.includes('♀');
+                    return (
+                      <div
+                        className={`inline-flex items-center justify-center text-xl sm:text-2xl px-3 py-1 rounded-xl border font-bold select-none shadow-xs ${
+                          isMale
+                            ? 'bg-sky-50 dark:bg-sky-950/60 text-sky-600 dark:text-sky-300 border-sky-200 dark:border-sky-800'
+                            : isFemale
+                            ? 'bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-300 border-rose-200 dark:border-rose-800'
+                            : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border-zinc-200 dark:border-zinc-700'
+                        }`}
+                      >
+                        {icon}
+                      </div>
+                    );
+                  })()
+                )}
 
                 <div className="text-xl sm:text-3xl font-bold text-zinc-900 dark:text-zinc-100">
                   {currentWord.translation}
@@ -899,7 +920,7 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
               <div className="bg-emerald-50 dark:bg-emerald-950/50 border-2 border-emerald-500 rounded-2xl p-5 text-center space-y-3 animate-in zoom-in-95">
                 <div className="flex items-center justify-center gap-2 text-emerald-600 dark:text-emerald-400 font-bold text-lg font-hebrew">
                   <CheckCircle2 className="w-6 h-6 shrink-0" />
-                  <span>{isUlpan ? '!מְצוּיָן! נָכוֹן 🎉' : '!מְצוּיָן! נָכוֹן (Верно!)'}</span>
+                  <span>{isUlpan ? '!מְצוּיָן! ✓' : '!מְצוּיָן! נָכוֹן (Верно!)'}</span>
                 </div>
 
                 <div
@@ -1032,7 +1053,9 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
             {pealimModalVerb.loading ? (
               <div className="py-16 text-center text-slate-500 flex flex-col items-center justify-center space-y-3">
                 <div className="w-8 h-8 border-3 border-blue-600 border-t-transparent rounded-full animate-spin" />
-                <p className="text-sm font-semibold">Загружаем спряжения и семью корня Pealim...</p>
+                <p className="text-sm font-semibold">
+                  {isUlpan ? '⏳ טוֹעֵן פְּעָלִים...' : 'Загружаем спряжения и семью корня Pealim...'}
+                </p>
               </div>
             ) : pealimModalVerb.conjugation ? (
               <VerbConjugationView
@@ -1048,13 +1071,24 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
             ) : (
               <div className="text-center py-8 space-y-3">
                 <p className="text-sm text-slate-600 dark:text-slate-300">
-                  Спряжения для глагола <strong className="font-hebrew text-base">{pealimModalVerb.word.hebrew}</strong> пока недоступны.
+                  {isUlpan ? (
+                    <>
+                      <span className="font-hebrew text-base">{pealimModalVerb.word.hebrew}</span>
+                      {' — הַנְטָיָה אֵינָהּ זְמִינָה.'}
+                    </>
+                  ) : (
+                    <>
+                      {'Спряжения для глагола '}
+                      <strong className="font-hebrew text-base">{pealimModalVerb.word.hebrew}</strong>
+                      {' пока недоступны.'}
+                    </>
+                  )}
                 </p>
                 <button
                   onClick={() => setPealimModalVerb(null)}
                   className="px-4 py-2 bg-slate-100 dark:bg-slate-800 rounded-xl text-xs font-bold"
                 >
-                  Закрыть
+                  {isUlpan ? 'סְגוֹר' : 'Закрыть'}
                 </button>
               </div>
             )}

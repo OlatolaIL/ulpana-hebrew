@@ -19,6 +19,7 @@ import { speakHebrew } from '@/lib/speech';
 import { stripNikkud } from '@/lib/transcription';
 import { saveUserProfile, markLessonTabCompleted } from '@/lib/storage';
 import { getHebrewPictogram } from '@/lib/pictograms';
+import { WordVisual } from '@/components/WordVisual';
 
 interface LessonVocabularyProps {
   lessonId?: number;
@@ -163,11 +164,11 @@ export const LessonVocabulary: React.FC<LessonVocabularyProps> = ({
               <GraduationCap className="w-5 h-5" />
             </div>
             <div>
-              <p className="font-bold text-xs sm:text-sm text-emerald-900 dark:text-emerald-100">
-                Режим «Ульпан» активен (עִבְרִית בְּעִבְרִית)
+              <p className="font-bold text-xs sm:text-sm text-emerald-900 dark:text-emerald-100" dir="rtl">
+                עִבְרִית בְּעִבְרִית — אוּלְפָּן
               </p>
-              <p className="text-[11px] sm:text-xs text-emerald-700 dark:text-emerald-300 mt-0.5">
-                Переводы скрыты для тренировки интуиции и прямого восприятия речи. Нажмите «תרגום», если потребуется проверить себя.
+              <p className="text-[11px] sm:text-xs text-emerald-700 dark:text-emerald-300 mt-0.5" dir="rtl">
+                הַתַּרְגּוּמִים מֻסְתָּרִים. לַחֲצוּ עַל &quot;תַּרְגּוּם&quot; לְבִדּוּק.
               </p>
             </div>
           </div>
@@ -183,7 +184,7 @@ export const LessonVocabulary: React.FC<LessonVocabularyProps> = ({
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Поиск по ивриту, транскрипции или переводу..."
+              placeholder={isUlpan ? 'חיפוש...' : 'Поиск по ивриту, транскрипции или переводу...'}
               className="w-full pl-9 pr-4 py-2 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600"
             />
           </div>
@@ -193,11 +194,11 @@ export const LessonVocabulary: React.FC<LessonVocabularyProps> = ({
             onChange={(e) => setSelectedPos(e.target.value)}
             className="px-3 py-2 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600"
           >
-            <option value="all">Все части речи</option>
-            <option value="noun">Существительные</option>
-            <option value="verb">Глаголы</option>
-            <option value="adjective">Прилагательные</option>
-            <option value="expression">Фразы и выражения</option>
+            <option value="all">{isUlpan ? 'כָּל חֶלְקֵי הַדִּיבּוּר' : 'Все части речи'}</option>
+            <option value="noun">{isUlpan ? 'שֵׁם עֶצֶם' : 'Существительные'}</option>
+            <option value="verb">{isUlpan ? 'פֹּעַל' : 'Глаголы'}</option>
+            <option value="adjective">{isUlpan ? 'שֵׁם תֹּאַר' : 'Прилагательные'}</option>
+            <option value="expression">{isUlpan ? 'בִּטּוּי' : 'Фразы и выражения'}</option>
           </select>
         </div>
 
@@ -256,7 +257,7 @@ export const LessonVocabulary: React.FC<LessonVocabularyProps> = ({
                     <button
                       onClick={() => speakHebrew(word.hebrew)}
                       className="p-1.5 rounded-lg text-zinc-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-zinc-800 transition"
-                      title="Прослушать произношение"
+                      title={isUlpan ? 'הַשְׁמַע' : 'Прослушать произношение'}
                     >
                       <Volume2 className="w-4 h-4" />
                     </button>
@@ -267,14 +268,16 @@ export const LessonVocabulary: React.FC<LessonVocabularyProps> = ({
                           ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400'
                           : 'text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800'
                       }`}
-                      title={inDict ? 'Удалить из словарика' : 'Добавить в мой словарик'}
+                      title={inDict
+                        ? (isUlpan ? 'הָסֵר מֵהַמִּלּוֹן' : 'Удалить из словарика')
+                        : (isUlpan ? 'הוֹסֵף לַמִּלּוֹן' : 'Добавить в мой словарик')}
                     >
                       {inDict ? <Check className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
                     </button>
                   </div>
                 </div>
 
-                {/* Слово на иврите и пиктограмма */}
+                {/* Visual: medium image in ulpan mode, small emoji badge otherwise */}
                 <div className="flex items-center justify-between gap-2 mt-1">
                   <div
                     dir="rtl"
@@ -286,18 +289,28 @@ export const LessonVocabulary: React.FC<LessonVocabularyProps> = ({
                   >
                     {userProfile.showNikkud ? word.hebrew : word.hebrewPlain}
                   </div>
-                  {pictogram && (
-                    <div
-                      className={`text-base sm:text-lg select-none px-2.5 py-1 rounded-xl border font-bold shrink-0 ${
-                        pictogram.includes('♂')
-                          ? 'bg-sky-50 dark:bg-sky-950/50 text-sky-700 dark:text-sky-300 border-sky-200 dark:border-sky-800/60'
-                          : pictogram.includes('♀')
-                          ? 'bg-rose-50 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800/60'
-                          : 'bg-zinc-100 dark:bg-zinc-800/80 text-zinc-700 dark:text-zinc-200 border-zinc-200 dark:border-zinc-700'
-                      }`}
-                    >
-                      {pictogram}
-                    </div>
+
+                  {isUlpan ? (
+                    <WordVisual
+                      hebrew={word.hebrew}
+                      hebrewPlain={word.hebrewPlain}
+                      size="md"
+                      ulpanMode={true}
+                    />
+                  ) : (
+                    pictogram && (
+                      <div
+                        className={`text-base sm:text-lg select-none px-2.5 py-1 rounded-xl border font-bold shrink-0 ${
+                          pictogram.includes('♂')
+                            ? 'bg-sky-50 dark:bg-sky-950/50 text-sky-700 dark:text-sky-300 border-sky-200 dark:border-sky-800/60'
+                            : pictogram.includes('♀')
+                            ? 'bg-rose-50 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800/60'
+                            : 'bg-zinc-100 dark:bg-zinc-800/80 text-zinc-700 dark:text-zinc-200 border-zinc-200 dark:border-zinc-700'
+                        }`}
+                      >
+                        {pictogram}
+                      </div>
+                    )
                   )}
                 </div>
 
