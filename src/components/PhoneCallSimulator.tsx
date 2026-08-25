@@ -241,8 +241,8 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
   };
 
   // Запуск микрофона
-  const startListening = () => {
-    if (isRecordingRef.current || isAiSpeakingRef.current || loadingAiRef.current || isSendingRef.current || !callActiveRef.current) {
+  const startListening = (force = false) => {
+    if ((isRecordingRef.current && !force) || isAiSpeakingRef.current || loadingAiRef.current || isSendingRef.current || !callActiveRef.current) {
       return;
     }
 
@@ -263,34 +263,34 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
 
         setLiveTranscript(transcript);
 
-        // Таймер авто-отправки при паузе в речи (1.6 секунды тишины)
+        // Таймер авто-отправки при паузе в речи (1.5 секунды тишины)
         if (silenceTimeoutRef.current) clearTimeout(silenceTimeoutRef.current);
         if (transcript.trim() && handsFreeRef.current) {
           silenceTimeoutRef.current = setTimeout(() => {
             if (!isEchoFromAi(transcript) && callActiveRef.current && shouldListenRef.current && !isSendingRef.current && !isAiSpeakingRef.current) {
               handleSendMessage(transcript.trim());
             }
-          }, 1600);
+          }, 1500);
         }
       },
       (error) => {
         console.warn('Speech recognition warning:', error);
+        setRecording(false);
       },
       (lastTranscript) => {
+        setRecording(false);
         // Если браузер завершил сессию распознавания, но мы все еще в режиме ожидания ответа:
         if (callActiveRef.current && shouldListenRef.current && !isAiSpeakingRef.current && !loadingAiRef.current && !isSendingRef.current) {
           if (lastTranscript && lastTranscript.trim() && !isEchoFromAi(lastTranscript)) {
             handleSendMessage(lastTranscript.trim());
           } else {
-            // Перезапускаем распознавание без необходимости нажимать кнопку
+            // Мгновенный и надежный перезапуск без зависаний
             setTimeout(() => {
               if (callActiveRef.current && shouldListenRef.current && !isAiSpeakingRef.current && !loadingAiRef.current && !isSendingRef.current) {
-                startListening();
+                startListening(true);
               }
-            }, 120);
+            }, 80);
           }
-        } else {
-          setRecording(false);
         }
       }
     );
@@ -483,6 +483,53 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
   };
 
   const latestAiMessage = [...messages].reverse().find((m) => m.role === 'assistant');
+
+  const getRelevantWordsForCall = (): Word[] => {
+    const allTranscriptText = messages
+      .map((m) => `${m.hebrew} ${m.translation || ''}`)
+      .join(' ')
+      .toLowerCase();
+
+    const candidates: Word[] = [
+      ...(scenario.usefulWords || []).map((w, idx) => ({
+        id: `phone-sc-w-${idx}`,
+        hebrew: w.hebrew,
+        hebrewPlain: stripNikkud(w.hebrew),
+        transcription: w.transcription,
+        translation: w.translation,
+        partOfSpeech: 'expression',
+        lessonId: lesson.id,
+      })),
+      ...(lesson.vocabulary || []),
+    ];
+
+    const uniqueMap = new Map<string, Word>();
+    candidates.forEach((w) => {
+      const plain = stripNikkud(w.hebrew).trim();
+      if (plain && !uniqueMap.has(plain)) {
+        uniqueMap.set(plain, w);
+      }
+    });
+
+    const uniqueCandidates = Array.from(uniqueMap.values());
+
+    const used = uniqueCandidates.filter((w) => {
+      const plain = stripNikkud(w.hebrew).trim().toLowerCase();
+      if (plain.length < 2) return false;
+      return allTranscriptText.includes(plain);
+    });
+
+    if (used.length < 4) {
+      for (const cand of uniqueCandidates) {
+        if (!used.some((u) => stripNikkud(u.hebrew) === stripNikkud(cand.hebrew))) {
+          used.push(cand);
+          if (used.length >= 6) break;
+        }
+      }
+    }
+
+    return used.slice(0, 6);
+  };
 
   return (
     <div className="space-y-4">
@@ -1003,17 +1050,17 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
           </div>
 
           {/* Слова из урока для сохранения в личный словарик */}
-          {lesson.vocabulary && lesson.vocabulary.length > 0 && (
+          {getRelevantWordsForCall().length > 0 && (
             <div className="space-y-2">
               <h4 className="text-xs font-bold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider">
                 Полезные слова из этого звонка:
               </h4>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {lesson.vocabulary.slice(0, 6).map((word) => {
+                {getRelevantWordsForCall().map((word) => {
                   const isAdded = addedWords[word.hebrew] || isWordInPersonalDict(word.hebrew, userProfile.personalVocabulary);
                   return (
                     <div
-                      key={word.id}
+                      key={word.id || word.hebrew}
                       className="p-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700/60 flex items-center justify-between gap-2"
                     >
                       <div className="min-w-0">
