@@ -24,63 +24,22 @@ export const LessonTheory: React.FC<LessonTheoryProps> = ({
     if (onCompleted) onCompleted();
   };
 
-  const handleToggleFont = () => {
-    const nextStyle: 'print' | 'cursive' = userProfile.fontStyle === 'cursive' ? 'print' : 'cursive';
-    const updated: UserProfile = { ...userProfile, fontStyle: nextStyle };
-    markLessonTabCompleted(lesson.id, 'theory');
-    // Save to LocalStorage immediately
-    try {
-      localStorage.setItem('ulpana_user_profile', JSON.stringify(updated));
-    } catch {}
-    if (onUpdateProfile) onUpdateProfile(updated);
-  };
-
   const isCursive = userProfile.fontStyle === 'cursive';
 
   return (
-    <div data-font-style={userProfile.fontStyle || 'print'} className="space-y-8 max-w-3xl mx-auto">
-      {/* Описание темы урока */}
-      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-zinc-800 dark:to-zinc-800/60 p-6 rounded-3xl border border-blue-100 dark:border-zinc-700/80 shadow-sm space-y-3">
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400">
-            <BookOpen className="w-5 h-5" />
-            <span className="text-xs font-bold uppercase tracking-wider">
-              Теория урока {lesson.number} ({lesson.level === 'alef' ? 'Алеф' : 'Бет'})
-            </span>
-          </div>
-
-          <button
-            type="button"
-            onClick={handleToggleFont}
-            className="px-2.5 py-1.5 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-sm text-xs font-semibold flex items-center gap-1.5 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition"
-            title="Переключить шрифт теории: Печатный / Рукописный"
-          >
-            {isCursive ? (
-              <>
-                <span className="font-cursive font-bold text-base text-blue-600 dark:text-blue-400 leading-none">כתב</span>
-                <span className="text-zinc-700 dark:text-zinc-300">Рукописный</span>
-              </>
-            ) : (
-              <>
-                <span className="font-hebrew font-bold text-xs text-zinc-700 dark:text-zinc-300 leading-none">דפוס</span>
-                <span className="text-zinc-700 dark:text-zinc-300">Печатный</span>
-              </>
-            )}
-          </button>
-        </div>
-        <h2 className="text-xl font-bold text-zinc-900 dark:text-zinc-50">
-          {lesson.titleRussian}
-        </h2>
-        <p className="text-sm text-zinc-600 dark:text-zinc-300 leading-relaxed">
+    <div data-font-style={userProfile.fontStyle || 'print'} className="space-y-4 sm:space-y-6 max-w-3xl mx-auto">
+      {/* Краткое описание темы урока */}
+      {lesson.description && (
+        <div className="px-1 text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 font-medium leading-relaxed">
           {lesson.description}
-        </p>
-      </div>
+        </div>
+      )}
 
       {/* Грамматические темы */}
       {lesson.grammar.map((topic, i) => (
         <div
           key={i}
-          className="bg-white dark:bg-zinc-900 rounded-3xl p-6 border border-zinc-200 dark:border-zinc-800 shadow-sm space-y-6"
+          className="bg-white dark:bg-zinc-900 rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-zinc-200 dark:border-zinc-800 shadow-sm space-y-4 sm:space-y-6"
         >
           <div className="space-y-1">
             <h3 className="text-lg font-bold text-zinc-900 dark:text-zinc-100">

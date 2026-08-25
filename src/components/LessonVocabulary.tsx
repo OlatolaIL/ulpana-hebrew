@@ -101,15 +101,6 @@ export const LessonVocabulary: React.FC<LessonVocabularyProps> = ({
 
   const isCursive = userProfile.fontStyle === 'cursive';
 
-  const handleToggleFont = () => {
-    const nextStyle: 'print' | 'cursive' = userProfile.fontStyle === 'cursive' ? 'print' : 'cursive';
-    const updated: UserProfile = { ...userProfile, fontStyle: nextStyle };
-    try {
-      localStorage.setItem('ulpana_user_profile', JSON.stringify(updated));
-    } catch {}
-    if (onUpdateProfile) onUpdateProfile(updated);
-  };
-
   return (
     <div data-font-style={userProfile.fontStyle || 'print'} className="space-y-6">
       {/* Верхняя панель управления */}
@@ -140,29 +131,10 @@ export const LessonVocabulary: React.FC<LessonVocabularyProps> = ({
         </div>
 
         <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={handleToggleFont}
-            className="px-3 py-2.5 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-xs font-semibold flex items-center gap-1.5 hover:bg-zinc-50 dark:hover:bg-zinc-700 transition"
-            title="Переключить шрифт словаря: Печатный / Рукописный"
-          >
-            {isCursive ? (
-              <>
-                <span className="font-cursive font-bold text-base text-blue-600 dark:text-blue-400 leading-none">כתב</span>
-                <span className="text-zinc-700 dark:text-zinc-300">Рукописный</span>
-              </>
-            ) : (
-              <>
-                <span className="font-hebrew font-bold text-xs text-zinc-700 dark:text-zinc-300 leading-none">דפוס</span>
-                <span className="text-zinc-700 dark:text-zinc-300">Печатный</span>
-              </>
-            )}
-          </button>
-
           {onStartPractice && (
             <button
               onClick={() => onStartPractice(filteredWords)}
-              className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold flex items-center justify-center gap-2 shadow-sm transition active:scale-95"
+              className="w-full sm:w-auto px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm font-semibold flex items-center justify-center gap-2 shadow-sm transition active:scale-95 shrink-0"
             >
               <Layers className="w-4 h-4" />
               <span>Тренировать карточками ({filteredWords.length})</span>
