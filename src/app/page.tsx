@@ -360,6 +360,16 @@ export default function Home() {
     handleUpdateProfile(updated);
   };
 
+  const handleToggleUlpanMode = () => {
+    const nextUlpan = !profile.ulpanMode;
+    const updated: UserProfile = {
+      ...profile,
+      ulpanMode: nextUlpan,
+      ...(nextUlpan ? { showTranscription: false } : {}),
+    };
+    handleUpdateProfile(updated);
+  };
+
   const handleLoginSuccess = async (
     session: UserSession,
     gender?: 'male' | 'female',
@@ -443,6 +453,7 @@ export default function Home() {
         userProfile={profile}
         onOpenSettings={() => setIsSettingsOpen(true)}
         onToggleFontStyle={handleToggleFontStyle}
+        onToggleUlpanMode={handleToggleUlpanMode}
         onOpenAuth={() => setIsAuthModalOpen(true)}
         onOpenSubscription={() => setIsSubscriptionModalOpen(true)}
         onLogout={handleLogout}

@@ -17,6 +17,7 @@ const DEFAULT_PROFILE: UserProfile = {
   showTranscription: true,
   fontStyle: 'print',
   speechRate: 0.7,
+  ulpanMode: false,
   completedLessons: [],
   lessonProgress: {},
   personalVocabulary: [],

@@ -11,6 +11,7 @@ import {
   Heart,
   Zap,
   ShieldCheck,
+  GraduationCap,
 } from 'lucide-react';
 import { UserProfile } from '@/types';
 import { isVipUser } from '@/lib/vipUsers';
@@ -21,6 +22,7 @@ interface NavbarProps {
   userProfile: UserProfile;
   onOpenSettings: () => void;
   onToggleFontStyle?: () => void;
+  onToggleUlpanMode?: () => void;
   onOpenAuth?: () => void;
   onOpenSubscription?: () => void;
   onLogout?: () => void;
@@ -32,6 +34,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   userProfile,
   onOpenSettings,
   onToggleFontStyle,
+  onToggleUlpanMode,
   onOpenAuth,
   onOpenSubscription,
   onLogout,
@@ -147,6 +150,29 @@ export const Navbar: React.FC<NavbarProps> = ({
             >
               <span>👑</span>
               <span>PRO</span>
+            </button>
+
+            {/* Быстрый переключатель Режима Ульпан (Погружение עברית בעברית) */}
+            <button
+              onClick={onToggleUlpanMode}
+              className={`px-2.5 py-1.5 rounded-xl border text-xs font-semibold flex items-center gap-1.5 transition shrink-0 cursor-pointer ${
+                userProfile.ulpanMode
+                  ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 font-bold ring-2 ring-emerald-500/20 shadow-xs'
+                  : 'border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400'
+              }`}
+              title={
+                userProfile.ulpanMode
+                  ? 'Режим «Ульпан» (עברית בעברית) активен. Нажмите, чтобы вернуться в стандартный режим.'
+                  : 'Включить Режим «Ульпан» (погружение עברית בעברית без перевода)'
+              }
+            >
+              <GraduationCap className={`w-3.5 h-3.5 ${userProfile.ulpanMode ? 'text-emerald-600 dark:text-emerald-400' : 'text-zinc-400'}`} />
+              <span className="hidden sm:inline">
+                {userProfile.ulpanMode ? 'Ульпан' : 'Ульпан'}
+              </span>
+              {userProfile.ulpanMode && (
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+              )}
             </button>
 
             {/* Быстрый переключатель шрифта (десктоп) */}

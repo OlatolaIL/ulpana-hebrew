@@ -368,6 +368,7 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
               ? userProfile.groqApiKey
               : userProfile.geminiApiKey,
           isPhoneCall: true,
+          ulpanMode: Boolean(userProfile.ulpanMode),
           systemPromptAddition: scenario.systemPromptAddition,
         }),
       });
@@ -497,7 +498,7 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
         hebrewPlain: stripNikkud(w.hebrew),
         transcription: w.transcription,
         translation: w.translation,
-        partOfSpeech: 'expression',
+        partOfSpeech: 'expression' as const,
         lessonId: lesson.id,
       })),
       ...(lesson.vocabulary || []),
@@ -634,7 +635,7 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
                             </div>
                           </div>
 
-                          {userProfile.showTranscription && word.transcription && (
+                          {!userProfile.ulpanMode && userProfile.showTranscription && word.transcription && (
                             <div className="text-[11px] text-blue-400/90 font-mono mt-0.5">
                               [{word.transcription}]
                             </div>
@@ -864,14 +865,16 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
                     <Volume2 className="w-4 h-4" />
                   </button>
                 </div>
-                {userProfile.showTranscription && latestAiMessage.transcription && (
+                {!userProfile.ulpanMode && userProfile.showTranscription && latestAiMessage.transcription && (
                   <p className="text-xs sm:text-sm text-yellow-400/90 font-mono">
                     {latestAiMessage.transcription}
                   </p>
                 )}
-                <p className="text-xs text-zinc-300 mt-1">
-                  {latestAiMessage.translation}
-                </p>
+                {!userProfile.ulpanMode && latestAiMessage.translation && (
+                  <p className="text-xs text-zinc-300 mt-1">
+                    {latestAiMessage.translation}
+                  </p>
+                )}
               </div>
             )}
 
@@ -879,14 +882,14 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
             {liveTranscript && (
               <div className="w-full max-w-lg mt-2 bg-emerald-950/60 border border-emerald-800/60 rounded-xl p-2.5 text-xs text-emerald-300 font-hebrew flex items-center justify-between">
                 <div className="truncate mr-2">
-                  <span className="opacity-70">Вы говорите: </span>
+                  <span className="opacity-70">{userProfile.ulpanMode ? 'אַתֶּם אוֹמְרִים: ' : 'Вы говорите: '}</span>
                   <span className="font-bold">{liveTranscript}</span>
                 </div>
                 <button
                   onClick={() => handleSendMessage(liveTranscript)}
                   className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shrink-0 transition"
                 >
-                  Отправить
+                  {userProfile.ulpanMode ? 'שְׁלַח' : 'Отправить'}
                 </button>
               </div>
             )}
@@ -906,7 +909,7 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
               <div className="flex items-center justify-between mb-1.5">
                 <span className="text-[11px] font-bold text-zinc-400 flex items-center gap-1">
                   <Sparkles className="w-3 h-3 text-purple-400" />
-                  Быстрый ответ (нажмите, чтобы сказать):
+                  <span>{userProfile.ulpanMode ? 'תְּשׁוּבָה מְהִירָה:' : 'Быстрый ответ (нажмите, чтобы сказать):'}</span>
                 </span>
               </div>
               <div className="flex flex-wrap gap-1.5">
@@ -918,7 +921,9 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
                     className="text-left px-3 py-1.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-xs text-zinc-200 hover:text-white transition flex flex-col cursor-pointer disabled:opacity-50"
                   >
                     <span className="font-bold font-hebrew text-white">{reply.hebrew}</span>
-                    <span className="text-[10px] text-zinc-400">{reply.translation}</span>
+                    {!userProfile.ulpanMode && reply.translation && (
+                      <span className="text-[10px] text-zinc-400">{reply.translation}</span>
+                    )}
                   </button>
                 ))}
               </div>
@@ -962,7 +967,7 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
 
             {/* Главная кнопка: МИКРОФОН (Tap-to-Talk / Индикатор) */}
             <button
-              onClick={isRecording ? stopListening : startListening}
+              onClick={() => (isRecording ? stopListening() : startListening())}
               disabled={isAiSpeaking || loadingAi}
               className={`px-6 py-4 rounded-full font-bold transition-all shadow-xl active:scale-95 flex items-center gap-2 cursor-pointer ${
                 isRecording
@@ -981,7 +986,7 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
 
             {/* Кнопка: ЗАВЕРШИТЬ ЗВОНОК (Красная трубка) */}
             <button
-              onClick={handleEndCall}
+              onClick={() => handleEndCall()}
               className="p-4 rounded-full bg-rose-600 hover:bg-rose-700 active:scale-95 text-white shadow-lg shadow-rose-600/30 transition cursor-pointer"
               title="Завершить разговор"
             >

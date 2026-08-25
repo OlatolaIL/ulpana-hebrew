@@ -250,6 +250,7 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
           topic: lesson.titleRussian,
           vocabulary: (lesson.vocabulary || []).map((w) => `${w.hebrew} (${w.translation})`),
           grammarTopic: lesson.grammar?.[0]?.title || lesson.titleRussian,
+          ulpanMode: Boolean(userProfile.ulpanMode),
           provider: userProfile.aiProvider,
           apiKey:
             userProfile.aiProvider === 'groq'
@@ -563,15 +564,15 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
                     })}
                   </div>
 
-                  {/* Транскрипция с 'h' для ה */}
-                  {userProfile.showTranscription && msg.transcription && (
+                  {/* Транскрипция с 'h' для ה (скрыта в режиме Ульпан) */}
+                  {!userProfile.ulpanMode && userProfile.showTranscription && msg.transcription && (
                     <p className="text-xs text-blue-600 dark:text-blue-400 font-medium mt-1">
                       [{msg.transcription}]
                     </p>
                   )}
 
-                  {/* Перевод на русский */}
-                  {msg.translation && (
+                  {/* Перевод на русский (скрыт в режиме Ульпан) */}
+                  {!userProfile.ulpanMode && msg.translation && (
                     <p className="text-xs text-zinc-600 dark:text-zinc-300 mt-1">
                       {msg.translation}
                     </p>
@@ -593,7 +594,7 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
                         title="Прослушать фразу собеседника"
                       >
                         <Volume2 className="w-3.5 h-3.5" />
-                        <span>Прослушать</span>
+                        <span>{userProfile.ulpanMode ? 'שמע' : 'Прослушать'}</span>
                       </button>
                     </div>
                   ) : (
@@ -605,7 +606,7 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
                         title="Прослушать вашу фразу"
                       >
                         <Volume2 className="w-3.5 h-3.5" />
-                        <span>Прослушать</span>
+                        <span>{userProfile.ulpanMode ? 'שמע' : 'Прослушать'}</span>
                       </button>
                     </div>
                   )}
@@ -623,7 +624,7 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
                 <div className="ml-8 sm:ml-10 max-w-[85%] bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/60 p-2 sm:p-2.5 rounded-xl text-xs text-amber-800 dark:text-amber-200 flex items-start gap-1.5">
                   <AlertCircle className="w-3.5 h-3.5 shrink-0 text-amber-600 mt-0.5" />
                   <div>
-                    <span className="font-bold">Пояснение: </span>
+                    <span className="font-bold">{userProfile.ulpanMode ? 'מִשׁוּב / תִּיקּוּן: ' : 'Пояснение: '}</span>
                     <span>{msg.feedback}</span>
                   </div>
                 </div>
@@ -690,14 +691,16 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
                     <Volume2 className="w-3.5 h-3.5" />
                   </button>
                 </div>
-                {userProfile.showTranscription && reply.transcription && (
+                {!userProfile.ulpanMode && userProfile.showTranscription && reply.transcription && (
                   <div className="text-[10px] text-blue-600 dark:text-blue-400 font-medium mt-0.5 truncate">
                     [{reply.transcription}]
                   </div>
                 )}
-                <div className="text-[11px] text-zinc-600 dark:text-zinc-300 mt-0.5 line-clamp-2">
-                  {reply.translation}
-                </div>
+                {!userProfile.ulpanMode && reply.translation && (
+                  <div className="text-[11px] text-zinc-600 dark:text-zinc-300 mt-0.5 line-clamp-2">
+                    {reply.translation}
+                  </div>
+                )}
               </div>
             ))}
           </div>

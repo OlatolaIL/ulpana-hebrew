@@ -1,4 +1,4 @@
-import { Lesson, PhoneScenario, UserGender } from '@/types';
+import { Lesson, PhoneScenario, PhoneScenarioWord, UserGender } from '@/types';
 
 /**
  * Кастомные сценарии телефонных звонков для ключевых жизненных ситуаций в Израиле.

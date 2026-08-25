@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { X, Key, User, Volume2, Eye, HelpCircle, CheckCircle2, ShieldCheck } from 'lucide-react';
+import { X, Key, User, Volume2, Eye, HelpCircle, CheckCircle2, ShieldCheck, GraduationCap, Sparkles } from 'lucide-react';
 import { UserProfile, UserGender, AiProvider } from '@/types';
 import { isVipUser } from '@/lib/vipUsers';
 import { saveUserProfile } from '@/lib/storage';
@@ -193,7 +193,57 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
           <hr className="border-zinc-200 dark:border-zinc-800" />
 
-          {/* 2. Настройки отображения иврита */}
+          {/* 2. Режим Ульпан (עברית בעברית / Погружение) */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+                <GraduationCap className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                <span>Режим «Ульпан» (עברית בעברית)</span>
+              </h3>
+              <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${
+                profile.ulpanMode
+                  ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300'
+                  : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500'
+              }`}>
+                {profile.ulpanMode ? 'ВКЛЮЧЁН' : 'ВЫКЛ'}
+              </span>
+            </div>
+
+            <label className={`flex items-start justify-between p-3.5 rounded-2xl border transition cursor-pointer ${
+              profile.ulpanMode
+                ? 'border-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/30 ring-2 ring-emerald-500/20'
+                : 'border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800/50'
+            }`}>
+              <div className="space-y-1 pr-3">
+                <span className="text-sm font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-1.5">
+                  <span>Прямой метод погружения</span>
+                  <span dir="rtl" className="font-hebrew text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                    (עִבְרִית בְּעִבְרִית)
+                  </span>
+                </span>
+                <p className="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed">
+                  Как в настоящем израильском ульпане: русские переводы и транскрипция скрываются (доступны как подсказка по клику), а ИИ-преподаватель ведет диалог и объясняет правила исключительно на простом иврите.
+                </p>
+              </div>
+              <input
+                type="checkbox"
+                checked={Boolean(profile.ulpanMode)}
+                onChange={(e) => {
+                  const isUlpan = e.target.checked;
+                  handleChange({
+                    ulpanMode: isUlpan,
+                    // При включении режима ульпан выключаем русскую транскрипцию
+                    ...(isUlpan ? { showTranscription: false } : {}),
+                  });
+                }}
+                className="w-5 h-5 mt-0.5 accent-emerald-600 rounded cursor-pointer shrink-0"
+              />
+            </label>
+          </div>
+
+          <hr className="border-zinc-200 dark:border-zinc-800" />
+
+          {/* 3. Настройки отображения иврита */}
           <div className="space-y-3">
             <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
               <Eye className="w-4 h-4 text-blue-600" />

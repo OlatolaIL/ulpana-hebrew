@@ -256,6 +256,7 @@ export interface UserProfile {
   showTranscription: boolean;
   fontStyle: 'print' | 'cursive';
   speechRate?: number; // 0.5 - 1.0 (по умолчанию 0.7 для начинающих)
+  ulpanMode?: boolean; // Режим полного погружения «Иврит на иврите» (עברית בעברית)
   completedLessons: number[];
   currentLesson?: number;
   lessonProgress: Record<number, LessonProgress>;

@@ -82,15 +82,19 @@ export const LessonView: React.FC<LessonViewProps> = ({
 
           <div className="min-w-0">
             <div className="flex items-center gap-1.5">
-              <span className="px-2 py-0.5 rounded-md text-[11px] font-bold bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 shrink-0">
-                Урок {lesson.number}
+              <span className={`px-2 py-0.5 rounded-md text-[11px] font-bold shrink-0 ${
+                userProfile.ulpanMode
+                  ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300'
+                  : 'bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400'
+              }`}>
+                {userProfile.ulpanMode ? `שִׁיעוּר ${lesson.number}` : `Урок ${lesson.number}`}
               </span>
               <span className="text-[11px] text-zinc-400 font-medium truncate hidden xs:inline">
-                {lesson.category}
+                {userProfile.ulpanMode ? 'עִבְרִית בְּעִבְרִית' : lesson.category}
               </span>
             </div>
-            <h1 className="text-sm sm:text-base font-bold text-zinc-900 dark:text-zinc-50 truncate mt-0.5">
-              {lesson.titleRussian}
+            <h1 className="text-sm sm:text-base font-bold text-zinc-900 dark:text-zinc-50 truncate mt-0.5" dir={userProfile.ulpanMode ? 'rtl' : 'ltr'}>
+              {userProfile.ulpanMode ? (lesson.titleHebrew || lesson.titleRussian) : lesson.titleRussian}
             </h1>
           </div>
         </div>
@@ -177,7 +181,7 @@ export const LessonView: React.FC<LessonViewProps> = ({
           }`}
         >
           <BookOpen className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
-          <span className="truncate">Теория</span>
+          <span className="truncate">{userProfile.ulpanMode ? 'תֵּאוֹרְיָה' : 'Теория'}</span>
           {completedTabs.includes('theory') && (
             <CheckCircle2 className="w-3 h-3 text-emerald-500 shrink-0" />
           )}
@@ -192,7 +196,10 @@ export const LessonView: React.FC<LessonViewProps> = ({
           }`}
         >
           <Layers className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
-          <span className="truncate">Словарь <span className="text-[10px] opacity-75 hidden md:inline">({lesson.vocabulary.length})</span></span>
+          <span className="truncate">
+            {userProfile.ulpanMode ? 'מִילִּים' : 'Словарь'}
+            <span className="text-[10px] opacity-75 hidden md:inline"> ({lesson.vocabulary.length})</span>
+          </span>
           {completedTabs.includes('vocab') && (
             <CheckCircle2 className="w-3 h-3 text-emerald-500 shrink-0" />
           )}
@@ -207,7 +214,7 @@ export const LessonView: React.FC<LessonViewProps> = ({
           }`}
         >
           <ListTodo className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
-          <span className="truncate">Тесты</span>
+          <span className="truncate">{userProfile.ulpanMode ? 'תַּרְגִּילִים' : 'Тесты'}</span>
           {completedTabs.includes('exercises') && (
             <CheckCircle2 className="w-3 h-3 text-emerald-500 shrink-0" />
           )}
@@ -222,7 +229,7 @@ export const LessonView: React.FC<LessonViewProps> = ({
           }`}
         >
           <Bot className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-purple-500 shrink-0" />
-          <span className="truncate">ИИ-чат</span>
+          <span className="truncate">{userProfile.ulpanMode ? 'שִׂיחָה' : 'ИИ-чат'}</span>
           {completedTabs.includes('chat') && (
             <CheckCircle2 className="w-3 h-3 text-emerald-500 shrink-0" />
           )}
@@ -237,7 +244,7 @@ export const LessonView: React.FC<LessonViewProps> = ({
           }`}
         >
           <Phone className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-500 shrink-0" />
-          <span className="truncate">Звонок</span>
+          <span className="truncate">{userProfile.ulpanMode ? 'טֶלֶפוֹן' : 'Звонок'}</span>
           {completedTabs.includes('phone') && (
             <CheckCircle2 className="w-3 h-3 text-emerald-500 shrink-0" />
           )}

@@ -531,7 +531,7 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
             {!isFlipped ? (
               <div className="space-y-2 sm:space-y-3">
                 <span className="text-[11px] uppercase tracking-wider font-semibold text-zinc-400">
-                  Иврит (нажмите для перевода)
+                  {userProfile.ulpanMode ? 'עִבְרִית (לחצו להצגת מידע)' : 'Иврит (нажмите для перевода)'}
                 </span>
                 <div
                   dir="rtl"
@@ -543,7 +543,7 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
                 >
                   {userProfile.showNikkud ? currentWord.hebrew : currentWord.hebrewPlain}
                 </div>
-                {userProfile.showTranscription && (
+                {!userProfile.ulpanMode && userProfile.showTranscription && (
                   <p className="text-xs sm:text-sm font-semibold text-blue-600 dark:text-blue-400">
                     [{currentWord.transcription}]
                   </p>
@@ -552,7 +552,7 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
             ) : (
               <div className="space-y-2.5 sm:space-y-3 animate-in fade-in">
                 <span className="text-[11px] uppercase tracking-wider font-semibold text-zinc-400">
-                  Перевод и детали
+                  {userProfile.ulpanMode ? 'פֵּרוּשׁ וּפְרָטִים' : 'Перевод и детали'}
                 </span>
                 <div className="text-xl sm:text-3xl font-bold text-zinc-900 dark:text-zinc-100">
                   {currentWord.translation}
@@ -567,7 +567,7 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
                 </div>
                 {currentWord.root && (
                   <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-xs font-semibold bg-amber-100 dark:bg-amber-950/80 text-amber-800 dark:text-amber-300 border border-amber-300/40">
-                    <span>Шореш:</span>
+                    <span>{userProfile.ulpanMode ? 'שׁוֹרֶשׁ:' : 'Шореш:'}</span>
                     <span dir="rtl" className="font-bold">
                       {currentWord.root}
                     </span>

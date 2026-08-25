@@ -12,6 +12,7 @@ import {
   EyeOff,
   CheckCircle2,
   ArrowRight,
+  GraduationCap,
 } from 'lucide-react';
 import { Word, UserProfile, PartOfSpeech } from '@/types';
 import { speakHebrew } from '@/lib/speech';
@@ -116,7 +117,25 @@ export const LessonVocabulary: React.FC<LessonVocabularyProps> = ({
     }
   };
 
+  const [revealedTranslations, setRevealedTranslations] = useState<Record<string, boolean>>({});
+  const isUlpan = Boolean(userProfile.ulpanMode);
+
   const getPosBadge = (pos: PartOfSpeech) => {
+    if (isUlpan) {
+      switch (pos) {
+        case 'noun':
+          return <span dir="rtl" className="px-2 py-0.5 rounded text-[11px] font-hebrew font-bold bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-200">שֵׁם עֶצֶם</span>;
+        case 'verb':
+          return <span dir="rtl" className="px-2 py-0.5 rounded text-[11px] font-hebrew font-bold bg-emerald-100 dark:bg-emerald-900/50 text-emerald-800 dark:text-emerald-200">פֹּעַל</span>;
+        case 'adjective':
+          return <span dir="rtl" className="px-2 py-0.5 rounded text-[11px] font-hebrew font-bold bg-purple-100 dark:bg-purple-900/50 text-purple-800 dark:text-purple-200">שֵׁם תֹּאַר</span>;
+        case 'expression':
+          return <span dir="rtl" className="px-2 py-0.5 rounded text-[11px] font-hebrew font-bold bg-amber-100 dark:bg-amber-900/50 text-amber-800 dark:text-amber-200">בִּיטּוּי</span>;
+        default:
+          return <span dir="rtl" className="px-2 py-0.5 rounded text-[11px] font-hebrew font-bold bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300">מִילָּה</span>;
+      }
+    }
+
     switch (pos) {
       case 'noun':
         return <span className="px-2 py-0.5 rounded text-[11px] bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-200">Сущ.</span>;
@@ -135,6 +154,25 @@ export const LessonVocabulary: React.FC<LessonVocabularyProps> = ({
 
   return (
     <div data-font-style={userProfile.fontStyle || 'print'} className="space-y-6">
+      {/* Информационный баннер Режима Ульпан */}
+      {isUlpan && (
+        <div className="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900/50 rounded-2xl p-3.5 sm:p-4 flex items-center justify-between gap-3 text-xs text-emerald-800 dark:text-emerald-200 shadow-xs">
+          <div className="flex items-center gap-2.5">
+            <div className="p-2 rounded-xl bg-emerald-100 dark:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 shrink-0">
+              <GraduationCap className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="font-bold text-xs sm:text-sm text-emerald-900 dark:text-emerald-100">
+                Режим «Ульпан» активен (עִבְרִית בְּעִבְרִית)
+              </p>
+              <p className="text-[11px] sm:text-xs text-emerald-700 dark:text-emerald-300 mt-0.5">
+                Переводы скрыты для тренировки интуиции и прямого восприятия речи. Нажмите «תרגום», если потребуется проверить себя.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Верхняя панель управления */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-zinc-900 p-4 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm">
         <div className="flex-1 flex items-center gap-3">
@@ -246,17 +284,53 @@ export const LessonVocabulary: React.FC<LessonVocabularyProps> = ({
                   {userProfile.showNikkud ? word.hebrew : word.hebrewPlain}
                 </div>
 
-                {/* Транскрипция с 'h' для ה */}
-                {userProfile.showTranscription && (
+                {/* Транскрипция с 'h' для ה (только вне режима Ульпан) */}
+                {!isUlpan && userProfile.showTranscription && (
                   <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 mt-1">
                     [{word.transcription}]
                   </p>
                 )}
 
-                {/* Перевод */}
-                <p className="text-sm font-medium text-zinc-700 dark:text-zinc-200 mt-2">
-                  {word.translation}
-                </p>
+                {/* Перевод слова (с поддержкой скрытия в режиме Ульпан) */}
+                {isUlpan ? (
+                  <div className="mt-2 min-h-[28px] flex items-center">
+                    {revealedTranslations[word.id] ? (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setRevealedTranslations((prev) => ({
+                            ...prev,
+                            [word.id]: false,
+                          }))
+                        }
+                        className="text-left text-sm font-medium text-emerald-800 dark:text-emerald-300 bg-emerald-50/70 dark:bg-emerald-950/40 px-2 py-0.5 rounded-lg border border-emerald-200/60 dark:border-emerald-900/40 hover:bg-emerald-100 transition cursor-pointer"
+                        title="Нажмите, чтобы скрыть перевод"
+                      >
+                        <span>{word.translation}</span>
+                        <EyeOff className="inline-block w-3 h-3 ml-1.5 opacity-60" />
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setRevealedTranslations((prev) => ({
+                            ...prev,
+                            [word.id]: true,
+                          }))
+                        }
+                        className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs font-semibold text-zinc-500 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition cursor-pointer"
+                        title="Нажмите для проверки перевода (רמז)"
+                      >
+                        <Eye className="w-3 h-3 text-zinc-400" />
+                        <span>תַּרְגּוּם (רֶמֶז)</span>
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-sm font-medium text-zinc-700 dark:text-zinc-200 mt-2">
+                    {word.translation}
+                  </p>
+                )}
               </div>
 
               {/* Нижняя часть (корень / пример) */}
@@ -264,7 +338,9 @@ export const LessonVocabulary: React.FC<LessonVocabularyProps> = ({
                 <div className="mt-4 pt-3 border-t border-zinc-100 dark:border-zinc-800/80 space-y-1.5">
                   {word.root && (
                     <div className="flex items-center gap-1.5 text-xs text-amber-700 dark:text-amber-400">
-                      <span className="text-[11px] text-zinc-400">Шореш:</span>
+                      <span className="text-[11px] text-zinc-400">
+                        {isUlpan ? 'שׁוֹרֶשׁ:' : 'Шореш:'}
+                      </span>
                       <button
                         type="button"
                         onClick={() =>
@@ -304,13 +380,32 @@ export const LessonVocabulary: React.FC<LessonVocabularyProps> = ({
                   )}
 
                   {word.exampleSentence && (
-                    <div className="text-xs text-zinc-500 bg-zinc-50 dark:bg-zinc-800/40 p-2 rounded-lg">
-                      <p dir="rtl" className={`font-medium ${isCursive ? 'font-cursive text-xl text-blue-600 dark:text-blue-400' : 'font-hebrew text-zinc-800 dark:text-zinc-200'}`}>
-                        {word.exampleSentence.hebrew}
-                      </p>
-                      <p className="text-[11px] text-zinc-500 mt-0.5">
-                        {word.exampleSentence.translation}
-                      </p>
+                    <div className="text-xs text-zinc-500 bg-zinc-50 dark:bg-zinc-800/40 p-2.5 rounded-xl border border-zinc-100 dark:border-zinc-800/60 space-y-1">
+                      <div className="flex items-center justify-between gap-1">
+                        <p
+                          dir="rtl"
+                          className={`font-medium ${
+                            isCursive
+                              ? 'font-cursive text-xl text-blue-600 dark:text-blue-400'
+                              : 'font-hebrew text-zinc-800 dark:text-zinc-200'
+                          }`}
+                        >
+                          {word.exampleSentence.hebrew}
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => speakHebrew(word.exampleSentence!.hebrew)}
+                          className="p-1 rounded-md text-zinc-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-zinc-800 transition"
+                          title="Озвучить предложение"
+                        >
+                          <Volume2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                      {!isUlpan && (
+                        <p className="text-[11px] text-zinc-500 mt-0.5">
+                          {word.exampleSentence.translation}
+                        </p>
+                      )}
                     </div>
                   )}
                 </div>
