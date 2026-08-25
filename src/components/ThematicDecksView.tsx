@@ -193,7 +193,7 @@ export const ThematicDecksView: React.FC<ThematicDecksViewProps> = ({
   const handleAddAllWordsToDict = (deck: ThematicDeck) => {
     const newlyAdded = addBatchWordsToPersonalDict(deck.words);
     setAddedBatchDeckId(deck.id);
-    onUpdateVocabulary(newlyAdded);
+    onUpdateVocabulary(newlyAdded.updatedProfile.personalVocabulary);
     setTimeout(() => setAddedBatchDeckId(null), 2500);
   };
 
@@ -1100,7 +1100,7 @@ export const ThematicDecksView: React.FC<ThematicDecksViewProps> = ({
                     const selectedWords = listModalDeck.words.filter((w) => selectedWordIds.has(w.id));
                     if (selectedWords.length > 0) {
                       const newlyAdded = addBatchWordsToPersonalDict(selectedWords);
-                      onUpdateVocabulary(newlyAdded);
+                      onUpdateVocabulary(newlyAdded.updatedProfile.personalVocabulary);
                     }
                   }}
                   disabled={selectedWordIds.size === 0}

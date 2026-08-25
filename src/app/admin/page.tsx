@@ -577,7 +577,7 @@ export default function AdminPage() {
                               </span>
                               {lessonInfo && (
                                 <span className="text-zinc-500 text-xs ml-1.5 hidden sm:inline">
-                                  ({lessonInfo.titleRu})
+                                  ({lessonInfo.titleRussian || lessonInfo.titleRu})
                                 </span>
                               )}
                             </td>
@@ -1027,7 +1027,7 @@ export default function AdminPage() {
                             >
                               <div>
                                 <span className="font-bold text-zinc-900 dark:text-zinc-100">
-                                  Урок {p.lessonId}: {lesson?.titleRu || 'Урок курса'}
+                                  Урок {p.lessonId}: {lesson?.titleRussian || lesson?.titleRu || 'Урок курса'}
                                 </span>
                                 <div className="text-[11px] text-zinc-400 mt-0.5">
                                   Вкладки: {p.completedTabs.join(', ') || 'нет данных'}

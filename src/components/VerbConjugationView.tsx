@@ -27,7 +27,7 @@ interface VerbConjugationViewProps {
   isWordInPersonalVocab?: boolean;
 }
 
-type MobileTenseTab = 'all' | 'present' | 'past' | 'future' | 'rootFamily';
+type TenseTab = 'all' | 'present' | 'past' | 'future' | 'rootFamily';
 
 export const VerbConjugationView: React.FC<VerbConjugationViewProps> = ({
   conjugation,
@@ -36,7 +36,8 @@ export const VerbConjugationView: React.FC<VerbConjugationViewProps> = ({
   onAddToVocabulary,
   isWordInPersonalVocab,
 }) => {
-  const [mobileTab, setMobileTab] = useState<MobileTenseTab>('all');
+  const [activeTab, setActiveTab] = useState<TenseTab>('all');
+  const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
   const [speakingForm, setSpeakingForm] = useState<string | null>(null);
 
   // Локальный трекинг добавленных слов
@@ -155,12 +156,19 @@ export const VerbConjugationView: React.FC<VerbConjugationViewProps> = ({
   const impP = findForm(impList, ['אַתֶּם', 'мн.ч.', 'вы', 'אַתֶּם / אַתֶּן']) || impList[2];
 
   // =========================================================================
-  // Рендерер ячейки Pealim с акцентом ударения и звуком
+  // Рендерер ячейки Pealim (Адаптивный 2-колоночный тайл без наложения текста)
   // =========================================================================
-  const renderPealimCell = (form: ConjugationForm | undefined, cellKey: string, customPronounLabel?: string) => {
+  const renderPealimCell = (
+    form: ConjugationForm | undefined,
+    cellKey: string,
+    pronounLabel: string,
+    hebrewPronoun?: string
+  ) => {
     if (!form) {
       return (
-        <div className="p-2 text-center text-slate-400 dark:text-slate-600 text-xs">—</div>
+        <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-dashed border-slate-200 dark:border-slate-800 text-center text-slate-400 text-xs flex items-center justify-center">
+          —
+        </div>
       );
     }
 
@@ -173,7 +181,7 @@ export const VerbConjugationView: React.FC<VerbConjugationViewProps> = ({
       const parts = t.split(/([áéóíúӣӯА́Е́И́О́У́Э́Ю́Я́а́е́и́о́у́э́ю́я́])/g);
       return parts.map((part, i) =>
         /[áéóíúӣӯА́Е́И́О́У́Э́Ю́Я́а́е́и́о́у́э́ю́я́]/.test(part) ? (
-          <span key={i} className="text-red-500 font-bold">
+          <span key={i} className="text-red-500 dark:text-red-400 font-bold">
             {part}
           </span>
         ) : (
@@ -185,158 +193,94 @@ export const VerbConjugationView: React.FC<VerbConjugationViewProps> = ({
     return (
       <div
         onClick={() => handleSpeak(form.hebrew, cellKey)}
-        className="group relative flex flex-col items-center justify-center p-2.5 rounded-2xl bg-white dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700/80 hover:border-blue-500 dark:hover:border-blue-400 hover:shadow-md transition-all cursor-pointer select-text"
+        className="group relative flex flex-col justify-between p-3 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/80 hover:border-blue-500 dark:hover:border-blue-400 hover:shadow-md transition-all cursor-pointer select-text active:scale-[0.98] shadow-sm"
       >
-        {/* Кнопка динамика и плюс в словарь */}
-        <div className="flex items-center gap-1.5 mb-1">
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              handleSpeak(form.hebrew, cellKey);
-            }}
-            className={`p-1 rounded-full transition ${
-              isSpeaking
-                ? 'bg-blue-600 text-white animate-pulse'
-                : 'text-slate-400 group-hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-slate-700'
-            }`}
-            title="Озвучить форму"
-          >
-            <Volume2 className="w-3.5 h-3.5" />
-          </button>
+        {/* Верхняя строка: Местоимение/Лицо и кнопки действий */}
+        <div className="flex items-center justify-between gap-1 mb-1">
+          <div className="flex items-center gap-1 min-w-0">
+            <span className="text-[10px] font-extrabold uppercase px-1.5 py-0.5 rounded-md bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 truncate">
+              {pronounLabel}
+            </span>
+            {hebrewPronoun && (
+              <span dir="rtl" className="text-[10px] font-hebrew font-bold text-slate-400 hidden sm:inline">
+                ({hebrewPronoun})
+              </span>
+            )}
+          </div>
 
-          {/* Иврит с никкудом */}
+          <div className="flex items-center gap-1 shrink-0">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleSpeak(form.hebrew, cellKey);
+              }}
+              className={`p-1 rounded-lg transition ${
+                isSpeaking
+                  ? 'bg-blue-600 text-white animate-pulse'
+                  : 'text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-slate-700'
+              }`}
+              title="Озвучить форму"
+            >
+              <Volume2 className="w-3.5 h-3.5" />
+            </button>
+
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (!isAdded) {
+                  handleAddWord({
+                    hebrew: form.hebrew,
+                    transcription: form.transcription,
+                    translation: form.translation,
+                    partOfSpeech: 'verb',
+                  });
+                }
+              }}
+              disabled={isAdded}
+              className={`p-1 rounded-lg transition ${
+                isAdded
+                  ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400'
+                  : 'text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-slate-700'
+              }`}
+              title={isAdded ? 'Уже в словаре' : 'Добавить эту форму в словарь'}
+            >
+              {isAdded ? <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" /> : <Plus className="w-3.5 h-3.5" />}
+            </button>
+          </div>
+        </div>
+
+        {/* Центр: Иврит крупно */}
+        <div className="text-center my-1.5">
           <span
             dir="rtl"
-            className={`font-bold text-slate-900 dark:text-slate-50 ${
+            className={`font-bold block tracking-wide text-slate-900 dark:text-slate-100 ${
               isCursive
-                ? 'font-cursive text-xl sm:text-2xl text-blue-600 dark:text-blue-400'
-                : 'font-hebrew text-base sm:text-lg'
+                ? 'font-cursive text-2xl sm:text-3xl text-blue-600 dark:text-blue-400 leading-tight'
+                : 'font-hebrew text-lg sm:text-xl'
             }`}
           >
             {userProfile.showNikkud ? form.hebrew : stripNikkud(form.hebrew)}
           </span>
-
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              if (!isAdded) {
-                handleAddWord({
-                  hebrew: form.hebrew,
-                  transcription: form.transcription,
-                  translation: form.translation,
-                  partOfSpeech: 'verb',
-                });
-              }
-            }}
-            disabled={isAdded}
-            className={`p-1 rounded-lg opacity-80 sm:opacity-0 group-hover:opacity-100 transition ${
-              isAdded
-                ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 opacity-100'
-                : 'text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-slate-700'
-            }`}
-            title={isAdded ? 'Уже в словаре' : 'Добавить эту форму в словарь'}
-          >
-            {isAdded ? <Check className="w-3 h-3 text-emerald-600 dark:text-emerald-400" /> : <Plus className="w-3 h-3" />}
-          </button>
         </div>
 
-        {/* Транскрипция с ударением */}
-        <div className="text-[11px] sm:text-xs text-slate-600 dark:text-slate-300 font-medium text-center">
-          {renderTranscription(form.transcription)}
-        </div>
-
-        {/* Подсказка местоимения / перевода */}
-        <div className="text-[10px] text-slate-400 dark:text-slate-400 truncate max-w-full text-center mt-0.5">
-          {customPronounLabel || form.pronoun}
-        </div>
-      </div>
-    );
-  };
-
-  // Мобильная карточка формы
-  const renderMobileFormRow = (label: string, form: ConjugationForm | undefined, keyId: string) => {
-    if (!form) return null;
-    const isSpeaking = speakingForm === keyId;
-    const isAdded =
-      addedMap[stripNikkud(form.hebrew)] ||
-      isWordInPersonalDict(form.hebrew, userProfile.personalVocabulary);
-
-    return (
-      <div
-        onClick={() => handleSpeak(form.hebrew, keyId)}
-        className="flex items-center justify-between p-2.5 rounded-2xl bg-white dark:bg-slate-800/95 border border-slate-200 dark:border-slate-700/80 shadow-sm cursor-pointer active:scale-[0.99] transition"
-      >
-        <div className="min-w-0 pr-2">
-          <div className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
-            {label}
+        {/* Низ: Транскрипция с ударением + русский перевод */}
+        <div className="text-center space-y-0.5 mt-1 border-t border-slate-100 dark:border-slate-700/60 pt-1">
+          <div className="text-[11px] sm:text-xs font-semibold text-slate-700 dark:text-slate-200 truncate">
+            {renderTranscription(form.transcription)}
           </div>
-          <div className="text-xs text-slate-700 dark:text-slate-200 truncate">
+          <div className="text-[10px] sm:text-[11px] text-slate-400 dark:text-slate-400 truncate">
             {form.translation}
           </div>
-        </div>
-
-        <div className="flex items-center gap-2 shrink-0">
-          <div className="flex flex-col items-end">
-            <span
-              dir="rtl"
-              className={`font-bold text-slate-900 dark:text-white ${
-                isCursive ? 'font-cursive text-xl text-blue-500' : 'font-hebrew text-base'
-              }`}
-            >
-              {userProfile.showNikkud ? form.hebrew : stripNikkud(form.hebrew)}
-            </span>
-            <span className="text-[10px] text-red-500 dark:text-red-400 font-semibold">
-              [{form.transcription}]
-            </span>
-          </div>
-
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              handleSpeak(form.hebrew, keyId);
-            }}
-            className={`p-1.5 rounded-full transition ${
-              isSpeaking
-                ? 'bg-blue-600 text-white animate-pulse'
-                : 'text-slate-400 hover:text-blue-500 hover:bg-slate-100 dark:hover:bg-slate-700'
-            }`}
-          >
-            <Volume2 className="w-4 h-4" />
-          </button>
-
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              if (!isAdded) {
-                handleAddWord({
-                  hebrew: form.hebrew,
-                  transcription: form.transcription,
-                  translation: form.translation,
-                  partOfSpeech: 'verb',
-                });
-              }
-            }}
-            disabled={isAdded}
-            className={`p-1.5 rounded-xl border transition ${
-              isAdded
-                ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 border-emerald-300 dark:border-emerald-800'
-                : 'bg-slate-50 dark:bg-slate-700 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-600'
-            }`}
-          >
-            {isAdded ? <Check className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
-          </button>
         </div>
       </div>
     );
   };
 
   return (
-    <div className="space-y-4 animate-fade-in">
-      {/* Компактная шапка глагола Pealim */}
+    <div className="space-y-4 animate-fade-in pb-4">
+      {/* Шапка глагола Pealim */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white p-4 sm:p-5 rounded-3xl shadow-lg relative overflow-hidden">
         <div className="flex items-center gap-3 min-w-0">
           <button
@@ -425,489 +369,289 @@ export const VerbConjugationView: React.FC<VerbConjugationViewProps> = ({
         </div>
       </div>
 
-      {/* ========================================================================= */}
-      {/* 📱 МОБИЛЬНЫЙ ВИД: ЧИСТЫЕ ВЕРТИКАЛЬНЫЕ БЛОКИ БЕЗ ГОРИЗОНТАЛЬНОЙ ПРОКРУТКИ */}
-      {/* ========================================================================= */}
-      <div className="block sm:hidden space-y-4">
-        {/* Мобильные быстрые вкладки времен */}
-        <div className="flex items-center gap-1 p-1 bg-slate-100 dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-x-auto no-scrollbar">
+      {/* Навигационные вкладки времен (Адаптивные) */}
+      <div className="flex items-center justify-between gap-2 p-1 bg-slate-100 dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700">
+        <div className="flex items-center gap-1 overflow-x-auto no-scrollbar">
           <button
-            onClick={() => setMobileTab('all')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition ${
-              mobileTab === 'all'
+            onClick={() => setActiveTab('all')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition cursor-pointer ${
+              activeTab === 'all'
                 ? 'bg-blue-600 text-white shadow-sm'
-                : 'text-slate-600 dark:text-slate-300'
+                : 'text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
             }`}
           >
-            Все времена
+            Все формы
           </button>
           <button
-            onClick={() => setMobileTab('present')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition ${
-              mobileTab === 'present'
+            onClick={() => setActiveTab('present')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition cursor-pointer ${
+              activeTab === 'present'
                 ? 'bg-blue-600 text-white shadow-sm'
-                : 'text-slate-600 dark:text-slate-300'
+                : 'text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
             }`}
           >
             Настоящее
           </button>
           <button
-            onClick={() => setMobileTab('past')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition ${
-              mobileTab === 'past'
+            onClick={() => setActiveTab('past')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition cursor-pointer ${
+              activeTab === 'past'
                 ? 'bg-amber-600 text-white shadow-sm'
-                : 'text-slate-600 dark:text-slate-300'
+                : 'text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
             }`}
           >
             Прошедшее
           </button>
           <button
-            onClick={() => setMobileTab('future')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition ${
-              mobileTab === 'future'
+            onClick={() => setActiveTab('future')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition cursor-pointer ${
+              activeTab === 'future'
                 ? 'bg-purple-600 text-white shadow-sm'
-                : 'text-slate-600 dark:text-slate-300'
+                : 'text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
             }`}
           >
             Будущее
           </button>
-          {conjugation.rootFamily && (
+          {conjugation.rootFamily && conjugation.rootFamily.length > 0 && (
             <button
-              onClick={() => setMobileTab('rootFamily')}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition ${
-                mobileTab === 'rootFamily'
+              onClick={() => setActiveTab('rootFamily')}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap flex items-center gap-1 transition cursor-pointer ${
+                activeTab === 'rootFamily'
                   ? 'bg-purple-600 text-white shadow-sm'
-                  : 'text-slate-600 dark:text-slate-300'
+                  : 'text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
               }`}
             >
-              Семья ({conjugation.rootFamily.length})
+              <GitBranch className="w-3.5 h-3.5" />
+              <span>Семья ({conjugation.rootFamily.length})</span>
             </button>
           )}
         </div>
 
-        {/* Настоящее время */}
-        {(mobileTab === 'all' || mobileTab === 'present') && (
-          <div className="bg-slate-50 dark:bg-slate-900/80 rounded-2xl p-3.5 border border-slate-200 dark:border-slate-800 space-y-2.5">
-            <div className="flex items-center gap-2 font-bold text-xs text-blue-600 dark:text-blue-400">
-              <Clock className="w-4 h-4" />
-              <span>Настоящее время (הוֹוֶה)</span>
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              {renderPealimCell(presMs, 'm_pres_ms', 'Он / Я (м.р.)')}
-              {renderPealimCell(presFs, 'm_pres_fs', 'Она / Я (ж.р.)')}
-              {renderPealimCell(presMp, 'm_pres_mp', 'Они / Мы (м.р.)')}
-              {renderPealimCell(presFp, 'm_pres_fp', 'Они / Мы (ж.р.)')}
-            </div>
-          </div>
-        )}
-
-        {/* Прошедшее время */}
-        {(mobileTab === 'all' || mobileTab === 'past') && (
-          <div className="bg-slate-50 dark:bg-slate-900/80 rounded-2xl p-3.5 border border-slate-200 dark:border-slate-800 space-y-2.5">
-            <div className="flex items-center gap-2 font-bold text-xs text-amber-600 dark:text-amber-400">
-              <Calendar className="w-4 h-4" />
-              <span>Прошедшее время (עָבָר)</span>
-            </div>
-            <div className="space-y-1.5">
-              {renderMobileFormRow('1-е лицо: Я (אֲנִי)', past1s, 'm_past_1s')}
-              {renderMobileFormRow('1-е лицо: Мы (אֲנַחְנוּ)', past1p, 'm_past_1p')}
-              {renderMobileFormRow('2-е лицо: Ты м.р. (אַתָּה)', past2ms, 'm_past_2ms')}
-              {renderMobileFormRow('2-е лицо: Ты ж.р. (אַתְּ)', past2fs, 'm_past_2fs')}
-              {renderMobileFormRow('2-е лицо: Вы м.р. (אַתֶּם)', past2mp, 'm_past_2mp')}
-              {renderMobileFormRow('2-е лицо: Вы ж.р. (אַתֶּן)', past2fp, 'm_past_2fp')}
-              {renderMobileFormRow('3-е лицо: Он (הוּא)', past3ms, 'm_past_3ms')}
-              {renderMobileFormRow('3-е лицо: Она (הִיא)', past3fs, 'm_past_3fs')}
-              {renderMobileFormRow('3-е лицо: Они (הֵם / הֵן)', past3p, 'm_past_3p')}
-            </div>
-          </div>
-        )}
-
-        {/* Будущее время */}
-        {(mobileTab === 'all' || mobileTab === 'future') && (
-          <div className="bg-slate-50 dark:bg-slate-900/80 rounded-2xl p-3.5 border border-slate-200 dark:border-slate-800 space-y-2.5">
-            <div className="flex items-center gap-2 font-bold text-xs text-purple-600 dark:text-purple-400">
-              <Zap className="w-4 h-4" />
-              <span>Будущее время (עָתִיד)</span>
-            </div>
-            <div className="space-y-1.5">
-              {renderMobileFormRow('1-е лицо: Я (אֲנִי)', fut1s, 'm_fut_1s')}
-              {renderMobileFormRow('1-е лицо: Мы (אֲנַחְנוּ)', fut1p, 'm_fut_1p')}
-              {renderMobileFormRow('2-е лицо: Ты м.р. (אַתָּה)', fut2ms, 'm_fut_2ms')}
-              {renderMobileFormRow('2-е лицо: Ты ж.р. (אַתְּ)', fut2fs, 'm_fut_2fs')}
-              {renderMobileFormRow('2-е лицо: Вы (אַתֶּם)', fut2mp, 'm_fut_2mp')}
-              {renderMobileFormRow('3-е лицо: Он (הוּא)', fut3ms, 'm_fut_3ms')}
-              {renderMobileFormRow('3-е лицо: Она (הִיא)', fut3fs, 'm_fut_3fs')}
-              {renderMobileFormRow('3-е лицо: Они (הֵם / הֵן)', fut3mp, 'm_fut_3mp')}
-            </div>
-          </div>
-        )}
-
-        {/* Семья корня (мобильный) */}
-        {(mobileTab === 'all' || mobileTab === 'rootFamily') && conjugation.rootFamily && conjugation.rootFamily.length > 0 && (
-          <div className="bg-slate-50 dark:bg-slate-900/80 rounded-2xl p-3.5 border border-slate-200 dark:border-slate-800 space-y-2.5">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 font-bold text-xs text-purple-600 dark:text-purple-400">
-                <GitBranch className="w-4 h-4" />
-                <span>Семья корня ({conjugation.rootFamily.length})</span>
-              </div>
-              <span className="text-[11px] font-mono text-purple-600 dark:text-purple-400">
-                שורש: {conjugation.root}
-              </span>
-            </div>
-            <div className="space-y-1.5">
-              {conjugation.rootFamily.map((rw, idx) => {
-                const clean = stripNikkud(rw.hebrew);
-                const isAdded =
-                  addedMap[clean] || isWordInPersonalDict(rw.hebrew, userProfile.personalVocabulary);
-                return (
-                  <div
-                    key={idx}
-                    onClick={() => handleSpeak(rw.hebrew, `m_rf_${idx}`)}
-                    className="flex items-center justify-between p-2.5 rounded-2xl bg-white dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700/80 cursor-pointer"
-                  >
-                    <div>
-                      <div className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                        {rw.translation}
-                      </div>
-                      <div className="text-[10px] text-blue-500">[{rw.transcription}]</div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span dir="rtl" className="font-hebrew font-bold text-base text-slate-900 dark:text-white">
-                        {userProfile.showNikkud ? rw.hebrew : rw.hebrewPlain}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (!isAdded) {
-                            handleAddWord({
-                              hebrew: rw.hebrew,
-                              hebrewPlain: rw.hebrewPlain,
-                              transcription: rw.transcription,
-                              translation: rw.translation,
-                              partOfSpeech: rw.partOfSpeech,
-                              root: rw.root || conjugation.root,
-                            });
-                          }
-                        }}
-                        disabled={isAdded}
-                        className={`p-1.5 rounded-xl border ${
-                          isAdded
-                            ? 'bg-emerald-50 text-emerald-600 border-emerald-300'
-                            : 'bg-slate-50 text-slate-600 border-slate-200'
-                        }`}
-                      >
-                        {isAdded ? <Check className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* ========================================================================= */}
-      {/* 💻 ДЕСКТОПНЫЙ ВИД: ПЛОСКАЯ 2D ТАБЛИЦА PEALIM (БЕЗ ВЛОЖЕННЫХ СКРОЛЛОВ) */}
-      {/* ========================================================================= */}
-      <div className="hidden sm:block space-y-5">
-        <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              {/* Верхняя строка заголовков: Единственное и Множественное число */}
-              <tr className="bg-slate-50 dark:bg-slate-850 text-[11px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider border-b border-slate-200 dark:border-slate-800">
-                <th rowSpan={2} className="py-2.5 px-3 w-32 border-r border-slate-200 dark:border-slate-800 text-center bg-slate-100/70 dark:bg-slate-800">
-                  Форма глагола
-                </th>
-                <th rowSpan={2} className="py-2.5 px-2 w-14 border-r border-slate-200 dark:border-slate-800 text-center bg-slate-100/70 dark:bg-slate-800">
-                  Лицо
-                </th>
-                <th colSpan={2} className="py-2 px-3 text-center border-r border-slate-200 dark:border-slate-800 text-blue-600 dark:text-blue-400 bg-blue-50/40 dark:bg-blue-950/20">
-                  Единственное число
-                </th>
-                <th colSpan={2} className="py-2 px-3 text-center text-purple-600 dark:text-purple-400 bg-purple-50/40 dark:bg-purple-950/20">
-                  Множественное число
-                </th>
-              </tr>
-              {/* Вторая строка заголовков: Мужской и Женский род */}
-              <tr className="bg-slate-50 dark:bg-slate-850 text-[11px] font-bold text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
-                <th className="py-1.5 px-2 text-center border-r border-slate-100 dark:border-slate-800 text-xs">
-                  Мужской род
-                </th>
-                <th className="py-1.5 px-2 text-center border-r border-slate-200 dark:border-slate-800 text-xs">
-                  Женский род
-                </th>
-                <th className="py-1.5 px-2 text-center border-r border-slate-100 dark:border-slate-800 text-xs">
-                  Мужской род
-                </th>
-                <th className="py-1.5 px-2 text-center text-xs">
-                  Женский род
-                </th>
-              </tr>
-            </thead>
-
-            <tbody className="divide-y divide-slate-200 dark:divide-slate-800 text-xs">
-              {/* НАСТОЯЩЕЕ ВРЕМЯ */}
-              <tr className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition">
-                <td className="py-3 px-3 font-bold text-slate-800 dark:text-slate-200 border-r border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-850">
-                  <div className="flex items-center gap-1.5">
-                    <Clock className="w-3.5 h-3.5 text-blue-500" />
-                    <span>Настоящее время / причастие</span>
-                  </div>
-                </td>
-                <td className="py-3 px-2 text-center text-slate-400 border-r border-slate-200 dark:border-slate-800 font-medium">
-                  —
-                </td>
-                <td className="p-1.5 border-r border-slate-100 dark:border-slate-800">
-                  {renderPealimCell(presMs, 'pres_ms', 'זָכָר יָחִיד (он / я / ты)')}
-                </td>
-                <td className="p-1.5 border-r border-slate-200 dark:border-slate-800">
-                  {renderPealimCell(presFs, 'pres_fs', 'נְקֵבָה יְחִידָה (она / я / ты)')}
-                </td>
-                <td className="p-1.5 border-r border-slate-100 dark:border-slate-800">
-                  {renderPealimCell(presMp, 'pres_mp', 'זָכָר רַבִּים (они / мы / вы)')}
-                </td>
-                <td className="p-1.5">
-                  {renderPealimCell(presFp, 'pres_fp', 'נְקֵבָה רַבּוֹת (они / мы / вы)')}
-                </td>
-              </tr>
-
-              {/* ПРОШЕДШЕЕ ВРЕМЯ */}
-              <tr className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition border-t-2 border-slate-200 dark:border-slate-700">
-                <td rowSpan={3} className="py-3 px-3 font-bold text-slate-800 dark:text-slate-200 border-r border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-850 align-top">
-                  <div className="flex items-center gap-1.5 mt-2">
-                    <Calendar className="w-3.5 h-3.5 text-amber-500" />
-                    <span>Прошедшее время</span>
-                  </div>
-                </td>
-                <td className="py-3 px-2 text-center font-bold text-slate-600 dark:text-slate-300 border-r border-slate-200 dark:border-slate-800">
-                  1-е
-                </td>
-                <td colSpan={2} className="p-1.5 border-r border-slate-200 dark:border-slate-800">
-                  {renderPealimCell(past1s, 'past_1s', 'אֲנִי (я)')}
-                </td>
-                <td colSpan={2} className="p-1.5">
-                  {renderPealimCell(past1p, 'past_1p', 'אֲנַחְנוּ (мы)')}
-                </td>
-              </tr>
-              <tr className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition">
-                <td className="py-3 px-2 text-center font-bold text-slate-600 dark:text-slate-300 border-r border-slate-200 dark:border-slate-800">
-                  2-е
-                </td>
-                <td className="p-1.5 border-r border-slate-100 dark:border-slate-800">
-                  {renderPealimCell(past2ms, 'past_2ms', 'אַתָּה (ты м.р.)')}
-                </td>
-                <td className="p-1.5 border-r border-slate-200 dark:border-slate-800">
-                  {renderPealimCell(past2fs, 'past_2fs', 'אַתְּ (ты ж.р.)')}
-                </td>
-                <td className="p-1.5 border-r border-slate-100 dark:border-slate-800">
-                  {renderPealimCell(past2mp, 'past_2mp', 'אַתֶּם (вы м.р.)')}
-                </td>
-                <td className="p-1.5">
-                  {renderPealimCell(past2fp, 'past_2fp', 'אַתֶּן (вы ж.р.)')}
-                </td>
-              </tr>
-              <tr className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition">
-                <td className="py-3 px-2 text-center font-bold text-slate-600 dark:text-slate-300 border-r border-slate-200 dark:border-slate-800">
-                  3-е
-                </td>
-                <td className="p-1.5 border-r border-slate-100 dark:border-slate-800">
-                  {renderPealimCell(past3ms, 'past_3ms', 'הוּא (он)')}
-                </td>
-                <td className="p-1.5 border-r border-slate-200 dark:border-slate-800">
-                  {renderPealimCell(past3fs, 'past_3fs', 'הִיא (она)')}
-                </td>
-                <td colSpan={2} className="p-1.5">
-                  {renderPealimCell(past3p, 'past_3p', 'הֵם / הֵן (они)')}
-                </td>
-              </tr>
-
-              {/* БУДУЩЕЕ ВРЕМЯ */}
-              <tr className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition border-t-2 border-slate-200 dark:border-slate-700">
-                <td rowSpan={3} className="py-3 px-3 font-bold text-slate-800 dark:text-slate-200 border-r border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-850 align-top">
-                  <div className="flex items-center gap-1.5 mt-2">
-                    <Zap className="w-3.5 h-3.5 text-purple-500" />
-                    <span>Будущее время</span>
-                  </div>
-                </td>
-                <td className="py-3 px-2 text-center font-bold text-slate-600 dark:text-slate-300 border-r border-slate-200 dark:border-slate-800">
-                  1-е
-                </td>
-                <td colSpan={2} className="p-1.5 border-r border-slate-200 dark:border-slate-800">
-                  {renderPealimCell(fut1s, 'fut_1s', 'אֲנִי (я)')}
-                </td>
-                <td colSpan={2} className="p-1.5">
-                  {renderPealimCell(fut1p, 'fut_1p', 'אֲנַחְנוּ (мы)')}
-                </td>
-              </tr>
-              <tr className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition">
-                <td className="py-3 px-2 text-center font-bold text-slate-600 dark:text-slate-300 border-r border-slate-200 dark:border-slate-800">
-                  2-е
-                </td>
-                <td className="p-1.5 border-r border-slate-100 dark:border-slate-800">
-                  {renderPealimCell(fut2ms, 'fut_2ms', 'אַתָּה (ты м.р.)')}
-                </td>
-                <td className="p-1.5 border-r border-slate-200 dark:border-slate-800">
-                  {renderPealimCell(fut2fs, 'fut_2fs', 'אַתְּ (ты ж.р.)')}
-                </td>
-                <td className="p-1.5 border-r border-slate-100 dark:border-slate-800">
-                  {renderPealimCell(fut2mp, 'fut_2mp', 'אַתֶּם (вы м.р.)')}
-                </td>
-                <td className="p-1.5">
-                  {renderPealimCell(fut2fp, 'fut_2fp', 'אַתֶּן (вы ж.р.)')}
-                </td>
-              </tr>
-              <tr className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition">
-                <td className="py-3 px-2 text-center font-bold text-slate-600 dark:text-slate-300 border-r border-slate-200 dark:border-slate-800">
-                  3-е
-                </td>
-                <td className="p-1.5 border-r border-slate-100 dark:border-slate-800">
-                  {renderPealimCell(fut3ms, 'fut_3ms', 'הוּא (он)')}
-                </td>
-                <td className="p-1.5 border-r border-slate-200 dark:border-slate-800">
-                  {renderPealimCell(fut3fs, 'fut_3fs', 'הִיא (она)')}
-                </td>
-                <td className="p-1.5 border-r border-slate-100 dark:border-slate-800">
-                  {renderPealimCell(fut3mp, 'fut_3mp', 'הֵם (они м.р.)')}
-                </td>
-                <td className="p-1.5">
-                  {renderPealimCell(fut3fp, 'fut_3fp', 'הֵן (они ж.р.)')}
-                </td>
-              </tr>
-
-              {/* ПОВЕЛИТЕЛЬНОЕ НАКЛОНЕНИЕ */}
-              {impMs && (
-                <tr className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition border-t-2 border-slate-200 dark:border-slate-700">
-                  <td className="py-3 px-3 font-bold text-slate-800 dark:text-slate-200 border-r border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-850">
-                    <div className="flex items-center gap-1.5">
-                      <Sparkles className="w-3.5 h-3.5 text-emerald-500" />
-                      <span>Повелительное наклонение</span>
-                    </div>
-                  </td>
-                  <td className="py-3 px-2 text-center font-bold text-slate-600 dark:text-slate-300 border-r border-slate-200 dark:border-slate-800">
-                    2-е
-                  </td>
-                  <td className="p-1.5 border-r border-slate-100 dark:border-slate-800">
-                    {renderPealimCell(impMs, 'imp_ms', 'אַתָּה (м.р.)')}
-                  </td>
-                  <td className="p-1.5 border-r border-slate-200 dark:border-slate-800">
-                    {renderPealimCell(impFs, 'imp_fs', 'אַתְּ (ж.р.)')}
-                  </td>
-                  <td colSpan={2} className="p-1.5">
-                    {renderPealimCell(impP, 'imp_p', 'אַתֶּם / אַתֶּן (мн.ч.)')}
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+        {/* Переключатель вида на десктопе */}
+        <div className="hidden sm:flex items-center gap-1 p-0.5 bg-slate-200 dark:bg-slate-700 rounded-xl shrink-0">
+          <button
+            onClick={() => setViewMode('grid')}
+            className={`p-1.5 rounded-lg text-xs font-bold transition ${
+              viewMode === 'grid'
+                ? 'bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-sm'
+                : 'text-slate-600 dark:text-slate-400'
+            }`}
+            title="Вид: Сетка карточек"
+          >
+            <LayoutGrid className="w-3.5 h-3.5" />
+          </button>
+          <button
+            onClick={() => setViewMode('table')}
+            className={`p-1.5 rounded-lg text-xs font-bold transition ${
+              viewMode === 'table'
+                ? 'bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-sm'
+                : 'text-slate-600 dark:text-slate-400'
+            }`}
+            title="Вид: Плоская таблица"
+          >
+            <Table className="w-3.5 h-3.5" />
+          </button>
         </div>
-
-        {/* Семья корня (десктоп) */}
-        {conjugation.rootFamily && conjugation.rootFamily.length > 0 && (
-          <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
-              <div>
-                <h3 className="font-bold text-slate-900 dark:text-white text-base flex items-center gap-2">
-                  <GitBranch className="w-5 h-5 text-purple-600" />
-                  <span>Семья корня (משפחת השורש): {conjugation.root}</span>
-                </h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                  Однокоренные существительные, прилагательные и другие биньяны
-                </p>
-              </div>
-              <span className="text-xs font-bold text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/60 px-3 py-1 rounded-full border border-purple-200 dark:border-purple-800">
-                {conjugation.rootFamily.length} слов
-              </span>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-              {conjugation.rootFamily.map((rw, idx) => {
-                const clean = stripNikkud(rw.hebrew);
-                const isAdded =
-                  addedMap[clean] || isWordInPersonalDict(rw.hebrew, userProfile.personalVocabulary);
-                const isSpeaking = speakingForm === `rf_${idx}`;
-
-                return (
-                  <div
-                    key={idx}
-                    onClick={() => handleSpeak(rw.hebrew, `rf_${idx}`)}
-                    className="flex items-center justify-between p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 hover:border-purple-400 transition cursor-pointer"
-                  >
-                    <div className="flex flex-col min-w-0 pr-2">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-xs font-bold text-slate-900 dark:text-white">
-                          {rw.translation}
-                        </span>
-                        {rw.binyan && (
-                          <span className="text-[10px] bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 px-1.5 py-0.2 rounded font-semibold">
-                            {rw.binyan}
-                          </span>
-                        )}
-                      </div>
-                      <span className="text-[11px] text-blue-600 dark:text-blue-400 font-medium">
-                        [{rw.transcription}]
-                      </span>
-                    </div>
-
-                    <div className="flex items-center gap-2 shrink-0">
-                      <span
-                        dir="rtl"
-                        className={`font-bold text-slate-900 dark:text-white ${
-                          isCursive ? 'font-cursive text-xl' : 'font-hebrew text-base'
-                        }`}
-                      >
-                        {userProfile.showNikkud ? rw.hebrew : rw.hebrewPlain}
-                      </span>
-
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleSpeak(rw.hebrew, `rf_${idx}`);
-                        }}
-                        className={`p-1.5 rounded-full transition ${
-                          isSpeaking
-                            ? 'bg-purple-600 text-white animate-pulse'
-                            : 'text-slate-400 hover:text-purple-600 hover:bg-purple-50'
-                        }`}
-                      >
-                        <Volume2 className="w-3.5 h-3.5" />
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (!isAdded) {
-                            handleAddWord({
-                              hebrew: rw.hebrew,
-                              hebrewPlain: rw.hebrewPlain,
-                              transcription: rw.transcription,
-                              translation: rw.translation,
-                              partOfSpeech: rw.partOfSpeech,
-                              root: rw.root || conjugation.root,
-                            });
-                          }
-                        }}
-                        disabled={isAdded}
-                        className={`p-1.5 rounded-xl border transition ${
-                          isAdded
-                            ? 'bg-emerald-50 text-emerald-600 border-emerald-200'
-                            : 'bg-white text-slate-600 hover:border-purple-400 hover:text-purple-600'
-                        }`}
-                        title={isAdded ? 'Уже в словаре' : 'Добавить в словарь'}
-                      >
-                        {isAdded ? <Check className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
       </div>
+
+      {/* ========================================================================= */}
+      {/* 1. СЕТКА КАРТОЧЕК (СИММЕТРИЧНАЯ 2-КОЛОНОЧНАЯ БЕЗ НАЛОЖЕНИЯ ТЕКСТА) */}
+      {/* ========================================================================= */}
+      {(viewMode === 'grid' || true) && (
+        <div className="space-y-4">
+          {/* НАСТОЯЩЕЕ ВРЕМЯ */}
+          {(activeTab === 'all' || activeTab === 'present') && (
+            <div className="bg-slate-50 dark:bg-slate-900/80 rounded-3xl p-3.5 sm:p-4 border border-slate-200 dark:border-slate-800 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 font-extrabold text-xs sm:text-sm text-blue-600 dark:text-blue-400">
+                  <Clock className="w-4 h-4" />
+                  <span>Настоящее время / Причастие (הוֹוֶה)</span>
+                </div>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-950/80 text-blue-700 dark:text-blue-300">
+                  4 формы
+                </span>
+              </div>
+              <div className="grid grid-cols-2 gap-2 sm:gap-3">
+                {renderPealimCell(presMs, 'pres_ms', 'Ед.ч. Мужской', 'זָכָר יָחִיד')}
+                {renderPealimCell(presFs, 'pres_fs', 'Ед.ч. Женский', 'נְקֵבָה יְחִידָה')}
+                {renderPealimCell(presMp, 'pres_mp', 'Мн.ч. Мужской', 'זָכָר רַבִּים')}
+                {renderPealimCell(presFp, 'pres_fp', 'Мн.ч. Женский', 'נְקֵבָה רַבּוֹת')}
+              </div>
+            </div>
+          )}
+
+          {/* ПРОШЕДШЕЕ ВРЕМЯ */}
+          {(activeTab === 'all' || activeTab === 'past') && (
+            <div className="bg-slate-50 dark:bg-slate-900/80 rounded-3xl p-3.5 sm:p-4 border border-slate-200 dark:border-slate-800 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 font-extrabold text-xs sm:text-sm text-amber-600 dark:text-amber-400">
+                  <Calendar className="w-4 h-4" />
+                  <span>Прошедшее время (עָבָר)</span>
+                </div>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950/80 text-amber-700 dark:text-amber-300">
+                  8 форм
+                </span>
+              </div>
+              <div className="grid grid-cols-2 gap-2 sm:gap-3">
+                {renderPealimCell(past1s, 'past_1s', '1-е: Я', 'אֲנִי')}
+                {renderPealimCell(past1p, 'past_1p', '1-е: Мы', 'אֲנַחְנוּ')}
+                {renderPealimCell(past2ms, 'past_2ms', '2-е: Ты м.р.', 'אַתָּה')}
+                {renderPealimCell(past2fs, 'past_2fs', '2-е: Ты ж.р.', 'אַתְּ')}
+                {renderPealimCell(past2mp, 'past_2mp', '2-е: Вы м.р.', 'אַתֶּם')}
+                {renderPealimCell(past2fp, 'past_2fp', '2-е: Вы ж.р.', 'אַתֶּן')}
+                {renderPealimCell(past3ms, 'past_3ms', '3-е: Он', 'הוּא')}
+                {renderPealimCell(past3fs, 'past_3fs', '3-е: Она', 'הִיא')}
+                <div className="col-span-2">
+                  {renderPealimCell(past3p, 'past_3p', '3-е: Они (м./ж.)', 'הֵם / הֵן')}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* БУДУЩЕЕ ВРЕМЯ */}
+          {(activeTab === 'all' || activeTab === 'future') && (
+            <div className="bg-slate-50 dark:bg-slate-900/80 rounded-3xl p-3.5 sm:p-4 border border-slate-200 dark:border-slate-800 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 font-extrabold text-xs sm:text-sm text-purple-600 dark:text-purple-400">
+                  <Zap className="w-4 h-4" />
+                  <span>Будущее время (עָתִיד)</span>
+                </div>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-100 dark:bg-purple-950/80 text-purple-700 dark:text-purple-300">
+                  Формы будущего
+                </span>
+              </div>
+              <div className="grid grid-cols-2 gap-2 sm:gap-3">
+                {renderPealimCell(fut1s, 'fut_1s', '1-е: Я', 'אֲנִי')}
+                {renderPealimCell(fut1p, 'fut_1p', '1-е: Мы', 'אֲנַחְנוּ')}
+                {renderPealimCell(fut2ms, 'fut_2ms', '2-е: Ты м.р.', 'אַתָּה')}
+                {renderPealimCell(fut2fs, 'fut_2fs', '2-е: Ты ж.р.', 'אַתְּ')}
+                {renderPealimCell(fut2mp, 'fut_2mp', '2-е: Вы м.р.', 'אַתֶּם')}
+                {renderPealimCell(fut2fp, 'fut_2fp', '2-е: Вы ж.р.', 'אַתֶּן')}
+                {renderPealimCell(fut3ms, 'fut_3ms', '3-е: Он', 'הוּא')}
+                {renderPealimCell(fut3fs, 'fut_3fs', '3-е: Она', 'הִיא')}
+                {renderPealimCell(fut3mp, 'fut_3mp', '3-е: Они м.р.', 'הֵם')}
+                {renderPealimCell(fut3fp, 'fut_3fp', '3-е: Они ж.р.', 'הֵן')}
+              </div>
+            </div>
+          )}
+
+          {/* ПОВЕЛИТЕЛЬНОЕ НАКЛОНЕНИЕ */}
+          {impMs && (activeTab === 'all' || activeTab === 'present') && (
+            <div className="bg-slate-50 dark:bg-slate-900/80 rounded-3xl p-3.5 sm:p-4 border border-slate-200 dark:border-slate-800 space-y-3">
+              <div className="flex items-center gap-2 font-extrabold text-xs sm:text-sm text-emerald-600 dark:text-emerald-400">
+                <Sparkles className="w-4 h-4" />
+                <span>Повелительное наклонение (צִוּוּי)</span>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3">
+                {renderPealimCell(impMs, 'imp_ms', '2-е: Ты м.р.', 'אַתָּה')}
+                {renderPealimCell(impFs, 'imp_fs', '2-е: Ты ж.р.', 'אַתְּ')}
+                <div className="col-span-2 sm:col-span-1">
+                  {renderPealimCell(impP, 'imp_p', '2-е: Вы (мн.ч.)', 'אַתֶּם / אַתֶּן')}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* СЕМЬЯ КОРНЯ */}
+          {(activeTab === 'all' || activeTab === 'rootFamily') && conjugation.rootFamily && conjugation.rootFamily.length > 0 && (
+            <div className="bg-slate-50 dark:bg-slate-900/80 rounded-3xl p-3.5 sm:p-4 border border-slate-200 dark:border-slate-800 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 font-extrabold text-xs sm:text-sm text-purple-600 dark:text-purple-400">
+                  <GitBranch className="w-4 h-4" />
+                  <span>Семья корня (משפחת השורש)</span>
+                </div>
+                <span className="text-xs font-mono font-bold text-purple-600 dark:text-purple-400">
+                  שורש: {conjugation.root}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                {conjugation.rootFamily.map((rw, idx) => {
+                  const clean = stripNikkud(rw.hebrew);
+                  const isAdded =
+                    addedMap[clean] || isWordInPersonalDict(rw.hebrew, userProfile.personalVocabulary);
+                  const isSpeaking = speakingForm === `rf_${idx}`;
+
+                  return (
+                    <div
+                      key={idx}
+                      onClick={() => handleSpeak(rw.hebrew, `rf_${idx}`)}
+                      className="flex items-center justify-between p-3 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/80 hover:border-purple-400 transition cursor-pointer shadow-sm"
+                    >
+                      <div className="flex flex-col min-w-0 pr-2">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs font-bold text-slate-900 dark:text-white">
+                            {rw.translation}
+                          </span>
+                          {rw.binyan && (
+                            <span className="text-[10px] bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 px-1.5 py-0.2 rounded font-semibold">
+                              {rw.binyan}
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-[11px] text-blue-600 dark:text-blue-400 font-medium">
+                          [{rw.transcription}]
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span
+                          dir="rtl"
+                          className={`font-bold text-slate-900 dark:text-white ${
+                            isCursive ? 'font-cursive text-xl' : 'font-hebrew text-base'
+                          }`}
+                        >
+                          {userProfile.showNikkud ? rw.hebrew : rw.hebrewPlain}
+                        </span>
+
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleSpeak(rw.hebrew, `rf_${idx}`);
+                          }}
+                          className={`p-1.5 rounded-full transition ${
+                            isSpeaking
+                              ? 'bg-purple-600 text-white animate-pulse'
+                              : 'text-slate-400 hover:text-purple-600 hover:bg-purple-50 dark:hover:bg-slate-700'
+                          }`}
+                        >
+                          <Volume2 className="w-3.5 h-3.5" />
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (!isAdded) {
+                              handleAddWord({
+                                hebrew: rw.hebrew,
+                                hebrewPlain: rw.hebrewPlain,
+                                transcription: rw.transcription,
+                                translation: rw.translation,
+                                partOfSpeech: rw.partOfSpeech,
+                                root: rw.root || conjugation.root,
+                              });
+                            }
+                          }}
+                          disabled={isAdded}
+                          className={`p-1.5 rounded-xl border transition ${
+                            isAdded
+                              ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 border-emerald-300 dark:border-emerald-800'
+                              : 'bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:border-purple-400'
+                          }`}
+                        >
+                          {isAdded ? <Check className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };

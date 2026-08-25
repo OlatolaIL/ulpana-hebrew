@@ -10,12 +10,14 @@ import {
   Bot,
   CheckCircle2,
   ListTodo,
+  Phone,
 } from 'lucide-react';
 import { Lesson, UserProfile, Word } from '@/types';
 import { LessonTheory } from './LessonTheory';
 import { LessonVocabulary } from './LessonVocabulary';
 import { LessonExercises } from './LessonExercises';
 import { LessonAiChat } from './LessonAiChat';
+import { PhoneCallSimulator } from './PhoneCallSimulator';
 import { getLessonById, LESSONS_CATALOG } from '@/data/lessonsData';
 import { loadUserProfile } from '@/lib/storage';
 
@@ -28,7 +30,7 @@ interface LessonViewProps {
   onUpdateProfile: (profile: UserProfile) => void;
 }
 
-type LessonTab = 'theory' | 'vocab' | 'exercises' | 'chat';
+type LessonTab = 'theory' | 'vocab' | 'exercises' | 'chat' | 'phone';
 
 export const LessonView: React.FC<LessonViewProps> = ({
   lessonId,
@@ -128,26 +130,26 @@ export const LessonView: React.FC<LessonViewProps> = ({
         </div>
       </div>
 
-      {/* Прогресс-бар 4 этапов урока */}
+      {/* Прогресс-бар 5 этапов урока */}
       <div className="bg-white dark:bg-zinc-900 p-2.5 sm:p-3 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-xs">
         <div className="flex items-center justify-between text-xs font-semibold mb-1.5 px-0.5">
           <div className="flex items-center gap-1.5 text-zinc-700 dark:text-zinc-300">
             <span>Прогресс урока:</span>
             <span className="font-bold text-blue-600 dark:text-blue-400">
-              {completedTabs.length}/4 этапов
+              {Math.min(5, completedTabs.length)}/5 этапов
             </span>
           </div>
           <span className="text-[11px] text-zinc-500 dark:text-zinc-400">
-            {completedTabs.length === 4
+            {completedTabs.length >= 5
               ? '🎉 Урок полностью пройден!'
-              : 'Теория → Словарь → Упражнения → ИИ-чат'}
+              : 'Теория → Словарь → Упражнения → ИИ-чат → Звонок'}
           </span>
         </div>
         <div className="w-full h-2 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden flex">
           <div
-            style={{ width: `${(completedTabs.length / 4) * 100}%` }}
+            style={{ width: `${(Math.min(5, completedTabs.length) / 5) * 100}%` }}
             className={`h-full transition-all duration-300 rounded-full ${
-              completedTabs.length === 4
+              completedTabs.length >= 5
                 ? 'bg-emerald-500'
                 : 'bg-gradient-to-r from-blue-600 to-indigo-600'
             }`}
@@ -155,11 +157,11 @@ export const LessonView: React.FC<LessonViewProps> = ({
         </div>
       </div>
 
-      {/* Вкладки урока (адаптивная сетка 4 табов) */}
-      <div className="grid grid-cols-4 gap-1 p-1 bg-zinc-100 dark:bg-zinc-800/70 rounded-2xl border border-zinc-200 dark:border-zinc-700/60">
+      {/* Вкладки урока (адаптивная сетка 5 табов) */}
+      <div className="grid grid-cols-5 gap-1 p-1 bg-zinc-100 dark:bg-zinc-800/70 rounded-2xl border border-zinc-200 dark:border-zinc-700/60">
         <button
           onClick={() => setActiveTab('theory')}
-          className={`py-2 px-1 sm:px-2.5 rounded-xl font-semibold text-xs sm:text-sm flex items-center justify-center gap-1 transition cursor-pointer ${
+          className={`py-2 px-1 sm:px-2 rounded-xl font-semibold text-[11px] sm:text-sm flex items-center justify-center gap-1 transition cursor-pointer ${
             activeTab === 'theory'
               ? 'bg-white dark:bg-zinc-900 text-blue-600 dark:text-blue-400 shadow-sm font-bold'
               : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200'
@@ -168,43 +170,43 @@ export const LessonView: React.FC<LessonViewProps> = ({
           <BookOpen className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
           <span className="truncate">Теория</span>
           {completedTabs.includes('theory') && (
-            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+            <CheckCircle2 className="w-3 h-3 text-emerald-500 shrink-0" />
           )}
         </button>
 
         <button
           onClick={() => setActiveTab('vocab')}
-          className={`py-2 px-1 sm:px-2.5 rounded-xl font-semibold text-xs sm:text-sm flex items-center justify-center gap-1 transition cursor-pointer ${
+          className={`py-2 px-1 sm:px-2 rounded-xl font-semibold text-[11px] sm:text-sm flex items-center justify-center gap-1 transition cursor-pointer ${
             activeTab === 'vocab'
               ? 'bg-white dark:bg-zinc-900 text-blue-600 dark:text-blue-400 shadow-sm font-bold'
               : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200'
           }`}
         >
           <Layers className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
-          <span className="truncate">Словарь <span className="text-[10px] opacity-75 hidden sm:inline">({lesson.vocabulary.length})</span></span>
+          <span className="truncate">Словарь <span className="text-[10px] opacity-75 hidden md:inline">({lesson.vocabulary.length})</span></span>
           {completedTabs.includes('vocab') && (
-            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+            <CheckCircle2 className="w-3 h-3 text-emerald-500 shrink-0" />
           )}
         </button>
 
         <button
           onClick={() => setActiveTab('exercises')}
-          className={`py-2 px-1 sm:px-2.5 rounded-xl font-semibold text-xs sm:text-sm flex items-center justify-center gap-1 transition cursor-pointer ${
+          className={`py-2 px-1 sm:px-2 rounded-xl font-semibold text-[11px] sm:text-sm flex items-center justify-center gap-1 transition cursor-pointer ${
             activeTab === 'exercises'
               ? 'bg-white dark:bg-zinc-900 text-blue-600 dark:text-blue-400 shadow-sm font-bold'
               : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200'
           }`}
         >
           <ListTodo className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
-          <span className="truncate">Упражнения</span>
+          <span className="truncate">Тесты</span>
           {completedTabs.includes('exercises') && (
-            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+            <CheckCircle2 className="w-3 h-3 text-emerald-500 shrink-0" />
           )}
         </button>
 
         <button
           onClick={() => setActiveTab('chat')}
-          className={`py-2 px-1 sm:px-2.5 rounded-xl font-semibold text-xs sm:text-sm flex items-center justify-center gap-1 transition cursor-pointer ${
+          className={`py-2 px-1 sm:px-2 rounded-xl font-semibold text-[11px] sm:text-sm flex items-center justify-center gap-1 transition cursor-pointer ${
             activeTab === 'chat'
               ? 'bg-white dark:bg-zinc-900 text-purple-600 dark:text-purple-400 shadow-sm font-bold'
               : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200'
@@ -213,7 +215,22 @@ export const LessonView: React.FC<LessonViewProps> = ({
           <Bot className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-purple-500 shrink-0" />
           <span className="truncate">ИИ-чат</span>
           {completedTabs.includes('chat') && (
-            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+            <CheckCircle2 className="w-3 h-3 text-emerald-500 shrink-0" />
+          )}
+        </button>
+
+        <button
+          onClick={() => setActiveTab('phone')}
+          className={`py-2 px-1 sm:px-2 rounded-xl font-semibold text-[11px] sm:text-sm flex items-center justify-center gap-1 transition cursor-pointer ${
+            activeTab === 'phone'
+              ? 'bg-white dark:bg-zinc-900 text-emerald-600 dark:text-emerald-400 shadow-sm font-bold'
+              : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200'
+          }`}
+        >
+          <Phone className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-500 shrink-0" />
+          <span className="truncate">Звонок</span>
+          {completedTabs.includes('phone') && (
+            <CheckCircle2 className="w-3 h-3 text-emerald-500 shrink-0" />
           )}
         </button>
       </div>
@@ -255,6 +272,16 @@ export const LessonView: React.FC<LessonViewProps> = ({
             userProfile={userProfile}
             onUpdateProfile={onUpdateProfile}
             onWordAdded={() => onUpdateProfile(loadUserProfile())}
+          />
+        )}
+
+        {activeTab === 'phone' && (
+          <PhoneCallSimulator
+            lesson={lesson}
+            userProfile={userProfile}
+            onUpdateProfile={onUpdateProfile}
+            onWordAdded={() => onUpdateProfile(loadUserProfile())}
+            onBackToLesson={() => setActiveTab('theory')}
           />
         )}
       </div>

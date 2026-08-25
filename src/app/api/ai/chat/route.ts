@@ -17,6 +17,8 @@ interface ChatRequestBody {
   grammarTopic?: string;
   provider?: 'groq' | 'gemini';
   apiKey?: string;
+  isPhoneCall?: boolean;
+  systemPromptAddition?: string;
 }
 
 function normalizeResponse(parsed: any) {
@@ -70,6 +72,8 @@ export async function POST(req: NextRequest) {
       grammarTopic,
       provider = 'groq',
       apiKey,
+      isPhoneCall = false,
+      systemPromptAddition = '',
     } = body;
 
     // 1. Проверка авторизации: уроки 1-3 бесплатны для всех, уроки 4+ требуют сессии
@@ -131,12 +135,18 @@ export async function POST(req: NextRequest) {
       ? 'Ученик — ЖЕНЩИНА (נקבה). Обращайся к ученице строго в женском роде (את רוצה, את אוהבת, נעים להכיר אותך [отáх], מה שלומך [шломéх], תרצי להזמין משהו [тирцӣ]). Ответы от неё в подсказках тоже строго женского рода (אני רוצה, אני גרה, קוראים לי...).'
       : 'Ученик — МУЖЧИНА (זכר). Обращайся к ученику строго в мужском роде (אתה רוצה, אתה אוהב, נעים להכיר אותך [отхá], מה שלומך [шломхá], תרצה להזמין משהו [тирцé]). Ответы от него в подсказках тоже строго мужского рода (אני רוצה, אני גר, קוראים לי...).';
 
+    const phoneContext = isPhoneCall
+      ? 'РЕЖИМ ТЕЛЕФОННОГО ЗВОНКА (PHONE CALL): Это разговор по телефону. Отвечай кратко, естественно и лаконично (1-2 короткие реплики), как реальный израильтянин по громкой связи. Используй характерные телефонные связки (הלו, כן, רגע, בסדר, מעולה).'
+      : '';
+
     const systemPrompt = `Ты — добрый, живой и поддерживающий собеседник-израильтянин в ролевом диалоге на иврите. Твоя роль: ${aiRole}.
 Сейчас проходит урок №${lessonNumber} (уровень ${level === 'alef' ? 'Алеф' : 'Бет'}).
 Ситуация и место действия: "${situation}".
 Роль ученика: "${userRole}".
 ${genderInstruction}
 ${levelConstraint}
+${phoneContext}
+${systemPromptAddition ? `ДОПОЛНИТЕЛЬНЫЕ ИНСТРУКЦИИ: ${systemPromptAddition}` : ''}
 Цели диалога: ${goals.join('; ')}.
 
 КРИТИЧЕСКИЕ ПРАВИЛА ВЫВОДА ЯЗЫКОВ:

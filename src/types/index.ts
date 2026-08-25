@@ -136,18 +136,41 @@ export interface Exercise {
   explanation?: string;
 }
 
+export interface PhoneScenario {
+  callerName: string; // 'דני - שליח וולט'
+  callerNameRu: string; // 'Дани (курьер Wolt)'
+  callerRole: string; // 'Курьер доставки'
+  avatarEmoji: string; // '🛵'
+  situationSummary: string; // Краткое описание ситуации перед звонком
+  initialGreeting: {
+    hebrew: string;
+    transcription: string;
+    translation: string;
+  };
+  goals: string[]; // Задачи звонка (напр. 'Сказать номер подъезда', 'Попросить оставить у двери')
+  suggestedReplies?: Array<{
+    hebrew: string;
+    transcription: string;
+    translation: string;
+  }>;
+  vocabularyHints?: string[];
+  systemPromptAddition?: string; // Дополнительные инструкции для LLM
+}
+
 export interface Lesson {
   id: number;
   level: Level;
   number: number; // 1 - 100
   titleHebrew: string;
   titleRussian: string;
+  titleRu?: string; // alias для обратной совместимости
   category: string;
   description: string;
   grammar: GrammarTopic[];
   vocabulary: Word[];
   basicSentences: Sentence[];
   dialogue: DialogueScenario;
+  phoneScenario?: PhoneScenario;
   exercises: Exercise[];
 }
 
@@ -201,7 +224,7 @@ export interface PromoCode {
 }
 
 export interface LessonProgress {
-  completedTabs: string[]; // 'theory', 'vocab', 'sentences', 'chat', 'exercises'
+  completedTabs: string[]; // 'theory', 'vocab', 'sentences', 'chat', 'exercises', 'phone'
   isCompleted: boolean;
   score?: number;
   lastVisited: number;
@@ -225,9 +248,11 @@ export interface UserProfile {
   fontStyle: 'print' | 'cursive';
   speechRate?: number; // 0.5 - 1.0 (по умолчанию 0.7 для начинающих)
   completedLessons: number[];
+  currentLesson?: number;
   lessonProgress: Record<number, LessonProgress>;
   personalVocabulary: Word[];
   flashcardStats: Record<string, FlashcardProgress>;
+  flashcardProgress?: Record<string, FlashcardProgress>;
 }
 
 export interface ConjugationForm {
@@ -280,6 +305,7 @@ export interface WordMasteryInfo {
   label: string; // "Новое" | "В процессе" | "Закреплено" | "Выучено"
   colorClass: string;
   badgeBg: string;
+  badgeColor?: string;
   isDue: boolean;
   repetitions: number;
   intervalDays: number;
