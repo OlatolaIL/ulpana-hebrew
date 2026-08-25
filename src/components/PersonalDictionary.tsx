@@ -10,6 +10,8 @@ import {
   Layers,
   Sparkles,
   ExternalLink,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 import { Word, UserProfile } from '@/types';
 import { speakHebrew } from '@/lib/speech';
@@ -31,6 +33,7 @@ export const PersonalDictionary: React.FC<PersonalDictionaryProps> = ({
   onStartPractice,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
+  const [revealedRoots, setRevealedRoots] = useState<Record<string, boolean>>({});
   const [isAddingCustom, setIsAddingCustom] = useState(false);
   const [newHebrew, setNewHebrew] = useState('');
   const [newTranscription, setNewTranscription] = useState('');
@@ -203,9 +206,42 @@ export const PersonalDictionary: React.FC<PersonalDictionaryProps> = ({
 
               <div className="flex items-center gap-2">
                 {word.root && (
-                  <span className={`hidden sm:inline-block px-2 py-0.5 rounded text-[11px] bg-amber-50 dark:bg-amber-950/50 text-amber-800 dark:text-amber-300 ${isCursive ? 'font-cursive text-base' : 'font-mono'}`}>
-                    {word.root}
-                  </span>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setRevealedRoots((prev) => ({
+                        ...prev,
+                        [word.id]: !prev[word.id],
+                      }))
+                    }
+                    className={`hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] border transition-all cursor-pointer group ${
+                      revealedRoots[word.id]
+                        ? 'bg-amber-50 dark:bg-amber-950/50 border-amber-200/80 dark:border-amber-900/50 text-amber-800 dark:text-amber-300'
+                        : 'bg-zinc-100/80 dark:bg-zinc-800/80 border-dashed border-zinc-300 dark:border-zinc-700 hover:border-amber-300 text-zinc-600 dark:text-zinc-300'
+                    }`}
+                    title={
+                      revealedRoots[word.id]
+                        ? 'Нажмите, чтобы скрыть корень (блюр)'
+                        : 'Нажмите, чтобы показать корень'
+                    }
+                  >
+                    <span className="text-[10px] text-zinc-400">Шореш:</span>
+                    <span
+                      dir="rtl"
+                      className={`transition-all duration-300 select-none ${
+                        revealedRoots[word.id]
+                          ? 'blur-none font-bold'
+                          : 'blur-[4px] group-hover:blur-[2px]'
+                      } ${isCursive ? 'font-cursive text-base' : 'font-mono'}`}
+                    >
+                      {word.root}
+                    </span>
+                    {revealedRoots[word.id] ? (
+                      <EyeOff className="w-3 h-3 text-zinc-400 opacity-60 group-hover:opacity-100 transition-opacity" />
+                    ) : (
+                      <Eye className="w-3 h-3 text-amber-600 dark:text-amber-400 opacity-70 group-hover:opacity-100 transition-opacity" />
+                    )}
+                  </button>
                 )}
                 <button
                   onClick={() => handleDelete(word.id)}

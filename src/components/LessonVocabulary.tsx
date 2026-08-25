@@ -10,6 +10,8 @@ import {
   Play,
   Layers,
   Filter,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 import { Word, UserProfile, PartOfSpeech } from '@/types';
 import { speakHebrew } from '@/lib/speech';
@@ -33,6 +35,7 @@ export const LessonVocabulary: React.FC<LessonVocabularyProps> = ({
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedPos, setSelectedPos] = useState<string>('all');
+  const [revealedRoots, setRevealedRoots] = useState<Record<string, boolean>>({});
 
   const filteredWords = words.filter((w) => {
     const q = searchQuery.toLowerCase().trim();
@@ -48,6 +51,20 @@ export const LessonVocabulary: React.FC<LessonVocabularyProps> = ({
     const matchesPos = selectedPos === 'all' || w.partOfSpeech === selectedPos;
     return matchesSearch && matchesPos;
   });
+
+  const wordsWithRoots = filteredWords.filter((w) => Boolean(w.root));
+  const allRevealed =
+    wordsWithRoots.length > 0 &&
+    wordsWithRoots.every((w) => Boolean(revealedRoots[w.id]));
+
+  const handleToggleAllRoots = () => {
+    const nextState = !allRevealed;
+    const nextMap: Record<string, boolean> = { ...revealedRoots };
+    wordsWithRoots.forEach((w) => {
+      nextMap[w.id] = nextState;
+    });
+    setRevealedRoots(nextMap);
+  };
 
   const handleToggleDict = (word: Word) => {
     const cleanWordHeb = stripNikkud(word.hebrew);
@@ -131,6 +148,26 @@ export const LessonVocabulary: React.FC<LessonVocabularyProps> = ({
         </div>
 
         <div className="flex items-center gap-2">
+          {wordsWithRoots.length > 0 && (
+            <button
+              type="button"
+              onClick={handleToggleAllRoots}
+              className={`px-3 py-2 rounded-xl border text-xs sm:text-sm font-medium flex items-center justify-center gap-1.5 transition ${
+                allRevealed
+                  ? 'border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300'
+                  : 'border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700'
+              }`}
+              title={allRevealed ? 'Скрыть все корни (включить блюр)' : 'Показать все корни'}
+            >
+              {allRevealed ? (
+                <EyeOff className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+              ) : (
+                <Eye className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+              )}
+              <span className="hidden sm:inline">{allRevealed ? 'Скрыть корни' : 'Показать корни'}</span>
+            </button>
+          )}
+
           {onStartPractice && (
             <button
               onClick={() => onStartPractice(filteredWords)}
@@ -149,6 +186,7 @@ export const LessonVocabulary: React.FC<LessonVocabularyProps> = ({
           const inDict = (userProfile.personalVocabulary || []).some(
             (pw) => stripNikkud(pw.hebrew) === stripNikkud(word.hebrew)
           );
+          const isRootRevealed = Boolean(revealedRoots[word.id]);
 
           return (
             <div
@@ -211,10 +249,42 @@ export const LessonVocabulary: React.FC<LessonVocabularyProps> = ({
                 <div className="mt-4 pt-3 border-t border-zinc-100 dark:border-zinc-800/80 space-y-1.5">
                   {word.root && (
                     <div className="flex items-center gap-1.5 text-xs text-amber-700 dark:text-amber-400">
-                      <span className="text-[11px] text-zinc-400">Шореш (корень):</span>
-                      <span dir="rtl" className={`font-bold ${isCursive ? 'font-cursive text-xl' : ''}`}>
-                        {word.root}
-                      </span>
+                      <span className="text-[11px] text-zinc-400">Шореш:</span>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setRevealedRoots((prev) => ({
+                            ...prev,
+                            [word.id]: !prev[word.id],
+                          }))
+                        }
+                        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg border transition-all duration-200 cursor-pointer group text-left ${
+                          isRootRevealed
+                            ? 'bg-amber-50 dark:bg-amber-950/50 border-amber-200/80 dark:border-amber-900/50 text-amber-800 dark:text-amber-200'
+                            : 'bg-zinc-100/80 dark:bg-zinc-800/80 border-dashed border-zinc-300 dark:border-zinc-700 hover:border-amber-300 dark:hover:border-amber-700 text-zinc-600 dark:text-zinc-300'
+                        }`}
+                        title={
+                          isRootRevealed
+                            ? 'Нажмите, чтобы скрыть корень (блюр)'
+                            : 'Нажмите, чтобы показать корень'
+                        }
+                      >
+                        <span
+                          dir="rtl"
+                          className={`font-bold transition-all duration-300 select-none ${
+                            isRootRevealed
+                              ? 'blur-none'
+                              : 'blur-[5px] group-hover:blur-[3px]'
+                          } ${isCursive ? 'font-cursive text-xl' : ''}`}
+                        >
+                          {word.root}
+                        </span>
+                        {isRootRevealed ? (
+                          <EyeOff className="w-3 h-3 text-zinc-400 opacity-60 group-hover:opacity-100 transition-opacity ml-0.5" />
+                        ) : (
+                          <Eye className="w-3 h-3 text-amber-600 dark:text-amber-400 opacity-70 group-hover:opacity-100 transition-opacity ml-0.5" />
+                        )}
+                      </button>
                     </div>
                   )}
 
