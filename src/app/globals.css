@@ -72,3 +72,24 @@ body {
   text-align: left;
   unicode-bidi: isolate;
 }
+
+/* Мобильные PWA улучшения и поддержка Safe Area (вырезы и нижняя полоска iPhone) */
+html {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+body {
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
+  overscroll-behavior-y: none;
+}
+
+/* Отключение случайного выделения текста при быстрых тапах в PWA */
+button, nav, header {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
