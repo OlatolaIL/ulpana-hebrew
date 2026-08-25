@@ -535,12 +535,25 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
                   {userProfile.ulpanMode ? 'עִבְרִית (לחצו להצגת מידע)' : 'Иврит (нажмите для перевода)'}
                 </span>
 
-                {/* Пиктограмма */}
-                {getHebrewPictogram(currentWord.hebrew) && (
-                  <div className="text-4xl sm:text-5xl select-none my-1 animate-in zoom-in-75">
-                    {getHebrewPictogram(currentWord.hebrew)}
-                  </div>
-                )}
+                {/* Пиктограмма со стилями */}
+                {getHebrewPictogram(currentWord.hebrew) && (() => {
+                  const icon = getHebrewPictogram(currentWord.hebrew)!;
+                  const isMale = icon.includes('♂');
+                  const isFemale = icon.includes('♀');
+                  return (
+                    <div
+                      className={`inline-flex items-center justify-center text-2xl sm:text-3xl px-4 py-1.5 rounded-2xl border font-bold select-none my-1 shadow-xs animate-in zoom-in-75 ${
+                        isMale
+                          ? 'bg-sky-50 dark:bg-sky-950/60 text-sky-600 dark:text-sky-300 border-sky-200 dark:border-sky-800'
+                          : isFemale
+                          ? 'bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-300 border-rose-200 dark:border-rose-800'
+                          : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border-zinc-200 dark:border-zinc-700'
+                      }`}
+                    >
+                      {icon}
+                    </div>
+                  );
+                })()}
 
                 <div
                   dir="rtl"
@@ -564,11 +577,24 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
                   {userProfile.ulpanMode ? 'פֵּרוּשׁ וּפְרָטִים' : 'Перевод и детали'}
                 </span>
 
-                {getHebrewPictogram(currentWord.hebrew) && (
-                  <div className="text-3xl sm:text-4xl select-none">
-                    {getHebrewPictogram(currentWord.hebrew)}
-                  </div>
-                )}
+                {getHebrewPictogram(currentWord.hebrew) && (() => {
+                  const icon = getHebrewPictogram(currentWord.hebrew)!;
+                  const isMale = icon.includes('♂');
+                  const isFemale = icon.includes('♀');
+                  return (
+                    <div
+                      className={`inline-flex items-center justify-center text-xl sm:text-2xl px-3 py-1 rounded-xl border font-bold select-none shadow-xs ${
+                        isMale
+                          ? 'bg-sky-50 dark:bg-sky-950/60 text-sky-600 dark:text-sky-300 border-sky-200 dark:border-sky-800'
+                          : isFemale
+                          ? 'bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-300 border-rose-200 dark:border-rose-800'
+                          : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border-zinc-200 dark:border-zinc-700'
+                      }`}
+                    >
+                      {icon}
+                    </div>
+                  );
+                })()}
 
                 <div className="text-xl sm:text-3xl font-bold text-zinc-900 dark:text-zinc-100">
                   {currentWord.translation}

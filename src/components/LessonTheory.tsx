@@ -6,7 +6,7 @@ import { Lesson, UserProfile } from '@/types';
 import { speakHebrew } from '@/lib/speech';
 import { markLessonTabCompleted } from '@/lib/storage';
 import { stripNikkud } from '@/lib/transcription';
-import { getHebrewPictogram, getHebrewGenderLabel } from '@/lib/pictograms';
+import { getHebrewPictogram, getHebrewGenderLabel, getPictogramDetails } from '@/lib/pictograms';
 
 interface LessonTheoryProps {
   lesson: Lesson;
@@ -130,22 +130,22 @@ export const LessonTheory: React.FC<LessonTheoryProps> = ({
                         const translation = row[2] || row[1] || '';
                         const genderRaw = row[3] || (row[1]?.includes('муж') ? 'זכר' : row[1]?.includes('жен') ? 'נקבה' : 'כללי');
                         const genderInfo = getHebrewGenderLabel(genderRaw);
-                        const pictogram = getHebrewPictogram(hebrewWord) || '💬';
+                        const details = getPictogramDetails(hebrewWord, genderRaw);
                         const hintKey = `hint-${i}-${tIdx}-${rIdx}`;
                         const isHintRevealed = Boolean(revealedHints[hintKey]);
 
                         return (
                           <div
                             key={rIdx}
-                            className="bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200/80 dark:border-zinc-700/60 rounded-2xl p-3.5 flex flex-col justify-between hover:border-emerald-400 dark:hover:border-emerald-600 transition shadow-xs group"
+                            className={`border rounded-2xl p-3.5 flex flex-col justify-between hover:scale-[1.01] transition shadow-xs group ${details.bgClass} ${details.borderClass}`}
                           >
                             <div className="flex items-start justify-between gap-2">
-                              {/* Пиктограмма */}
-                              <div className="text-3xl select-none p-1.5 rounded-xl bg-white dark:bg-zinc-800 border border-zinc-200/60 dark:border-zinc-700/60 shadow-xs">
-                                {pictogram}
+                              {/* Стильная направленная пиктограмма с цветовым акцентом */}
+                              <div className={`px-2.5 py-1 rounded-xl font-bold text-base sm:text-lg border shadow-xs select-none bg-white/90 dark:bg-zinc-800/90 ${details.textClass} ${details.borderClass}`}>
+                                {details.icon}
                               </div>
 
-                              {/* Бейдж рода */}
+                              {/* Цветной бейдж рода (Голубой ♂ / Розовый ♀ / Индиго ⚥) */}
                               <span className={`px-2 py-0.5 rounded-lg text-[11px] font-bold border ${genderInfo.badgeClass}`}>
                                 {genderInfo.label} {genderInfo.icon}
                               </span>
@@ -155,7 +155,7 @@ export const LessonTheory: React.FC<LessonTheoryProps> = ({
                             <div className="my-2.5">
                               <div
                                 dir="rtl"
-                                className={`font-bold text-xl sm:text-2xl text-zinc-900 dark:text-zinc-50 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition ${
+                                className={`font-bold text-xl sm:text-2xl text-zinc-900 dark:text-zinc-50 transition ${
                                   isCursive ? 'font-cursive text-3xl' : 'font-hebrew'
                                 }`}
                               >

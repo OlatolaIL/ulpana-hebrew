@@ -287,7 +287,15 @@ export const LessonVocabulary: React.FC<LessonVocabularyProps> = ({
                     {userProfile.showNikkud ? word.hebrew : word.hebrewPlain}
                   </div>
                   {pictogram && (
-                    <div className="text-2xl sm:text-3xl select-none p-1 rounded-xl bg-zinc-100 dark:bg-zinc-800/80 shrink-0">
+                    <div
+                      className={`text-base sm:text-lg select-none px-2.5 py-1 rounded-xl border font-bold shrink-0 ${
+                        pictogram.includes('♂')
+                          ? 'bg-sky-50 dark:bg-sky-950/50 text-sky-700 dark:text-sky-300 border-sky-200 dark:border-sky-800/60'
+                          : pictogram.includes('♀')
+                          ? 'bg-rose-50 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800/60'
+                          : 'bg-zinc-100 dark:bg-zinc-800/80 text-zinc-700 dark:text-zinc-200 border-zinc-200 dark:border-zinc-700'
+                      }`}
+                    >
                       {pictogram}
                     </div>
                   )}
