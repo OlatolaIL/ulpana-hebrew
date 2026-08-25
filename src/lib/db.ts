@@ -113,9 +113,7 @@ export async function initDatabase() {
         INSERT INTO ulpana_promo_codes (id, code, days_valid, max_uses, used_count, is_active)
         VALUES
           ('promo-1', 'ULPANA2026', 30, 1000, 0, true),
-          ('promo-2', 'SHALOM_PRO', 365, 500, 0, true),
-          ('promo-3', 'MAZAL_TOV', 90, 500, 0, true),
-          ('promo-4', 'ADMIN_VIP', 3650, 10, 0, true)
+          ('promo-2', 'MAZAL_TOV', 90, 500, 0, true)
         ON CONFLICT (code) DO NOTHING;
       `);
     }

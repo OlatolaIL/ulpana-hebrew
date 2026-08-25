@@ -18,6 +18,32 @@ import { isVipUser, VIP_EXPIRES_AT, applyVipProfileEnhancements } from '@/lib/vi
 
 type ViewMode = 'map' | 'lesson' | 'flashcards' | 'dictionary' | 'alphabet';
 
+function getTelegramInitData(): string | null {
+  if (typeof window === 'undefined') return null;
+
+  const tg = (window as any).Telegram?.WebApp;
+  if (tg?.initData) {
+    return tg.initData;
+  }
+
+  try {
+    const hash = window.location.hash.slice(1);
+    if (hash) {
+      const params = new URLSearchParams(hash);
+      const tgWebAppData = params.get('tgWebAppData');
+      if (tgWebAppData) return tgWebAppData;
+    }
+  } catch {}
+
+  try {
+    const searchParams = new URLSearchParams(window.location.search);
+    const tgWebAppData = searchParams.get('tgWebAppData');
+    if (tgWebAppData) return tgWebAppData;
+  } catch {}
+
+  return null;
+}
+
 function getTelegramUser(): any | null {
   if (typeof window === 'undefined') return null;
 
@@ -109,7 +135,7 @@ export default function Home() {
     setProfile(p);
     initHebrewVoices();
 
-    const handleTgUserFound = (u: any) => {
+    const handleTgUserFound = (u: any, initData?: string | null) => {
       const fullName = [u.first_name, u.last_name].filter(Boolean).join(' ') || (u.username ? `@${u.username}` : 'Ученик');
       const instantProfile: UserProfile = applyVipProfileEnhancements({
         ...p,
@@ -123,33 +149,29 @@ export default function Home() {
       setProfile(instantProfile);
       saveUserProfile(instantProfile);
 
-      fetch('/api/auth/telegram', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          id: u.id,
-          first_name: u.first_name,
-          last_name: u.last_name,
-          username: u.username,
-          photo_url: u.photo_url,
-          auth_date: Math.floor(Date.now() / 1000),
-          hash: 'webapp_validated',
-        }),
-      }).catch((err) => console.warn('[WebApp Auth BG] Error:', err));
+      if (initData) {
+        fetch('/api/auth/telegram', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ initData }),
+        }).catch((err) => console.warn('[WebApp Auth BG] Error:', err));
+      }
     };
 
     // 1. Проверяем Telegram WebApp немедленно или с повторными попытками
     const initialTgUser = getTelegramUser();
+    const initialInitData = getTelegramInitData();
     if (initialTgUser) {
-      handleTgUserFound(initialTgUser);
+      handleTgUserFound(initialTgUser, initialInitData);
     } else {
       let attempts = 0;
       const tgInterval = setInterval(() => {
         attempts++;
         const delayedTgUser = getTelegramUser();
+        const delayedInitData = getTelegramInitData();
         if (delayedTgUser) {
           clearInterval(tgInterval);
-          handleTgUserFound(delayedTgUser);
+          handleTgUserFound(delayedTgUser, delayedInitData);
         } else if (attempts >= 20) {
           clearInterval(tgInterval);
         }

@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { lookupOfflineWord } from '@/lib/ulpanDictionary';
 import { DETAILED_LESSONS } from '@/data/lessonsData';
 import { stripNikkud } from '@/lib/transcription';
+import { verifySessionToken } from '@/lib/auth';
+import { checkRateLimit } from '@/lib/rateLimit';
 
 function normalizeLookup(parsed: any, defaultWord: string) {
   return {
@@ -38,6 +40,27 @@ function normalizeLookup(parsed: any, defaultWord: string) {
 
 export async function POST(req: NextRequest) {
   try {
+    // 1. Проверка авторизации
+    const sessionCookie = req.cookies.get('ulpana_session')?.value;
+    const session = sessionCookie ? await verifySessionToken(sessionCookie) : null;
+    if (!session) {
+      return NextResponse.json(
+        { error: 'Unauthorized: Требуется авторизация для поиска слов' },
+        { status: 401 }
+      );
+    }
+
+    // 2. Ограничение частоты запросов
+    const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || session.id;
+    const rateLimitKey = `ai_lookup_${session.id || clientIp}`;
+    const rl = checkRateLimit(rateLimitKey, { limit: 40, windowMs: 60 * 1000 });
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { error: `Слишком много запросов. Подождите ${rl.resetInSeconds} сек.` },
+        { status: 429 }
+      );
+    }
+
     const { word, context, provider = 'groq', apiKey } = await req.json();
 
     if (!word) {

@@ -1,4 +1,4 @@
-﻿import crypto from 'crypto';
+import crypto from 'crypto';
 import { SignJWT, jwtVerify } from 'jose';
 import { UserSession } from '@/types';
 
@@ -51,6 +51,96 @@ export function verifyTelegramAuth(data: TelegramAuthData, botToken: string): bo
     .digest('hex');
 
   return hmac === hash;
+}
+
+export interface TelegramWebAppUser {
+  id: number;
+  first_name?: string;
+  last_name?: string;
+  username?: string;
+  language_code?: string;
+  is_premium?: boolean;
+  photo_url?: string;
+}
+
+export interface TelegramWebAppDataResult {
+  isValid: boolean;
+  user?: TelegramWebAppUser;
+  authDate?: number;
+  queryId?: string;
+}
+
+/**
+ * Валидация подписи Telegram Mini Apps (initData) по официальному стандарту Telegram
+ */
+export function verifyTelegramWebAppData(initData: string, botToken: string): TelegramWebAppDataResult {
+  if (!botToken || !initData) {
+    return { isValid: false };
+  }
+
+  try {
+    const params = new URLSearchParams(initData);
+    const hash = params.get('hash');
+    if (!hash) {
+      return { isValid: false };
+    }
+
+    // 1. Сортируем все параметры кроме hash
+    const checkArr: string[] = [];
+    const keys = Array.from(params.keys())
+      .filter((k) => k !== 'hash')
+      .sort();
+
+    for (const key of keys) {
+      const val = params.get(key);
+      if (val !== null) {
+        checkArr.push(`${key}=${val}`);
+      }
+    }
+
+    const dataCheckString = checkArr.join('\n');
+
+    // 2. Secret Key = HMAC_SHA256("WebAppData", botToken)
+    const secretKey = crypto
+      .createHmac('sha256', 'WebAppData')
+      .update(botToken)
+      .digest();
+
+    // 3. Calculated Hash = HMAC_SHA256(secretKey, dataCheckString)
+    const calculatedHash = crypto
+      .createHmac('sha256', secretKey)
+      .update(dataCheckString)
+      .digest('hex');
+
+    if (calculatedHash !== hash) {
+      return { isValid: false };
+    }
+
+    // 4. Проверяем срок давности (до 48 часов)
+    const authDateStr = params.get('auth_date');
+    const authDate = authDateStr ? parseInt(authDateStr, 10) : 0;
+    const now = Math.floor(Date.now() / 1000);
+    if (authDate > 0 && now - authDate > 172800) {
+      return { isValid: false };
+    }
+
+    let user: TelegramWebAppUser | undefined;
+    const userStr = params.get('user');
+    if (userStr) {
+      try {
+        user = JSON.parse(userStr);
+      } catch {}
+    }
+
+    return {
+      isValid: true,
+      user,
+      authDate,
+      queryId: params.get('query_id') || undefined,
+    };
+  } catch {
+    return { isValid: false };
+  }
 }
 
 /**

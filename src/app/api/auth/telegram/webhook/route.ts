@@ -8,6 +8,15 @@ const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '8857824092:AAE3sCbuElBPEctB
 
 export async function POST(req: NextRequest) {
   try {
+    // Проверка секретного токена вебхука Telegram
+    const webhookSecret = process.env.TELEGRAM_WEBHOOK_SECRET;
+    if (webhookSecret) {
+      const headerSecret = req.headers.get('x-telegram-bot-api-secret-token');
+      if (headerSecret !== webhookSecret) {
+        return NextResponse.json({ error: 'Unauthorized webhook' }, { status: 401 });
+      }
+    }
+
     const update = await req.json();
     const message = update.message;
 
@@ -130,12 +139,20 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// GET-запрос для быстрой регистрации Webhook
-export async function GET() {
+// GET-запрос для регистрации Webhook (требует секретный ключ)
+export async function GET(req: NextRequest) {
   try {
+    const { searchParams } = new URL(req.url);
+    const secret = searchParams.get('secret');
+    const webhookSecret = process.env.TELEGRAM_WEBHOOK_SECRET;
+
+    if (!webhookSecret || secret !== webhookSecret) {
+      return NextResponse.json({ error: 'Forbidden: Invalid or missing secret' }, { status: 403 });
+    }
+
     const webhookUrl = 'https://ulpana-hebrew.vercel.app/api/auth/telegram/webhook';
     const res = await fetch(
-      `https://api.telegram.org/bot${BOT_TOKEN}/setWebhook?url=${encodeURIComponent(webhookUrl)}`
+      `https://api.telegram.org/bot${BOT_TOKEN}/setWebhook?url=${encodeURIComponent(webhookUrl)}&secret_token=${encodeURIComponent(webhookSecret)}`
     );
     const data = await res.json();
     return NextResponse.json(data);

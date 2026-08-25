@@ -1,36 +1,37 @@
 import { UserProfile } from '@/types';
 
-export const VIP_IDENTIFIERS = [
+export const ADMIN_TELEGRAM_IDS: number[] = [
+  8215851, // Telegram ID of the administrator (@osa_il)
+];
+
+export const ADMIN_USERNAMES: string[] = [
   'osa_il',
-  'osa-il',
-  'osail',
   'olatola',
   'azrie',
-  '8215851',
 ];
 
 export const VIP_EXPIRES_AT = 2088000000000; // 2036 year (~10 years)
 
+/**
+ * Строгая проверка прав администратора/VIP
+ * Проверяется строго числовой Telegram ID либо точный username (без нечеткого поиска)
+ */
 export function isVipUser(
   username?: string | null,
   telegramId?: number | string | null,
-  name?: string | null
+  _name?: string | null
 ): boolean {
-  if (telegramId) {
-    const idStr = String(telegramId).trim();
-    if (idStr.includes('8215851') || VIP_IDENTIFIERS.includes(idStr)) {
+  if (telegramId !== undefined && telegramId !== null) {
+    const numericId = typeof telegramId === 'number' ? telegramId : parseInt(String(telegramId).trim(), 10);
+    if (!isNaN(numericId) && ADMIN_TELEGRAM_IDS.includes(numericId)) {
       return true;
     }
   }
 
-  const fields = [username, name].filter(Boolean) as string[];
-  for (const field of fields) {
-    const clean = field.toLowerCase().replace(/[@\s_-]/g, '').trim();
-    for (const vip of VIP_IDENTIFIERS) {
-      const cleanVip = vip.toLowerCase().replace(/[@\s_-]/g, '').trim();
-      if (clean.includes(cleanVip) || cleanVip.includes(clean)) {
-        return true;
-      }
+  if (username) {
+    const clean = username.toLowerCase().replace(/^@/, '').trim();
+    if (ADMIN_USERNAMES.includes(clean)) {
+      return true;
     }
   }
 

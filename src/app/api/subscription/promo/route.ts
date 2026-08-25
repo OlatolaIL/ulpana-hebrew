@@ -1,13 +1,11 @@
-﻿import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { verifySessionToken, createSessionToken } from '@/lib/auth';
 import { getDbPool } from '@/lib/db';
 import { UserSession } from '@/types';
 
 const STATIC_PROMO_CODES: Record<string, number> = {
   ULPANA2026: 30,
-  SHALOM_PRO: 365,
   MAZAL_TOV: 90,
-  ADMIN_VIP: 3650,
 };
 
 export async function POST(req: NextRequest) {

@@ -32,19 +32,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
     try {
       const tg = (window as any).Telegram?.WebApp;
-      if (tg && tg.initDataUnsafe?.user) {
-        const user = tg.initDataUnsafe.user;
-        const tgPayload = {
-          id: user.id,
-          first_name: user.first_name,
-          last_name: user.last_name,
-          username: user.username,
-          photo_url: user.photo_url,
-          auth_date: Math.floor(Date.now() / 1000),
-          hash: tg.initData ? 'webapp_validated' : undefined,
-        };
-
-        handleDirectLogin(tgPayload);
+      if (tg && tg.initData) {
+        handleDirectLogin({ initData: tg.initData });
         return;
       }
     } catch {}

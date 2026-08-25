@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { verifySessionToken } from '@/lib/auth';
+import { checkRateLimit } from '@/lib/rateLimit';
 
 interface ChatRequestBody {
   messages: Array<{ role: 'user' | 'assistant'; content: string }>;
@@ -53,6 +55,27 @@ function normalizeResponse(parsed: any) {
 
 export async function POST(req: NextRequest) {
   try {
+    // 1. Проверка авторизации
+    const sessionCookie = req.cookies.get('ulpana_session')?.value;
+    const session = sessionCookie ? await verifySessionToken(sessionCookie) : null;
+    if (!session) {
+      return NextResponse.json(
+        { error: 'Unauthorized: Требуется авторизация для использования AI-тренажера' },
+        { status: 401 }
+      );
+    }
+
+    // 2. Ограничение частоты запросов (Rate Limiting)
+    const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || session.id;
+    const rateLimitKey = `ai_chat_${session.id || clientIp}`;
+    const rl = checkRateLimit(rateLimitKey, { limit: 25, windowMs: 60 * 1000 });
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { error: `Слишком много запросов к AI. Пожалуйста, подождите ${rl.resetInSeconds} сек.` },
+        { status: 429 }
+      );
+    }
+
     const body: ChatRequestBody = await req.json();
     const {
       messages,
