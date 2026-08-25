@@ -204,8 +204,25 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
           {renderFormattedQuestion(currentEx.question, isCursive)}
         </h3>
 
-        {/* Варианты выбора (word_match или fill_blank) */}
-        {(currentEx.type === 'word_match' || currentEx.type === 'fill_blank') &&
+        {/* Для типа listening: кнопка прослушивания аудио */}
+        {currentEx.type === 'listening' && (
+          <div className="flex justify-center py-2">
+            <button
+              type="button"
+              onClick={() => {
+                const textToSpeak = currentEx.hebrewSnippet || (currentEx.correctAnswer && typeof currentEx.correctAnswer === 'string' && /[\u0590-\u05FF]/.test(currentEx.correctAnswer) ? currentEx.correctAnswer : '');
+                if (textToSpeak) speakHebrew(textToSpeak);
+              }}
+              className="inline-flex items-center gap-2.5 px-6 py-3.5 rounded-2xl bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800 text-blue-600 dark:text-blue-400 font-bold hover:bg-blue-100 dark:hover:bg-blue-900 transition shadow-sm cursor-pointer active:scale-95"
+            >
+              <Volume2 className="w-5 h-5" />
+              <span>🔊 Нажмите, чтобы прослушать аудио</span>
+            </button>
+          </div>
+        )}
+
+        {/* Варианты выбора (word_match, fill_blank, listening) */}
+        {(currentEx.type === 'word_match' || currentEx.type === 'fill_blank' || currentEx.type === 'listening') &&
           currentEx.options && (
             <div className="grid grid-cols-1 gap-2.5">
               {currentEx.options.map((opt, i) => {
