@@ -4,14 +4,14 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
   Send,
   Mic,
-  MicOff,
   Volume2,
   Sparkles,
   Bot,
   User as UserIcon,
   RotateCcw,
   AlertCircle,
-  HelpCircle,
+  Info,
+  X,
 } from 'lucide-react';
 import { Lesson, UserProfile, ChatMessage, Word } from '@/types';
 import { tokenizeText, TextToken, stripNikkud } from '@/lib/transcription';
@@ -137,9 +137,20 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
   const [inputText, setInputText] = useState('');
   const [loading, setLoading] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
+  const [showSituation, setShowSituation] = useState(false);
+  const [showTips, setShowTips] = useState(() => {
+    if (typeof window === 'undefined') return true;
+    try {
+      return localStorage.getItem('ulpana_chat_tips_hidden') !== 'true';
+    } catch {
+      return true;
+    }
+  });
+  const [showSuggestions, setShowSuggestions] = useState(true);
   const [selectedWord, setSelectedWord] = useState<string | null>(null);
   const [wordContext, setWordContext] = useState<string>('');
   const [recognizer, setRecognizer] = useState<HebrewSpeechRecognizer | null>(null);
+  const lastMessageRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const initChat = (gender: 'male' | 'female') => {
@@ -154,6 +165,7 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
       suggestedReplies: data.suggestedReplies,
     };
     setMessages([initial]);
+    setShowSuggestions(true);
   };
 
   useEffect(() => {
@@ -172,8 +184,12 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
   };
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, loading]);
+    if (lastMessageRef.current) {
+      lastMessageRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } else {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [messages.length, loading]);
 
   const handleSendMessage = async (textToSend?: string) => {
     const text = (textToSend || inputText).trim();
@@ -236,6 +252,7 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
       };
 
       setMessages((prev) => [...prev, aiMsg]);
+      setShowSuggestions(true);
       markLessonTabCompleted(lesson.id, 'chat');
 
       // Автоматически озвучиваем ответ ИИ
@@ -260,7 +277,9 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
       setIsRecording(true);
       recognizer.start(
         (transcript, isFinal) => {
-          setInputText(transcript);
+          if (transcript) {
+            setInputText(transcript);
+          }
           if (isFinal) {
             setIsRecording(false);
           }
@@ -269,7 +288,10 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
           console.error('Speech error:', err);
           setIsRecording(false);
         },
-        () => {
+        (lastTranscript) => {
+          if (lastTranscript) {
+            setInputText(lastTranscript);
+          }
           setIsRecording(false);
         }
       );
@@ -291,119 +313,148 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
   const isCursive = userProfile.fontStyle === 'cursive';
 
   return (
-    <div data-font-style={userProfile.fontStyle || 'print'} className="flex flex-col h-[700px] max-h-[80vh] bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm overflow-hidden">
-      {/* Шапка сценария с переключателем пола */}
-      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-zinc-800 dark:to-zinc-800/60 p-3.5 border-b border-zinc-200 dark:border-zinc-700/80 flex flex-wrap items-center justify-between gap-2">
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-600 text-white">
-              Ролевой диалог
+    <div data-font-style={userProfile.fontStyle || 'print'} className="flex flex-col h-[680px] max-h-[calc(100dvh-170px)] min-h-[460px] bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm overflow-hidden">
+      {/* Компактная шапка сценария с переключателями */}
+      <div className="bg-gradient-to-r from-blue-50/80 to-indigo-50/80 dark:from-zinc-800/90 dark:to-zinc-800/50 p-2.5 sm:p-3 border-b border-zinc-200 dark:border-zinc-700/80">
+        <div className="flex items-center justify-between gap-2">
+          {/* Левая часть: Бейдж, название и кнопка раскрытия описания */}
+          <div className="flex items-center gap-1.5 min-w-0">
+            <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-blue-600 text-white shrink-0">
+              Диалог
             </span>
-            <h3 className="font-bold text-sm text-zinc-900 dark:text-zinc-100">
+            <h3 className="font-bold text-xs sm:text-sm text-zinc-900 dark:text-zinc-100 truncate">
               {lesson.dialogue.title}
             </h3>
-            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800/80 text-[11px] font-semibold text-emerald-700 dark:text-emerald-300">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              <span>Groq ИИ</span>
-            </div>
+            <button
+              type="button"
+              onClick={() => setShowSituation((prev) => !prev)}
+              className={`p-1 rounded-md transition shrink-0 ${
+                showSituation
+                  ? 'bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300'
+                  : 'text-zinc-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-zinc-700'
+              }`}
+              title={showSituation ? 'Скрыть описание ситуации' : 'Показать описание ситуации'}
+            >
+              <Info className="w-3.5 h-3.5" />
+            </button>
           </div>
-          <p className="text-xs text-zinc-600 dark:text-zinc-300 mt-1 leading-relaxed">
-            {lesson.dialogue.situation}
-          </p>
+
+          {/* Правая часть: Переключатель шрифта, пола и сброс */}
+          <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
+            {/* Быстрый переключатель шрифта диалога */}
+            <button
+              type="button"
+              onClick={() => {
+                const nextStyle: 'print' | 'cursive' = userProfile.fontStyle === 'cursive' ? 'print' : 'cursive';
+                const updated: UserProfile = { ...userProfile, fontStyle: nextStyle };
+                saveUserProfile(updated);
+                if (onUpdateProfile) onUpdateProfile(updated);
+              }}
+              className="px-2 py-1 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-sm text-xs font-semibold flex items-center gap-1 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition"
+              title="Переключить шрифт диалога: Печатный / Рукописный"
+            >
+              {isCursive ? (
+                <span className="font-cursive font-bold text-sm text-blue-600 dark:text-blue-400 leading-none">כתב</span>
+              ) : (
+                <span className="font-hebrew font-bold text-xs text-zinc-700 dark:text-zinc-300 leading-none">דפוס</span>
+              )}
+            </button>
+
+            {/* Интерактивный переключатель пола говорящего */}
+            <div className="flex items-center bg-white dark:bg-zinc-900 p-0.5 rounded-lg border border-zinc-200 dark:border-zinc-700 shadow-sm text-xs">
+              <button
+                type="button"
+                onClick={() => handleGenderSwitch('male')}
+                className={`px-1.5 sm:px-2 py-0.5 rounded-md font-semibold text-[11px] transition ${
+                  userProfile.gender === 'male'
+                    ? 'bg-blue-600 text-white shadow-xs'
+                    : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
+                }`}
+                title="Переключить на обращение к мужчине (זָכָר)"
+              >
+                👨
+              </button>
+              <button
+                type="button"
+                onClick={() => handleGenderSwitch('female')}
+                className={`px-1.5 sm:px-2 py-0.5 rounded-md font-semibold text-[11px] transition ${
+                  userProfile.gender === 'female'
+                    ? 'bg-blue-600 text-white shadow-xs'
+                    : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
+                }`}
+                title="Переключить на обращение к женщине (נְקֵבָה)"
+              >
+                👩
+              </button>
+            </div>
+
+            {/* Кнопка сброса */}
+            <button
+              onClick={handleResetChat}
+              className="p-1.5 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 rounded-lg hover:bg-white dark:hover:bg-zinc-700 transition"
+              title="Начать диалог сначала"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+            </button>
+          </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          {/* Быстрый переключатель шрифта диалога */}
+        {/* Раскрывающееся описание ситуации */}
+        {showSituation && (
+          <div className="mt-2 pt-2 border-t border-zinc-200/60 dark:border-zinc-700/60 text-xs text-zinc-600 dark:text-zinc-300 leading-relaxed animate-in fade-in">
+            <p>
+              <span className="font-semibold text-zinc-800 dark:text-zinc-200">Ситуация: </span>
+              {lesson.dialogue.situation}
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* Компактная подсказка для клика по словам (сворачиваемая) */}
+      {showTips && (
+        <div className="bg-blue-500/10 px-3 py-1.5 border-b border-blue-500/20 text-[11px] text-blue-800 dark:text-blue-300 flex items-center justify-between gap-2">
+          <span className="flex items-center gap-1.5 min-w-0 truncate">
+            <Sparkles className="w-3.5 h-3.5 shrink-0 text-blue-600 dark:text-blue-400" />
+            <span className="truncate">Нажмите на любое слово на иврите для перевода и словарика</span>
+          </span>
           <button
             type="button"
             onClick={() => {
-              const nextStyle: 'print' | 'cursive' = userProfile.fontStyle === 'cursive' ? 'print' : 'cursive';
-              const updated: UserProfile = { ...userProfile, fontStyle: nextStyle };
-              saveUserProfile(updated);
-              if (onUpdateProfile) onUpdateProfile(updated);
+              setShowTips(false);
+              try {
+                localStorage.setItem('ulpana_chat_tips_hidden', 'true');
+              } catch {}
             }}
-            className="px-2.5 py-1.5 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-sm text-xs font-semibold flex items-center gap-1.5 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition"
-            title="Переключить шрифт диалога: Печатный / Рукописный"
+            className="text-blue-600 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-200 text-xs font-bold px-1 rounded transition shrink-0"
+            title="Закрыть подсказку"
           >
-            {isCursive ? (
-              <>
-                <span className="font-cursive font-bold text-base text-blue-600 dark:text-blue-400 leading-none">כתב</span>
-                <span className="text-zinc-700 dark:text-zinc-300">Рукописный</span>
-              </>
-            ) : (
-              <>
-                <span className="font-hebrew font-bold text-xs text-zinc-700 dark:text-zinc-300 leading-none">דפוס</span>
-                <span className="text-zinc-700 dark:text-zinc-300">Печатный</span>
-              </>
-            )}
-          </button>
-
-          {/* Интерактивный переключатель пола говорящего */}
-          <div className="flex items-center bg-white dark:bg-zinc-900 p-0.5 rounded-xl border border-zinc-200 dark:border-zinc-700 shadow-sm text-xs">
-            <button
-              type="button"
-              onClick={() => handleGenderSwitch('male')}
-              className={`px-2.5 py-1 rounded-lg font-semibold flex items-center gap-1 transition ${
-                userProfile.gender === 'male'
-                  ? 'bg-blue-600 text-white shadow-sm'
-                  : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-200'
-              }`}
-              title="Переключить на обращение к мужчине (זָכָר)"
-            >
-              <span>👨 Мужчина</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => handleGenderSwitch('female')}
-              className={`px-2.5 py-1 rounded-lg font-semibold flex items-center gap-1 transition ${
-                userProfile.gender === 'female'
-                  ? 'bg-blue-600 text-white shadow-sm'
-                  : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-200'
-              }`}
-              title="Переключить на обращение к женщине (נְקֵבָה)"
-            >
-              <span>👩 Женщина</span>
-            </button>
-          </div>
-
-          <button
-            onClick={handleResetChat}
-            className="p-1.5 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 rounded-lg hover:bg-white dark:hover:bg-zinc-700 transition"
-            title="Начать диалог сначала"
-          >
-            <RotateCcw className="w-4 h-4" />
+            ✕
           </button>
         </div>
-      </div>
-
-      {/* Подсказка для клика по словам */}
-      <div className="bg-blue-500/10 px-4 py-1.5 border-b border-blue-500/20 text-xs text-blue-800 dark:text-blue-300 flex items-center justify-between">
-        <span className="flex items-center gap-1.5">
-          <Sparkles className="w-3.5 h-3.5" />
-          <span>Нажмите на любое слово на иврите, чтобы увидеть перевод и добавить в словарик</span>
-        </span>
-      </div>
+      )}
 
       {/* Список сообщений */}
-      <div className="flex-1 p-4 overflow-y-auto space-y-4 bg-zinc-50/50 dark:bg-zinc-950/30">
-        {messages.map((msg) => {
+      <div className="flex-1 p-3 sm:p-4 overflow-y-auto space-y-3 bg-zinc-50/50 dark:bg-zinc-950/30">
+        {messages.map((msg, index) => {
           const isAi = msg.role === 'assistant';
+          const isLastMessage = index === messages.length - 1;
           const tokens = tokenizeText(msg.hebrew);
 
           return (
             <div
               key={msg.id}
+              ref={isLastMessage ? lastMessageRef : null}
               className={`flex flex-col ${isAi ? 'items-start' : 'items-end'} space-y-1`}
             >
-              <div className="flex items-end gap-2 max-w-[90%]">
+              <div className="flex items-end gap-1.5 sm:gap-2 max-w-[92%] sm:max-w-[85%]">
                 {isAi && (
-                  <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center shrink-0 mb-1 shadow-sm">
-                    <Bot className="w-4 h-4" />
+                  <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-blue-600 text-white flex items-center justify-center shrink-0 mb-1 shadow-sm">
+                    <Bot className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                   </div>
                 )}
 
                 <div
-                  className={`p-4 rounded-2xl shadow-sm ${
+                  className={`p-3 sm:p-3.5 rounded-2xl shadow-sm ${
                     isAi
                       ? 'bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-zinc-100 rounded-bl-sm'
                       : 'bg-blue-600 text-white rounded-br-sm'
@@ -412,10 +463,10 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
                   {/* Текст на иврите с учетом настройки showNikkud */}
                   <div
                     dir="rtl"
-                    className={`font-bold leading-loose text-right ${
+                    className={`font-bold leading-relaxed text-right ${
                       isCursive
-                        ? 'font-cursive text-2xl md:text-3xl text-blue-600 dark:text-blue-400'
-                        : 'font-hebrew text-xl md:text-2xl'
+                        ? 'font-cursive text-xl sm:text-2xl text-blue-600 dark:text-blue-400'
+                        : 'font-hebrew text-lg sm:text-xl'
                     }`}
                   >
                     {isAi
@@ -429,7 +480,7 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
                               <span
                                 key={token.id}
                                 onClick={() => handleWordClick(token, msg.hebrew)}
-                                className="inline hover:text-blue-600 dark:hover:text-blue-400 hover:underline hover:bg-blue-100 dark:hover:bg-blue-900/50 px-1 py-0.5 rounded transition cursor-pointer"
+                                className="inline hover:text-blue-600 dark:hover:text-blue-400 hover:underline hover:bg-blue-100 dark:hover:bg-blue-900/50 px-0.5 rounded transition cursor-pointer"
                                 title="Посмотреть перевод и добавить в словарик"
                               >
                                 {displayWord}
@@ -445,7 +496,7 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
 
                   {/* Транскрипция с 'h' для ה */}
                   {userProfile.showTranscription && msg.transcription && (
-                    <p className="text-xs text-blue-600 dark:text-blue-400 font-medium mt-1.5">
+                    <p className="text-xs text-blue-600 dark:text-blue-400 font-medium mt-1">
                       [{msg.transcription}]
                     </p>
                   )}
@@ -459,17 +510,17 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
 
                   {/* Кнопка озвучки и бейдж движка */}
                   {isAi ? (
-                    <div className="mt-2 pt-2 border-t border-zinc-100 dark:border-zinc-700/60 flex items-center justify-between">
+                    <div className="mt-2 pt-1.5 border-t border-zinc-100 dark:border-zinc-700/60 flex items-center justify-between gap-2">
                       {msg.engine ? (
                         <div className="flex items-center gap-1 text-[10px] font-medium text-emerald-600 dark:text-emerald-400">
                           <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
-                          <span>{msg.engine}</span>
+                          <span className="truncate">{msg.engine}</span>
                         </div>
                       ) : <div />}
                       <button
                         type="button"
                         onClick={() => speakHebrew(msg.hebrew, { rate: userProfile.speechRate || 0.7 })}
-                        className="text-xs text-zinc-400 hover:text-blue-600 dark:hover:text-blue-400 flex items-center gap-1 transition"
+                        className="text-xs text-zinc-400 hover:text-blue-600 dark:hover:text-blue-400 flex items-center gap-1 transition shrink-0"
                         title="Прослушать фразу собеседника"
                       >
                         <Volume2 className="w-3.5 h-3.5" />
@@ -481,7 +532,7 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
                       <button
                         type="button"
                         onClick={() => speakHebrew(msg.hebrew, { rate: userProfile.speechRate || 0.7 })}
-                        className="text-[11px] text-blue-100 hover:text-white flex items-center gap-1 transition"
+                        className="text-[11px] text-blue-100 hover:text-white flex items-center gap-1 transition shrink-0"
                         title="Прослушать вашу фразу"
                       >
                         <Volume2 className="w-3.5 h-3.5" />
@@ -492,18 +543,18 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
                 </div>
 
                 {!isAi && (
-                  <div className="w-8 h-8 rounded-full bg-indigo-600 text-white flex items-center justify-center shrink-0 mb-1 shadow-sm">
-                    <UserIcon className="w-4 h-4" />
+                  <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-indigo-600 text-white flex items-center justify-center shrink-0 mb-1 shadow-sm">
+                    <UserIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                   </div>
                 )}
               </div>
 
               {/* Обратная связь от ИИ по грамматике */}
               {msg.feedback && (
-                <div className="ml-10 max-w-[80%] bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/60 p-2.5 rounded-xl text-xs text-amber-800 dark:text-amber-200 flex items-start gap-2">
-                  <AlertCircle className="w-4 h-4 shrink-0 text-amber-600 mt-0.5" />
+                <div className="ml-8 sm:ml-10 max-w-[85%] bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/60 p-2 sm:p-2.5 rounded-xl text-xs text-amber-800 dark:text-amber-200 flex items-start gap-1.5">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0 text-amber-600 mt-0.5" />
                   <div>
-                    <span className="font-bold">Пояснение учителя: </span>
+                    <span className="font-bold">Пояснение: </span>
                     <span>{msg.feedback}</span>
                   </div>
                 </div>
@@ -511,44 +562,6 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
             </div>
           );
         })}
-
-        {/* Подсказки быстрых ответов под последним сообщением с кнопкой прослушивания */}
-        {lastAiMessage && lastAiMessage.suggestedReplies && lastAiMessage.suggestedReplies.length > 0 && (
-          <div className="pt-2 pl-10 flex flex-wrap gap-2 animate-in fade-in">
-            {lastAiMessage.suggestedReplies.map((reply, i) => (
-              <div
-                key={i}
-                onClick={() => handleSendMessage(reply.hebrew)}
-                className="group cursor-pointer text-left bg-white dark:bg-zinc-800 border border-blue-200 dark:border-blue-900 hover:border-blue-500 dark:hover:border-blue-400 p-2.5 rounded-xl text-xs transition shadow-sm hover:scale-[1.01] active:scale-[0.99] flex flex-col justify-between"
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div dir="rtl" className={`font-bold text-sm ${isCursive ? 'font-cursive text-lg text-blue-600 dark:text-blue-400' : 'font-hebrew text-zinc-900 dark:text-zinc-100'}`}>
-                    {userProfile.showNikkud ? reply.hebrew : stripNikkud(reply.hebrew)}
-                  </div>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      speakHebrew(reply.hebrew, { rate: userProfile.speechRate || 0.7 });
-                    }}
-                    className="p-1 rounded-lg text-zinc-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-zinc-700 transition"
-                    title="Прослушать эту подсказку"
-                  >
-                    <Volume2 className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-                {userProfile.showTranscription && reply.transcription && (
-                  <div className="text-[10px] text-blue-600 dark:text-blue-400 font-medium mt-0.5">
-                    [{reply.transcription}]
-                  </div>
-                )}
-                <div className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5">
-                  {reply.translation}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
 
         {loading && (
           <div className="flex items-center gap-2 text-xs text-zinc-400 p-2">
@@ -562,20 +575,77 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Поле ввода сообщения */}
-      <div className="p-3 bg-white dark:bg-zinc-900 border-t border-zinc-200 dark:border-zinc-800">
-        {isRecording && (
-          <div className="mb-2.5 px-3.5 py-2 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-700/80 rounded-xl text-xs text-emerald-800 dark:text-emerald-200 flex items-center justify-between gap-2 shadow-sm animate-pulse">
-            <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping shrink-0" />
-              <span className="font-semibold">🎙️ Микрофон активен: говорите на иврите...</span>
-            </div>
+      {/* Горизонтальная панель быстрых вариантов ответов (Quick-Reply Chips) */}
+      {lastAiMessage && lastAiMessage.suggestedReplies && lastAiMessage.suggestedReplies.length > 0 && showSuggestions && (
+        <div className="px-3 py-2 bg-zinc-50/95 dark:bg-zinc-900/95 border-t border-zinc-200/80 dark:border-zinc-800/80 backdrop-blur-sm">
+          <div className="flex items-center justify-between mb-1.5 px-0.5">
+            <span className="text-[11px] font-bold text-zinc-600 dark:text-zinc-300 flex items-center gap-1.5">
+              <Sparkles className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+              <span>Варианты ответа ({lastAiMessage.suggestedReplies.length}):</span>
+            </span>
             <button
               type="button"
-              onClick={toggleRecording}
-              className="text-[11px] font-bold underline text-emerald-700 dark:text-emerald-300 hover:text-emerald-900"
+              onClick={() => setShowSuggestions(false)}
+              className="text-[11px] text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 transition font-medium"
             >
-              Завершить
+              Скрыть
+            </button>
+          </div>
+          <div className="flex items-stretch gap-2 overflow-x-auto pb-1 scrollbar-none">
+            {lastAiMessage.suggestedReplies.map((reply, i) => (
+              <div
+                key={i}
+                onClick={() => handleSendMessage(reply.hebrew)}
+                className="group shrink-0 max-w-[280px] sm:max-w-[320px] cursor-pointer text-left bg-white dark:bg-zinc-800 border border-blue-200 dark:border-blue-900 hover:border-blue-500 dark:hover:border-blue-400 p-2.5 rounded-xl text-xs transition shadow-sm hover:scale-[1.01] active:scale-[0.98] flex flex-col justify-between"
+              >
+                <div className="flex items-start justify-between gap-1.5">
+                  <div
+                    dir="rtl"
+                    className={`font-bold text-sm leading-snug ${
+                      isCursive
+                        ? 'font-cursive text-lg text-blue-600 dark:text-blue-400'
+                        : 'font-hebrew text-zinc-900 dark:text-zinc-100'
+                    }`}
+                  >
+                    {userProfile.showNikkud ? reply.hebrew : stripNikkud(reply.hebrew)}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      speakHebrew(reply.hebrew, { rate: userProfile.speechRate || 0.7 });
+                    }}
+                    className="p-1 rounded-lg text-zinc-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-zinc-700 transition shrink-0"
+                    title="Прослушать этот ответ"
+                  >
+                    <Volume2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+                {userProfile.showTranscription && reply.transcription && (
+                  <div className="text-[10px] text-blue-600 dark:text-blue-400 font-medium mt-0.5 truncate">
+                    [{reply.transcription}]
+                  </div>
+                )}
+                <div className="text-[11px] text-zinc-600 dark:text-zinc-300 mt-0.5 line-clamp-2">
+                  {reply.translation}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Поле ввода сообщения */}
+      <div className="p-2.5 sm:p-3 bg-white dark:bg-zinc-900 border-t border-zinc-200 dark:border-zinc-800">
+        {!showSuggestions && lastAiMessage?.suggestedReplies && lastAiMessage.suggestedReplies.length > 0 && (
+          <div className="mb-2 flex items-center justify-start">
+            <button
+              type="button"
+              onClick={() => setShowSuggestions(true)}
+              className="text-[11px] font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/60 px-2.5 py-1 rounded-lg flex items-center gap-1.5 hover:bg-blue-100 dark:hover:bg-blue-900/40 transition shadow-sm"
+            >
+              <Sparkles className="w-3 h-3 text-blue-500" />
+              <span>Показать варианты ответов ({lastAiMessage.suggestedReplies.length})</span>
             </button>
           </div>
         )}
@@ -590,7 +660,7 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
           <button
             type="button"
             onClick={toggleRecording}
-            className={`p-2.5 rounded-xl border transition duration-200 ${
+            className={`p-2.5 rounded-xl border transition duration-200 shrink-0 ${
               isRecording
                 ? 'bg-emerald-500 hover:bg-emerald-600 text-white border-emerald-600 ring-4 ring-emerald-400/40 shadow-lg shadow-emerald-500/30 scale-105 animate-pulse'
                 : 'border-zinc-200 dark:border-zinc-700 text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-800 dark:hover:text-zinc-200'
@@ -605,14 +675,19 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
             dir="auto"
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
-            placeholder="Напишите ответ на иврите или выберите подсказку выше..."
-            className="flex-1 px-4 py-2.5 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600 dark:text-zinc-100"
+            placeholder={isRecording ? '🎙️ Слушаю... говорите на иврите' : 'Напишите ответ на иврите...'}
+            className={`min-w-0 flex-1 px-3.5 sm:px-4 py-2.5 rounded-xl border text-sm focus:outline-none transition ${
+              isRecording
+                ? 'border-emerald-500 ring-2 ring-emerald-400/50 bg-emerald-50/40 dark:bg-emerald-950/30 text-emerald-950 dark:text-emerald-100 placeholder:text-emerald-600 font-medium'
+                : 'border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:ring-2 focus:ring-blue-600'
+            }`}
           />
 
           <button
             type="submit"
             disabled={!inputText.trim() || loading}
-            className="p-2.5 rounded-xl bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 transition"
+            className="p-2.5 rounded-xl bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition shrink-0 shadow-sm"
+            title="Отправить сообщение"
           >
             <Send className="w-5 h-5" />
           </button>
@@ -633,3 +708,4 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
     </div>
   );
 };
+

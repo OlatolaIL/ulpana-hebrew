@@ -156,6 +156,7 @@ export function stopSpeech(): void {
 export class HebrewSpeechRecognizer {
   private recognition: any = null;
   private isListening = false;
+  private lastTranscript = '';
 
   constructor() {
     if (typeof window !== 'undefined') {
@@ -166,6 +167,7 @@ export class HebrewSpeechRecognizer {
         this.recognition.lang = 'he-IL';
         this.recognition.continuous = false;
         this.recognition.interimResults = true;
+        this.recognition.maxAlternatives = 1;
       }
     }
   }
@@ -177,7 +179,7 @@ export class HebrewSpeechRecognizer {
   public start(
     onResult: (transcript: string, isFinal: boolean) => void,
     onError: (error: string) => void,
-    onEnd: () => void
+    onEnd: (lastTranscript: string) => void
   ): void {
     if (!this.recognition) {
       onError('Распознавание речи не поддерживается в этом браузере.');
@@ -185,14 +187,18 @@ export class HebrewSpeechRecognizer {
     }
 
     if (this.isListening) {
-      this.recognition.stop();
+      try {
+        this.recognition.stop();
+      } catch {}
     }
+
+    this.lastTranscript = '';
 
     this.recognition.onresult = (event: any) => {
       let interim = '';
       let final = '';
 
-      for (let i = event.resultIndex; i < event.results.length; ++i) {
+      for (let i = 0; i < event.results.length; ++i) {
         const result = event.results[i];
         if (result.isFinal) {
           final += result[0].transcript;
@@ -201,17 +207,23 @@ export class HebrewSpeechRecognizer {
         }
       }
 
-      onResult(final || interim, final.length > 0);
+      const text = (final || interim).trim();
+      if (text) {
+        this.lastTranscript = text;
+        onResult(text, final.length > 0);
+      }
     };
 
     this.recognition.onerror = (event: any) => {
       this.isListening = false;
-      onError(event.error || 'Ошибка распознавания');
+      if (event.error !== 'no-speech') {
+        onError(event.error || 'Ошибка распознавания');
+      }
     };
 
     this.recognition.onend = () => {
       this.isListening = false;
-      onEnd();
+      onEnd(this.lastTranscript);
     };
 
     try {
@@ -224,7 +236,9 @@ export class HebrewSpeechRecognizer {
 
   public stop(): void {
     if (this.recognition && this.isListening) {
-      this.recognition.stop();
+      try {
+        this.recognition.stop();
+      } catch {}
       this.isListening = false;
     }
   }
