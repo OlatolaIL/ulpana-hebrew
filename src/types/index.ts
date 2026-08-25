@@ -229,3 +229,26 @@ export interface UserProfile {
   personalVocabulary: Word[];
   flashcardStats: Record<string, FlashcardProgress>;
 }
+
+export interface ConjugationForm {
+  pronoun: string; // e.g. "אֲנִי (я)" или "זָכָר יָחִיד (он)"
+  hebrew: string; // "רוֹצֶה"
+  transcription: string; // "роцé"
+  translation: string; // "хочу / хочет (м.р.)"
+}
+
+export interface VerbConjugation {
+  infinitive: {
+    hebrew: string; // "לִרְצוֹת"
+    transcription: string; // "лирцóт"
+    translation: string; // "хотеть"
+  };
+  binyan: string; // "פָּעַל (Пааль)"
+  root: string; // "ר-צ-ה"
+  present: ConjugationForm[];
+  past: ConjugationForm[];
+  future: ConjugationForm[];
+  imperative?: ConjugationForm[];
+  passiveInfinitive?: string;
+  notes?: string;
+}

@@ -469,29 +469,29 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
                         : 'font-hebrew text-lg sm:text-xl'
                     }`}
                   >
-                    {isAi
-                      ? tokens.map((token) => {
-                          const displayWord = userProfile.showNikkud
-                            ? token.text
-                            : stripNikkud(token.text);
+                    {tokens.map((token) => {
+                      const displayWord = userProfile.showNikkud
+                        ? token.text
+                        : stripNikkud(token.text);
 
-                          if (token.isHebrew) {
-                            return (
-                              <span
-                                key={token.id}
-                                onClick={() => handleWordClick(token, msg.hebrew)}
-                                className="inline hover:text-blue-600 dark:hover:text-blue-400 hover:underline hover:bg-blue-100 dark:hover:bg-blue-900/50 px-0.5 rounded transition cursor-pointer"
-                                title="Посмотреть перевод и добавить в словарик"
-                              >
-                                {displayWord}
-                              </span>
-                            );
-                          }
-                          return <span key={token.id}>{token.text}</span>;
-                        })
-                      : userProfile.showNikkud
-                      ? msg.hebrew
-                      : stripNikkud(msg.hebrew)}
+                      if (token.isHebrew) {
+                        return (
+                          <span
+                            key={token.id}
+                            onClick={() => handleWordClick(token, msg.hebrew)}
+                            className={`inline-block px-1 py-0.5 rounded-md transition cursor-pointer select-text ${
+                              isAi
+                                ? 'hover:text-blue-600 dark:hover:text-blue-400 hover:underline hover:bg-blue-100/70 dark:hover:bg-blue-900/50 active:scale-95'
+                                : 'hover:text-yellow-200 hover:underline hover:bg-blue-700/60 active:scale-95'
+                            }`}
+                            title="Нажмите, чтобы посмотреть перевод и добавить в словарик"
+                          >
+                            {displayWord}
+                          </span>
+                        );
+                      }
+                      return <span key={token.id}>{token.text}</span>;
+                    })}
                   </div>
 
                   {/* Транскрипция с 'h' для ה */}
