@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
       const fullName = [from.first_name, from.last_name].filter(Boolean).join(' ') || from.username || 'Ученик';
       const userId = `tg_${from.id}`;
       
-      const isVip = isVipUser(from.username, from.id);
+      const isVip = isVipUser(from.username, from.id, fullName);
       let tier: 'free' | 'pro' | 'admin' = isVip ? 'pro' : 'free';
       let expiresAt: number | null = isVip ? VIP_EXPIRES_AT : null;
       let gender: 'male' | 'female' = 'female';
@@ -48,19 +48,19 @@ export async function POST(req: NextRequest) {
         const existing = await db.query('SELECT * FROM ulpana_users WHERE telegram_id = $1 OR id = $2', [from.id, userId]);
         if (existing.rows.length > 0) {
           const row = existing.rows[0];
-          tier = (row.subscription_tier as any) || 'free';
-          expiresAt = row.subscription_expires_at ? Number(row.subscription_expires_at) : null;
+          tier = isVip ? 'pro' : ((row.subscription_tier as any) || 'free');
+          expiresAt = isVip ? VIP_EXPIRES_AT : (row.subscription_expires_at ? Number(row.subscription_expires_at) : null);
           gender = row.gender || 'female';
           fontStyle = row.font_style || 'print';
 
           await db.query(
-            'UPDATE ulpana_users SET name = $1, username = $2, updated_at = NOW() WHERE id = $3',
-            [fullName, from.username || null, userId]
+            'UPDATE ulpana_users SET name = $1, username = $2, subscription_tier = $3, subscription_expires_at = $4, updated_at = NOW() WHERE id = $5',
+            [fullName, from.username || null, tier, expiresAt, userId]
           );
         } else {
           await db.query(
-            'INSERT INTO ulpana_users (id, telegram_id, name, username, gender, font_style, subscription_tier) VALUES ($1, $2, $3, $4, $5, $6, $7)',
-            [userId, from.id, fullName, from.username || null, gender, fontStyle, tier]
+            'INSERT INTO ulpana_users (id, telegram_id, name, username, gender, font_style, subscription_tier, subscription_expires_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
+            [userId, from.id, fullName, from.username || null, gender, fontStyle, tier, expiresAt]
           );
         }
 

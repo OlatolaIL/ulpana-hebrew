@@ -54,6 +54,15 @@ export async function GET(req: NextRequest) {
       }
     }
 
+    const isVip = isVipUser(updatedSession.username, updatedSession.telegramId, updatedSession.name);
+    if (isVip) {
+      updatedSession = {
+        ...updatedSession,
+        subscriptionTier: 'pro',
+        subscriptionExpiresAt: VIP_EXPIRES_AT,
+      };
+    }
+
     return NextResponse.json({
       authenticated: true,
       user: updatedSession,

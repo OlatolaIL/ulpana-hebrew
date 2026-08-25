@@ -33,6 +33,7 @@ import {
 } from 'lucide-react';
 import { getLessonById } from '@/data/lessonsData';
 import { loadLocalCallLogs } from '@/lib/storage';
+import { isVipUser } from '@/lib/vipUsers';
 
 interface AdminStats {
   totalUsers: number;
@@ -742,8 +743,8 @@ export default function AdminPage() {
                                 <div>
                                   <div className="font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-1.5">
                                     <span>{u.name}</span>
-                                    {u.username?.toLowerCase() === 'osa_il' && (
-                                      <span className="px-1.5 py-0.2 rounded text-[9px] font-extrabold bg-blue-600 text-white">
+                                    {isVipUser(u.username, u.telegramId, u.name) && (
+                                       <span className="px-1.5 py-0.2 rounded text-[9px] font-extrabold bg-blue-600 text-white">
                                         ADMIN
                                       </span>
                                     )}

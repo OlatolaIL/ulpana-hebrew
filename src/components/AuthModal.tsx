@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState, useRef } from 'react';
-import { X, Send, CheckCircle2, AlertCircle, Sparkles, Loader2 } from 'lucide-react';
+import { X, Send, CheckCircle2, AlertCircle, Sparkles, Loader2, ExternalLink } from 'lucide-react';
 import { UserSession } from '@/types';
 
 interface AuthModalProps {
@@ -180,18 +180,43 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
         {/* Кнопка 1-клика через Telegram бота */}
         <div className="space-y-3 pt-1">
-          <a
-            href={`https://t.me/${botUsername}?start=login`}
-            target="_blank"
-            rel="noreferrer"
-            className="w-full py-3.5 px-5 rounded-2xl bg-[#229ED9] hover:bg-[#1E8CC0] active:scale-98 text-white font-bold text-sm flex items-center justify-center gap-2.5 shadow-lg shadow-blue-500/25 transition"
-          >
-            <Send className="w-5 h-5" />
-            <span>Войти через Telegram в 1 клик</span>
-          </a>
-          <p className="text-[11px] text-center text-zinc-400">
-            Бот мгновенно авторизует вас и вернет на сайт
-          </p>
+          {isWaitingForBot ? (
+            <div className="p-4 rounded-2xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 text-center space-y-2.5">
+              <div className="flex items-center justify-center gap-2 text-blue-600 dark:text-blue-400 font-bold text-sm">
+                <Loader2 className="w-5 h-5 animate-spin" />
+                <span>Ожидание подтверждения в боте...</span>
+              </div>
+              <p className="text-xs text-zinc-500">
+                Нажмите кнопку «Старт» в открывшемся диалоге Telegram
+              </p>
+              {botUrl && (
+                <a
+                  href={botUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 hover:underline font-semibold"
+                >
+                  <span>Не открылось окно? Нажмите здесь</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+              )}
+            </div>
+          ) : (
+            <>
+              <button
+                type="button"
+                onClick={handleStartBotLogin}
+                disabled={loading}
+                className="w-full py-3.5 px-5 rounded-2xl bg-[#229ED9] hover:bg-[#1E8CC0] active:scale-98 text-white font-bold text-sm flex items-center justify-center gap-2.5 shadow-lg shadow-blue-500/25 transition disabled:opacity-50"
+              >
+                {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
+                <span>Войти через Telegram в 1 клик</span>
+              </button>
+              <p className="text-[11px] text-center text-zinc-400">
+                Бот мгновенно авторизует вас и вернет на сайт
+              </p>
+            </>
+          )}
         </div>
 
         <div className="relative flex py-1 items-center">

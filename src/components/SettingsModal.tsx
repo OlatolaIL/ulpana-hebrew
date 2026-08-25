@@ -82,7 +82,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     {profile.name}
                   </h3>
                   <p className="text-xs text-zinc-500">
-                    {profile.isLoggedIn ? `@${profile.username || 'telegram_user'}` : 'Гостевой режим (локально)'}
+                    {profile.isLoggedIn
+                      ? profile.username
+                        ? `@${profile.username}`
+                        : `ID: ${profile.telegramId || (profile.id ? profile.id.replace(/^tg_/, '') : 'Telegram')}`
+                      : 'Гостевой режим (локально)'}
                   </p>
                 </div>
               </div>

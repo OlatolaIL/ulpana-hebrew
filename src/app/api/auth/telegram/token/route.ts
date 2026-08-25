@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { getDbPool, initDatabase } from '@/lib/db';
 import { createSessionToken } from '@/lib/auth';
+import { isVipUser, VIP_EXPIRES_AT } from '@/lib/vipUsers';
 import { UserSession } from '@/types';
 
 // In-memory fallback map if DB is offline
@@ -71,14 +72,18 @@ export async function GET(req: NextRequest) {
     }
 
     if (status === 'completed' && userData) {
+      const isVip = isVipUser(userData.username, userData.id, [userData.first_name, userData.last_name].filter(Boolean).join(' '));
+      const tier = isVip ? 'pro' : (userData.subscriptionTier || 'free');
+      const expiresAt = isVip ? VIP_EXPIRES_AT : (userData.subscriptionExpiresAt || null);
+
       const session: UserSession = {
         id: `tg_${userData.id}`,
         telegramId: userData.id,
         username: userData.username,
         name: [userData.first_name, userData.last_name].filter(Boolean).join(' ') || (userData.username ? `@${userData.username}` : 'Ученик'),
         avatarUrl: userData.photo_url,
-        subscriptionTier: userData.subscriptionTier || 'free',
-        subscriptionExpiresAt: userData.subscriptionExpiresAt || null,
+        subscriptionTier: tier,
+        subscriptionExpiresAt: expiresAt,
       };
 
       const sessionJwt = await createSessionToken(session);

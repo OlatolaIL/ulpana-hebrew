@@ -1,7 +1,8 @@
 import { UserProfile } from '@/types';
 
 export const ADMIN_TELEGRAM_IDS: number[] = [
-  8215851, // Telegram ID of the administrator (@osa_il)
+  8903218603, // Telegram ID of administrator (@Osa_IL)
+  8215851, // Telegram ID backup
 ];
 
 export const ADMIN_USERNAMES: string[] = [
@@ -14,12 +15,12 @@ export const VIP_EXPIRES_AT = 2088000000000; // 2036 year (~10 years)
 
 /**
  * Строгая проверка прав администратора/VIP
- * Проверяется строго числовой Telegram ID либо точный username (без нечеткого поиска)
+ * Проверяется числовой Telegram ID либо точный username/имя
  */
 export function isVipUser(
   username?: string | null,
   telegramId?: number | string | null,
-  _name?: string | null
+  name?: string | null
 ): boolean {
   if (telegramId !== undefined && telegramId !== null) {
     const numericId = typeof telegramId === 'number' ? telegramId : parseInt(String(telegramId).trim(), 10);
@@ -31,6 +32,13 @@ export function isVipUser(
   if (username) {
     const clean = username.toLowerCase().replace(/^@/, '').trim();
     if (ADMIN_USERNAMES.includes(clean)) {
+      return true;
+    }
+  }
+
+  if (name) {
+    const cleanName = name.toLowerCase().replace(/^@/, '').trim();
+    if (ADMIN_USERNAMES.includes(cleanName)) {
       return true;
     }
   }
