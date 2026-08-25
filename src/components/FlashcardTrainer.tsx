@@ -446,31 +446,32 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
 
       {/* РЕЖИМ 1: ФЛИП-КАРТОЧКА */}
       {mode === 'flip' && (
-        <div className="space-y-6">
+        <div className="space-y-3 sm:space-y-4">
           <div
             onClick={() => setIsFlipped(!isFlipped)}
-            className="min-h-[300px] bg-white dark:bg-zinc-900 border-2 border-zinc-200 dark:border-zinc-800 rounded-3xl p-8 flex flex-col items-center justify-center text-center cursor-pointer shadow-lg hover:border-blue-500/50 transition duration-300 relative select-none"
+            className="min-h-[200px] sm:min-h-[270px] bg-white dark:bg-zinc-900 border-2 border-zinc-200 dark:border-zinc-800 rounded-3xl p-4 sm:p-6 flex flex-col items-center justify-center text-center cursor-pointer shadow-lg hover:border-blue-500/50 transition duration-300 relative select-none"
           >
-            <div className="absolute top-4 right-4">
+            <div className="absolute top-3 right-3">
               <button
                 onClick={(e) => {
                   e.stopPropagation();
                   speakHebrew(currentWord.hebrew);
                 }}
-                className="p-2.5 rounded-full bg-blue-50 dark:bg-blue-950/50 text-blue-600 hover:bg-blue-100 transition shadow-sm"
+                className="p-2 rounded-full bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 hover:bg-blue-100 transition shadow-sm"
+                title="Озвучить"
               >
-                <Volume2 className="w-5 h-5" />
+                <Volume2 className="w-4 h-4" />
               </button>
             </div>
 
             {!isFlipped ? (
-              <div className="space-y-3">
-                <span className="text-xs uppercase tracking-wider font-semibold text-zinc-400">
+              <div className="space-y-2 sm:space-y-3">
+                <span className="text-[11px] uppercase tracking-wider font-semibold text-zinc-400">
                   Иврит (нажмите для перевода)
                 </span>
                 <div
                   dir="rtl"
-                  className={`text-4xl md:text-5xl font-bold text-zinc-900 dark:text-zinc-50 ${
+                  className={`text-3xl sm:text-5xl font-bold text-zinc-900 dark:text-zinc-50 ${
                     userProfile.fontStyle === 'cursive'
                       ? 'font-cursive text-blue-600 dark:text-blue-400'
                       : 'font-hebrew'
@@ -479,27 +480,29 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
                   {userProfile.showNikkud ? currentWord.hebrew : currentWord.hebrewPlain}
                 </div>
                 {userProfile.showTranscription && (
-                  <p className="text-sm font-semibold text-blue-600 dark:text-blue-400">
+                  <p className="text-xs sm:text-sm font-semibold text-blue-600 dark:text-blue-400">
                     [{currentWord.transcription}]
                   </p>
                 )}
               </div>
             ) : (
-              <div className="space-y-4 animate-in fade-in">
-                <span className="text-xs uppercase tracking-wider font-semibold text-zinc-400">
+              <div className="space-y-2.5 sm:space-y-3 animate-in fade-in">
+                <span className="text-[11px] uppercase tracking-wider font-semibold text-zinc-400">
                   Перевод и детали
                 </span>
-                <div className="text-2xl md:text-3xl font-bold text-zinc-900 dark:text-zinc-100">
+                <div className="text-xl sm:text-3xl font-bold text-zinc-900 dark:text-zinc-100">
                   {currentWord.translation}
                 </div>
                 <div
                   dir="rtl"
-                  className="text-xl text-zinc-500 dark:text-zinc-400 font-hebrew"
+                  className={`text-lg sm:text-2xl text-zinc-600 dark:text-zinc-300 font-bold ${
+                    userProfile.fontStyle === 'cursive' ? 'font-cursive text-blue-500' : 'font-hebrew'
+                  }`}
                 >
                   {currentWord.hebrew}
                 </div>
                 {currentWord.root && (
-                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300">
+                  <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-xs font-semibold bg-amber-100 dark:bg-amber-950/80 text-amber-800 dark:text-amber-300 border border-amber-300/40">
                     <span>Шореш:</span>
                     <span dir="rtl" className="font-bold">
                       {currentWord.root}
@@ -509,16 +512,16 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
 
                 {/* Кнопка ПЕАЛИМ для глаголов */}
                 {(currentWord.partOfSpeech === 'verb' || currentWord.hebrew.startsWith('לִ') || currentWord.hebrew.startsWith('לְ') || currentWord.hebrew.startsWith('לַ') || currentWord.hebrew.startsWith('לָ') || Boolean(currentWord.root)) && (
-                  <div className="pt-1">
+                  <div className="pt-0.5">
                     <button
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation();
                         handleOpenPealim(currentWord);
                       }}
-                      className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 text-indigo-700 dark:text-indigo-300 text-xs font-bold border border-indigo-200 dark:border-indigo-800 shadow-sm transition"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-50 dark:bg-purple-950/80 hover:bg-purple-100 text-purple-700 dark:text-purple-300 text-xs font-bold border border-purple-300/60 dark:border-purple-800 shadow-sm transition active:scale-95"
                     >
-                      <Sparkles className="w-3.5 h-3.5 text-indigo-500" />
+                      <Sparkles className="w-3.5 h-3.5 text-amber-400" />
                       <span>Пеалим (спряжения и семья корня)</span>
                     </button>
                   </div>
@@ -527,25 +530,28 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
             )}
           </div>
 
-          {/* Кнопки оценки легкости (SRS) */}
-          <div className="grid grid-cols-3 gap-3">
+          {/* Кнопки оценки легкости (SRS) - всегда на виду и яркие */}
+          <div className="grid grid-cols-3 gap-2 sm:gap-3">
             <button
               onClick={() => handleNextWord(1)}
-              className="py-3 px-2 rounded-xl bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-900 font-semibold text-xs hover:bg-rose-100 transition"
+              className="py-2.5 sm:py-3.5 px-2 rounded-2xl bg-rose-500/15 hover:bg-rose-500/25 dark:bg-rose-950/70 text-rose-700 dark:text-rose-300 border-2 border-rose-400/80 dark:border-rose-700 font-extrabold text-xs sm:text-sm shadow-sm transition active:scale-95 flex flex-col items-center justify-center cursor-pointer"
             >
-              Снова / Забыл
+              <span>Снова / Забыл</span>
+              <span className="text-[10px] text-rose-500/80 dark:text-rose-400 font-normal hidden sm:inline">1 балл</span>
             </button>
             <button
               onClick={() => handleNextWord(3)}
-              className="py-3 px-2 rounded-xl bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-900 font-semibold text-xs hover:bg-amber-100 transition"
+              className="py-2.5 sm:py-3.5 px-2 rounded-2xl bg-amber-500/15 hover:bg-amber-500/25 dark:bg-amber-950/70 text-amber-700 dark:text-amber-300 border-2 border-amber-400/80 dark:border-amber-700 font-extrabold text-xs sm:text-sm shadow-sm transition active:scale-95 flex flex-col items-center justify-center cursor-pointer"
             >
-              Вспомнил с трудом
+              <span>С трудом</span>
+              <span className="text-[10px] text-amber-500/80 dark:text-amber-400 font-normal hidden sm:inline">3 балла</span>
             </button>
             <button
               onClick={() => handleNextWord(5)}
-              className="py-3 px-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-900 font-semibold text-xs hover:bg-emerald-100 transition"
+              className="py-2.5 sm:py-3.5 px-2 rounded-2xl bg-emerald-500/15 hover:bg-emerald-500/25 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-300 border-2 border-emerald-400/80 dark:border-emerald-700 font-extrabold text-xs sm:text-sm shadow-sm transition active:scale-95 flex flex-col items-center justify-center cursor-pointer"
             >
-              Легко / Знаю
+              <span>Легко / Знаю</span>
+              <span className="text-[10px] text-emerald-500/80 dark:text-emerald-400 font-normal hidden sm:inline">5 баллов</span>
             </button>
           </div>
         </div>
