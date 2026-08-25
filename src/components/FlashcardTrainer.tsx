@@ -741,11 +741,13 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
               </span>
               {isUlpan ? (
                 <div className="py-1">
-                  {getHebrewPictogram(currentWord.hebrew) && (
-                    <div className="text-4xl select-none mb-1">
-                      {getHebrewPictogram(currentWord.hebrew)}
-                    </div>
-                  )}
+                  <WordVisual
+                    hebrew={currentWord.hebrew}
+                    hebrewPlain={currentWord.hebrewPlain}
+                    size="md"
+                    ulpanMode={true}
+                    className="mb-1"
+                  />
                   <button
                     type="button"
                     onClick={() => speakHebrew(currentWord.hebrew)}

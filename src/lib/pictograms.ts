@@ -19,73 +19,112 @@ export interface PictogramDetails {
  * - ⚥ Общий / 1-е лицо -> Индиго / Фиолетовый
  */
 export const HEBREW_PICTOGRAM_MAP: Record<string, { icon: string; gender?: 'male' | 'female' | 'both' }> = {
-  // Местоимения (Pronouns) - по схеме направления речи и знаков рода
-  'אני': { icon: '① 🎙️', gender: 'both' },
+  // ─── 1. Местоимения (Pronouns & Demonstratives) ───────────────────────────
+  'אני': { icon: '🙋', gender: 'both' },
   'אתה': { icon: '👉 ♂', gender: 'male' },
   'את': { icon: '👉 ♀', gender: 'female' },
-  'הוא': { icon: '↗️ ♂', gender: 'male' },
-  'היא': { icon: '↗️ ♀', gender: 'female' },
-  'אנחנו': { icon: '👥 🎙️', gender: 'both' },
-  'אתם': { icon: '👉 👥 ♂', gender: 'male' },
-  'אתן': { icon: '👉 👥 ♀', gender: 'female' },
-  'הם': { icon: '↗️ 👥 ♂', gender: 'male' },
-  'הן': { icon: '↗️ 👥 ♀', gender: 'female' },
-  'זה': { icon: '👉 📦 ♂', gender: 'male' },
-  'זאת': { icon: '👉 🌸 ♀', gender: 'female' },
-  'זו': { icon: '👉 🌸 ♀', gender: 'female' },
-  'אלה': { icon: '👉 👥 📦', gender: 'both' },
-  'אלו': { icon: '👉 👥 📦', gender: 'both' },
+  'הוא': { icon: '👤 ♂', gender: 'male' },
+  'היא': { icon: '👤 ♀', gender: 'female' },
+  'אנחנו': { icon: '👥', gender: 'both' },
+  'אתם': { icon: '👥 ♂', gender: 'male' },
+  'אתן': { icon: '👥 ♀', gender: 'female' },
+  'הם': { icon: '👥 ♂', gender: 'male' },
+  'הן': { icon: '👥 ♀', gender: 'female' },
+  'זה': { icon: '👉 ♂', gender: 'male' },
+  'זאת': { icon: '👉 ♀', gender: 'female' },
+  'זו': { icon: '👉 ♀', gender: 'female' },
+  'אלה': { icon: '👉 👥', gender: 'both' },
+  'אלו': { icon: '👉 👥', gender: 'both' },
 
-  // Вопросительные слова (Question words)
-  'מה': { icon: '❓🤔' },
+  // ─── 2. Вопросительные слова (Question words) ─────────────────────────────
+  'מה': { icon: '❓' },
   'מי': { icon: '👤❓' },
   'איפה': { icon: '📍❓' },
-  'מאין': { icon: '🛫📍❓' },
-  'לאן': { icon: '🚶‍♂️➡️❓' },
+  'מאין': { icon: '🗺️❓' },
+  'מאיפה': { icon: '🗺️❓' },
+  'לאן': { icon: '➡️❓' },
   'מתי': { icon: '⏰❓' },
-  'למה': { icon: '💭❓' },
+  'למה': { icon: '💡❓' },
   'כמה': { icon: '🔢❓' },
-  'איך': { icon: '🛠️❓' },
-  'איזה': { icon: '🔍 ♂❓', gender: 'male' },
-  'איזו': { icon: '🔍 ♀❓', gender: 'female' },
-  'אילו': { icon: '🔍 👥❓', gender: 'both' },
+  'איך': { icon: '❓' },
+  'איזה': { icon: '🔍 ♂', gender: 'male' },
+  'איזו': { icon: '🔍 ♀', gender: 'female' },
+  'אילו': { icon: '🔍 👥', gender: 'both' },
 
-  // Приветствия и базовые фразы
-  'שלום': { icon: '👋✨' },
-  'בוקר טוב': { icon: '🌅☀️' },
-  'ערב טוב': { icon: '🌆🌇' },
-  'לילה טוב': { icon: '🌙⭐' },
-  'צהריים טובים': { icon: '☀️🍽️' },
-  'תודה': { icon: '🙏❤️' },
-  'תודה רבה': { icon: '🙏💖' },
-  'בבקשה': { icon: '🤝🎁' },
-  'סליחה': { icon: '🙇' },
-  'להתראות': { icon: '👋👋' },
-  'כן': { icon: '✅' },
-  'לא': { icon: '❌' },
-  'בסדר': { icon: '👌' },
+  // ─── 3. Фразы знакомства и диалогов (Dialogue & Situational Phrases) ─────
+  'איך קוראים לך': { icon: '🪪❓' },
+  'איך קוראים לה': { icon: '🪪 ♀❓', gender: 'female' },
+  'איך קוראים לו': { icon: '🪪 ♂❓', gender: 'male' },
+  'מה שמך': { icon: '🪪❓' },
+  'קוראים לי': { icon: '🪪' },
+  'שמי': { icon: '🪪' },
+  'שלום קוראים לי': { icon: '👋 🪪' },
+  'שלום אני': { icon: '👋 🙋' },
+  'נעים מאוד': { icon: '🤝' },
+  'נעים להכיר': { icon: '🤝' },
+  'מה נשמע': { icon: '💬❓' },
+  'מה שלומך': { icon: '💬❓' },
+  'מה קורה': { icon: '💬❓' },
+  'מה העניינים': { icon: '💬❓' },
+  'מה חדש': { icon: '💬❓' },
+  'הכל טוב': { icon: '👍' },
+  'הכל בסדר': { icon: '👍' },
   'יופי': { icon: '🌟' },
   'מצוין': { icon: '💯' },
-  'הכל טוב': { icon: '👍' },
-  'נעים מאוד': { icon: '🤝😊' },
-  'מה נשמע': { icon: '🗣️👂' },
-  'מה שלומך': { icon: '🩺💬' },
-  'מה קורה': { icon: '⚡👀' },
+  'מעולה': { icon: '🌟' },
+  'איפה אתה גר': { icon: '🏠 ♂❓', gender: 'male' },
+  'איפה את גרה': { icon: '🏠 ♀❓', gender: 'female' },
+  'אני גר ב': { icon: '🏠 ♂', gender: 'male' },
+  'אני גרה ב': { icon: '🏠 ♀', gender: 'female' },
+  'מאיפה אתה': { icon: '🗺️ ♂❓', gender: 'male' },
+  'מאיפה את': { icon: '🗺️ ♀❓', gender: 'female' },
+  'מאין אתה': { icon: '🗺️ ♂❓', gender: 'male' },
+  'מאין את': { icon: '🗺️ ♀❓', gender: 'female' },
+  'אני מ': { icon: '🗺️' },
+  'אני רוצה': { icon: '💭' },
+  'אני רוצה בבקשה': { icon: '💭' },
+  'כמה זה עולה': { icon: '🏷️' },
+  'כמה עולה': { icon: '🏷️' },
+  'אפשר חשבון': { icon: '🧾' },
+  'חשבון בבקשה': { icon: '🧾' },
+  'מה השעה': { icon: '⏰❓' },
+  'סליחה איפה': { icon: '📍❓' },
+  'איך מגיעים': { icon: '🗺️➡️' },
+  'ישר ואז שמאלה': { icon: '⬆️⬅️' },
+  'ישר ואז ימינה': { icon: '⬆️➡️' },
+  'יום הולדת שמח': { icon: '🎂🎉' },
+  'שבת שלום': { icon: '🕯️🍷' },
+  'חג שמח': { icon: '🎉🕊️' },
+  'שנה טובה': { icon: '🍎🍯' },
+  'נסיעה טובה': { icon: '✈️🛣️' },
+  'רפואה שלמה': { icon: '🩺🩹' },
+  'כל הכבוד': { icon: '👏' },
   'ברוך הבא': { icon: '🚪 ♂', gender: 'male' },
   'ברוכה הבאה': { icon: '🚪 ♀', gender: 'female' },
   'ברוכים הבאים': { icon: '🚪 👥 ♂', gender: 'male' },
   'ברוכות הבאות': { icon: '🚪 👥 ♀', gender: 'female' },
-  'בהצלחה': { icon: '🎯🍀' },
-  'בתיאבון': { icon: '🍽️😋' },
-  'לרוויה': { icon: '🥤😋' },
-  'שבת שלום': { icon: '🕯️🍷' },
-  'חג שמח': { icon: '🎉🕊️' },
-  'מזל טוב': { icon: '🎂🎊' },
+  'להתראות': { icon: '👋' },
+  'שלום': { icon: '👋' },
+  'בוקר טוב': { icon: '🌅' },
+  'צהריים טובים': { icon: '☀️🍽️' },
+  'ערב טוב': { icon: '🌆' },
+  'לילה טוב': { icon: '🌙⭐' },
+  'תודה': { icon: '🙏' },
+  'תודה רבה': { icon: '🙏' },
+  'בבקשה': { icon: '🤝' },
+  'סליחה': { icon: '🙇' },
+  'בהצלחה': { icon: '🎯' },
+  'בתיאבון': { icon: '🍽️' },
+  'לרוויה': { icon: '🥤' },
+  'מזל טוב': { icon: '🎂' },
+  'כן': { icon: '✅' },
+  'לא': { icon: '❌' },
+  'בסדר': { icon: '👌' },
 
-  // Глаголы (Verbs - с символами рода и числа)
-  'רוצה': { icon: '💭👍' },
-  'רוצים': { icon: '💭👍 👥 ♂', gender: 'male' },
-  'רוצות': { icon: '💭👍 👥 ♀', gender: 'female' },
+  // ─── 4. Глаголы (Verbs) ───────────────────────────────────────────────────
+  'רוצה': { icon: '💭' },
+  'רוצים': { icon: '💭 👥 ♂', gender: 'male' },
+  'רוצות': { icon: '💭 👥 ♀', gender: 'female' },
   'שותה': { icon: '🥤' },
   'שותים': { icon: '🥤 👥 ♂', gender: 'male' },
   'שותות': { icon: '🥤 👥 ♀', gender: 'female' },
@@ -117,6 +156,8 @@ export const HEBREW_PICTOGRAM_MAP: Record<string, { icon: string; gender?: 'male
   'באה': { icon: '🏃 ♀', gender: 'female' },
   'באים': { icon: '🏃 👥 ♂', gender: 'male' },
   'באות': { icon: '🏃 👥 ♀', gender: 'female' },
+  'רץ': { icon: '🏃 ♂', gender: 'male' },
+  'רצה': { icon: '🏃 ♀', gender: 'female' },
   'נוסע': { icon: '🚗 ♂', gender: 'male' },
   'נוסעת': { icon: '🚗 ♀', gender: 'female' },
   'נוסעים': { icon: '🚗 👥 ♂', gender: 'male' },
@@ -160,8 +201,13 @@ export const HEBREW_PICTOGRAM_MAP: Record<string, { icon: string; gender?: 'male
   'יכולה': { icon: '💪 ♀', gender: 'female' },
   'יכולים': { icon: '💪 👥 ♂', gender: 'male' },
   'יכולות': { icon: '💪 👥 ♀', gender: 'female' },
+  'ישן': { icon: '😴' },
+  'שר': { icon: '🎵' },
+  'מבשל': { icon: '🍳' },
+  'משלם': { icon: '💳' },
+  'מקבל': { icon: '🎁' },
 
-  // Еда и напитки (Food & Drinks)
+  // ─── 5. Еда и напитки (Food & Drinks) ─────────────────────────────────────
   'קפה': { icon: '☕' },
   'תה': { icon: '🫖' },
   'מים': { icon: '💧' },
@@ -194,16 +240,16 @@ export const HEBREW_PICTOGRAM_MAP: Record<string, { icon: string; gender?: 'male
   'ארוחת בוקר': { icon: '🍳☕' },
   'ארוחת צהריים': { icon: '🍲🥗' },
   'ארוחת ערב': { icon: '🥪🍵' },
-  'חשבון': { icon: '🧾💳 ♂', gender: 'male' },
+  'חשבון': { icon: '🧾 ♂', gender: 'male' },
 
-  // Места и транспорт (Places & Transport)
+  // ─── 6. Места и транспорт (Places & Transport) ────────────────────────────
   'בית': { icon: '🏠 ♂', gender: 'male' },
   'דירה': { icon: '🏢 ♀', gender: 'female' },
   'חדר': { icon: '🚪 ♂', gender: 'male' },
-  'בית קפה': { icon: '☕🏨 ♂', gender: 'male' },
+  'בית קפה': { icon: '☕ ♂', gender: 'male' },
   'מסעדה': { icon: '🍽️ ♀', gender: 'female' },
   'סופרמרקט': { icon: '🛒 ♂', gender: 'male' },
-  'שוק': { icon: '🍉🥑 ♂', gender: 'male' },
+  'שוק': { icon: '🍉 ♂', gender: 'male' },
   'חנות': { icon: '🛍️ ♀', gender: 'female' },
   'קניון': { icon: '🏬 ♂', gender: 'male' },
   'רחוב': { icon: '🛣️ ♂', gender: 'male' },
@@ -211,8 +257,8 @@ export const HEBREW_PICTOGRAM_MAP: Record<string, { icon: string; gender?: 'male
   'ארץ': { icon: '🗺️ ♀', gender: 'female' },
   'מדינה': { icon: '🗺️ ♀', gender: 'female' },
   'ישראל': { icon: '🇮🇱' },
-  'ירושלים': { icon: '🏰🇮🇱 ♀', gender: 'female' },
-  'תל אביב': { icon: '🏖️🏙️ ♀', gender: 'female' },
+  'ירושלים': { icon: '🏰 ♀', gender: 'female' },
+  'תל אביב': { icon: '🏖️ ♀', gender: 'female' },
   'אוטובוס': { icon: '🚌 ♂', gender: 'male' },
   'מונית': { icon: '🚕 ♀', gender: 'female' },
   'רכבת': { icon: '🚆 ♀', gender: 'female' },
@@ -237,7 +283,7 @@ export const HEBREW_PICTOGRAM_MAP: Record<string, { icon: string; gender?: 'male
   'ספריה': { icon: '📚 ♀', gender: 'female' },
   'פארק': { icon: '🌳 ♂', gender: 'male' },
 
-  // Семья и люди (Family & People)
+  // ─── 7. Семья и люди (Family & People) ────────────────────────────────────
   'משפחה': { icon: '👨‍👩‍👧‍👦 ♀', gender: 'female' },
   'אבא': { icon: '👔 ♂', gender: 'male' },
   'אמא': { icon: '👗 ♀', gender: 'female' },
@@ -279,7 +325,7 @@ export const HEBREW_PICTOGRAM_MAP: Record<string, { icon: string; gender?: 'male
   'חתול': { icon: '🐈 ♂', gender: 'male' },
   'חתולה': { icon: '🐈 ♀', gender: 'female' },
 
-  // Вещи и предметы (Objects)
+  // ─── 8. Вещи и предметы (Objects) ─────────────────────────────────────────
   'ספר': { icon: '📚 ♂', gender: 'male' },
   'עט': { icon: '🖊️ ♂', gender: 'male' },
   'עפרון': { icon: '✏️ ♂', gender: 'male' },
@@ -309,7 +355,7 @@ export const HEBREW_PICTOGRAM_MAP: Record<string, { icon: string; gender?: 'male
   'שעון': { icon: '⌚ ♂', gender: 'male' },
   'משקפיים': { icon: '👓' },
 
-  // Время и дни (Time & Days)
+  // ─── 9. Время и дни (Time & Days) ─────────────────────────────────────────
   'שעה': { icon: '⏰ ♀', gender: 'female' },
   'דקה': { icon: '⏱️ ♀', gender: 'female' },
   'יום': { icon: '📅 ♂', gender: 'male' },
@@ -330,25 +376,50 @@ export const HEBREW_PICTOGRAM_MAP: Record<string, { icon: string; gender?: 'male
 };
 
 /**
- * Получить строку-пиктограмму для слова или фразы на иврите
+ * Получить строку-пиктограмму для слова или фразы на иврите.
+ * Сначала ищет точное совпадение целой фразы, предотвращая ложные срабатывания по отдельным словам.
  */
 export function getHebrewPictogram(hebrewText: string): string | null {
   if (!hebrewText) return null;
-  const clean = stripNikkud(hebrewText).trim();
+  // Очищаем огласовки и знаки препинания
+  const clean = stripNikkud(hebrewText)
+    .replace(/[.,?!:;'"«»\-]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
 
+  if (!clean) return null;
+
+  // 1. Точное совпадение слова или полной фразы
   if (HEBREW_PICTOGRAM_MAP[clean]) {
     return HEBREW_PICTOGRAM_MAP[clean].icon;
   }
 
-  for (const [key, item] of Object.entries(HEBREW_PICTOGRAM_MAP)) {
-    if (clean === key || clean.startsWith(`${key} `) || clean.endsWith(` ${key}`)) {
-      return item.icon;
+  // 2. Поиск многословных фраз (по убыванию длины, чтобы фразы имели приоритет)
+  const sortedKeys = Object.keys(HEBREW_PICTOGRAM_MAP)
+    .filter((k) => k.includes(' '))
+    .sort((a, b) => b.length - a.length);
+
+  for (const phraseKey of sortedKeys) {
+    if (clean === phraseKey || clean.startsWith(`${phraseKey} `) || clean.endsWith(` ${phraseKey}`) || clean.includes(` ${phraseKey} `)) {
+      return HEBREW_PICTOGRAM_MAP[phraseKey].icon;
     }
   }
 
-  if (clean.endsWith('ות')) return '👥 ♀';
-  if (clean.endsWith('ים')) return '👥 ♂';
-  if (clean.endsWith('ה') || clean.endsWith('ת')) return '🌸 ♀';
+  // 3. Для коротких словосочетаний (до 2 слов) проверяем отдельные слова
+  const words = clean.split(' ');
+  if (words.length <= 2) {
+    for (const w of words) {
+      if (HEBREW_PICTOGRAM_MAP[w]) {
+        return HEBREW_PICTOGRAM_MAP[w].icon;
+      }
+    }
+  }
+
+  // 4. Грамматические эвристики рода и числа только для одиночных слов
+  if (words.length === 1) {
+    if (clean.endsWith('ות')) return '👥 ♀';
+    if (clean.endsWith('ים')) return '👥 ♂';
+  }
 
   return null;
 }
