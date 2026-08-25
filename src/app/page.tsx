@@ -323,7 +323,14 @@ export default function Home() {
   ) => {
     setFlashcardWords(wordsToTrain);
     setFlashcardTitle(
-      title || (lessonId ? `Урок ${lessonId}: Карточки словаря` : 'Тренировка карточек')
+      title ||
+        (lessonId
+          ? (profile?.ulpanMode
+              ? `שִׁיעוּר ${lessonId}: כַּרְטִיסִיּוֹת מִילִּים`
+              : `Урок ${lessonId}: Карточки словаря`)
+          : (profile?.ulpanMode
+              ? 'תִּרְגּוּל כַּרְטִיסִיּוֹת'
+              : 'Тренировка карточек'))
     );
     setFlashcardMode(mode || 'flip');
     setFlashcardSourceLessonId(lessonId || null);
@@ -499,8 +506,10 @@ export default function Home() {
               >
                 <span>
                   {flashcardSourceLessonId
-                    ? `← Вернуться в урок ${flashcardSourceLessonId}`
-                    : '← Вернуться назад'}
+                    ? (profile?.ulpanMode
+                        ? `← חֲזָרָה לְשִׁיעוּר ${flashcardSourceLessonId}`
+                        : `← Вернуться в урок ${flashcardSourceLessonId}`)
+                    : (profile?.ulpanMode ? '← חֲזָרָה' : '← Вернуться назад')}
                 </span>
               </button>
             </div>

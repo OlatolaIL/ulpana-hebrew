@@ -166,13 +166,26 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
     setShowHint(false);
 
     // Подготовка вариантов для аудирования
-    const otherTranslations = words
+    const isUlpanMode = Boolean(userProfile.ulpanMode);
+    const otherOptions = words
       .filter((w) => w.id !== currentWord.id)
-      .map((w) => w.translation);
-    const shuffledOthers = otherTranslations.sort(() => Math.random() - 0.5).slice(0, 3);
-    const allOpts = [...shuffledOthers, currentWord.translation].sort(() => Math.random() - 0.5);
+      .map((w) =>
+        isUlpanMode
+          ? userProfile.showNikkud
+            ? w.hebrew
+            : w.hebrewPlain
+          : w.translation
+      );
+    const currentOpt = isUlpanMode
+      ? userProfile.showNikkud
+        ? currentWord.hebrew
+        : currentWord.hebrewPlain
+      : currentWord.translation;
+
+    const shuffledOthers = otherOptions.sort(() => Math.random() - 0.5).slice(0, 3);
+    const allOpts = [...shuffledOthers, currentOpt].sort(() => Math.random() - 0.5);
     setQuizOptions(allOpts);
-  }, [currentIndex, mode, currentWord, words]);
+  }, [currentIndex, mode, currentWord, words, userProfile.ulpanMode, userProfile.showNikkud]);
 
   const triggerCelebration = () => {
     confetti({
@@ -312,7 +325,12 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
 
   const handleQuizSelect = (option: string) => {
     setSelectedAnswer(option);
-    const isCorrect = option === currentWord.translation;
+    const correctOpt = userProfile.ulpanMode
+      ? userProfile.showNikkud
+        ? currentWord.hebrew
+        : currentWord.hebrewPlain
+      : currentWord.translation;
+    const isCorrect = option === correctOpt;
 
     if (isCorrect) {
       speakHebrew(currentWord.hebrew);
@@ -321,6 +339,8 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
       setTimeout(() => handleNextWord(1), 1500);
     }
   };
+
+  const isUlpan = Boolean(userProfile.ulpanMode);
 
   if (!currentWord || isCompleted) {
     return (
@@ -333,14 +353,18 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
             !כָּל הַכָּבוֹד
           </h2>
           <p className="text-base font-bold text-emerald-600 dark:text-emerald-400">
-            {lessonId
-              ? `Отличная работа! Словарь урока ${lessonId} успешно пройден!`
-              : 'Отличная работа! Тренировка завершена.'}
+            {isUlpan
+              ? (lessonId ? `עֲבוֹדָה מְצוּיֶנֶת! שִׁיעוּר ${lessonId} הוּשְׁלַם בְּהַצְלָחָה!` : 'עֲבוֹדָה מְצוּיֶנֶת! הַתִּרְגּוּל הֻשְׁלַם.')
+              : (lessonId
+                  ? `Отличная работа! Словарь урока ${lessonId} успешно пройден!`
+                  : 'Отличная работа! Тренировка завершена.')}
           </p>
           <p className="text-xs text-zinc-500 dark:text-zinc-400">
-            {lessonId
-              ? `Вы повторили все ${words.length} слов(а). Раздел «Словарь» зачтен (этап 2/5).`
-              : `Вы повторили ${words.length} слов(а). Прогресс сохранен в интервальной памяти.`}
+            {isUlpan
+              ? (lessonId ? `חֲזַרְתֶּם עַל כָּל ${words.length} הַמִּילִּים. שָׁלָב 2/5 הוּשְׁלַם.` : `חֲזַרְתֶּם עַל ${words.length} מִילִּים.`)
+              : (lessonId
+                  ? `Вы повторили все ${words.length} слов(а). Раздел «Словарь» зачтен (этап 2/5).`
+                  : `Вы повторили ${words.length} слов(а). Прогресс сохранен в интервальной памяти.`)}
           </p>
         </div>
 
@@ -358,7 +382,7 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
                 }}
                 className="w-full py-3.5 px-6 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-sm shadow-md transition active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
               >
-                <span>Перейти к упражнениям (этап 3/5) ➡️</span>
+                <span>{isUlpan ? 'מַעֲבָר לְתַרְגִּילִים (שָׁלָב 3/5) ➡️' : 'Перейти к упражнениям (этап 3/5) ➡️'}</span>
               </button>
 
               <div className="flex gap-2.5">
@@ -373,7 +397,7 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
                   }}
                   className="flex-1 py-3 px-4 rounded-xl border border-zinc-200 dark:border-zinc-700 font-semibold text-xs sm:text-sm hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 transition cursor-pointer"
                 >
-                  Вернуться в урок
+                  {isUlpan ? 'חֲזָרָה לַשִּׁיעוּר' : 'Вернуться в урок'}
                 </button>
 
                 <button
@@ -384,7 +408,7 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
                   }}
                   className="flex-1 py-3 px-4 rounded-xl border border-zinc-200 dark:border-zinc-700 font-semibold text-xs sm:text-sm hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 transition cursor-pointer"
                 >
-                  Повторить карточки
+                  {isUlpan ? 'תִּרְגּוּל נוֹסָף' : 'Повторить карточки'}
                 </button>
               </div>
             </>
@@ -398,7 +422,7 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
                 }}
                 className="flex-1 py-3 px-4 rounded-xl border border-zinc-200 dark:border-zinc-700 font-semibold text-sm hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 transition cursor-pointer"
               >
-                Повторить снова
+                {isUlpan ? 'תִּרְגּוּל שׁוּב' : 'Повторить снова'}
               </button>
               {onClose && (
                 <button
@@ -406,7 +430,7 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
                   onClick={onClose}
                   className="flex-1 py-3 px-4 rounded-xl bg-blue-600 text-white font-semibold text-sm hover:bg-blue-700 transition cursor-pointer"
                 >
-                  Вернуться
+                  {isUlpan ? 'סְגוֹר' : 'Вернуться'}
                 </button>
               )}
             </div>
@@ -416,20 +440,30 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
     );
   }
 
+  const displayTitle = isUlpan
+    ? (customTitle || '')
+        .replace(/Урок\s*(\d+):\s*Карточки словаря/i, 'שִׁיעוּר $1: כַּרְטִיסִיּוֹת מִילִּים')
+        .replace(/Тренировка карточек/i, 'תִּרְגּוּל כַּרְטִיסִיּוֹת')
+        .replace(/Словарь урока\s*(\d+)/i, 'אוֹצַר מִילִּים $1')
+    : customTitle;
+
   return (
     <div className="max-w-xl mx-auto space-y-4">
       {/* Заголовок тренировки (если есть customTitle) */}
-      {customTitle && (
+      {displayTitle && (
         <div className="flex items-center justify-between px-1">
-          <div className="text-xs font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400 flex items-center gap-1.5">
+          <div className="text-xs font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400 flex items-center gap-1.5 font-hebrew">
             <Layers className="w-3.5 h-3.5" />
-            <span>{customTitle}</span>
+            <span>{displayTitle}</span>
           </div>
           {currentWord && (() => {
             const mastery = calculateWordMastery(userProfile.flashcardProgress?.[currentWord.id]);
+            const masteryText = isUlpan
+              ? `יְדִיעָה: ${mastery.score}% (${mastery.score >= 80 ? 'מְצוּיָן' : mastery.score >= 50 ? 'בְּתַהֲלִיךְ' : 'חָדָשׁ'})`
+              : `Знание: ${mastery.score}% (${mastery.label})`;
             return (
               <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${mastery.badgeColor}`}>
-                Знание: {mastery.score}% ({mastery.label})
+                {masteryText}
               </span>
             );
           })()}
@@ -441,33 +475,33 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
         <div className="flex items-center gap-1.5 w-full sm:w-auto">
           <button
             onClick={() => setMode('flip')}
-            className={`flex-1 sm:flex-initial px-3 py-1.5 rounded-xl text-xs font-bold transition ${
+            className={`flex-1 sm:flex-initial px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
               mode === 'flip'
                 ? 'bg-blue-600 text-white shadow-sm'
                 : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400'
             }`}
           >
-            Флип
+            {isUlpan ? 'כַּרְטִיסִייָה' : 'Флип'}
           </button>
           <button
             onClick={() => setMode('builder')}
-            className={`flex-1 sm:flex-initial px-3 py-1.5 rounded-xl text-xs font-bold transition ${
+            className={`flex-1 sm:flex-initial px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
               mode === 'builder'
                 ? 'bg-blue-600 text-white shadow-sm'
                 : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400'
             }`}
           >
-            Конструктор
+            {isUlpan ? 'הַרְכָּבָה' : 'Конструктор'}
           </button>
           <button
             onClick={() => setMode('listening')}
-            className={`flex-1 sm:flex-initial px-3 py-1.5 rounded-xl text-xs font-bold transition ${
+            className={`flex-1 sm:flex-initial px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
               mode === 'listening'
                 ? 'bg-blue-600 text-white shadow-sm'
                 : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400'
             }`}
           >
-            На слух
+            {isUlpan ? 'שְׁמִיעָה' : 'На слух'}
           </button>
         </div>
 
@@ -479,24 +513,26 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
               const updated: UserProfile = { ...userProfile, fontStyle: nextStyle };
               if (onUpdateProfile) onUpdateProfile(updated);
             }}
-            className="px-2.5 py-1.5 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-sm text-xs font-semibold flex items-center gap-1.5 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition"
-            title="Переключить шрифт карточек: Печатный / Рукописный"
+            className="px-2.5 py-1.5 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-sm text-xs font-semibold flex items-center gap-1.5 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition cursor-pointer"
+            title={isUlpan ? 'החלף גופן (דפוס / כתב יד)' : 'Переключить шрифт карточек: Печатный / Рукописный'}
           >
             {userProfile.fontStyle === 'cursive' ? (
               <>
                 <span className="font-cursive font-bold text-base text-blue-600 dark:text-blue-400 leading-none">כתב</span>
-                <span className="text-zinc-700 dark:text-zinc-300">Рукописный</span>
+                <span className="text-zinc-700 dark:text-zinc-300">{isUlpan ? 'כְּתַב יָד' : 'Рукописный'}</span>
               </>
             ) : (
               <>
                 <span className="font-hebrew font-bold text-xs text-zinc-700 dark:text-zinc-300 leading-none">דפוס</span>
-                <span className="text-zinc-700 dark:text-zinc-300">Печатный</span>
+                <span className="text-zinc-700 dark:text-zinc-300">{isUlpan ? 'אוֹתִיּוֹת דְּפוּס' : 'Печатный'}</span>
               </>
             )}
           </button>
 
           <div className="text-xs font-semibold text-zinc-500">
-            {currentIndex + 1} из {words.length}
+            {isUlpan
+              ? `${currentIndex + 1} מִתּוֹךְ ${words.length}`
+              : `${currentIndex + 1} из ${words.length}`}
           </div>
         </div>
       </div>
@@ -625,10 +661,10 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
                         e.stopPropagation();
                         handleOpenPealim(currentWord);
                       }}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-50 dark:bg-purple-950/80 hover:bg-purple-100 text-purple-700 dark:text-purple-300 text-xs font-bold border border-purple-300/60 dark:border-purple-800 shadow-sm transition active:scale-95"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-50 dark:bg-purple-950/80 hover:bg-purple-100 text-purple-700 dark:text-purple-300 text-xs font-bold border border-purple-300/60 dark:border-purple-800 shadow-sm transition active:scale-95 cursor-pointer"
                     >
                       <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                      <span>Пеалим (спряжения и семья корня)</span>
+                      <span>{isUlpan ? 'פְּעָלִים וּנְטִיּוֹת ✨' : 'Пеалим (спряжения и семья корня)'}</span>
                     </button>
                   </div>
                 )}
@@ -642,22 +678,28 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
               onClick={() => handleNextWord(1)}
               className="py-2.5 sm:py-3.5 px-2 rounded-2xl bg-rose-500/15 hover:bg-rose-500/25 dark:bg-rose-950/70 text-rose-700 dark:text-rose-300 border-2 border-rose-400/80 dark:border-rose-700 font-extrabold text-xs sm:text-sm shadow-sm transition active:scale-95 flex flex-col items-center justify-center cursor-pointer"
             >
-              <span>Снова / Забыл</span>
-              <span className="text-[10px] text-rose-500/80 dark:text-rose-400 font-normal hidden sm:inline">1 балл</span>
+              <span>{isUlpan ? 'שׁוּב / שָׁכַחְתִּי' : 'Снова / Забыл'}</span>
+              <span className="text-[10px] text-rose-500/80 dark:text-rose-400 font-normal hidden sm:inline">
+                {isUlpan ? 'נְקֻדָּה 1' : '1 балл'}
+              </span>
             </button>
             <button
               onClick={() => handleNextWord(3)}
               className="py-2.5 sm:py-3.5 px-2 rounded-2xl bg-amber-500/15 hover:bg-amber-500/25 dark:bg-amber-950/70 text-amber-700 dark:text-amber-300 border-2 border-amber-400/80 dark:border-amber-700 font-extrabold text-xs sm:text-sm shadow-sm transition active:scale-95 flex flex-col items-center justify-center cursor-pointer"
             >
-              <span>С трудом</span>
-              <span className="text-[10px] text-amber-500/80 dark:text-amber-400 font-normal hidden sm:inline">3 балла</span>
+              <span>{isUlpan ? 'בְּקֹשִׁי' : 'С трудом'}</span>
+              <span className="text-[10px] text-amber-500/80 dark:text-amber-400 font-normal hidden sm:inline">
+                {isUlpan ? '3 נְקֻדּוֹת' : '3 балла'}
+              </span>
             </button>
             <button
               onClick={() => handleNextWord(5)}
               className="py-2.5 sm:py-3.5 px-2 rounded-2xl bg-emerald-500/15 hover:bg-emerald-500/25 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-300 border-2 border-emerald-400/80 dark:border-emerald-700 font-extrabold text-xs sm:text-sm shadow-sm transition active:scale-95 flex flex-col items-center justify-center cursor-pointer"
             >
-              <span>Легко / Знаю</span>
-              <span className="text-[10px] text-emerald-500/80 dark:text-emerald-400 font-normal hidden sm:inline">5 баллов</span>
+              <span>{isUlpan ? 'קַל / יוֹדֵעַ' : 'Легко / Знаю'}</span>
+              <span className="text-[10px] text-emerald-500/80 dark:text-emerald-400 font-normal hidden sm:inline">
+                {isUlpan ? '5 נְקֻדּוֹת' : '5 баллов'}
+              </span>
             </button>
           </div>
         </div>
@@ -672,12 +714,33 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
           <div className="bg-white dark:bg-zinc-900 rounded-3xl p-6 border border-zinc-200 dark:border-zinc-800 shadow-lg space-y-6">
             <div className="text-center space-y-2">
               <span className="text-xs text-zinc-400 font-semibold">
-                {hasSpaces ? 'Соберите фразу по буквам и пробелам:' : 'Соберите слово по буквам:'}
+                {isUlpan
+                  ? (hasSpaces ? 'הַרְכֵּב אֶת הַמִּשְׁפָּט מֵאוֹתִיּוֹת וּרְוָחִים:' : 'הַרְכֵּב אֶת הַמִּילָּה מֵאוֹתִיּוֹת:')
+                  : (hasSpaces ? 'Соберите фразу по буквам и пробелам:' : 'Соберите слово по буквам:')}
               </span>
-              <div className="text-xl font-bold text-zinc-800 dark:text-zinc-100">
-                {currentWord.translation}
-              </div>
-              {userProfile.showTranscription && (
+              {isUlpan ? (
+                <div className="py-1">
+                  {getHebrewPictogram(currentWord.hebrew) && (
+                    <div className="text-4xl select-none mb-1">
+                      {getHebrewPictogram(currentWord.hebrew)}
+                    </div>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => speakHebrew(currentWord.hebrew)}
+                    className="p-2 rounded-full bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 hover:bg-blue-100 transition shadow-xs inline-flex items-center gap-1.5 text-xs font-semibold"
+                    title="השמע מילה"
+                  >
+                    <Volume2 className="w-4 h-4" />
+                    <span>שְׁמַע</span>
+                  </button>
+                </div>
+              ) : (
+                <div className="text-xl font-bold text-zinc-800 dark:text-zinc-100">
+                  {currentWord.translation}
+                </div>
+              )}
+              {!isUlpan && userProfile.showTranscription && (
                 <p className="text-xs text-blue-600 dark:text-blue-400">
                   [{currentWord.transcription}]
                 </p>
@@ -688,15 +751,15 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
             {showHint && !builderSuccess && (
               <div className="bg-amber-50/90 dark:bg-amber-950/40 border-2 border-amber-300 dark:border-amber-700/80 rounded-2xl p-4 text-center space-y-2 animate-in fade-in zoom-in-95 shadow-sm">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold uppercase tracking-wider text-amber-800 dark:text-amber-300 flex items-center gap-1.5">
+                  <span className="text-xs font-bold uppercase tracking-wider text-amber-800 dark:text-amber-300 flex items-center gap-1.5 font-hebrew">
                     <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-                    <span>Правильный ответ:</span>
+                    <span>{isUlpan ? 'תְּשׁוּבָה נְכוֹנָה:' : 'Правильный ответ:'}</span>
                   </span>
                   <button
                     type="button"
                     onClick={() => speakHebrew(currentWord.hebrew)}
-                    className="p-1.5 rounded-lg bg-amber-200/60 dark:bg-amber-900/60 text-amber-900 dark:text-amber-200 hover:bg-amber-300 transition"
-                    title="Прослушать произношение"
+                    className="p-1.5 rounded-lg bg-amber-200/60 dark:bg-amber-900/60 text-amber-900 dark:text-amber-200 hover:bg-amber-300 transition cursor-pointer"
+                    title={isUlpan ? 'השמע מילה' : 'Прослушать произношение'}
                   >
                     <Volume2 className="w-4 h-4" />
                   </button>
@@ -711,7 +774,7 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
                   {userProfile.showNikkud ? currentWord.hebrew : targetText}
                 </div>
 
-                {currentWord.transcription && (
+                {!isUlpan && currentWord.transcription && (
                   <p className="text-xs font-medium text-amber-900/80 dark:text-amber-300/80">
                     [{currentWord.transcription}]
                   </p>
@@ -721,11 +784,11 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
                   <button
                     type="button"
                     onClick={handleAutoAssemble}
-                    className="px-3.5 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold shadow-sm transition flex items-center gap-1.5 active:scale-95"
-                    title="Автоматически собрать правильные буквы и пробелы"
+                    className="px-3.5 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold shadow-sm transition flex items-center gap-1.5 active:scale-95 cursor-pointer"
+                    title={isUlpan ? 'הרכב אותיות באופן אוטומטי' : 'Автоматически собрать правильные буквы и пробелы'}
                   >
                     <CheckCircle2 className="w-3.5 h-3.5" />
-                    <span>Собрать правильно</span>
+                    <span>{isUlpan ? 'הַרְכֵּב נָכוֹן' : 'Собрать правильно'}</span>
                   </button>
                 </div>
               </div>
@@ -750,7 +813,7 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
                     key={tile.id}
                     type="button"
                     onClick={() => handleUnselectTile(tile)}
-                    className={`px-3 py-1.5 rounded-xl font-bold shadow-sm transition active:scale-95 ${
+                    className={`px-3 py-1.5 rounded-xl font-bold shadow-sm transition active:scale-95 cursor-pointer ${
                       tile.char === ' '
                         ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 text-xs border border-amber-300 dark:border-amber-800 flex items-center gap-1'
                         : `bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-50 border border-zinc-200 dark:border-zinc-700 text-2xl md:text-3xl ${
@@ -759,12 +822,12 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
                               : 'font-hebrew'
                           }`
                     }`}
-                    title="Нажмите, чтобы вернуть символ"
+                    title={isUlpan ? 'לחץ להסרת אות' : 'Нажмите, чтобы вернуть символ'}
                   >
                     {tile.char === ' ' ? (
                       <>
                         <Space className="w-3 h-3" />
-                        <span>Пробел</span>
+                        <span>{isUlpan ? 'רֶוַח' : 'Пробел'}</span>
                       </>
                     ) : (
                       tile.char
@@ -773,52 +836,60 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
                 ))
               ) : (
                 <span className="text-zinc-400 text-sm font-sans font-medium">
-                  {hasSpaces ? 'Нажимайте на буквы и пробелы ниже...' : 'Нажимайте на буквы ниже...'}
+                  {isUlpan
+                    ? (hasSpaces ? 'לַחֲצוּ עַל הָאוֹתִיּוֹת וְהָרְוָחִים לְמַטָּה...' : 'לַחֲצוּ עַל הָאוֹתִיּוֹת לְמַטָּה...')
+                    : (hasSpaces ? 'Нажимайте на буквы и пробелы ниже...' : 'Нажимайте на буквы ниже...')}
                 </span>
               )}
             </div>
 
             {/* Панель кнопок управления конструктором (Показать ответ / Стереть / Сброс) */}
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <span className="text-xs text-zinc-500 font-medium">
-                {hasSpaces ? 'Символов' : 'Букв'}: {builderSelected.length} из {targetText.length}
+              <span className="text-xs text-zinc-500 font-medium font-hebrew">
+                {isUlpan
+                  ? `אוֹתִיּוֹת: ${builderSelected.length} מִתּוֹךְ ${targetText.length}`
+                  : `${hasSpaces ? 'Символов' : 'Букв'}: ${builderSelected.length} из ${targetText.length}`}
               </span>
 
               <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={() => setShowHint((prev) => !prev)}
-                  className={`px-3 py-1.5 rounded-xl border text-xs font-semibold transition flex items-center gap-1.5 ${
+                  className={`px-3 py-1.5 rounded-xl border text-xs font-semibold transition flex items-center gap-1.5 cursor-pointer ${
                     showHint
                       ? 'bg-amber-500 text-white border-amber-600 shadow-sm'
                       : 'border-amber-200 dark:border-amber-800/80 bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/60'
                   }`}
-                  title="Показать правильный ответ"
+                  title={isUlpan ? 'הצג תשובה' : 'Показать правильный ответ'}
                 >
                   <HelpCircle className="w-3.5 h-3.5" />
-                  <span>{showHint ? 'Скрыть ответ' : 'Показать правильно'}</span>
+                  <span>
+                    {isUlpan
+                      ? (showHint ? 'הַסְתֵּר רֶמֶז' : 'הַצֵּג רֶמֶז')
+                      : (showHint ? 'Скрыть ответ' : 'Показать правильно')}
+                  </span>
                 </button>
 
                 <button
                   type="button"
                   disabled={builderSelected.length === 0 || builderSuccess}
                   onClick={handleBackspace}
-                  className="px-3 py-1.5 rounded-xl border border-zinc-200 dark:border-zinc-700 text-xs font-semibold text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-30 transition flex items-center gap-1.5"
-                  title="Удалить последний символ (Backspace)"
+                  className="px-3 py-1.5 rounded-xl border border-zinc-200 dark:border-zinc-700 text-xs font-semibold text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-30 transition flex items-center gap-1.5 cursor-pointer"
+                  title={isUlpan ? 'מחק תו אחרון' : 'Удалить последний символ (Backspace)'}
                 >
                   <Delete className="w-3.5 h-3.5" />
-                  <span>Стереть</span>
+                  <span>{isUlpan ? 'מְחַק' : 'Стереть'}</span>
                 </button>
 
                 <button
                   type="button"
                   disabled={builderSelected.length === 0 || builderSuccess}
                   onClick={handleResetBuilder}
-                  className="px-3 py-1.5 rounded-xl border border-zinc-200 dark:border-zinc-700 text-xs font-semibold text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-30 transition flex items-center gap-1.5"
-                  title="Сбросить все буквы"
+                  className="px-3 py-1.5 rounded-xl border border-zinc-200 dark:border-zinc-700 text-xs font-semibold text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-30 transition flex items-center gap-1.5 cursor-pointer"
+                  title={isUlpan ? 'אפס את כל האותיות' : 'Сбросить все буквы'}
                 >
                   <RotateCcw className="w-3.5 h-3.5" />
-                  <span>Сбросить</span>
+                  <span>{isUlpan ? 'אִפּוּס' : 'Сбросить'}</span>
                 </button>
               </div>
             </div>
@@ -826,9 +897,9 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
             {/* Блок подтверждения успеха (Появляется сразу при верном сборе) */}
             {builderSuccess && (
               <div className="bg-emerald-50 dark:bg-emerald-950/50 border-2 border-emerald-500 rounded-2xl p-5 text-center space-y-3 animate-in zoom-in-95">
-                <div className="flex items-center justify-center gap-2 text-emerald-600 dark:text-emerald-400 font-bold text-lg">
+                <div className="flex items-center justify-center gap-2 text-emerald-600 dark:text-emerald-400 font-bold text-lg font-hebrew">
                   <CheckCircle2 className="w-6 h-6 shrink-0" />
-                  <span>!מְצוּיָן! נָכוֹן (Верно!)</span>
+                  <span>{isUlpan ? '!מְצוּיָן! נָכוֹן 🎉' : '!מְצוּיָן! נָכוֹן (Верно!)'}</span>
                 </div>
 
                 <div
@@ -840,7 +911,7 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
                   {userProfile.showNikkud ? currentWord.hebrew : targetText}
                 </div>
 
-                {userProfile.showTranscription && (
+                {!isUlpan && userProfile.showTranscription && (
                   <p className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">
                     [{currentWord.transcription}]
                   </p>
@@ -849,9 +920,9 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
                 <button
                   type="button"
                   onClick={() => handleNextWord(5)}
-                  className="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm shadow-md transition flex items-center justify-center gap-2 active:scale-98"
+                  className="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm shadow-md transition flex items-center justify-center gap-2 active:scale-98 cursor-pointer"
                 >
-                  <span>Следующее слово</span>
+                  <span>{isUlpan ? 'הַמִּילָּה הַבָּאָה' : 'Следующее слово'}</span>
                   <ArrowRight className="w-4 h-4" />
                 </button>
               </div>
@@ -865,7 +936,7 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
                     key={tile.id}
                     type="button"
                     onClick={() => handleSelectTile(tile)}
-                    className={`rounded-2xl font-bold shadow-sm transition active:scale-90 ${
+                    className={`rounded-2xl font-bold shadow-sm transition active:scale-90 cursor-pointer ${
                       tile.char === ' '
                         ? 'px-4 py-3 bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-500 hover:text-white border-2 border-amber-300 dark:border-amber-700 text-amber-800 dark:text-amber-200 text-sm flex items-center gap-1.5'
                         : `w-13 h-13 min-w-[50px] min-h-[50px] bg-zinc-100 dark:bg-zinc-800 hover:bg-blue-600 hover:text-white dark:hover:bg-blue-600 text-2xl md:text-3xl border border-zinc-200 dark:border-zinc-700 ${
@@ -874,12 +945,12 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
                               : 'font-hebrew'
                           }`
                     }`}
-                    title={tile.char === ' ' ? 'Пробел (Space)' : `Буква ${tile.char}`}
+                    title={tile.char === ' ' ? (isUlpan ? 'רווח' : 'Пробел (Space)') : `${isUlpan ? 'אות' : 'Буква'} ${tile.char}`}
                   >
                     {tile.char === ' ' ? (
                       <>
                         <Space className="w-4 h-4 shrink-0" />
-                        <span>Пробел</span>
+                        <span>{isUlpan ? 'רֶוַח' : 'Пробел'}</span>
                       </>
                     ) : (
                       tile.char
@@ -898,18 +969,26 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
           <div className="text-center py-4">
             <button
               onClick={() => speakHebrew(currentWord.hebrew)}
-              className="w-20 h-20 mx-auto rounded-full bg-blue-600 text-white flex items-center justify-center shadow-lg hover:scale-105 active:scale-95 transition"
+              className="w-20 h-20 mx-auto rounded-full bg-blue-600 text-white flex items-center justify-center shadow-lg hover:scale-105 active:scale-95 transition cursor-pointer"
+              title={isUlpan ? 'השמע שוב' : 'Прослушать снова'}
             >
               <Volume2 className="w-8 h-8" />
             </button>
-            <p className="text-xs text-zinc-400 mt-3">Нажмите, чтобы прослушать слово еще раз</p>
+            <p className="text-xs text-zinc-400 mt-3 font-hebrew">
+              {isUlpan ? 'לַחֲצוּ לַהַשְׁמָעָה חוֹזֶרֶת' : 'Нажмите, чтобы прослушать слово еще раз'}
+            </p>
           </div>
 
           {/* Варианты ответов */}
           <div className="grid grid-cols-1 gap-2.5">
             {quizOptions.map((opt, i) => {
               const isSelected = selectedAnswer === opt;
-              const isCorrect = opt === currentWord.translation;
+              const correctOpt = isUlpan
+                ? userProfile.showNikkud
+                  ? currentWord.hebrew
+                  : currentWord.hebrewPlain
+                : currentWord.translation;
+              const isCorrect = opt === correctOpt;
 
               let btnClass =
                 'bg-zinc-50 dark:bg-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 border-zinc-200 dark:border-zinc-700';
@@ -927,7 +1006,10 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
                   key={i}
                   disabled={selectedAnswer !== null}
                   onClick={() => handleQuizSelect(opt)}
-                  className={`p-3.5 rounded-xl border text-sm text-left transition ${btnClass}`}
+                  dir={isUlpan ? 'rtl' : 'ltr'}
+                  className={`p-3.5 rounded-xl border text-sm transition cursor-pointer ${
+                    isUlpan ? 'text-right font-hebrew text-lg' : 'text-left'
+                  } ${btnClass}`}
                 >
                   {opt}
                 </button>

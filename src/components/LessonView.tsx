@@ -122,21 +122,21 @@ export const LessonView: React.FC<LessonViewProps> = ({
           {prevLesson && (
             <button
               onClick={() => onSelectLesson(prevLesson)}
-              className="p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl border border-zinc-200 dark:border-zinc-700 text-xs font-semibold hover:bg-zinc-50 dark:hover:bg-zinc-800 transition flex items-center gap-1 text-zinc-600 dark:text-zinc-300"
-              title={`Предыдущий урок ${prevLesson}`}
+              className="p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl border border-zinc-200 dark:border-zinc-700 text-xs font-semibold hover:bg-zinc-50 dark:hover:bg-zinc-800 transition flex items-center gap-1 text-zinc-600 dark:text-zinc-300 cursor-pointer"
+              title={userProfile.ulpanMode ? `שיעור קודם ${prevLesson}` : `Предыдущий урок ${prevLesson}`}
             >
               <ArrowLeft className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Урок {prevLesson}</span>
+              <span className="hidden sm:inline">{userProfile.ulpanMode ? `שִׁיעוּר ${prevLesson}` : `Урок ${prevLesson}`}</span>
             </button>
           )}
 
           {nextLesson && (
             <button
               onClick={() => onSelectLesson(nextLesson)}
-              className="p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold transition flex items-center gap-1 shadow-sm"
-              title={`Следующий урок ${nextLesson}`}
+              className="p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold transition flex items-center gap-1 shadow-sm cursor-pointer"
+              title={userProfile.ulpanMode ? `שיעור הבא ${nextLesson}` : `Следующий урок ${nextLesson}`}
             >
-              <span className="hidden sm:inline">Урок {nextLesson}</span>
+              <span className="hidden sm:inline">{userProfile.ulpanMode ? `שִׁיעוּר ${nextLesson}` : `Урок ${nextLesson}`}</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </button>
           )}
@@ -146,16 +146,16 @@ export const LessonView: React.FC<LessonViewProps> = ({
       {/* Прогресс-бар 5 этапов урока */}
       <div className="bg-white dark:bg-zinc-900 p-2.5 sm:p-3 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-xs">
         <div className="flex items-center justify-between text-xs font-semibold mb-1.5 px-0.5">
-          <div className="flex items-center gap-1.5 text-zinc-700 dark:text-zinc-300">
-            <span>Прогресс урока:</span>
+          <div className="flex items-center gap-1.5 text-zinc-700 dark:text-zinc-300 font-hebrew">
+            <span>{userProfile.ulpanMode ? 'הִתְקַדְּמוּת בַּשִּׁיעוּר:' : 'Прогресс урока:'}</span>
             <span className="font-bold text-blue-600 dark:text-blue-400">
-              {Math.min(5, completedTabs.length)}/5 этапов
+              {Math.min(5, completedTabs.length)}/5 {userProfile.ulpanMode ? 'שְׁלָבִים' : 'этапов'}
             </span>
           </div>
-          <span className="text-[11px] text-zinc-500 dark:text-zinc-400">
+          <span className="text-[11px] text-zinc-500 dark:text-zinc-400 font-hebrew">
             {completedTabs.length >= 5
-              ? '🎉 Урок полностью пройден!'
-              : 'Теория → Словарь → Упражнения → ИИ-чат → Звонок'}
+              ? (userProfile.ulpanMode ? '🎉 הַשִּׁיעוּר הוּשְׁלַם בִּמְלוֹאוֹ!' : '🎉 Урок полностью пройден!')
+              : (userProfile.ulpanMode ? 'תֵּאוֹרְיָה ← מִילִּים ← תַּרְגִּילִים ← שִׂיחָה ← טֶלֶפוֹן' : 'Теория → Словарь → Упражнения → ИИ-чат → Звонок')}
           </span>
         </div>
         <div className="w-full h-2 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden flex">
@@ -181,7 +181,7 @@ export const LessonView: React.FC<LessonViewProps> = ({
           }`}
         >
           <BookOpen className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
-          <span className="truncate">{userProfile.ulpanMode ? 'תֵּאוֹרְיָה' : 'Теория'}</span>
+          <span className="truncate font-hebrew">{userProfile.ulpanMode ? 'תֵּאוֹרְיָה' : 'Теория'}</span>
           {completedTabs.includes('theory') && (
             <CheckCircle2 className="w-3 h-3 text-emerald-500 shrink-0" />
           )}
@@ -196,7 +196,7 @@ export const LessonView: React.FC<LessonViewProps> = ({
           }`}
         >
           <Layers className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
-          <span className="truncate">
+          <span className="truncate font-hebrew">
             {userProfile.ulpanMode ? 'מִילִּים' : 'Словарь'}
             <span className="text-[10px] opacity-75 hidden md:inline"> ({lesson.vocabulary.length})</span>
           </span>
@@ -214,7 +214,7 @@ export const LessonView: React.FC<LessonViewProps> = ({
           }`}
         >
           <ListTodo className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
-          <span className="truncate">{userProfile.ulpanMode ? 'תַּרְגִּילִים' : 'Тесты'}</span>
+          <span className="truncate font-hebrew">{userProfile.ulpanMode ? 'תַּרְגִּילִים' : 'Тесты'}</span>
           {completedTabs.includes('exercises') && (
             <CheckCircle2 className="w-3 h-3 text-emerald-500 shrink-0" />
           )}
@@ -229,7 +229,7 @@ export const LessonView: React.FC<LessonViewProps> = ({
           }`}
         >
           <Bot className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-purple-500 shrink-0" />
-          <span className="truncate">{userProfile.ulpanMode ? 'שִׂיחָה' : 'ИИ-чат'}</span>
+          <span className="truncate font-hebrew">{userProfile.ulpanMode ? 'שִׂיחָה' : 'ИИ-чат'}</span>
           {completedTabs.includes('chat') && (
             <CheckCircle2 className="w-3 h-3 text-emerald-500 shrink-0" />
           )}
@@ -244,7 +244,7 @@ export const LessonView: React.FC<LessonViewProps> = ({
           }`}
         >
           <Phone className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-500 shrink-0" />
-          <span className="truncate">{userProfile.ulpanMode ? 'טֶלֶפוֹן' : 'Звонок'}</span>
+          <span className="truncate font-hebrew">{userProfile.ulpanMode ? 'טֶלֶפוֹן' : 'Звонок'}</span>
           {completedTabs.includes('phone') && (
             <CheckCircle2 className="w-3 h-3 text-emerald-500 shrink-0" />
           )}
