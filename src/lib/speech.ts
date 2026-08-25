@@ -151,29 +151,120 @@ export function stopSpeech(): void {
 }
 
 /**
- * Интерфейс распознавания речи (Speech-to-Text) через браузерный API
+ * Очистка текста от дублирующихся смежных фраз и слов
+ */
+export function cleanDuplicatePhrases(text: string): string {
+  if (!text) return '';
+  let cleaned = text.replace(/\s+/g, ' ').trim();
+
+  // 1. Проверяем точный повтор двух одинаковых половин: "X X" -> "X"
+  const words = cleaned.split(' ').filter(Boolean);
+  if (words.length >= 4 && words.length % 2 === 0) {
+    const half = words.length / 2;
+    const firstHalf = words.slice(0, half).join(' ');
+    const secondHalf = words.slice(half).join(' ');
+    if (firstHalf.toLowerCase() === secondHalf.toLowerCase()) {
+      return firstHalf;
+    }
+  }
+
+  // 2. Проверяем повторы подфраз длины от 2 до 8 слов: "A B C A B C" -> "A B C"
+  for (let phraseLen = Math.min(8, Math.floor(words.length / 2)); phraseLen >= 2; phraseLen--) {
+    let changed = false;
+    for (let i = 0; i <= words.length - 2 * phraseLen; i++) {
+      const p1 = words.slice(i, i + phraseLen).join(' ');
+      const p2 = words.slice(i + phraseLen, i + 2 * phraseLen).join(' ');
+      if (p1.toLowerCase() === p2.toLowerCase() && p1.length > 3) {
+        words.splice(i + phraseLen, phraseLen);
+        changed = true;
+        break;
+      }
+    }
+    if (changed) {
+      cleaned = words.join(' ');
+    }
+  }
+
+  return cleaned;
+}
+
+/**
+ * Умная сшивка фрагментов распознавания (защита от багов WebKit / Android Chrome)
+ */
+export function stitchSpeechChunks(chunks: string[]): string {
+  let accumulated = '';
+
+  for (const rawChunk of chunks) {
+    const chunk = rawChunk.trim();
+    if (!chunk) continue;
+
+    if (!accumulated) {
+      accumulated = chunk;
+      continue;
+    }
+
+    const normAcc = accumulated.replace(/\s+/g, ' ').trim();
+    const normChunk = chunk.replace(/\s+/g, ' ').trim();
+
+    // 1. Точный дубликат
+    if (normAcc.toLowerCase() === normChunk.toLowerCase()) {
+      continue;
+    }
+
+    // 2. Новый фрагмент уже содержится в конце или внутри накопленного
+    if (normAcc.toLowerCase().endsWith(normChunk.toLowerCase()) || normAcc.toLowerCase().includes(normChunk.toLowerCase())) {
+      continue;
+    }
+
+    // 3. Накопленный текст является префиксом нового фрагмента (Android cumulative)
+    // Например: acc = "שלום", chunk = "שלום מה נשמע" -> заменяем на chunk
+    if (normChunk.toLowerCase().startsWith(normAcc.toLowerCase())) {
+      accumulated = normChunk;
+      continue;
+    }
+
+    // 4. Проверяем частичное перекрытие слов на стыке (suffix-prefix overlap)
+    // Например: acc = "אני רוצה קפה", chunk = "קפה עם חלב" -> "אני רוצה קפה עם חלב"
+    const accWords = normAcc.split(' ');
+    const chunkWords = normChunk.split(' ');
+    let overlapFound = false;
+
+    const maxOverlap = Math.min(accWords.length, chunkWords.length);
+    for (let overlapLen = maxOverlap; overlapLen >= 1; overlapLen--) {
+      const accSuffix = accWords.slice(-overlapLen).join(' ').toLowerCase();
+      const chunkPrefix = chunkWords.slice(0, overlapLen).join(' ').toLowerCase();
+
+      if (accSuffix === chunkPrefix) {
+        const remainingChunk = chunkWords.slice(overlapLen).join(' ');
+        accumulated = remainingChunk ? `${normAcc} ${remainingChunk}` : normAcc;
+        overlapFound = true;
+        break;
+      }
+    }
+
+    // 5. Если перекрытия нет, просто соединяем через пробел
+    if (!overlapFound) {
+      accumulated = `${normAcc} ${normChunk}`;
+    }
+  }
+
+  return cleanDuplicatePhrases(accumulated);
+}
+
+/**
+ * Интерфейс распознавания речи (Speech-to-Text) через браузерный API с защитой от дублирования
  */
 export class HebrewSpeechRecognizer {
   private recognition: any = null;
   private isListening = false;
   private lastTranscript = '';
-
-  constructor() {
-    if (typeof window !== 'undefined') {
-      const SpeechRecognition =
-        (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-      if (SpeechRecognition) {
-        this.recognition = new SpeechRecognition();
-        this.recognition.lang = 'he-IL';
-        this.recognition.continuous = true;
-        this.recognition.interimResults = true;
-        this.recognition.maxAlternatives = 1;
-      }
-    }
-  }
+  private onResultCb: ((transcript: string, isFinal: boolean) => void) | null = null;
+  private onErrorCb: ((error: string) => void) | null = null;
+  private onEndCb: ((lastTranscript: string) => void) | null = null;
 
   public isSupported(): boolean {
-    return this.recognition !== null;
+    if (typeof window === 'undefined') return false;
+    return !!((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition);
   }
 
   public start(
@@ -181,72 +272,102 @@ export class HebrewSpeechRecognizer {
     onError: (error: string) => void,
     onEnd: (lastTranscript: string) => void
   ): void {
-    if (!this.recognition) {
+    if (!this.isSupported()) {
       onError('Распознавание речи не поддерживается в этом браузере.');
       return;
     }
 
-    if (this.isListening) {
-      try {
-        this.recognition.stop();
-      } catch {}
-    }
+    // Безопасно останавливаем предыдущий экземпляр перед созданием нового
+    this.stop();
 
+    this.onResultCb = onResult;
+    this.onErrorCb = onError;
+    this.onEndCb = onEnd;
     this.lastTranscript = '';
 
-    this.recognition.onresult = (event: any) => {
-      let interim = '';
-      let final = '';
-
-      for (let i = 0; i < event.results.length; ++i) {
-        const result = event.results[i];
-        if (result.isFinal) {
-          final += result[0].transcript + ' ';
-        } else {
-          interim += result[0].transcript;
-        }
-      }
-
-      const text = (final || interim).trim();
-      if (text) {
-        this.lastTranscript = text;
-        onResult(text, final.length > 0);
-      }
-    };
-
-    this.recognition.onerror = (event: any) => {
-      // Игнорируем штатные таймауты тишины (no-speech) — микрофон должен продолжать слушать!
-      if (event.error === 'no-speech') {
-        return;
-      }
-      this.isListening = false;
-      onError(event.error || 'Ошибка распознавания');
-    };
-
-    this.recognition.onend = () => {
-      this.isListening = false;
-      onEnd(this.lastTranscript);
-    };
-
     try {
-      this.recognition.start();
+      const SpeechRecognition =
+        (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+
+      const rec = new SpeechRecognition();
+      rec.lang = 'he-IL';
+      rec.continuous = true;
+      rec.interimResults = true;
+      rec.maxAlternatives = 1;
+
+      rec.onresult = (event: any) => {
+        const finalChunks: string[] = [];
+        const interimChunks: string[] = [];
+
+        for (let i = 0; i < event.results.length; ++i) {
+          const result = event.results[i];
+          const trans = result[0]?.transcript || '';
+          if (!trans) continue;
+
+          if (result.isFinal) {
+            finalChunks.push(trans);
+          } else {
+            interimChunks.push(trans);
+          }
+        }
+
+        const finalStitched = stitchSpeechChunks(finalChunks);
+        const interimStitched = stitchSpeechChunks(interimChunks);
+
+        let combined = '';
+        if (finalStitched && interimStitched) {
+          combined = stitchSpeechChunks([finalStitched, interimStitched]);
+        } else {
+          combined = finalStitched || interimStitched;
+        }
+
+        combined = combined.trim();
+        if (combined) {
+          this.lastTranscript = combined;
+          this.onResultCb?.(combined, finalChunks.length > 0 && interimChunks.length === 0);
+        }
+      };
+
+      rec.onerror = (event: any) => {
+        // Игнорируем штатные паузы тишины
+        if (event.error === 'no-speech' || event.error === 'aborted') {
+          return;
+        }
+        this.isListening = false;
+        this.onErrorCb?.(event.error || 'Ошибка распознавания');
+      };
+
+      rec.onend = () => {
+        const wasListening = this.isListening;
+        this.isListening = false;
+        this.recognition = null;
+        if (wasListening) {
+          this.onEndCb?.(this.lastTranscript);
+        }
+      };
+
+      this.recognition = rec;
       this.isListening = true;
+      rec.start();
     } catch (err: any) {
-      // Если уже запущен
-      if (err?.name === 'InvalidStateError') {
-        this.isListening = true;
-      } else {
+      this.isListening = false;
+      this.recognition = null;
+      if (err?.name !== 'InvalidStateError') {
         onError('Не удалось запустить микрофон');
       }
     }
   }
 
   public stop(): void {
-    if (this.recognition && this.isListening) {
+    if (this.recognition) {
+      this.isListening = false;
       try {
+        this.recognition.onresult = null;
+        this.recognition.onerror = null;
+        this.recognition.onend = null;
         this.recognition.stop();
       } catch {}
-      this.isListening = false;
+      this.recognition = null;
     }
   }
 }

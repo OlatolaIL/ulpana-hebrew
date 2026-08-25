@@ -178,6 +178,10 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
 
     const rec = new HebrewSpeechRecognizer();
     setRecognizer(rec);
+
+    return () => {
+      rec.stop();
+    };
   }, [lesson, userProfile.gender]);
 
   const handleGenderSwitch = (newGender: 'male' | 'female') => {
@@ -197,6 +201,11 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
   }, [messages.length, loading]);
 
   const handleSendMessage = async (textToSend?: string) => {
+    if (isRecording && recognizer) {
+      recognizer.stop();
+      setIsRecording(false);
+    }
+
     const text = (textToSend || inputText).trim();
     if (!text || loading) return;
 
@@ -282,12 +291,9 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
     } else {
       setIsRecording(true);
       recognizer.start(
-        (transcript, isFinal) => {
+        (transcript) => {
           if (transcript) {
             setInputText(transcript);
-          }
-          if (isFinal) {
-            setIsRecording(false);
           }
         },
         (err) => {
