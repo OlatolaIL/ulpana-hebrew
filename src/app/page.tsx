@@ -99,6 +99,8 @@ export default function Home() {
   const [flashcardWords, setFlashcardWords] = useState<Word[]>([]);
   const [flashcardTitle, setFlashcardTitle] = useState<string>('Тренировка карточек');
   const [flashcardMode, setFlashcardMode] = useState<'flip' | 'builder' | 'listening'>('flip');
+  const [flashcardSourceLessonId, setFlashcardSourceLessonId] = useState<number | null>(null);
+  const [lessonInitialTab, setLessonInitialTab] = useState<'theory' | 'vocab' | 'exercises' | 'chat' | 'phone'>('theory');
   const [isMultiLessonSetupOpen, setIsMultiLessonSetupOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
@@ -285,12 +287,16 @@ export default function Home() {
 
   const isPro = profile.subscriptionTier === 'pro' || profile.subscriptionTier === 'admin';
 
-  const handleSelectLesson = (id: number) => {
+  const handleSelectLesson = (
+    id: number,
+    tab?: 'theory' | 'vocab' | 'exercises' | 'chat' | 'phone'
+  ) => {
     if (id > 3 && !isPro) {
       setIsSubscriptionModalOpen(true);
       return;
     }
     setActiveLessonId(id);
+    setLessonInitialTab(tab || 'theory');
     setCurrentView('lesson');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -303,12 +309,35 @@ export default function Home() {
   const handleStartFlashcards = (
     wordsToTrain: Word[],
     title?: string,
-    mode?: 'flip' | 'builder' | 'listening'
+    mode?: 'flip' | 'builder' | 'listening',
+    lessonId?: number
   ) => {
     setFlashcardWords(wordsToTrain);
-    setFlashcardTitle(title || 'Тренировка карточек');
+    setFlashcardTitle(
+      title || (lessonId ? `Урок ${lessonId}: Карточки словаря` : 'Тренировка карточек')
+    );
     setFlashcardMode(mode || 'flip');
+    setFlashcardSourceLessonId(lessonId || null);
     setCurrentView('flashcards');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleCloseFlashcards = () => {
+    if (flashcardSourceLessonId) {
+      setActiveLessonId(flashcardSourceLessonId);
+      setCurrentView('lesson');
+    } else {
+      setCurrentView('map');
+    }
+  };
+
+  const handleContinueLessonFromFlashcards = (
+    lessonId: number,
+    nextTab: 'theory' | 'vocab' | 'exercises' | 'chat' | 'phone'
+  ) => {
+    setActiveLessonId(lessonId);
+    setLessonInitialTab(nextTab);
+    setCurrentView('lesson');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -424,10 +453,18 @@ export default function Home() {
         {currentView === 'lesson' && (
           <LessonView
             lessonId={activeLessonId}
+            initialTab={lessonInitialTab}
             userProfile={profile}
             onBack={() => setCurrentView('map')}
-            onSelectLesson={handleSelectLesson}
-            onStartFlashcards={handleStartFlashcards}
+            onSelectLesson={(id) => handleSelectLesson(id, 'theory')}
+            onStartFlashcards={(words, lessonId) =>
+              handleStartFlashcards(
+                words,
+                `Урок ${lessonId || activeLessonId}: Карточки словаря`,
+                'flip',
+                lessonId || activeLessonId
+              )
+            }
             onUpdateProfile={handleUpdateProfile}
           />
         )}
@@ -436,10 +473,15 @@ export default function Home() {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <button
-                onClick={() => setCurrentView('map')}
-                className="text-xs font-semibold text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 transition"
+                type="button"
+                onClick={handleCloseFlashcards}
+                className="text-xs font-semibold text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 transition cursor-pointer flex items-center gap-1"
               >
-                ← Вернуться назад
+                <span>
+                  {flashcardSourceLessonId
+                    ? `← Вернуться в урок ${flashcardSourceLessonId}`
+                    : '← Вернуться назад'}
+                </span>
               </button>
             </div>
             <FlashcardTrainer
@@ -447,7 +489,9 @@ export default function Home() {
               userProfile={profile}
               customTitle={flashcardTitle}
               initialMode={flashcardMode}
-              onClose={() => setCurrentView('map')}
+              lessonId={flashcardSourceLessonId || undefined}
+              onContinueLesson={handleContinueLessonFromFlashcards}
+              onClose={handleCloseFlashcards}
               onUpdateProfile={handleUpdateProfile}
             />
           </div>

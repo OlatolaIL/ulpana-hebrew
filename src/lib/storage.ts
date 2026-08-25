@@ -329,3 +329,46 @@ export function calculateWordMastery(stats?: FlashcardProgress): WordMasteryInfo
   };
 }
 
+const CALLS_STORAGE_KEY = 'ulpana_call_history_v1';
+
+export interface SavedCallLog {
+  id: string;
+  user_id: string;
+  user_name: string;
+  lesson_id: number;
+  caller_name: string;
+  caller_role: string;
+  duration_seconds: number;
+  messages_count: number;
+  transcript: Array<{
+    role: string;
+    hebrew: string;
+    translation?: string;
+    transcription?: string;
+  }>;
+  feedback?: string;
+  created_at: string;
+}
+
+export function saveLocalCallLog(call: SavedCallLog): void {
+  if (typeof window === 'undefined') return;
+  try {
+    const existing = loadLocalCallLogs();
+    const updated = [call, ...existing.filter((c) => c.id !== call.id)].slice(0, 50);
+    localStorage.setItem(CALLS_STORAGE_KEY, JSON.stringify(updated));
+  } catch (e) {
+    console.error('Failed to save call log to localStorage', e);
+  }
+}
+
+export function loadLocalCallLogs(): SavedCallLog[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = localStorage.getItem(CALLS_STORAGE_KEY);
+    if (!raw) return [];
+    return JSON.parse(raw);
+  } catch (e) {
+    return [];
+  }
+}
+

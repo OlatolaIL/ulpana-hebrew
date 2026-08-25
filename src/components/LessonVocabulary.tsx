@@ -185,8 +185,8 @@ export const LessonVocabulary: React.FC<LessonVocabularyProps> = ({
 
           {onStartPractice && (
             <button
-              onClick={() => onStartPractice(filteredWords)}
-              className="w-full sm:w-auto px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm font-semibold flex items-center justify-center gap-2 shadow-sm transition active:scale-95 shrink-0"
+              onClick={() => handleStartPracticeWithMark(filteredWords)}
+              className="w-full sm:w-auto px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm font-semibold flex items-center justify-center gap-2 shadow-sm transition active:scale-95 shrink-0 cursor-pointer"
             >
               <Layers className="w-4 h-4" />
               <span>Тренировать карточками ({filteredWords.length})</span>
@@ -337,7 +337,7 @@ export const LessonVocabulary: React.FC<LessonVocabularyProps> = ({
           className="w-full sm:w-auto py-3.5 px-8 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm shadow-md transition active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
         >
           <CheckCircle2 className="w-5 h-5 text-emerald-300" />
-          <span>Я выучил слова • Перейти к упражнениям (этап 3/4) ➡️</span>
+          <span>Я выучил слова • Перейти к упражнениям (этап 3/5) ➡️</span>
         </button>
       </div>
     </div>

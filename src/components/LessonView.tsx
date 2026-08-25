@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   ArrowLeft,
   ArrowRight,
@@ -21,26 +21,35 @@ import { PhoneCallSimulator } from './PhoneCallSimulator';
 import { getLessonById, LESSONS_CATALOG } from '@/data/lessonsData';
 import { loadUserProfile } from '@/lib/storage';
 
+export type LessonTab = 'theory' | 'vocab' | 'exercises' | 'chat' | 'phone';
+
 interface LessonViewProps {
   lessonId: number;
+  initialTab?: LessonTab;
   userProfile: UserProfile;
   onBack: () => void;
   onSelectLesson: (id: number) => void;
-  onStartFlashcards: (words: Word[]) => void;
+  onStartFlashcards: (words: Word[], lessonId?: number) => void;
   onUpdateProfile: (profile: UserProfile) => void;
 }
 
-type LessonTab = 'theory' | 'vocab' | 'exercises' | 'chat' | 'phone';
-
 export const LessonView: React.FC<LessonViewProps> = ({
   lessonId,
+  initialTab = 'theory',
   userProfile,
   onBack,
   onSelectLesson,
   onStartFlashcards,
   onUpdateProfile,
 }) => {
-  const [activeTab, setActiveTab] = useState<LessonTab>('theory');
+  const [activeTab, setActiveTab] = useState<LessonTab>(initialTab);
+
+  useEffect(() => {
+    if (initialTab) {
+      setActiveTab(initialTab);
+    }
+  }, [initialTab]);
+
   const lesson = getLessonById(lessonId);
 
   const prevLesson = lessonId > 1 ? lessonId - 1 : null;
@@ -252,7 +261,7 @@ export const LessonView: React.FC<LessonViewProps> = ({
             words={lesson.vocabulary}
             userProfile={userProfile}
             onCompleted={() => setActiveTab('exercises')}
-            onStartPractice={(wordsToTrain) => onStartFlashcards(wordsToTrain)}
+            onStartPractice={(wordsToTrain) => onStartFlashcards(wordsToTrain, lesson.id)}
             onUpdateProfile={onUpdateProfile}
           />
         )}
@@ -272,6 +281,7 @@ export const LessonView: React.FC<LessonViewProps> = ({
             userProfile={userProfile}
             onUpdateProfile={onUpdateProfile}
             onWordAdded={() => onUpdateProfile(loadUserProfile())}
+            onGoToPhone={() => setActiveTab('phone')}
           />
         )}
 

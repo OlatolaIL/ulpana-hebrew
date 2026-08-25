@@ -217,7 +217,7 @@ export const LessonTheory: React.FC<LessonTheoryProps> = ({
           className="py-3.5 px-8 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm shadow-md transition active:scale-95 inline-flex items-center gap-2 cursor-pointer"
         >
           <CheckCircle2 className="w-5 h-5 text-emerald-300" />
-          <span>Я изучил теорию • Перейти к словарю (этап 2/4) ➡️</span>
+          <span>Я изучил теорию • Перейти к словарю (этап 2/5) ➡️</span>
         </button>
       </div>
     </div>

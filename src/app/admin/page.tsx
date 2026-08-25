@@ -32,6 +32,7 @@ import {
   MessageSquare,
 } from 'lucide-react';
 import { getLessonById } from '@/data/lessonsData';
+import { loadLocalCallLogs } from '@/lib/storage';
 
 interface AdminStats {
   totalUsers: number;
@@ -188,13 +189,30 @@ export default function AdminPage() {
 
   const fetchCalls = useCallback(async () => {
     try {
-      const res = await fetch('/api/admin/calls');
-      if (res.ok) {
-        const data = await res.json();
-        setCalls(data.calls || []);
-      }
+      let serverCalls: AdminCallLog[] = [];
+      try {
+        const res = await fetch('/api/admin/calls');
+        if (res.ok) {
+          const data = await res.json();
+          serverCalls = data.calls || [];
+        }
+      } catch {}
+
+      const localCalls = loadLocalCallLogs();
+      const allCallsMap = new Map<string, AdminCallLog>();
+      serverCalls.forEach((c) => allCallsMap.set(c.id, c));
+      localCalls.forEach((c) => {
+        if (!allCallsMap.has(c.id)) {
+          allCallsMap.set(c.id, c as any);
+        }
+      });
+      const combined = Array.from(allCallsMap.values()).sort(
+        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
+      setCalls(combined);
     } catch (e) {
       console.error(e);
+      setCalls(loadLocalCallLogs() as any);
     }
   }, []);
 

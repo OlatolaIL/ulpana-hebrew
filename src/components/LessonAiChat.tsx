@@ -27,6 +27,7 @@ interface LessonAiChatProps {
   userProfile: UserProfile;
   onUpdateProfile?: (profile: UserProfile) => void;
   onWordAdded?: (word: Word) => void;
+  onGoToPhone?: () => void;
 }
 
 function getInitialMessageForGender(lesson: Lesson, gender: 'male' | 'female'): {
@@ -135,6 +136,7 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
   userProfile,
   onUpdateProfile,
   onWordAdded,
+  onGoToPhone,
 }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState('');
@@ -443,33 +445,46 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
           <Award className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
           <div className="min-w-0">
             <p className="text-xs font-bold text-zinc-900 dark:text-zinc-100 truncate">
-              Этап 4/4: Практика диалога
+              Этап 4/5: Практика диалога
             </p>
             <p className="text-[11px] text-zinc-500 dark:text-zinc-400 truncate hidden xs:block">
               {userProfile.lessonProgress[lesson.id]?.completedTabs?.includes('chat')
-                ? 'Диалог зачтен! Можете продолжить беседу или завершить урок.'
-                : 'Пообщайтесь с ИИ и нажмите «Зачесть урок».'}
+                ? 'Диалог зачтен! Можете продолжить беседу или перейти к звонку.'
+                : 'Пообщайтесь с ИИ и нажмите «Зачесть диалог».'}
             </p>
           </div>
         </div>
 
-        <button
-          type="button"
-          onClick={() => {
-            const updated = markLessonTabCompleted(lesson.id, 'chat');
-            if (onUpdateProfile) onUpdateProfile(updated);
-            confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 } });
-          }}
-          className={`px-3 py-1.5 rounded-xl font-bold text-xs shadow-sm transition active:scale-95 flex items-center gap-1.5 shrink-0 cursor-pointer ${
-            userProfile.lessonProgress[lesson.id]?.completedTabs?.includes('chat')
-              ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
-              : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white animate-pulse'
-          }`}
-          title="Зачесть 4 этап и завершить урок"
-        >
-          <CheckCircle2 className="w-3.5 h-3.5" />
-          <span>{userProfile.lessonProgress[lesson.id]?.completedTabs?.includes('chat') ? 'Урок зачтен ✅' : 'Зачесть урок 🎉'}</span>
-        </button>
+        <div className="flex items-center gap-1.5 shrink-0">
+          <button
+            type="button"
+            onClick={() => {
+              const updated = markLessonTabCompleted(lesson.id, 'chat');
+              if (onUpdateProfile) onUpdateProfile(updated);
+              confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 } });
+            }}
+            className={`px-3 py-1.5 rounded-xl font-bold text-xs shadow-sm transition active:scale-95 flex items-center gap-1.5 cursor-pointer ${
+              userProfile.lessonProgress[lesson.id]?.completedTabs?.includes('chat')
+                ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white animate-pulse'
+            }`}
+            title="Зачесть 4 этап"
+          >
+            <CheckCircle2 className="w-3.5 h-3.5" />
+            <span>{userProfile.lessonProgress[lesson.id]?.completedTabs?.includes('chat') ? 'Диалог зачтен ✅' : 'Зачесть диалог 🎉'}</span>
+          </button>
+
+          {onGoToPhone && (
+            <button
+              type="button"
+              onClick={onGoToPhone}
+              className="px-2.5 py-1.5 rounded-xl font-bold text-xs bg-purple-600 hover:bg-purple-700 text-white shadow-sm transition active:scale-95 flex items-center gap-1 cursor-pointer"
+              title="Перейти к этапу звонка"
+            >
+              <span>Звонок (этап 5/5) ➡️</span>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Список сообщений */}

@@ -31,7 +31,7 @@ import { getLessonPhoneScenario } from '@/data/phoneScenarios';
 import { phoneAudio } from '@/lib/phoneAudio';
 import { speakHebrew, stopSpeech, HebrewSpeechRecognizer } from '@/lib/speech';
 import { stripNikkud } from '@/lib/transcription';
-import { isWordInPersonalDict, addWordToPersonalDict, markLessonTabCompleted } from '@/lib/storage';
+import { isWordInPersonalDict, addWordToPersonalDict, markLessonTabCompleted, saveLocalCallLog } from '@/lib/storage';
 
 interface PhoneCallSimulatorProps {
   lesson: Lesson;
@@ -386,7 +386,33 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
     await phoneAudio.playHangupTone(2);
     setCallState('ended');
 
-    // Логируем звонок в базу данных
+    const formattedTranscript = messages.map((m) => ({
+      role: m.role,
+      hebrew: m.hebrew,
+      translation: m.translation,
+      transcription: m.transcription,
+    }));
+
+    // 1. Сохраняем в локальное хранилище (доступно мгновенно на любом устройстве)
+    try {
+      saveLocalCallLog({
+        id: `call_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+        user_id: userProfile.name || 'local_user',
+        user_name: userProfile.name || 'Ученик',
+        lesson_id: lesson.id,
+        caller_name: scenario.callerNameRu || scenario.callerName,
+        caller_role: scenario.callerRole,
+        duration_seconds: callDuration,
+        messages_count: messages.length,
+        transcript: formattedTranscript,
+        feedback: lastFeedback || undefined,
+        created_at: new Date().toISOString(),
+      });
+    } catch (e) {
+      console.warn('Local call log error:', e);
+    }
+
+    // 2. Логируем звонок в базу данных сервера
     try {
       fetch('/api/calls/log', {
         method: 'POST',
@@ -396,12 +422,7 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
           callerName: scenario.callerNameRu || scenario.callerName,
           callerRole: scenario.callerRole,
           durationSeconds: callDuration,
-          transcript: messages.map((m) => ({
-            role: m.role,
-            hebrew: m.hebrew,
-            translation: m.translation,
-            transcription: m.transcription,
-          })),
+          transcript: formattedTranscript,
           feedback: lastFeedback,
           userName: userProfile.name || 'Ученик',
         }),

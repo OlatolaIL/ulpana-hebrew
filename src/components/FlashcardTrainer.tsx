@@ -20,7 +20,7 @@ import {
 import confetti from 'canvas-confetti';
 import { Word, UserProfile, VerbConjugation } from '@/types';
 import { speakHebrew } from '@/lib/speech';
-import { updateCardSRS, calculateWordMastery, addWordToPersonalDict, isWordInPersonalDict, loadUserProfile } from '@/lib/storage';
+import { updateCardSRS, calculateWordMastery, addWordToPersonalDict, isWordInPersonalDict, loadUserProfile, markLessonTabCompleted } from '@/lib/storage';
 import { stripNikkud } from '@/lib/transcription';
 import { findOfflineVerbConjugation } from '@/lib/verbConjugations';
 import { VerbConjugationView } from '@/components/VerbConjugationView';
@@ -32,6 +32,8 @@ interface FlashcardTrainerProps {
   onUpdateProfile?: (profile: UserProfile) => void;
   customTitle?: string;
   initialMode?: 'flip' | 'builder' | 'listening';
+  lessonId?: number;
+  onContinueLesson?: (lessonId: number, nextTab: 'theory' | 'vocab' | 'exercises' | 'chat' | 'phone') => void;
 }
 
 type TrainerMode = 'flip' | 'builder' | 'listening';
@@ -56,6 +58,8 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
   onUpdateProfile,
   customTitle,
   initialMode,
+  lessonId,
+  onContinueLesson,
 }) => {
   const [words, setWords] = useState<Word[]>(initialWords);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -186,6 +190,10 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
       setCurrentIndex((prev) => prev + 1);
     } else {
       setIsCompleted(true);
+      if (lessonId) {
+        const updated = markLessonTabCompleted(lessonId, 'vocab');
+        if (onUpdateProfile) onUpdateProfile(updated);
+      }
       triggerCelebration();
     }
   };
@@ -312,39 +320,92 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
 
   if (!currentWord || isCompleted) {
     return (
-      <div className="bg-white dark:bg-zinc-900 rounded-3xl p-8 border border-zinc-200 dark:border-zinc-800 shadow-xl max-w-lg mx-auto text-center space-y-6 animate-in zoom-in-95">
-        <div className="w-20 h-20 mx-auto rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 flex items-center justify-center">
+      <div className="bg-white dark:bg-zinc-900 rounded-3xl p-6 sm:p-8 border border-zinc-200 dark:border-zinc-800 shadow-xl max-w-lg mx-auto text-center space-y-6 animate-in zoom-in-95">
+        <div className="w-20 h-20 mx-auto rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shadow-inner">
           <Award className="w-10 h-10" />
         </div>
-        <div>
-          <h2 className="text-2xl font-bold text-zinc-900 dark:text-zinc-50 font-hebrew">
+        <div className="space-y-1.5">
+          <h2 className="text-2xl sm:text-3xl font-bold text-zinc-900 dark:text-zinc-50 font-hebrew">
             !כָּל הַכָּבוֹד
           </h2>
-          <p className="text-sm font-semibold text-emerald-600 dark:text-emerald-400 mt-1">
-            Отличная работа! Тренировка завершена.
+          <p className="text-base font-bold text-emerald-600 dark:text-emerald-400">
+            {lessonId
+              ? `Отличная работа! Словарь урока ${lessonId} успешно пройден!`
+              : 'Отличная работа! Тренировка завершена.'}
           </p>
-          <p className="text-xs text-zinc-500 mt-2">
-            Вы повторили {words.length} слов(а). Прогресс сохранен в интервальной памяти.
+          <p className="text-xs text-zinc-500 dark:text-zinc-400">
+            {lessonId
+              ? `Вы повторили все ${words.length} слов(а). Раздел «Словарь» зачтен (этап 2/5).`
+              : `Вы повторили ${words.length} слов(а). Прогресс сохранен в интервальной памяти.`}
           </p>
         </div>
 
-        <div className="flex gap-3">
-          <button
-            onClick={() => {
-              setCurrentIndex(0);
-              setIsCompleted(false);
-            }}
-            className="flex-1 py-3 px-4 rounded-xl border border-zinc-200 dark:border-zinc-700 font-semibold text-sm hover:bg-zinc-50 dark:hover:bg-zinc-800 transition"
-          >
-            Повторить снова
-          </button>
-          {onClose && (
-            <button
-              onClick={onClose}
-              className="flex-1 py-3 px-4 rounded-xl bg-blue-600 text-white font-semibold text-sm hover:bg-blue-700 transition"
-            >
-              Вернуться
-            </button>
+        <div className="space-y-2.5 pt-2">
+          {lessonId ? (
+            <>
+              <button
+                type="button"
+                onClick={() => {
+                  if (onContinueLesson) {
+                    onContinueLesson(lessonId, 'exercises');
+                  } else if (onClose) {
+                    onClose();
+                  }
+                }}
+                className="w-full py-3.5 px-6 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-sm shadow-md transition active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <span>Перейти к упражнениям (этап 3/5) ➡️</span>
+              </button>
+
+              <div className="flex gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (onContinueLesson) {
+                      onContinueLesson(lessonId, 'vocab');
+                    } else if (onClose) {
+                      onClose();
+                    }
+                  }}
+                  className="flex-1 py-3 px-4 rounded-xl border border-zinc-200 dark:border-zinc-700 font-semibold text-xs sm:text-sm hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 transition cursor-pointer"
+                >
+                  Вернуться в урок
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCurrentIndex(0);
+                    setIsCompleted(false);
+                  }}
+                  className="flex-1 py-3 px-4 rounded-xl border border-zinc-200 dark:border-zinc-700 font-semibold text-xs sm:text-sm hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 transition cursor-pointer"
+                >
+                  Повторить карточки
+                </button>
+              </div>
+            </>
+          ) : (
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setCurrentIndex(0);
+                  setIsCompleted(false);
+                }}
+                className="flex-1 py-3 px-4 rounded-xl border border-zinc-200 dark:border-zinc-700 font-semibold text-sm hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 transition cursor-pointer"
+              >
+                Повторить снова
+              </button>
+              {onClose && (
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="flex-1 py-3 px-4 rounded-xl bg-blue-600 text-white font-semibold text-sm hover:bg-blue-700 transition cursor-pointer"
+                >
+                  Вернуться
+                </button>
+              )}
+            </div>
           )}
         </div>
       </div>
