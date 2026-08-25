@@ -60,7 +60,7 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
   const [liveTranscript, setLiveTranscript] = useState('');
   const [loadingAi, setLoadingAi] = useState(false);
   const [showSubtitles, setShowSubtitles] = useState(true);
-  const [handsFree, setHandsFree] = useState(false); // По умолчанию ручной режим (Tap-to-Talk) для исключения эхо
+  const [handsFree, setHandsFree] = useState(true); // Автоматический разговор по громкой связи включен по умолчанию
   const [textInput, setTextInput] = useState('');
   const [showTextInput, setShowTextInput] = useState(false);
   const [lastFeedback, setLastFeedback] = useState<string | null>(null);
@@ -147,9 +147,9 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
     }, 2600);
   };
 
-  // Озвучивание реплики ИИ с защитой от самопрослушивания
+  // Озвучивание реплики ИИ с надежной защитой от самопрослушивания
   const playAiVoice = async (text: string) => {
-    // 1. Принудительно глушим микрофон перед тем, как ИИ начнет говорить
+    // 1. Глушим микрофон перед тем, как ИИ начнет говорить
     stopListening();
     setIsAiSpeaking(true);
     lastAiSpokenTextRef.current = stripNikkud(text).trim().toLowerCase();
@@ -162,12 +162,12 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
       setIsAiSpeaking(false);
       lastAiSpokenTimeRef.current = Date.now();
 
-      // Если включен Hands-free режим (для наушников), запускаем микрофон с безопасной задержкой 1.2 сек
+      // Безопасная пауза 800мс после того, как динамик затих, перед авто-включением микрофона
       if (handsFree && callState !== 'ended') {
         if (handsFreeTimeoutRef.current) clearTimeout(handsFreeTimeoutRef.current);
         handsFreeTimeoutRef.current = setTimeout(() => {
           startListening();
-        }, 1200);
+        }, 800);
       }
     }
   };
@@ -175,10 +175,10 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
   // Проверка на эхо (не услышал ли микрофон сам динамик ИИ)
   const isEchoFromAi = (transcript: string): boolean => {
     const cleanUser = stripNikkud(transcript).trim().toLowerCase();
-    if (!cleanUser) return true;
+    if (!cleanUser || cleanUser.length < 2) return true;
 
-    // Если прошло меньше 800мс с момента окончания речи ИИ
-    if (Date.now() - lastAiSpokenTimeRef.current < 800) {
+    // Если прошло меньше 600мс с момента окончания речи ИИ
+    if (Date.now() - lastAiSpokenTimeRef.current < 600) {
       return true;
     }
 
@@ -215,14 +215,14 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
 
         setLiveTranscript(transcript);
 
-        // Таймер авто-отправки при паузе в речи
+        // Таймер авто-отправки при паузе в речи (1.6 секунды тишины)
         if (silenceTimeoutRef.current) clearTimeout(silenceTimeoutRef.current);
         if (transcript.trim() && handsFree) {
           silenceTimeoutRef.current = setTimeout(() => {
             if (!isEchoFromAi(transcript)) {
               handleSendMessage(transcript.trim());
             }
-          }, 2000);
+          }, 1600);
         }
       },
       (error) => {
@@ -514,10 +514,12 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
                     ? 'bg-emerald-600/30 text-emerald-400 border border-emerald-500/40'
                     : 'bg-zinc-800 text-zinc-400 border border-zinc-700'
                 }`}
-                title="Hands-free: микрофон слушает сам (рекомендуется в наушниках 🎧)"
+                title={handsFree ? 'Громкая связь (Автоматический ответ)' : 'Ручной режим по кнопке'}
               >
                 <Headphones className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Hands-Free</span>
+                <span className="hidden sm:inline">
+                  {handsFree ? 'Авто-разговор' : 'По кнопке'}
+                </span>
               </button>
 
               <button
@@ -580,7 +582,9 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
                 )}
                 {!isAiSpeaking && !isRecording && !loadingAi && (
                   <div className="text-xs text-zinc-400">
-                    Нажмите на микрофон или выберите ответ ниже 👇
+                    {handsFree
+                      ? 'Говорите вслух на иврите...'
+                      : 'Нажмите на микрофон или выберите ответ ниже 👇'}
                   </div>
                 )}
               </div>
@@ -699,7 +703,7 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
               <Send className="w-5 h-5" />
             </button>
 
-            {/* Главная кнопка: МИКРОФОН (Tap-to-Talk) */}
+            {/* Главная кнопка: МИКРОФОН (Tap-to-Talk / Индикатор) */}
             <button
               onClick={isRecording ? stopListening : startListening}
               disabled={isAiSpeaking || loadingAi}
@@ -710,11 +714,11 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
                   ? 'bg-zinc-800 text-zinc-600 border border-zinc-700 cursor-not-allowed opacity-50'
                   : 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-500 hover:to-indigo-500 shadow-blue-500/30'
               }`}
-              title={isRecording ? 'Нажмите, чтобы закончить запись' : 'Нажмите и говорите на иврите'}
+              title={isRecording ? 'Идет запись (нажмите, чтобы остановить)' : 'Нажмите, чтобы говорить'}
             >
               <Mic className="w-6 h-6" />
               <span className="text-sm font-semibold">
-                {isRecording ? 'Завершить запись' : 'Говорить'}
+                {isRecording ? 'Слушаю...' : 'Говорить'}
               </span>
             </button>
 
