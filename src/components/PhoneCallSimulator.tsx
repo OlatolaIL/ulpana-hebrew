@@ -485,7 +485,7 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
             </p>
 
             {/* Контекст ситуации */}
-            <div className="w-full bg-zinc-800/60 backdrop-blur border border-zinc-700/60 rounded-2xl p-4 my-5 text-left text-xs sm:text-sm text-zinc-300">
+            <div className="w-full bg-zinc-800/60 backdrop-blur border border-zinc-700/60 rounded-2xl p-4 my-4 text-left text-xs sm:text-sm text-zinc-300">
               <div className="flex items-center gap-1.5 font-bold text-zinc-200 mb-1.5">
                 <Info className="w-4 h-4 text-blue-400 shrink-0" />
                 <span>Ситуация звонка:</span>
@@ -507,6 +507,110 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
                 </ul>
               </div>
             </div>
+
+            {/* Карточки полезных слов и подсказок к звонку */}
+            {scenario.usefulWords && scenario.usefulWords.length > 0 && (
+              <div className="w-full bg-zinc-800/60 backdrop-blur border border-zinc-700/60 rounded-2xl p-4 mb-5 text-left">
+                <div className="flex items-center justify-between gap-2 mb-2.5">
+                  <div className="flex items-center gap-1.5 font-bold text-zinc-200 text-xs sm:text-sm">
+                    <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
+                    <span>Слова и подсказки к звонку ({scenario.usefulWords.length}):</span>
+                  </div>
+                  <span className="text-[10px] text-zinc-400">Нажмите 🔊 для озвучки</span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {scenario.usefulWords.map((word, idx) => {
+                    const isAdded = addedWords[word.hebrew] || isWordInPersonalDict(word.hebrew);
+                    const displayHebrew = userProfile.showNikkud ? word.hebrew : stripNikkud(word.hebrew);
+
+                    return (
+                      <div
+                        key={idx}
+                        className="bg-zinc-900/80 hover:bg-zinc-900 border border-zinc-700/70 hover:border-zinc-600 rounded-xl p-2.5 flex flex-col justify-between transition group shadow-xs"
+                      >
+                        <div>
+                          <div className="flex items-start justify-between gap-1.5">
+                            <div
+                              dir="rtl"
+                              className="font-bold text-sm font-hebrew text-white group-hover:text-blue-300 transition"
+                            >
+                              {displayHebrew}
+                            </div>
+                            <div className="flex items-center gap-1 shrink-0">
+                              {word.isNew && (
+                                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                                  Новое
+                                </span>
+                              )}
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  speakHebrew(word.hebrew, { rate: userProfile.speechRate || 0.7 });
+                                }}
+                                className="p-1 rounded-lg text-zinc-400 hover:text-blue-400 hover:bg-zinc-800 transition"
+                                title="Прослушать произношение"
+                              >
+                                <Volume2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </div>
+
+                          {userProfile.showTranscription && word.transcription && (
+                            <div className="text-[11px] text-blue-400/90 font-mono mt-0.5">
+                              [{word.transcription}]
+                            </div>
+                          )}
+
+                          <div className="text-xs text-zinc-300 mt-1 line-clamp-2">
+                            {word.translation}
+                          </div>
+                        </div>
+
+                        <div className="mt-2 pt-1.5 border-t border-zinc-800 flex justify-end">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleAddWord({
+                                id: `phone-w-${idx}`,
+                                hebrew: word.hebrew,
+                                hebrewPlain: stripNikkud(word.hebrew),
+                                transcription: word.transcription,
+                                translation: word.translation,
+                                partOfSpeech: 'expression',
+                                lessonId: lesson.id,
+                                isUserAdded: true,
+                                dateAdded: Date.now(),
+                              });
+                            }}
+                            disabled={isAdded}
+                            className={`text-[10px] font-semibold px-2 py-0.5 rounded-lg flex items-center gap-1 transition ${
+                              isAdded
+                                ? 'text-emerald-400 bg-emerald-950/40 border border-emerald-800/40 cursor-default'
+                                : 'text-zinc-400 hover:text-zinc-200 bg-zinc-800/80 hover:bg-zinc-700/80 border border-zinc-700 cursor-pointer'
+                            }`}
+                          >
+                            {isAdded ? (
+                              <>
+                                <Check className="w-3 h-3 text-emerald-400" />
+                                <span>В словаре</span>
+                              </>
+                            ) : (
+                              <>
+                                <Plus className="w-3 h-3" />
+                                <span>В словарь</span>
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             {/* Кнопка запуска звонка */}
             <button

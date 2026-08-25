@@ -136,6 +136,14 @@ export interface Exercise {
   explanation?: string;
 }
 
+export interface PhoneScenarioWord {
+  hebrew: string;
+  transcription: string;
+  translation: string;
+  isNew?: boolean; // Новое слово/фраза, нужное специально для этого звонка
+  explanation?: string;
+}
+
 export interface PhoneScenario {
   callerName: string; // 'דני - שליח וולט'
   callerNameRu: string; // 'Дани (курьер Wolt)'
@@ -154,6 +162,7 @@ export interface PhoneScenario {
     translation: string;
   }>;
   vocabularyHints?: string[];
+  usefulWords?: PhoneScenarioWord[]; // Карточки полезных слов и выражений перед звонком
   systemPromptAddition?: string; // Дополнительные инструкции для LLM
 }
 

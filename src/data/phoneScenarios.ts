@@ -34,6 +34,49 @@ export const BESPOKE_PHONE_SCENARIOS: Record<number, PhoneScenario> = {
       },
     ],
     vocabularyHints: ['שָׁלוֹם', 'הַכֹּל טוֹב', 'נָעִים מְאוֹד', 'תּוֹדָה', 'לְהִתְרָאוֹת'],
+    usefulWords: [
+      {
+        hebrew: 'שָׁלוֹם',
+        transcription: 'шалóм',
+        translation: 'привет / здравствуйте / мир',
+      },
+      {
+        hebrew: 'בּוֹקֶר טוֹב',
+        transcription: 'бóкер тов',
+        translation: 'доброе утро',
+      },
+      {
+        hebrew: 'מָה נִשְׁמַע?',
+        transcription: 'ма нишмá?',
+        translation: 'как дела? / что слышно?',
+      },
+      {
+        hebrew: 'הַכֹּל טוֹב',
+        transcription: 'hакóль тов',
+        translation: 'всё отлично / всё хорошо',
+      },
+      {
+        hebrew: 'נָעִים מְאוֹד',
+        transcription: 'наӣм мэóд',
+        translation: 'очень приятно',
+      },
+      {
+        hebrew: 'קוֹרְאִים לִי...',
+        transcription: 'коръӣм ли...',
+        translation: 'меня зовут...',
+      },
+      {
+        hebrew: 'דִּירָה',
+        transcription: 'дирá',
+        translation: 'квартира',
+        isNew: true,
+      },
+      {
+        hebrew: 'לְהִתְרָאוֹת',
+        transcription: 'лэhитраóт',
+        translation: 'до свидания',
+      },
+    ],
     systemPromptAddition: 'Ты Ноам, дружелюбный сосед. Говори короткими фразами (1-2 предложения). Спроси как дела и как зовут собеседника.',
   },
 
@@ -51,8 +94,8 @@ export const BESPOKE_PHONE_SCENARIOS: Record<number, PhoneScenario> = {
     },
     goals: [
       'Заказать напиток (кофе с молоком или чай)',
-      'Уточнить сахар / размер (קָטָן / גָּדוֹל)',
-      'Спросить, сколько это стоит (כַּמָּה זֶה עוֹלֶה?)',
+      'Уточнить размер (גָּדוֹל / קָטָן) и сахар',
+      'Спросить стоимость (כַּמָּה זֶה עוֹלֶה?)',
     ],
     suggestedReplies: [
       {
@@ -61,13 +104,77 @@ export const BESPOKE_PHONE_SCENARIOS: Record<number, PhoneScenario> = {
         translation: 'Здравствуйте, я хочу большой кофе с молоком, пожалуйста.',
       },
       {
-        hebrew: 'אֶפְשָׁר גַּם מַיִם קָרִים?',
-        transcription: 'эфшáр гам мáйим карӣм?',
-        translation: 'Можно также холодную воду?',
+        hebrew: 'אֶפְשָׁר גַּם מַיִם קָרִים וְעוּגָה?',
+        transcription: 'эфшáр гам мáйим карӣм вэ-угá?',
+        translation: 'Можно также холодную воду и пирожное?',
+      },
+      {
+        hebrew: 'כַּמָּה זֶה עוֹלֶה?',
+        transcription: 'кáма зэ олé?',
+        translation: 'Сколько это стоит?',
       },
     ],
-    vocabularyHints: ['רוֹצֶה / רוֹצָה', 'קָפֶה עִם חָלָב', 'בְּבַקָּשָׁה', 'תּוֹדָה רַבָּה'],
-    systemPromptAddition: 'Ты бариста Йоси. Уточни про сахар и молоко (обычное или овсяное). Отвечай быстро и дружелюбно.',
+    vocabularyHints: ['רוֹצֶה / רוֹצָה', 'קָפֶה עִם חָלָב', 'גָּדוֹל / קָטָן', 'כַּמָּה זֶה עוֹלֶה?', 'בְּבַקָּשָׁה'],
+    usefulWords: [
+      {
+        hebrew: 'גָּדוֹל',
+        transcription: 'гадóль',
+        translation: 'большой (размер порции)',
+        isNew: true,
+      },
+      {
+        hebrew: 'קָטָן',
+        transcription: 'катáн',
+        translation: 'маленький',
+        isNew: true,
+      },
+      {
+        hebrew: 'כַּמָּה זֶה עוֹלֶה?',
+        transcription: 'кáма зэ олé?',
+        translation: 'сколько это стоит?',
+        isNew: true,
+      },
+      {
+        hebrew: 'לְהַזְמִין',
+        transcription: 'лэhазмӣн',
+        translation: 'заказать / делать заказ',
+        isNew: true,
+      },
+      {
+        hebrew: 'אֶפְשָׁר...',
+        transcription: 'эфшáр...',
+        translation: 'можно... / разрешите...',
+        isNew: true,
+      },
+      {
+        hebrew: 'בְּלִי סוּכָּר',
+        transcription: 'бли сукáр',
+        translation: 'без сахара (בְּלִי = без)',
+        isNew: true,
+      },
+      {
+        hebrew: 'לָקַחַת (טֵייק אַוֵויי)',
+        transcription: 'лакáхат (тейк авэ́й)',
+        translation: 'навынос (с собой)',
+        isNew: true,
+      },
+      {
+        hebrew: 'קָפֶה עִם חָלָב',
+        transcription: 'кафэ́ им халáв',
+        translation: 'кофе с молоком',
+      },
+      {
+        hebrew: 'קְרוּאָסוֹן / עוּגָה',
+        transcription: 'круасóн / угá',
+        translation: 'круассан / пирожное',
+      },
+      {
+        hebrew: 'חֶשְׁבּוֹן',
+        transcription: 'хэжбóн',
+        translation: 'счет',
+      },
+    ],
+    systemPromptAddition: 'Ты бариста Йоси. Уточни про сахар, размер (катан или гадоль) и молоко (обычное или овсяное). Отвечай быстро и дружелюбно.',
   },
 
   // Урок 5: Поездки и Такси
@@ -100,6 +207,44 @@ export const BESPOKE_PHONE_SCENARIOS: Record<number, PhoneScenario> = {
       },
     ],
     vocabularyHints: ['עַכְשָׁו', 'יוֹרֵד / יוֹרֶדֶת', 'רֶגַע', 'דַּקָּה', 'תּוֹדָה'],
+    usefulWords: [
+      {
+        hebrew: 'עַכְשָׁו',
+        transcription: 'ахшáв',
+        translation: 'сейчас',
+        isNew: true,
+      },
+      {
+        hebrew: 'יוֹרֵד / יוֹרֶדֶת',
+        transcription: 'йорéд / йорéдет',
+        translation: 'спускаюсь (м.р. / ж.р.)',
+        isNew: true,
+      },
+      {
+        hebrew: 'לְמַטָּה',
+        transcription: 'лэмáта',
+        translation: 'внизу',
+        isNew: true,
+      },
+      {
+        hebrew: 'עוֹד שְׁתֵּי דַּקּוֹת',
+        transcription: 'од штэй дакóт',
+        translation: 'еще две минуты',
+        isNew: true,
+      },
+      {
+        hebrew: 'רֶגַע',
+        transcription: 'рéга',
+        translation: 'секунду / момент',
+        isNew: true,
+      },
+      {
+        hebrew: 'אֵיזֶה רֶכֶב?',
+        transcription: 'э́йзе рéхев?',
+        translation: 'какая машина?',
+        isNew: true,
+      },
+    ],
     systemPromptAddition: 'Ты израильский водитель такси Эли. Говори просто, используй живой тон (רגע, אין בעיה, מחכה לך).',
   },
 
@@ -133,6 +278,38 @@ export const BESPOKE_PHONE_SCENARIOS: Record<number, PhoneScenario> = {
       },
     ],
     vocabularyHints: ['דִּירָה', 'שְׂכַר דִּירָה', 'מַזְגָן', 'מָתַי', 'לִרְאוֹת'],
+    usefulWords: [
+      {
+        hebrew: 'פְּנוּיָה',
+        transcription: 'пнуйá',
+        translation: 'свободна (о квартире)',
+        isNew: true,
+      },
+      {
+        hebrew: 'שְׂכַר דִּירָה',
+        transcription: 'схар дирá',
+        translation: 'арендная плата',
+        isNew: true,
+      },
+      {
+        hebrew: 'כַּמָּה זֶה בְּחֹדֶשׁ?',
+        transcription: 'кáма зэ бэ-хóдеш?',
+        translation: 'сколько это в месяц?',
+        isNew: true,
+      },
+      {
+        hebrew: 'מַזְגָן',
+        transcription: 'мазгáн',
+        translation: 'кондиционер',
+        isNew: true,
+      },
+      {
+        hebrew: 'מָתַי אֶפְשָׁר לִרְאוֹת?',
+        transcription: 'матáй эфшáр лиръóт?',
+        translation: 'когда можно посмотреть?',
+        isNew: true,
+      },
+    ],
     systemPromptAddition: 'Ты хозяин квартиры Ави. Скажи, что аренда 5500 шекелей, есть мазган и балкон. Предложи встретиться сегодня вечером.',
   },
 
@@ -166,6 +343,38 @@ export const BESPOKE_PHONE_SCENARIOS: Record<number, PhoneScenario> = {
       },
     ],
     vocabularyHints: ['קּוֹד', 'כְּנִיסָה', 'קוֹמָה', 'דֶּלֶת', 'תַּשְׁאִיר', 'תּוֹדָה'],
+    usefulWords: [
+      {
+        hebrew: 'הַקּוֹד הוּא...',
+        transcription: 'hа-код hу...',
+        translation: 'код домофона...',
+        isNew: true,
+      },
+      {
+        hebrew: 'קוֹמָה',
+        transcription: 'комá',
+        translation: 'этаж',
+        isNew: true,
+      },
+      {
+        hebrew: 'לְיַד הַדֶּלֶת',
+        transcription: 'лэ-йад hа-дéлет',
+        translation: 'возле двери',
+        isNew: true,
+      },
+      {
+        hebrew: 'תַּשְׁאִיר',
+        transcription: 'ташъӣр',
+        translation: 'оставь',
+        isNew: true,
+      },
+      {
+        hebrew: 'שַׂקִּית',
+        transcription: 'сакӣт',
+        translation: 'пакет',
+        isNew: true,
+      },
+    ],
     systemPromptAddition: 'Ты спешащий, но вежливый курьер Wolt Рон. Уточни этаж и скажи, что поднимаешься на лифте.',
   },
 
@@ -199,6 +408,38 @@ export const BESPOKE_PHONE_SCENARIOS: Record<number, PhoneScenario> = {
       },
     ],
     vocabularyHints: ['תּוֹר', 'רוֹפֵא מִשְׁפָּחָה', 'בְּדִיקָה', 'מָחָר', 'קַבָּלָה'],
+    usefulWords: [
+      {
+        hebrew: 'לִקְבֹּעַ תּוֹר',
+        transcription: 'ликбóа тор',
+        translation: 'назначить очередь',
+        isNew: true,
+      },
+      {
+        hebrew: 'רוֹפֵא מִשְׁפָּחָה',
+        transcription: 'рофэ́ мишпахá',
+        translation: 'семейный врач (терапевт)',
+        isNew: true,
+      },
+      {
+        hebrew: 'תּוֹר פָּנוּי',
+        transcription: 'тор панӯй',
+        translation: 'свободная очередь',
+        isNew: true,
+      },
+      {
+        hebrew: 'בַּבֹּקֶר',
+        transcription: 'ба-бóкер',
+        translation: 'утром',
+        isNew: true,
+      },
+      {
+        hebrew: 'תְּעוּדַת זֶהוּת',
+        transcription: 'тэудáт зэhӯт',
+        translation: 'удостоверение личности (паспорт)',
+        isNew: true,
+      },
+    ],
     systemPromptAddition: 'Ты секретарь больничной кассы Михаль. Предложи очередь на завтра на 10:30 утра или четверг на 16:00.',
   },
 };
@@ -228,6 +469,12 @@ export function getLessonPhoneScenario(lesson: Lesson, gender: UserGender): Phon
   const initialTr = isFemale
     ? dial.initialMessage.transcription.replace(/лэхá/g, 'лах').replace(/тирцé/g, 'тирцӣ')
     : dial.initialMessage.transcription.replace(/лах/g, 'лэхá').replace(/тирцӣ/g, 'тирцé');
+
+  const dynamicUsefulWords: PhoneScenarioWord[] = (lesson.vocabulary || []).slice(0, 8).map((w) => ({
+    hebrew: w.hebrew,
+    transcription: w.transcription || '',
+    translation: w.translation,
+  }));
 
   return {
     callerName: dial.aiRole || `חָבֵר (Урок ${lesson.number})`,
@@ -260,6 +507,7 @@ export function getLessonPhoneScenario(lesson: Lesson, gender: UserGender): Phon
       },
     ],
     vocabularyHints: dial.vocabularyHints || (lesson.vocabulary || []).slice(0, 5).map(w => w.hebrew),
+    usefulWords: dynamicUsefulWords,
     systemPromptAddition: `Это реалистичный телефонный звонок в Израиле. Ты ${dial.aiRole || 'израильский собеседник'}. Говори короткими телефонными репликами (1-2 предложения). Поддерживай живой диалог.`,
   };
 }
