@@ -11,7 +11,7 @@ import { SettingsModal } from '@/components/SettingsModal';
 import { AuthModal } from '@/components/AuthModal';
 import { SubscriptionModal } from '@/components/SubscriptionModal';
 import { UserProfile, Word, UserSession } from '@/types';
-import { loadUserProfile, saveUserProfile } from '@/lib/storage';
+import { loadUserProfile, saveUserProfile, resetLessonProgress } from '@/lib/storage';
 import { initHebrewVoices } from '@/lib/speech';
 import { DETAILED_LESSONS, getLessonById } from '@/data/lessonsData';
 import { isVipUser, VIP_EXPIRES_AT, applyVipProfileEnhancements } from '@/lib/vipUsers';
@@ -269,6 +269,11 @@ export default function Home() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  const handleResetLessonProgress = (lessonId: number) => {
+    const updated = resetLessonProgress(lessonId);
+    handleUpdateProfile(updated);
+  };
+
   const handleStartFlashcards = (wordsToTrain: Word[]) => {
     setFlashcardWords(wordsToTrain);
     setCurrentView('flashcards');
@@ -378,12 +383,13 @@ export default function Home() {
       />
 
       {/* Основная рабочая область */}
-      <main className="flex-1 max-w-6xl w-full mx-auto px-4 py-6 md:py-8">
+      <main className="flex-1 max-w-6xl w-full mx-auto px-3 sm:px-4 py-4 md:py-6 pb-24 md:pb-8">
         {currentView === 'map' && (
           <CourseMap
             userProfile={profile}
             onSelectLesson={handleSelectLesson}
             onRequirePro={() => setIsSubscriptionModalOpen(true)}
+            onResetLessonProgress={handleResetLessonProgress}
           />
         )}
 

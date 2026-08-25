@@ -195,30 +195,39 @@ export function applyVipProfileEnhancements(profile: UserProfile): UserProfile {
   const isVip = isVipUser(profile.username, profile.telegramId, profile.name);
   if (!isVip) return profile;
 
-  const vipData = getVipDefaultProgress();
-
-  // Объединяем существующий прогресс с VIP-прогрессом
-  const mergedLessonProgress = {
-    ...vipData.lessonProgress,
-    ...(profile.lessonProgress || {}),
-  };
-
-  const mergedCompleted = Array.from(
-    new Set([...vipData.completedLessons, ...(profile.completedLessons || [])])
-  );
-
-  const existingWordIds = new Set(profile.personalVocabulary?.map((w) => w.hebrewPlain) || []);
-  const mergedVocab = [
-    ...(profile.personalVocabulary || []),
-    ...vipData.personalVocabulary.filter((w) => !existingWordIds.has(w.hebrewPlain)),
-  ];
-
-  return {
+  // Always grant VIP PRO subscription
+  const baseUpdated: UserProfile = {
     ...profile,
     subscriptionTier: 'pro',
     subscriptionExpiresAt: VIP_EXPIRES_AT,
-    completedLessons: mergedCompleted,
-    lessonProgress: mergedLessonProgress,
-    personalVocabulary: mergedVocab,
+  };
+
+  // Check if initial progress was already seeded
+  const isInitialized =
+    typeof window !== 'undefined' &&
+    (localStorage.getItem('ulpana_vip_seeded') === 'true' ||
+      (profile.completedLessons && profile.completedLessons.length > 0) ||
+      (profile.lessonProgress && Object.keys(profile.lessonProgress).length > 0));
+
+  if (isInitialized) {
+    return baseUpdated;
+  }
+
+  if (typeof window !== 'undefined') {
+    try {
+      localStorage.setItem('ulpana_vip_seeded', 'true');
+    } catch {}
+  }
+
+  const vipData = getVipDefaultProgress();
+
+  return {
+    ...baseUpdated,
+    completedLessons: vipData.completedLessons,
+    lessonProgress: vipData.lessonProgress,
+    personalVocabulary:
+      profile.personalVocabulary && profile.personalVocabulary.length > 0
+        ? profile.personalVocabulary
+        : vipData.personalVocabulary,
   };
 }

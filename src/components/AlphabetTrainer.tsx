@@ -709,7 +709,7 @@ export const AlphabetTrainer: React.FC<AlphabetTrainerProps> = () => {
                 {/* 2. Трафаретная подложка с рукописной буквой шрифта Gveret Levin */}
                 {showStencil && (
                   <div
-                    className="absolute inset-0 flex items-center justify-center font-cursive text-[200px] font-bold text-blue-500/15 dark:text-blue-400/10 pointer-events-none select-none transition"
+                    className="absolute inset-0 flex items-center justify-center font-cursive text-[210px] font-bold text-blue-600/30 dark:text-blue-400/25 pointer-events-none select-none transition"
                     style={{ lineHeight: 1 }}
                   >
                     {selectedLetter.cursiveLetter}
@@ -797,20 +797,6 @@ export const AlphabetTrainer: React.FC<AlphabetTrainerProps> = () => {
 
               {/* Панель инструментов холста */}
               <div className="flex flex-wrap items-center justify-center gap-2 w-full max-w-[440px]">
-                {/* Кнопка "Анимация написания" */}
-                <button
-                  onClick={isAnimating ? stopAnimation : playDemoAnimation}
-                  className={`px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition shadow-sm ${
-                    isAnimating
-                      ? 'bg-red-600 hover:bg-red-700 text-white ring-2 ring-red-300'
-                      : 'bg-emerald-600 hover:bg-emerald-700 text-white'
-                  }`}
-                  title="Показать правильное начертание буквы"
-                >
-                  {isAnimating ? <Square className="w-3.5 h-3.5 fill-current" /> : <Play className="w-3.5 h-3.5 fill-current" />}
-                  <span>{isAnimating ? 'Остановить' : 'Показать как писать'}</span>
-                </button>
-
                 {/* Выбор цвета чернил */}
                 <div className="flex items-center gap-1 bg-zinc-100 dark:bg-zinc-800 p-1 rounded-xl">
                   {['#2563eb', '#18181b', '#9333ea', '#059669'].map((c) => (
@@ -821,6 +807,7 @@ export const AlphabetTrainer: React.FC<AlphabetTrainerProps> = () => {
                         penColor === c ? 'ring-2 ring-offset-1 ring-blue-500 scale-110' : 'opacity-70'
                       }`}
                       style={{ backgroundColor: c }}
+                      title="Выбрать цвет чернил"
                     />
                   ))}
                 </div>
@@ -880,18 +867,7 @@ export const AlphabetTrainer: React.FC<AlphabetTrainerProps> = () => {
                       : 'border-zinc-200 dark:border-zinc-700'
                   }`}
                 >
-                  Точки ❶ ❷: {showStartingPoints ? 'Вкл' : 'Выкл'}
-                </button>
-
-                <button
-                  onClick={() => setShowDirectionArrows(!showDirectionArrows)}
-                  className={`px-2.5 py-1 rounded-lg border font-medium transition ${
-                    showDirectionArrows
-                      ? 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-900'
-                      : 'border-zinc-200 dark:border-zinc-700'
-                  }`}
-                >
-                  Стрелки: {showDirectionArrows ? 'Вкл' : 'Выкл'}
+                  Точки старта ❶ ❷: {showStartingPoints ? 'Вкл' : 'Выкл'}
                 </button>
 
                 <button

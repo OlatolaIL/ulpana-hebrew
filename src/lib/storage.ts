@@ -122,6 +122,19 @@ export function markLessonTabCompleted(lessonId: number, tab: string): void {
 }
 
 /**
+ * Сброс прогресса конкретного урока
+ */
+export function resetLessonProgress(lessonId: number): UserProfile {
+  const profile = loadUserProfile();
+  profile.completedLessons = (profile.completedLessons || []).filter((id) => id !== lessonId);
+  if (profile.lessonProgress) {
+    delete profile.lessonProgress[lessonId];
+  }
+  saveUserProfile(profile);
+  return profile;
+}
+
+/**
  * Алгоритм SuperMemo 2 (SM-2) для интервального повторения карточек
  */
 export function updateCardSRS(wordId: string, quality: number): FlashcardProgress {
