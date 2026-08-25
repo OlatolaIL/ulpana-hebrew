@@ -96,30 +96,121 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
     return opt;
   };
 
+  const findHebrewForRussian = (ruText: string): { hebrew: string; icon?: string } | null => {
+    const cleanRu = ruText.toLowerCase().trim();
+    if (!cleanRu) return null;
+
+    if (lesson && lesson.vocabulary) {
+      for (const w of lesson.vocabulary) {
+        const tr = (w.translation || '').toLowerCase();
+        if (tr.includes(cleanRu) || cleanRu.includes(tr) || cleanRu.split(/[,;/]/).some((s) => s.trim() && tr.includes(s.trim()))) {
+          const pic = getHebrewPictogram(w.hebrew);
+          return {
+            hebrew: userProfile.showNikkud ? w.hebrew : (w.hebrewPlain || stripNikkud(w.hebrew)),
+            icon: pic || undefined,
+          };
+        }
+      }
+    }
+
+    for (const entry of ULPAN_OFFLINE_DICTIONARY) {
+      const tr = (entry.translation || '').toLowerCase();
+      if (tr.includes(cleanRu) || cleanRu.includes(tr) || cleanRu.split(/[,;/]/).some((s) => s.trim() && tr.includes(s.trim()))) {
+        const pic = getHebrewPictogram(entry.hebrew);
+        return {
+          hebrew: userProfile.showNikkud ? entry.hebrew : (entry.hebrewPlain || stripNikkud(entry.hebrew)),
+          icon: pic || undefined,
+        };
+      }
+    }
+
+    return null;
+  };
+
   const getUlpanQuestionText = (question: string): string => {
+    // ⚠️ Normal mode: returned completely unchanged — do NOT remove this guard
     if (!isUlpan) return question;
 
-    if (question.includes('Выберите правильный перевод для слова')) {
-      return question.replace(/Выберите правильный перевод для слова\s*(«[^»]+»)\s*:/i, 'בַּחֲרוּ אֶת הַמַּשְׁמָעוּת לַמִּילָּה $1 :');
+    // ── 1. Russian-to-Hebrew questions: "Как переводится «вода» на иврит?" / "Какое ивритское слово означает «рынок»?"
+    if (
+      (question.includes('Как переводится') && question.includes('на иврит')) ||
+      question.includes('Какое ивритское слово означает') ||
+      question.includes('Как сказать')
+    ) {
+      const m = question.match(/«([^»]+)»/);
+      if (m) {
+        const inner = m[1].trim();
+        // If the quoted term is already Hebrew
+        if (/[\u0590-\u05FF]/.test(inner)) {
+          return `?אֵיךְ אוֹמְרִים «${inner}» בְּעִבְרִית`;
+        }
+        // If Russian, look up the Hebrew counterpart and its visual pictogram
+        const found = findHebrewForRussian(inner);
+        if (found?.icon) {
+          return `?אֵיךְ אוֹמְרִים ${found.icon} בְּעִבְרִית`;
+        }
+      }
+      return '?בַּחֲרוּ אֶת הַמִּילָּה הָעִבְרִית הַנְּכוֹנָה';
     }
+
+    // ── 2. "Выберите правильный перевод для слова «HEBREW»:" / "Что означает слово «HEBREW»?"
+    if (
+      question.includes('Выберите правильный перевод') ||
+      question.includes('Выберите верный перевод') ||
+      question.includes('Что означает слово')
+    ) {
+      const m = question.match(/«([^»]+)»/);
+      if (m && /[\u0590-\u05FF]/.test(m[1])) {
+        return `?מָה פֵּרוּשׁ הַמִּילָּה «${m[1]}»`;
+      }
+      return '?בַּחֲרוּ אֶת הַתַּרְגּוּם הַנָּכוֹן';
+    }
+
+    // ── 3. Grammatical gender / form questions
     if (question.includes('Выберите правильный род')) {
       return question.replace(/Выберите правильный род для\s*(«[^»]+»|местоимения «[^»]+»)\s*:/i, 'בַּחֲרוּ זָכָר ♂ אוֹ נְקֵבָה ♀ עֲבוּר $1 :');
-    }
-    if (question.includes('Вставьте правильное слово') || question.includes('пропуск')) {
-      return 'הַשְׁלִימוּ אֶת הַמִּילָּה הַחֲסֵרָה:';
-    }
-    if (question.includes('Соберите предложение') || question.includes('порядок')) {
-      return 'סַדְּרוּ אֶת הַמִּשְׁפָּט בְּסֵדֶר נָכוֹן:';
-    }
-    if (question.includes('Что изучается в уроке')) {
-      return 'מַהוּ נוֹשֵׂא הַשִּׁיעוּר?';
     }
     if (question.includes('Выберите правильную форму')) {
       return 'בַּחֲרוּ אֶת הַצּוּרָה הַנְּכוֹנָה:';
     }
-    if (question.includes('Как сказать')) {
-      return question.replace(/Как сказать\s*(«[^»]+»)\s*на иврите\??/i, 'אֵיךְ אוֹמְרִים $1 ?');
+    if (question.includes('Что изучается в уроке')) {
+      return 'מַהוּ נוֹשֵׂא הַשִּׁיעוּר?';
     }
+
+    // ── 4. Fill in the blank: "Вставьте пропущенное слово: «...» (...):"
+    if (question.includes('Вставьте') || question.includes('Заполните') || question.includes('пропуск')) {
+      const m = question.match(/«([^»]+)»/);
+      if (m && /[\u0590-\u05FF]/.test(m[1])) {
+        // Strip the parenthetical Russian translation: «... (translation).»
+        const sentencePart = m[1].replace(/\s*\([^)]+\)\.?$/, '').trim();
+        return `הַשְׁלִימוּ אֶת הַמִּשְׁפָּט: «${sentencePart}»`;
+      }
+      return 'הַשְׁלִימוּ אֶת הַמִּילָּה הַחֲסֵרָה:';
+    }
+
+    // ── 5. Sentence builder: "Соберите предложение «...» на иврите:"
+    if (question.includes('Соберите предложение') || question.includes('Соберите фразу') || question.includes('порядок')) {
+      return 'סַדְּרוּ אֶת הַמִּשְׁפָּט בְּסֵדֶר נָכוֹן:';
+    }
+
+    // ── 6. Audio listening: "Послушайте аудиозапись и определите перевод слова «...»:"
+    if (question.includes('Послушайте') || question.includes('аудио')) {
+      const m = question.match(/«([^»]+)»/);
+      if (m && /[\u0590-\u05FF]/.test(m[1])) {
+        return `?🔊 הַאֲזִינוּ — מָה פֵּרוּשׁ «${m[1]}»`;
+      }
+      return '?🔊 הַאֲזִינוּ וּבַחֲרוּ אֶת הַתַּרְגּוּם הַנָּכוֹן';
+    }
+
+    // ── 7. Fallback for any remaining Russian text
+    if (/[а-яёА-ЯЁ]/.test(question)) {
+      const m = question.match(/«([^»]+)»/);
+      if (m && /[\u0590-\u05FF]/.test(m[1])) {
+        return `?בַּחֲרוּ אֶת הַתַּשׁוּבָה הַנְּכוֹנָה עֲבוּר «${m[1]}»`;
+      }
+      return '?בַּחֲרוּ אֶת הַתַּשׁוּבָה הַנְּכוֹנָה';
+    }
+
     return question;
   };
 
@@ -347,17 +438,17 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
             type="button"
             onClick={handleToggleFont}
             className="px-2.5 py-1.5 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-xs text-xs font-semibold flex items-center gap-1.5 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition cursor-pointer"
-            title="Переключить шрифт упражнений: Печатный / Рукописный"
+            title={isUlpan ? 'שינוי גופן' : 'Переключить шрифт упражнений: Печатный / Рукописный'}
           >
             {isCursive ? (
               <>
                 <span className="font-cursive font-bold text-base text-blue-600 dark:text-blue-400 leading-none">כתב</span>
-                <span className="hidden sm:inline text-zinc-700 dark:text-zinc-300">Рукописный</span>
+                <span className="hidden sm:inline text-zinc-700 dark:text-zinc-300">{isUlpan ? 'כְּתַב יָד' : 'Рукописный'}</span>
               </>
             ) : (
               <>
                 <span className="font-hebrew font-bold text-xs text-zinc-700 dark:text-zinc-300 leading-none">דפוס</span>
-                <span className="hidden sm:inline text-zinc-700 dark:text-zinc-300">Печатный</span>
+                <span className="hidden sm:inline text-zinc-700 dark:text-zinc-300">{isUlpan ? 'דְּפוּס' : 'Печатный'}</span>
               </>
             )}
           </button>
@@ -371,7 +462,7 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
               title="Перейти к этапу 4 (ИИ-чат)"
             >
               <Bot className="w-3.5 h-3.5 text-purple-500" />
-              <span className="hidden sm:inline">К ИИ-чату</span>
+              <span className="hidden sm:inline">{isUlpan ? 'לְבּוֹט' : 'К ИИ-чату'}</span>
               <span>➡️</span>
             </button>
           )}
@@ -536,7 +627,7 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
                             speakHebrew(displayOpt);
                           }}
                           className="p-1.5 rounded-lg text-zinc-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition cursor-pointer"
-                          title="Прослушать произношение"
+                          title={isUlpan ? 'הַשְׁמַע' : 'Прослушать произношение'}
                         >
                           <Volume2 className="w-4 h-4" />
                         </button>
@@ -574,7 +665,7 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
                         disabled={isAnswered}
                         onClick={() => handleUnselectSentenceWord(pos)}
                         className="px-3 py-1 bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700 hover:border-rose-400 dark:hover:border-rose-500 hover:text-rose-600 dark:hover:text-rose-400 transition cursor-pointer active:scale-95"
-                        title="Нажмите, чтобы убрать это слово"
+                        title={isUlpan ? 'לַחֲצוּ לַהֲסָרַת מִילָּה זוֹ' : 'Нажмите, чтобы убрать это слово'}
                       >
                         {userProfile.showNikkud ? w : stripNikkud(w)}
                       </button>
