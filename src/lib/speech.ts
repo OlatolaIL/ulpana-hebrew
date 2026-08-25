@@ -165,7 +165,7 @@ export class HebrewSpeechRecognizer {
       if (SpeechRecognition) {
         this.recognition = new SpeechRecognition();
         this.recognition.lang = 'he-IL';
-        this.recognition.continuous = false;
+        this.recognition.continuous = true;
         this.recognition.interimResults = true;
         this.recognition.maxAlternatives = 1;
       }
@@ -201,7 +201,7 @@ export class HebrewSpeechRecognizer {
       for (let i = 0; i < event.results.length; ++i) {
         const result = event.results[i];
         if (result.isFinal) {
-          final += result[0].transcript;
+          final += result[0].transcript + ' ';
         } else {
           interim += result[0].transcript;
         }
@@ -215,10 +215,12 @@ export class HebrewSpeechRecognizer {
     };
 
     this.recognition.onerror = (event: any) => {
-      this.isListening = false;
-      if (event.error !== 'no-speech') {
-        onError(event.error || 'Ошибка распознавания');
+      // Игнорируем штатные таймауты тишины (no-speech) — микрофон должен продолжать слушать!
+      if (event.error === 'no-speech') {
+        return;
       }
+      this.isListening = false;
+      onError(event.error || 'Ошибка распознавания');
     };
 
     this.recognition.onend = () => {
@@ -229,8 +231,13 @@ export class HebrewSpeechRecognizer {
     try {
       this.recognition.start();
       this.isListening = true;
-    } catch {
-      onError('Не удалось запустить микрофон');
+    } catch (err: any) {
+      // Если уже запущен
+      if (err?.name === 'InvalidStateError') {
+        this.isListening = true;
+      } else {
+        onError('Не удалось запустить микрофон');
+      }
     }
   }
 

@@ -74,6 +74,7 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
   const silenceTimeoutRef = useRef<any>(null);
   const isSendingRef = useRef(false);
   const callActiveRef = useRef(false);
+  const shouldListenRef = useRef(false);
   const lastAiSpokenTextRef = useRef('');
   const lastAiSpokenTimeRef = useRef(0);
 
@@ -82,6 +83,7 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
     recognizerRef.current = new HebrewSpeechRecognizer();
     return () => {
       callActiveRef.current = false;
+      shouldListenRef.current = false;
       phoneAudio.stopAll();
       stopSpeech();
       if (recognizerRef.current) {
@@ -119,12 +121,23 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
 
   // Запуск вызова
   const handleStartCall = () => {
+    // 1. Активируем разрешение на микрофон прямо по клику пользователя (User Gesture)
+    if (typeof navigator !== 'undefined' && navigator.mediaDevices?.getUserMedia) {
+      navigator.mediaDevices
+        .getUserMedia({ audio: true })
+        .then((stream) => {
+          stream.getTracks().forEach((track) => track.stop());
+        })
+        .catch((err) => console.warn('Mic permission check:', err));
+    }
+
     setCallState('dialing');
     setMessages([]);
     setLastFeedback(null);
     setLiveTranscript('');
     isSendingRef.current = false;
     callActiveRef.current = false;
+    shouldListenRef.current = false;
     phoneAudio.startRingingTone();
 
     // Через 2.4 секунды контакт "поднимает трубку"
@@ -166,14 +179,14 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
       setIsAiSpeaking(false);
       lastAiSpokenTimeRef.current = Date.now();
 
-      // Безопасная пауза 750мс после того, как динамик затих, перед авто-включением микрофона
+      // Безопасная пауза 650мс после того, как динамик затих, перед авто-включением микрофона
       if (handsFree && callActiveRef.current) {
         if (handsFreeTimeoutRef.current) clearTimeout(handsFreeTimeoutRef.current);
         handsFreeTimeoutRef.current = setTimeout(() => {
           if (callActiveRef.current && !isAiSpeaking && !loadingAi) {
             startListening();
           }
-        }, 750);
+        }, 650);
       }
     }
   };
@@ -210,6 +223,7 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
       return;
     }
 
+    shouldListenRef.current = true;
     setIsRecording(true);
     setLiveTranscript('');
 
@@ -225,23 +239,30 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
         if (silenceTimeoutRef.current) clearTimeout(silenceTimeoutRef.current);
         if (transcript.trim() && handsFree) {
           silenceTimeoutRef.current = setTimeout(() => {
-            if (!isEchoFromAi(transcript) && callActiveRef.current) {
+            if (!isEchoFromAi(transcript) && callActiveRef.current && shouldListenRef.current) {
               handleSendMessage(transcript.trim());
             }
           }, 1600);
         }
       },
       (error) => {
-        console.warn('Speech recognition error:', error);
-        setIsRecording(false);
+        console.warn('Speech recognition warning:', error);
       },
       (lastTranscript) => {
-        setIsRecording(false);
-        // При завершении записи в Hands-free режиме проверяем и отправляем
-        if (handsFree && lastTranscript && lastTranscript.trim() && !loadingAi && !isSendingRef.current && callActiveRef.current) {
-          if (!isEchoFromAi(lastTranscript)) {
+        // Если браузер завершил сессию распознавания, но мы все еще в режиме ожидания ответа:
+        if (callActiveRef.current && shouldListenRef.current && !isAiSpeaking && !loadingAi && !isSendingRef.current) {
+          if (lastTranscript && lastTranscript.trim() && !isEchoFromAi(lastTranscript)) {
             handleSendMessage(lastTranscript.trim());
+          } else {
+            // Перезапускаем распознавание без необходимости нажимать кнопку
+            setTimeout(() => {
+              if (callActiveRef.current && shouldListenRef.current && !isAiSpeaking && !loadingAi) {
+                startListening();
+              }
+            }, 120);
           }
+        } else {
+          setIsRecording(false);
         }
       }
     );
@@ -249,6 +270,7 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
 
   // Остановка микрофона
   const stopListening = () => {
+    shouldListenRef.current = false;
     if (silenceTimeoutRef.current) {
       clearTimeout(silenceTimeoutRef.current);
       silenceTimeoutRef.current = null;
