@@ -157,6 +157,11 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
   const [recognizer, setRecognizer] = useState<HebrewSpeechRecognizer | null>(null);
   const lastMessageRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesRef = useRef<ChatMessage[]>([]);
+
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
 
   const initChat = (gender: 'male' | 'female') => {
     const data = getInitialMessageForGender(lesson, gender);
@@ -169,6 +174,7 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
       timestamp: Date.now(),
       suggestedReplies: data.suggestedReplies,
     };
+    messagesRef.current = [initial];
     setMessages([initial]);
     setShowSuggestions(true);
   };
@@ -216,7 +222,8 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
       timestamp: Date.now(),
     };
 
-    const newMessages = [...messages, userMsg];
+    const newMessages = [...messagesRef.current, userMsg];
+    messagesRef.current = newMessages;
     setMessages(newMessages);
     setInputText('');
     setLoading(true);
@@ -265,7 +272,9 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
         timestamp: Date.now(),
       };
 
-      setMessages((prev) => [...prev, aiMsg]);
+      const updatedHistory = [...messagesRef.current, aiMsg];
+      messagesRef.current = updatedHistory;
+      setMessages(updatedHistory);
       setShowSuggestions(true);
       const updated = markLessonTabCompleted(lesson.id, 'chat');
       if (onUpdateProfile) onUpdateProfile(updated);

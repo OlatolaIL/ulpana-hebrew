@@ -69,6 +69,7 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
   const [addedWords, setAddedWords] = useState<Record<string, boolean>>({});
 
   const recognizerRef = useRef<HebrewSpeechRecognizer | null>(null);
+  const messagesRef = useRef<ChatMessage[]>([]);
   const timerRef = useRef<any>(null);
   const handsFreeTimeoutRef = useRef<any>(null);
   const silenceTimeoutRef = useRef<any>(null);
@@ -77,6 +78,11 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
   const shouldListenRef = useRef(false);
   const lastAiSpokenTextRef = useRef('');
   const lastAiSpokenTimeRef = useRef(0);
+
+  // Синхронизируем messagesRef с состоянием
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
 
   // Инициализация распознавания речи
   useEffect(() => {
@@ -133,6 +139,7 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
 
     setCallState('dialing');
     setMessages([]);
+    messagesRef.current = [];
     setLastFeedback(null);
     setLiveTranscript('');
     isSendingRef.current = false;
@@ -156,6 +163,7 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
       };
 
       callActiveRef.current = true;
+      messagesRef.current = [initialAiMsg];
       setMessages([initialAiMsg]);
       setCallState('connected');
 
@@ -196,15 +204,17 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
     const cleanUser = stripNikkud(transcript).trim().toLowerCase();
     if (!cleanUser || cleanUser.length < 2) return true;
 
-    // Если прошло меньше 600мс с момента окончания речи ИИ
-    if (Date.now() - lastAiSpokenTimeRef.current < 600) {
+    // Если прошло меньше 350мс с момента окончания речи ИИ (хвост динамика)
+    if (Date.now() - lastAiSpokenTimeRef.current < 350) {
       return true;
     }
 
     const cleanAi = lastAiSpokenTextRef.current;
     if (cleanAi) {
-      // Прямое совпадение или подстрока
-      if (cleanAi === cleanUser || cleanAi.includes(cleanUser) || cleanUser.includes(cleanAi)) {
+      // Игнорируем только если распознана В ТОЧНОСТИ идентичная длинная фраза ИИ (более 2 слов)
+      const aiWords = cleanAi.split(/\s+/).filter(Boolean);
+      const userWords = cleanUser.split(/\s+/).filter(Boolean);
+      if (aiWords.length >= 3 && userWords.length >= 3 && cleanAi === cleanUser) {
         return true;
       }
     }
@@ -309,7 +319,8 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
       timestamp: Date.now(),
     };
 
-    const newHistory = [...messages, userMsg];
+    const newHistory = [...messagesRef.current, userMsg];
+    messagesRef.current = newHistory;
     setMessages(newHistory);
 
     try {
@@ -361,7 +372,9 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
         setLastFeedback(data.feedback);
       }
 
-      setMessages((prev) => [...prev, aiMsg]);
+      const updatedHistory = [...messagesRef.current, aiMsg];
+      messagesRef.current = updatedHistory;
+      setMessages(updatedHistory);
       setLoadingAi(false);
       isSendingRef.current = false;
 
@@ -386,7 +399,8 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
     await phoneAudio.playHangupTone(2);
     setCallState('ended');
 
-    const formattedTranscript = messages.map((m) => ({
+    const currentMessages = messagesRef.current;
+    const formattedTranscript = currentMessages.map((m) => ({
       role: m.role,
       hebrew: m.hebrew,
       translation: m.translation,
@@ -403,7 +417,7 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
         caller_name: scenario.callerNameRu || scenario.callerName,
         caller_role: scenario.callerRole,
         duration_seconds: callDuration,
-        messages_count: messages.length,
+        messages_count: currentMessages.length,
         transcript: formattedTranscript,
         feedback: lastFeedback || undefined,
         created_at: new Date().toISOString(),
