@@ -124,7 +124,10 @@ interface UserDetailData {
     root?: string;
     lessonId: number;
     createdAt: string;
+    repetitions?: number;
+    interval?: number;
   }>;
+  flashcardStats?: Record<string, any>;
 }
 
 export default function AdminPage() {
@@ -1282,20 +1285,42 @@ export default function AdminPage() {
                         <Sparkles className="w-4 h-4 text-amber-500" />
                         <span>Слова в личном словарике ({userDetail.vocabulary.length})</span>
                       </h4>
-                      <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto">
-                        {userDetail.vocabulary.map((w) => (
-                          <div
-                            key={w.id}
-                            className="p-2.5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-800/20 flex flex-col text-xs"
-                          >
-                            <span dir="rtl" className="font-hebrew font-bold text-sm text-blue-600 dark:text-blue-400">
-                              {w.hebrew}
-                            </span>
-                            <span className="text-zinc-600 dark:text-zinc-400 font-medium">
-                              {w.translation}
-                            </span>
-                          </div>
-                        ))}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto">
+                        {userDetail.vocabulary.map((w) => {
+                          const reps = w.repetitions || 0;
+                          const interval = w.interval || 0;
+                          return (
+                            <div
+                              key={w.id}
+                              className="p-2.5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-800/20 flex items-center justify-between text-xs gap-2"
+                            >
+                              <div className="flex flex-col min-w-0">
+                                <span dir="rtl" className="font-hebrew font-bold text-sm text-blue-600 dark:text-blue-400 truncate">
+                                  {w.hebrew}
+                                </span>
+                                <span className="text-zinc-600 dark:text-zinc-400 font-medium truncate">
+                                  {w.translation}
+                                </span>
+                              </div>
+
+                              <div className="shrink-0 text-right">
+                                {reps >= 4 ? (
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300">
+                                    🟢 Выучено ({interval}д)
+                                  </span>
+                                ) : reps > 0 ? (
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300">
+                                    🔵 В процессе ({reps} повт.)
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-zinc-100 dark:bg-zinc-800 text-zinc-500">
+                                    ⚪ Новое
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
                   )}

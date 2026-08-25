@@ -46,9 +46,11 @@ export async function initDatabase() {
         font_style TEXT DEFAULT 'print',
         subscription_tier TEXT DEFAULT 'free',
         subscription_expires_at BIGINT,
+        flashcard_stats JSONB DEFAULT '{}',
         created_at TIMESTAMPTZ DEFAULT NOW(),
         updated_at TIMESTAMPTZ DEFAULT NOW()
       );
+      ALTER TABLE ulpana_users ADD COLUMN IF NOT EXISTS flashcard_stats JSONB DEFAULT '{}';
     `);
 
     // 2. Таблица прогресса по урокам

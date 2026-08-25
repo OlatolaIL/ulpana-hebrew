@@ -193,6 +193,9 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
       if (lessonId) {
         const updated = markLessonTabCompleted(lessonId, 'vocab');
         if (onUpdateProfile) onUpdateProfile(updated);
+      } else {
+        const updated = loadUserProfile();
+        if (onUpdateProfile) onUpdateProfile(updated);
       }
       triggerCelebration();
     }

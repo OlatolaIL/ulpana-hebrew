@@ -116,6 +116,7 @@ export default function Home() {
           body: JSON.stringify({
             lessonProgress: updated.lessonProgress,
             personalVocabulary: updated.personalVocabulary,
+            flashcardStats: updated.flashcardStats,
             gender: updated.gender,
             fontStyle: updated.fontStyle,
           }),
@@ -222,6 +223,10 @@ export default function Home() {
                 syncData.personalVocabulary && syncData.personalVocabulary.length > 0
                   ? syncData.personalVocabulary
                   : p.personalVocabulary,
+              flashcardStats: {
+                ...(p.flashcardStats || {}),
+                ...(syncData.flashcardStats || {}),
+              },
             });
 
             setProfile(merged);
@@ -261,6 +266,10 @@ export default function Home() {
               syncData.personalVocabulary && syncData.personalVocabulary.length > 0
                 ? syncData.personalVocabulary
                 : p.personalVocabulary,
+            flashcardStats: {
+              ...(p.flashcardStats || {}),
+              ...(syncData.flashcardStats || {}),
+            },
           });
 
           setProfile(mergedProfile);

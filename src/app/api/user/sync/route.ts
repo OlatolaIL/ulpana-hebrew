@@ -54,9 +54,14 @@ export async function GET(req: NextRequest) {
       isUserAdded: true,
     }));
 
+    // 3. Получаем прогресс карточек (SM-2 интервалы)
+    const userRes = await db.query('SELECT flashcard_stats FROM ulpana_users WHERE id = $1', [session.id]);
+    const flashcardStats = userRes.rows[0]?.flashcard_stats || {};
+
     return NextResponse.json({
       lessonProgress,
       personalVocabulary,
+      flashcardStats,
     });
   } catch (error) {
     console.error('[API User Sync GET] Error:', error);
@@ -76,17 +81,33 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid session' }, { status: 401 });
     }
 
-    const { lessonProgress, personalVocabulary, gender, fontStyle } = await req.json();
+    const { lessonProgress, personalVocabulary, flashcardStats, gender, fontStyle } = await req.json();
     const db = getDbPool();
 
     if (db) {
-      // Обновляем настройки пользователя
-      if (gender || fontStyle) {
+      // Обновляем настройки пользователя и прогресс карточек
+      const updateFields: string[] = ['updated_at = NOW()'];
+      const updateValues: any[] = [];
+      let paramIdx = 1;
+
+      if (gender) {
+        updateFields.push(`gender = $${paramIdx++}`);
+        updateValues.push(gender);
+      }
+      if (fontStyle) {
+        updateFields.push(`font_style = $${paramIdx++}`);
+        updateValues.push(fontStyle);
+      }
+      if (flashcardStats && typeof flashcardStats === 'object') {
+        updateFields.push(`flashcard_stats = COALESCE(flashcard_stats, '{}'::jsonb) || $${paramIdx++}::jsonb`);
+        updateValues.push(JSON.stringify(flashcardStats));
+      }
+
+      if (updateValues.length > 0) {
+        updateValues.push(session.id);
         await db.query(
-          `UPDATE ulpana_users
-           SET gender = COALESCE($1, gender), font_style = COALESCE($2, font_style), updated_at = NOW()
-           WHERE id = $3`,
-          [gender || null, fontStyle || null, session.id]
+          `UPDATE ulpana_users SET ${updateFields.join(', ')} WHERE id = $${paramIdx}`,
+          updateValues
         );
       }
 

@@ -42,6 +42,8 @@ export async function GET(req: NextRequest) {
       );
 
       const user = userRes.rows[0];
+      const flashcardStats = (user.flashcard_stats && typeof user.flashcard_stats === 'object') ? user.flashcard_stats : {};
+
       return NextResponse.json({
         user: {
           id: user.id,
@@ -57,6 +59,7 @@ export async function GET(req: NextRequest) {
           createdAt: user.created_at,
           updatedAt: user.updated_at,
         },
+        flashcardStats,
         progress: progressRes.rows.map((r) => ({
           lessonId: r.lesson_id,
           completedTabs: r.completed_tabs || [],
@@ -65,17 +68,24 @@ export async function GET(req: NextRequest) {
           lastVisited: Number(r.last_visited),
           updatedAt: r.updated_at,
         })),
-        vocabulary: vocabRes.rows.map((r) => ({
-          id: r.id,
-          hebrew: r.hebrew,
-          hebrewPlain: r.hebrew_plain,
-          transcription: r.transcription,
-          translation: r.translation,
-          partOfSpeech: r.part_of_speech,
-          root: r.root,
-          lessonId: r.lesson_id,
-          createdAt: r.created_at,
-        })),
+        vocabulary: vocabRes.rows.map((r) => {
+          const stats = flashcardStats[r.id] || flashcardStats[r.hebrew] || flashcardStats[r.hebrew_plain];
+          const repetitions = stats?.repetitions || 0;
+          const interval = stats?.interval || 0;
+          return {
+            id: r.id,
+            hebrew: r.hebrew,
+            hebrewPlain: r.hebrew_plain,
+            transcription: r.transcription,
+            translation: r.translation,
+            partOfSpeech: r.part_of_speech,
+            root: r.root,
+            lessonId: r.lesson_id,
+            createdAt: r.created_at,
+            repetitions,
+            interval,
+          };
+        }),
       });
     }
 
