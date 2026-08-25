@@ -624,7 +624,8 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
                           type="button"
                           onClick={(e) => {
                             e.stopPropagation();
-                            speakHebrew(displayOpt);
+                            const toSpeak = opt && /[\u0590-\u05FF]/.test(opt) ? opt : displayOpt;
+                            speakHebrew(toSpeak);
                           }}
                           className="p-1.5 rounded-lg text-zinc-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition cursor-pointer"
                           title={isUlpan ? 'הַשְׁמַע' : 'Прослушать произношение'}

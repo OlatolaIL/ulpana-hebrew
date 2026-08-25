@@ -91,6 +91,30 @@ function fixHebrewPhonetics(text: string): string {
   return res;
 }
 
+/**
+ * Очищает текст от эмодзи, служебных символов и меток перед озвучкой
+ */
+export function cleanHebrewForSpeech(text: string): string {
+  if (!text) return '';
+  let res = text
+    // 1. Удаляем все Emoji и расширенные графические символы (чтобы TTS не зачитывал их названия)
+    .replace(/\p{Extended_Pictographic}/gu, '')
+    // 2. Удаляем специфичные символы меток интерфейса (♂, ♀, ⚥, ✔️, ❌, ①, ②, и т.д.)
+    .replace(/[♂♀⚥✔️❌①②③④⑤👉📦🌸🎙️👥↗️➡️⬅️⬆️⬇️✨💫\u200D\uFE0F\uFE0E]/g, '')
+    // 3. Удаляем метаданные в скобках (например "(1)", "(2+)", "(мужчина)")
+    .replace(/\([а-яёА-ЯЁ0-9+ \t,.-]+\)/gi, '')
+    // 4. Очищаем кавычки и скобки
+    .replace(/["'«»[\]{}()]/g, ' ')
+    // 5. Удаляем кириллицу, если в строку случайно попал перевод
+    .replace(/[а-яёА-ЯЁ]+/gi, '')
+    // 6. Убираем дефисы, слэши и множественные пробелы
+    .replace(/[—–\-_/\\|•]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  return fixHebrewPhonetics(res);
+}
+
 export function speakHebrew(
   text: string,
   options: { rate?: number; pitch?: number } = {}
@@ -109,8 +133,8 @@ export function speakHebrew(
 
     window.speechSynthesis.cancel(); // останавливаем предыдущую речь
 
-    // Сохраняем и нормализуем огласовки (ניקוד) для точного произношения
-    const speechText = fixHebrewPhonetics(text.trim());
+    // Очищаем от эмодзи/символов и нормализуем огласовки (ניקוד) для четкого произношения
+    const speechText = cleanHebrewForSpeech(text);
     if (!speechText) {
       resolve();
       return;
