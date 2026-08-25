@@ -423,7 +423,11 @@ export const LessonVocabulary: React.FC<LessonVocabularyProps> = ({
             className="w-full sm:w-auto py-3.5 px-6 rounded-2xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-semibold text-sm shadow-md transition active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
           >
             <Sparkles className="w-4 h-4 text-yellow-300" />
-            <span>Тренировать в карточках ({filteredWords.length})</span>
+            <span>
+              {isUlpan
+                ? `תִּרְגּוּל בְּכַרְטִיסִיּוֹת (${filteredWords.length})`
+                : `Тренировать в карточках (${filteredWords.length})`}
+            </span>
           </button>
         )}
 
@@ -432,7 +436,11 @@ export const LessonVocabulary: React.FC<LessonVocabularyProps> = ({
           className="w-full sm:w-auto py-3.5 px-8 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm shadow-md transition active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
         >
           <CheckCircle2 className="w-5 h-5 text-emerald-300" />
-          <span>Я выучил слова • Перейти к упражнениям (этап 3/5) ➡️</span>
+          <span>
+            {isUlpan
+              ? 'לָמַדְתִּי אֶת הַמִּילִּים • מַעֲבָר לְתַרְגִּילִים (שָׁלָב 3/5) ➡️'
+              : 'Я выучил слова • Перейти к упражнениям (этап 3/5) ➡️'}
+          </span>
         </button>
       </div>
     </div>

@@ -79,7 +79,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               }`}
             >
               <BookOpen className="w-4 h-4" />
-              <span>Уроки</span>
+              <span>{userProfile.ulpanMode ? 'שִׁיעוּרִים' : 'Уроки'}</span>
             </button>
 
             <button
@@ -91,7 +91,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               }`}
             >
               <span className="font-cursive font-bold text-lg leading-none text-blue-600 dark:text-blue-400">א</span>
-              <span>Прописи</span>
+              <span>{userProfile.ulpanMode ? 'כְּתַב יָד' : 'Прописи'}</span>
             </button>
 
             <button
@@ -103,7 +103,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               }`}
             >
               <Layers className="w-4 h-4" />
-              <span>Карточки</span>
+              <span>{userProfile.ulpanMode ? 'כַּרְטִיסִיּוֹת' : 'Карточки'}</span>
             </button>
 
             <button
@@ -115,7 +115,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               }`}
             >
               <Sparkles className="w-4 h-4 text-amber-500" />
-              <span>Мой словарик</span>
+              <span>{userProfile.ulpanMode ? 'מִילּוֹן' : 'Мой словарик'}</span>
               {dictCount > 0 && (
                 <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-200">
                   {dictCount}
@@ -134,7 +134,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 title="Панель администратора (@osa_il)"
               >
                 <ShieldCheck className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
-                <span className="hidden sm:inline">Админка</span>
+                <span className="hidden sm:inline">{userProfile.ulpanMode ? 'נִהוּל' : 'Админка'}</span>
               </Link>
             )}
 
@@ -184,12 +184,16 @@ export const Navbar: React.FC<NavbarProps> = ({
               {userProfile.fontStyle === 'cursive' ? (
                 <>
                   <span className="font-cursive font-bold text-base text-blue-600 dark:text-blue-400 leading-none">כתב</span>
-                  <span className="hidden sm:inline text-zinc-700 dark:text-zinc-300">Рукописный</span>
+                  <span className="hidden sm:inline text-zinc-700 dark:text-zinc-300">
+                    {userProfile.ulpanMode ? 'כְּתַב' : 'Рукописный'}
+                  </span>
                 </>
               ) : (
                 <>
                   <span className="font-hebrew font-bold text-xs text-zinc-700 dark:text-zinc-200 leading-none">דפוס</span>
-                  <span className="hidden sm:inline text-zinc-700 dark:text-zinc-300">Печатный</span>
+                  <span className="hidden sm:inline text-zinc-700 dark:text-zinc-300">
+                    {userProfile.ulpanMode ? 'דְּפוּס' : 'Печатный'}
+                  </span>
                 </>
               )}
             </button>
@@ -222,7 +226,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-[#229ED9] hover:bg-[#1E8CC0] text-white text-xs font-semibold flex items-center gap-1 shadow-sm transition active:scale-95 shrink-0"
                 title="Войти через Telegram для синхронизации прогресса"
               >
-                <span>Войти</span>
+                <span>{userProfile.ulpanMode ? 'כְּנִיסָה' : 'Войти'}</span>
               </button>
             )}
 
@@ -249,7 +253,9 @@ export const Navbar: React.FC<NavbarProps> = ({
           }`}
         >
           <BookOpen className="w-5 h-5 mb-0.5" />
-          <span className="text-[11px] leading-tight">Уроки</span>
+          <span className="text-[11px] leading-tight">
+            {userProfile.ulpanMode ? 'שִׁיעוּרִים' : 'Уроки'}
+          </span>
         </button>
 
         <button
@@ -261,7 +267,9 @@ export const Navbar: React.FC<NavbarProps> = ({
           }`}
         >
           <span className="font-cursive font-bold text-xl leading-none mb-0.5">א</span>
-          <span className="text-[11px] leading-tight">Прописи</span>
+          <span className="text-[11px] leading-tight">
+            {userProfile.ulpanMode ? 'כְּתַב' : 'Прописи'}
+          </span>
         </button>
 
         <button
@@ -273,7 +281,9 @@ export const Navbar: React.FC<NavbarProps> = ({
           }`}
         >
           <Layers className="w-5 h-5 mb-0.5" />
-          <span className="text-[11px] leading-tight">Карточки</span>
+          <span className="text-[11px] leading-tight">
+            {userProfile.ulpanMode ? 'כַּרְטִיסִיּוֹת' : 'Карточки'}
+          </span>
         </button>
 
         <button
@@ -292,7 +302,9 @@ export const Navbar: React.FC<NavbarProps> = ({
               </span>
             )}
           </div>
-          <span className="text-[11px] leading-tight">Словарик</span>
+          <span className="text-[11px] leading-tight">
+            {userProfile.ulpanMode ? 'מִילּוֹן' : 'Словарик'}
+          </span>
         </button>
       </nav>
     </>

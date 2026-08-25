@@ -512,7 +512,7 @@ export const PersonalDictionary: React.FC<PersonalDictionaryProps> = ({
                           )}
                         </div>
 
-                        {userProfile.showTranscription && word.transcription && (
+                        {!userProfile.ulpanMode && userProfile.showTranscription && word.transcription && (
                           <p className="text-xs font-semibold text-blue-600 dark:text-blue-400">
                             [{word.transcription}]
                           </p>

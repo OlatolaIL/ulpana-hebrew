@@ -54,6 +54,7 @@ export const CourseMap: React.FC<CourseMapProps> = ({
   const alefCompleted = userProfile.completedLessons.filter((id) => id <= 50).length;
   const betCompleted = userProfile.completedLessons.filter((id) => id > 50).length;
   const progressPercent = Math.min(100, Math.round((completedCount / 100) * 100));
+  const isUlpan = Boolean(userProfile.ulpanMode);
 
   return (
     <div className="space-y-4 sm:space-y-5">
@@ -63,7 +64,7 @@ export const CourseMap: React.FC<CourseMapProps> = ({
           <div className="flex items-center gap-2">
             <Sparkles className="w-4 h-4 text-yellow-300 shrink-0" />
             <h1 className="text-base sm:text-lg font-bold tracking-tight">
-              Программа курса (100 уроков)
+              {isUlpan ? 'תוֹכְנִית הַקּוּרְס (100 שִׁיעוּרִים)' : 'Программа курса (100 уроков)'}
             </h1>
           </div>
           <div className="text-xs sm:text-sm font-bold bg-white/15 px-2.5 py-1 rounded-xl backdrop-blur shrink-0">
@@ -90,7 +91,7 @@ export const CourseMap: React.FC<CourseMapProps> = ({
               : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100'
           }`}
         >
-          <span>Алеф (1–50)</span>
+          <span>{isUlpan ? 'רָמָה א׳ (1–50)' : 'Алеф (1–50)'}</span>
           <span
             className={`px-1.5 py-0.5 rounded-md text-[10px] font-bold ${
               selectedLevel === 'alef'
@@ -110,7 +111,7 @@ export const CourseMap: React.FC<CourseMapProps> = ({
               : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100'
           }`}
         >
-          <span>Бет (51–100)</span>
+          <span>{isUlpan ? 'רָמָה ב׳ (51–100)' : 'Бет (51–100)'}</span>
           <span
             className={`px-1.5 py-0.5 rounded-md text-[10px] font-bold ${
               selectedLevel === 'bet'
@@ -131,7 +132,11 @@ export const CourseMap: React.FC<CourseMapProps> = ({
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder={`Поиск по урокам уровня ${selectedLevel === 'alef' ? 'Алеф' : 'Бет'}...`}
+            placeholder={
+              isUlpan
+                ? `חִפּוּשׂ שִׁיעוּרִים בְּרָמָה ${selectedLevel === 'alef' ? 'א׳' : 'ב׳'}...`
+                : `Поиск по урокам уровня ${selectedLevel === 'alef' ? 'Алеф' : 'Бет'}...`
+            }
             className="w-full pl-9 pr-3 py-2 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-600"
           />
         </div>
@@ -141,7 +146,7 @@ export const CourseMap: React.FC<CourseMapProps> = ({
           onChange={(e) => setSelectedCategory(e.target.value)}
           className="w-full sm:w-auto px-3 py-2 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-600"
         >
-          <option value="all">Все категории</option>
+          <option value="all">{isUlpan ? 'כָּל הַקָּטֵגוֹרְיוֹת' : 'Все категории'}</option>
           {categories.map((c, i) => (
             <option key={i} value={c}>
               {c}
@@ -189,8 +194,12 @@ export const CourseMap: React.FC<CourseMapProps> = ({
               <div className="space-y-2.5">
                 {/* Номер урока, статус и кнопка сброса */}
                 <div className="flex items-center justify-between gap-2">
-                  <span className="px-2 py-0.5 rounded-lg text-xs font-bold bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400">
-                    Урок {lesson.number}
+                  <span className={`px-2 py-0.5 rounded-lg text-xs font-bold ${
+                    isUlpan
+                      ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300'
+                      : 'bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400'
+                  }`}>
+                    {isUlpan ? `שִׁיעוּר ${lesson.number}` : `Урок ${lesson.number}`}
                   </span>
 
                   <div className="flex items-center gap-1.5">
@@ -202,14 +211,16 @@ export const CourseMap: React.FC<CourseMapProps> = ({
                     ) : isCompleted ? (
                       <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
                         <CheckCircle className="w-3.5 h-3.5" />
-                        <span>Пройден</span>
+                        <span>{isUlpan ? 'הוּשְׁלַם' : 'Пройден'}</span>
                       </span>
                     ) : completedTabsCount > 0 ? (
                       <span className="text-xs font-medium text-amber-600 dark:text-amber-400">
-                        В процессе ({completedTabsCount}/5)
+                        {isUlpan ? `בְּתַהֲלִיךְ (${completedTabsCount}/5)` : `В процессе (${completedTabsCount}/5)`}
                       </span>
                     ) : (
-                      <span className="text-xs text-zinc-400">Новый</span>
+                      <span className="text-xs text-zinc-400">
+                        {isUlpan ? 'חָדָשׁ' : 'Новый'}
+                      </span>
                     )}
 
                     {/* Кнопка сброса прогресса урока */}
@@ -227,33 +238,49 @@ export const CourseMap: React.FC<CourseMapProps> = ({
                   </div>
                 </div>
 
-                {/* Название на иврите и русском */}
+                {/* Название на иврите */}
                 <div>
                   <div
                     dir="rtl"
-                    className="text-lg font-bold text-zinc-900 dark:text-zinc-50 font-hebrew group-hover:text-blue-600 dark:group-hover:text-blue-400 transition leading-snug"
+                    className={`font-bold font-hebrew group-hover:text-blue-600 dark:group-hover:text-blue-400 transition leading-snug ${
+                      isUlpan
+                        ? 'text-xl text-zinc-900 dark:text-zinc-50'
+                        : 'text-lg text-zinc-900 dark:text-zinc-50'
+                    }`}
                   >
                     {userProfile.showNikkud ? lesson.titleHebrew : stripNikkud(lesson.titleHebrew)}
                   </div>
-                  <h3 className="text-xs sm:text-sm font-semibold text-zinc-800 dark:text-zinc-200 mt-0.5">
-                    {lesson.titleRussian}
-                  </h3>
+                  {!isUlpan && (
+                    <h3 className="text-xs sm:text-sm font-semibold text-zinc-800 dark:text-zinc-200 mt-0.5">
+                      {lesson.titleRussian}
+                    </h3>
+                  )}
                 </div>
 
-                <p className="text-xs text-zinc-500 line-clamp-2 leading-relaxed">
-                  {lesson.description}
-                </p>
+                {!isUlpan && (
+                  <p className="text-xs text-zinc-500 line-clamp-2 leading-relaxed">
+                    {lesson.description}
+                  </p>
+                )}
               </div>
 
               {/* Футер карточки урока */}
               <div className="mt-3.5 pt-2.5 border-t border-zinc-100 dark:border-zinc-800 flex items-center justify-between text-xs text-zinc-400">
-                <span className="font-medium text-zinc-500 truncate max-w-[150px]">{lesson.category}</span>
+                <span className="font-medium text-zinc-500 truncate max-w-[150px]">
+                  {isUlpan ? `שִׁיעוּר ${lesson.number}` : lesson.category}
+                </span>
                 <span
                   className={`inline-flex items-center gap-1 font-semibold group-hover:translate-x-0.5 transition shrink-0 ${
                     isLessonLocked ? 'text-amber-600 dark:text-amber-400' : 'text-blue-600 dark:text-blue-400'
                   }`}
                 >
-                  <span>{isLessonLocked ? 'В PRO' : isCompleted ? 'Повторить' : 'Начать'}</span>
+                  <span>
+                    {isLessonLocked
+                      ? 'В PRO'
+                      : isCompleted
+                      ? (isUlpan ? 'חֲזוֹר' : 'Повторить')
+                      : (isUlpan ? 'הַתְחֵל' : 'Начать')}
+                  </span>
                   <ChevronRight className="w-3.5 h-3.5" />
                 </span>
               </div>

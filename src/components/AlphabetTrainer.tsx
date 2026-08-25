@@ -34,11 +34,12 @@ interface AlphabetTrainerProps {
 type TabMode = 'grid' | 'canvas' | 'quiz';
 type ViewDisplay = 'both' | 'print' | 'cursive';
 
-export const AlphabetTrainer: React.FC<AlphabetTrainerProps> = () => {
+export const AlphabetTrainer: React.FC<AlphabetTrainerProps> = ({ userProfile }) => {
   const [activeTab, setActiveTab] = useState<TabMode>('grid');
   const [displayMode, setDisplayMode] = useState<ViewDisplay>('both');
   const [selectedCategory, setSelectedCategory] = useState<'all' | 'regular' | 'sofit'>('all');
   const [selectedLetter, setSelectedLetter] = useState<HebrewLetter>(HEBREW_ALPHABET[0]);
+  const isUlpan = Boolean(userProfile?.ulpanMode);
 
   // Холст для рисования
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -682,16 +683,20 @@ export const AlphabetTrainer: React.FC<AlphabetTrainerProps> = () => {
               {/* Пример слова с этой буквой */}
               <div className="bg-zinc-50 dark:bg-zinc-800/60 p-3.5 rounded-2xl border border-zinc-200 dark:border-zinc-700 flex items-center justify-between">
                 <div>
-                  <span className="text-[11px] text-zinc-400">Пример слова:</span>
+                  <span className="text-[11px] text-zinc-400">{isUlpan ? 'דֻּגְמָה:' : 'Пример слова:'}</span>
                   <div className="flex items-center gap-2 mt-0.5">
                     <span dir="rtl" className="text-lg font-bold font-hebrew text-zinc-900 dark:text-zinc-100">
                       {selectedLetter.exampleWord.hebrew}
                     </span>
-                    <span className="text-xs text-blue-600 dark:text-blue-400 font-medium">
-                      [{selectedLetter.exampleWord.transcription}]
-                    </span>
+                    {!isUlpan && (
+                      <span className="text-xs text-blue-600 dark:text-blue-400 font-medium">
+                        [{selectedLetter.exampleWord.transcription}]
+                      </span>
+                    )}
                   </div>
-                  <p className="text-xs text-zinc-500">{selectedLetter.exampleWord.translation}</p>
+                  {!isUlpan && (
+                    <p className="text-xs text-zinc-500">{selectedLetter.exampleWord.translation}</p>
+                  )}
                 </div>
 
                 <div className="text-3xl font-cursive text-blue-600 dark:text-blue-400 font-bold pr-2">

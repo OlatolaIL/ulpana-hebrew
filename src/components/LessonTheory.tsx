@@ -120,15 +120,15 @@ export const LessonTheory: React.FC<LessonTheoryProps> = ({
                               >
                                 {cell === 'Мужской' ? (
                                   <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-semibold bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 whitespace-nowrap">
-                                    Муж.
+                                    {userProfile.ulpanMode ? 'זָכָר' : 'Муж.'}
                                   </span>
                                 ) : cell === 'Женский' ? (
                                   <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-semibold bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 whitespace-nowrap">
-                                    Жен.
+                                    {userProfile.ulpanMode ? 'נְקֵבָה' : 'Жен.'}
                                   </span>
                                 ) : cell === 'Общий' ? (
                                   <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-semibold bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 whitespace-nowrap">
-                                    Общ.
+                                    {userProfile.ulpanMode ? 'כְּלָלִי' : 'Общ.'}
                                   </span>
                                 ) : (
                                   renderFormattedText(
@@ -187,14 +187,16 @@ export const LessonTheory: React.FC<LessonTheoryProps> = ({
                   >
                     {userProfile.showNikkud ? sentence.hebrew : stripNikkud(sentence.hebrew)}
                   </p>
-                  {userProfile.showTranscription && sentence.transcription && (
+                  {!userProfile.ulpanMode && userProfile.showTranscription && sentence.transcription && (
                     <p className="text-xs font-semibold text-blue-600 dark:text-blue-400">
                       [{sentence.transcription}]
                     </p>
                   )}
-                  <p className="text-xs text-zinc-600 dark:text-zinc-300 font-medium">
-                    {sentence.translation}
-                  </p>
+                  {!userProfile.ulpanMode && sentence.translation && (
+                    <p className="text-xs text-zinc-600 dark:text-zinc-300 font-medium">
+                      {sentence.translation}
+                    </p>
+                  )}
                 </div>
 
                 <button
@@ -217,7 +219,11 @@ export const LessonTheory: React.FC<LessonTheoryProps> = ({
           className="py-3.5 px-8 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm shadow-md transition active:scale-95 inline-flex items-center gap-2 cursor-pointer"
         >
           <CheckCircle2 className="w-5 h-5 text-emerald-300" />
-          <span>Я изучил теорию • Перейти к словарю (этап 2/5) ➡️</span>
+          <span>
+            {userProfile.ulpanMode
+              ? 'הֲבָנַת הַחֹמֶר • מַעֲבָר לְאוֹצַר מִילִּים (שָׁלָב 2/5) ➡️'
+              : 'Я изучил теорию • Перейти к словарю (этап 2/5) ➡️'}
+          </span>
         </button>
       </div>
     </div>

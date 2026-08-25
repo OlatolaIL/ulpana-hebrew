@@ -158,10 +158,14 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
             !מְצוּיָן
           </h2>
           <p className="text-base font-bold text-emerald-600 dark:text-emerald-400">
-            Все упражнения урока {lesson.number} успешно выполнены!
+            {userProfile.ulpanMode
+              ? 'כָּל הַתַּרְגִּילִים הוּשְׁלְמוּ בְּהַצְלָחָה!'
+              : `Все упражнения урока ${lesson.number} успешно выполнены!`}
           </p>
           <p className="text-xs text-zinc-500 dark:text-zinc-400">
-            Этап 3 из 5 завершен. Переходите к ролевому диалогу с ИИ!
+            {userProfile.ulpanMode
+              ? 'שָׁלָב 3 מִתּוֹךְ 5 הוּשְׁלַם. עִבְרוּ לְשִׂיחָה עִם בּוֹט!'
+              : 'Этап 3 из 5 завершен. Переходите к ролевому диалогу с ИИ!'}
           </p>
         </div>
 
@@ -171,7 +175,11 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
               onClick={onCompleted}
               className="w-full py-3.5 px-6 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-sm shadow-md transition active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
             >
-              <span>Перейти к ИИ-чату (этап 4/5) ➡️</span>
+              <span>
+                {userProfile.ulpanMode
+                  ? 'מַעֲבָר לְשִׂיחָה עִם בּוֹט (שָׁלָב 4/5) ➡️'
+                  : 'Перейти к ИИ-чату (этап 4/5) ➡️'}
+              </span>
             </button>
           )}
 
@@ -184,7 +192,7 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
             }}
             className="w-full py-3 px-4 rounded-2xl border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 font-semibold text-xs transition cursor-pointer"
           >
-            Пройти упражнения еще раз
+            {userProfile.ulpanMode ? 'לַחֲזוֹר עַל הַתַּרְגִּילִים' : 'Пройти упражнения еще раз'}
           </button>
         </div>
       </div>
@@ -242,14 +250,18 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
           <div className="min-w-0">
             <div className="flex items-center gap-1.5">
               <span className="text-[11px] font-bold text-zinc-900 dark:text-zinc-100">
-                Этап 3/5: Тесты
+                {userProfile.ulpanMode
+                  ? `שָׁלָב 3/5: תַּרְגִּילִים`
+                  : 'Этап 3/5: Тесты'}
               </span>
               <span className="text-[10px] text-zinc-400 font-medium">
-                ({currentIdx + 1} из {exercises.length})
+                ({currentIdx + 1} / {exercises.length})
               </span>
             </div>
             <p className="text-[11px] text-zinc-500 truncate hidden xs:block">
-              Закрепление темы и грамматики
+              {userProfile.ulpanMode
+                ? 'תִּרְגּוּל וְהַבָנָה'
+                : 'Закрепление темы и грамматики'}
             </p>
           </div>
         </div>
@@ -582,7 +594,13 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
                   : 'bg-blue-600 hover:bg-blue-700 text-white'
               }`}
             >
-              <span>{isLastQuestion ? 'Завершить упражнения 🎉' : `Следующий вопрос (${currentIdx + 2}/${exercises.length})`}</span>
+              <span>
+                {isLastQuestion
+                  ? (userProfile.ulpanMode ? 'סִיּוּם תַּרְגִּילִים 🎉' : 'Завершить упражнения 🎉')
+                  : (userProfile.ulpanMode
+                      ? `הַשְּׁאֵלָה הַבָּאָה (${currentIdx + 2}/${exercises.length})`
+                      : `Следующий вопрос (${currentIdx + 2}/${exercises.length})`)}
+              </span>
               <ArrowRight className="w-4 h-4" />
             </button>
           ) : (
@@ -591,7 +609,7 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
                 onClick={handleSkip}
                 className="flex-1 py-3 px-4 rounded-2xl border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-300 font-semibold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer"
               >
-                <span>Пропустить вопрос</span>
+                <span>{userProfile.ulpanMode ? 'דַּלֵּג עַל שְׁאֵלָה' : 'Пропустить вопрос'}</span>
                 <SkipForward className="w-3.5 h-3.5" />
               </button>
 
@@ -601,7 +619,11 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
                   className="py-3 px-4 rounded-2xl bg-purple-50 dark:bg-purple-950/60 hover:bg-purple-100 text-purple-700 dark:text-purple-300 font-semibold text-xs border border-purple-200 dark:border-purple-800/80 transition flex items-center justify-center gap-1 cursor-pointer"
                 >
                   <Bot className="w-3.5 h-3.5 text-purple-500" />
-                  <span>К ИИ-чату (этап 4/5) ➡️</span>
+                  <span>
+                    {userProfile.ulpanMode
+                      ? 'לְשִׂיחָה עִם בּוֹט (שָׁלָב 4/5) ➡️'
+                      : 'К ИИ-чату (этап 4/5) ➡️'}
+                  </span>
                 </button>
               )}
             </div>
