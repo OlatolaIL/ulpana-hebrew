@@ -28,7 +28,30 @@ export function loadUserProfile(): UserProfile {
   try {
     const data = localStorage.getItem(STORAGE_KEY);
     if (!data) return DEFAULT_PROFILE;
-    return { ...DEFAULT_PROFILE, ...JSON.parse(data) };
+    const profile: UserProfile = { ...DEFAULT_PROFILE, ...JSON.parse(data) };
+
+    // Автоматическая нормализация: урок считается завершенным ТОЛЬКО если пройдены ВСЕ 5 этапов (включая звонок 'phone')
+    if (profile.lessonProgress) {
+      const actualCompleted: number[] = [];
+      for (const [idStr, prog] of Object.entries(profile.lessonProgress)) {
+        const id = parseInt(idStr, 10);
+        const tabs = prog.completedTabs || [];
+        const isFullyDone =
+          tabs.includes('theory') &&
+          tabs.includes('vocab') &&
+          tabs.includes('exercises') &&
+          tabs.includes('chat') &&
+          tabs.includes('phone');
+
+        prog.isCompleted = isFullyDone;
+        if (isFullyDone) {
+          actualCompleted.push(id);
+        }
+      }
+      profile.completedLessons = actualCompleted;
+    }
+
+    return profile;
   } catch (e) {
     console.error('Failed to load profile from localStorage', e);
     return DEFAULT_PROFILE;
@@ -127,7 +150,7 @@ export function removeWordFromPersonalDict(wordId: string): void {
 import { DETAILED_LESSONS } from '@/data/lessonsData';
 
 /**
- * Обновление прогресса по вкладке урока (theory, vocab, exercises, chat)
+ * Обновление прогресса по вкладке урока (theory, vocab, exercises, chat, phone)
  */
 export function markLessonTabCompleted(lessonId: number, tab: string): UserProfile {
   const profile = loadUserProfile();
@@ -142,18 +165,23 @@ export function markLessonTabCompleted(lessonId: number, tab: string): UserProfi
   }
   current.lastVisited = Date.now();
 
-  // Если пройдены все 4 этапа (или хотя бы 3 основных этапа) — отмечаем урок полностью завершенным
-  const isAllFour = current.completedTabs.length >= 4;
-  const isThreeMain =
+  // Урок считается полностью завершенным ТОЛЬКО когда пройдены ВСЕ 5 этапов:
+  // 1. theory, 2. vocab, 3. exercises, 4. chat, 5. phone
+  const isAllFive =
     current.completedTabs.includes('theory') &&
     current.completedTabs.includes('vocab') &&
-    (current.completedTabs.includes('exercises') || current.completedTabs.includes('chat'));
+    current.completedTabs.includes('exercises') &&
+    current.completedTabs.includes('chat') &&
+    current.completedTabs.includes('phone');
 
-  if (isAllFour || isThreeMain) {
+  if (isAllFive) {
     current.isCompleted = true;
     if (!profile.completedLessons.includes(lessonId)) {
       profile.completedLessons.push(lessonId);
     }
+  } else {
+    current.isCompleted = false;
+    profile.completedLessons = (profile.completedLessons || []).filter((id) => id !== lessonId);
   }
 
   // Автоматическое добавление всех слов урока в личный словарик без дубликатов
