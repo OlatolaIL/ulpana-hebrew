@@ -5,6 +5,8 @@
 import { stripNikkud } from './transcription';
 
 let preferredHebrewVoice: SpeechSynthesisVoice | null = null;
+let activeUtterance: SpeechSynthesisUtterance | null = null;
+let speechSafetyTimer: any = null;
 
 /**
  * Инициализация и поиск лучшего голоса для иврита в системе
@@ -100,6 +102,11 @@ export function speakHebrew(
       return;
     }
 
+    if (speechSafetyTimer) {
+      clearTimeout(speechSafetyTimer);
+      speechSafetyTimer = null;
+    }
+
     window.speechSynthesis.cancel(); // останавливаем предыдущую речь
 
     // Сохраняем и нормализуем огласовки (ניקוד) для точного произношения
@@ -119,6 +126,7 @@ export function speakHebrew(
     } catch {}
 
     const utterance = new SpeechSynthesisUtterance(speechText);
+    activeUtterance = utterance; // Защита от Garbage Collection в Chrome
     utterance.lang = 'he-IL';
     utterance.rate = options.rate ?? userRate;
     utterance.pitch = options.pitch ?? 1.0;
@@ -131,13 +139,40 @@ export function speakHebrew(
       if (v) utterance.voice = v;
     }
 
-    utterance.onend = () => resolve();
-    utterance.onerror = (e) => {
-      console.error('TTS error:', e);
-      resolve();
+    let isResolved = false;
+    const finish = () => {
+      if (!isResolved) {
+        isResolved = true;
+        activeUtterance = null;
+        if (speechSafetyTimer) {
+          clearTimeout(speechSafetyTimer);
+          speechSafetyTimer = null;
+        }
+        resolve();
+      }
     };
 
-    window.speechSynthesis.speak(utterance);
+    utterance.onend = finish;
+    utterance.onerror = (e) => {
+      console.error('TTS error:', e);
+      finish();
+    };
+
+    // Гарантированный защитный таймаут: промис завершится даже если браузер сбойнул
+    const maxDurationMs = Math.max(3000, speechText.length * 220 + 2500);
+    speechSafetyTimer = setTimeout(() => {
+      finish();
+    }, maxDurationMs);
+
+    try {
+      window.speechSynthesis.speak(utterance);
+      if (window.speechSynthesis.paused) {
+        window.speechSynthesis.resume();
+      }
+    } catch (e) {
+      console.error('Speech synthesis speak exception:', e);
+      finish();
+    }
   });
 }
 
@@ -146,6 +181,11 @@ export function speakHebrew(
  */
 export function stopSpeech(): void {
   if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+    if (speechSafetyTimer) {
+      clearTimeout(speechSafetyTimer);
+      speechSafetyTimer = null;
+    }
+    activeUtterance = null;
     window.speechSynthesis.cancel();
   }
 }

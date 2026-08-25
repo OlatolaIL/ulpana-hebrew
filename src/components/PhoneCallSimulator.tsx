@@ -70,6 +70,10 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
 
   const recognizerRef = useRef<HebrewSpeechRecognizer | null>(null);
   const messagesRef = useRef<ChatMessage[]>([]);
+  const isAiSpeakingRef = useRef(false);
+  const loadingAiRef = useRef(false);
+  const isRecordingRef = useRef(false);
+  const handsFreeRef = useRef(true);
   const timerRef = useRef<any>(null);
   const handsFreeTimeoutRef = useRef<any>(null);
   const silenceTimeoutRef = useRef<any>(null);
@@ -79,10 +83,26 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
   const lastAiSpokenTextRef = useRef('');
   const lastAiSpokenTimeRef = useRef(0);
 
-  // Синхронизируем messagesRef с состоянием
-  useEffect(() => {
-    messagesRef.current = messages;
-  }, [messages]);
+  // Синхронизированные методы управления состоянием
+  const setBothMessages = (msgs: ChatMessage[]) => {
+    messagesRef.current = msgs;
+    setMessages(msgs);
+  };
+
+  const setAiSpeaking = (val: boolean) => {
+    isAiSpeakingRef.current = val;
+    setIsAiSpeaking(val);
+  };
+
+  const setAiLoading = (val: boolean) => {
+    loadingAiRef.current = val;
+    setLoadingAi(val);
+  };
+
+  const setRecording = (val: boolean) => {
+    isRecordingRef.current = val;
+    setIsRecording(val);
+  };
 
   // Инициализация распознавания речи
   useEffect(() => {
@@ -138,8 +158,7 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
     }
 
     setCallState('dialing');
-    setMessages([]);
-    messagesRef.current = [];
+    setBothMessages([]);
     setLastFeedback(null);
     setLiveTranscript('');
     isSendingRef.current = false;
@@ -163,8 +182,7 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
       };
 
       callActiveRef.current = true;
-      messagesRef.current = [initialAiMsg];
-      setMessages([initialAiMsg]);
+      setBothMessages([initialAiMsg]);
       setCallState('connected');
 
       // ИИ сразу озвучивает приветствие
@@ -176,7 +194,7 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
   const playAiVoice = async (text: string) => {
     // 1. Глушим микрофон перед тем, как ИИ начнет говорить
     stopListening();
-    setIsAiSpeaking(true);
+    setAiSpeaking(true);
     lastAiSpokenTextRef.current = stripNikkud(text).trim().toLowerCase();
 
     try {
@@ -184,14 +202,14 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
     } catch (e) {
       console.error('Speech error:', e);
     } finally {
-      setIsAiSpeaking(false);
+      setAiSpeaking(false);
       lastAiSpokenTimeRef.current = Date.now();
 
       // Безопасная пауза 650мс после того, как динамик затих, перед авто-включением микрофона
-      if (handsFree && callActiveRef.current) {
+      if (handsFreeRef.current && callActiveRef.current) {
         if (handsFreeTimeoutRef.current) clearTimeout(handsFreeTimeoutRef.current);
         handsFreeTimeoutRef.current = setTimeout(() => {
-          if (callActiveRef.current && !isAiSpeaking && !loadingAi) {
+          if (callActiveRef.current && !isAiSpeakingRef.current && !loadingAiRef.current && !isSendingRef.current) {
             startListening();
           }
         }, 650);
@@ -224,7 +242,7 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
 
   // Запуск микрофона
   const startListening = () => {
-    if (isRecording || isAiSpeaking || loadingAi || isSendingRef.current || !callActiveRef.current) {
+    if (isRecordingRef.current || isAiSpeakingRef.current || loadingAiRef.current || isSendingRef.current || !callActiveRef.current) {
       return;
     }
 
@@ -234,22 +252,22 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
     }
 
     shouldListenRef.current = true;
-    setIsRecording(true);
+    setRecording(true);
     setLiveTranscript('');
 
     if (silenceTimeoutRef.current) clearTimeout(silenceTimeoutRef.current);
 
     recognizerRef.current.start(
       (transcript, isFinal) => {
-        if (isAiSpeaking || isSendingRef.current || !callActiveRef.current) return;
+        if (isAiSpeakingRef.current || isSendingRef.current || !callActiveRef.current) return;
 
         setLiveTranscript(transcript);
 
         // Таймер авто-отправки при паузе в речи (1.6 секунды тишины)
         if (silenceTimeoutRef.current) clearTimeout(silenceTimeoutRef.current);
-        if (transcript.trim() && handsFree) {
+        if (transcript.trim() && handsFreeRef.current) {
           silenceTimeoutRef.current = setTimeout(() => {
-            if (!isEchoFromAi(transcript) && callActiveRef.current && shouldListenRef.current) {
+            if (!isEchoFromAi(transcript) && callActiveRef.current && shouldListenRef.current && !isSendingRef.current && !isAiSpeakingRef.current) {
               handleSendMessage(transcript.trim());
             }
           }, 1600);
@@ -260,19 +278,19 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
       },
       (lastTranscript) => {
         // Если браузер завершил сессию распознавания, но мы все еще в режиме ожидания ответа:
-        if (callActiveRef.current && shouldListenRef.current && !isAiSpeaking && !loadingAi && !isSendingRef.current) {
+        if (callActiveRef.current && shouldListenRef.current && !isAiSpeakingRef.current && !loadingAiRef.current && !isSendingRef.current) {
           if (lastTranscript && lastTranscript.trim() && !isEchoFromAi(lastTranscript)) {
             handleSendMessage(lastTranscript.trim());
           } else {
             // Перезапускаем распознавание без необходимости нажимать кнопку
             setTimeout(() => {
-              if (callActiveRef.current && shouldListenRef.current && !isAiSpeaking && !loadingAi) {
+              if (callActiveRef.current && shouldListenRef.current && !isAiSpeakingRef.current && !loadingAiRef.current && !isSendingRef.current) {
                 startListening();
               }
             }, 120);
           }
         } else {
-          setIsRecording(false);
+          setRecording(false);
         }
       }
     );
@@ -288,7 +306,7 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
     if (recognizerRef.current) {
       recognizerRef.current.stop();
     }
-    setIsRecording(false);
+    setRecording(false);
   };
 
   // Отправка реплики собеседнику
@@ -296,7 +314,7 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
     stopListening();
     const text = (textToSend || textInput || liveTranscript).trim();
 
-    if (!text || loadingAi || isSendingRef.current || !callActiveRef.current) {
+    if (!text || loadingAiRef.current || isSendingRef.current || !callActiveRef.current) {
       return;
     }
 
@@ -310,7 +328,7 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
     isSendingRef.current = true;
     setTextInput('');
     setLiveTranscript('');
-    setLoadingAi(true);
+    setAiLoading(true);
 
     const userMsg: ChatMessage = {
       id: `user-${Date.now()}`,
@@ -320,8 +338,7 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
     };
 
     const newHistory = [...messagesRef.current, userMsg];
-    messagesRef.current = newHistory;
-    setMessages(newHistory);
+    setBothMessages(newHistory);
 
     try {
       const historyPayload = newHistory.map((m) => ({
@@ -373,16 +390,15 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
       }
 
       const updatedHistory = [...messagesRef.current, aiMsg];
-      messagesRef.current = updatedHistory;
-      setMessages(updatedHistory);
-      setLoadingAi(false);
+      setBothMessages(updatedHistory);
+      setAiLoading(false);
       isSendingRef.current = false;
 
       // Озвучиваем ответ ИИ
       playAiVoice(aiMsg.hebrew);
     } catch (err) {
       console.error('Phone AI Error:', err);
-      setLoadingAi(false);
+      setAiLoading(false);
       isSendingRef.current = false;
     }
   };
@@ -698,7 +714,11 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
             {/* Быстрые переключатели режима */}
             <div className="flex items-center gap-1.5">
               <button
-                onClick={() => setHandsFree(!handsFree)}
+                onClick={() => {
+                  const next = !handsFree;
+                  handsFreeRef.current = next;
+                  setHandsFree(next);
+                }}
                 className={`px-2.5 py-1 rounded-xl text-xs font-semibold flex items-center gap-1 transition ${
                   handsFree
                     ? 'bg-emerald-600/30 text-emerald-400 border border-emerald-500/40'
