@@ -123,6 +123,33 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
     if (onUpdateProfile) onUpdateProfile(updated);
   };
 
+  const renderFormattedQuestion = (questionText: string, cursive: boolean) => {
+    const parts = questionText.split(/(«[^»]+»)/g);
+    return parts.map((part, idx) => {
+      if (part.startsWith('«') && part.endsWith('»')) {
+        const inner = part.slice(1, -1);
+        const isHeb = /[\u0590-\u05FF]/.test(inner);
+        if (isHeb) {
+          return (
+            <span key={idx} className="inline-flex items-center mx-1 align-baseline">
+              «
+              <bdi
+                dir="rtl"
+                className={`px-2 py-0.5 rounded-lg bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800 text-blue-600 dark:text-blue-400 font-bold inline-block mx-0.5 ${
+                  cursive ? 'font-cursive text-xl' : 'font-hebrew text-base'
+                }`}
+              >
+                {inner}
+              </bdi>
+              »
+            </span>
+          );
+        }
+      }
+      return <span key={idx}>{part}</span>;
+    });
+  };
+
   return (
     <div data-font-style={userProfile.fontStyle || 'print'} className="max-w-xl mx-auto space-y-6">
       {/* Прогресс упражнений и переключатель шрифта */}
@@ -158,8 +185,8 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
 
       {/* Карточка вопроса */}
       <div className="bg-white dark:bg-zinc-900 rounded-3xl p-6 border border-zinc-200 dark:border-zinc-800 shadow-sm space-y-6">
-        <h3 className="text-lg font-bold text-zinc-900 dark:text-zinc-100">
-          {currentEx.question}
+        <h3 className="text-lg font-bold text-zinc-900 dark:text-zinc-100 leading-relaxed">
+          {renderFormattedQuestion(currentEx.question, isCursive)}
         </h3>
 
         {/* Варианты выбора (word_match или fill_blank) */}
