@@ -20,7 +20,7 @@ import {
 import confetti from 'canvas-confetti';
 import { Word, UserProfile } from '@/types';
 import { speakHebrew } from '@/lib/speech';
-import { updateCardSRS } from '@/lib/storage';
+import { updateCardSRS, calculateWordMastery } from '@/lib/storage';
 import { stripNikkud } from '@/lib/transcription';
 
 interface FlashcardTrainerProps {
@@ -28,6 +28,8 @@ interface FlashcardTrainerProps {
   userProfile: UserProfile;
   onClose?: () => void;
   onUpdateProfile?: (profile: UserProfile) => void;
+  customTitle?: string;
+  initialMode?: 'flip' | 'builder' | 'listening';
 }
 
 type TrainerMode = 'flip' | 'builder' | 'listening';
@@ -50,12 +52,15 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
   userProfile,
   onClose,
   onUpdateProfile,
+  customTitle,
+  initialMode,
 }) => {
   const [words, setWords] = useState<Word[]>(initialWords);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
-  const [mode, setMode] = useState<TrainerMode>('flip');
+  const [mode, setMode] = useState<TrainerMode>(initialMode || 'flip');
   const [isCompleted, setIsCompleted] = useState(false);
+
 
   // Для режима конструктора букв
   const [builderAvailable, setBuilderAvailable] = useState<Tile[]>([]);
@@ -286,43 +291,61 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
   }
 
   return (
-    <div className="max-w-xl mx-auto space-y-6">
+    <div className="max-w-xl mx-auto space-y-4">
+      {/* Заголовок тренировки (если есть customTitle) */}
+      {customTitle && (
+        <div className="flex items-center justify-between px-1">
+          <div className="text-xs font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400 flex items-center gap-1.5">
+            <Layers className="w-3.5 h-3.5" />
+            <span>{customTitle}</span>
+          </div>
+          {currentWord && (() => {
+            const mastery = calculateWordMastery(userProfile.flashcardProgress?.[currentWord.id]);
+            return (
+              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${mastery.badgeColor}`}>
+                Знание: {mastery.score}% ({mastery.label})
+              </span>
+            );
+          })()}
+        </div>
+      )}
+
       {/* Шапка тренировки и выбор режима */}
-      <div className="bg-white dark:bg-zinc-900 p-4 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div className="flex items-center gap-2">
+      <div className="bg-white dark:bg-zinc-900 p-3 sm:p-4 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div className="flex items-center gap-1.5 w-full sm:w-auto">
           <button
             onClick={() => setMode('flip')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
+            className={`flex-1 sm:flex-initial px-3 py-1.5 rounded-xl text-xs font-bold transition ${
               mode === 'flip'
-                ? 'bg-blue-600 text-white'
+                ? 'bg-blue-600 text-white shadow-sm'
                 : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400'
             }`}
           >
-            Флип-карточка
+            Флип
           </button>
           <button
             onClick={() => setMode('builder')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
+            className={`flex-1 sm:flex-initial px-3 py-1.5 rounded-xl text-xs font-bold transition ${
               mode === 'builder'
-                ? 'bg-blue-600 text-white'
+                ? 'bg-blue-600 text-white shadow-sm'
                 : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400'
             }`}
           >
-            Сборка из букв
+            Конструктор
           </button>
           <button
             onClick={() => setMode('listening')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
+            className={`flex-1 sm:flex-initial px-3 py-1.5 rounded-xl text-xs font-bold transition ${
               mode === 'listening'
-                ? 'bg-blue-600 text-white'
+                ? 'bg-blue-600 text-white shadow-sm'
                 : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400'
             }`}
           >
-            Аудирование
+            На слух
           </button>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto">
           <button
             type="button"
             onClick={() => {
@@ -347,7 +370,7 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
           </button>
 
           <div className="text-xs font-semibold text-zinc-500">
-            Слово {currentIndex + 1} из {words.length}
+            {currentIndex + 1} из {words.length}
           </div>
         </div>
       </div>

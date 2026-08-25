@@ -516,3 +516,56 @@ export function lookupOfflineWord(rawQuery: string): DictionaryEntry | null {
 
   return null;
 }
+
+/**
+ * Поиск всех слов с заданным корнем (משפחת השורש в стиле Pealim)
+ */
+export function findWordsByRoot(root: string): DictionaryEntry[] {
+  if (!root) return [];
+  const cleanRoot = root.replace(/[^א-ת]/g, '');
+  if (!cleanRoot) return [];
+
+  const results: DictionaryEntry[] = [];
+  const seenHebrews = new Set<string>();
+
+  const addIfNew = (entry: DictionaryEntry) => {
+    const plain = stripNikkud(entry.hebrewPlain || entry.hebrew || '');
+    if (!plain || seenHebrews.has(plain)) return;
+    seenHebrews.add(plain);
+    results.push(entry);
+  };
+
+  // 1. Поиск в оффлайн словаре
+  for (const entry of ULPAN_OFFLINE_DICTIONARY) {
+    if (!entry.root) continue;
+    const entryCleanRoot = entry.root.replace(/[^א-ת]/g, '');
+    if (entryCleanRoot === cleanRoot) {
+      addIfNew(entry);
+    }
+  }
+
+  // 2. Поиск в каталоге уроков
+  if (typeof DETAILED_LESSONS === 'object' && DETAILED_LESSONS !== null) {
+    for (const lesson of Object.values(DETAILED_LESSONS)) {
+      if (!lesson?.vocabulary) continue;
+      for (const word of lesson.vocabulary) {
+        if (!word.root) continue;
+        const wordCleanRoot = word.root.replace(/[^א-ת]/g, '');
+        if (wordCleanRoot === cleanRoot) {
+          addIfNew({
+            hebrew: word.hebrew,
+            hebrewPlain: word.hebrewPlain || word.hebrew,
+            transcription: word.transcription,
+            translation: word.translation,
+            root: word.root,
+            partOfSpeech: word.partOfSpeech || 'other',
+            exampleSentence: word.exampleSentence || null,
+          });
+        }
+      }
+    }
+  }
+
+  return results;
+}
+

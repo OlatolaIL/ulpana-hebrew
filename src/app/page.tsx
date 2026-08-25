@@ -7,6 +7,7 @@ import { LessonView } from '@/components/LessonView';
 import { FlashcardTrainer } from '@/components/FlashcardTrainer';
 import { PersonalDictionary } from '@/components/PersonalDictionary';
 import { AlphabetTrainer } from '@/components/AlphabetTrainer';
+import { FlashcardSetupModal } from '@/components/FlashcardSetupModal';
 import { SettingsModal } from '@/components/SettingsModal';
 import { AuthModal } from '@/components/AuthModal';
 import { SubscriptionModal } from '@/components/SubscriptionModal';
@@ -96,6 +97,9 @@ export default function Home() {
   const [currentView, setCurrentView] = useState<ViewMode>('map');
   const [activeLessonId, setActiveLessonId] = useState<number>(1);
   const [flashcardWords, setFlashcardWords] = useState<Word[]>([]);
+  const [flashcardTitle, setFlashcardTitle] = useState<string>('Тренировка карточек');
+  const [flashcardMode, setFlashcardMode] = useState<'flip' | 'builder' | 'listening'>('flip');
+  const [isMultiLessonSetupOpen, setIsMultiLessonSetupOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState(false);
@@ -296,18 +300,20 @@ export default function Home() {
     handleUpdateProfile(updated);
   };
 
-  const handleStartFlashcards = (wordsToTrain: Word[]) => {
+  const handleStartFlashcards = (
+    wordsToTrain: Word[],
+    title?: string,
+    mode?: 'flip' | 'builder' | 'listening'
+  ) => {
     setFlashcardWords(wordsToTrain);
+    setFlashcardTitle(title || 'Тренировка карточек');
+    setFlashcardMode(mode || 'flip');
     setCurrentView('flashcards');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleLaunchGeneralFlashcards = () => {
-    const currentLessonWords = getLessonById(activeLessonId).vocabulary;
-    const personal = profile.personalVocabulary;
-    const combined = [...personal, ...currentLessonWords];
-    const unique = Array.from(new Map(combined.map((w) => [w.hebrewPlain, w])).values());
-    handleStartFlashcards(unique.length > 0 ? unique : currentLessonWords);
+    setIsMultiLessonSetupOpen(true);
   };
 
   const handleToggleFontStyle = () => {
@@ -439,6 +445,8 @@ export default function Home() {
             <FlashcardTrainer
               initialWords={flashcardWords}
               userProfile={profile}
+              customTitle={flashcardTitle}
+              initialMode={flashcardMode}
               onClose={() => setCurrentView('map')}
               onUpdateProfile={handleUpdateProfile}
             />
@@ -453,10 +461,22 @@ export default function Home() {
           <PersonalDictionary
             userProfile={profile}
             onUpdateProfile={handleUpdateProfile}
-            onStartPractice={(words) => handleStartFlashcards(words)}
+            onStartPractice={(words, title) => handleStartFlashcards(words, title)}
+            onOpenMultiLessonSetup={() => setIsMultiLessonSetupOpen(true)}
           />
         )}
       </main>
+
+      {/* Модалка выбора уроков и фильтра слов для карточек */}
+      {isMultiLessonSetupOpen && profile && (
+        <FlashcardSetupModal
+          userProfile={profile}
+          onClose={() => setIsMultiLessonSetupOpen(false)}
+          onStartSession={(words, mode, title) => {
+            handleStartFlashcards(words, title, mode);
+          }}
+        />
+      )}
 
       {/* Модалка настроек */}
       <SettingsModal

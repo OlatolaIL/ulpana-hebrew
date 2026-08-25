@@ -2,7 +2,7 @@
  * Локальное хранилище данных: профиль пользователя, прогресс по урокам, личный словарик и карточки.
  */
 
-import { UserProfile, Word, FlashcardProgress, UserGender, AiProvider } from '@/types';
+import { UserProfile, Word, FlashcardProgress, UserGender, AiProvider, WordMasteryInfo } from '@/types';
 import { stripNikkud } from './transcription';
 
 const STORAGE_KEY = 'hebrew_app_profile_v1';
@@ -45,15 +45,25 @@ export function saveUserProfile(profile: UserProfile): void {
 }
 
 /**
- * Добавление слова в личный словарик пользователя
+ * Проверка, находится ли слово в личном словаре (дедупликация по чистому тексту без огласовок)
+ */
+export function isWordInPersonalDict(hebrew: string, vocabularyList?: Word[]): boolean {
+  const clean = stripNikkud(hebrew || '').trim().toLowerCase();
+  if (!clean) return false;
+  const list = vocabularyList || loadUserProfile().personalVocabulary || [];
+  return list.some((w) => stripNikkud(w.hebrew || w.hebrewPlain || '').trim().toLowerCase() === clean);
+}
+
+/**
+ * Добавление одного слова в личный словарик пользователя с проверкой дубликатов
  */
 export function addWordToPersonalDict(word: Omit<Word, 'id' | 'dateAdded' | 'isUserAdded'>): Word {
   const profile = loadUserProfile();
-  const cleanHeb = stripNikkud(word.hebrew);
+  const cleanHeb = stripNikkud(word.hebrew || '').trim().toLowerCase();
 
   // Проверяем, нет ли уже такого слова
   const existing = profile.personalVocabulary.find(
-    (w) => stripNikkud(w.hebrew) === cleanHeb
+    (w) => stripNikkud(w.hebrew || w.hebrewPlain || '').trim().toLowerCase() === cleanHeb
   );
   if (existing) {
     return existing;
@@ -66,9 +76,43 @@ export function addWordToPersonalDict(word: Omit<Word, 'id' | 'dateAdded' | 'isU
     dateAdded: Date.now(),
   };
 
-  profile.personalVocabulary.unshift(newWord);
+  profile.personalVocabulary = [newWord, ...profile.personalVocabulary];
   saveUserProfile(profile);
   return newWord;
+}
+
+/**
+ * Пакетное добавление слов в личный словарь (с дедупликацией)
+ */
+export function addBatchWordsToPersonalDict(words: Word[]): { addedCount: number; updatedProfile: UserProfile } {
+  const profile = loadUserProfile();
+  const existingSet = new Set(
+    profile.personalVocabulary.map((w) => stripNikkud(w.hebrew || w.hebrewPlain || '').trim().toLowerCase())
+  );
+
+  let addedCount = 0;
+  const newWordsToAdd: Word[] = [];
+
+  for (const word of words) {
+    const clean = stripNikkud(word.hebrew || word.hebrewPlain || '').trim().toLowerCase();
+    if (!clean || existingSet.has(clean)) continue;
+
+    existingSet.add(clean);
+    newWordsToAdd.push({
+      ...word,
+      id: word.id || `user-word-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      isUserAdded: true,
+      dateAdded: Date.now(),
+    });
+    addedCount++;
+  }
+
+  if (addedCount > 0) {
+    profile.personalVocabulary = [...newWordsToAdd, ...profile.personalVocabulary];
+    saveUserProfile(profile);
+  }
+
+  return { addedCount, updatedProfile: profile };
 }
 
 /**
@@ -80,14 +124,7 @@ export function removeWordFromPersonalDict(wordId: string): void {
   saveUserProfile(profile);
 }
 
-/**
- * Проверка, находится ли слово в личном словаре
- */
-export function isWordInPersonalDict(hebrew: string): boolean {
-  const profile = loadUserProfile();
-  const clean = stripNikkud(hebrew);
-  return profile.personalVocabulary.some((w) => stripNikkud(w.hebrew) === clean);
-}
+import { DETAILED_LESSONS } from '@/data/lessonsData';
 
 /**
  * Обновление прогресса по вкладке урока (theory, vocab, exercises, chat)
@@ -116,6 +153,28 @@ export function markLessonTabCompleted(lessonId: number, tab: string): UserProfi
     current.isCompleted = true;
     if (!profile.completedLessons.includes(lessonId)) {
       profile.completedLessons.push(lessonId);
+    }
+  }
+
+  // Автоматическое добавление всех слов урока в личный словарик без дубликатов
+  if (tab === 'vocab' || current.isCompleted) {
+    if (typeof DETAILED_LESSONS === 'object' && DETAILED_LESSONS !== null) {
+      const lessonData = DETAILED_LESSONS[lessonId];
+      if (lessonData?.vocabulary && lessonData.vocabulary.length > 0) {
+        const newWords: Word[] = [];
+        for (const w of lessonData.vocabulary) {
+          if (!isWordInPersonalDict(w.hebrew, profile.personalVocabulary) && !newWords.some(nw => isWordInPersonalDict(nw.hebrew, [w]))) {
+            newWords.push({
+              ...w,
+              isUserAdded: true,
+              dateAdded: Date.now(),
+            });
+          }
+        }
+        if (newWords.length > 0) {
+          profile.personalVocabulary = [...newWords, ...profile.personalVocabulary];
+        }
+      }
     }
   }
 
@@ -188,3 +247,85 @@ export function updateCardSRS(wordId: string, quality: number): FlashcardProgres
   saveUserProfile(profile);
   return updated;
 }
+
+/**
+ * Расчет скоринга знания слова (0–100%) на основе SM-2
+ */
+export function calculateWordMastery(stats?: FlashcardProgress): WordMasteryInfo {
+  if (!stats || stats.repetitions === 0) {
+    return {
+      score: 0,
+      level: 'new',
+      label: 'Новое',
+      colorClass: 'text-zinc-400 dark:text-zinc-500',
+      badgeBg: 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border-zinc-200 dark:border-zinc-700',
+      isDue: false,
+      repetitions: 0,
+      intervalDays: 0,
+    };
+  }
+
+  const isDue = Date.now() >= (stats.nextReviewDate || 0);
+  const lastQuality = stats.history && stats.history.length > 0 ? stats.history[stats.history.length - 1] : 3;
+
+  // Базовый скоринг по повторениям
+  let rawScore = 0;
+  if (stats.repetitions === 1) rawScore = 25;
+  else if (stats.repetitions === 2) rawScore = 50;
+  else if (stats.repetitions === 3) rawScore = 70;
+  else if (stats.repetitions === 4) rawScore = 85;
+  else rawScore = 100;
+
+  // Коррекция на интервал и фактор легкости
+  if (stats.interval >= 30) rawScore = Math.min(100, rawScore + 10);
+  if (stats.easeFactor >= 2.6) rawScore = Math.min(100, rawScore + 5);
+
+  // Если последняя оценка была ошибкой (quality < 3), снижаем текущий балл
+  if (lastQuality < 3) {
+    rawScore = Math.min(30, rawScore);
+  }
+
+  const score = Math.max(5, Math.min(100, Math.round(rawScore)));
+
+  if (score >= 90) {
+    return {
+      score,
+      level: 'mastered',
+      label: isDue ? 'Повторить' : 'Выучено',
+      colorClass: isDue ? 'text-amber-500' : 'text-emerald-500',
+      badgeBg: isDue
+        ? 'bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-900'
+        : 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-900',
+      isDue,
+      repetitions: stats.repetitions,
+      intervalDays: stats.interval,
+    };
+  }
+
+  if (score >= 60) {
+    return {
+      score,
+      level: 'reviewing',
+      label: isDue ? 'Повторить' : 'Закреплено',
+      colorClass: isDue ? 'text-amber-500' : 'text-blue-500',
+      badgeBg: isDue
+        ? 'bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-900'
+        : 'bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-900',
+      isDue,
+      repetitions: stats.repetitions,
+      intervalDays: stats.interval,
+    };
+  }
+
+  return {
+    score,
+    level: 'learning',
+    label: isDue ? 'Повторить' : 'В процессе',
+    colorClass: 'text-amber-500',
+    badgeBg: 'bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-900',
+    isDue,
+    repetitions: stats.repetitions,
+    intervalDays: stats.interval,
+  };
+}
+

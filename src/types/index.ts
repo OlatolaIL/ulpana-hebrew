@@ -237,6 +237,54 @@ export interface ConjugationForm {
   translation: string; // "хочу / хочет (м.р.)"
 }
 
+export interface RootRelatedWord {
+  hebrew: string; // עם ניקוד
+  hebrewPlain: string; // ללא ניקוד
+  transcription: string;
+  translation: string;
+  partOfSpeech: PartOfSpeech;
+  binyan?: string;
+  root?: string;
+  example?: string;
+}
+
+export type ThematicDeckCategory =
+  | 'verbs'
+  | 'food'
+  | 'body'
+  | 'home'
+  | 'city'
+  | 'family'
+  | 'time'
+  | 'work'
+  | 'housing'
+  | 'health'
+  | 'slang'
+  | 'media'
+  | 'other';
+
+export interface ThematicDeck {
+  id: string;
+  title: string;
+  titleHebrew: string;
+  description: string;
+  level: Level | 'all';
+  category: ThematicDeckCategory;
+  icon: string;
+  words: Word[];
+}
+
+export interface WordMasteryInfo {
+  score: number; // 0 - 100%
+  level: 'new' | 'learning' | 'reviewing' | 'mastered';
+  label: string; // "Новое" | "В процессе" | "Закреплено" | "Выучено"
+  colorClass: string;
+  badgeBg: string;
+  isDue: boolean;
+  repetitions: number;
+  intervalDays: number;
+}
+
 export interface VerbConjugation {
   infinitive: {
     hebrew: string; // "לִרְצוֹת"
@@ -251,4 +299,5 @@ export interface VerbConjugation {
   imperative?: ConjugationForm[];
   passiveInfinitive?: string;
   notes?: string;
+  rootFamily?: RootRelatedWord[];
 }

@@ -979,6 +979,103 @@ export const VERB_CONJUGATIONS_DATABASE: Record<string, VerbConjugation> = {
   },
 };
 
+import { RootRelatedWord } from '@/types';
+import { findWordsByRoot } from './ulpanDictionary';
+
+// Предустановленные богатые семьи корней (משפחת מילים в стиле Pealim)
+export const ROOT_FAMILIES_PRESETS: Record<string, RootRelatedWord[]> = {
+  'רצה': [
+    { hebrew: 'רָצוֹן', hebrewPlain: 'רצון', transcription: 'рацóн', translation: 'желание, воля (м.р.)', partOfSpeech: 'noun', root: 'ר-צ-ה' },
+    { hebrew: 'בְּרָצוֹן', hebrewPlain: 'ברצון', transcription: 'берацóн', translation: 'с удовольствием, охотно', partOfSpeech: 'expression', root: 'ר-צ-ה' },
+    { hebrew: 'מְרֻצֶּה', hebrewPlain: 'מרוצה', transcription: 'меруцé', translation: 'довольный, удовлетворенный', partOfSpeech: 'adjective', root: 'ר-צ-ה' },
+    { hebrew: 'לְרַצּוֹת', hebrewPlain: 'לרצות', transcription: 'лерацóт', translation: 'угождать, удовлетворять (Пиэль)', partOfSpeech: 'verb', binyan: 'פִּעֵל (Пиэль)', root: 'ר-צ-ה' },
+  ],
+  'שתה': [
+    { hebrew: 'שְׁתִיָּה', hebrewPlain: 'שתיה', transcription: 'штийá', translation: 'питье, напитки (ж.р.)', partOfSpeech: 'noun', root: 'ש-ת-ה' },
+    { hebrew: 'מַשְׁקֶה', hebrewPlain: 'משקה', transcription: 'машкé', translation: 'напиток (м.р.)', partOfSpeech: 'noun', root: 'ש-ת-ה' },
+    { hebrew: 'שְׁתִיָּה קַלָּה', hebrewPlain: 'שתיה קלה', transcription: 'штийá калá', translation: 'прохладительные напитки', partOfSpeech: 'expression', root: 'ש-ת-ה' },
+    { hebrew: 'לְהַשְׁקוֹת', hebrewPlain: 'להשקות', transcription: 'леhашкóт', translation: 'поить, поливать растения (Ифъиль)', partOfSpeech: 'verb', binyan: 'הִפְעִיל (Ифъиль)', root: 'ש-ת-ה' },
+  ],
+  'כתב': [
+    { hebrew: 'מִכְתָּב', hebrewPlain: 'מכתב', transcription: 'михтáв', translation: 'письмо (почтовое)', partOfSpeech: 'noun', root: 'כ-ת-ב' },
+    { hebrew: 'כְּתֹבֶת', hebrewPlain: 'כתובת', transcription: 'ктóвет', translation: 'адрес, надпись', partOfSpeech: 'noun', root: 'כ-ת-ב' },
+    { hebrew: 'כַּתָּב', hebrewPlain: 'כתב', transcription: 'катáв', translation: 'корреспондент, журналист', partOfSpeech: 'noun', root: 'כ-ת-ב' },
+    { hebrew: 'כְּתָב', hebrewPlain: 'כתב', transcription: 'ктав', translation: 'почерк, шрифт, письмо', partOfSpeech: 'noun', root: 'כ-ת-ב' },
+    { hebrew: 'הַכְתָּבָה', hebrewPlain: 'הכתבה', transcription: 'hахтавá', translation: 'диктант (ж.р.)', partOfSpeech: 'noun', root: 'כ-ת-ב' },
+    { hebrew: 'לְהַכְתִּיב', hebrewPlain: 'להכתיב', transcription: 'леhахтӣв', translation: 'диктовать (Ифъиль)', partOfSpeech: 'verb', binyan: 'הִפְעִיל (Ифъиль)', root: 'כ-ת-ב' },
+    { hebrew: 'לְהִתְכַּתֵּב', hebrewPlain: 'להתכתב', transcription: 'леhиткатéв', translation: 'переписываться (Итпаэль)', partOfSpeech: 'verb', binyan: 'הִתְפַּעֵל (Итпаэль)', root: 'כ-ת-ב' },
+  ],
+  'למד': [
+    { hebrew: 'תַּלְמִיד', hebrewPlain: 'תלמיד', transcription: 'тальмӣд', translation: 'ученик, школьник', partOfSpeech: 'noun', root: 'ל-מ-ד' },
+    { hebrew: 'תַּלְמִידָה', hebrewPlain: 'תלמידה', transcription: 'тальмидá', translation: 'ученица', partOfSpeech: 'noun', root: 'ל-מ-ד' },
+    { hebrew: 'לִמּוּדִים', hebrewPlain: 'לימודים', transcription: 'лимудӣм', translation: 'учеба, занятия (мн.ч.)', partOfSpeech: 'noun', root: 'ל-מ-ד' },
+    { hebrew: 'לְלַמֵּד', hebrewPlain: 'ללמד', transcription: 'леламéд', translation: 'обучать, преподавать (Пиэль)', partOfSpeech: 'verb', binyan: 'פִּעֵל (Пиэль)', root: 'ל-מ-ד' },
+    { hebrew: 'מַלְמָד', hebrewPlain: 'מלמד', transcription: 'мельмáд', translation: 'учитель (в хедере)', partOfSpeech: 'noun', root: 'ל-מ-ד' },
+  ],
+  'דבר': [
+    { hebrew: 'דָּבָר', hebrewPlain: 'דבר', transcription: 'давáр', translation: 'вещь, предмет, слово', partOfSpeech: 'noun', root: 'ד-ב-ר' },
+    { hebrew: 'דִּבּוּר', hebrewPlain: 'דיבור', transcription: 'дибӯр', translation: 'разговор, речь', partOfSpeech: 'noun', root: 'ד-ב-ר' },
+    { hebrew: 'מַדְבֵּרָה', hebrewPlain: 'מדברה', transcription: 'мадберá', translation: 'ораторское искусство', partOfSpeech: 'noun', root: 'ד-ב-р' },
+    { hebrew: 'לְהִדָּבֵר', hebrewPlain: 'להידבר', transcription: 'леhидабéр', translation: 'договариваться (Нифъаль)', partOfSpeech: 'verb', binyan: 'נִפְעַל (Нифъаль)', root: 'ד-ב-ר' },
+  ],
+  'רגש': [
+    { hebrew: 'רֶגֶשׁ', hebrewPlain: 'רגש', transcription: 'рéгеш', translation: 'чувство, эмоция', partOfSpeech: 'noun', root: 'ר-ג-ש' },
+    { hebrew: 'הַרְגָּשָׁה', hebrewPlain: 'הרגשה', transcription: 'hаргашá', translation: 'самочувствие, ощущение', partOfSpeech: 'noun', root: 'ר-ג-ש' },
+    { hebrew: 'רָגִישׁ', hebrewPlain: 'רגיש', transcription: 'рагӣш', translation: 'чувствительный, ранимый', partOfSpeech: 'adjective', root: 'ר-ג-ש' },
+    { hebrew: 'הִתְרַגְּשׁוּת', hebrewPlain: 'התרגשות', transcription: 'hитрагшӯт', translation: 'волнение, восторг', partOfSpeech: 'noun', root: 'ר-ג-ש' },
+    { hebrew: 'לְהִתְרַגֵּשׁ', hebrewPlain: 'להתרגש', transcription: 'леhитрагéш', translation: 'волновать(ся) (Итпаэль)', partOfSpeech: 'verb', binyan: 'הִתְפַּעֵל (Итпаэль)', root: 'ר-ג-ש' },
+  ],
+  'לבש': [
+    { hebrew: 'לְבוּשׁ', hebrewPlain: 'לבוש', transcription: 'левӯш', translation: 'одежда, наряд', partOfSpeech: 'noun', root: 'ל-ב-ש' },
+    { hebrew: 'תִּלְבֹּשֶׁת', hebrewPlain: 'תלבושת', transcription: 'тильбóшет', translation: 'форма (школьная/рабочая)', partOfSpeech: 'noun', root: 'ל-ב-ש' },
+    { hebrew: 'לִלְבֹּשׁ', hebrewPlain: 'ללבוש', transcription: 'лильбóш', translation: 'надевать одежду (Пааль)', partOfSpeech: 'verb', binyan: 'פָּעַל (Пааль)', root: 'ל-ב-ש' },
+    { hebrew: 'לְהַלְבִּישׁ', hebrewPlain: 'להלביש', transcription: 'леhальбӣш', translation: 'одевать кого-то (Ифъиль)', partOfSpeech: 'verb', binyan: 'הִפְעִיל (Ифъиль)', root: 'ל-ב-ש' },
+  ],
+};
+
+/**
+ * Получение всех однокоренных слов (Семья корня / Pealim Root Family)
+ */
+export function getRootFamilyWords(root?: string, explicitList?: RootRelatedWord[]): RootRelatedWord[] {
+  if (!root) return explicitList || [];
+  const cleanRootKey = root.replace(/[^א-ת]/g, '');
+
+  const results: RootRelatedWord[] = [];
+  const seen = new Set<string>();
+
+  const addWord = (w: RootRelatedWord) => {
+    const plain = stripNikkud(w.hebrewPlain || w.hebrew);
+    if (!plain || seen.has(plain)) return;
+    seen.add(plain);
+    results.push(w);
+  };
+
+  // 1. Явный список из параметров
+  if (explicitList) {
+    explicitList.forEach(addWord);
+  }
+
+  // 2. Пресеты
+  if (ROOT_FAMILIES_PRESETS[cleanRootKey]) {
+    ROOT_FAMILIES_PRESETS[cleanRootKey].forEach(addWord);
+  }
+
+  // 3. Поиск по словарю и урокам
+  const dictMatches = findWordsByRoot(root);
+  for (const m of dictMatches) {
+    addWord({
+      hebrew: m.hebrew,
+      hebrewPlain: m.hebrewPlain || stripNikkud(m.hebrew),
+      transcription: m.transcription,
+      translation: m.translation,
+      partOfSpeech: (m.partOfSpeech as any) || 'other',
+      root: m.root || root,
+    });
+  }
+
+  return results;
+}
+
 /**
  * Быстрый поиск таблицы спряжения по любой форме глагола (инфинитив, настоящее, прошедшее, будущее)
  */
@@ -987,43 +1084,60 @@ export function findOfflineVerbConjugation(query: string): VerbConjugation | nul
   const clean = stripNikkud(query.trim().toLowerCase());
   if (!clean) return null;
 
+  let matchedVerb: VerbConjugation | null = null;
+
   // 1. Прямой поиск по ключу инфинитива (без огласовок)
   if (VERB_CONJUGATIONS_DATABASE[clean]) {
-    return VERB_CONJUGATIONS_DATABASE[clean];
+    matchedVerb = VERB_CONJUGATIONS_DATABASE[clean];
+  } else {
+    // 2. Поиск по всем глаголам в базе (проверка всех форм)
+    for (const verb of Object.values(VERB_CONJUGATIONS_DATABASE)) {
+      if (stripNikkud(verb.infinitive.hebrew).toLowerCase() === clean) {
+        matchedVerb = verb;
+        break;
+      }
+
+      if (verb.root && stripNikkud(verb.root.replace(/-/g, '')).toLowerCase() === clean.replace(/-/g, '')) {
+        matchedVerb = verb;
+        break;
+      }
+
+      if (verb.present.some((f) => stripNikkud(f.hebrew).toLowerCase() === clean)) {
+        matchedVerb = verb;
+        break;
+      }
+
+      if (
+        verb.past.some(
+          (f) =>
+            stripNikkud(f.hebrew).toLowerCase() === clean ||
+            f.hebrew.split(' / ').some((sub) => stripNikkud(sub).toLowerCase() === clean)
+        )
+      ) {
+        matchedVerb = verb;
+        break;
+      }
+
+      if (verb.future.some((f) => stripNikkud(f.hebrew).toLowerCase() === clean)) {
+        matchedVerb = verb;
+        break;
+      }
+
+      if (verb.imperative && verb.imperative.some((f) => stripNikkud(f.hebrew).toLowerCase() === clean)) {
+        matchedVerb = verb;
+        break;
+      }
+    }
   }
 
-  // 2. Поиск по всем глаголам в базе (проверка всех форм)
-  for (const verb of Object.values(VERB_CONJUGATIONS_DATABASE)) {
-    // Инфинитив
-    if (stripNikkud(verb.infinitive.hebrew).toLowerCase() === clean) {
-      return verb;
-    }
-
-    // Корень
-    if (verb.root && stripNikkud(verb.root.replace(/-/g, '')).toLowerCase() === clean.replace(/-/g, '')) {
-      return verb;
-    }
-
-    // Настоящее время
-    if (verb.present.some((f) => stripNikkud(f.hebrew).toLowerCase() === clean)) {
-      return verb;
-    }
-
-    // Прошедшее время
-    if (verb.past.some((f) => stripNikkud(f.hebrew).toLowerCase() === clean || f.hebrew.split(' / ').some(sub => stripNikkud(sub).toLowerCase() === clean))) {
-      return verb;
-    }
-
-    // Будущее время
-    if (verb.future.some((f) => stripNikkud(f.hebrew).toLowerCase() === clean)) {
-      return verb;
-    }
-
-    // Повелительное наклонение
-    if (verb.imperative && verb.imperative.some((f) => stripNikkud(f.hebrew).toLowerCase() === clean)) {
-      return verb;
-    }
+  if (matchedVerb) {
+    const rootFamily = getRootFamilyWords(matchedVerb.root, matchedVerb.rootFamily);
+    return {
+      ...matchedVerb,
+      rootFamily: rootFamily.length > 0 ? rootFamily : undefined,
+    };
   }
 
   return null;
 }
+
