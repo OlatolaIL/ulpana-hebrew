@@ -18,6 +18,7 @@ import { Word, UserProfile, PartOfSpeech } from '@/types';
 import { speakHebrew } from '@/lib/speech';
 import { stripNikkud } from '@/lib/transcription';
 import { saveUserProfile, markLessonTabCompleted } from '@/lib/storage';
+import { getHebrewPictogram } from '@/lib/pictograms';
 
 interface LessonVocabularyProps {
   lessonId?: number;
@@ -240,6 +241,7 @@ export const LessonVocabulary: React.FC<LessonVocabularyProps> = ({
             (pw) => stripNikkud(pw.hebrew) === stripNikkud(word.hebrew)
           );
           const isRootRevealed = Boolean(revealedRoots[word.id]);
+          const pictogram = getHebrewPictogram(word.hebrew);
 
           return (
             <div
@@ -272,16 +274,23 @@ export const LessonVocabulary: React.FC<LessonVocabularyProps> = ({
                   </div>
                 </div>
 
-                {/* Слово на иврите */}
-                <div
-                  dir="rtl"
-                  className={`font-bold ${
-                    isCursive
-                      ? 'font-cursive text-3xl md:text-4xl text-blue-600 dark:text-blue-400'
-                      : 'font-hebrew text-2xl text-zinc-900 dark:text-zinc-50'
-                  }`}
-                >
-                  {userProfile.showNikkud ? word.hebrew : word.hebrewPlain}
+                {/* Слово на иврите и пиктограмма */}
+                <div className="flex items-center justify-between gap-2 mt-1">
+                  <div
+                    dir="rtl"
+                    className={`font-bold ${
+                      isCursive
+                        ? 'font-cursive text-3xl md:text-4xl text-blue-600 dark:text-blue-400'
+                        : 'font-hebrew text-2xl text-zinc-900 dark:text-zinc-50'
+                    }`}
+                  >
+                    {userProfile.showNikkud ? word.hebrew : word.hebrewPlain}
+                  </div>
+                  {pictogram && (
+                    <div className="text-2xl sm:text-3xl select-none p-1 rounded-xl bg-zinc-100 dark:bg-zinc-800/80 shrink-0">
+                      {pictogram}
+                    </div>
+                  )}
                 </div>
 
                 {/* Транскрипция с 'h' для ה (только вне режима Ульпан) */}

@@ -24,6 +24,7 @@ import { updateCardSRS, calculateWordMastery, addWordToPersonalDict, isWordInPer
 import { stripNikkud } from '@/lib/transcription';
 import { findOfflineVerbConjugation } from '@/lib/verbConjugations';
 import { VerbConjugationView } from '@/components/VerbConjugationView';
+import { getHebrewPictogram } from '@/lib/pictograms';
 
 interface FlashcardTrainerProps {
   initialWords: Word[];
@@ -533,6 +534,14 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
                 <span className="text-[11px] uppercase tracking-wider font-semibold text-zinc-400">
                   {userProfile.ulpanMode ? 'עִבְרִית (לחצו להצגת מידע)' : 'Иврит (нажмите для перевода)'}
                 </span>
+
+                {/* Пиктограмма */}
+                {getHebrewPictogram(currentWord.hebrew) && (
+                  <div className="text-4xl sm:text-5xl select-none my-1 animate-in zoom-in-75">
+                    {getHebrewPictogram(currentWord.hebrew)}
+                  </div>
+                )}
+
                 <div
                   dir="rtl"
                   className={`text-3xl sm:text-5xl font-bold text-zinc-900 dark:text-zinc-50 ${
@@ -554,6 +563,13 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
                 <span className="text-[11px] uppercase tracking-wider font-semibold text-zinc-400">
                   {userProfile.ulpanMode ? 'פֵּרוּשׁ וּפְרָטִים' : 'Перевод и детали'}
                 </span>
+
+                {getHebrewPictogram(currentWord.hebrew) && (
+                  <div className="text-3xl sm:text-4xl select-none">
+                    {getHebrewPictogram(currentWord.hebrew)}
+                  </div>
+                )}
+
                 <div className="text-xl sm:text-3xl font-bold text-zinc-900 dark:text-zinc-100">
                   {currentWord.translation}
                 </div>
