@@ -1,4 +1,4 @@
-import { Word, LessonProgress, UserProfile } from '@/types';
+import { UserProfile } from '@/types';
 
 export const VIP_IDENTIFIERS = [
   'osa_il',
@@ -37,197 +37,59 @@ export function isVipUser(
   return false;
 }
 
-export const DEFAULT_VIP_VOCABULARY: Word[] = [
-  {
-    id: 'vip-word-1',
-    hebrew: 'שָׁלוֹם',
-    hebrewPlain: 'שלום',
-    transcription: 'шалóм',
-    translation: 'мир, привет, здравствуйте, до свидания',
-    partOfSpeech: 'noun',
-    root: 'ש-ל-ם',
-    lessonId: 1,
-    isUserAdded: true,
-    dateAdded: Date.now() - 86400000 * 5,
-  },
-  {
-    id: 'vip-word-2',
-    hebrew: 'תּוֹדָה',
-    hebrewPlain: 'תודה',
-    transcription: 'тодá',
-    translation: 'спасибо, благодарность',
-    partOfSpeech: 'noun',
-    root: 'י-ד-ה',
-    lessonId: 1,
-    isUserAdded: true,
-    dateAdded: Date.now() - 86400000 * 4,
-  },
-  {
-    id: 'vip-word-3',
-    hebrew: 'בְּבַקָּשָׁה',
-    hebrewPlain: 'בבקשה',
-    transcription: 'бэвакашá',
-    translation: 'пожалуйста, прошу вас',
-    partOfSpeech: 'expression',
-    root: 'ב-ק-ש',
-    lessonId: 1,
-    isUserAdded: true,
-    dateAdded: Date.now() - 86400000 * 4,
-  },
-  {
-    id: 'vip-word-4',
-    hebrew: 'בּוֹקֶר טוֹב',
-    hebrewPlain: 'בוקר טוב',
-    transcription: 'бóкер тов',
-    translation: 'доброе утро',
-    partOfSpeech: 'expression',
-    lessonId: 1,
-    isUserAdded: true,
-    dateAdded: Date.now() - 86400000 * 3,
-  },
-  {
-    id: 'vip-word-5',
-    hebrew: 'עִבְרִית',
-    hebrewPlain: 'עברית',
-    transcription: 'иврúт',
-    translation: 'иврит (язык)',
-    partOfSpeech: 'noun',
-    gender: 'f',
-    lessonId: 2,
-    isUserAdded: true,
-    dateAdded: Date.now() - 86400000 * 3,
-  },
-  {
-    id: 'vip-word-6',
-    hebrew: 'אוּלְפָּן',
-    hebrewPlain: 'אולפן',
-    transcription: 'ульпáн',
-    translation: 'ульпан, школа иврита, студия',
-    partOfSpeech: 'noun',
-    gender: 'm',
-    lessonId: 2,
-    isUserAdded: true,
-    dateAdded: Date.now() - 86400000 * 2,
-  },
-  {
-    id: 'vip-word-7',
-    hebrew: 'מוֹרֶה',
-    hebrewPlain: 'מורה',
-    transcription: 'морé',
-    translation: 'учитель, преподаватель',
-    partOfSpeech: 'noun',
-    gender: 'm',
-    lessonId: 3,
-    isUserAdded: true,
-    dateAdded: Date.now() - 86400000 * 2,
-  },
-  {
-    id: 'vip-word-8',
-    hebrew: 'תַּלְמִיד',
-    hebrewPlain: 'תלמיד',
-    transcription: 'тальмúд',
-    translation: 'ученик, студент',
-    partOfSpeech: 'noun',
-    gender: 'm',
-    lessonId: 3,
-    isUserAdded: true,
-    dateAdded: Date.now() - 86400000 * 1,
-  },
-  {
-    id: 'vip-word-9',
-    hebrew: 'מְצוּיָּן',
-    hebrewPlain: 'מצוין',
-    transcription: 'мецуйáн',
-    translation: 'отлично, превосходно',
-    partOfSpeech: 'adjective',
-    gender: 'm',
-    lessonId: 4,
-    isUserAdded: true,
-    dateAdded: Date.now() - 86400000 * 1,
-  },
-  {
-    id: 'vip-word-10',
-    hebrew: 'לְהִתְרָאוֹת',
-    hebrewPlain: 'להתראות',
-    transcription: 'леhитраóт',
-    translation: 'до свидания, до встречи',
-    partOfSpeech: 'expression',
-    root: 'ר-א-ה',
-    lessonId: 4,
-    isUserAdded: true,
-    dateAdded: Date.now(),
-  },
-];
-
-export function getVipDefaultProgress(): {
-  completedLessons: number[];
-  lessonProgress: Record<number, LessonProgress>;
-  personalVocabulary: Word[];
-} {
-  const completedLessons: number[] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
-  const lessonProgress: Record<number, LessonProgress> = {};
-
-  for (let i = 1; i <= 12; i++) {
-    lessonProgress[i] = {
-      completedTabs: ['vocabulary', 'grammar', 'dialogue', 'flashcards', 'ai_practice'],
-      isCompleted: true,
-      score: 100,
-      lastVisited: Date.now() - (13 - i) * 3600000,
-    };
-  }
-
-  // Также открываем 13-й урок как текущий в процессе
-  lessonProgress[13] = {
-    completedTabs: ['vocabulary', 'grammar'],
-    isCompleted: false,
-    score: 85,
-    lastVisited: Date.now(),
-  };
-
-  return {
-    completedLessons,
-    lessonProgress,
-    personalVocabulary: DEFAULT_VIP_VOCABULARY,
-  };
-}
-
+/**
+ * Применяет VIP-привилегии (PRO подписка) без подделки истории уроков.
+ * Также автоматически очищает старый фиктивно засеянный демо-прогресс.
+ */
 export function applyVipProfileEnhancements(profile: UserProfile): UserProfile {
   const isVip = isVipUser(profile.username, profile.telegramId, profile.name);
-  if (!isVip) return profile;
+  const updated: UserProfile = { ...profile };
 
-  // Always grant VIP PRO subscription
-  const baseUpdated: UserProfile = {
-    ...profile,
-    subscriptionTier: 'pro',
-    subscriptionExpiresAt: VIP_EXPIRES_AT,
-  };
-
-  // Check if initial progress was already seeded
-  const isInitialized =
-    typeof window !== 'undefined' &&
-    (localStorage.getItem('ulpana_vip_seeded') === 'true' ||
-      (profile.completedLessons && profile.completedLessons.length > 0) ||
-      (profile.lessonProgress && Object.keys(profile.lessonProgress).length > 0));
-
-  if (isInitialized) {
-    return baseUpdated;
+  if (isVip) {
+    updated.subscriptionTier = 'pro';
+    updated.subscriptionExpiresAt = VIP_EXPIRES_AT;
   }
 
+  // Однократная очистка ранее засеянного фиктивного прогресса (12 уроков)
   if (typeof window !== 'undefined') {
-    try {
-      localStorage.setItem('ulpana_vip_seeded', 'true');
-    } catch {}
+    const wasSeeded = localStorage.getItem('ulpana_vip_seeded');
+    if (wasSeeded) {
+      try {
+        localStorage.removeItem('ulpana_vip_seeded');
+      } catch {}
+    }
+
+    let modified = false;
+
+    // Удаляем фиктивно засеянные уроки с устаревшими mock-вкладками
+    if (updated.lessonProgress) {
+      const cleanProgress = { ...updated.lessonProgress };
+      for (const [idStr, prog] of Object.entries(cleanProgress)) {
+        if (
+          prog.completedTabs?.includes('grammar') ||
+          prog.completedTabs?.includes('ai_practice') ||
+          prog.completedTabs?.includes('dialogue')
+        ) {
+          delete cleanProgress[Number(idStr)];
+          modified = true;
+        }
+      }
+      if (modified) {
+        updated.lessonProgress = cleanProgress;
+        updated.completedLessons = (updated.completedLessons || []).filter(
+          (id) => cleanProgress[id]?.isCompleted
+        );
+      }
+    }
+
+    // Удаляем фиктивно засеянные VIP-слова
+    if (updated.personalVocabulary && updated.personalVocabulary.some((w) => w.id?.startsWith('vip-word-'))) {
+      updated.personalVocabulary = updated.personalVocabulary.filter(
+        (w) => !w.id?.startsWith('vip-word-')
+      );
+      modified = true;
+    }
   }
 
-  const vipData = getVipDefaultProgress();
-
-  return {
-    ...baseUpdated,
-    completedLessons: vipData.completedLessons,
-    lessonProgress: vipData.lessonProgress,
-    personalVocabulary:
-      profile.personalVocabulary && profile.personalVocabulary.length > 0
-        ? profile.personalVocabulary
-        : vipData.personalVocabulary,
-  };
+  return updated;
 }

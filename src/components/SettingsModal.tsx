@@ -1,8 +1,10 @@
 'use client';
 
 import React from 'react';
-import { X, Key, User, Volume2, Eye, HelpCircle, CheckCircle2 } from 'lucide-react';
+import Link from 'next/link';
+import { X, Key, User, Volume2, Eye, HelpCircle, CheckCircle2, ShieldCheck } from 'lucide-react';
 import { UserProfile, UserGender, AiProvider } from '@/types';
+import { isVipUser } from '@/lib/vipUsers';
 import { saveUserProfile } from '@/lib/storage';
 import { speakHebrew } from '@/lib/speech';
 
@@ -105,16 +107,28 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
             <div className="pt-1 flex items-center justify-between text-xs">
               {profile.isLoggedIn ? (
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (onLogout) onLogout();
-                    onClose();
-                  }}
-                  className="text-red-600 hover:underline font-semibold"
-                >
-                  Выйти из аккаунта
-                </button>
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (onLogout) onLogout();
+                      onClose();
+                    }}
+                    className="text-red-600 hover:underline font-semibold"
+                  >
+                    Выйти из аккаунта
+                  </button>
+                  {isVipUser(profile.username, profile.telegramId, profile.name) && (
+                    <Link
+                      href="/admin"
+                      onClick={onClose}
+                      className="text-blue-600 dark:text-blue-400 font-bold hover:underline flex items-center gap-1"
+                    >
+                      <ShieldCheck className="w-3.5 h-3.5" />
+                      <span>Панель админа →</span>
+                    </Link>
+                  )}
+                </div>
               ) : (
                 <button
                   type="button"

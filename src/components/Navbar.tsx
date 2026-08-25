@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Link from 'next/link';
 import {
   BookOpen,
   Layers,
@@ -9,8 +10,10 @@ import {
   User,
   Heart,
   Zap,
+  ShieldCheck,
 } from 'lucide-react';
 import { UserProfile } from '@/types';
+import { isVipUser } from '@/lib/vipUsers';
 
 interface NavbarProps {
   currentView: 'map' | 'lesson' | 'flashcards' | 'dictionary' | 'alphabet';
@@ -35,6 +38,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 }) => {
   const dictCount = userProfile.personalVocabulary?.length || 0;
   const isPro = userProfile.subscriptionTier === 'pro' || userProfile.subscriptionTier === 'admin';
+  const isAdmin = isVipUser(userProfile.username, userProfile.telegramId, userProfile.name);
 
   return (
     <>
@@ -117,8 +121,20 @@ export const Navbar: React.FC<NavbarProps> = ({
             </button>
           </nav>
 
-          {/* Правая часть: PRO, авторизация и Настройки */}
+          {/* Правая часть: Админка (только для osa_il), PRO, авторизация и Настройки */}
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+            {/* Кнопка Админки для osa_il */}
+            {isAdmin && (
+              <Link
+                href="/admin"
+                className="px-2.5 py-1.5 rounded-xl border border-blue-500/30 bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/50 text-xs font-bold flex items-center gap-1.5 shadow-sm transition active:scale-95 shrink-0"
+                title="Панель администратора (@osa_il)"
+              >
+                <ShieldCheck className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                <span className="hidden sm:inline">Админка</span>
+              </Link>
+            )}
+
             {/* Кнопка подписки PRO */}
             <button
               onClick={onOpenSubscription}
