@@ -2,9 +2,10 @@
 
 import React, { useState, useEffect } from 'react';
 import { Volume2, Plus, Check, X, Loader2, Sparkles, BookOpen } from 'lucide-react';
-import { Word, UserProfile } from '@/types';
+import { Lesson, UserProfile, Word } from '@/types';
 import { speakHebrew } from '@/lib/speech';
 import { addWordToPersonalDict, isWordInPersonalDict } from '@/lib/storage';
+import { stripNikkud } from '@/lib/transcription';
 
 interface WordLookupModalProps {
   word: string;
@@ -123,7 +124,7 @@ export const WordLookupModal: React.FC<WordLookupModalProps> = ({
                     dir="rtl"
                     className="text-3xl font-bold text-zinc-900 dark:text-zinc-50 font-hebrew"
                   >
-                    {wordData.hebrew || word}
+                    {userProfile.showNikkud ? (wordData.hebrew || word) : stripNikkud(wordData.hebrew || word)}
                   </span>
                   <button
                     onClick={() => handleSpeak(wordData.hebrew || word)}
@@ -148,7 +149,7 @@ export const WordLookupModal: React.FC<WordLookupModalProps> = ({
                   <div className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 dark:bg-amber-900/50 text-amber-800 dark:text-amber-200">
                     <span>Шореш (корень):</span>
                     <span dir="rtl" className="font-bold">
-                      {wordData.root}
+                      {userProfile.showNikkud ? wordData.root : stripNikkud(wordData.root)}
                     </span>
                   </div>
                 )}
@@ -171,7 +172,7 @@ export const WordLookupModal: React.FC<WordLookupModalProps> = ({
                     dir="rtl"
                     className="text-base font-semibold text-zinc-900 dark:text-zinc-100 font-hebrew text-right"
                   >
-                    {wordData.exampleSentence.hebrew}
+                    {userProfile.showNikkud ? wordData.exampleSentence.hebrew : stripNikkud(wordData.exampleSentence.hebrew)}
                   </p>
                   <p className="text-xs text-blue-600 dark:text-blue-400">
                     [{wordData.exampleSentence.transcription}]

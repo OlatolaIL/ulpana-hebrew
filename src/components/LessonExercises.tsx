@@ -6,6 +6,7 @@ import confetti from 'canvas-confetti';
 import { Lesson, UserProfile, Exercise } from '@/types';
 import { markLessonTabCompleted } from '@/lib/storage';
 import { speakHebrew } from '@/lib/speech';
+import { stripNikkud } from '@/lib/transcription';
 
 interface LessonExercisesProps {
   lesson: Lesson;
@@ -190,7 +191,7 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
                           : 'text-sm font-medium'
                       }
                     >
-                      {opt}
+                      {isOptHebrew && !userProfile.showNikkud ? stripNikkud(opt) : opt}
                     </span>
                     <div className="flex items-center gap-2">
                       {isOptHebrew && (
@@ -234,7 +235,7 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
                     key={i}
                     className="px-3 py-1 bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700"
                   >
-                    {w}
+                    {userProfile.showNikkud ? w : stripNikkud(w)}
                   </span>
                 ))}
               </div>
@@ -245,7 +246,7 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
                   className="p-3 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white shadow-sm transition active:scale-95 shrink-0"
                   title="Прослушать собранное предложение"
                 >
-                  <Volume2 className="w-5 h-5" />
+                  <Volume2 className="w-4 h-4" />
                 </button>
               )}
             </div>
@@ -266,7 +267,7 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
                         : 'bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 hover:border-blue-500 shadow-sm text-zinc-900 dark:text-zinc-50'
                     }`}
                   >
-                    {w}
+                    {userProfile.showNikkud ? w : stripNikkud(w)}
                   </button>
                 );
               })}

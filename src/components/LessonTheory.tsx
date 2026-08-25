@@ -5,6 +5,7 @@ import { Volume2, BookOpen, CheckCircle2, Lightbulb, Table } from 'lucide-react'
 import { Lesson, UserProfile } from '@/types';
 import { speakHebrew } from '@/lib/speech';
 import { markLessonTabCompleted } from '@/lib/storage';
+import { stripNikkud } from '@/lib/transcription';
 
 interface LessonTheoryProps {
   lesson: Lesson;
@@ -129,7 +130,9 @@ export const LessonTheory: React.FC<LessonTheoryProps> = ({
                                     Общ.
                                   </span>
                                 ) : (
-                                  renderFormattedText(cell)
+                                  renderFormattedText(
+                                    userProfile.showNikkud ? cell : isHebrew ? stripNikkud(cell) : cell
+                                  )
                                 )}
                               </td>
                             );
@@ -181,7 +184,7 @@ export const LessonTheory: React.FC<LessonTheoryProps> = ({
                         : 'font-hebrew text-lg text-zinc-900 dark:text-zinc-50'
                     }`}
                   >
-                    {userProfile.showNikkud ? sentence.hebrew : sentence.hebrew}
+                    {userProfile.showNikkud ? sentence.hebrew : stripNikkud(sentence.hebrew)}
                   </p>
                   {userProfile.showTranscription && sentence.transcription && (
                     <p className="text-xs font-semibold text-blue-600 dark:text-blue-400">

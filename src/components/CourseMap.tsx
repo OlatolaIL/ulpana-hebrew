@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { LESSONS_CATALOG } from '@/data/lessonsData';
 import { Level, UserProfile } from '@/types';
+import { stripNikkud } from '@/lib/transcription';
 
 interface CourseMapProps {
   userProfile: UserProfile;
@@ -232,7 +233,7 @@ export const CourseMap: React.FC<CourseMapProps> = ({
                     dir="rtl"
                     className="text-lg font-bold text-zinc-900 dark:text-zinc-50 font-hebrew group-hover:text-blue-600 dark:group-hover:text-blue-400 transition leading-snug"
                   >
-                    {lesson.titleHebrew}
+                    {userProfile.showNikkud ? lesson.titleHebrew : stripNikkud(lesson.titleHebrew)}
                   </div>
                   <h3 className="text-xs sm:text-sm font-semibold text-zinc-800 dark:text-zinc-200 mt-0.5">
                     {lesson.titleRussian}
