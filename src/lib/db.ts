@@ -106,6 +106,23 @@ export async function initDatabase() {
       );
     `);
 
+    // 6. Таблица истории и логов телефонных звонков с ИИ
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS ulpana_call_logs (
+        id TEXT PRIMARY KEY,
+        user_id TEXT,
+        user_name TEXT,
+        lesson_id INT NOT NULL,
+        caller_name TEXT,
+        caller_role TEXT,
+        duration_seconds INT DEFAULT 0,
+        messages_count INT DEFAULT 0,
+        transcript JSONB DEFAULT '[]',
+        feedback TEXT,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      );
+    `);
+
     // Вставляем базовые промокоды, если таблица пуста
     const promoCheck = await db.query(`SELECT COUNT(*) as count FROM ulpana_promo_codes`);
     if (parseInt(promoCheck.rows[0].count, 10) === 0) {

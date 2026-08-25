@@ -73,6 +73,7 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
   const handsFreeTimeoutRef = useRef<any>(null);
   const silenceTimeoutRef = useRef<any>(null);
   const isSendingRef = useRef(false);
+  const callActiveRef = useRef(false);
   const lastAiSpokenTextRef = useRef('');
   const lastAiSpokenTimeRef = useRef(0);
 
@@ -80,6 +81,7 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
   useEffect(() => {
     recognizerRef.current = new HebrewSpeechRecognizer();
     return () => {
+      callActiveRef.current = false;
       phoneAudio.stopAll();
       stopSpeech();
       if (recognizerRef.current) {
@@ -122,9 +124,10 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
     setLastFeedback(null);
     setLiveTranscript('');
     isSendingRef.current = false;
+    callActiveRef.current = false;
     phoneAudio.startRingingTone();
 
-    // Через 2.6 секунды контакт "поднимает трубку"
+    // Через 2.4 секунды контакт "поднимает трубку"
     setTimeout(async () => {
       phoneAudio.stopAll();
       await phoneAudio.playPickupSound();
@@ -139,12 +142,13 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
         timestamp: Date.now(),
       };
 
+      callActiveRef.current = true;
       setMessages([initialAiMsg]);
       setCallState('connected');
 
-      // ИИ озвучивает приветствие
+      // ИИ сразу озвучивает приветствие
       playAiVoice(initialAiMsg.hebrew);
-    }, 2600);
+    }, 2400);
   };
 
   // Озвучивание реплики ИИ с надежной защитой от самопрослушивания
@@ -155,19 +159,21 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
     lastAiSpokenTextRef.current = stripNikkud(text).trim().toLowerCase();
 
     try {
-      await speakHebrew(text);
+      await speakHebrew(text, { rate: userProfile.speechRate || 0.75 });
     } catch (e) {
       console.error('Speech error:', e);
     } finally {
       setIsAiSpeaking(false);
       lastAiSpokenTimeRef.current = Date.now();
 
-      // Безопасная пауза 800мс после того, как динамик затих, перед авто-включением микрофона
-      if (handsFree && callState !== 'ended') {
+      // Безопасная пауза 750мс после того, как динамик затих, перед авто-включением микрофона
+      if (handsFree && callActiveRef.current) {
         if (handsFreeTimeoutRef.current) clearTimeout(handsFreeTimeoutRef.current);
         handsFreeTimeoutRef.current = setTimeout(() => {
-          startListening();
-        }, 800);
+          if (callActiveRef.current && !isAiSpeaking && !loadingAi) {
+            startListening();
+          }
+        }, 750);
       }
     }
   };
@@ -195,7 +201,7 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
 
   // Запуск микрофона
   const startListening = () => {
-    if (isRecording || isAiSpeaking || loadingAi || isSendingRef.current || callState !== 'connected') {
+    if (isRecording || isAiSpeaking || loadingAi || isSendingRef.current || !callActiveRef.current) {
       return;
     }
 
@@ -211,7 +217,7 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
 
     recognizerRef.current.start(
       (transcript, isFinal) => {
-        if (isAiSpeaking || isSendingRef.current) return;
+        if (isAiSpeaking || isSendingRef.current || !callActiveRef.current) return;
 
         setLiveTranscript(transcript);
 
@@ -219,7 +225,7 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
         if (silenceTimeoutRef.current) clearTimeout(silenceTimeoutRef.current);
         if (transcript.trim() && handsFree) {
           silenceTimeoutRef.current = setTimeout(() => {
-            if (!isEchoFromAi(transcript)) {
+            if (!isEchoFromAi(transcript) && callActiveRef.current) {
               handleSendMessage(transcript.trim());
             }
           }, 1600);
@@ -232,7 +238,7 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
       (lastTranscript) => {
         setIsRecording(false);
         // При завершении записи в Hands-free режиме проверяем и отправляем
-        if (handsFree && lastTranscript && lastTranscript.trim() && !loadingAi && !isSendingRef.current) {
+        if (handsFree && lastTranscript && lastTranscript.trim() && !loadingAi && !isSendingRef.current && callActiveRef.current) {
           if (!isEchoFromAi(lastTranscript)) {
             handleSendMessage(lastTranscript.trim());
           }
@@ -258,7 +264,7 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
     stopListening();
     const text = (textToSend || textInput || liveTranscript).trim();
 
-    if (!text || loadingAi || isSendingRef.current || callState !== 'connected') {
+    if (!text || loadingAi || isSendingRef.current || !callActiveRef.current) {
       return;
     }
 
@@ -348,6 +354,7 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
 
   // Завершение звонка
   const handleEndCall = async () => {
+    callActiveRef.current = false;
     stopSpeech();
     stopListening();
     phoneAudio.stopAll();
@@ -356,6 +363,28 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
 
     await phoneAudio.playHangupTone(2);
     setCallState('ended');
+
+    // Логируем звонок в базу данных
+    try {
+      fetch('/api/calls/log', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          lessonId: lesson.id,
+          callerName: scenario.callerNameRu || scenario.callerName,
+          callerRole: scenario.callerRole,
+          durationSeconds: callDuration,
+          transcript: messages.map((m) => ({
+            role: m.role,
+            hebrew: m.hebrew,
+            translation: m.translation,
+            transcription: m.transcription,
+          })),
+          feedback: lastFeedback,
+          userName: userProfile.name || 'Ученик',
+        }),
+      }).catch(() => {});
+    } catch {}
 
     // Начисление прогресса в уроке
     const updated = markLessonTabCompleted(lesson.id, 'phone');
