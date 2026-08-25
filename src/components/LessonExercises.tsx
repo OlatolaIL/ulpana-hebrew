@@ -23,6 +23,8 @@ import { Lesson, UserProfile, Exercise } from '@/types';
 import { markLessonTabCompleted } from '@/lib/storage';
 import { speakHebrew } from '@/lib/speech';
 import { stripNikkud } from '@/lib/transcription';
+import { getHebrewPictogram } from '@/lib/pictograms';
+import { ULPAN_OFFLINE_DICTIONARY } from '@/lib/ulpanDictionary';
 
 interface LessonExercisesProps {
   lesson: Lesson;
@@ -45,8 +47,81 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
   const [isFinished, setIsFinished] = useState(false);
   const [answeredMap, setAnsweredMap] = useState<Record<number, boolean>>({});
 
+  const isUlpan = Boolean(userProfile.ulpanMode);
   const exercises = lesson.exercises;
   const currentEx = exercises[currentIdx];
+
+  const getUlpanOptionDisplay = (opt: string): string => {
+    if (!isUlpan) {
+      const isHeb = /[\u0590-\u05FF]/.test(opt);
+      return isHeb && !userProfile.showNikkud ? stripNikkud(opt) : opt;
+    }
+
+    // If already Hebrew
+    if (/[\u0590-\u05FF]/.test(opt)) {
+      return userProfile.showNikkud ? opt : stripNikkud(opt);
+    }
+
+    const gramLower = opt.toLowerCase().trim();
+    if (gramLower.includes('мужской') || gramLower === 'м.р.') return 'זָכָר ♂';
+    if (gramLower.includes('женский') || gramLower === 'ж.р.') return 'נְקֵבָה ♀';
+    if (gramLower.includes('общий')) return 'כְּלָלִי ⚥';
+    if (gramLower.includes('единственное')) return 'יָחִיד (1)';
+    if (gramLower.includes('множественное')) return 'רַבִּים (2+)';
+    if (gramLower === 'да' || gramLower === 'верно' || gramLower === 'правильно') return 'כֵּן / נָכוֹן ✔️';
+    if (gramLower === 'нет' || gramLower === 'неверно' || gramLower === 'неправильно') return 'לֹא / לֹא נָכוֹן ❌';
+
+    // Look up in lesson vocabulary
+    if (lesson && lesson.vocabulary) {
+      for (const w of lesson.vocabulary) {
+        const tr = (w.translation || '').toLowerCase();
+        if (tr.includes(gramLower) || gramLower.includes(tr) || gramLower.split(';').some(s => tr.includes(s.trim()))) {
+          const pic = getHebrewPictogram(w.hebrew);
+          const heb = userProfile.showNikkud ? w.hebrew : (w.hebrewPlain || stripNikkud(w.hebrew));
+          return pic ? `${pic} ${heb}` : heb;
+        }
+      }
+    }
+
+    // Look up in offline dictionary
+    for (const entry of ULPAN_OFFLINE_DICTIONARY) {
+      const tr = (entry.translation || '').toLowerCase();
+      if (tr.includes(gramLower) || gramLower.includes(tr) || gramLower.split(';').some(s => tr.includes(s.trim()))) {
+        const pic = getHebrewPictogram(entry.hebrew);
+        const heb = userProfile.showNikkud ? entry.hebrew : (entry.hebrewPlain || stripNikkud(entry.hebrew));
+        return pic ? `${pic} ${heb}` : heb;
+      }
+    }
+
+    return opt;
+  };
+
+  const getUlpanQuestionText = (question: string): string => {
+    if (!isUlpan) return question;
+
+    if (question.includes('Выберите правильный перевод для слова')) {
+      return question.replace(/Выберите правильный перевод для слова\s*(«[^»]+»)\s*:/i, 'בַּחֲרוּ אֶת הַמַּשְׁמָעוּת לַמִּילָּה $1 :');
+    }
+    if (question.includes('Выберите правильный род')) {
+      return question.replace(/Выберите правильный род для\s*(«[^»]+»|местоимения «[^»]+»)\s*:/i, 'בַּחֲרוּ זָכָר ♂ אוֹ נְקֵבָה ♀ עֲבוּר $1 :');
+    }
+    if (question.includes('Вставьте правильное слово') || question.includes('пропуск')) {
+      return 'הַשְׁלִימוּ אֶת הַמִּילָּה הַחֲסֵרָה:';
+    }
+    if (question.includes('Соберите предложение') || question.includes('порядок')) {
+      return 'סַדְּרוּ אֶת הַמִּשְׁפָּט בְּסֵדֶר נָכוֹן:';
+    }
+    if (question.includes('Что изучается в уроке')) {
+      return 'מַהוּ נוֹשֵׂא הַשִּׁיעוּר?';
+    }
+    if (question.includes('Выберите правильную форму')) {
+      return 'בַּחֲרוּ אֶת הַצּוּרָה הַנְּכוֹנָה:';
+    }
+    if (question.includes('Как сказать')) {
+      return question.replace(/Как сказать\s*(«[^»]+»)\s*на иврите\??/i, 'אֵיךְ אוֹמְרִים $1 ?');
+    }
+    return question;
+  };
 
   const resetCurrentAnswerState = () => {
     setIsAnswered(false);
@@ -312,10 +387,10 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
             onClick={handlePrev}
             disabled={currentIdx === 0}
             className="px-2.5 py-1.5 rounded-xl border border-zinc-200 dark:border-zinc-700 text-xs font-semibold text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 disabled:opacity-30 disabled:cursor-not-allowed transition flex items-center gap-1 shrink-0 cursor-pointer"
-            title="Предыдущий вопрос"
+            title={isUlpan ? 'שאלה קודמת' : 'Предыдущий вопрос'}
           >
             <ChevronLeft className="w-4 h-4" />
-            <span className="hidden xs:inline">Назад</span>
+            <span className="hidden xs:inline">{isUlpan ? 'אָחוֹרָה' : 'Назад'}</span>
           </button>
 
           {/* Интерактивные индикаторы номеров вопросов */}
@@ -336,7 +411,7 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
                       ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800/80'
                       : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700'
                   }`}
-                  title={`Перейти к вопросу ${idx + 1}`}
+                  title={isUlpan ? `מעבר לשאלה ${idx + 1}` : `Перейти к вопросу ${idx + 1}`}
                 >
                   {idx + 1}
                 </button>
@@ -355,14 +430,14 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
                   : 'bg-blue-600 hover:bg-blue-700 text-white'
                 : 'bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700'
             }`}
-            title={isAnswered ? (isLastQuestion ? 'Завершить тесты' : 'Следующий вопрос') : 'Пропустить вопрос и перейти к следующему'}
+            title={isAnswered ? (isLastQuestion ? (isUlpan ? 'סיום תרגילים' : 'Завершить тесты') : (isUlpan ? 'השאלה הבאה' : 'Следующий вопрос')) : (isUlpan ? 'דלג על שאלה זו' : 'Пропустить вопрос и перейти к следующему')}
           >
             <span>
               {isAnswered
                 ? isLastQuestion
-                  ? 'Завершить 🎉'
-                  : 'Далее ➡️'
-                : 'Пропустить ⏩'}
+                  ? (isUlpan ? 'סִיּוּם 🎉' : 'Завершить 🎉')
+                  : (isUlpan ? 'הַבָּא ➡️' : 'Далее ➡️')
+                : (isUlpan ? 'דַּלֵּג ⏩' : 'Пропустить ⏩')}
             </span>
           </button>
         </div>
@@ -378,8 +453,13 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
 
       {/* 3. Карточка вопроса */}
       <div className="bg-white dark:bg-zinc-900 rounded-3xl p-5 sm:p-6 border border-zinc-200 dark:border-zinc-800 shadow-sm space-y-5">
-        <h3 className="text-base sm:text-lg font-bold text-zinc-900 dark:text-zinc-100 leading-relaxed">
-          {renderFormattedQuestion(currentEx.question, isCursive)}
+        <h3
+          dir={isUlpan ? 'rtl' : 'ltr'}
+          className={`text-base sm:text-lg font-bold text-zinc-900 dark:text-zinc-100 leading-relaxed ${
+            isUlpan ? 'font-hebrew text-lg sm:text-xl' : ''
+          }`}
+        >
+          {renderFormattedQuestion(getUlpanQuestionText(currentEx.question), isCursive)}
         </h3>
 
         {/* Для типа listening: кнопка прослушивания аудио */}
@@ -400,7 +480,7 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
               className="inline-flex items-center gap-2.5 px-6 py-3.5 rounded-2xl bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800 text-blue-600 dark:text-blue-400 font-bold hover:bg-blue-100 dark:hover:bg-blue-900 transition shadow-sm cursor-pointer active:scale-95 text-xs sm:text-sm"
             >
               <Volume2 className="w-5 h-5" />
-              <span>🔊 Нажмите, чтобы прослушать аудио</span>
+              <span>{isUlpan ? '🔊 לַחֲצוּ לַהַשְׁמָעַת שְׁמִיעָה' : '🔊 Нажмите, чтобы прослушать аудио'}</span>
             </button>
           </div>
         )}
@@ -412,7 +492,8 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
               {currentEx.options.map((opt, i) => {
                 const isSelected = selectedOption === opt;
                 const isCorrectOpt = opt === currentEx.correctAnswer;
-                const isOptHebrew = /[\u0590-\u05FF]/.test(opt);
+                const displayOpt = getUlpanOptionDisplay(opt);
+                const isDisplayHebrew = /[\u0590-\u05FF]/.test(displayOpt);
 
                 let btnClass =
                   'border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-800 dark:text-zinc-200';
@@ -435,24 +516,24 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
                     className={`p-3.5 sm:p-4 rounded-2xl border text-left flex items-center justify-between transition cursor-pointer ${btnClass}`}
                   >
                     <span
-                      dir={isOptHebrew ? 'rtl' : 'ltr'}
+                      dir={isDisplayHebrew ? 'rtl' : 'ltr'}
                       className={
-                        isOptHebrew
+                        isDisplayHebrew
                           ? isCursive
                             ? 'font-cursive text-2xl md:text-3xl font-bold'
                             : 'font-hebrew text-lg font-bold'
                           : 'text-xs sm:text-sm font-medium'
                       }
                     >
-                      {isOptHebrew && !userProfile.showNikkud ? stripNikkud(opt) : opt}
+                      {displayOpt}
                     </span>
                     <div className="flex items-center gap-2">
-                      {isOptHebrew && (
+                      {isDisplayHebrew && (
                         <button
                           type="button"
                           onClick={(e) => {
                             e.stopPropagation();
-                            speakHebrew(opt);
+                            speakHebrew(displayOpt);
                           }}
                           className="p-1.5 rounded-lg text-zinc-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition cursor-pointer"
                           title="Прослушать произношение"
@@ -500,8 +581,10 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
                     );
                   })
                 ) : (
-                  <span className="text-zinc-400 text-xs font-sans font-normal">
-                    Нажимайте на слова ниже для составления фразы...
+                  <span className="text-zinc-400 text-xs font-sans font-normal font-hebrew">
+                    {isUlpan
+                      ? 'לַחֲצוּ עַל הַמִּילִּים לְמַטָּה לְהַרְכָּבַת הַמִּשְׁפָּט...'
+                      : 'Нажимайте на слова ниже для составления фразы...'}
                   </span>
                 )}
               </div>
@@ -512,7 +595,7 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
                       type="button"
                       onClick={handleRemoveLastWord}
                       className="p-3 rounded-2xl border border-amber-200 dark:border-amber-900/60 bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/60 shadow-sm transition active:scale-95 cursor-pointer"
-                      title="Стереть последнее слово (Назад)"
+                      title={isUlpan ? 'מחק מילה אחרונה' : 'Стереть последнее слово (Назад)'}
                     >
                       <Undo2 className="w-4 h-4" />
                     </button>
@@ -520,7 +603,7 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
                       type="button"
                       onClick={handleResetSentence}
                       className="p-3 rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-700 shadow-sm transition active:scale-95 cursor-pointer"
-                      title="Очистить всю фразу"
+                      title={isUlpan ? 'אפס משפט' : 'Очистить всю фразу'}
                     >
                       <RotateCcw className="w-4 h-4" />
                     </button>
@@ -534,7 +617,7 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
                       speakHebrew(text);
                     }}
                     className="p-3 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white shadow-sm transition active:scale-95 cursor-pointer"
-                    title="Прослушать собранное предложение"
+                    title={isUlpan ? 'השמע משפט' : 'Прослушать собранное предложение'}
                   >
                     <Volume2 className="w-4 h-4" />
                   </button>
@@ -568,7 +651,7 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
         )}
 
         {/* Пояснение после ответа */}
-        {isAnswered && currentEx.explanation && (
+        {isAnswered && (currentEx.explanation || isUlpan) && (
           <div
             className={`p-4 rounded-2xl border text-xs leading-relaxed animate-in fade-in ${
               isCorrect
@@ -576,10 +659,12 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
                 : 'bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-900/50 text-amber-800 dark:text-amber-200'
             }`}
           >
-            <p className="font-bold mb-1">
-              {isCorrect ? 'Верно! Отличный ответ.' : 'Почти получилось! Обратите внимание:'}
+            <p className="font-bold mb-1 font-hebrew">
+              {isUlpan
+                ? (isCorrect ? '!נָכוֹן מְאוֹד • כָּל הַכָּבוֹד 🎉' : '!שִׂימוּ לֵב לַתְּשׁוּבָה הַנְּכוֹנָה 💡')
+                : (isCorrect ? 'Верно! Отличный ответ.' : 'Почти получилось! Обратите внимание:')}
             </p>
-            <p>{currentEx.explanation}</p>
+            {!isUlpan && currentEx.explanation && <p>{currentEx.explanation}</p>}
           </div>
         )}
 

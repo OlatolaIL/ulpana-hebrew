@@ -336,34 +336,30 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
 
   return (
     <div data-font-style={userProfile.fontStyle || 'print'} className="flex flex-col h-[680px] max-h-[calc(100dvh-170px)] min-h-[460px] bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm overflow-hidden">
-      {/* Компактная шапка сценария с переключателями */}
       <div className="bg-gradient-to-r from-blue-50/80 to-indigo-50/80 dark:from-zinc-800/90 dark:to-zinc-800/50 p-2.5 sm:p-3 border-b border-zinc-200 dark:border-zinc-700/80">
         <div className="flex items-center justify-between gap-2">
-          {/* Левая часть: Бейдж, название и кнопка раскрытия описания */}
           <div className="flex items-center gap-1.5 min-w-0">
-            <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-blue-600 text-white shrink-0">
-              Диалог
+            <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-blue-600 text-white shrink-0 font-hebrew">
+              {userProfile.ulpanMode ? 'שִׂיחָה' : 'Диалог'}
             </span>
-            <h3 className="font-bold text-xs sm:text-sm text-zinc-900 dark:text-zinc-100 truncate">
-              {lesson.dialogue.title}
+            <h3 className="font-bold text-xs sm:text-sm text-zinc-900 dark:text-zinc-100 truncate" dir={userProfile.ulpanMode ? 'rtl' : 'ltr'}>
+              {userProfile.ulpanMode ? (lesson.titleHebrew || lesson.dialogue.title) : lesson.dialogue.title}
             </h3>
             <button
               type="button"
               onClick={() => setShowSituation((prev) => !prev)}
-              className={`p-1 rounded-md transition shrink-0 ${
+              className={`p-1 rounded-md transition shrink-0 cursor-pointer ${
                 showSituation
                   ? 'bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300'
                   : 'text-zinc-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-zinc-700'
               }`}
-              title={showSituation ? 'Скрыть описание ситуации' : 'Показать описание ситуации'}
+              title={showSituation ? (userProfile.ulpanMode ? 'הסתר תיאור' : 'Скрыть описание ситуации') : (userProfile.ulpanMode ? 'הצג תיאור' : 'Показать описание ситуации')}
             >
               <Info className="w-3.5 h-3.5" />
             </button>
           </div>
 
-          {/* Правая часть: Переключатель шрифта, пола и сброс */}
           <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
-            {/* Быстрый переключатель шрифта диалога */}
             <button
               type="button"
               onClick={() => {
@@ -372,8 +368,8 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
                 saveUserProfile(updated);
                 if (onUpdateProfile) onUpdateProfile(updated);
               }}
-              className="px-2 py-1 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-sm text-xs font-semibold flex items-center gap-1 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition"
-              title="Переключить шрифт диалога: Печатный / Рукописный"
+              className="px-2 py-1 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-sm text-xs font-semibold flex items-center gap-1 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition cursor-pointer"
+              title={userProfile.ulpanMode ? 'החלף גופן' : 'Переключить шрифт диалога: Печатный / Рукописный'}
             >
               {isCursive ? (
                 <span className="font-cursive font-bold text-sm text-blue-600 dark:text-blue-400 leading-none">כתב</span>
@@ -382,62 +378,64 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
               )}
             </button>
 
-            {/* Интерактивный переключатель пола говорящего */}
             <div className="flex items-center bg-white dark:bg-zinc-900 p-0.5 rounded-lg border border-zinc-200 dark:border-zinc-700 shadow-sm text-xs">
               <button
                 type="button"
                 onClick={() => handleGenderSwitch('male')}
-                className={`px-1.5 sm:px-2 py-0.5 rounded-md font-semibold text-[11px] transition ${
+                className={`px-1.5 sm:px-2 py-0.5 rounded-md font-semibold text-[11px] transition cursor-pointer ${
                   userProfile.gender === 'male'
                     ? 'bg-blue-600 text-white shadow-xs'
                     : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
                 }`}
-                title="Переключить на обращение к мужчине (זָכָר)"
+                title="זָכָר ♂"
               >
-                👨
+                ♂
               </button>
               <button
                 type="button"
                 onClick={() => handleGenderSwitch('female')}
-                className={`px-1.5 sm:px-2 py-0.5 rounded-md font-semibold text-[11px] transition ${
+                className={`px-1.5 sm:px-2 py-0.5 rounded-md font-semibold text-[11px] transition cursor-pointer ${
                   userProfile.gender === 'female'
                     ? 'bg-blue-600 text-white shadow-xs'
                     : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
                 }`}
-                title="Переключить на обращение к женщине (נְקֵבָה)"
+                title="נְקֵבָה ♀"
               >
-                👩
+                ♀
               </button>
             </div>
 
-            {/* Кнопка сброса */}
             <button
               onClick={handleResetChat}
-              className="p-1.5 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 rounded-lg hover:bg-white dark:hover:bg-zinc-700 transition"
-              title="Начать диалог сначала"
+              className="p-1.5 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 rounded-lg hover:bg-white dark:hover:bg-zinc-700 transition cursor-pointer"
+              title={userProfile.ulpanMode ? 'התחל שיחה מחדש' : 'Начать диалог сначала'}
             >
               <RotateCcw className="w-3.5 h-3.5" />
             </button>
           </div>
         </div>
 
-        {/* Раскрывающееся описание ситуации */}
         {showSituation && (
-          <div className="mt-2 pt-2 border-t border-zinc-200/60 dark:border-zinc-700/60 text-xs text-zinc-600 dark:text-zinc-300 leading-relaxed animate-in fade-in">
+          <div className="mt-2 pt-2 border-t border-zinc-200/60 dark:border-zinc-700/60 text-xs text-zinc-600 dark:text-zinc-300 leading-relaxed animate-in fade-in" dir={userProfile.ulpanMode ? 'rtl' : 'ltr'}>
             <p>
-              <span className="font-semibold text-zinc-800 dark:text-zinc-200">Ситуация: </span>
-              {lesson.dialogue.situation}
+              <span className="font-semibold text-zinc-800 dark:text-zinc-200 font-hebrew">
+                {userProfile.ulpanMode ? 'מַצָּב / תַּרְחִישׁ: ' : 'Ситуация: '}
+              </span>
+              {userProfile.ulpanMode ? (lesson.description || 'שִׂיחָה מַעֲשִׂית בְּעִבְרִית עִם הַמּוֹרֶה') : lesson.dialogue.situation}
             </p>
           </div>
         )}
       </div>
 
-      {/* Компактная подсказка для клика по словам (сворачиваемая) */}
       {showTips && (
-        <div className="bg-blue-500/10 px-3 py-1.5 border-b border-blue-500/20 text-[11px] text-blue-800 dark:text-blue-300 flex items-center justify-between gap-2">
+        <div className="bg-blue-500/10 px-3 py-1.5 border-b border-blue-500/20 text-[11px] text-blue-800 dark:text-blue-300 flex items-center justify-between gap-2 font-hebrew">
           <span className="flex items-center gap-1.5 min-w-0 truncate">
             <Sparkles className="w-3.5 h-3.5 shrink-0 text-blue-600 dark:text-blue-400" />
-            <span className="truncate">Нажмите на любое слово на иврите для перевода и словарика</span>
+            <span className="truncate">
+              {userProfile.ulpanMode
+                ? 'לַחֲצוּ עַל כָּל מִילָּה בְּעִבְרִית כְּדֵי לִשְׁמוֹעַ'
+                : 'Нажмите на любое слово на иврите для перевода и словарика'}
+            </span>
           </span>
           <button
             type="button"
@@ -448,25 +446,28 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
               } catch {}
             }}
             className="text-blue-600 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-200 text-xs font-bold px-1 rounded transition shrink-0 cursor-pointer"
-            title="Закрыть подсказку"
+            title="✕"
           >
             ✕
           </button>
         </div>
       )}
 
-      {/* Панель завершения 4-го этапа урока (ИИ-диалог) */}
-      <div className="px-3 py-2 bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-blue-500/10 border-b border-emerald-300/40 dark:border-emerald-800/40 flex items-center justify-between gap-2">
+      <div className="px-3 py-2 bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-blue-500/10 border-b border-emerald-300/40 dark:border-emerald-800/40 flex items-center justify-between gap-2 font-hebrew">
         <div className="flex items-center gap-2 min-w-0">
           <Award className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
           <div className="min-w-0">
             <p className="text-xs font-bold text-zinc-900 dark:text-zinc-100 truncate">
-              Этап 4/5: Практика диалога
+              {userProfile.ulpanMode ? 'שָׁלָב 4/5: תִּרְגּוּל שִׂיחָה' : 'Этап 4/5: Практика диалога'}
             </p>
             <p className="text-[11px] text-zinc-500 dark:text-zinc-400 truncate hidden xs:block">
               {userProfile.lessonProgress[lesson.id]?.completedTabs?.includes('chat')
-                ? 'Диалог зачтен! Можете продолжить беседу или перейти к звонку.'
-                : 'Пообщайтесь с ИИ и нажмите «Зачесть диалог».'}
+                ? (userProfile.ulpanMode
+                    ? 'הַשִּׂיחָה הוּשְׁלְמָה! אֶפְשָׁר לְהַמְשִׁיךְ אוֹ לַעֲבוֹר לְשִׂיחַת טֶלֶפוֹן.'
+                    : 'Диалог зачтен! Можете продолжить беседу или перейти к звонку.')
+                : (userProfile.ulpanMode
+                    ? 'שׂוֹחֲחוּ עִם הַבּוֹט וְלַחֲצוּ עַל «סַיֵּם שִׂיחָה».'
+                    : 'Пообщайтесь с ИИ и нажмите «Зачесть диалог».')}
             </p>
           </div>
         </div>
@@ -638,7 +639,7 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
             <div className="w-2 h-2 rounded-full bg-blue-600 animate-pulse" />
             <div className="w-2 h-2 rounded-full bg-blue-600 animate-pulse delay-75" />
             <div className="w-2 h-2 rounded-full bg-blue-600 animate-pulse delay-150" />
-            <span>Собеседник печатает...</span>
+            <span className="font-hebrew">{userProfile.ulpanMode ? 'הַבּוֹט כּוֹתֵב...' : 'Собеседник печатает...'}</span>
           </div>
         )}
 
@@ -649,16 +650,20 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
       {lastAiMessage && lastAiMessage.suggestedReplies && lastAiMessage.suggestedReplies.length > 0 && showSuggestions && (
         <div className="px-3 py-2 bg-zinc-50/95 dark:bg-zinc-900/95 border-t border-zinc-200/80 dark:border-zinc-800/80 backdrop-blur-sm">
           <div className="flex items-center justify-between mb-1.5 px-0.5">
-            <span className="text-[11px] font-bold text-zinc-600 dark:text-zinc-300 flex items-center gap-1.5">
+            <span className="text-[11px] font-bold text-zinc-600 dark:text-zinc-300 flex items-center gap-1.5 font-hebrew">
               <Sparkles className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
-              <span>Варианты ответа ({lastAiMessage.suggestedReplies.length}):</span>
+              <span>
+                {userProfile.ulpanMode
+                  ? `הַצָּעוֹת לִתְשׁוּבָה (${lastAiMessage.suggestedReplies.length}):`
+                  : `Варианты ответа (${lastAiMessage.suggestedReplies.length}):`}
+              </span>
             </span>
             <button
               type="button"
               onClick={() => setShowSuggestions(false)}
-              className="text-[11px] text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 transition font-medium"
+              className="text-[11px] text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 transition font-medium cursor-pointer font-hebrew"
             >
-              Скрыть
+              {userProfile.ulpanMode ? 'הַסְתֵּר' : 'Скрыть'}
             </button>
           </div>
           <div className="flex items-stretch gap-2 overflow-x-auto pb-1 scrollbar-none">
@@ -685,8 +690,8 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
                       e.stopPropagation();
                       speakHebrew(reply.hebrew, { rate: userProfile.speechRate || 0.7 });
                     }}
-                    className="p-1 rounded-lg text-zinc-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-zinc-700 transition shrink-0"
-                    title="Прослушать этот ответ"
+                    className="p-1 rounded-lg text-zinc-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-zinc-700 transition shrink-0 cursor-pointer"
+                    title={userProfile.ulpanMode ? 'השמע תשובה זו' : 'Прослушать этот ответ'}
                   >
                     <Volume2 className="w-3.5 h-3.5" />
                   </button>
@@ -714,10 +719,14 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
             <button
               type="button"
               onClick={() => setShowSuggestions(true)}
-              className="text-[11px] font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/60 px-2.5 py-1 rounded-lg flex items-center gap-1.5 hover:bg-blue-100 dark:hover:bg-blue-900/40 transition shadow-sm"
+              className="text-[11px] font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/60 px-2.5 py-1 rounded-lg flex items-center gap-1.5 hover:bg-blue-100 dark:hover:bg-blue-900/40 transition shadow-sm cursor-pointer font-hebrew"
             >
               <Sparkles className="w-3 h-3 text-blue-500" />
-              <span>Показать варианты ответов ({lastAiMessage.suggestedReplies.length})</span>
+              <span>
+                {userProfile.ulpanMode
+                  ? `הַצֵּג תְּשׁוּבוֹת מוּצָעוֹת (${lastAiMessage.suggestedReplies.length})`
+                  : `Показать варианты ответов (${lastAiMessage.suggestedReplies.length})`}
+              </span>
             </button>
           </div>
         )}
@@ -732,12 +741,12 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
           <button
             type="button"
             onClick={toggleRecording}
-            className={`p-2.5 rounded-xl border transition duration-200 shrink-0 ${
+            className={`p-2.5 rounded-xl border transition duration-200 shrink-0 cursor-pointer ${
               isRecording
                 ? 'bg-emerald-500 hover:bg-emerald-600 text-white border-emerald-600 ring-4 ring-emerald-400/40 shadow-lg shadow-emerald-500/30 scale-105 animate-pulse'
                 : 'border-zinc-200 dark:border-zinc-700 text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-800 dark:hover:text-zinc-200'
             }`}
-            title={isRecording ? 'Идет запись... Нажмите для остановки' : 'Голосовой ввод на иврите'}
+            title={isRecording ? (userProfile.ulpanMode ? 'מקליט... לחץ לעצירה' : 'Идет запись... Нажмите для остановки') : (userProfile.ulpanMode ? 'הקלטה קולית בעברית' : 'Голосовой ввод на иврите')}
           >
             {isRecording ? <Mic className="w-5 h-5 animate-pulse text-white" /> : <Mic className="w-5 h-5" />}
           </button>
@@ -747,7 +756,11 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
             dir="auto"
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
-            placeholder={isRecording ? '🎙️ Слушаю... говорите на иврите' : 'Напишите ответ на иврите...'}
+            placeholder={
+              isRecording
+                ? (userProfile.ulpanMode ? '🎙️ מַאֲזִין... דַּבְּרוּ בְּעִבְרִית' : '🎙️ Слушаю... говорите на иврите')
+                : (userProfile.ulpanMode ? 'כִּתְבוּ תְּשׁוּבָה בְּעִבְרִית...' : 'Напишите ответ на иврите...')
+            }
             className={`min-w-0 flex-1 px-3.5 sm:px-4 py-2.5 rounded-xl border text-sm focus:outline-none transition ${
               isRecording
                 ? 'border-emerald-500 ring-2 ring-emerald-400/50 bg-emerald-50/40 dark:bg-emerald-950/30 text-emerald-950 dark:text-emerald-100 placeholder:text-emerald-600 font-medium'

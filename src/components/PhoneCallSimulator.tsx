@@ -555,27 +555,31 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
             <h2 className="text-2xl font-bold text-white font-hebrew tracking-wide">
               {scenario.callerName}
             </h2>
-            <p className="text-sm font-semibold text-blue-400 mt-0.5">
-              {scenario.callerNameRu}
-            </p>
-            <p className="text-xs text-zinc-400 mt-1 max-w-sm">
-              {scenario.callerRole}
+            {!userProfile.ulpanMode && (
+              <p className="text-sm font-semibold text-blue-400 mt-0.5">
+                {scenario.callerNameRu}
+              </p>
+            )}
+            <p className="text-xs text-zinc-400 mt-1 max-w-sm font-hebrew">
+              {userProfile.ulpanMode ? 'שׂוֹחֲחוּ בְּעִבְרִית עִם הַנָּצִיג' : scenario.callerRole}
             </p>
 
             {/* Контекст ситуации */}
             <div className="w-full bg-zinc-800/60 backdrop-blur border border-zinc-700/60 rounded-2xl p-4 my-4 text-left text-xs sm:text-sm text-zinc-300">
-              <div className="flex items-center gap-1.5 font-bold text-zinc-200 mb-1.5">
+              <div className="flex items-center gap-1.5 font-bold text-zinc-200 mb-1.5 font-hebrew">
                 <Info className="w-4 h-4 text-blue-400 shrink-0" />
-                <span>Ситуация звонка:</span>
+                <span>{userProfile.ulpanMode ? 'תַּרְחִישׁ הַשִּׂיחָה:' : 'Ситуация звонка:'}</span>
               </div>
-              <p className="leading-relaxed">{scenario.situationSummary}</p>
+              <p className="leading-relaxed font-hebrew">
+                {userProfile.ulpanMode ? 'שִׂיחַת טֶלֶפוֹן מַעֲשִׂית בְּעִבְרִית. הַקְשִׁיבוּ לַנָּצִיג וַעֲנוּ בִּבְהִירוּת.' : scenario.situationSummary}
+              </p>
 
               {/* Цели разговора */}
               <div className="mt-3 pt-3 border-t border-zinc-700/50">
-                <span className="font-bold text-zinc-200 text-xs block mb-1.5">
-                  🎯 Ваши задачи в разговоре:
+                <span className="font-bold text-zinc-200 text-xs block mb-1.5 font-hebrew">
+                  {userProfile.ulpanMode ? '🎯 מַטְּרוֹת הַשִּׂיחָה:' : '🎯 Ваши задачи в разговоре:'}
                 </span>
-                <ul className="space-y-1 text-xs text-zinc-400">
+                <ul className="space-y-1 text-xs text-zinc-400 font-hebrew">
                   {scenario.goals.map((goal, idx) => (
                     <li key={idx} className="flex items-start gap-1.5">
                       <span className="text-emerald-400 font-bold">•</span>
@@ -588,13 +592,19 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
 
             {/* Карточки полезных слов и подсказок к звонку */}
             {scenario.usefulWords && scenario.usefulWords.length > 0 && (
-              <div className="w-full bg-zinc-800/60 backdrop-blur border border-zinc-700/60 rounded-2xl p-4 mb-5 text-left">
+              <div className="w-full bg-zinc-800/60 backdrop-blur border border-zinc-700/60 rounded-2xl p-4 mb-5 text-left font-hebrew">
                 <div className="flex items-center justify-between gap-2 mb-2.5">
                   <div className="flex items-center gap-1.5 font-bold text-zinc-200 text-xs sm:text-sm">
                     <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
-                    <span>Слова и подсказки к звонку ({scenario.usefulWords.length}):</span>
+                    <span>
+                      {userProfile.ulpanMode
+                        ? `מִילִּים שֶׁיַּעַזְרוּ לָכֶם בַּשִּׂיחָה (${scenario.usefulWords.length}):`
+                        : `Слова и подсказки к звонку (${scenario.usefulWords.length}):`}
+                    </span>
                   </div>
-                  <span className="text-[10px] text-zinc-400">Нажмите 🔊 для озвучки</span>
+                  <span className="text-[10px] text-zinc-400">
+                    {userProfile.ulpanMode ? 'הַשְׁמָעָה 🔊' : 'Нажмите 🔊 для озвучки'}
+                  </span>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -617,8 +627,8 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
                             </div>
                             <div className="flex items-center gap-1 shrink-0">
                               {word.isNew && (
-                                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                                  Новое
+                                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/30 font-hebrew">
+                                  {userProfile.ulpanMode ? 'חָדָשׁ' : 'Новое'}
                                 </span>
                               )}
                               <button
@@ -627,8 +637,8 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
                                   e.stopPropagation();
                                   speakHebrew(word.hebrew, { rate: userProfile.speechRate || 0.7 });
                                 }}
-                                className="p-1 rounded-lg text-zinc-400 hover:text-blue-400 hover:bg-zinc-800 transition"
-                                title="Прослушать произношение"
+                                className="p-1 rounded-lg text-zinc-400 hover:text-blue-400 hover:bg-zinc-800 transition cursor-pointer"
+                                title={userProfile.ulpanMode ? 'השמע מילה' : 'Прослушать произношение'}
                               >
                                 <Volume2 className="w-3.5 h-3.5" />
                               </button>
@@ -641,12 +651,14 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
                             </div>
                           )}
 
-                          <div className="text-xs text-zinc-300 mt-1 line-clamp-2">
-                            {word.translation}
-                          </div>
+                          {!userProfile.ulpanMode && (
+                            <div className="text-xs text-zinc-300 mt-1 line-clamp-2">
+                              {word.translation}
+                            </div>
+                          )}
                         </div>
 
-                        <div className="mt-2 pt-1.5 border-t border-zinc-800 flex justify-end">
+                        <div className="mt-2 pt-1.5 border-t border-zinc-800 flex justify-end font-hebrew">
                           <button
                             type="button"
                             onClick={(e) => {
@@ -673,12 +685,12 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
                             {isAdded ? (
                               <>
                                 <Check className="w-3 h-3 text-emerald-400" />
-                                <span>В словаре</span>
+                                <span>{userProfile.ulpanMode ? 'בַּמִּילוֹן ✔️' : 'В словаре'}</span>
                               </>
                             ) : (
                               <>
                                 <Plus className="w-3 h-3" />
-                                <span>В словарь</span>
+                                <span>{userProfile.ulpanMode ? 'לַמִּילוֹן' : 'В словарь'}</span>
                               </>
                             )}
                           </button>
@@ -693,10 +705,10 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
             {/* Кнопка запуска звонка */}
             <button
               onClick={handleStartCall}
-              className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 active:scale-[0.98] transition font-bold text-white text-base sm:text-lg flex items-center justify-center gap-3 shadow-lg shadow-emerald-500/25 cursor-pointer"
+              className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 active:scale-[0.98] transition font-bold text-white text-base sm:text-lg flex items-center justify-center gap-3 shadow-lg shadow-emerald-500/25 cursor-pointer font-hebrew"
             >
               <PhoneCall className="w-6 h-6 animate-pulse" />
-              <span>Позвонить • לְהִתְקַשֵּׁר</span>
+              <span>{userProfile.ulpanMode ? 'לְהִתְקַשֵּׁר כָּעֵת 📞' : 'Позвонить • לְהִתְקַשֵּׁר'}</span>
             </button>
           </div>
         </div>
@@ -716,11 +728,13 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
           <h3 className="text-2xl font-bold text-white font-hebrew">
             {scenario.callerName}
           </h3>
-          <p className="text-sm text-zinc-400 mt-1">{scenario.callerNameRu}</p>
+          {!userProfile.ulpanMode && (
+            <p className="text-sm text-zinc-400 mt-1">{scenario.callerNameRu}</p>
+          )}
 
-          <div className="flex items-center gap-2 text-emerald-400 font-semibold text-sm mt-4 bg-emerald-950/40 px-3 py-1.5 rounded-full border border-emerald-800/40">
+          <div className="flex items-center gap-2 text-emerald-400 font-semibold text-sm mt-4 bg-emerald-950/40 px-3 py-1.5 rounded-full border border-emerald-800/40 font-hebrew">
             <Radio className="w-4 h-4 animate-spin text-emerald-400" />
-            <span>מְחַיֵּג... (Идут гудки)</span>
+            <span>{userProfile.ulpanMode ? '...מְחַיֵּג' : 'מְחַיֵּג... (Идут гудки)'}</span>
           </div>
 
           {/* Кнопка отмены */}
@@ -730,7 +744,7 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
               setCallState('idle');
             }}
             className="mt-10 p-4 rounded-full bg-rose-600 hover:bg-rose-700 text-white shadow-lg transition active:scale-95 cursor-pointer"
-            title="Отменить вызов"
+            title={userProfile.ulpanMode ? 'בטל שיחה' : 'Отменить вызов'}
           >
             <PhoneOff className="w-7 h-7" />
           </button>
@@ -821,26 +835,28 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
               {/* Статус речи */}
               <div className="h-7">
                 {isAiSpeaking && (
-                  <div className="flex items-center gap-2 text-xs font-bold text-blue-400 bg-blue-950/50 px-3 py-1 rounded-full border border-blue-800/50 animate-pulse">
+                  <div className="flex items-center gap-2 text-xs font-bold text-blue-400 bg-blue-950/50 px-3 py-1 rounded-full border border-blue-800/50 animate-pulse font-hebrew">
                     <Volume2 className="w-3.5 h-3.5" />
-                    <span>{scenario.callerNameRu} говорит...</span>
+                    <span>{userProfile.ulpanMode ? `...${scenario.callerName} מְדַבֵּר` : `${scenario.callerNameRu} говорит...`}</span>
                   </div>
                 )}
                 {isRecording && (
-                  <div className="flex items-center gap-2 text-xs font-bold text-emerald-400 bg-emerald-950/50 px-3 py-1 rounded-full border border-emerald-800/50 animate-pulse">
+                  <div className="flex items-center gap-2 text-xs font-bold text-emerald-400 bg-emerald-950/50 px-3 py-1 rounded-full border border-emerald-800/50 animate-pulse font-hebrew">
                     <Mic className="w-3.5 h-3.5" />
-                    <span>Слушаю вас... Говорите на иврите</span>
+                    <span>{userProfile.ulpanMode ? '...מַאֲזִין לָכֶם, דַּבְּרוּ בְּעִבְרִית' : 'Слушаю вас... Говорите на иврите'}</span>
                   </div>
                 )}
                 {loadingAi && (
-                  <div className="flex items-center gap-2 text-xs font-bold text-purple-400 bg-purple-950/50 px-3 py-1 rounded-full border border-purple-800/50">
+                  <div className="flex items-center gap-2 text-xs font-bold text-purple-400 bg-purple-950/50 px-3 py-1 rounded-full border border-purple-800/50 font-hebrew">
                     <Sparkles className="w-3.5 h-3.5 animate-spin" />
-                    <span>Собеседник думает...</span>
+                    <span>{userProfile.ulpanMode ? '...חוֹשֵׁב' : 'Собеседник думает...'}</span>
                   </div>
                 )}
                 {!isAiSpeaking && !isRecording && !loadingAi && (
-                  <div className="text-xs text-zinc-400">
-                    {handsFree
+                  <div className="text-xs text-zinc-400 font-hebrew">
+                    {userProfile.ulpanMode
+                      ? 'דַּבְּרוּ בְּקוֹל בְּעִבְרִית...'
+                      : handsFree
                       ? 'Говорите вслух на иврите...'
                       : 'Нажмите на микрофон или выберите ответ ниже 👇'}
                   </div>
@@ -859,8 +875,8 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
                   <span>{latestAiMessage.hebrew}</span>
                   <button
                     onClick={() => speakHebrew(latestAiMessage.hebrew)}
-                    className="p-1 rounded-lg hover:bg-zinc-700 text-blue-400 transition"
-                    title="Повторить фразу"
+                    className="p-1 rounded-lg hover:bg-zinc-700 text-blue-400 transition cursor-pointer"
+                    title={userProfile.ulpanMode ? 'השמע שוב' : 'Повторить фразу'}
                   >
                     <Volume2 className="w-4 h-4" />
                   </button>
@@ -887,7 +903,7 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
                 </div>
                 <button
                   onClick={() => handleSendMessage(liveTranscript)}
-                  className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shrink-0 transition"
+                  className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shrink-0 transition cursor-pointer"
                 >
                   {userProfile.ulpanMode ? 'שְׁלַח' : 'Отправить'}
                 </button>
@@ -906,7 +922,7 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
           {/* Быстрые варианты ответов (Suggested Replies) */}
           {latestAiMessage?.suggestedReplies && latestAiMessage.suggestedReplies.length > 0 && (
             <div className="px-4 py-2 bg-zinc-900/90 border-t border-zinc-800/80">
-              <div className="flex items-center justify-between mb-1.5">
+              <div className="flex items-center justify-between mb-1.5 font-hebrew">
                 <span className="text-[11px] font-bold text-zinc-400 flex items-center gap-1">
                   <Sparkles className="w-3 h-3 text-purple-400" />
                   <span>{userProfile.ulpanMode ? 'תְּשׁוּבָה מְהִירָה:' : 'Быстрый ответ (нажмите, чтобы сказать):'}</span>
@@ -938,12 +954,12 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
                 value={textInput}
                 onChange={(e) => setTextInput(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
-                placeholder="Напишите ответ на иврите..."
+                placeholder={userProfile.ulpanMode ? 'כִּתְבוּ תְּשׁוּבָה בְּעִבְרִית...' : 'Напишите ответ на иврите...'}
                 className="flex-1 bg-zinc-800 border border-zinc-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500 font-hebrew"
               />
               <button
                 onClick={() => handleSendMessage()}
-                className="p-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white transition"
+                className="p-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white transition cursor-pointer"
               >
                 <Send className="w-4 h-4" />
               </button>
@@ -960,7 +976,7 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
                   ? 'bg-blue-600 border-blue-500 text-white'
                   : 'bg-zinc-800 border-zinc-700 text-zinc-400 hover:text-white'
               }`}
-              title="Текстовый ввод"
+              title={userProfile.ulpanMode ? 'מקלדת' : 'Текстовый ввод'}
             >
               <Send className="w-5 h-5" />
             </button>
@@ -976,11 +992,13 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
                   ? 'bg-zinc-800 text-zinc-600 border border-zinc-700 cursor-not-allowed opacity-50'
                   : 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-500 hover:to-indigo-500 shadow-blue-500/30'
               }`}
-              title={isRecording ? 'Идет запись (нажмите, чтобы остановить)' : 'Нажмите, чтобы говорить'}
+              title={isRecording ? (userProfile.ulpanMode ? 'מקליט... לחץ לעצירה' : 'Идет запись (нажмите, чтобы остановить)') : (userProfile.ulpanMode ? 'לחץ כדי לדבר' : 'Нажмите, чтобы говорить')}
             >
               <Mic className="w-6 h-6" />
-              <span className="text-sm font-semibold">
-                {isRecording ? 'Слушаю...' : 'Говорить'}
+              <span className="text-sm font-semibold font-hebrew">
+                {isRecording
+                  ? (userProfile.ulpanMode ? '...מַאֲזִין' : 'Слушаю...')
+                  : (userProfile.ulpanMode ? 'דַּבֵּר' : 'Говорить')}
               </span>
             </button>
 
@@ -988,7 +1006,7 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
             <button
               onClick={() => handleEndCall()}
               className="p-4 rounded-full bg-rose-600 hover:bg-rose-700 active:scale-95 text-white shadow-lg shadow-rose-600/30 transition cursor-pointer"
-              title="Завершить разговор"
+              title={userProfile.ulpanMode ? 'סיום שיחה' : 'Завершить разговор'}
             >
               <PhoneOff className="w-6 h-6" />
             </button>
@@ -1004,32 +1022,38 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
             <div className="w-16 h-16 rounded-full bg-emerald-100 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-700 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto mb-3 text-2xl shadow-sm">
               🎉
             </div>
-            <h2 className="text-xl sm:text-2xl font-bold text-zinc-900 dark:text-zinc-50">
-              Разговор завершен!
+            <h2 className="text-xl sm:text-2xl font-bold text-zinc-900 dark:text-zinc-50 font-hebrew">
+              {userProfile.ulpanMode ? '!הַשִּׂיחָה הִסְתַּיְּמָה • כָּל הַכָּבוֹד' : 'Разговор завершен!'}
             </h2>
-            <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-0.5">
-              Отличная тренировка телефонного иврита
+            <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-0.5 font-hebrew">
+              {userProfile.ulpanMode ? 'אִמּוּן מְצוּיָן שֶׁל עִבְרִית בַּטֶּלֶפוֹן' : 'Отличная тренировка телефонного иврита'}
             </p>
           </div>
 
           {/* Метрики звонка */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 font-hebrew">
             <div className="bg-zinc-50 dark:bg-zinc-800/60 p-3.5 rounded-2xl border border-zinc-200 dark:border-zinc-700/60 text-center">
-              <span className="text-xs text-zinc-400 block font-medium">Длительность</span>
+              <span className="text-xs text-zinc-400 block font-medium">
+                {userProfile.ulpanMode ? 'מֶשֶׁךְ הַשִּׂיחָה' : 'Длительность'}
+              </span>
               <span className="text-lg font-bold text-zinc-900 dark:text-zinc-100 font-mono">
                 {formatTimer(callDuration)}
               </span>
             </div>
 
             <div className="bg-zinc-50 dark:bg-zinc-800/60 p-3.5 rounded-2xl border border-zinc-200 dark:border-zinc-700/60 text-center">
-              <span className="text-xs text-zinc-400 block font-medium">Реплик сказано</span>
+              <span className="text-xs text-zinc-400 block font-medium">
+                {userProfile.ulpanMode ? 'מִשְׁפָּטִים שֶׁנֶּאֶמְרוּ' : 'Реплик сказано'}
+              </span>
               <span className="text-lg font-bold text-blue-600 dark:text-blue-400">
                 {messages.filter((m) => m.role === 'user').length}
               </span>
             </div>
 
             <div className="bg-zinc-50 dark:bg-zinc-800/60 p-3.5 rounded-2xl border border-zinc-200 dark:border-zinc-700/60 text-center col-span-2 sm:col-span-1">
-              <span className="text-xs text-zinc-400 block font-medium">Понимание</span>
+              <span className="text-xs text-zinc-400 block font-medium">
+                {userProfile.ulpanMode ? 'הֲבָנָה' : 'Понимание'}
+              </span>
               <span className="text-lg font-bold text-emerald-600 dark:text-emerald-400">
                 100% 🏆
               </span>
@@ -1037,10 +1061,10 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
           </div>
 
           {/* Чек-лист целей */}
-          <div className="bg-zinc-50 dark:bg-zinc-800/40 p-4 rounded-2xl border border-zinc-200 dark:border-zinc-700/60">
+          <div className="bg-zinc-50 dark:bg-zinc-800/40 p-4 rounded-2xl border border-zinc-200 dark:border-zinc-700/60 font-hebrew">
             <h4 className="text-xs font-bold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
               <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-              Цели сценария:
+              <span>{userProfile.ulpanMode ? 'מַטְּרוֹת הַתַּרְחִישׁ:' : 'Цели сценария:'}</span>
             </h4>
             <ul className="space-y-2">
               {scenario.goals.map((goal, idx) => (
@@ -1056,9 +1080,9 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
 
           {/* Слова из урока для сохранения в личный словарик */}
           {getRelevantWordsForCall().length > 0 && (
-            <div className="space-y-2">
+            <div className="space-y-2 font-hebrew">
               <h4 className="text-xs font-bold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider">
-                Полезные слова из этого звонка:
+                {userProfile.ulpanMode ? 'מִילִּים שֶׁנִּלְמְדוּ בַּשִּׂיחָה:' : 'Полезные слова из этого звонка:'}
               </h4>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {getRelevantWordsForCall().map((word) => {
@@ -1072,9 +1096,11 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
                         <div className="font-bold text-zinc-900 dark:text-zinc-100 font-hebrew truncate text-sm">
                           {word.hebrew}
                         </div>
-                        <div className="text-xs text-zinc-500 dark:text-zinc-400 truncate">
-                          {word.translation}
-                        </div>
+                        {!userProfile.ulpanMode && (
+                          <div className="text-xs text-zinc-500 dark:text-zinc-400 truncate">
+                            {word.translation}
+                          </div>
+                        )}
                       </div>
 
                       <button
@@ -1083,16 +1109,16 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
                         className={`p-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 shrink-0 transition ${
                           isAdded
                             ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800'
-                            : 'bg-blue-600 hover:bg-blue-700 text-white'
+                            : 'bg-blue-600 hover:bg-blue-700 text-white cursor-pointer'
                         }`}
-                        title={isAdded ? 'Слово уже в словаре' : 'Добавить в словарь'}
+                        title={isAdded ? (userProfile.ulpanMode ? 'במילון' : 'Слово уже в словаре') : (userProfile.ulpanMode ? 'הוסף למילון' : 'Добавить в словарь')}
                       >
                         {isAdded ? (
                           <Check className="w-3.5 h-3.5" />
                         ) : (
                           <>
                             <Plus className="w-3.5 h-3.5" />
-                            <span className="text-[11px]">В словарь</span>
+                            <span className="text-[11px]">{userProfile.ulpanMode ? 'לַמִּילוֹן' : 'В словарь'}</span>
                           </>
                         )}
                       </button>
@@ -1104,13 +1130,13 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
           )}
 
           {/* Кнопки действий */}
-          <div className="flex flex-col sm:flex-row gap-2.5 pt-2">
+          <div className="flex flex-col sm:flex-row gap-2.5 pt-2 font-hebrew">
             <button
               onClick={handleStartCall}
               className="flex-1 py-3 px-4 rounded-xl border border-zinc-300 dark:border-zinc-700 font-semibold text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition flex items-center justify-center gap-2 text-sm cursor-pointer"
             >
               <RotateCcw className="w-4 h-4" />
-              <span>Позвонить еще раз</span>
+              <span>{userProfile.ulpanMode ? 'שִׂיחָה חוֹזֶרֶת 🔄' : 'Позвонить еще раз'}</span>
             </button>
 
             {onBackToLesson && (
@@ -1118,7 +1144,7 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
                 onClick={onBackToLesson}
                 className="flex-1 py-3 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold transition flex items-center justify-center gap-2 text-sm shadow-sm cursor-pointer"
               >
-                <span>Вернуться к уроку</span>
+                <span>{userProfile.ulpanMode ? 'חֲזָרָה לַשִּׁיעוּרִים ➡️' : 'Вернуться к уроку'}</span>
               </button>
             )}
           </div>

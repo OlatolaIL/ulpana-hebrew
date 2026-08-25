@@ -302,48 +302,48 @@ export const AlphabetTrainer: React.FC<AlphabetTrainerProps> = ({ userProfile })
   };
 
   return (
-    <div className="max-w-5xl mx-auto space-y-3.5 sm:space-y-4">
+    <div className="max-w-5xl mx-auto space-y-3.5 sm:space-y-4 font-sans">
       {/* Компактный заголовок */}
-      <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white rounded-2xl p-3.5 sm:p-4 shadow-sm flex items-center justify-between gap-3">
+      <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white rounded-2xl p-3.5 sm:p-4 shadow-sm flex items-center justify-between gap-3 font-hebrew">
         <div className="flex items-center gap-2.5">
           <div className="p-2 rounded-xl bg-white/20 backdrop-blur shrink-0">
             <PenTool className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-300" />
           </div>
           <div>
             <h1 className="text-sm sm:text-base font-bold tracking-tight">
-              Алфавит и прописи (Ктав Яд)
+              {isUlpan ? 'אָלֶף־בֵּית וּכְתָב יָד' : 'Алфавит и прописи (Ктав Яд)'}
             </h1>
             <p className="text-[11px] sm:text-xs text-blue-100 opacity-90">
-              27 букв • Печатный и рукописный шрифт
+              {isUlpan ? '27 אוֹתִיּוֹת • דְּפוּס וּכְתָב יָד' : '27 букв • Печатный и рукописный шрифт'}
             </p>
           </div>
         </div>
       </div>
 
       {/* Быстрые 3 вкладки */}
-      <div className="grid grid-cols-3 gap-1 p-1 bg-zinc-100 dark:bg-zinc-800/80 rounded-2xl border border-zinc-200 dark:border-zinc-700/60">
+      <div className="grid grid-cols-3 gap-1 p-1 bg-zinc-100 dark:bg-zinc-800/80 rounded-2xl border border-zinc-200 dark:border-zinc-700/60 font-hebrew">
         <button
           onClick={() => setActiveTab('grid')}
-          className={`py-2 px-2 rounded-xl font-semibold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition ${
+          className={`py-2 px-2 rounded-xl font-semibold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition cursor-pointer ${
             activeTab === 'grid'
               ? 'bg-white dark:bg-zinc-900 text-blue-600 dark:text-blue-400 shadow-sm font-bold'
               : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200'
           }`}
         >
           <BookOpen className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
-          <span>Алфавит</span>
+          <span>{isUlpan ? 'אָלֶף־בֵּית' : 'Алфавит'}</span>
         </button>
 
         <button
           onClick={() => setActiveTab('canvas')}
-          className={`py-2 px-2 rounded-xl font-semibold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition ${
+          className={`py-2 px-2 rounded-xl font-semibold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition cursor-pointer ${
             activeTab === 'canvas'
               ? 'bg-white dark:bg-zinc-900 text-blue-600 dark:text-blue-400 shadow-sm font-bold'
               : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200'
           }`}
         >
           <PenTool className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
-          <span>Тренажёр</span>
+          <span>{isUlpan ? 'אִמּוּן כְּתִיבָה' : 'Тренажёр'}</span>
         </button>
 
         <button
@@ -351,85 +351,85 @@ export const AlphabetTrainer: React.FC<AlphabetTrainerProps> = ({ userProfile })
             setActiveTab('quiz');
             resetQuiz();
           }}
-          className={`py-2 px-2 rounded-xl font-semibold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition ${
+          className={`py-2 px-2 rounded-xl font-semibold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition cursor-pointer ${
             activeTab === 'quiz'
               ? 'bg-white dark:bg-zinc-900 text-blue-600 dark:text-blue-400 shadow-sm font-bold'
               : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200'
           }`}
         >
           <Award className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
-          <span>Тест</span>
+          <span>{isUlpan ? 'מִבְחָן' : 'Тест'}</span>
         </button>
       </div>
 
       {/* --- ВКЛАДКА 1: КАТАЛОГ ВСЕХ БУКВ --- */}
       {activeTab === 'grid' && (
-        <div className="space-y-3 sm:space-y-4">
+        <div className="space-y-3 sm:space-y-4 font-hebrew">
           {/* Панель фильтров */}
           <div className="bg-white dark:bg-zinc-900 p-2.5 sm:p-3 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-2.5">
             <div className="grid grid-cols-3 gap-1 w-full sm:w-auto bg-zinc-100 dark:bg-zinc-800/80 p-1 rounded-xl text-xs font-semibold">
               <button
                 onClick={() => setSelectedCategory('all')}
-                className={`py-1.5 px-2.5 rounded-lg text-center transition ${
+                className={`py-1.5 px-2.5 rounded-lg text-center transition cursor-pointer ${
                   selectedCategory === 'all'
                     ? 'bg-white dark:bg-zinc-700 text-blue-600 dark:text-blue-400 shadow-sm font-bold'
                     : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300'
                 }`}
               >
-                Все (27)
+                {isUlpan ? 'הַכֹּל (27)' : 'Все (27)'}
               </button>
               <button
                 onClick={() => setSelectedCategory('regular')}
-                className={`py-1.5 px-2.5 rounded-lg text-center transition ${
+                className={`py-1.5 px-2.5 rounded-lg text-center transition cursor-pointer ${
                   selectedCategory === 'regular'
                     ? 'bg-white dark:bg-zinc-700 text-blue-600 dark:text-blue-400 shadow-sm font-bold'
                     : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300'
                 }`}
               >
-                Обычные (22)
+                {isUlpan ? 'רְגִילוֹת (22)' : 'Обычные (22)'}
               </button>
               <button
                 onClick={() => setSelectedCategory('sofit')}
-                className={`py-1.5 px-2.5 rounded-lg text-center transition ${
+                className={`py-1.5 px-2.5 rounded-lg text-center transition cursor-pointer ${
                   selectedCategory === 'sofit'
                     ? 'bg-white dark:bg-zinc-700 text-blue-600 dark:text-blue-400 shadow-sm font-bold'
                     : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300'
                 }`}
               >
-                Софит (5)
+                {isUlpan ? 'סוֹפִיּוֹת (5)' : 'Софит (5)'}
               </button>
             </div>
 
             <div className="grid grid-cols-3 gap-1 w-full sm:w-auto bg-zinc-100 dark:bg-zinc-800/80 p-1 rounded-xl text-xs font-semibold">
               <button
                 onClick={() => setDisplayMode('both')}
-                className={`py-1.5 px-2.5 rounded-lg text-center transition ${
+                className={`py-1.5 px-2.5 rounded-lg text-center transition cursor-pointer ${
                   displayMode === 'both'
                     ? 'bg-blue-600 text-white font-bold shadow-sm'
                     : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900'
                 }`}
               >
-                Оба вида
+                {isUlpan ? 'דְּפוּס וּכְתָב' : 'Оба вида'}
               </button>
               <button
                 onClick={() => setDisplayMode('print')}
-                className={`py-1.5 px-2.5 rounded-lg text-center transition ${
+                className={`py-1.5 px-2.5 rounded-lg text-center transition cursor-pointer ${
                   displayMode === 'print'
                     ? 'bg-blue-600 text-white font-bold shadow-sm'
                     : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900'
                 }`}
               >
-                Печатный
+                {isUlpan ? 'דְּפוּס' : 'Печатный'}
               </button>
               <button
                 onClick={() => setDisplayMode('cursive')}
-                className={`py-1.5 px-2.5 rounded-lg text-center transition ${
+                className={`py-1.5 px-2.5 rounded-lg text-center transition cursor-pointer ${
                   displayMode === 'cursive'
                     ? 'bg-blue-600 text-white font-bold shadow-sm'
                     : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900'
                 }`}
               >
-                Рукописный
+                {isUlpan ? 'כְּתָב יָד' : 'Рукописный'}
               </button>
             </div>
           </div>
@@ -452,13 +452,15 @@ export const AlphabetTrainer: React.FC<AlphabetTrainerProps> = ({ userProfile })
                     <span>№{item.gematria}</span>
                     <div className="flex items-center gap-1">
                       {rule && (
-                        <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-300">
-                          {rule.strokesCount === 1 ? '1 штрих' : '2 штриха'}
+                        <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-300 font-hebrew">
+                          {isUlpan
+                            ? `${rule.strokesCount} קַוִּים`
+                            : (rule.strokesCount === 1 ? '1 штрих' : '2 штриха')}
                         </span>
                       )}
                       {item.isSofit && (
-                        <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-purple-100 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300">
-                          софит
+                        <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-purple-100 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 font-hebrew">
+                          {isUlpan ? 'סוֹפִית' : 'софит'}
                         </span>
                       )}
                     </div>
@@ -485,29 +487,29 @@ export const AlphabetTrainer: React.FC<AlphabetTrainerProps> = ({ userProfile })
 
                   {/* Название и пример */}
                   <div>
-                    <h3 className="text-xs font-bold text-zinc-800 dark:text-zinc-200">
-                      {item.nameRussian}
+                    <h3 className="text-xs font-bold text-zinc-800 dark:text-zinc-200 font-hebrew">
+                      {isUlpan ? item.nameHebrew : item.nameRussian}
                     </h3>
                     <p dir="rtl" className="text-[11px] font-hebrew text-zinc-400 mt-0.5">
-                      {item.nameHebrew}
+                      {isUlpan ? `צְלִיל: [${item.transcription}]` : item.nameHebrew}
                     </p>
                   </div>
 
                   {/* Кнопка озвучки и действия */}
-                  <div className="mt-3 pt-2 border-t border-zinc-100 dark:border-zinc-800 flex items-center justify-between">
+                  <div className="mt-3 pt-2 border-t border-zinc-100 dark:border-zinc-800 flex items-center justify-between font-hebrew">
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
                         speakHebrew(item.exampleWord.hebrew);
                       }}
-                      className="p-1.5 rounded-lg text-zinc-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/50 transition"
-                      title="Прослушать пример слова"
+                      className="p-1.5 rounded-lg text-zinc-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/50 transition cursor-pointer"
+                      title={isUlpan ? 'השמע מילה' : 'Прослушать пример слова'}
                     >
                       <Volume2 className="w-3.5 h-3.5" />
                     </button>
 
                     <span className="text-[10px] font-semibold text-blue-600 dark:text-blue-400 group-hover:underline flex items-center gap-0.5">
-                      <span>Практика</span>
+                      <span>{isUlpan ? 'אִמּוּן' : 'Практика'}</span>
                       <ChevronRight className="w-3 h-3" />
                     </span>
                   </div>
@@ -520,41 +522,52 @@ export const AlphabetTrainer: React.FC<AlphabetTrainerProps> = ({ userProfile })
 
       {/* --- ВКЛАДКА 2: ИНТЕРАКТИВНЫЙ ХОЛСТ С ПРАВИЛАМИ И НАПРАВЛЕНИЯМИ --- */}
       {activeTab === 'canvas' && (
-        <div className="bg-white dark:bg-zinc-900 rounded-3xl p-6 border border-zinc-200 dark:border-zinc-800 shadow-lg space-y-6">
+        <div className="bg-white dark:bg-zinc-900 rounded-3xl p-6 border border-zinc-200 dark:border-zinc-800 shadow-lg space-y-6 font-hebrew">
           {/* Верхняя панель переключения буквы */}
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pb-4 border-b border-zinc-200 dark:border-zinc-800">
             <div className="flex items-center gap-3">
               <button
                 onClick={handlePrevLetter}
-                className="p-2.5 rounded-2xl border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
-                title="Предыдущая буква"
+                className="p-2.5 rounded-2xl border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition cursor-pointer"
+                title={isUlpan ? 'אות קודמת' : 'Предыдущая буква'}
               >
                 <ChevronLeft className="w-5 h-5" />
               </button>
 
               <div className="text-center sm:text-left">
                 <div className="flex items-center gap-2">
-                  <h2 className="text-xl font-bold text-zinc-900 dark:text-zinc-50">
-                    Буква {selectedLetter.nameRussian} ({selectedLetter.nameHebrew})
+                  <h2 className="text-xl font-bold text-zinc-900 dark:text-zinc-50 font-hebrew">
+                    {isUlpan
+                      ? `אוֹת ${selectedLetter.nameHebrew}`
+                      : `Буква ${selectedLetter.nameRussian} (${selectedLetter.nameHebrew})`}
                   </h2>
                   <button
                     onClick={() => speakHebrew(selectedLetter.exampleWord.hebrew)}
-                    className="p-1.5 rounded-full bg-blue-50 dark:bg-blue-950/60 text-blue-600 hover:bg-blue-100 transition"
-                    title="Озвучить пример слова"
+                    className="p-1.5 rounded-full bg-blue-50 dark:bg-blue-950/60 text-blue-600 hover:bg-blue-100 transition cursor-pointer"
+                    title={isUlpan ? 'השמע מילה' : 'Озвучить пример слова'}
                   >
                     <Volume2 className="w-4 h-4" />
                   </button>
                 </div>
-                <p className="text-xs text-zinc-500 mt-0.5">
-                  Звук: <span className="font-semibold text-blue-600">[{selectedLetter.transcription}]</span> • Гематрия: {selectedLetter.gematria}
-                  {selectedLetter.isSofit && ' • Конечная форма (Софит)'}
+                <p className="text-xs text-zinc-500 mt-0.5 font-hebrew">
+                  {isUlpan ? (
+                    <>
+                      צְלִיל: <span className="font-semibold text-blue-600">[{selectedLetter.transcription}]</span> • גִּימַטְרִיָּה: {selectedLetter.gematria}
+                      {selectedLetter.isSofit && ' • אוֹת סוֹפִית'}
+                    </>
+                  ) : (
+                    <>
+                      Звук: <span className="font-semibold text-blue-600">[{selectedLetter.transcription}]</span> • Гематрия: {selectedLetter.gematria}
+                      {selectedLetter.isSofit && ' • Конечная форма (Софит)'}
+                    </>
+                  )}
                 </p>
               </div>
 
               <button
                 onClick={handleNextLetter}
-                className="p-2.5 rounded-2xl border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
-                title="Следующая буква"
+                className="p-2.5 rounded-2xl border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition cursor-pointer"
+                title={isUlpan ? 'אות הבאה' : 'Следующая буква'}
               >
                 <ChevronRight className="w-5 h-5" />
               </button>
@@ -570,11 +583,11 @@ export const AlphabetTrainer: React.FC<AlphabetTrainerProps> = ({ userProfile })
                   stopAnimation();
                 }
               }}
-              className="px-3 py-2 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-600"
+              className="px-3 py-2 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-600 font-hebrew"
             >
               {HEBREW_ALPHABET.map((item) => (
                 <option key={item.id} value={item.id}>
-                  {item.letter} / {item.cursiveLetter} — {item.nameRussian}
+                  {item.letter} / {item.cursiveLetter} — {isUlpan ? item.nameHebrew : item.nameRussian}
                 </option>
               ))}
             </select>
@@ -583,43 +596,47 @@ export const AlphabetTrainer: React.FC<AlphabetTrainerProps> = ({ userProfile })
           {/* Рабочая зона: Правила слева + Холст справа */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
             {/* Левая колонка: Правила написания и пошаговые подсказки */}
-            <div className="lg:col-span-5 space-y-4">
+            <div className="lg:col-span-5 space-y-4 font-hebrew">
               {/* Карточка сравнения форм */}
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-3 font-hebrew">
                 <div className="bg-zinc-50 dark:bg-zinc-800/60 p-3.5 rounded-2xl border border-zinc-200 dark:border-zinc-700 text-center">
-                  <span className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">
-                    Печатная (דפוס)
+                  <span className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider font-hebrew">
+                    {isUlpan ? 'דְּפוּס' : 'Печатная (דפוס)'}
                   </span>
                   <div className="text-5xl font-bold font-hebrew text-zinc-900 dark:text-zinc-50 py-1">
                     {selectedLetter.letter}
                   </div>
-                  <p className="text-[11px] text-zinc-500">Книги и сайты</p>
+                  <p className="text-[11px] text-zinc-500 font-hebrew">
+                    {isUlpan ? 'סְפָרִים וַאֲתָרִים' : 'Книги и сайты'}
+                  </p>
                 </div>
 
                 <div className="bg-blue-50 dark:bg-blue-950/40 p-3.5 rounded-2xl border border-blue-200 dark:border-blue-900/60 text-center">
-                  <span className="text-[10px] font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wider">
-                    Рукописная (כתב)
+                  <span className="text-[10px] font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wider font-hebrew">
+                    {isUlpan ? 'כְּתָב יָד' : 'Рукописная (כתב)'}
                   </span>
                   <div className="text-6xl font-cursive text-blue-600 dark:text-blue-400 font-bold py-0.5">
                     {selectedLetter.cursiveLetter}
                   </div>
-                  <p className="text-[11px] text-blue-700 dark:text-blue-300 font-medium">
-                    Живое письмо от руки
+                  <p className="text-[11px] text-blue-700 dark:text-blue-300 font-medium font-hebrew">
+                    {isUlpan ? 'כְּתִיבָה תַּמָּה מַעֲשִׂית' : 'Живое письмо от руки'}
                   </p>
                 </div>
               </div>
 
               {/* Блок правил написания (Ктав Яд) */}
               {currentRule && (
-                <div className="bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30 p-4 rounded-2xl border border-amber-200 dark:border-amber-900/50 space-y-3">
+                <div className="bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30 p-4 rounded-2xl border border-amber-200 dark:border-amber-900/50 space-y-3 font-hebrew">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-1.5 text-xs font-bold text-amber-800 dark:text-amber-300">
                       <HelpCircle className="w-4 h-4 text-amber-600" />
-                      <span>Правила написания буквы:</span>
+                      <span>{isUlpan ? 'כְּלָלֵי כְּתִיבַת הָאוֹת:' : 'Правила написания буквы:'}</span>
                     </div>
 
                     <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-200/80 dark:bg-amber-900/80 text-amber-900 dark:text-amber-200">
-                      {currentRule.strokesCount === 1 ? '1 слитный штрих' : '2 штриха с отрывом руки'}
+                      {isUlpan
+                        ? (currentRule.strokesCount === 1 ? 'קַו אֶחָד רָצִיף' : '2 קַוִּים נִפְרָדִים')
+                        : (currentRule.strokesCount === 1 ? '1 слитный штрих' : '2 штриха с отрывом руки')}
                     </span>
                   </div>
 
@@ -662,18 +679,18 @@ export const AlphabetTrainer: React.FC<AlphabetTrainerProps> = ({ userProfile })
                   {/* Особенности пропорций строки */}
                   <div className="flex flex-wrap gap-1.5 pt-1 text-[10px] font-semibold">
                     {currentRule.proportions.ascender && (
-                      <span className="px-2 py-0.5 rounded-md bg-purple-100 dark:bg-purple-950/70 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800">
-                        ▲ Выходит над строкой (высокий флажок)
+                      <span className="px-2 py-0.5 rounded-md bg-purple-100 dark:purple-950/70 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800">
+                        {isUlpan ? '▲ יוֹצֵא מֵעַל הַשּׁוּרָה (ל)' : '▲ Выходит над строкой (высокий флажок)'}
                       </span>
                     )}
                     {currentRule.proportions.descender && (
                       <span className="px-2 py-0.5 rounded-md bg-rose-100 dark:bg-rose-950/70 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800">
-                        ▼ Уходит глубоко под строку (хвостик)
+                        {isUlpan ? '▼ יוֹרֵד מִתַּחַת לַשּׁוּרָה (סוֹפִיּוֹת)' : '▼ Уходит глубоко под строку (хвостик)'}
                       </span>
                     )}
                     {currentRule.proportions.baseline && !currentRule.proportions.descender && (
                       <span className="px-2 py-0.5 rounded-md bg-emerald-100 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
-                        ✓ Опирается на базовую строку
+                        {isUlpan ? '✓ עוֹמֵד עַל שׁוּרַת הַבָּסִיס' : '✓ Опирается на базовую строку'}
                       </span>
                     )}
                   </div>
@@ -681,7 +698,7 @@ export const AlphabetTrainer: React.FC<AlphabetTrainerProps> = ({ userProfile })
               )}
 
               {/* Пример слова с этой буквой */}
-              <div className="bg-zinc-50 dark:bg-zinc-800/60 p-3.5 rounded-2xl border border-zinc-200 dark:border-zinc-700 flex items-center justify-between">
+              <div className="bg-zinc-50 dark:bg-zinc-800/60 p-3.5 rounded-2xl border border-zinc-200 dark:border-zinc-700 flex items-center justify-between font-hebrew">
                 <div>
                   <span className="text-[11px] text-zinc-400">{isUlpan ? 'דֻּגְמָה:' : 'Пример слова:'}</span>
                   <div className="flex items-center gap-2 mt-0.5">
@@ -714,15 +731,15 @@ export const AlphabetTrainer: React.FC<AlphabetTrainerProps> = ({ userProfile })
                   <div className="absolute inset-0 pointer-events-none z-0">
                     {/* Надстрочная линия (для Ламед) - y ≈ 12.5% */}
                     <div className="absolute w-full top-[12.5%] border-b border-purple-300/60 dark:border-purple-800/60 border-dashed">
-                      <span className="absolute left-2 -top-3.5 text-[9px] font-semibold text-purple-600 dark:text-purple-400">
-                        Надстрочная (Ламед ל)
+                      <span className="absolute left-2 -top-3.5 text-[9px] font-semibold text-purple-600 dark:text-purple-400 font-hebrew">
+                        {isUlpan ? 'מֵעַל הַשּׁוּרָה' : 'Надстрочная (Ламед ל)'}
                       </span>
                     </div>
 
                     {/* Верхняя линия строки (Top line) - y ≈ 32% */}
                     <div className="absolute w-full top-[32%] border-b border-zinc-300 dark:border-zinc-700">
-                      <span className="absolute left-2 -top-3.5 text-[9px] font-semibold text-zinc-400">
-                        Верх строки
+                      <span className="absolute left-2 -top-3.5 text-[9px] font-semibold text-zinc-400 font-hebrew">
+                        {isUlpan ? 'רֹאשׁ הַשּׁוּרָה' : 'Верх строки'}
                       </span>
                     </div>
 
@@ -731,15 +748,15 @@ export const AlphabetTrainer: React.FC<AlphabetTrainerProps> = ({ userProfile })
 
                     {/* Базовая линия строки (Baseline) - y ≈ 69% */}
                     <div className="absolute w-full top-[69%] border-b-2 border-indigo-400/80 dark:border-indigo-600/80">
-                      <span className="absolute left-2 -top-3.5 text-[9px] font-bold text-indigo-600 dark:text-indigo-400">
-                        Базовая линия строки
+                      <span className="absolute left-2 -top-3.5 text-[9px] font-bold text-indigo-600 dark:text-indigo-400 font-hebrew">
+                        {isUlpan ? 'שׁוּרַת בָּסִיס' : 'Базовая линия строки'}
                       </span>
                     </div>
 
                     {/* Подстрочная линия (Descender) - y ≈ 89% */}
                     <div className="absolute w-full top-[89%] border-b border-rose-300/60 dark:border-rose-800/60 border-dashed">
-                      <span className="absolute left-2 -top-3.5 text-[9px] font-semibold text-rose-500 dark:text-rose-400">
-                        Подстрочная (софиты ך, ן, ף, ץ)
+                      <span className="absolute left-2 -top-3.5 text-[9px] font-semibold text-rose-500 dark:text-rose-400 font-hebrew">
+                        {isUlpan ? 'מִתַּחַת לַשּׁוּרָה' : 'Подстрочная (софиты ך, ן, ף, ץ)'}
                       </span>
                     </div>
                   </div>
@@ -826,27 +843,29 @@ export const AlphabetTrainer: React.FC<AlphabetTrainerProps> = ({ userProfile })
                 />
 
                 {!hasDrawn && (
-                  <div className="absolute bottom-3 text-center pointer-events-none z-30 text-[11px] text-zinc-500 dark:text-zinc-400 bg-white/90 dark:bg-zinc-900/90 px-3 py-1 rounded-full shadow-sm backdrop-blur border border-zinc-200/50 dark:border-zinc-800/50">
-                    {currentRule && currentRule.strokesCount > 1
+                  <div className="absolute bottom-3 text-center pointer-events-none z-30 text-[11px] text-zinc-500 dark:text-zinc-400 bg-white/90 dark:bg-zinc-900/90 px-3 py-1 rounded-full shadow-sm backdrop-blur border border-zinc-200/50 dark:border-zinc-800/50 font-hebrew">
+                    {isUlpan
+                      ? 'הַתְחִילוּ מֵהַנְּקֻדָּה הַיְּרֻקָּה ❶'
+                      : (currentRule && currentRule.strokesCount > 1
                       ? 'Начните с точки ❶, затем перейдите к точке ❷'
-                      : 'Начните с зеленой точки ❶'}
+                      : 'Начните с зеленой точки ❶')}
                   </div>
                 )}
               </div>
 
               {/* Панель инструментов холста */}
-              <div className="flex flex-wrap items-center justify-center gap-2 w-full max-w-[440px]">
+              <div className="flex flex-wrap items-center justify-center gap-2 w-full max-w-[440px] font-hebrew">
                 {/* Выбор цвета чернил */}
                 <div className="flex items-center gap-1 bg-zinc-100 dark:bg-zinc-800 p-1 rounded-xl">
                   {['#2563eb', '#18181b', '#9333ea', '#059669'].map((c) => (
                     <button
                       key={c}
                       onClick={() => setPenColor(c)}
-                      className={`w-6 h-6 rounded-lg transition transform active:scale-90 ${
+                      className={`w-6 h-6 rounded-lg transition transform active:scale-90 cursor-pointer ${
                         penColor === c ? 'ring-2 ring-offset-1 ring-blue-500 scale-110' : 'opacity-70'
                       }`}
                       style={{ backgroundColor: c }}
-                      title="Выбрать цвет чернил"
+                      title={isUlpan ? 'בחר צבע' : 'Выбрать цвет чернил'}
                     />
                   ))}
                 </div>
@@ -857,11 +876,11 @@ export const AlphabetTrainer: React.FC<AlphabetTrainerProps> = ({ userProfile })
                     <button
                       key={w}
                       onClick={() => setPenWidth(w)}
-                      className={`px-2 py-1 rounded-lg transition ${
+                      className={`px-2 py-1 rounded-lg transition cursor-pointer font-hebrew ${
                         penWidth === w ? 'bg-white dark:bg-zinc-700 text-blue-600 shadow-sm' : 'text-zinc-500'
                       }`}
                     >
-                      {w === 6 ? 'Тонко' : w === 8 ? 'Норм' : 'Жирно'}
+                      {w === 6 ? (isUlpan ? 'דַּק' : 'Тонко') : w === 8 ? (isUlpan ? 'בֵּינוֹנִי' : 'Норм') : (isUlpan ? 'עָבֶה' : 'Жирно')}
                     </button>
                   ))}
                 </div>
@@ -870,8 +889,8 @@ export const AlphabetTrainer: React.FC<AlphabetTrainerProps> = ({ userProfile })
                 <button
                   onClick={undoLastStroke}
                   disabled={history.length === 0}
-                  className="p-2 rounded-xl text-xs font-semibold border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-40 transition text-zinc-600 dark:text-zinc-300"
-                  title="Отменить последний штрих"
+                  className="p-2 rounded-xl text-xs font-semibold border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-40 transition text-zinc-600 dark:text-zinc-300 cursor-pointer"
+                  title={isUlpan ? 'בטל קו אחרון' : 'Отменить последний штрих'}
                 >
                   <Undo2 className="w-4 h-4" />
                 </button>
@@ -879,57 +898,57 @@ export const AlphabetTrainer: React.FC<AlphabetTrainerProps> = ({ userProfile })
                 {/* Кнопка очистки холста */}
                 <button
                   onClick={clearCanvas}
-                  className="px-3 py-2 rounded-xl text-xs font-semibold border border-zinc-200 dark:border-zinc-700 hover:bg-red-50 hover:text-red-600 hover:border-red-200 dark:hover:bg-red-950/40 transition flex items-center gap-1.5 text-zinc-600 dark:text-zinc-300"
-                  title="Стереть все нарисованное"
+                  className="px-3 py-2 rounded-xl text-xs font-semibold border border-zinc-200 dark:border-zinc-700 hover:bg-red-50 hover:text-red-600 hover:border-red-200 dark:hover:bg-red-950/40 transition flex items-center gap-1.5 text-zinc-600 dark:text-zinc-300 cursor-pointer font-hebrew"
+                  title={isUlpan ? 'נקה הכל' : 'Стереть все нарисованное'}
                 >
                   <RotateCcw className="w-3.5 h-3.5" />
-                  <span>Стереть</span>
+                  <span>{isUlpan ? 'מְחַק' : 'Стереть'}</span>
                 </button>
 
                 {/* Следующая буква */}
                 <button
                   onClick={handleNextLetter}
-                  className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white transition flex items-center gap-1 shadow-sm"
+                  className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white transition flex items-center gap-1 shadow-sm cursor-pointer font-hebrew"
                 >
-                  <span>Дальше</span>
+                  <span>{isUlpan ? 'הַבָּא' : 'Дальше'}</span>
                   <ChevronRight className="w-3.5 h-3.5" />
                 </button>
               </div>
 
               {/* Переключатели ориентиров и слоев */}
-              <div className="flex flex-wrap items-center justify-center gap-1.5 pt-1 text-[11px] text-zinc-500">
+              <div className="flex flex-wrap items-center justify-center gap-1.5 pt-1 text-[11px] text-zinc-500 font-hebrew">
                 <button
                   onClick={() => setShowStartingPoints(!showStartingPoints)}
-                  className={`px-2.5 py-1 rounded-lg border font-medium transition ${
+                  className={`px-2.5 py-1 rounded-lg border font-medium transition cursor-pointer ${
                     showStartingPoints
                       ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-900'
                       : 'border-zinc-200 dark:border-zinc-700'
                   }`}
                 >
-                  Точки старта ❶ ❷: {showStartingPoints ? 'Вкл' : 'Выкл'}
+                  {isUlpan ? 'נְקֻדּוֹת הַתְחָלָה ❶ ❷' : `Точки старта ❶ ❷: ${showStartingPoints ? 'Вкл' : 'Выкл'}`}
                 </button>
 
                 <button
                   onClick={() => setShowNotebookLines(!showNotebookLines)}
-                  className={`px-2.5 py-1 rounded-lg border font-medium transition ${
+                  className={`px-2.5 py-1 rounded-lg border font-medium transition cursor-pointer ${
                     showNotebookLines
                       ? 'bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-900'
                       : 'border-zinc-200 dark:border-zinc-700'
                   }`}
                 >
-                  Линовка тетради: {showNotebookLines ? 'Вкл' : 'Выкл'}
+                  {isUlpan ? 'שׁוּרוֹת מַחְבֶּרֶת' : `Линовка тетради: ${showNotebookLines ? 'Вкл' : 'Выкл'}`}
                 </button>
 
                 <button
                   onClick={() => setShowStencil(!showStencil)}
-                  className={`px-2.5 py-1 rounded-lg border font-medium transition ${
+                  className={`px-2.5 py-1 rounded-lg border font-medium transition cursor-pointer ${
                     showStencil
                       ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 border-zinc-300 dark:border-zinc-600'
                       : 'border-zinc-200 dark:border-zinc-700'
                   }`}
                 >
                   {showStencil ? <Eye className="w-3 h-3 inline mr-1" /> : <EyeOff className="w-3 h-3 inline mr-1" />}
-                  Трафарет буквы
+                  <span>{isUlpan ? 'דֻּגְמַת הָאוֹת' : 'Трафарет буквы'}</span>
                 </button>
               </div>
             </div>
@@ -939,14 +958,14 @@ export const AlphabetTrainer: React.FC<AlphabetTrainerProps> = ({ userProfile })
 
       {/* --- ВКЛАДКА 3: ТЕСТ НА ЗНАНИЕ ПРОПИСЕЙ --- */}
       {activeTab === 'quiz' && (
-        <div className="bg-white dark:bg-zinc-900 rounded-3xl p-6 md:p-8 border border-zinc-200 dark:border-zinc-800 shadow-lg max-w-xl mx-auto space-y-6">
+        <div className="bg-white dark:bg-zinc-900 rounded-3xl p-6 md:p-8 border border-zinc-200 dark:border-zinc-800 shadow-lg max-w-xl mx-auto space-y-6 font-hebrew">
           {!quizCompleted ? (
             <div className="space-y-6">
               {/* Шапка квиза */}
-              <div className="flex items-center justify-between text-xs font-semibold text-zinc-500">
-                <span>Вопрос {quizIndex + 1} из 10</span>
-                <span className="text-blue-600 dark:text-blue-400 font-bold">
-                  Правильно: {quizScore}
+              <div className="flex items-center justify-between text-xs font-semibold text-zinc-500 font-hebrew">
+                <span>{isUlpan ? `שְׁאֵלָה ${quizIndex + 1} מִתּוֹךְ 10` : `Вопрос ${quizIndex + 1} из 10`}</span>
+                <span className="text-blue-600 dark:text-blue-400 font-bold font-hebrew">
+                  {isUlpan ? `נָכוֹן: ${quizScore}` : `Правильно: ${quizScore}`}
                 </span>
               </div>
 
@@ -959,15 +978,17 @@ export const AlphabetTrainer: React.FC<AlphabetTrainerProps> = ({ userProfile })
               </div>
 
               {/* Карточка задания */}
-              <div className="text-center py-6 bg-blue-50 dark:bg-blue-950/30 rounded-3xl border border-blue-100 dark:border-blue-900/50 space-y-3">
-                <span className="text-xs uppercase tracking-wider font-semibold text-zinc-400">
-                  Найдите рукописную пару для буквы:
+              <div className="text-center py-6 bg-blue-50 dark:bg-blue-950/30 rounded-3xl border border-blue-100 dark:border-blue-900/50 space-y-3 font-hebrew">
+                <span className="text-xs uppercase tracking-wider font-semibold text-zinc-400 font-hebrew">
+                  {isUlpan ? 'מִצְאוּ אֶת הָאוֹת בִּכְתָב יָד:' : 'Найдите рукописную пару для буквы:'}
                 </span>
                 <div className="text-7xl font-bold font-hebrew text-zinc-900 dark:text-zinc-50 py-2">
                   {currentQuizLetter.letter}
                 </div>
-                <p className="text-sm font-semibold text-blue-600 dark:text-blue-400">
-                  Буква {currentQuizLetter.nameRussian} ({currentQuizLetter.nameHebrew})
+                <p className="text-sm font-semibold text-blue-600 dark:text-blue-400 font-hebrew">
+                  {isUlpan
+                    ? `אוֹת ${currentQuizLetter.nameHebrew}`
+                    : `Буква ${currentQuizLetter.nameRussian} (${currentQuizLetter.nameHebrew})`}
                 </p>
               </div>
 
@@ -993,7 +1014,7 @@ export const AlphabetTrainer: React.FC<AlphabetTrainerProps> = ({ userProfile })
                       key={opt.id}
                       disabled={selectedOption !== null}
                       onClick={() => handleQuizAnswer(opt.id)}
-                      className={'p-6 rounded-2xl border-2 text-center transition flex flex-col items-center justify-center gap-1 active:scale-95 ' + btnStyle}
+                      className={'p-6 rounded-2xl border-2 text-center transition flex flex-col items-center justify-center gap-1 active:scale-95 cursor-pointer ' + btnStyle}
                     >
                       <span className="text-6xl font-cursive font-bold leading-tight">
                         {opt.cursiveLetter}
@@ -1004,7 +1025,7 @@ export const AlphabetTrainer: React.FC<AlphabetTrainerProps> = ({ userProfile })
               </div>
             </div>
           ) : (
-            <div className="text-center space-y-6 animate-in zoom-in-95 py-6">
+            <div className="text-center space-y-6 animate-in zoom-in-95 py-6 font-hebrew">
               <div className="w-20 h-20 mx-auto rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 flex items-center justify-center">
                 <Award className="w-10 h-10" />
               </div>
@@ -1013,26 +1034,34 @@ export const AlphabetTrainer: React.FC<AlphabetTrainerProps> = ({ userProfile })
                 <h2 className="text-2xl font-bold font-hebrew text-zinc-900 dark:text-zinc-50">
                   !כָּל הַכָּבוֹד
                 </h2>
-                <p className="text-base font-semibold text-emerald-600 dark:text-emerald-400 mt-1">
-                  Тест по прописям завершен!
+                <p className="text-base font-semibold text-emerald-600 dark:text-emerald-400 mt-1 font-hebrew">
+                  {isUlpan ? 'סִיַּמְתֶּם אֶת הַמִּבְחָן בְּהַצְלָחָה!' : 'Тест по прописям завершен!'}
                 </p>
-                <p className="text-sm text-zinc-500 mt-2">
-                  Ваш результат: <span className="font-bold text-zinc-900 dark:text-zinc-50">{quizScore}</span> из 10 букв.
+                <p className="text-sm text-zinc-500 mt-2 font-hebrew">
+                  {isUlpan ? (
+                    <>
+                      הַצִּיּוּן שֶׁלָּכֶם: <span className="font-bold text-zinc-900 dark:text-zinc-50">{quizScore}</span> מִתּוֹךְ 10 אוֹתִיּוֹת.
+                    </>
+                  ) : (
+                    <>
+                      Ваш результат: <span className="font-bold text-zinc-900 dark:text-zinc-50">{quizScore}</span> из 10 букв.
+                    </>
+                  )}
                 </p>
               </div>
 
-              <div className="flex gap-3 pt-4">
+              <div className="flex gap-3 pt-4 font-hebrew">
                 <button
                   onClick={resetQuiz}
-                  className="flex-1 py-3 px-4 rounded-xl border border-zinc-200 dark:border-zinc-700 font-semibold text-sm hover:bg-zinc-50 dark:hover:bg-zinc-800 transition"
+                  className="flex-1 py-3 px-4 rounded-xl border border-zinc-200 dark:border-zinc-700 font-semibold text-sm hover:bg-zinc-50 dark:hover:bg-zinc-800 transition cursor-pointer"
                 >
-                  Пройти снова
+                  {isUlpan ? 'נַסּוּ שׁוּב 🔄' : 'Пройти снова'}
                 </button>
                 <button
                   onClick={() => setActiveTab('canvas')}
-                  className="flex-1 py-3 px-4 rounded-xl bg-blue-600 text-white font-semibold text-sm hover:bg-blue-700 transition"
+                  className="flex-1 py-3 px-4 rounded-xl bg-blue-600 text-white font-semibold text-sm hover:bg-blue-700 transition cursor-pointer"
                 >
-                  Тренировать прописи
+                  {isUlpan ? 'אִמּוּן כְּתִיבָה ✍️' : 'Тренировать прописи'}
                 </button>
               </div>
             </div>

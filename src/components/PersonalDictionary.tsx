@@ -337,20 +337,24 @@ export const PersonalDictionary: React.FC<PersonalDictionaryProps> = ({
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <h1 className="text-lg sm:text-xl font-black">Личный словарь</h1>
-                    <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-white/20">
-                      {words.length} слов
+                    <h1 className="text-lg sm:text-xl font-black font-hebrew">
+                      {userProfile.ulpanMode ? 'הַמִּילוֹן שֶׁלִּי' : 'Личный словарь'}
+                    </h1>
+                    <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-white/20 font-hebrew">
+                      {userProfile.ulpanMode ? `${words.length} מִילִּים` : `${words.length} слов`}
                     </span>
                   </div>
                   {/* Микро-метрики в 1 строчку */}
-                  <div className="flex items-center gap-2 text-xs text-blue-100 mt-0.5">
-                    <span>Освоение: <strong>{dictStats.avgScore}%</strong></span>
+                  <div className="flex items-center gap-2 text-xs text-blue-100 mt-0.5 font-hebrew">
+                    <span>{userProfile.ulpanMode ? 'רָמַת יְדִיעָה:' : 'Освоение:'} <strong>{dictStats.avgScore}%</strong></span>
                     <span>•</span>
-                    <span>Выучено: <strong>{dictStats.masteredCount}</strong></span>
+                    <span>{userProfile.ulpanMode ? 'נִלְמַד:' : 'Выучено:'} <strong>{dictStats.masteredCount}</strong></span>
                     {dictStats.dueCount > 0 && (
                       <>
                         <span>•</span>
-                        <span className="text-yellow-300 font-bold">⚡ {dictStats.dueCount} к повторению</span>
+                        <span className="text-yellow-300 font-bold">
+                          {userProfile.ulpanMode ? `⚡ ${dictStats.dueCount} לַחֲזָרָה` : `⚡ ${dictStats.dueCount} к повторению`}
+                        </span>
                       </>
                     )}
                   </div>
@@ -362,8 +366,8 @@ export const PersonalDictionary: React.FC<PersonalDictionaryProps> = ({
                 <button
                   type="button"
                   onClick={handleToggleFont}
-                  className="p-2 sm:px-3 sm:py-2 rounded-xl bg-white/15 hover:bg-white/25 text-white text-xs font-semibold flex items-center justify-center gap-1 backdrop-blur transition shrink-0"
-                  title="Переключить шрифт: Печатный / Рукописный"
+                  className="p-2 sm:px-3 sm:py-2 rounded-xl bg-white/15 hover:bg-white/25 text-white text-xs font-semibold flex items-center justify-center gap-1 backdrop-blur transition shrink-0 cursor-pointer"
+                  title={userProfile.ulpanMode ? 'החלף גופן' : 'Переключить шрифт: Печатный / Рукописный'}
                 >
                   <span className={isCursive ? 'font-cursive text-sm font-bold' : 'font-hebrew text-xs font-bold'}>
                     {isCursive ? 'כתב' : 'דפוס'}
@@ -372,19 +376,25 @@ export const PersonalDictionary: React.FC<PersonalDictionaryProps> = ({
 
                 <button
                   onClick={() => setIsAddingCustom(true)}
-                  className="p-2 sm:px-3 sm:py-2 rounded-xl bg-white/15 hover:bg-white/25 text-white text-xs font-semibold flex items-center justify-center gap-1 backdrop-blur transition shrink-0"
+                  className="p-2 sm:px-3 sm:py-2 rounded-xl bg-white/15 hover:bg-white/25 text-white text-xs font-semibold flex items-center justify-center gap-1 backdrop-blur transition shrink-0 cursor-pointer font-hebrew"
                 >
                   <Plus className="w-4 h-4" />
-                  <span className="hidden sm:inline">Добавить слово</span>
+                  <span className="hidden sm:inline">
+                    {userProfile.ulpanMode ? 'הוֹסֵף מִילָּה' : 'Добавить слово'}
+                  </span>
                 </button>
 
                 {words.length > 0 && (
                   <button
-                    onClick={() => onStartPractice(filteredWords.length > 0 ? filteredWords : words, 'Мой словарик')}
-                    className="flex-1 sm:flex-initial px-4 py-2 rounded-xl bg-white text-blue-600 hover:bg-blue-50 text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 shadow-md transition active:scale-95"
+                    onClick={() => onStartPractice(filteredWords.length > 0 ? filteredWords : words, userProfile.ulpanMode ? 'הַמִּילוֹן שֶׁלִּי' : 'Мой словарик')}
+                    className="flex-1 sm:flex-initial px-4 py-2 rounded-xl bg-white text-blue-600 hover:bg-blue-50 text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 shadow-md transition active:scale-95 cursor-pointer font-hebrew"
                   >
                     <Layers className="w-4 h-4" />
-                    <span>Тренировать ({filteredWords.length})</span>
+                    <span>
+                      {userProfile.ulpanMode
+                        ? `תִּרְגּוּל כַּרְטִיסִיּוֹת (${filteredWords.length})`
+                        : `Тренировать (${filteredWords.length})`}
+                    </span>
                   </button>
                 )}
               </div>
@@ -394,47 +404,55 @@ export const PersonalDictionary: React.FC<PersonalDictionaryProps> = ({
           {/* Панель поиска и фильтров по уровню знания */}
           <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
             {/* Фильтры мастерства */}
-            <div className="flex items-center gap-1 p-1 bg-slate-100 dark:bg-slate-800/80 rounded-2xl border border-slate-200 dark:border-slate-700/80 overflow-x-auto">
+            <div className="flex items-center gap-1 p-1 bg-slate-100 dark:bg-slate-800/80 rounded-2xl border border-slate-200 dark:border-slate-700/80 overflow-x-auto font-hebrew">
               <button
                 onClick={() => setMasteryFilter('all')}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
                   masteryFilter === 'all'
                     ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm'
                     : 'text-slate-600 dark:text-slate-400'
                 }`}
               >
-                Все ({words.length})
+                {userProfile.ulpanMode ? `הַכֹּל (${words.length})` : `Все (${words.length})`}
               </button>
               <button
                 onClick={() => setMasteryFilter('due')}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1 ${
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1 cursor-pointer ${
                   masteryFilter === 'due'
                     ? 'bg-amber-500 text-white shadow-sm'
                     : 'text-amber-600 dark:text-amber-400'
                 }`}
               >
                 <Clock className="w-3 h-3" />
-                <span>К повторению ({dictStats.dueCount})</span>
+                <span>
+                  {userProfile.ulpanMode
+                    ? `לַחֲזָרָה (${dictStats.dueCount})`
+                    : `К повторению (${dictStats.dueCount})`}
+                </span>
               </button>
               <button
                 onClick={() => setMasteryFilter('learning')}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
                   masteryFilter === 'learning'
                     ? 'bg-blue-600 text-white shadow-sm'
                     : 'text-slate-600 dark:text-slate-400'
                 }`}
               >
-                Изучаю ({dictStats.learningCount})
+                {userProfile.ulpanMode
+                  ? `בְּלְמִידָה (${dictStats.learningCount})`
+                  : `Изучаю (${dictStats.learningCount})`}
               </button>
               <button
                 onClick={() => setMasteryFilter('mastered')}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
                   masteryFilter === 'mastered'
                     ? 'bg-emerald-600 text-white shadow-sm'
                     : 'text-slate-600 dark:text-slate-400'
                 }`}
               >
-                Выучено ({dictStats.masteredCount})
+                {userProfile.ulpanMode
+                  ? `הוּשְׁלַם (${dictStats.masteredCount})`
+                  : `Выучено (${dictStats.masteredCount})`}
               </button>
             </div>
 
@@ -445,7 +463,11 @@ export const PersonalDictionary: React.FC<PersonalDictionaryProps> = ({
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Поиск по ивриту, транскрипции или переводу..."
+                placeholder={
+                  userProfile.ulpanMode
+                    ? 'חִפּוּשׂ מִילָּה בַּמִּילוֹן...'
+                    : 'Поиск по ивриту, транскрипции или переводу...'
+                }
                 className="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs focus:outline-none focus:ring-2 focus:ring-blue-600 shadow-sm dark:text-white"
               />
             </div>
