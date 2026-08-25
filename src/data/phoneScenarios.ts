@@ -470,11 +470,27 @@ export function getLessonPhoneScenario(lesson: Lesson, gender: UserGender): Phon
     ? dial.initialMessage.transcription.replace(/лэхá/g, 'лах').replace(/тирцé/g, 'тирцӣ')
     : dial.initialMessage.transcription.replace(/лах/g, 'лэхá').replace(/тирцӣ/g, 'тирцé');
 
-  const dynamicUsefulWords: PhoneScenarioWord[] = (lesson.vocabulary || []).slice(0, 8).map((w) => ({
+  const dynamicUsefulWords: PhoneScenarioWord[] = (lesson.vocabulary || []).slice(0, 7).map((w) => ({
     hebrew: w.hebrew,
     transcription: w.transcription || '',
     translation: w.translation,
   }));
+
+  // Добавляем стандартные разговорные формулы для звонка, если их нет
+  if (!dynamicUsefulWords.some((w) => w.hebrew.includes('הַלּוֹ') || w.hebrew.includes('שָׁלוֹם'))) {
+    dynamicUsefulWords.unshift({
+      hebrew: 'הַלּוֹ, שָׁלוֹם!',
+      transcription: 'hалó, шалóм!',
+      translation: 'алло, привет / здравствуйте',
+    });
+  }
+  if (!dynamicUsefulWords.some((w) => w.hebrew.includes('לְהִתְרָאוֹת'))) {
+    dynamicUsefulWords.push({
+      hebrew: 'לְהִתְרָאוֹת',
+      transcription: 'лэhитраóт',
+      translation: 'до свидания / пока',
+    });
+  }
 
   return {
     callerName: dial.aiRole || `חָבֵר (Урок ${lesson.number})`,
