@@ -1,7 +1,22 @@
 'use client';
 
 import React, { useState } from 'react';
-import { CheckCircle2, XCircle, Award, HelpCircle, ArrowRight, Volume2, RotateCcw, Sparkles } from 'lucide-react';
+import {
+  CheckCircle2,
+  XCircle,
+  Award,
+  HelpCircle,
+  ArrowRight,
+  ArrowLeft,
+  ChevronLeft,
+  ChevronRight,
+  Volume2,
+  RotateCcw,
+  Sparkles,
+  SkipForward,
+  Bot,
+  ListTodo,
+} from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { Lesson, UserProfile, Exercise } from '@/types';
 import { markLessonTabCompleted } from '@/lib/storage';
@@ -27,9 +42,17 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
   const [isAnswered, setIsAnswered] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
   const [isFinished, setIsFinished] = useState(false);
+  const [answeredMap, setAnsweredMap] = useState<Record<number, boolean>>({});
 
   const exercises = lesson.exercises;
   const currentEx = exercises[currentIdx];
+
+  const resetCurrentAnswerState = () => {
+    setIsAnswered(false);
+    setSelectedOption(null);
+    setSelectedSentenceWords([]);
+    setIsCorrect(false);
+  };
 
   const handleSelectOption = (opt: string) => {
     if (isAnswered) return;
@@ -38,6 +61,7 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
 
     const correct = opt === currentEx.correctAnswer;
     setIsCorrect(correct);
+    setAnsweredMap((prev) => ({ ...prev, [currentIdx]: true }));
 
     if (correct) {
       confetti({ particleCount: 40, spread: 50, origin: { y: 0.7 } });
@@ -54,6 +78,7 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
       setIsAnswered(true);
       const correct = JSON.stringify(next) === JSON.stringify(targetArr);
       setIsCorrect(correct);
+      setAnsweredMap((prev) => ({ ...prev, [currentIdx]: true }));
       if (correct) {
         confetti({ particleCount: 50, spread: 60, origin: { y: 0.7 } });
       }
@@ -71,9 +96,7 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
   };
 
   const handleNext = () => {
-    setIsAnswered(false);
-    setSelectedOption(null);
-    setSelectedSentenceWords([]);
+    resetCurrentAnswerState();
 
     if (currentIdx + 1 < exercises.length) {
       setCurrentIdx((prev) => prev + 1);
@@ -82,6 +105,32 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
       const updated = markLessonTabCompleted(lesson.id, 'exercises');
       if (onUpdateProfile) onUpdateProfile(updated);
       confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 } });
+    }
+  };
+
+  const handlePrev = () => {
+    if (currentIdx > 0) {
+      resetCurrentAnswerState();
+      setCurrentIdx((prev) => prev - 1);
+    }
+  };
+
+  const handleJumpTo = (idx: number) => {
+    if (idx >= 0 && idx < exercises.length && idx !== currentIdx) {
+      resetCurrentAnswerState();
+      setCurrentIdx(idx);
+    }
+  };
+
+  const handleSkip = () => {
+    handleNext();
+  };
+
+  const handleCompleteAndGoToChat = () => {
+    const updated = markLessonTabCompleted(lesson.id, 'exercises');
+    if (onUpdateProfile) onUpdateProfile(updated);
+    if (onCompleted) {
+      onCompleted();
     }
   };
 
@@ -117,6 +166,8 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
             onClick={() => {
               setCurrentIdx(0);
               setIsFinished(false);
+              setAnsweredMap({});
+              resetCurrentAnswerState();
             }}
             className="w-full py-3 px-4 rounded-2xl border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 font-semibold text-xs transition cursor-pointer"
           >
@@ -165,42 +216,144 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
     });
   };
 
+  const isLastQuestion = currentIdx + 1 >= exercises.length;
+
   return (
-    <div data-font-style={userProfile.fontStyle || 'print'} className="max-w-xl mx-auto space-y-6">
-      {/* Прогресс упражнений и переключатель шрифта */}
-      <div className="flex items-center justify-between gap-3 text-xs font-semibold text-zinc-500">
-        <span>Упражнение {currentIdx + 1} из {exercises.length}</span>
+    <div data-font-style={userProfile.fontStyle || 'print'} className="max-w-xl mx-auto space-y-4 sm:space-y-5">
+      {/* 1. Верхняя панель этапа с прямым переходом к ИИ-чату и переключателем шрифта */}
+      <div className="bg-white dark:bg-zinc-900 p-3 sm:p-4 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm flex items-center justify-between gap-2.5">
+        <div className="flex items-center gap-2 min-w-0">
+          <div className="p-1.5 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 shrink-0">
+            <ListTodo className="w-4 h-4" />
+          </div>
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5">
+              <span className="text-[11px] font-bold text-zinc-900 dark:text-zinc-100">
+                Этап 3/5: Тесты
+              </span>
+              <span className="text-[10px] text-zinc-400 font-medium">
+                ({currentIdx + 1} из {exercises.length})
+              </span>
+            </div>
+            <p className="text-[11px] text-zinc-500 truncate hidden xs:block">
+              Закрепление темы и грамматики
+            </p>
+          </div>
+        </div>
 
-        <button
-          type="button"
-          onClick={handleToggleFont}
-          className="px-2.5 py-1.5 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-sm text-xs font-semibold flex items-center gap-1.5 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition"
-          title="Переключить шрифт упражнений: Печатный / Рукописный"
-        >
-          {isCursive ? (
-            <>
-              <span className="font-cursive font-bold text-base text-blue-600 dark:text-blue-400 leading-none">כתב</span>
-              <span className="text-zinc-700 dark:text-zinc-300">Рукописный</span>
-            </>
-          ) : (
-            <>
-              <span className="font-hebrew font-bold text-xs text-zinc-700 dark:text-zinc-300 leading-none">דפוס</span>
-              <span className="text-zinc-700 dark:text-zinc-300">Печатный</span>
-            </>
+        <div className="flex items-center gap-1.5 shrink-0">
+          {/* Переключатель шрифта */}
+          <button
+            type="button"
+            onClick={handleToggleFont}
+            className="px-2.5 py-1.5 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-xs text-xs font-semibold flex items-center gap-1.5 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition cursor-pointer"
+            title="Переключить шрифт упражнений: Печатный / Рукописный"
+          >
+            {isCursive ? (
+              <>
+                <span className="font-cursive font-bold text-base text-blue-600 dark:text-blue-400 leading-none">כתב</span>
+                <span className="hidden sm:inline text-zinc-700 dark:text-zinc-300">Рукописный</span>
+              </>
+            ) : (
+              <>
+                <span className="font-hebrew font-bold text-xs text-zinc-700 dark:text-zinc-300 leading-none">דפוס</span>
+                <span className="hidden sm:inline text-zinc-700 dark:text-zinc-300">Печатный</span>
+              </>
+            )}
+          </button>
+
+          {/* Прямой переход к следующему этапу (ИИ-чат) */}
+          {onCompleted && (
+            <button
+              type="button"
+              onClick={handleCompleteAndGoToChat}
+              className="px-2.5 py-1.5 rounded-xl text-xs font-bold bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800/80 hover:bg-purple-100 dark:hover:bg-purple-900/60 transition shadow-xs flex items-center gap-1 cursor-pointer"
+              title="Перейти к этапу 4 (ИИ-чат)"
+            >
+              <Bot className="w-3.5 h-3.5 text-purple-500" />
+              <span className="hidden sm:inline">К ИИ-чату</span>
+              <span>➡️</span>
+            </button>
           )}
-        </button>
+        </div>
       </div>
 
-      <div className="w-full bg-zinc-200 dark:bg-zinc-800 h-2 rounded-full overflow-hidden">
-        <div
-          className="bg-blue-600 h-full transition-all duration-300"
-          style={{ width: `${((currentIdx + 1) / exercises.length) * 100}%` }}
-        />
+      {/* 2. Верхний блок быстрой навигации по вопросам + кнопка перехода */}
+      <div className="bg-white dark:bg-zinc-900 p-2.5 sm:p-3 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm space-y-2.5">
+        <div className="flex items-center justify-between gap-2">
+          {/* Кнопка «Назад» */}
+          <button
+            type="button"
+            onClick={handlePrev}
+            disabled={currentIdx === 0}
+            className="px-2.5 py-1.5 rounded-xl border border-zinc-200 dark:border-zinc-700 text-xs font-semibold text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 disabled:opacity-30 disabled:cursor-not-allowed transition flex items-center gap-1 shrink-0 cursor-pointer"
+            title="Предыдущий вопрос"
+          >
+            <ChevronLeft className="w-4 h-4" />
+            <span className="hidden xs:inline">Назад</span>
+          </button>
+
+          {/* Интерактивные индикаторы номеров вопросов */}
+          <div className="flex items-center gap-1 overflow-x-auto py-0.5 px-1 scrollbar-none max-w-full justify-center">
+            {exercises.map((_, idx) => {
+              const isCurrent = idx === currentIdx;
+              const isAnsweredItem = Boolean(answeredMap[idx]);
+
+              return (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => handleJumpTo(idx)}
+                  className={`w-7 h-7 sm:w-8 sm:h-8 rounded-xl text-xs font-bold flex items-center justify-center transition shrink-0 cursor-pointer ${
+                    isCurrent
+                      ? 'bg-blue-600 text-white shadow-sm ring-2 ring-blue-400/40 scale-105'
+                      : isAnsweredItem
+                      ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800/80'
+                      : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700'
+                  }`}
+                  title={`Перейти к вопросу ${idx + 1}`}
+                >
+                  {idx + 1}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* ВЕРХНЯЯ КНОПКА ПЕРЕХОДА / СЛЕДУЮЩИЙ ВОПРОС */}
+          <button
+            type="button"
+            onClick={isAnswered ? handleNext : handleSkip}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition shadow-sm flex items-center gap-1.5 shrink-0 cursor-pointer active:scale-95 ${
+              isAnswered
+                ? isLastQuestion
+                  ? 'bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white animate-pulse'
+                  : 'bg-blue-600 hover:bg-blue-700 text-white'
+                : 'bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700'
+            }`}
+            title={isAnswered ? (isLastQuestion ? 'Завершить тесты' : 'Следующий вопрос') : 'Пропустить вопрос и перейти к следующему'}
+          >
+            <span>
+              {isAnswered
+                ? isLastQuestion
+                  ? 'Завершить 🎉'
+                  : 'Далее ➡️'
+                : 'Пропустить ⏩'}
+            </span>
+          </button>
+        </div>
+
+        {/* Тонкий прогресс-бар */}
+        <div className="w-full bg-zinc-100 dark:bg-zinc-800 h-1.5 rounded-full overflow-hidden">
+          <div
+            className="bg-blue-600 h-full transition-all duration-300 rounded-full"
+            style={{ width: `${((currentIdx + 1) / exercises.length) * 100}%` }}
+          />
+        </div>
       </div>
 
-      {/* Карточка вопроса */}
-      <div className="bg-white dark:bg-zinc-900 rounded-3xl p-6 border border-zinc-200 dark:border-zinc-800 shadow-sm space-y-6">
-        <h3 className="text-lg font-bold text-zinc-900 dark:text-zinc-100 leading-relaxed">
+      {/* 3. Карточка вопроса */}
+      <div className="bg-white dark:bg-zinc-900 rounded-3xl p-5 sm:p-6 border border-zinc-200 dark:border-zinc-800 shadow-sm space-y-5">
+        <h3 className="text-base sm:text-lg font-bold text-zinc-900 dark:text-zinc-100 leading-relaxed">
           {renderFormattedQuestion(currentEx.question, isCursive)}
         </h3>
 
@@ -210,10 +363,16 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
             <button
               type="button"
               onClick={() => {
-                const textToSpeak = currentEx.hebrewSnippet || (currentEx.correctAnswer && typeof currentEx.correctAnswer === 'string' && /[\u0590-\u05FF]/.test(currentEx.correctAnswer) ? currentEx.correctAnswer : '');
+                const textToSpeak =
+                  currentEx.hebrewSnippet ||
+                  (currentEx.correctAnswer &&
+                  typeof currentEx.correctAnswer === 'string' &&
+                  /[\u0590-\u05FF]/.test(currentEx.correctAnswer)
+                    ? currentEx.correctAnswer
+                    : '');
                 if (textToSpeak) speakHebrew(textToSpeak);
               }}
-              className="inline-flex items-center gap-2.5 px-6 py-3.5 rounded-2xl bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800 text-blue-600 dark:text-blue-400 font-bold hover:bg-blue-100 dark:hover:bg-blue-900 transition shadow-sm cursor-pointer active:scale-95"
+              className="inline-flex items-center gap-2.5 px-6 py-3.5 rounded-2xl bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800 text-blue-600 dark:text-blue-400 font-bold hover:bg-blue-100 dark:hover:bg-blue-900 transition shadow-sm cursor-pointer active:scale-95 text-xs sm:text-sm"
             >
               <Volume2 className="w-5 h-5" />
               <span>🔊 Нажмите, чтобы прослушать аудио</span>
@@ -248,7 +407,7 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
                     key={i}
                     disabled={isAnswered}
                     onClick={() => handleSelectOption(opt)}
-                    className={`p-4 rounded-2xl border text-left flex items-center justify-between transition ${btnClass}`}
+                    className={`p-3.5 sm:p-4 rounded-2xl border text-left flex items-center justify-between transition cursor-pointer ${btnClass}`}
                   >
                     <span
                       dir={isOptHebrew ? 'rtl' : 'ltr'}
@@ -257,7 +416,7 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
                           ? isCursive
                             ? 'font-cursive text-2xl md:text-3xl font-bold'
                             : 'font-hebrew text-lg font-bold'
-                          : 'text-sm font-medium'
+                          : 'text-xs sm:text-sm font-medium'
                       }
                     >
                       {isOptHebrew && !userProfile.showNikkud ? stripNikkud(opt) : opt}
@@ -270,7 +429,7 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
                             e.stopPropagation();
                             speakHebrew(opt);
                           }}
-                          className="p-1.5 rounded-lg text-zinc-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition"
+                          className="p-1.5 rounded-lg text-zinc-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition cursor-pointer"
                           title="Прослушать произношение"
                         >
                           <Volume2 className="w-4 h-4" />
@@ -323,7 +482,7 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
                   <button
                     type="button"
                     onClick={handleResetSentence}
-                    className="p-3 rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-700 shadow-sm transition active:scale-95"
+                    className="p-3 rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-700 shadow-sm transition active:scale-95 cursor-pointer"
                     title="Сбросить выбранные слова"
                   >
                     <RotateCcw className="w-4 h-4" />
@@ -333,7 +492,7 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
                   <button
                     type="button"
                     onClick={() => speakHebrew(selectedSentenceWords.join(' '))}
-                    className="p-3 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white shadow-sm transition active:scale-95"
+                    className="p-3 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white shadow-sm transition active:scale-95 cursor-pointer"
                     title="Прослушать собранное предложение"
                   >
                     <Volume2 className="w-4 h-4" />
@@ -351,7 +510,7 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
                     type="button"
                     disabled={isUsed || isAnswered}
                     onClick={() => handleSentenceWordClick(w, i)}
-                    className={`px-4 py-2 rounded-xl font-bold border transition ${
+                    className={`px-4 py-2 rounded-xl font-bold border transition cursor-pointer ${
                       isCursive ? 'font-cursive text-2xl md:text-3xl' : 'font-hebrew text-base'
                     } ${
                       isUsed
@@ -383,16 +542,42 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
           </div>
         )}
 
-        {/* Кнопка следующего вопроса */}
-        {isAnswered && (
-          <button
-            onClick={handleNext}
-            className="w-full py-3.5 px-6 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm flex items-center justify-center gap-2 shadow-md transition"
-          >
-            <span>{currentIdx + 1 < exercises.length ? 'Следующий вопрос' : 'Завершить упражнения'}</span>
-            <ArrowRight className="w-4 h-4" />
-          </button>
-        )}
+        {/* 4. Нижний блок кнопок перехода */}
+        <div className="pt-2 space-y-2">
+          {isAnswered ? (
+            <button
+              onClick={handleNext}
+              className={`w-full py-3.5 px-6 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 shadow-md transition cursor-pointer active:scale-95 ${
+                isLastQuestion
+                  ? 'bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white'
+                  : 'bg-blue-600 hover:bg-blue-700 text-white'
+              }`}
+            >
+              <span>{isLastQuestion ? 'Завершить упражнения 🎉' : `Следующий вопрос (${currentIdx + 2}/${exercises.length})`}</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          ) : (
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleSkip}
+                className="flex-1 py-3 px-4 rounded-2xl border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-300 font-semibold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <span>Пропустить вопрос</span>
+                <SkipForward className="w-3.5 h-3.5" />
+              </button>
+
+              {onCompleted && (
+                <button
+                  onClick={handleCompleteAndGoToChat}
+                  className="py-3 px-4 rounded-2xl bg-purple-50 dark:bg-purple-950/60 hover:bg-purple-100 text-purple-700 dark:text-purple-300 font-semibold text-xs border border-purple-200 dark:border-purple-800/80 transition flex items-center justify-center gap-1 cursor-pointer"
+                >
+                  <Bot className="w-3.5 h-3.5 text-purple-500" />
+                  <span>К ИИ-чату (этап 4/5) ➡️</span>
+                </button>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
