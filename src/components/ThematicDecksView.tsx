@@ -24,9 +24,22 @@ import {
   ChevronUp,
   BookmarkPlus,
   Award,
+  List,
+  Copy,
+  Download,
+  X,
+  CheckSquare,
+  Square,
+  FileText,
+  Table,
+  Filter,
 } from 'lucide-react';
 import { ThematicDeck, UserProfile, Word } from '@/types';
-import { THEMATIC_DECKS } from '@/data/thematicDecks';
+import {
+  THEMATIC_DECKS,
+  getDeckWordsAsText,
+  exportDeckToTsv,
+} from '@/data/thematicDecks';
 import { speakHebrew } from '@/lib/speech';
 import { stripNikkud } from '@/lib/transcription';
 import {
@@ -50,9 +63,16 @@ export const ThematicDecksView: React.FC<ThematicDecksViewProps> = ({
   const [selectedLevel, setSelectedLevel] = useState<'all' | 'alef' | 'bet'>('all');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [viewLayout, setViewLayout] = useState<'grid' | 'table'>('grid');
   const [expandedDeckId, setExpandedDeckId] = useState<string | null>(null);
   const [speakingWordId, setSpeakingWordId] = useState<string | null>(null);
   const [addedBatchDeckId, setAddedBatchDeckId] = useState<string | null>(null);
+
+  // Состояние модального окна подробного списка колоды
+  const [listModalDeck, setListModalDeck] = useState<ThematicDeck | null>(null);
+  const [modalSearch, setModalSearch] = useState('');
+  const [copiedNotification, setCopiedNotification] = useState(false);
+  const [selectedWordIds, setSelectedWordIds] = useState<Set<string>>(new Set());
 
   const isCursive = userProfile.fontStyle === 'cursive';
 
@@ -168,6 +188,71 @@ export const ThematicDecksView: React.FC<ThematicDecksViewProps> = ({
     setTimeout(() => setAddedBatchDeckId(null), 2500);
   };
 
+  // Открыть модалку списка колоды
+  const handleOpenListModal = (deck: ThematicDeck) => {
+    setListModalDeck(deck);
+    setModalSearch('');
+    setSelectedWordIds(new Set(deck.words.map((w) => w.id)));
+  };
+
+  // Копирование списка в буфер обмена
+  const handleCopyList = (deck: ThematicDeck) => {
+    const text = getDeckWordsAsText(deck.id, {
+      withNikkud: userProfile.showNikkud,
+      withTranscription: true,
+      withRoot: true,
+    });
+    navigator.clipboard.writeText(text);
+    setCopiedNotification(true);
+    setTimeout(() => setCopiedNotification(false), 2000);
+  };
+
+  // Скачать TSV
+  const handleDownloadTsv = (deck: ThematicDeck) => {
+    const tsvContent = exportDeckToTsv(deck.id);
+    const blob = new Blob([tsvContent], { type: 'text/tab-separated-values;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${deck.id}_words.tsv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // Переключение выбора слова в чекбоксе
+  const toggleSelectWord = (id: string) => {
+    setSelectedWordIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAllModalWords = (words: Word[]) => {
+    if (selectedWordIds.size === words.length) {
+      setSelectedWordIds(new Set());
+    } else {
+      setSelectedWordIds(new Set(words.map((w) => w.id)));
+    }
+  };
+
+  // Отфильтрованные слова внутри модалки списка
+  const modalFilteredWords = useMemo(() => {
+    if (!listModalDeck) return [];
+    if (!modalSearch.trim()) return listModalDeck.words;
+    const q = modalSearch.toLowerCase().trim();
+    return listModalDeck.words.filter(
+      (w) =>
+        w.translation.toLowerCase().includes(q) ||
+        w.hebrew.includes(q) ||
+        (w.hebrewPlain && w.hebrewPlain.includes(q)) ||
+        w.transcription.toLowerCase().includes(q) ||
+        (w.root && w.root.includes(q))
+    );
+  }, [listModalDeck, modalSearch]);
+
   return (
     <div className="space-y-6">
       {/* Шапка с описанием */}
@@ -181,29 +266,29 @@ export const ThematicDecksView: React.FC<ThematicDecksViewProps> = ({
             Специальные наборы слов по темам
           </h2>
           <p className="text-blue-100 text-xs sm:text-sm max-w-2xl leading-relaxed">
-            Тренируйте глаголы всех биньянов, покупки на Шуке, заказ в кафе, общение в банке и сленг.
-            Каждую колоду можно учить отдельно на карточках или добавить в свой личный словарик.
+            Тренируйте глаголы всех 4 биньянов, Шук, ресторан, банк, части тела, медицину и сленг.
+            Каждую колоду можно открыть полным списком/таблицей, скопировать, выгрузить в Anki или тренировать на карточках.
           </p>
         </div>
       </div>
 
-      {/* Фильтры по уровню и категориям */}
-      <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
+      {/* Панель фильтров и переключатель вида */}
+      <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
         {/* Вкладки уровней */}
-        <div className="flex items-center gap-1.5 p-1 bg-slate-100 dark:bg-slate-800/80 rounded-2xl border border-slate-200 dark:border-slate-700">
+        <div className="flex items-center gap-1.5 p-1 bg-slate-100 dark:bg-slate-800/80 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-x-auto">
           <button
             onClick={() => setSelectedLevel('all')}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
               selectedLevel === 'all'
                 ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm'
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
             }`}
           >
-            Все уровни
+            Все уровни ({THEMATIC_DECKS.length})
           </button>
           <button
             onClick={() => setSelectedLevel('alef')}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 ${
               selectedLevel === 'alef'
                 ? 'bg-blue-600 text-white shadow-sm'
                 : 'text-slate-600 dark:text-slate-400 hover:text-blue-600'
@@ -214,7 +299,7 @@ export const ThematicDecksView: React.FC<ThematicDecksViewProps> = ({
           </button>
           <button
             onClick={() => setSelectedLevel('bet')}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 ${
               selectedLevel === 'bet'
                 ? 'bg-purple-600 text-white shadow-sm'
                 : 'text-slate-600 dark:text-slate-400 hover:text-purple-600'
@@ -225,44 +310,322 @@ export const ThematicDecksView: React.FC<ThematicDecksViewProps> = ({
           </button>
         </div>
 
-        {/* Поиск слов и тем */}
-        <div className="relative flex-1 sm:max-w-xs">
-          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Поиск по теме или слову..."
-            className="w-full pl-9 pr-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none dark:text-white"
-          />
+        <div className="flex items-center gap-2">
+          {/* Поиск слов и тем */}
+          <div className="relative flex-1 sm:w-64">
+            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Поиск темы или слова..."
+              className="w-full pl-9 pr-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none dark:text-white"
+            />
+          </div>
+
+          {/* Переключатель вида: Сетка карточек / Табличный список */}
+          <div className="flex items-center p-1 bg-slate-100 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shrink-0">
+            <button
+              onClick={() => setViewLayout('grid')}
+              className={`p-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1 ${
+                viewLayout === 'grid'
+                  ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm'
+                  : 'text-slate-600 dark:text-slate-400'
+              }`}
+              title="Вид: Сетка колод"
+            >
+              <Layers className="w-4 h-4" />
+              <span className="hidden sm:inline">Сетка</span>
+            </button>
+            <button
+              onClick={() => setViewLayout('table')}
+              className={`p-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1 ${
+                viewLayout === 'table'
+                  ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm'
+                  : 'text-slate-600 dark:text-slate-400'
+              }`}
+              title="Вид: Сводный список колод"
+            >
+              <Table className="w-4 h-4" />
+              <span className="hidden sm:inline">Списком</span>
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Список колод */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {filteredDecks.map((deck) => {
-          const stats = getDeckStats(deck);
-          const isExpanded = expandedDeckId === deck.id;
-          const isBatchAdded = addedBatchDeckId === deck.id;
-          const isAlef = deck.level === 'alef';
+      {/* РЕЖИМ 1: СЕТКА КОЛОД (GRID) */}
+      {viewLayout === 'grid' && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {filteredDecks.map((deck) => {
+            const stats = getDeckStats(deck);
+            const isExpanded = expandedDeckId === deck.id;
+            const isBatchAdded = addedBatchDeckId === deck.id;
+            const isAlef = deck.level === 'alef';
 
-          return (
-            <div
-              key={deck.id}
-              className="bg-white dark:bg-slate-800/90 rounded-2xl border border-slate-200 dark:border-slate-700/80 p-4 sm:p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between"
-            >
-              <div>
-                {/* Верхняя строка: Иконка, Уровень, Кол-во слов */}
-                <div className="flex items-start justify-between gap-3 mb-3">
-                  <div className="flex items-center gap-3">
+            return (
+              <div
+                key={deck.id}
+                className="bg-white dark:bg-slate-800/90 rounded-2xl border border-slate-200 dark:border-slate-700/80 p-4 sm:p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between"
+              >
+                <div>
+                  {/* Верхняя строка: Иконка, Уровень, Кол-во слов */}
+                  <div className="flex items-start justify-between gap-3 mb-3">
+                    <div className="flex items-center gap-3">
+                      <div
+                        className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 ${
+                          isAlef
+                            ? 'bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400'
+                            : 'bg-purple-100 dark:bg-purple-900/50 text-purple-600 dark:text-purple-400'
+                        }`}
+                      >
+                        {renderIcon(deck.icon, 'w-6 h-6')}
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={`text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full ${
+                              isAlef
+                                ? 'bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300'
+                                : 'bg-purple-100 dark:bg-purple-900/60 text-purple-700 dark:text-purple-300'
+                            }`}
+                          >
+                            {isAlef ? 'Алеф (א)' : 'Бет (ב)'}
+                          </span>
+                          <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                            {deck.words.length} слов
+                          </span>
+                        </div>
+                        <h3 className="font-bold text-slate-900 dark:text-white text-base mt-0.5">
+                          {deck.title}
+                        </h3>
+                      </div>
+                    </div>
+
+                    <span
+                      dir="rtl"
+                      className="font-hebrew font-bold text-base text-slate-400 dark:text-slate-500 hidden sm:inline-block"
+                    >
+                      {deck.titleHebrew}
+                    </span>
+                  </div>
+
+                  <p className="text-xs text-slate-600 dark:text-slate-300 mb-4 leading-relaxed">
+                    {deck.description}
+                  </p>
+
+                  {/* Прогресс знания колоды */}
+                  <div className="mb-4 bg-slate-50 dark:bg-slate-900/60 rounded-xl p-2.5 border border-slate-100 dark:border-slate-800">
+                    <div className="flex items-center justify-between text-xs mb-1.5">
+                      <span className="text-slate-500 dark:text-slate-400 font-medium flex items-center gap-1">
+                        <Award className="w-3.5 h-3.5 text-amber-500" />
+                        Освоение набора:
+                      </span>
+                      <span className="font-bold text-slate-800 dark:text-slate-200">
+                        {stats.avgScore}%
+                      </span>
+                    </div>
+                    <div className="w-full bg-slate-200 dark:bg-slate-700 h-2 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full transition-all duration-500 ${
+                          stats.avgScore >= 80
+                            ? 'bg-emerald-500'
+                            : stats.avgScore >= 40
+                            ? 'bg-blue-500'
+                            : stats.avgScore > 0
+                            ? 'bg-amber-500'
+                            : 'bg-slate-300 dark:bg-slate-600'
+                        }`}
+                        style={{ width: `${stats.avgScore}%` }}
+                      />
+                    </div>
+                    {stats.dueCount > 0 && (
+                      <div className="text-[11px] text-amber-600 dark:text-amber-400 font-medium mt-1">
+                        ⚡ {stats.dueCount} слов требуют повторения сегодня
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Действия: Тренировать / Список слов / В словарь */}
+                <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => onStartTraining(deck.words, deck.title)}
+                      className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm text-white transition active:scale-98 ${
+                        isAlef
+                          ? 'bg-blue-600 hover:bg-blue-700 shadow-blue-500/20'
+                          : 'bg-purple-600 hover:bg-purple-700 shadow-purple-500/20'
+                      }`}
+                    >
+                      <Play className="w-3.5 h-3.5 fill-current" />
+                      Тренировать
+                    </button>
+
+                    {/* КНОПКА «ВЫВЕСТИ КОЛОДУ СПИСКОМ» */}
+                    <button
+                      onClick={() => handleOpenListModal(deck)}
+                      className="py-2 px-3 rounded-xl bg-slate-100 dark:bg-slate-700/80 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold flex items-center gap-1.5 transition"
+                      title="Вывести полный список слов колоды таблицей"
+                    >
+                      <List className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                      <span>Список ({deck.words.length})</span>
+                    </button>
+
+                    <button
+                      onClick={() => handleAddAllWordsToDict(deck)}
+                      disabled={isBatchAdded}
+                      className={`p-2 rounded-xl border text-xs font-semibold transition flex items-center gap-1 ${
+                        isBatchAdded
+                          ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 text-emerald-600'
+                          : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-blue-400'
+                      }`}
+                      title="Добавить все слова набора в мой словарь"
+                    >
+                      {isBatchAdded ? (
+                        <Check className="w-4 h-4 text-emerald-600" />
+                      ) : (
+                        <BookmarkPlus className="w-4 h-4" />
+                      )}
+                    </button>
+
+                    <button
+                      onClick={() => setExpandedDeckId(isExpanded ? null : deck.id)}
+                      className="p-2 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition"
+                      title={isExpanded ? 'Свернуть быстрый список' : 'Быстрый просмотр'}
+                    >
+                      {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                    </button>
+                  </div>
+
+                  {/* Быстрый аккордеон-список */}
+                  {isExpanded && (
+                    <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 space-y-2 max-h-64 overflow-y-auto pr-1">
+                      <div className="flex items-center justify-between px-1 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                        <span>Слова в наборе ({deck.words.length}):</span>
+                        <button
+                          onClick={() => handleOpenListModal(deck)}
+                          className="text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
+                        >
+                          <Table className="w-3 h-3" />
+                          Развернуть списком
+                        </button>
+                      </div>
+                      {deck.words.map((word) => {
+                        const isWordInDict = isWordInPersonalDict(
+                          word.hebrew,
+                          userProfile.personalVocabulary
+                        );
+                        const isSpeaking = speakingWordId === word.id;
+                        const wordMastery = calculateWordMastery(
+                          userProfile.flashcardProgress?.[word.id]
+                        );
+
+                        return (
+                          <div
+                            key={word.id}
+                            className="flex items-center justify-between p-2 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 transition"
+                          >
+                            <div className="flex flex-col min-w-0 pr-2">
+                              <div className="text-xs font-semibold text-slate-800 dark:text-slate-100">
+                                {word.translation}
+                              </div>
+                              <div className="text-[11px] text-blue-600 dark:text-blue-400">
+                                [{word.transcription}]
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              {wordMastery.score > 0 && (
+                                <span
+                                  className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md ${wordMastery.badgeColor}`}
+                                >
+                                  {wordMastery.score}%
+                                </span>
+                              )}
+
+                              <span
+                                dir="rtl"
+                                className={`font-bold text-slate-900 dark:text-white ${
+                                  isCursive ? 'font-cursive text-xl' : 'font-hebrew text-base'
+                                }`}
+                              >
+                                {userProfile.showNikkud ? word.hebrew : word.hebrewPlain || stripNikkud(word.hebrew)}
+                              </span>
+
+                              <button
+                                type="button"
+                                onClick={() => handleSpeak(word.hebrew, word.id)}
+                                className={`p-1.5 rounded-full transition ${
+                                  isSpeaking
+                                    ? 'bg-blue-600 text-white animate-pulse'
+                                    : 'text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-slate-800'
+                                }`}
+                              >
+                                <Volume2 className="w-3.5 h-3.5" />
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => !isWordInDict && handleAddSingleWord(word)}
+                                disabled={isWordInDict}
+                                className={`p-1.5 rounded-lg transition ${
+                                  isWordInDict
+                                    ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600'
+                                    : 'text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-slate-800'
+                                }`}
+                                title={isWordInDict ? 'Уже в словарике' : 'Добавить в словарик'}
+                              >
+                                {isWordInDict ? <Check className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* РЕЖИМ 2: СВОДНЫЙ СПИСОК ВСЕХ КОЛОД (TABLE LIST VIEW) */}
+      {viewLayout === 'table' && (
+        <div className="bg-white dark:bg-slate-800/90 rounded-3xl border border-slate-200 dark:border-slate-700/80 shadow-sm overflow-hidden">
+          <div className="p-4 sm:p-5 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
+            <div>
+              <h3 className="font-bold text-slate-900 dark:text-white text-base">
+                Все тематические словари списком
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Кликните «Вывести список слов» для открытия полной таблицы слов любой колоды
+              </p>
+            </div>
+            <span className="text-xs font-extrabold bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 px-3 py-1 rounded-full border border-blue-200 dark:border-blue-800">
+              {filteredDecks.length} колод
+            </span>
+          </div>
+
+          <div className="divide-y divide-slate-100 dark:divide-slate-700/60">
+            {filteredDecks.map((deck) => {
+              const stats = getDeckStats(deck);
+              const isAlef = deck.level === 'alef';
+
+              return (
+                <div
+                  key={deck.id}
+                  className="p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 hover:bg-slate-50 dark:hover:bg-slate-700/30 transition"
+                >
+                  <div className="flex items-center gap-3.5 min-w-0">
                     <div
-                      className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 ${
+                      className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 ${
                         isAlef
                           ? 'bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400'
                           : 'bg-purple-100 dark:bg-purple-900/50 text-purple-600 dark:text-purple-400'
                       }`}
                     >
-                      {renderIcon(deck.icon, 'w-6 h-6')}
+                      {renderIcon(deck.icon, 'w-5 h-5')}
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
@@ -275,115 +638,163 @@ export const ThematicDecksView: React.FC<ThematicDecksViewProps> = ({
                         >
                           {isAlef ? 'Алеф (א)' : 'Бет (ב)'}
                         </span>
-                        <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-                          {deck.words.length} слов
-                        </span>
+                        <h4 className="font-bold text-slate-900 dark:text-white text-sm sm:text-base">
+                          {deck.title}
+                        </h4>
                       </div>
-                      <h3 className="font-bold text-slate-900 dark:text-white text-base mt-0.5">
-                        {deck.title}
-                      </h3>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                        {deck.words.length} слов • Освоение: <span className="font-bold text-slate-700 dark:text-slate-300">{stats.avgScore}%</span>
+                      </p>
                     </div>
                   </div>
 
-                  <span
-                    dir="rtl"
-                    className="font-hebrew font-bold text-base text-slate-400 dark:text-slate-500 hidden sm:inline-block"
-                  >
-                    {deck.titleHebrew}
-                  </span>
+                  <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+                    <button
+                      onClick={() => handleOpenListModal(deck)}
+                      className="px-3 py-2 rounded-xl bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 hover:bg-blue-100 border border-blue-200 dark:border-blue-800 text-xs font-bold flex items-center gap-1.5 transition"
+                    >
+                      <List className="w-3.5 h-3.5" />
+                      <span>Вывести список слов</span>
+                    </button>
+                    <button
+                      onClick={() => onStartTraining(deck.words, deck.title)}
+                      className="px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm transition"
+                    >
+                      <Play className="w-3.5 h-3.5 fill-current" />
+                      <span>Тренировать</span>
+                    </button>
+                  </div>
                 </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
-                <p className="text-xs text-slate-600 dark:text-slate-300 mb-4 leading-relaxed">
-                  {deck.description}
-                </p>
-
-                {/* Прогресс знания колоды */}
-                <div className="mb-4 bg-slate-50 dark:bg-slate-900/60 rounded-xl p-2.5 border border-slate-100 dark:border-slate-800">
-                  <div className="flex items-center justify-between text-xs mb-1.5">
-                    <span className="text-slate-500 dark:text-slate-400 font-medium flex items-center gap-1">
-                      <Award className="w-3.5 h-3.5 text-amber-500" />
-                      Освоение набора:
+      {/* МОДАЛЬНОЕ ОКНО «ВЫВЕСТИ КОЛОДУ СПИСКОМ» */}
+      {listModalDeck && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-4xl rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 flex flex-col max-h-[92vh] overflow-hidden">
+            {/* Шапка модалки */}
+            <div className="p-4 sm:p-5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between gap-3 shrink-0 bg-slate-50 dark:bg-slate-800/50">
+              <div className="flex items-center gap-3 min-w-0">
+                <div
+                  className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 ${
+                    listModalDeck.level === 'alef'
+                      ? 'bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400'
+                      : 'bg-purple-100 dark:bg-purple-900/50 text-purple-600 dark:text-purple-400'
+                  }`}
+                >
+                  {renderIcon(listModalDeck.icon, 'w-6 h-6')}
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300">
+                      Уровень {listModalDeck.level === 'alef' ? 'Алеф (א)' : 'Бет (ב)'}
                     </span>
-                    <span className="font-bold text-slate-800 dark:text-slate-200">
-                      {stats.avgScore}%
+                    <span className="text-xs text-slate-500 font-medium">
+                      {listModalDeck.words.length} слов в наборе
                     </span>
                   </div>
-                  <div className="w-full bg-slate-200 dark:bg-slate-700 h-2 rounded-full overflow-hidden">
-                    <div
-                      className={`h-full transition-all duration-500 ${
-                        stats.avgScore >= 80
-                          ? 'bg-emerald-500'
-                          : stats.avgScore >= 40
-                          ? 'bg-blue-500'
-                          : stats.avgScore > 0
-                          ? 'bg-amber-500'
-                          : 'bg-slate-300 dark:bg-slate-600'
-                      }`}
-                      style={{ width: `${stats.avgScore}%` }}
-                    />
-                  </div>
-                  {stats.dueCount > 0 && (
-                    <div className="text-[11px] text-amber-600 dark:text-amber-400 font-medium mt-1">
-                      ⚡ {stats.dueCount} слов требуют повторения сегодня
-                    </div>
-                  )}
+                  <h3 className="font-black text-slate-900 dark:text-white text-base sm:text-lg truncate mt-0.5">
+                    {listModalDeck.title}
+                  </h3>
                 </div>
               </div>
 
-              {/* Действия: Тренировать / Развернуть слова / Добавить всё */}
-              <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => onStartTraining(deck.words, deck.title)}
-                    className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm text-white transition active:scale-98 ${
-                      isAlef
-                        ? 'bg-blue-600 hover:bg-blue-700 shadow-blue-500/20'
-                        : 'bg-purple-600 hover:bg-purple-700 shadow-purple-500/20'
-                    }`}
-                  >
-                    <Play className="w-3.5 h-3.5 fill-current" />
-                    Тренировать колоду
-                  </button>
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  onClick={() => handleCopyList(listModalDeck)}
+                  className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-100 text-xs font-semibold flex items-center gap-1.5 text-slate-700 dark:text-slate-300 transition"
+                  title="Скопировать текстовый список в буфер"
+                >
+                  {copiedNotification ? (
+                    <>
+                      <Check className="w-3.5 h-3.5 text-emerald-600" />
+                      <span className="text-emerald-600 font-bold">Скопировано!</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline">Копировать список</span>
+                    </>
+                  )}
+                </button>
 
-                  <button
-                    onClick={() => handleAddAllWordsToDict(deck)}
-                    disabled={isBatchAdded}
-                    className={`p-2 rounded-xl border text-xs font-semibold transition flex items-center gap-1 ${
-                      isBatchAdded
-                        ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 text-emerald-600'
-                        : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-blue-400'
-                    }`}
-                    title="Добавить все слова набора в мой словарь"
-                  >
-                    {isBatchAdded ? (
-                      <>
-                        <Check className="w-4 h-4 text-emerald-600" />
-                        <span className="text-[11px] font-bold">Добавлено</span>
-                      </>
-                    ) : (
-                      <>
-                        <BookmarkPlus className="w-4 h-4" />
-                        <span className="text-[11px] hidden sm:inline">В словарь</span>
-                      </>
-                    )}
-                  </button>
+                <button
+                  onClick={() => handleDownloadTsv(listModalDeck)}
+                  className="p-1.5 sm:px-3 sm:py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-100 text-xs font-semibold flex items-center gap-1.5 text-slate-700 dark:text-slate-300 transition"
+                  title="Экспорт в Anki / TSV"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">TSV (Anki)</span>
+                </button>
 
-                  <button
-                    onClick={() => setExpandedDeckId(isExpanded ? null : deck.id)}
-                    className="p-2 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition"
-                    title={isExpanded ? 'Свернуть слова' : 'Показать список слов'}
-                  >
-                    {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                  </button>
-                </div>
+                <button
+                  onClick={() => setListModalDeck(null)}
+                  className="p-2 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
 
-                {/* Развернутый список слов колоды */}
-                {isExpanded && (
-                  <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 space-y-2 max-h-72 overflow-y-auto pr-1">
-                    <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider px-1">
-                      Слова в наборе ({deck.words.length}):
-                    </div>
-                    {deck.words.map((word) => {
+            {/* Фильтр поиска по списку и массовые операции */}
+            <div className="p-3 sm:p-4 border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 shrink-0">
+              <div className="relative flex-1 sm:max-w-xs">
+                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="text"
+                  value={modalSearch}
+                  onChange={(e) => setModalSearch(e.target.value)}
+                  placeholder="Фильтр по слову, переводу или корню..."
+                  className="w-full pl-9 pr-3 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none dark:text-white"
+                />
+              </div>
+
+              <div className="flex items-center justify-between sm:justify-end gap-2 text-xs">
+                <button
+                  onClick={() => toggleSelectAllModalWords(modalFilteredWords)}
+                  className="text-slate-600 dark:text-slate-400 hover:text-blue-600 flex items-center gap-1 font-semibold"
+                >
+                  {selectedWordIds.size === modalFilteredWords.length ? (
+                    <>
+                      <CheckSquare className="w-4 h-4 text-blue-600" />
+                      <span>Снять выделение</span>
+                    </>
+                  ) : (
+                    <>
+                      <Square className="w-4 h-4" />
+                      <span>Выбрать все ({modalFilteredWords.length})</span>
+                    </>
+                  )}
+                </button>
+
+                <span className="text-slate-400">|</span>
+
+                <span className="text-slate-500 font-medium">
+                  Выбрано: <strong className="text-slate-800 dark:text-slate-200">{selectedWordIds.size}</strong>
+                </span>
+              </div>
+            </div>
+
+            {/* Таблица со списком слов */}
+            <div className="flex-1 overflow-y-auto p-2 sm:p-4">
+              <div className="border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-slate-50 dark:bg-slate-800/80 text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider border-b border-slate-200 dark:border-slate-800">
+                      <th className="py-2.5 px-3 w-10 text-center">#</th>
+                      <th className="py-2.5 px-3">Иврит</th>
+                      <th className="py-2.5 px-3">Транскрипция</th>
+                      <th className="py-2.5 px-3">Перевод на русский</th>
+                      <th className="py-2.5 px-3 hidden md:table-cell">Корень / Детали</th>
+                      <th className="py-2.5 px-3 text-center">Освоение</th>
+                      <th className="py-2.5 px-3 text-right">Действия</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs">
+                    {modalFilteredWords.map((word, index) => {
                       const isWordInDict = isWordInPersonalDict(
                         word.hebrew,
                         userProfile.personalVocabulary
@@ -392,76 +803,169 @@ export const ThematicDecksView: React.FC<ThematicDecksViewProps> = ({
                       const wordMastery = calculateWordMastery(
                         userProfile.flashcardProgress?.[word.id]
                       );
+                      const isChecked = selectedWordIds.has(word.id);
 
                       return (
-                        <div
+                        <tr
                           key={word.id}
-                          className="flex items-center justify-between p-2 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 transition"
+                          onClick={() => toggleSelectWord(word.id)}
+                          className={`hover:bg-blue-50/50 dark:hover:bg-blue-950/20 cursor-pointer transition ${
+                            isChecked ? 'bg-blue-50/30 dark:bg-blue-950/10' : ''
+                          }`}
                         >
-                          <div className="flex flex-col min-w-0 pr-2">
-                            <div className="text-xs font-semibold text-slate-800 dark:text-slate-100">
-                              {word.translation}
+                          {/* Чекбокс и номер */}
+                          <td className="py-3 px-3 text-center text-slate-400 font-mono text-[11px]">
+                            <div className="flex items-center justify-center gap-1.5">
+                              <input
+                                type="checkbox"
+                                checked={isChecked}
+                                onChange={() => toggleSelectWord(word.id)}
+                                onClick={(e) => e.stopPropagation()}
+                                className="w-3.5 h-3.5 rounded text-blue-600 focus:ring-blue-500"
+                              />
+                              <span>{index + 1}</span>
                             </div>
-                            <div className="text-[11px] text-blue-600 dark:text-blue-400">
-                              [{word.transcription}]
-                            </div>
-                          </div>
+                          </td>
 
-                          <div className="flex items-center gap-1.5 shrink-0">
-                            {/* Оценка знания слова */}
-                            {wordMastery.score > 0 && (
-                              <span
-                                className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md ${wordMastery.badgeColor}`}
-                              >
-                                {wordMastery.score}%
-                              </span>
-                            )}
-
+                          {/* Иврит */}
+                          <td className="py-3 px-3">
                             <span
                               dir="rtl"
                               className={`font-bold text-slate-900 dark:text-white ${
-                                isCursive ? 'font-cursive text-xl' : 'font-hebrew text-base'
+                                isCursive
+                                  ? 'font-cursive text-2xl text-blue-600 dark:text-blue-400'
+                                  : 'font-hebrew text-base'
                               }`}
                             >
                               {userProfile.showNikkud ? word.hebrew : word.hebrewPlain || stripNikkud(word.hebrew)}
                             </span>
+                          </td>
 
-                            <button
-                              type="button"
-                              onClick={() => handleSpeak(word.hebrew, word.id)}
-                              className={`p-1.5 rounded-full transition ${
-                                isSpeaking
-                                  ? 'bg-blue-600 text-white animate-pulse'
-                                  : 'text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-slate-800'
-                              }`}
-                            >
-                              <Volume2 className="w-3.5 h-3.5" />
-                            </button>
+                          {/* Транскрипция */}
+                          <td className="py-3 px-3 text-blue-600 dark:text-blue-400 font-medium">
+                            [{word.transcription}]
+                          </td>
 
-                            <button
-                              type="button"
-                              onClick={() => !isWordInDict && handleAddSingleWord(word)}
-                              disabled={isWordInDict}
-                              className={`p-1.5 rounded-lg transition ${
-                                isWordInDict
-                                  ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600'
-                                  : 'text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-slate-800'
-                              }`}
-                              title={isWordInDict ? 'Уже в словарике' : 'Добавить в словарик'}
+                          {/* Перевод */}
+                          <td className="py-3 px-3 font-semibold text-slate-800 dark:text-slate-200">
+                            {word.translation}
+                          </td>
+
+                          {/* Корень и доп инфо */}
+                          <td className="py-3 px-3 text-slate-500 dark:text-slate-400 hidden md:table-cell">
+                            {word.root ? (
+                              <span className="font-mono text-purple-700 dark:text-purple-300 font-bold bg-purple-50 dark:bg-purple-950/50 px-1.5 py-0.5 rounded">
+                                {word.root}
+                              </span>
+                            ) : word.plural ? (
+                              <span className="text-[11px] text-slate-400">
+                                мн: {word.plural}
+                              </span>
+                            ) : (
+                              <span className="text-[11px] text-slate-400">
+                                {word.partOfSpeech}
+                              </span>
+                            )}
+                          </td>
+
+                          {/* Освоение */}
+                          <td className="py-3 px-3 text-center">
+                            <span
+                              className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${wordMastery.badgeColor}`}
                             >
-                              {isWordInDict ? <Check className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
-                            </button>
-                          </div>
-                        </div>
+                              {wordMastery.score}%
+                            </span>
+                          </td>
+
+                          {/* Действия: Звук и В словарь */}
+                          <td className="py-3 px-3 text-right">
+                            <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+                              <button
+                                type="button"
+                                onClick={() => handleSpeak(word.hebrew, word.id)}
+                                className={`p-1.5 rounded-lg transition ${
+                                  isSpeaking
+                                    ? 'bg-blue-600 text-white animate-pulse'
+                                    : 'text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-slate-800'
+                                }`}
+                                title="Озвучить"
+                              >
+                                <Volume2 className="w-3.5 h-3.5" />
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => !isWordInDict && handleAddSingleWord(word)}
+                                disabled={isWordInDict}
+                                className={`p-1.5 rounded-lg transition ${
+                                  isWordInDict
+                                    ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600'
+                                    : 'text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-slate-800'
+                                }`}
+                                title={isWordInDict ? 'Уже в словарике' : 'Добавить в личный словарь'}
+                              >
+                                {isWordInDict ? (
+                                  <Check className="w-3.5 h-3.5" />
+                                ) : (
+                                  <Plus className="w-3.5 h-3.5" />
+                                )}
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
                       );
                     })}
-                  </div>
-                )}
+                  </tbody>
+                </table>
               </div>
             </div>
-          );
-        })}
-      </div>
+
+            {/* Футер модалки: Тренировать выбранные / Добавить выбранные */}
+            <div className="p-4 sm:p-5 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/90 flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0">
+              <div className="text-xs text-slate-500">
+                Слов для тренировки:{' '}
+                <strong className="text-blue-600 dark:text-blue-400 font-bold">
+                  {selectedWordIds.size} из {listModalDeck.words.length}
+                </strong>
+              </div>
+
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const selectedWords = listModalDeck.words.filter((w) => selectedWordIds.has(w.id));
+                    if (selectedWords.length > 0) {
+                      const newlyAdded = addBatchWordsToPersonalDict(selectedWords);
+                      onUpdateVocabulary(newlyAdded);
+                    }
+                  }}
+                  disabled={selectedWordIds.size === 0}
+                  className="flex-1 sm:flex-initial px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-100 text-slate-700 dark:text-slate-200 text-xs font-bold flex items-center justify-center gap-1.5 transition disabled:opacity-50"
+                >
+                  <BookmarkPlus className="w-4 h-4" />
+                  <span>Добавить выбранные в словарь</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    const selectedWords = listModalDeck.words.filter((w) => selectedWordIds.has(w.id));
+                    if (selectedWords.length > 0) {
+                      onStartTraining(selectedWords, listModalDeck.title);
+                      setListModalDeck(null);
+                    }
+                  }}
+                  disabled={selectedWordIds.size === 0}
+                  className="flex-1 sm:flex-initial px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-lg shadow-blue-500/25 transition active:scale-98"
+                >
+                  <Play className="w-4 h-4 fill-current" />
+                  <span>Тренировать ({selectedWordIds.size})</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
