@@ -301,101 +301,135 @@ export const AlphabetTrainer: React.FC<AlphabetTrainerProps> = () => {
   };
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6">
-      {/* Главный заголовок */}
-      <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white rounded-3xl p-6 md:p-8 shadow-lg space-y-4">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/20 text-xs font-semibold backdrop-blur mb-2">
-              <Sparkles className="w-3.5 h-3.5 text-yellow-300" />
-              <span>Алефбет и Ктав Яд (כְּתַב יָד)</span>
-            </div>
-            <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight">
-              Алфавит и Рукописные прописи
-            </h1>
-            <p className="text-sm text-blue-100 max-w-xl mt-1">
-              В Израиле все пишут от руки рукописным шрифтом. Изучайте правила начертания, точки начала, направление штрихов и тренируйтесь на точном интерактивном холсте.
-            </p>
+    <div className="max-w-5xl mx-auto space-y-3.5 sm:space-y-4">
+      {/* Компактный заголовок */}
+      <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white rounded-2xl p-3.5 sm:p-4 shadow-sm flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2.5">
+          <div className="p-2 rounded-xl bg-white/20 backdrop-blur shrink-0">
+            <PenTool className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-300" />
           </div>
-
-          {/* Быстрые вкладки */}
-          <div className="flex flex-wrap p-1 bg-black/20 rounded-2xl backdrop-blur gap-1">
-            <button
-              onClick={() => setActiveTab('grid')}
-              className={'px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition ' + (activeTab === 'grid' ? 'bg-white text-blue-900 shadow-md' : 'text-white/80 hover:text-white')}
-            >
-              <BookOpen className="w-4 h-4" />
-              <span>Алфавит</span>
-            </button>
-            <button
-              onClick={() => setActiveTab('canvas')}
-              className={'px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition ' + (activeTab === 'canvas' ? 'bg-white text-blue-900 shadow-md' : 'text-white/80 hover:text-white')}
-            >
-              <PenTool className="w-4 h-4" />
-              <span>Тренажер прописей</span>
-            </button>
-            <button
-              onClick={() => {
-                setActiveTab('quiz');
-                resetQuiz();
-              }}
-              className={'px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition ' + (activeTab === 'quiz' ? 'bg-white text-blue-900 shadow-md' : 'text-white/80 hover:text-white')}
-            >
-              <Award className="w-4 h-4" />
-              <span>Тест прописей</span>
-            </button>
+          <div>
+            <h1 className="text-sm sm:text-base font-bold tracking-tight">
+              Алфавит и прописи (Ктав Яд)
+            </h1>
+            <p className="text-[11px] sm:text-xs text-blue-100 opacity-90">
+              27 букв • Печатный и рукописный шрифт
+            </p>
           </div>
         </div>
       </div>
 
+      {/* Быстрые 3 вкладки */}
+      <div className="grid grid-cols-3 gap-1 p-1 bg-zinc-100 dark:bg-zinc-800/80 rounded-2xl border border-zinc-200 dark:border-zinc-700/60">
+        <button
+          onClick={() => setActiveTab('grid')}
+          className={`py-2 px-2 rounded-xl font-semibold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition ${
+            activeTab === 'grid'
+              ? 'bg-white dark:bg-zinc-900 text-blue-600 dark:text-blue-400 shadow-sm font-bold'
+              : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200'
+          }`}
+        >
+          <BookOpen className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+          <span>Алфавит</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('canvas')}
+          className={`py-2 px-2 rounded-xl font-semibold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition ${
+            activeTab === 'canvas'
+              ? 'bg-white dark:bg-zinc-900 text-blue-600 dark:text-blue-400 shadow-sm font-bold'
+              : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200'
+          }`}
+        >
+          <PenTool className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+          <span>Тренажёр</span>
+        </button>
+
+        <button
+          onClick={() => {
+            setActiveTab('quiz');
+            resetQuiz();
+          }}
+          className={`py-2 px-2 rounded-xl font-semibold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition ${
+            activeTab === 'quiz'
+              ? 'bg-white dark:bg-zinc-900 text-blue-600 dark:text-blue-400 shadow-sm font-bold'
+              : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200'
+          }`}
+        >
+          <Award className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+          <span>Тест</span>
+        </button>
+      </div>
+
       {/* --- ВКЛАДКА 1: КАТАЛОГ ВСЕХ БУКВ --- */}
       {activeTab === 'grid' && (
-        <div className="space-y-4">
+        <div className="space-y-3 sm:space-y-4">
           {/* Панель фильтров */}
-          <div className="bg-white dark:bg-zinc-900 p-4 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3">
-            <div className="flex items-center gap-1 bg-zinc-100 dark:bg-zinc-800 p-1 rounded-xl text-xs font-semibold">
+          <div className="bg-white dark:bg-zinc-900 p-2.5 sm:p-3 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-2.5">
+            <div className="grid grid-cols-3 gap-1 w-full sm:w-auto bg-zinc-100 dark:bg-zinc-800/80 p-1 rounded-xl text-xs font-semibold">
               <button
                 onClick={() => setSelectedCategory('all')}
-                className={'px-3 py-1.5 rounded-lg transition ' + (selectedCategory === 'all' ? 'bg-white dark:bg-zinc-700 text-blue-600 dark:text-blue-400 shadow-sm' : 'text-zinc-500')}
+                className={`py-1.5 px-2.5 rounded-lg text-center transition ${
+                  selectedCategory === 'all'
+                    ? 'bg-white dark:bg-zinc-700 text-blue-600 dark:text-blue-400 shadow-sm font-bold'
+                    : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300'
+                }`}
               >
-                Все 27 букв
+                Все (27)
               </button>
               <button
                 onClick={() => setSelectedCategory('regular')}
-                className={'px-3 py-1.5 rounded-lg transition ' + (selectedCategory === 'regular' ? 'bg-white dark:bg-zinc-700 text-blue-600 dark:text-blue-400 shadow-sm' : 'text-zinc-500')}
+                className={`py-1.5 px-2.5 rounded-lg text-center transition ${
+                  selectedCategory === 'regular'
+                    ? 'bg-white dark:bg-zinc-700 text-blue-600 dark:text-blue-400 shadow-sm font-bold'
+                    : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300'
+                }`}
               >
-                Основные (22)
+                Обычные (22)
               </button>
               <button
                 onClick={() => setSelectedCategory('sofit')}
-                className={'px-3 py-1.5 rounded-lg transition ' + (selectedCategory === 'sofit' ? 'bg-white dark:bg-zinc-700 text-blue-600 dark:text-blue-400 shadow-sm' : 'text-zinc-500')}
+                className={`py-1.5 px-2.5 rounded-lg text-center transition ${
+                  selectedCategory === 'sofit'
+                    ? 'bg-white dark:bg-zinc-700 text-blue-600 dark:text-blue-400 shadow-sm font-bold'
+                    : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300'
+                }`}
               >
-                Конечные Софит (5)
+                Софит (5)
               </button>
             </div>
 
-            <div className="flex items-center gap-2 text-xs font-semibold">
-              <span className="text-zinc-400">Отображать:</span>
-              <div className="flex bg-zinc-100 dark:bg-zinc-800 p-1 rounded-xl">
-                <button
-                  onClick={() => setDisplayMode('both')}
-                  className={'px-2.5 py-1 rounded-lg transition ' + (displayMode === 'both' ? 'bg-blue-600 text-white' : 'text-zinc-600 dark:text-zinc-400')}
-                >
-                  Оба вида
-                </button>
-                <button
-                  onClick={() => setDisplayMode('print')}
-                  className={'px-2.5 py-1 rounded-lg transition ' + (displayMode === 'print' ? 'bg-blue-600 text-white' : 'text-zinc-600 dark:text-zinc-400')}
-                >
-                  Печатный (דפוס)
-                </button>
-                <button
-                  onClick={() => setDisplayMode('cursive')}
-                  className={'px-2.5 py-1 rounded-lg transition ' + (displayMode === 'cursive' ? 'bg-blue-600 text-white' : 'text-zinc-600 dark:text-zinc-400')}
-                >
-                  Рукописный (כתב)
-                </button>
-              </div>
+            <div className="grid grid-cols-3 gap-1 w-full sm:w-auto bg-zinc-100 dark:bg-zinc-800/80 p-1 rounded-xl text-xs font-semibold">
+              <button
+                onClick={() => setDisplayMode('both')}
+                className={`py-1.5 px-2.5 rounded-lg text-center transition ${
+                  displayMode === 'both'
+                    ? 'bg-blue-600 text-white font-bold shadow-sm'
+                    : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900'
+                }`}
+              >
+                Оба вида
+              </button>
+              <button
+                onClick={() => setDisplayMode('print')}
+                className={`py-1.5 px-2.5 rounded-lg text-center transition ${
+                  displayMode === 'print'
+                    ? 'bg-blue-600 text-white font-bold shadow-sm'
+                    : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900'
+                }`}
+              >
+                Печатный
+              </button>
+              <button
+                onClick={() => setDisplayMode('cursive')}
+                className={`py-1.5 px-2.5 rounded-lg text-center transition ${
+                  displayMode === 'cursive'
+                    ? 'bg-blue-600 text-white font-bold shadow-sm'
+                    : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900'
+                }`}
+              >
+                Рукописный
+              </button>
             </div>
           </div>
 
@@ -472,7 +506,7 @@ export const AlphabetTrainer: React.FC<AlphabetTrainerProps> = () => {
                     </button>
 
                     <span className="text-[10px] font-semibold text-blue-600 dark:text-blue-400 group-hover:underline flex items-center gap-0.5">
-                      <span>Учить пропись</span>
+                      <span>Практика</span>
                       <ChevronRight className="w-3 h-3" />
                     </span>
                   </div>
