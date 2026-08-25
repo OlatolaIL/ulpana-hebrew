@@ -19,15 +19,18 @@ import {
   Zap,
   Filter,
 } from 'lucide-react';
-import { Word, UserProfile } from '@/types';
+import { Word, UserProfile, VerbConjugation } from '@/types';
 import { speakHebrew } from '@/lib/speech';
 import {
   removeWordFromPersonalDict,
   addWordToPersonalDict,
   loadUserProfile,
   calculateWordMastery,
+  isWordInPersonalDict,
 } from '@/lib/storage';
 import { stripNikkud } from '@/lib/transcription';
+import { findOfflineVerbConjugation } from '@/lib/verbConjugations';
+import { VerbConjugationView } from '@/components/VerbConjugationView';
 import { ThematicDecksView } from './ThematicDecksView';
 
 interface PersonalDictionaryProps {
@@ -55,6 +58,65 @@ export const PersonalDictionary: React.FC<PersonalDictionaryProps> = ({
   const [newTranscription, setNewTranscription] = useState('');
   const [newTranslation, setNewTranslation] = useState('');
   const [newRoot, setNewRoot] = useState('');
+
+  // Состояние модального окна Pealim для просмотра спряжений и корней
+  const [pealimModalVerb, setPealimModalVerb] = useState<{
+    word: Word;
+    conjugation: VerbConjugation | null;
+    loading: boolean;
+  } | null>(null);
+
+  const handleOpenPealim = async (word: Word) => {
+    const offlineMatch =
+      findOfflineVerbConjugation(word.hebrew) ||
+      findOfflineVerbConjugation(word.hebrewPlain || stripNikkud(word.hebrew));
+
+    if (offlineMatch) {
+      setPealimModalVerb({
+        word,
+        conjugation: offlineMatch,
+        loading: false,
+      });
+      return;
+    }
+
+    setPealimModalVerb({
+      word,
+      conjugation: null,
+      loading: true,
+    });
+
+    try {
+      const res = await fetch('/api/ai/conjugate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          verb: word.hebrew,
+          provider: userProfile.aiProvider,
+          apiKey:
+            userProfile.aiProvider === 'groq'
+              ? userProfile.groqApiKey
+              : userProfile.geminiApiKey,
+        }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data && !data.error && data.present) {
+          setPealimModalVerb({
+            word,
+            conjugation: data,
+            loading: false,
+          });
+          return;
+        }
+      }
+    } catch (e) {
+      console.error('Pealim fetch error:', e);
+    }
+
+    setPealimModalVerb((prev) => (prev ? { ...prev, loading: false } : null));
+  };
 
   const words = userProfile.personalVocabulary || [];
 
@@ -402,6 +464,19 @@ export const PersonalDictionary: React.FC<PersonalDictionaryProps> = ({
                     </div>
 
                     <div className="flex items-center gap-2 shrink-0">
+                      {/* Кнопка ПЕАЛИМ для глаголов */}
+                      {(word.partOfSpeech === 'verb' || word.hebrew.startsWith('לִ') || word.hebrew.startsWith('לְ') || word.hebrew.startsWith('לַ') || word.hebrew.startsWith('לָ') || Boolean(word.root)) && (
+                        <button
+                          type="button"
+                          onClick={() => handleOpenPealim(word)}
+                          className="px-2 py-1 rounded-lg bg-indigo-50 dark:bg-indigo-950/50 hover:bg-indigo-100 text-indigo-700 dark:text-indigo-300 text-[11px] font-bold flex items-center gap-1 border border-indigo-200 dark:border-indigo-800/60 transition"
+                          title="Таблица спряжений и семья корня (Pealim)"
+                        >
+                          <Sparkles className="w-3 h-3 text-indigo-500" />
+                          <span>Пеалим</span>
+                        </button>
+                      )}
+
                       {word.root && (
                         <button
                           type="button"
@@ -540,7 +615,45 @@ export const PersonalDictionary: React.FC<PersonalDictionaryProps> = ({
           </div>
         </div>
       )}
+
+      {/* Модальное окно PEALIM (Спряжения и Семья корней) */}
+      {pealimModalVerb && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-2xl rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 p-5 sm:p-6 max-h-[90vh] overflow-y-auto">
+            {pealimModalVerb.loading ? (
+              <div className="py-16 text-center text-slate-500 flex flex-col items-center justify-center space-y-3">
+                <div className="w-8 h-8 border-3 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                <p className="text-sm font-semibold">Загружаем спряжения и семью корня Pealim...</p>
+              </div>
+            ) : pealimModalVerb.conjugation ? (
+              <VerbConjugationView
+                conjugation={pealimModalVerb.conjugation}
+                userProfile={userProfile}
+                onBack={() => setPealimModalVerb(null)}
+                onAddToVocabulary={(w) => {
+                  addWordToPersonalDict(w);
+                  onUpdateProfile(loadUserProfile());
+                }}
+                isWordInPersonalVocab={isWordInPersonalDict(pealimModalVerb.word.hebrew, userProfile.personalVocabulary)}
+              />
+            ) : (
+              <div className="text-center py-8 space-y-3">
+                <p className="text-sm text-slate-600 dark:text-slate-300">
+                  Спряжения для глагола <strong className="font-hebrew text-base">{pealimModalVerb.word.hebrew}</strong> пока недоступны.
+                </p>
+                <button
+                  onClick={() => setPealimModalVerb(null)}
+                  className="px-4 py-2 bg-slate-100 dark:bg-slate-800 rounded-xl text-xs font-bold"
+                >
+                  Закрыть
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
+
 

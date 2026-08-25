@@ -34,7 +34,7 @@ import {
   Table,
   Filter,
 } from 'lucide-react';
-import { ThematicDeck, UserProfile, Word } from '@/types';
+import { ThematicDeck, UserProfile, Word, VerbConjugation } from '@/types';
 import {
   THEMATIC_DECKS,
   getDeckWordsAsText,
@@ -48,6 +48,8 @@ import {
   addBatchWordsToPersonalDict,
   addWordToPersonalDict,
 } from '@/lib/storage';
+import { findOfflineVerbConjugation } from '@/lib/verbConjugations';
+import { VerbConjugationView } from '@/components/VerbConjugationView';
 
 interface ThematicDecksViewProps {
   userProfile: UserProfile;
@@ -73,6 +75,13 @@ export const ThematicDecksView: React.FC<ThematicDecksViewProps> = ({
   const [modalSearch, setModalSearch] = useState('');
   const [copiedNotification, setCopiedNotification] = useState(false);
   const [selectedWordIds, setSelectedWordIds] = useState<Set<string>>(new Set());
+
+  // Состояние модального окна Pealim (Спряжения глагола и семья корней)
+  const [pealimModal, setPealimModal] = useState<{
+    word: Word;
+    conjugation: VerbConjugation | null;
+    loading: boolean;
+  } | null>(null);
 
   const isCursive = userProfile.fontStyle === 'cursive';
 
@@ -195,6 +204,60 @@ export const ThematicDecksView: React.FC<ThematicDecksViewProps> = ({
     setSelectedWordIds(new Set(deck.words.map((w) => w.id)));
   };
 
+  // Открыть систему Pealim (спряжения и семья корня) для глагола
+  const handleOpenPealim = async (word: Word) => {
+    const offlineMatch =
+      findOfflineVerbConjugation(word.hebrew) ||
+      findOfflineVerbConjugation(word.hebrewPlain || stripNikkud(word.hebrew));
+
+    if (offlineMatch) {
+      setPealimModal({
+        word,
+        conjugation: offlineMatch,
+        loading: false,
+      });
+      return;
+    }
+
+    // Если нет в оффлайн-базе, запрашиваем через серверный API
+    setPealimModal({
+      word,
+      conjugation: null,
+      loading: true,
+    });
+
+    try {
+      const res = await fetch('/api/ai/conjugate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          verb: word.hebrew,
+          provider: userProfile.aiProvider,
+          apiKey:
+            userProfile.aiProvider === 'groq'
+              ? userProfile.groqApiKey
+              : userProfile.geminiApiKey,
+        }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data && !data.error && data.present) {
+          setPealimModal({
+            word,
+            conjugation: data,
+            loading: false,
+          });
+          return;
+        }
+      }
+    } catch (e) {
+      console.error('Pealim fetch error:', e);
+    }
+
+    setPealimModal((prev) => (prev ? { ...prev, loading: false } : null));
+  };
+
   // Копирование списка в буфер обмена
   const handleCopyList = (deck: ThematicDeck) => {
     const text = getDeckWordsAsText(deck.id, {
@@ -253,6 +316,14 @@ export const ThematicDecksView: React.FC<ThematicDecksViewProps> = ({
     );
   }, [listModalDeck, modalSearch]);
 
+  const isVerbWord = (w: Word) =>
+    w.partOfSpeech === 'verb' ||
+    w.hebrew.startsWith('לִ') ||
+    w.hebrew.startsWith('לְ') ||
+    w.hebrew.startsWith('לַ') ||
+    w.hebrew.startsWith('לָ') ||
+    Boolean(w.root);
+
   return (
     <div className="space-y-6">
       {/* Шапка с описанием */}
@@ -266,8 +337,7 @@ export const ThematicDecksView: React.FC<ThematicDecksViewProps> = ({
             Специальные наборы слов по темам
           </h2>
           <p className="text-blue-100 text-xs sm:text-sm max-w-2xl leading-relaxed">
-            Тренируйте глаголы всех 4 биньянов, Шук, ресторан, банк, части тела, медицину и сленг.
-            Каждую колоду можно открыть полным списком/таблицей, скопировать, выгрузить в Anki или тренировать на карточках.
+            В глагольных колодах собраны ключевые инфинитивы с интерактивной кнопкой **«Пеалим»** для просмотра всех спряжений, форм и семьи корня. Каждую колоду можно открыть списком, скопировать или тренировать на карточках.
           </p>
         </div>
       </div>
@@ -519,6 +589,7 @@ export const ThematicDecksView: React.FC<ThematicDecksViewProps> = ({
                         const wordMastery = calculateWordMastery(
                           userProfile.flashcardProgress?.[word.id]
                         );
+                        const isVerb = isVerbWord(word);
 
                         return (
                           <div
@@ -535,9 +606,22 @@ export const ThematicDecksView: React.FC<ThematicDecksViewProps> = ({
                             </div>
 
                             <div className="flex items-center gap-1.5 shrink-0">
+                              {/* КНОПКА ПЕАЛИМ ДЛЯ ГЛАГОЛОВ */}
+                              {isVerb && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenPealim(word)}
+                                  className="px-2 py-1 rounded-lg bg-indigo-50 dark:bg-indigo-950/50 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 text-indigo-600 dark:text-indigo-300 text-[11px] font-bold flex items-center gap-1 border border-indigo-200 dark:border-indigo-800 transition"
+                                  title="Открыть спряжения и семью корней (Pealim)"
+                                >
+                                  <Sparkles className="w-3 h-3 text-indigo-500" />
+                                  <span>Пеалим</span>
+                                </button>
+                              )}
+
                               {wordMastery.score > 0 && (
                                 <span
-                                  className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md ${wordMastery.badgeColor}`}
+                                  className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md ${wordMastery.badgeBg}`}
                                 >
                                   {wordMastery.score}%
                                 </span>
@@ -785,10 +869,10 @@ export const ThematicDecksView: React.FC<ThematicDecksViewProps> = ({
                   <thead>
                     <tr className="bg-slate-50 dark:bg-slate-800/80 text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider border-b border-slate-200 dark:border-slate-800">
                       <th className="py-2.5 px-3 w-10 text-center">#</th>
-                      <th className="py-2.5 px-3">Иврит</th>
+                      <th className="py-2.5 px-3">Иврит (Инфинитив)</th>
                       <th className="py-2.5 px-3">Транскрипция</th>
                       <th className="py-2.5 px-3">Перевод на русский</th>
-                      <th className="py-2.5 px-3 hidden md:table-cell">Корень / Детали</th>
+                      <th className="py-2.5 px-3 hidden md:table-cell">Корень / Биньян</th>
                       <th className="py-2.5 px-3 text-center">Освоение</th>
                       <th className="py-2.5 px-3 text-right">Действия</th>
                     </tr>
@@ -804,6 +888,7 @@ export const ThematicDecksView: React.FC<ThematicDecksViewProps> = ({
                         userProfile.flashcardProgress?.[word.id]
                       );
                       const isChecked = selectedWordIds.has(word.id);
+                      const isVerb = isVerbWord(word);
 
                       return (
                         <tr
@@ -871,15 +956,28 @@ export const ThematicDecksView: React.FC<ThematicDecksViewProps> = ({
                           {/* Освоение */}
                           <td className="py-3 px-3 text-center">
                             <span
-                              className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${wordMastery.badgeColor}`}
+                              className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${wordMastery.badgeBg}`}
                             >
                               {wordMastery.score}%
                             </span>
                           </td>
 
-                          {/* Действия: Звук и В словарь */}
+                          {/* Действия: Пеалим, Звук и В словарь */}
                           <td className="py-3 px-3 text-right">
-                            <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+                            <div className="flex items-center justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
+                              {/* КНОПКА ПЕАЛИМ */}
+                              {isVerb && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenPealim(word)}
+                                  className="px-2 py-1 rounded-lg bg-indigo-50 dark:bg-indigo-950/50 hover:bg-indigo-100 text-indigo-700 dark:text-indigo-300 text-[11px] font-bold flex items-center gap-1 border border-indigo-200 dark:border-indigo-800 transition"
+                                  title="Таблица спряжений и семья корня (Pealim)"
+                                >
+                                  <Sparkles className="w-3 h-3 text-indigo-500" />
+                                  <span>Пеалим</span>
+                                </button>
+                              )}
+
                               <button
                                 type="button"
                                 onClick={() => handleSpeak(word.hebrew, word.id)}
@@ -963,6 +1061,42 @@ export const ThematicDecksView: React.FC<ThematicDecksViewProps> = ({
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* МОДАЛЬНОЕ ОКНО PEALIM (Спряжения и Семья корней) */}
+      {pealimModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-2xl rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 p-5 sm:p-6 max-h-[90vh] overflow-y-auto">
+            {pealimModal.loading ? (
+              <div className="py-16 text-center text-slate-500 flex flex-col items-center justify-center space-y-3">
+                <div className="w-8 h-8 border-3 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                <p className="text-sm font-semibold">Загружаем спряжения и семью корня Pealim...</p>
+              </div>
+            ) : pealimModal.conjugation ? (
+              <VerbConjugationView
+                conjugation={pealimModal.conjugation}
+                userProfile={userProfile}
+                onBack={() => setPealimModal(null)}
+                onAddToVocabulary={(w) => {
+                  handleAddSingleWord(w);
+                }}
+                isWordInPersonalVocab={isWordInPersonalDict(pealimModal.word.hebrew, userProfile.personalVocabulary)}
+              />
+            ) : (
+              <div className="text-center py-8 space-y-3">
+                <p className="text-sm text-slate-600 dark:text-slate-300">
+                  Спряжения для глагола <strong className="font-hebrew text-base">{pealimModal.word.hebrew}</strong> генерируются.
+                </p>
+                <button
+                  onClick={() => setPealimModal(null)}
+                  className="px-4 py-2 bg-slate-100 dark:bg-slate-800 rounded-xl text-xs font-bold"
+                >
+                  Закрыть
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}

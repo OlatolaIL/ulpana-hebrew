@@ -18,10 +18,12 @@ import {
   Space,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
-import { Word, UserProfile } from '@/types';
+import { Word, UserProfile, VerbConjugation } from '@/types';
 import { speakHebrew } from '@/lib/speech';
-import { updateCardSRS, calculateWordMastery } from '@/lib/storage';
+import { updateCardSRS, calculateWordMastery, addWordToPersonalDict, isWordInPersonalDict, loadUserProfile } from '@/lib/storage';
 import { stripNikkud } from '@/lib/transcription';
+import { findOfflineVerbConjugation } from '@/lib/verbConjugations';
+import { VerbConjugationView } from '@/components/VerbConjugationView';
 
 interface FlashcardTrainerProps {
   initialWords: Word[];
@@ -72,6 +74,65 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
   // Для режима аудирования
   const [quizOptions, setQuizOptions] = useState<string[]>([]);
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
+
+  // Для системы Pealim (спряжения и семья корней)
+  const [pealimModalVerb, setPealimModalVerb] = useState<{
+    word: Word;
+    conjugation: VerbConjugation | null;
+    loading: boolean;
+  } | null>(null);
+
+  const handleOpenPealim = async (word: Word) => {
+    const offlineMatch =
+      findOfflineVerbConjugation(word.hebrew) ||
+      findOfflineVerbConjugation(word.hebrewPlain || stripNikkud(word.hebrew));
+
+    if (offlineMatch) {
+      setPealimModalVerb({
+        word,
+        conjugation: offlineMatch,
+        loading: false,
+      });
+      return;
+    }
+
+    setPealimModalVerb({
+      word,
+      conjugation: null,
+      loading: true,
+    });
+
+    try {
+      const res = await fetch('/api/ai/conjugate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          verb: word.hebrew,
+          provider: userProfile.aiProvider,
+          apiKey:
+            userProfile.aiProvider === 'groq'
+              ? userProfile.groqApiKey
+              : userProfile.geminiApiKey,
+        }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data && !data.error && data.present) {
+          setPealimModalVerb({
+            word,
+            conjugation: data,
+            loading: false,
+          });
+          return;
+        }
+      }
+    } catch (e) {
+      console.error('Pealim fetch error:', e);
+    }
+
+    setPealimModalVerb((prev) => (prev ? { ...prev, loading: false } : null));
+  };
 
   const currentWord = words[currentIndex];
 
@@ -445,6 +506,23 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
                     </span>
                   </div>
                 )}
+
+                {/* Кнопка ПЕАЛИМ для глаголов */}
+                {(currentWord.partOfSpeech === 'verb' || currentWord.hebrew.startsWith('לִ') || currentWord.hebrew.startsWith('לְ') || currentWord.hebrew.startsWith('לַ') || currentWord.hebrew.startsWith('לָ') || Boolean(currentWord.root)) && (
+                  <div className="pt-1">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleOpenPealim(currentWord);
+                      }}
+                      className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 text-indigo-700 dark:text-indigo-300 text-xs font-bold border border-indigo-200 dark:border-indigo-800 shadow-sm transition"
+                    >
+                      <Sparkles className="w-3.5 h-3.5 text-indigo-500" />
+                      <span>Пеалим (спряжения и семья корня)</span>
+                    </button>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -746,6 +824,50 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
           </div>
         </div>
       )}
+
+      {/* Модальное окно PEALIM во время тренировки */}
+      {pealimModalVerb && (
+        <div
+          onClick={() => setPealimModalVerb(null)}
+          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/70 backdrop-blur-sm animate-fade-in"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white dark:bg-slate-900 w-full max-w-2xl rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 p-5 sm:p-6 max-h-[90vh] overflow-y-auto"
+          >
+            {pealimModalVerb.loading ? (
+              <div className="py-16 text-center text-slate-500 flex flex-col items-center justify-center space-y-3">
+                <div className="w-8 h-8 border-3 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                <p className="text-sm font-semibold">Загружаем спряжения и семью корня Pealim...</p>
+              </div>
+            ) : pealimModalVerb.conjugation ? (
+              <VerbConjugationView
+                conjugation={pealimModalVerb.conjugation}
+                userProfile={userProfile}
+                onBack={() => setPealimModalVerb(null)}
+                onAddToVocabulary={(w) => {
+                  addWordToPersonalDict(w);
+                  if (onUpdateProfile) onUpdateProfile(loadUserProfile());
+                }}
+                isWordInPersonalVocab={isWordInPersonalDict(pealimModalVerb.word.hebrew, userProfile.personalVocabulary)}
+              />
+            ) : (
+              <div className="text-center py-8 space-y-3">
+                <p className="text-sm text-slate-600 dark:text-slate-300">
+                  Спряжения для глагола <strong className="font-hebrew text-base">{pealimModalVerb.word.hebrew}</strong> пока недоступны.
+                </p>
+                <button
+                  onClick={() => setPealimModalVerb(null)}
+                  className="px-4 py-2 bg-slate-100 dark:bg-slate-800 rounded-xl text-xs font-bold"
+                >
+                  Закрыть
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
+
