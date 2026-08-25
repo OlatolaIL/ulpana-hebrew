@@ -16,6 +16,7 @@ import {
   SkipForward,
   Bot,
   ListTodo,
+  Undo2,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { Lesson, UserProfile, Exercise } from '@/types';
@@ -38,7 +39,7 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
 }) => {
   const [currentIdx, setCurrentIdx] = useState(0);
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
-  const [selectedSentenceWords, setSelectedSentenceWords] = useState<string[]>([]);
+  const [selectedSentenceIndices, setSelectedSentenceIndices] = useState<number[]>([]);
   const [isAnswered, setIsAnswered] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
   const [isFinished, setIsFinished] = useState(false);
@@ -50,7 +51,7 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
   const resetCurrentAnswerState = () => {
     setIsAnswered(false);
     setSelectedOption(null);
-    setSelectedSentenceWords([]);
+    setSelectedSentenceIndices([]);
     setIsCorrect(false);
   };
 
@@ -68,15 +69,22 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
     }
   };
 
-  const handleSentenceWordClick = (word: string, index: number) => {
-    if (isAnswered) return;
-    const next = [...selectedSentenceWords, word];
-    setSelectedSentenceWords(next);
+  const handleSentenceWordClick = (poolIndex: number) => {
+    if (isAnswered || !currentEx.options) return;
+    const nextIndices = [...selectedSentenceIndices, poolIndex];
+    setSelectedSentenceIndices(nextIndices);
 
+    const nextWords = nextIndices.map((idx) => currentEx.options![idx]);
     const targetArr = currentEx.correctAnswer as string[];
-    if (next.length === targetArr.length) {
+
+    if (nextWords.length === targetArr.length) {
       setIsAnswered(true);
-      const correct = JSON.stringify(next) === JSON.stringify(targetArr);
+      // Сравниваем слова без учета возможных мелких расхождений в огласовках
+      const correct =
+        nextWords.length === targetArr.length &&
+        nextWords.every(
+          (w, idx) => stripNikkud(w).trim() === stripNikkud(targetArr[idx]).trim()
+        );
       setIsCorrect(correct);
       setAnsweredMap((prev) => ({ ...prev, [currentIdx]: true }));
       if (correct) {
@@ -85,14 +93,19 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
     }
   };
 
-  const handleUnselectSentenceWord = (index: number) => {
+  const handleUnselectSentenceWord = (sentencePosition: number) => {
     if (isAnswered) return;
-    setSelectedSentenceWords((prev) => prev.filter((_, i) => i !== index));
+    setSelectedSentenceIndices((prev) => prev.filter((_, i) => i !== sentencePosition));
+  };
+
+  const handleRemoveLastWord = () => {
+    if (isAnswered || selectedSentenceIndices.length === 0) return;
+    setSelectedSentenceIndices((prev) => prev.slice(0, -1));
   };
 
   const handleResetSentence = () => {
     if (isAnswered) return;
-    setSelectedSentenceWords([]);
+    setSelectedSentenceIndices([]);
   };
 
   const handleNext = () => {
@@ -458,19 +471,22 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
                   isCursive ? 'font-cursive text-2xl text-blue-600 dark:text-blue-400' : 'font-hebrew text-lg'
                 }`}
               >
-                {selectedSentenceWords.length > 0 ? (
-                  selectedSentenceWords.map((w, i) => (
-                    <button
-                      key={i}
-                      type="button"
-                      disabled={isAnswered}
-                      onClick={() => handleUnselectSentenceWord(i)}
-                      className="px-3 py-1 bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700 hover:border-rose-400 transition cursor-pointer active:scale-95"
-                      title="Нажмите, чтобы убрать слово"
-                    >
-                      {userProfile.showNikkud ? w : stripNikkud(w)}
-                    </button>
-                  ))
+                {selectedSentenceIndices.length > 0 ? (
+                  selectedSentenceIndices.map((optIdx, pos) => {
+                    const w = currentEx.options![optIdx];
+                    return (
+                      <button
+                        key={`${optIdx}-${pos}`}
+                        type="button"
+                        disabled={isAnswered}
+                        onClick={() => handleUnselectSentenceWord(pos)}
+                        className="px-3 py-1 bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700 hover:border-rose-400 dark:hover:border-rose-500 hover:text-rose-600 dark:hover:text-rose-400 transition cursor-pointer active:scale-95"
+                        title="Нажмите, чтобы убрать это слово"
+                      >
+                        {userProfile.showNikkud ? w : stripNikkud(w)}
+                      </button>
+                    );
+                  })
                 ) : (
                   <span className="text-zinc-400 text-xs font-sans font-normal">
                     Нажимайте на слова ниже для составления фразы...
@@ -478,20 +494,33 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
                 )}
               </div>
               <div className="flex items-center gap-1.5 shrink-0">
-                {selectedSentenceWords.length > 0 && !isAnswered && (
-                  <button
-                    type="button"
-                    onClick={handleResetSentence}
-                    className="p-3 rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-700 shadow-sm transition active:scale-95 cursor-pointer"
-                    title="Сбросить выбранные слова"
-                  >
-                    <RotateCcw className="w-4 h-4" />
-                  </button>
+                {selectedSentenceIndices.length > 0 && !isAnswered && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={handleRemoveLastWord}
+                      className="p-3 rounded-2xl border border-amber-200 dark:border-amber-900/60 bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/60 shadow-sm transition active:scale-95 cursor-pointer"
+                      title="Стереть последнее слово (Назад)"
+                    >
+                      <Undo2 className="w-4 h-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleResetSentence}
+                      className="p-3 rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-700 shadow-sm transition active:scale-95 cursor-pointer"
+                      title="Очистить всю фразу"
+                    >
+                      <RotateCcw className="w-4 h-4" />
+                    </button>
+                  </>
                 )}
-                {selectedSentenceWords.length > 0 && (
+                {selectedSentenceIndices.length > 0 && (
                   <button
                     type="button"
-                    onClick={() => speakHebrew(selectedSentenceWords.join(' '))}
+                    onClick={() => {
+                      const text = selectedSentenceIndices.map((i) => currentEx.options![i]).join(' ');
+                      speakHebrew(text);
+                    }}
                     className="p-3 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white shadow-sm transition active:scale-95 cursor-pointer"
                     title="Прослушать собранное предложение"
                   >
@@ -503,19 +532,19 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
 
             <div dir="rtl" className="flex flex-wrap gap-2 justify-center">
               {currentEx.options.map((w, i) => {
-                const isUsed = selectedSentenceWords.includes(w);
+                const isUsed = selectedSentenceIndices.includes(i);
                 return (
                   <button
                     key={i}
                     type="button"
                     disabled={isUsed || isAnswered}
-                    onClick={() => handleSentenceWordClick(w, i)}
+                    onClick={() => handleSentenceWordClick(i)}
                     className={`px-4 py-2 rounded-xl font-bold border transition cursor-pointer ${
                       isCursive ? 'font-cursive text-2xl md:text-3xl' : 'font-hebrew text-base'
                     } ${
                       isUsed
-                        ? 'opacity-30 border-transparent bg-zinc-100 dark:bg-zinc-800'
-                        : 'bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 hover:border-blue-500 shadow-sm text-zinc-900 dark:text-zinc-50'
+                        ? 'opacity-25 border-transparent bg-zinc-100 dark:bg-zinc-800 pointer-events-none scale-95'
+                        : 'bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 hover:border-blue-500 shadow-sm text-zinc-900 dark:text-zinc-50 active:scale-95'
                     }`}
                   >
                     {userProfile.showNikkud ? w : stripNikkud(w)}
