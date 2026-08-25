@@ -1,5 +1,3 @@
-'use client';
-
 import React, { useState } from 'react';
 import {
   Volume2,
@@ -12,28 +10,50 @@ import {
   Filter,
   Eye,
   EyeOff,
+  CheckCircle2,
+  ArrowRight,
 } from 'lucide-react';
 import { Word, UserProfile, PartOfSpeech } from '@/types';
 import { speakHebrew } from '@/lib/speech';
 import { stripNikkud } from '@/lib/transcription';
-import { saveUserProfile } from '@/lib/storage';
+import { saveUserProfile, markLessonTabCompleted } from '@/lib/storage';
 
 interface LessonVocabularyProps {
+  lessonId?: number;
   words: Word[];
   userProfile: UserProfile;
+  onCompleted?: () => void;
   onStartPractice?: (words: Word[]) => void;
   onUpdateProfile?: (profile: UserProfile) => void;
 }
 
 export const LessonVocabulary: React.FC<LessonVocabularyProps> = ({
+  lessonId,
   words,
   userProfile,
+  onCompleted,
   onStartPractice,
   onUpdateProfile,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedPos, setSelectedPos] = useState<string>('all');
   const [revealedRoots, setRevealedRoots] = useState<Record<string, boolean>>({});
+
+  const handleMarkDone = () => {
+    if (lessonId) {
+      const updated = markLessonTabCompleted(lessonId, 'vocab');
+      if (onUpdateProfile) onUpdateProfile(updated);
+    }
+    if (onCompleted) onCompleted();
+  };
+
+  const handleStartPracticeWithMark = (wordsToTrain: Word[]) => {
+    if (lessonId) {
+      const updated = markLessonTabCompleted(lessonId, 'vocab');
+      if (onUpdateProfile) onUpdateProfile(updated);
+    }
+    if (onStartPractice) onStartPractice(wordsToTrain);
+  };
 
   const filteredWords = words.filter((w) => {
     const q = searchQuery.toLowerCase().trim();
@@ -298,6 +318,27 @@ export const LessonVocabulary: React.FC<LessonVocabularyProps> = ({
             </div>
           );
         })}
+      </div>
+
+      {/* Завершение этапа словаря */}
+      <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-6 pb-8 border-t border-zinc-200 dark:border-zinc-800">
+        {onStartPractice && (
+          <button
+            onClick={() => handleStartPracticeWithMark(filteredWords)}
+            className="w-full sm:w-auto py-3.5 px-6 rounded-2xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-semibold text-sm shadow-md transition active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
+          >
+            <Sparkles className="w-4 h-4 text-yellow-300" />
+            <span>Тренировать в карточках ({filteredWords.length})</span>
+          </button>
+        )}
+
+        <button
+          onClick={handleMarkDone}
+          className="w-full sm:w-auto py-3.5 px-8 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm shadow-md transition active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
+        >
+          <CheckCircle2 className="w-5 h-5 text-emerald-300" />
+          <span>Я выучил слова • Перейти к упражнениям (этап 3/4) ➡️</span>
+        </button>
       </div>
     </div>
   );

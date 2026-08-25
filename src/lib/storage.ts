@@ -90,9 +90,9 @@ export function isWordInPersonalDict(hebrew: string): boolean {
 }
 
 /**
- * Обновление прогресса по вкладке урока (theory, vocab, sentences, chat, exercises)
+ * Обновление прогресса по вкладке урока (theory, vocab, exercises, chat)
  */
-export function markLessonTabCompleted(lessonId: number, tab: string): void {
+export function markLessonTabCompleted(lessonId: number, tab: string): UserProfile {
   const profile = loadUserProfile();
   const current = profile.lessonProgress[lessonId] || {
     completedTabs: [],
@@ -105,12 +105,14 @@ export function markLessonTabCompleted(lessonId: number, tab: string): void {
   }
   current.lastVisited = Date.now();
 
-  // Если пройдены базовые этапы — отмечаем урок завершенным
-  if (
+  // Если пройдены все 4 этапа (или хотя бы 3 основных этапа) — отмечаем урок полностью завершенным
+  const isAllFour = current.completedTabs.length >= 4;
+  const isThreeMain =
     current.completedTabs.includes('theory') &&
     current.completedTabs.includes('vocab') &&
-    current.completedTabs.includes('chat')
-  ) {
+    (current.completedTabs.includes('exercises') || current.completedTabs.includes('chat'));
+
+  if (isAllFour || isThreeMain) {
     current.isCompleted = true;
     if (!profile.completedLessons.includes(lessonId)) {
       profile.completedLessons.push(lessonId);
@@ -119,6 +121,7 @@ export function markLessonTabCompleted(lessonId: number, tab: string): void {
 
   profile.lessonProgress[lessonId] = current;
   saveUserProfile(profile);
+  return profile;
 }
 
 /**

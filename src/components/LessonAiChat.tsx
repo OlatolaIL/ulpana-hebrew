@@ -12,7 +12,10 @@ import {
   AlertCircle,
   Info,
   X,
+  Award,
+  CheckCircle2,
 } from 'lucide-react';
+import confetti from 'canvas-confetti';
 import { Lesson, UserProfile, ChatMessage, Word } from '@/types';
 import { tokenizeText, TextToken, stripNikkud } from '@/lib/transcription';
 import { speakHebrew, HebrewSpeechRecognizer } from '@/lib/speech';
@@ -253,7 +256,8 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
 
       setMessages((prev) => [...prev, aiMsg]);
       setShowSuggestions(true);
-      markLessonTabCompleted(lesson.id, 'chat');
+      const updated = markLessonTabCompleted(lesson.id, 'chat');
+      if (onUpdateProfile) onUpdateProfile(updated);
 
       // Автоматически озвучиваем ответ ИИ
       speakHebrew(aiMsg.hebrew, { rate: userProfile.speechRate || 0.7 });
@@ -425,13 +429,48 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
                 localStorage.setItem('ulpana_chat_tips_hidden', 'true');
               } catch {}
             }}
-            className="text-blue-600 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-200 text-xs font-bold px-1 rounded transition shrink-0"
+            className="text-blue-600 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-200 text-xs font-bold px-1 rounded transition shrink-0 cursor-pointer"
             title="Закрыть подсказку"
           >
             ✕
           </button>
         </div>
       )}
+
+      {/* Панель завершения 4-го этапа урока (ИИ-диалог) */}
+      <div className="px-3 py-2 bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-blue-500/10 border-b border-emerald-300/40 dark:border-emerald-800/40 flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <Award className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+          <div className="min-w-0">
+            <p className="text-xs font-bold text-zinc-900 dark:text-zinc-100 truncate">
+              Этап 4/4: Практика диалога
+            </p>
+            <p className="text-[11px] text-zinc-500 dark:text-zinc-400 truncate hidden xs:block">
+              {userProfile.lessonProgress[lesson.id]?.completedTabs?.includes('chat')
+                ? 'Диалог зачтен! Можете продолжить беседу или завершить урок.'
+                : 'Пообщайтесь с ИИ и нажмите «Зачесть урок».'}
+            </p>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => {
+            const updated = markLessonTabCompleted(lesson.id, 'chat');
+            if (onUpdateProfile) onUpdateProfile(updated);
+            confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 } });
+          }}
+          className={`px-3 py-1.5 rounded-xl font-bold text-xs shadow-sm transition active:scale-95 flex items-center gap-1.5 shrink-0 cursor-pointer ${
+            userProfile.lessonProgress[lesson.id]?.completedTabs?.includes('chat')
+              ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
+              : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white animate-pulse'
+          }`}
+          title="Зачесть 4 этап и завершить урок"
+        >
+          <CheckCircle2 className="w-3.5 h-3.5" />
+          <span>{userProfile.lessonProgress[lesson.id]?.completedTabs?.includes('chat') ? 'Урок зачтен ✅' : 'Зачесть урок 🎉'}</span>
+        </button>
+      </div>
 
       {/* Список сообщений */}
       <div className="flex-1 p-3 sm:p-4 overflow-y-auto space-y-3 bg-zinc-50/50 dark:bg-zinc-950/30">

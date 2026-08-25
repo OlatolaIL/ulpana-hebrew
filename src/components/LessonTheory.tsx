@@ -36,7 +36,8 @@ export const LessonTheory: React.FC<LessonTheoryProps> = ({
   onUpdateProfile,
 }) => {
   const handleMarkDone = () => {
-    markLessonTabCompleted(lesson.id, 'theory');
+    const updated = markLessonTabCompleted(lesson.id, 'theory');
+    if (onUpdateProfile) onUpdateProfile(updated);
     if (onCompleted) onCompleted();
   };
 
@@ -210,13 +211,13 @@ export const LessonTheory: React.FC<LessonTheoryProps> = ({
       )}
 
       {/* Завершение этапа теории */}
-      <div className="text-center pt-2">
+      <div className="text-center pt-2 pb-6">
         <button
           onClick={handleMarkDone}
-          className="py-3.5 px-8 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm shadow-md transition active:scale-95 inline-flex items-center gap-2"
+          className="py-3.5 px-8 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm shadow-md transition active:scale-95 inline-flex items-center gap-2 cursor-pointer"
         >
-          <CheckCircle2 className="w-5 h-5" />
-          <span>Я изучил теорию • Перейти к практике</span>
+          <CheckCircle2 className="w-5 h-5 text-emerald-300" />
+          <span>Я изучил теорию • Перейти к словарю (этап 2/4) ➡️</span>
         </button>
       </div>
     </div>

@@ -79,35 +79,50 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
       setCurrentIdx((prev) => prev + 1);
     } else {
       setIsFinished(true);
-      markLessonTabCompleted(lesson.id, 'exercises');
+      const updated = markLessonTabCompleted(lesson.id, 'exercises');
+      if (onUpdateProfile) onUpdateProfile(updated);
       confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 } });
-      if (onCompleted) onCompleted();
     }
   };
 
   if (!currentEx || isFinished) {
     return (
-      <div className="bg-white dark:bg-zinc-900 rounded-3xl p-8 border border-zinc-200 dark:border-zinc-800 shadow-xl max-w-lg mx-auto text-center space-y-6">
-        <div className="w-20 h-20 mx-auto rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 flex items-center justify-center">
+      <div className="bg-white dark:bg-zinc-900 rounded-3xl p-6 sm:p-8 border border-zinc-200 dark:border-zinc-800 shadow-xl max-w-lg mx-auto text-center space-y-6 animate-in zoom-in-95 duration-200">
+        <div className="w-20 h-20 mx-auto rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shadow-inner">
           <Award className="w-10 h-10" />
         </div>
-        <div>
-          <h2 className="text-2xl font-bold text-zinc-900 dark:text-zinc-50 font-hebrew">
+        <div className="space-y-1">
+          <h2 className="text-3xl font-black text-zinc-900 dark:text-zinc-50 font-hebrew">
             !מְצוּיָן
           </h2>
-          <p className="text-sm font-semibold text-emerald-600 dark:text-emerald-400 mt-1">
+          <p className="text-base font-bold text-emerald-600 dark:text-emerald-400">
             Все упражнения урока {lesson.number} успешно выполнены!
           </p>
+          <p className="text-xs text-zinc-500 dark:text-zinc-400">
+            Этап 3 из 4 завершен. Переходите к ролевому диалогу с ИИ!
+          </p>
         </div>
-        <button
-          onClick={() => {
-            setCurrentIdx(0);
-            setIsFinished(false);
-          }}
-          className="w-full py-3 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm transition"
-        >
-          Пройти упражнения еще раз
-        </button>
+
+        <div className="space-y-2.5 pt-2">
+          {onCompleted && (
+            <button
+              onClick={onCompleted}
+              className="w-full py-3.5 px-6 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-sm shadow-md transition active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <span>Перейти к ИИ-чату (этап 4/4) ➡️</span>
+            </button>
+          )}
+
+          <button
+            onClick={() => {
+              setCurrentIdx(0);
+              setIsFinished(false);
+            }}
+            className="w-full py-3 px-4 rounded-2xl border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 font-semibold text-xs transition cursor-pointer"
+          >
+            Пройти упражнения еще раз
+          </button>
+        </div>
       </div>
     );
   }
