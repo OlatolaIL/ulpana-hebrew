@@ -25,6 +25,7 @@ import { speakHebrew } from '@/lib/speech';
 import { stripNikkud } from '@/lib/transcription';
 import { getHebrewPictogram } from '@/lib/pictograms';
 import { ULPAN_OFFLINE_DICTIONARY } from '@/lib/ulpanDictionary';
+import { parseHebrewSentence, stripPunctuation, isPunctuationToken, areWordsEqual } from '@/lib/sentenceParser';
 
 interface LessonExercisesProps {
   lesson: Lesson;
@@ -235,22 +236,59 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
     }
   };
 
+  // Вычисляем структуру предложения для режима build_sentence
+  const sentenceStructure = React.useMemo(() => {
+    if (!currentEx || currentEx.type !== 'build_sentence') {
+      return null;
+    }
+
+    // Ищем полное предложение на иврите из объяснения или correctAnswer
+    let targetSentenceText = '';
+    if (currentEx.explanation) {
+      const m = currentEx.explanation.match(/:\s*([^()]+?)(?:\s*\(|$)/);
+      if (m && /[\u0590-\u05FF]/.test(m[1])) {
+        targetSentenceText = m[1].trim();
+      }
+    }
+
+    if (!targetSentenceText) {
+      if (Array.isArray(currentEx.correctAnswer)) {
+        targetSentenceText = currentEx.correctAnswer.join(' ');
+      } else if (typeof currentEx.correctAnswer === 'string') {
+        targetSentenceText = currentEx.correctAnswer;
+      }
+    }
+
+    const parsed = parseHebrewSentence(targetSentenceText);
+
+    // Очищаем options от знаков препинания и standalone тире
+    const rawOptions = currentEx.options || [];
+    const cleanOptions = rawOptions
+      .map((w) => stripPunctuation(w))
+      .filter((w) => w.length > 0 && !isPunctuationToken(w));
+
+    return {
+      parsed,
+      cleanOptions,
+      targetWords: parsed.cleanWords,
+      fullSentence: parsed.fullSentence || targetSentenceText,
+    };
+  }, [currentEx]);
+
   const handleSentenceWordClick = (poolIndex: number) => {
-    if (isAnswered || !currentEx.options) return;
+    if (isAnswered || !sentenceStructure) return;
+    const { cleanOptions, targetWords } = sentenceStructure;
     const nextIndices = [...selectedSentenceIndices, poolIndex];
     setSelectedSentenceIndices(nextIndices);
 
-    const nextWords = nextIndices.map((idx) => currentEx.options![idx]);
-    const targetArr = currentEx.correctAnswer as string[];
-
-    if (nextWords.length === targetArr.length) {
+    if (nextIndices.length === targetWords.length) {
       setIsAnswered(true);
-      // Сравниваем слова без учета возможных мелких расхождений в огласовках
+      const nextWords = nextIndices.map((idx) => cleanOptions[idx]);
+
       const correct =
-        nextWords.length === targetArr.length &&
-        nextWords.every(
-          (w, idx) => stripNikkud(w).trim() === stripNikkud(targetArr[idx]).trim()
-        );
+        nextWords.length === targetWords.length &&
+        nextWords.every((w, idx) => areWordsEqual(w, targetWords[idx], false));
+
       setIsCorrect(correct);
       setAnsweredMap((prev) => ({ ...prev, [currentIdx]: true }));
       if (correct) {
@@ -647,78 +685,122 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
           )}
 
         {/* Режим сборки предложения из слов (build_sentence) */}
-        {currentEx.type === 'build_sentence' && currentEx.options && (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between gap-2">
-              <div
-                dir="rtl"
-                className={`flex-1 min-h-[56px] p-3 rounded-2xl border-2 border-dashed border-blue-400 bg-blue-50/40 dark:bg-blue-950/20 flex flex-wrap gap-2 items-center font-bold ${
-                  isCursive ? 'font-cursive text-2xl text-blue-600 dark:text-blue-400' : 'font-hebrew text-lg'
-                }`}
-              >
-                {selectedSentenceIndices.length > 0 ? (
-                  selectedSentenceIndices.map((optIdx, pos) => {
-                    const w = currentEx.options![optIdx];
-                    return (
-                      <button
-                        key={`${optIdx}-${pos}`}
-                        type="button"
-                        disabled={isAnswered}
-                        onClick={() => handleUnselectSentenceWord(pos)}
-                        className="px-3 py-1 bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700 hover:border-rose-400 dark:hover:border-rose-500 hover:text-rose-600 dark:hover:text-rose-400 transition cursor-pointer active:scale-95"
-                        title={isUlpan ? 'לַחֲצוּ לַהֲסָרַת מִילָּה זוֹ' : 'Нажмите, чтобы убрать это слово'}
-                      >
-                        {userProfile.showNikkud ? w : stripNikkud(w)}
-                      </button>
-                    );
-                  })
-                ) : (
-                  <span className="text-zinc-400 text-xs font-sans font-normal font-hebrew">
-                    {isUlpan
-                      ? 'לַחֲצוּ עַל הַמִּילִּים לְמַטָּה לְהַרְכָּבַת הַמִּשְׁפָּט...'
-                      : 'Нажимайте на слова ниже для составления фразы...'}
-                  </span>
-                )}
-              </div>
-              <div className="flex items-center gap-1.5 shrink-0">
-                {selectedSentenceIndices.length > 0 && !isAnswered && (
-                  <>
-                    <button
-                      type="button"
-                      onClick={handleRemoveLastWord}
-                      className="p-3 rounded-2xl border border-amber-200 dark:border-amber-900/60 bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/60 shadow-sm transition active:scale-95 cursor-pointer"
-                      title={isUlpan ? 'מחק מילה אחרונה' : 'Стереть последнее слово (Назад)'}
+        {currentEx.type === 'build_sentence' && sentenceStructure && (
+          <div className="space-y-3.5 sm:space-y-4">
+            {/* 1. Поле сборки предложения на 100% ширины с фиксированными знаками препинания */}
+            <div
+              dir="rtl"
+              className={`w-full min-h-[64px] p-3.5 sm:p-4 rounded-2xl border-2 border-dashed ${
+                isAnswered
+                  ? isCorrect
+                    ? 'border-emerald-400 dark:border-emerald-600 bg-emerald-50/40 dark:bg-emerald-950/20'
+                    : 'border-amber-400 dark:border-amber-600 bg-amber-50/40 dark:bg-amber-950/20'
+                  : 'border-blue-400 dark:border-blue-500/50 bg-blue-50/40 dark:bg-blue-950/20'
+              } flex flex-wrap gap-2 items-center leading-relaxed transition-colors duration-200`}
+            >
+              {sentenceStructure.parsed.tokens.map((token, tIdx) => {
+                if (token.type === 'punct') {
+                  return (
+                    <span
+                      key={`punct-${tIdx}`}
+                      className="text-zinc-700 dark:text-zinc-300 font-bold text-lg sm:text-xl px-0.5 select-none font-hebrew"
                     >
-                      <Undo2 className="w-4 h-4" />
-                    </button>
+                      {token.text}
+                    </span>
+                  );
+                }
+
+                const slotIdx = token.slotIndex ?? 0;
+                const poolIdx = selectedSentenceIndices[slotIdx];
+                const isFilled = poolIdx !== undefined;
+
+                if (isFilled) {
+                  const wordText = sentenceStructure.cleanOptions[poolIdx] || '';
+                  return (
                     <button
+                      key={`slot-${slotIdx}-${poolIdx}`}
                       type="button"
-                      onClick={handleResetSentence}
-                      className="p-3 rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-700 shadow-sm transition active:scale-95 cursor-pointer"
-                      title={isUlpan ? 'אפס משפט' : 'Очистить всю фразу'}
+                      disabled={isAnswered}
+                      onClick={() => handleUnselectSentenceWord(slotIdx)}
+                      className={`px-3.5 py-1.5 bg-white dark:bg-zinc-800 rounded-xl shadow-xs border transition cursor-pointer active:scale-95 font-bold ${
+                        isCursive
+                          ? 'font-cursive text-2xl md:text-3xl text-blue-600 dark:text-blue-400'
+                          : 'font-hebrew text-base sm:text-lg text-zinc-900 dark:text-zinc-50'
+                      } ${
+                        isAnswered
+                          ? isCorrect
+                            ? 'border-emerald-300 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-950/40'
+                            : 'border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/40'
+                          : 'border-zinc-200 dark:border-zinc-700 hover:border-rose-400 dark:hover:border-rose-500 hover:text-rose-600 dark:hover:text-rose-400'
+                      }`}
+                      title={isUlpan ? 'לַחֲצוּ לַהֲסָרַת מִילָּה זוֹ' : 'Нажмите, чтобы убрать слово'}
                     >
-                      <RotateCcw className="w-4 h-4" />
+                      {userProfile.showNikkud ? wordText : stripNikkud(wordText)}
                     </button>
-                  </>
-                )}
-                {selectedSentenceIndices.length > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const text = selectedSentenceIndices.map((i) => currentEx.options![i]).join(' ');
-                      speakHebrew(text);
-                    }}
-                    className="p-3 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white shadow-sm transition active:scale-95 cursor-pointer"
-                    title={isUlpan ? 'השמע משפט' : 'Прослушать собранное предложение'}
+                  );
+                }
+
+                return (
+                  <span
+                    key={`empty-${slotIdx}`}
+                    className="inline-flex items-center justify-center min-w-[48px] h-9 px-3 py-1 rounded-xl border-2 border-dashed border-blue-300/80 dark:border-blue-700/60 bg-blue-100/30 dark:bg-blue-950/30 text-blue-400/60 dark:text-blue-500/50 select-none text-xs font-mono"
+                    title={isUlpan ? 'מקום למילה' : 'Место для слова'}
                   >
-                    <Volume2 className="w-4 h-4" />
-                  </button>
-                )}
-              </div>
+                    ···
+                  </span>
+                );
+              })}
             </div>
 
-            <div dir="rtl" className="flex flex-wrap gap-2 justify-center">
-              {currentEx.options.map((w, i) => {
+            {/* 2. Панель вспомогательных действий под зоной сборки */}
+            {selectedSentenceIndices.length > 0 && !isAnswered && (
+              <div className="flex items-center justify-between px-1">
+                <span className="text-[11px] text-zinc-400 font-medium">
+                  {isUlpan
+                    ? `${selectedSentenceIndices.length} / ${sentenceStructure.targetWords.length} מִילִּים`
+                    : `Выбрано: ${selectedSentenceIndices.length} из ${sentenceStructure.targetWords.length}`}
+                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handleRemoveLastWord}
+                    className="px-2.5 py-1 rounded-xl border border-amber-200 dark:border-amber-900/60 bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/60 shadow-xs transition active:scale-95 cursor-pointer text-xs font-semibold flex items-center gap-1.5"
+                    title={isUlpan ? 'מחק מילה אחרונה' : 'Стереть последнее выбранное слово'}
+                  >
+                    <Undo2 className="w-3.5 h-3.5" />
+                    <span>{isUlpan ? 'אָחוֹרָה' : 'Назад'}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleResetSentence}
+                    className="px-2.5 py-1 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-700 shadow-xs transition active:scale-95 cursor-pointer text-xs font-semibold flex items-center gap-1.5"
+                    title={isUlpan ? 'אפס משפט' : 'Очистить всю фразу'}
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" />
+                    <span>{isUlpan ? 'אִפּוּס' : 'Сброс'}</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* 3. Кнопка озвучки — появляется ТОЛЬКО ПОСЛЕ полной сборки / ответа */}
+            {isAnswered && sentenceStructure.fullSentence && (
+              <div className="flex items-center justify-end px-1">
+                <button
+                  type="button"
+                  onClick={() => speakHebrew(sentenceStructure.fullSentence)}
+                  className="px-3.5 py-2 rounded-xl bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800 text-blue-600 dark:text-blue-400 font-bold hover:bg-blue-100 dark:hover:bg-blue-900 shadow-xs transition active:scale-95 cursor-pointer text-xs flex items-center gap-1.5"
+                  title={isUlpan ? 'השמע משפט' : 'Прослушать полное предложение'}
+                >
+                  <Volume2 className="w-4 h-4" />
+                  <span>{isUlpan ? '🔊 הַשְׁמָעַת הַמִּשְׁפָּט' : '🔊 Прослушать фразу целиком'}</span>
+                </button>
+              </div>
+            )}
+
+            {/* 4. Банк чистых слов (без знаков препинания и тире) */}
+            <div dir="rtl" className="flex flex-wrap gap-2 justify-center pt-1">
+              {sentenceStructure.cleanOptions.map((w, i) => {
                 const isUsed = selectedSentenceIndices.includes(i);
                 return (
                   <button
@@ -727,11 +809,11 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
                     disabled={isUsed || isAnswered}
                     onClick={() => handleSentenceWordClick(i)}
                     className={`px-4 py-2 rounded-xl font-bold border transition cursor-pointer ${
-                      isCursive ? 'font-cursive text-2xl md:text-3xl' : 'font-hebrew text-base'
+                      isCursive ? 'font-cursive text-2xl md:text-3xl' : 'font-hebrew text-base sm:text-lg'
                     } ${
                       isUsed
-                        ? 'opacity-25 border-transparent bg-zinc-100 dark:bg-zinc-800 pointer-events-none scale-95'
-                        : 'bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 hover:border-blue-500 shadow-sm text-zinc-900 dark:text-zinc-50 active:scale-95'
+                        ? 'opacity-20 border-transparent bg-zinc-100 dark:bg-zinc-800 pointer-events-none scale-95'
+                        : 'bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 hover:border-blue-500 hover:shadow-xs text-zinc-900 dark:text-zinc-50 active:scale-95'
                     }`}
                   >
                     {userProfile.showNikkud ? w : stripNikkud(w)}
@@ -751,12 +833,37 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
                 : 'bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-900/50 text-amber-800 dark:text-amber-200'
             }`}
           >
-            <p className="font-bold mb-1 font-hebrew">
-              {isUlpan
-                ? (isCorrect ? '!נָכוֹן מְאוֹד • כָּל הַכָּבוֹד 🎉' : '!שִׂימוּ לֵב לַתְּשׁוּבָה הַנְּכוֹנָה 💡')
-                : (isCorrect ? 'Верно! Отличный ответ.' : 'Почти получилось! Обратите внимание:')}
-            </p>
-            {!isUlpan && currentEx.explanation && <p>{currentEx.explanation}</p>}
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="font-bold mb-1 font-hebrew">
+                  {isUlpan
+                    ? isCorrect
+                      ? '!נָכוֹן מְאוֹד • כָּל הַכָּבוֹד 🎉'
+                      : '!שִׂימוּ לֵב לַתְּשׁוּבָה הַנְּכוֹנָה 💡'
+                    : isCorrect
+                    ? 'Верно! Отличный ответ.'
+                    : 'Почти получилось! Обратите внимание:'}
+                </p>
+                {!isUlpan && currentEx.explanation && <p>{currentEx.explanation}</p>}
+              </div>
+              {currentEx.type !== 'build_sentence' && currentEx.type !== 'listening' && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const textToSpeak =
+                      currentEx.hebrewSnippet ||
+                      (currentEx.correctAnswer && typeof currentEx.correctAnswer === 'string' && /[\u0590-\u05FF]/.test(currentEx.correctAnswer)
+                        ? currentEx.correctAnswer
+                        : '');
+                    if (textToSpeak) speakHebrew(textToSpeak);
+                  }}
+                  className="p-2 rounded-xl bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 hover:text-blue-600 shadow-xs transition active:scale-95 shrink-0 cursor-pointer"
+                  title="Прослушать"
+                >
+                  <Volume2 className="w-4 h-4" />
+                </button>
+              )}
+            </div>
           </div>
         )}
 

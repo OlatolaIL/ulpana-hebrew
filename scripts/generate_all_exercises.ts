@@ -9,6 +9,7 @@ import { BET_LESSONS_66_80 } from '../src/data/lessons/bet_66_80';
 import { BET_LESSONS_81_90 } from '../src/data/lessons/bet_81_90';
 import { BET_LESSONS_91_100 } from '../src/data/lessons/bet_91_100';
 import { Lesson, Exercise, Word, Sentence } from '../src/types';
+import { parseHebrewSentence, stripPunctuation } from '../src/lib/sentenceParser';
 
 const allLessons: Record<number, Lesson> = {
   ...ALEF_LESSONS_01_10,
@@ -55,15 +56,35 @@ function getDistractorTranslations(correctTranslation: string, level: 'alef' | '
 }
 
 function getDistractorHebrew(correctHebrew: string, level: 'alef' | 'bet', lessonWords: Word[], count = 3): string[] {
+  const cleanCorrect = stripPunctuation(correctHebrew);
   const pool = [...lessonWords, ...wordsByLevel[level]];
   const distractors = new Set<string>();
   for (const w of pool) {
-    if (w.hebrew && w.hebrew !== correctHebrew && !distractors.has(w.hebrew)) {
-      distractors.add(w.hebrew);
+    const cleanHeb = stripPunctuation(w.hebrew);
+    if (cleanHeb && cleanHeb !== cleanCorrect && !distractors.has(cleanHeb)) {
+      distractors.add(cleanHeb);
       if (distractors.size >= count) break;
     }
   }
   return Array.from(distractors);
+}
+
+function formatSentenceWithBlank(parsed: ReturnType<typeof parseHebrewSentence>, blankSlotIdx: number): string {
+  let curSlot = 0;
+  const parts: string[] = [];
+
+  for (const token of parsed.tokens) {
+    if (token.type === 'punct') {
+      parts.push(token.text);
+    } else {
+      const isBlank = curSlot === blankSlotIdx;
+      parts.push(isBlank ? '____' : token.text);
+      curSlot++;
+    }
+  }
+
+  // Склеиваем знаки препинания корректно
+  return parts.join(' ').replace(/\s+([.,?!:;])/g, '$1');
 }
 
 function generateLessonExercises(lesson: Lesson): Exercise[] {
@@ -104,11 +125,12 @@ function generateLessonExercises(lesson: Lesson): Exercise[] {
   // 3. Упражнение 3: Заполнение пропуска в первом предложении урока (fill_blank)
   if (sentences[0]) {
     const s = sentences[0];
-    const tokens = s.hebrew.split(' ').filter(t => t.trim().length > 0);
-    let blankIdx = tokens.length > 2 ? 1 : 0;
-    if (tokens[blankIdx] && tokens[blankIdx].length <= 2 && tokens.length > 2) blankIdx = 2;
-    const targetWord = tokens[blankIdx] || tokens[0];
-    const sentenceWithBlank = tokens.map((t, idx) => idx === blankIdx ? '____' : t).join(' ');
+    const parsed = parseHebrewSentence(s.hebrew);
+    const cleanWords = parsed.cleanWords;
+    let blankIdx = cleanWords.length > 2 ? 1 : 0;
+    if (cleanWords[blankIdx] && cleanWords[blankIdx].length <= 2 && cleanWords.length > 2) blankIdx = 2;
+    const targetWord = cleanWords[blankIdx] || cleanWords[0] || s.hebrew;
+    const sentenceWithBlank = formatSentenceWithBlank(parsed, blankIdx);
     
     const distractors = getDistractorHebrew(targetWord, lesson.level, vocab, 3);
     const options = shuffle([targetWord, ...distractors]);
@@ -126,7 +148,8 @@ function generateLessonExercises(lesson: Lesson): Exercise[] {
   // 4. Упражнение 4: Сборка первого предложения (build_sentence)
   if (sentences[0]) {
     const s = sentences[0];
-    const words = s.hebrew.split(' ').filter(t => t.trim().length > 0);
+    const parsed = parseHebrewSentence(s.hebrew);
+    const words = parsed.cleanWords;
     let shuffled = shuffle(words);
     while (shuffled.length > 1 && JSON.stringify(shuffled) === JSON.stringify(words)) {
       shuffled = shuffle(words);
@@ -174,10 +197,11 @@ function generateLessonExercises(lesson: Lesson): Exercise[] {
   // 7. Упражнение 7: Грамматическое заполнение пропуска (fill_blank) во 2-м предложении
   if (sentences[1] || sentences[0]) {
     const s = sentences[1] || sentences[0];
-    const tokens = s.hebrew.split(' ').filter(t => t.trim().length > 0);
-    const blankIdx = tokens.length > 1 ? tokens.length - 1 : 0;
-    const targetWord = tokens[blankIdx] || tokens[0];
-    const sentenceWithBlank = tokens.map((t, idx) => idx === blankIdx ? '____' : t).join(' ');
+    const parsed = parseHebrewSentence(s.hebrew);
+    const cleanWords = parsed.cleanWords;
+    const blankIdx = cleanWords.length > 1 ? cleanWords.length - 1 : 0;
+    const targetWord = cleanWords[blankIdx] || cleanWords[0] || s.hebrew;
+    const sentenceWithBlank = formatSentenceWithBlank(parsed, blankIdx);
     const distractors = getDistractorHebrew(targetWord, lesson.level, vocab, 3);
     const options = shuffle([targetWord, ...distractors]);
 
@@ -194,7 +218,8 @@ function generateLessonExercises(lesson: Lesson): Exercise[] {
   // 8. Упражнение 8: Сборка второго предложения (build_sentence)
   if (sentences[1] || sentences[0]) {
     const s = sentences[1] || sentences[0];
-    const words = s.hebrew.split(' ').filter(t => t.trim().length > 0);
+    const parsed = parseHebrewSentence(s.hebrew);
+    const words = parsed.cleanWords;
     let shuffled = shuffle(words);
     while (shuffled.length > 1 && JSON.stringify(shuffled) === JSON.stringify(words)) {
       shuffled = shuffle(words);
@@ -237,10 +262,11 @@ function generateLessonExercises(lesson: Lesson): Exercise[] {
 
   // 11. Упражнение 11: Заполнение пропуска в 3-м предложении или диалоге (fill_blank)
   const s11 = sentences[2] || sentences[0];
-  const tokens11 = s11.hebrew.split(' ').filter(t => t.trim().length > 0);
-  const blankIdx11 = Math.min(1, tokens11.length - 1);
-  const targetWord11 = tokens11[blankIdx11] || tokens11[0];
-  const sentenceWithBlank11 = tokens11.map((t, idx) => idx === blankIdx11 ? '____' : t).join(' ');
+  const parsed11 = parseHebrewSentence(s11.hebrew);
+  const cleanWords11 = parsed11.cleanWords;
+  const blankIdx11 = Math.min(1, cleanWords11.length - 1);
+  const targetWord11 = cleanWords11[blankIdx11] || cleanWords11[0] || s11.hebrew;
+  const sentenceWithBlank11 = formatSentenceWithBlank(parsed11, blankIdx11);
   const distractors11 = getDistractorHebrew(targetWord11, lesson.level, vocab, 3);
   exercises.push({
     id: `ex${lesson.id}-11`,
@@ -253,7 +279,8 @@ function generateLessonExercises(lesson: Lesson): Exercise[] {
 
   // 12. Упражнение 12: Сборка третьего предложения или фразы (build_sentence)
   const s12 = sentences[2] || sentences[1] || sentences[0];
-  const words12 = s12.hebrew.split(' ').filter(t => t.trim().length > 0);
+  const parsed12 = parseHebrewSentence(s12.hebrew);
+  const words12 = parsed12.cleanWords;
   let shuffled12 = shuffle(words12);
   while (shuffled12.length > 1 && JSON.stringify(shuffled12) === JSON.stringify(words12)) {
     shuffled12 = shuffle(words12);
