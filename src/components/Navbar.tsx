@@ -47,18 +47,18 @@ export const Navbar: React.FC<NavbarProps> = ({
     <>
       {/* Верхний компактный навбар */}
       <header className="sticky top-0 z-40 w-full bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md border-b border-zinc-200 dark:border-zinc-800">
-        <div className="max-w-6xl mx-auto px-3 sm:px-4 h-14 sm:h-16 flex items-center justify-between gap-2">
+        <div className="max-w-6xl mx-auto px-2 sm:px-4 h-14 sm:h-16 flex items-center justify-between gap-1 sm:gap-2">
           {/* Логотип */}
           <div
             onClick={() => onNavigate('map')}
-            className="flex items-center gap-2.5 cursor-pointer select-none group shrink-0"
+            className="flex items-center gap-1.5 sm:gap-2.5 cursor-pointer select-none group shrink-0 min-w-0"
           >
-            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-sm group-hover:scale-105 transition shrink-0">
-              <span className="font-bold text-base sm:text-lg font-hebrew">א</span>
+            <div className="w-7 h-7 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-sm group-hover:scale-105 transition shrink-0">
+              <span className="font-bold text-sm sm:text-lg font-hebrew">א</span>
             </div>
             <div>
-              <div className="flex items-center gap-1.5">
-                <span className="font-extrabold text-base sm:text-lg tracking-tight text-zinc-900 dark:text-zinc-50">
+              <div className="flex items-center gap-1">
+                <span className="font-extrabold text-sm sm:text-lg tracking-tight text-zinc-900 dark:text-zinc-50 truncate">
                   Ульпана
                 </span>
               </div>
@@ -125,23 +125,23 @@ export const Navbar: React.FC<NavbarProps> = ({
           </nav>
 
           {/* Правая часть: Админка (только для osa_il), PRO, авторизация и Настройки */}
-          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          <div className="flex items-center gap-1 sm:gap-1.5 md:gap-2 shrink-0">
             {/* Кнопка Админки для osa_il */}
             {isAdmin && (
               <Link
                 href="/admin"
-                className="px-2.5 py-1.5 rounded-xl border border-blue-500/30 bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/50 text-xs font-bold flex items-center gap-1.5 shadow-sm transition active:scale-95 shrink-0"
+                className="p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl border border-blue-500/30 bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/50 text-xs font-bold flex items-center gap-1 shadow-sm transition active:scale-95 shrink-0"
                 title="Панель администратора (@osa_il)"
               >
-                <ShieldCheck className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
-                <span className="hidden sm:inline">{userProfile.ulpanMode ? 'נִהוּל' : 'Админка'}</span>
+                <ShieldCheck className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
+                <span className="hidden md:inline">{userProfile.ulpanMode ? 'נִהוּל' : 'Админка'}</span>
               </Link>
             )}
 
             {/* Кнопка подписки PRO */}
             <button
               onClick={onOpenSubscription}
-              className={`px-2.5 py-1.5 rounded-xl border text-xs font-bold flex items-center gap-1 shadow-sm transition active:scale-95 shrink-0 ${
+              className={`px-2 py-1 sm:px-2.5 sm:py-1.5 rounded-xl border text-[11px] sm:text-xs font-bold flex items-center gap-1 shadow-sm transition active:scale-95 shrink-0 ${
                 isPro
                   ? 'border-amber-400/80 bg-gradient-to-r from-amber-500 to-yellow-400 text-white shadow-amber-500/20'
                   : 'border-amber-300 dark:border-amber-900/60 bg-amber-50 dark:bg-amber-950/30 text-amber-800 dark:text-amber-300 hover:bg-amber-100'
@@ -155,7 +155,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             {/* Быстрый переключатель Режима Ульпан (Погружение עברית בעברית) */}
             <button
               onClick={onToggleUlpanMode}
-              className={`px-2.5 py-1.5 rounded-xl border text-xs font-semibold flex items-center gap-1.5 transition shrink-0 cursor-pointer ${
+              className={`p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl border text-xs font-semibold flex items-center gap-1 transition shrink-0 cursor-pointer ${
                 userProfile.ulpanMode
                   ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 font-bold ring-2 ring-emerald-500/20 shadow-xs'
                   : 'border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400'
@@ -166,8 +166,8 @@ export const Navbar: React.FC<NavbarProps> = ({
                   : 'Включить Режим «Ульпан» (погружение עברית בעברית без перевода)'
               }
             >
-              <GraduationCap className={`w-3.5 h-3.5 ${userProfile.ulpanMode ? 'text-emerald-600 dark:text-emerald-400' : 'text-zinc-400'}`} />
-              <span className="hidden sm:inline">
+              <GraduationCap className={`w-3.5 h-3.5 shrink-0 ${userProfile.ulpanMode ? 'text-emerald-600 dark:text-emerald-400' : 'text-zinc-400'}`} />
+              <span className="hidden md:inline">
                 {userProfile.ulpanMode ? 'Ульпан' : 'Ульпан'}
               </span>
               {userProfile.ulpanMode && (
@@ -202,7 +202,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             {userProfile.isLoggedIn ? (
               <button
                 onClick={onOpenSettings}
-                className="flex items-center gap-1.5 px-2 sm:px-2.5 py-1.5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/80 dark:bg-zinc-800/80 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition shadow-sm shrink-0"
+                className="flex items-center gap-1.5 p-1 sm:px-2.5 sm:py-1.5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/80 dark:bg-zinc-800/80 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition shadow-sm shrink-0"
                 title={`Профиль: ${userProfile.name} (@${userProfile.username || 'user'})`}
               >
                 {userProfile.avatarUrl ? (
@@ -216,14 +216,14 @@ export const Navbar: React.FC<NavbarProps> = ({
                     {userProfile.name.charAt(0).toUpperCase()}
                   </div>
                 )}
-                <span className="text-xs font-bold text-zinc-900 dark:text-zinc-100 max-w-[65px] sm:max-w-[110px] truncate">
+                <span className="text-xs font-bold text-zinc-900 dark:text-zinc-100 max-w-[50px] sm:max-w-[110px] truncate hidden sm:inline">
                   {userProfile.name}
                 </span>
               </button>
             ) : (
               <button
                 onClick={onOpenAuth}
-                className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-[#229ED9] hover:bg-[#1E8CC0] text-white text-xs font-semibold flex items-center gap-1 shadow-sm transition active:scale-95 shrink-0"
+                className="px-2 py-1 sm:px-3 sm:py-1.5 rounded-xl bg-[#229ED9] hover:bg-[#1E8CC0] text-white text-xs font-semibold flex items-center gap-1 shadow-sm transition active:scale-95 shrink-0"
                 title="Войти через Telegram для синхронизации прогресса"
               >
                 <span>{userProfile.ulpanMode ? 'כְּנִיסָה' : 'Войти'}</span>
@@ -236,7 +236,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               className="p-1.5 sm:p-2 rounded-xl border border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition shrink-0"
               title="Настройки обучения"
             >
-              <Settings className="w-4 h-4" />
+              <Settings className="w-4 h-4 shrink-0" />
             </button>
           </div>
         </div>

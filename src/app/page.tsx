@@ -406,6 +406,7 @@ export default function Home() {
         body: JSON.stringify({
           lessonProgress: updated.lessonProgress,
           personalVocabulary: updated.personalVocabulary,
+          flashcardStats: updated.flashcardStats,
           gender: updated.gender,
           fontStyle: updated.fontStyle,
         }),

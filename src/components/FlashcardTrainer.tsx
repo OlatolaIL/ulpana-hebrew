@@ -196,10 +196,19 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
     });
   };
 
-  const handleNextWord = (quality = 4) => {
+  const handleRecordSRS = (quality = 4) => {
     if (currentWord) {
-      updateCardSRS(currentWord.id, quality);
+      const cleanHeb = stripNikkud(currentWord.hebrewPlain || currentWord.hebrew || '');
+      updateCardSRS(currentWord.id, quality, cleanHeb);
+      const updated = loadUserProfile();
+      if (onUpdateProfile) {
+        onUpdateProfile(updated);
+      }
     }
+  };
+
+  const handleNextWord = (quality = 4) => {
+    handleRecordSRS(quality);
 
     if (currentIndex + 1 < words.length) {
       setCurrentIndex((prev) => prev + 1);
@@ -214,6 +223,32 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
       }
       triggerCelebration();
     }
+  };
+
+  const handleAdvanceNext = () => {
+    if (currentIndex + 1 < words.length) {
+      setCurrentIndex((prev) => prev + 1);
+    } else {
+      setIsCompleted(true);
+      if (lessonId) {
+        const updated = markLessonTabCompleted(lessonId, 'vocab');
+        if (onUpdateProfile) onUpdateProfile(updated);
+      } else {
+        const updated = loadUserProfile();
+        if (onUpdateProfile) onUpdateProfile(updated);
+      }
+      triggerCelebration();
+    }
+  };
+
+  const handleForgotFlip = () => {
+    handleRecordSRS(1);
+    setIsFlipped(true);
+  };
+
+  const handleStruggleFlip = () => {
+    handleRecordSRS(3);
+    setIsFlipped(true);
   };
 
   const handleSelectTile = (tile: Tile) => {
@@ -458,12 +493,17 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
             <span>{displayTitle}</span>
           </div>
           {currentWord && (() => {
-            const mastery = calculateWordMastery(userProfile.flashcardProgress?.[currentWord.id]);
+            const stats =
+              userProfile.flashcardStats?.[currentWord.id] ||
+              userProfile.flashcardProgress?.[currentWord.id] ||
+              (currentWord.hebrewPlain ? userProfile.flashcardStats?.[stripNikkud(currentWord.hebrewPlain)] : undefined) ||
+              userProfile.flashcardStats?.[stripNikkud(currentWord.hebrew)];
+            const mastery = calculateWordMastery(stats);
             const masteryText = isUlpan
               ? `יְדִיעָה: ${mastery.score}% (${mastery.score >= 80 ? 'מְצוּיָן' : mastery.score >= 50 ? 'בְּתַהֲלִיךְ' : 'חָדָשׁ'})`
               : `Знание: ${mastery.score}% (${mastery.label})`;
             return (
-              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${mastery.badgeColor}`}>
+              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${mastery.badgeBg}`}>
                 {masteryText}
               </span>
             );
@@ -549,6 +589,7 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
       {/* РЕЖИМ 1: ФЛИП-КАРТОЧКА */}
       {mode === 'flip' && (
         <div className="space-y-3 sm:space-y-4">
+          {/* Сама карточка */}
           <div
             onClick={() => setIsFlipped(!isFlipped)}
             className="min-h-[200px] sm:min-h-[270px] bg-white dark:bg-zinc-900 border-2 border-zinc-200 dark:border-zinc-800 rounded-3xl p-4 sm:p-6 flex flex-col items-center justify-center text-center cursor-pointer shadow-lg hover:border-blue-500/50 transition duration-300 relative select-none"
@@ -693,36 +734,104 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
             )}
           </div>
 
-          {/* Кнопки оценки легкости (SRS) - всегда на виду и яркие */}
-          <div className="grid grid-cols-3 gap-2 sm:gap-3">
-            <button
-              onClick={() => handleNextWord(1)}
-              className="py-2.5 sm:py-3.5 px-2 rounded-2xl bg-rose-500/15 hover:bg-rose-500/25 dark:bg-rose-950/70 text-rose-700 dark:text-rose-300 border-2 border-rose-400/80 dark:border-rose-700 font-extrabold text-xs sm:text-sm shadow-sm transition active:scale-95 flex flex-col items-center justify-center cursor-pointer"
-            >
-              <span>{isUlpan ? 'שׁוּב / שָׁכַחְתִּי' : 'Снова / Забыл'}</span>
-              <span className="text-[10px] text-rose-500/80 dark:text-rose-400 font-normal hidden sm:inline">
-                {isUlpan ? 'נְקֻדָּה 1' : '1 балл'}
-              </span>
-            </button>
-            <button
-              onClick={() => handleNextWord(3)}
-              className="py-2.5 sm:py-3.5 px-2 rounded-2xl bg-amber-500/15 hover:bg-amber-500/25 dark:bg-amber-950/70 text-amber-700 dark:text-amber-300 border-2 border-amber-400/80 dark:border-amber-700 font-extrabold text-xs sm:text-sm shadow-sm transition active:scale-95 flex flex-col items-center justify-center cursor-pointer"
-            >
-              <span>{isUlpan ? 'בְּקֹשִׁי' : 'С трудом'}</span>
-              <span className="text-[10px] text-amber-500/80 dark:text-amber-400 font-normal hidden sm:inline">
-                {isUlpan ? '3 נְקֻדּוֹת' : '3 балла'}
-              </span>
-            </button>
-            <button
-              onClick={() => handleNextWord(5)}
-              className="py-2.5 sm:py-3.5 px-2 rounded-2xl bg-emerald-500/15 hover:bg-emerald-500/25 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-300 border-2 border-emerald-400/80 dark:border-emerald-700 font-extrabold text-xs sm:text-sm shadow-sm transition active:scale-95 flex flex-col items-center justify-center cursor-pointer"
-            >
-              <span>{isUlpan ? 'קַל / יוֹדֵעַ' : 'Легко / Знаю'}</span>
-              <span className="text-[10px] text-emerald-500/80 dark:text-emerald-400 font-normal hidden sm:inline">
-                {isUlpan ? '5 נְקֻדּוֹת' : '5 баллов'}
-              </span>
-            </button>
-          </div>
+          {/* Действия для лицевой стороны (!isFlipped) */}
+          {!isFlipped ? (
+            <div className="space-y-2.5">
+              <button
+                type="button"
+                onClick={() => setIsFlipped(true)}
+                className="w-full py-3 px-4 rounded-2xl bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-100 dark:hover:bg-blue-900/60 text-blue-600 dark:text-blue-400 font-bold text-xs sm:text-sm border border-blue-200 dark:border-blue-800 shadow-xs flex items-center justify-center gap-2 transition active:scale-98 cursor-pointer"
+              >
+                <RotateCw className="w-4 h-4" />
+                <span>{isUlpan ? 'הַצֵּג תַּרְגּוּם וּפְרָטִים' : 'Показать перевод и детали'}</span>
+              </button>
+
+              <div className="grid grid-cols-3 gap-2 sm:gap-3">
+                <button
+                  type="button"
+                  onClick={handleForgotFlip}
+                  className="py-2.5 sm:py-3 px-2 rounded-2xl bg-rose-500/15 hover:bg-rose-500/25 dark:bg-rose-950/70 text-rose-700 dark:text-rose-300 border-2 border-rose-400/80 dark:border-rose-700 font-extrabold text-xs sm:text-sm shadow-sm transition active:scale-95 flex flex-col items-center justify-center cursor-pointer"
+                  title="Открыть карточку и зафиксировать повторение"
+                >
+                  <span>{isUlpan ? 'שָׁכַחְתִּי ↩' : 'Снова / Забыл ↩'}</span>
+                  <span className="text-[10px] text-rose-500/80 dark:text-rose-400 font-normal hidden sm:inline">
+                    {isUlpan ? 'הַצֵּג תְּשׁוּבָה' : 'Показать ответ'}
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleStruggleFlip}
+                  className="py-2.5 sm:py-3 px-2 rounded-2xl bg-amber-500/15 hover:bg-amber-500/25 dark:bg-amber-950/70 text-amber-700 dark:text-amber-300 border-2 border-amber-400/80 dark:border-amber-700 font-extrabold text-xs sm:text-sm shadow-sm transition active:scale-95 flex flex-col items-center justify-center cursor-pointer"
+                  title="Проверить себя (3 балла)"
+                >
+                  <span>{isUlpan ? 'בְּקֹשִׁי 🔍' : 'С трудом 🔍'}</span>
+                  <span className="text-[10px] text-amber-500/80 dark:text-amber-400 font-normal hidden sm:inline">
+                    {isUlpan ? '3 נְקֻדּוֹת' : '3 балла'}
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleNextWord(5)}
+                  className="py-2.5 sm:py-3 px-2 rounded-2xl bg-emerald-500/15 hover:bg-emerald-500/25 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-300 border-2 border-emerald-400/80 dark:border-emerald-700 font-extrabold text-xs sm:text-sm shadow-sm transition active:scale-95 flex flex-col items-center justify-center cursor-pointer"
+                  title="Знаю сразу (5 баллов)"
+                >
+                  <span>{isUlpan ? 'יוֹדֵעַ ✓' : 'Легко / Знаю ✓'}</span>
+                  <span className="text-[10px] text-emerald-500/80 dark:text-emerald-400 font-normal hidden sm:inline">
+                    {isUlpan ? '5 נְקֻדּוֹת' : '5 баллов'}
+                  </span>
+                </button>
+              </div>
+            </div>
+          ) : (
+            /* Действия для открытой карточки (isFlipped) */
+            <div className="space-y-2.5 animate-in fade-in">
+              <button
+                type="button"
+                onClick={handleAdvanceNext}
+                className="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-sm shadow-md flex items-center justify-center gap-2 transition active:scale-98 cursor-pointer"
+              >
+                <span>{isUlpan ? 'הַמִּילָּה הַבָּאָה' : 'Следующее слово'}</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
+
+              <div className="grid grid-cols-3 gap-2 sm:gap-3">
+                <button
+                  type="button"
+                  onClick={() => handleNextWord(1)}
+                  className="py-2 sm:py-2.5 px-2 rounded-xl bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 text-rose-700 dark:text-rose-300 border border-rose-300 dark:border-rose-800 font-bold text-xs shadow-xs transition active:scale-95 flex items-center justify-center cursor-pointer"
+                >
+                  <span>{isUlpan ? 'שָׁכַחְתִּי (1)' : 'Забыл (1)'}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleNextWord(3)}
+                  className="py-2 sm:py-2.5 px-2 rounded-xl bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-800 font-bold text-xs shadow-xs transition active:scale-95 flex items-center justify-center cursor-pointer"
+                >
+                  <span>{isUlpan ? 'בְּקֹשִׁי (3)' : 'С трудом (3)'}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleNextWord(5)}
+                  className="py-2 sm:py-2.5 px-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 font-bold text-xs shadow-xs transition active:scale-95 flex items-center justify-center cursor-pointer"
+                >
+                  <span>{isUlpan ? 'קַל (5)' : 'Легко (5)'}</span>
+                </button>
+              </div>
+
+              <div className="text-center pt-0.5">
+                <button
+                  type="button"
+                  onClick={() => setIsFlipped(false)}
+                  className="text-xs font-semibold text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition inline-flex items-center gap-1 cursor-pointer"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  <span>{isUlpan ? 'הַסְתֵּר תַּרְגּוּם' : 'Перевернуть обратно'}</span>
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

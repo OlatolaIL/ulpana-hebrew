@@ -129,7 +129,11 @@ export const PersonalDictionary: React.FC<PersonalDictionaryProps> = ({
     let learningCount = 0;
 
     words.forEach((w) => {
-      const stats = userProfile.flashcardProgress?.[w.id];
+      const stats =
+        userProfile.flashcardStats?.[w.id] ||
+        userProfile.flashcardProgress?.[w.id] ||
+        (w.hebrewPlain ? userProfile.flashcardStats?.[stripNikkud(w.hebrewPlain)] : undefined) ||
+        userProfile.flashcardStats?.[stripNikkud(w.hebrew)];
       const m = calculateWordMastery(stats);
       totalScore += m.score;
       if (m.isDue) dueCount++;
@@ -139,7 +143,7 @@ export const PersonalDictionary: React.FC<PersonalDictionaryProps> = ({
 
     const avgScore = words.length > 0 ? Math.round(totalScore / words.length) : 0;
     return { avgScore, dueCount, masteredCount, learningCount, total: words.length };
-  }, [words, userProfile.flashcardProgress]);
+  }, [words, userProfile.flashcardStats, userProfile.flashcardProgress]);
 
   // Фильтрация слов по поиску и уровню знания
   const filteredWords = useMemo(() => {
@@ -158,7 +162,11 @@ export const PersonalDictionary: React.FC<PersonalDictionaryProps> = ({
 
       // Фильтр мастерства
       if (masteryFilter !== 'all') {
-        const stats = userProfile.flashcardProgress?.[w.id];
+        const stats =
+          userProfile.flashcardStats?.[w.id] ||
+          userProfile.flashcardProgress?.[w.id] ||
+          (w.hebrewPlain ? userProfile.flashcardStats?.[stripNikkud(w.hebrewPlain)] : undefined) ||
+          userProfile.flashcardStats?.[stripNikkud(w.hebrew)];
         const m = calculateWordMastery(stats);
         if (masteryFilter === 'due' && !m.isDue) return false;
         if (masteryFilter === 'mastered' && m.level !== 'mastered') return false;
@@ -167,7 +175,7 @@ export const PersonalDictionary: React.FC<PersonalDictionaryProps> = ({
 
       return true;
     });
-  }, [words, searchQuery, masteryFilter, userProfile.flashcardProgress]);
+  }, [words, searchQuery, masteryFilter, userProfile.flashcardStats, userProfile.flashcardProgress]);
 
   const handleDelete = (wordId: string) => {
     removeWordFromPersonalDict(wordId);
@@ -489,7 +497,11 @@ export const PersonalDictionary: React.FC<PersonalDictionaryProps> = ({
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {filteredWords.map((word) => {
-                const stats = userProfile.flashcardProgress?.[word.id];
+                const stats =
+                  userProfile.flashcardStats?.[word.id] ||
+                  userProfile.flashcardProgress?.[word.id] ||
+                  (word.hebrewPlain ? userProfile.flashcardStats?.[stripNikkud(word.hebrewPlain)] : undefined) ||
+                  userProfile.flashcardStats?.[stripNikkud(word.hebrew)];
                 const mastery = calculateWordMastery(stats);
 
                 return (

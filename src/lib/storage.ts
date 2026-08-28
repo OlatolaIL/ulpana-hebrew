@@ -31,6 +31,12 @@ export function loadUserProfile(): UserProfile {
     if (!data) return DEFAULT_PROFILE;
     const profile: UserProfile = { ...DEFAULT_PROFILE, ...JSON.parse(data) };
 
+    // Синхронизация статистики карточек между обоими свойствами
+    if (!profile.flashcardStats) {
+      profile.flashcardStats = (profile as any).flashcardProgress || {};
+    }
+    profile.flashcardProgress = profile.flashcardStats;
+
     // Автоматическая нормализация: урок считается завершенным ТОЛЬКО если пройдены ВСЕ 5 этапов (включая звонок 'phone')
     if (profile.lessonProgress) {
       const actualCompleted: number[] = [];
@@ -62,6 +68,10 @@ export function loadUserProfile(): UserProfile {
 export function saveUserProfile(profile: UserProfile): void {
   if (typeof window === 'undefined') return;
   try {
+    if (!profile.flashcardStats) {
+      profile.flashcardStats = (profile as any).flashcardProgress || {};
+    }
+    profile.flashcardProgress = profile.flashcardStats;
     localStorage.setItem(STORAGE_KEY, JSON.stringify(profile));
   } catch (e) {
     console.error('Failed to save profile to localStorage', e);
@@ -228,17 +238,23 @@ export function resetLessonProgress(lessonId: number): UserProfile {
 /**
  * Алгоритм SuperMemo 2 (SM-2) для интервального повторения карточек
  */
-export function updateCardSRS(wordId: string, quality: number): FlashcardProgress {
+export function updateCardSRS(wordId: string, quality: number, cleanHebrew?: string): FlashcardProgress {
   const profile = loadUserProfile();
-  const prev: FlashcardProgress = profile.flashcardStats[wordId] || {
-    wordId,
-    interval: 1,
-    easeFactor: 2.5,
-    repetitions: 0,
-    nextReviewDate: Date.now(),
-    lastReviewDate: Date.now(),
-    history: [],
-  };
+  if (!profile.flashcardStats) {
+    profile.flashcardStats = {};
+  }
+
+  const prev: FlashcardProgress =
+    profile.flashcardStats[wordId] ||
+    (cleanHebrew ? profile.flashcardStats[cleanHebrew] : undefined) || {
+      wordId,
+      interval: 1,
+      easeFactor: 2.5,
+      repetitions: 0,
+      nextReviewDate: Date.now(),
+      lastReviewDate: Date.now(),
+      history: [],
+    };
 
   let { interval, easeFactor, repetitions } = prev;
 
@@ -273,6 +289,10 @@ export function updateCardSRS(wordId: string, quality: number): FlashcardProgres
   };
 
   profile.flashcardStats[wordId] = updated;
+  if (cleanHebrew && cleanHebrew !== wordId) {
+    profile.flashcardStats[cleanHebrew] = updated;
+  }
+  profile.flashcardProgress = profile.flashcardStats;
   saveUserProfile(profile);
   return updated;
 }

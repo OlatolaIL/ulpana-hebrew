@@ -16,6 +16,7 @@ import {
 import { Lesson, UserProfile, Word } from '@/types';
 import { DETAILED_LESSONS, LESSONS_CATALOG } from '@/data/lessonsData';
 import { calculateWordMastery } from '@/lib/storage';
+import { stripNikkud } from '@/lib/transcription';
 
 interface FlashcardSetupModalProps {
   userProfile: UserProfile;
@@ -127,7 +128,11 @@ export const FlashcardSetupModal: React.FC<FlashcardSetupModalProps> = ({
     if (filterCondition === 'all') return poolWords;
 
     return poolWords.filter((w) => {
-      const stats = userProfile.flashcardProgress?.[w.id];
+      const stats =
+        userProfile.flashcardStats?.[w.id] ||
+        userProfile.flashcardProgress?.[w.id] ||
+        (w.hebrewPlain ? userProfile.flashcardStats?.[stripNikkud(w.hebrewPlain)] : undefined) ||
+        userProfile.flashcardStats?.[stripNikkud(w.hebrew)];
       const mastery = calculateWordMastery(stats);
 
       if (filterCondition === 'due') {
@@ -141,7 +146,7 @@ export const FlashcardSetupModal: React.FC<FlashcardSetupModalProps> = ({
       }
       return true;
     });
-  }, [poolWords, filterCondition, userProfile.flashcardProgress]);
+  }, [poolWords, filterCondition, userProfile.flashcardStats, userProfile.flashcardProgress]);
 
   const handleStart = () => {
     if (filteredWords.length === 0) return;

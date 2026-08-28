@@ -156,7 +156,11 @@ export const ThematicDecksView: React.FC<ThematicDecksViewProps> = ({
     let dueCount = 0;
 
     deck.words.forEach((w) => {
-      const stats = userProfile.flashcardProgress?.[w.id];
+      const stats =
+        userProfile.flashcardStats?.[w.id] ||
+        userProfile.flashcardProgress?.[w.id] ||
+        (w.hebrewPlain ? userProfile.flashcardStats?.[stripNikkud(w.hebrewPlain)] : undefined) ||
+        userProfile.flashcardStats?.[stripNikkud(w.hebrew)];
       const mastery = calculateWordMastery(stats);
       totalScore += mastery.score;
       if (mastery.level === 'mastered') masteredCount++;
@@ -653,7 +657,10 @@ export const ThematicDecksView: React.FC<ThematicDecksViewProps> = ({
                         );
                         const isSpeaking = speakingWordId === word.id;
                         const wordMastery = calculateWordMastery(
-                          userProfile.flashcardProgress?.[word.id]
+                          userProfile.flashcardStats?.[word.id] ||
+                          userProfile.flashcardProgress?.[word.id] ||
+                          (word.hebrewPlain ? userProfile.flashcardStats?.[stripNikkud(word.hebrewPlain)] : undefined) ||
+                          userProfile.flashcardStats?.[stripNikkud(word.hebrew)]
                         );
                         const isVerb = isVerbWord(word);
 
@@ -951,7 +958,10 @@ export const ThematicDecksView: React.FC<ThematicDecksViewProps> = ({
                       );
                       const isSpeaking = speakingWordId === word.id;
                       const wordMastery = calculateWordMastery(
-                        userProfile.flashcardProgress?.[word.id]
+                        userProfile.flashcardStats?.[word.id] ||
+                        userProfile.flashcardProgress?.[word.id] ||
+                        (word.hebrewPlain ? userProfile.flashcardStats?.[stripNikkud(word.hebrewPlain)] : undefined) ||
+                        userProfile.flashcardStats?.[stripNikkud(word.hebrew)]
                       );
                       const isChecked = selectedWordIds.has(word.id);
                       const isVerb = isVerbWord(word);
