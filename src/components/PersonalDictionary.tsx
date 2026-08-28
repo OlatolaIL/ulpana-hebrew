@@ -27,6 +27,7 @@ import {
   loadUserProfile,
   calculateWordMastery,
   isWordInPersonalDict,
+  sortWordsBySRSPriority,
 } from '@/lib/storage';
 import { stripNikkud } from '@/lib/transcription';
 import { findOfflineVerbConjugation } from '@/lib/verbConjugations';
@@ -394,7 +395,18 @@ export const PersonalDictionary: React.FC<PersonalDictionaryProps> = ({
 
                 {words.length > 0 && (
                   <button
-                    onClick={() => onStartPractice(filteredWords.length > 0 ? filteredWords : words, userProfile.ulpanMode ? 'הַמִּילוֹן שֶׁלִּי' : 'Мой словарик')}
+                    onClick={() => {
+                      const pool = filteredWords.length > 0 ? filteredWords : words;
+                      const sorted = sortWordsBySRSPriority(
+                        pool,
+                        userProfile.flashcardStats,
+                        userProfile.flashcardProgress
+                      );
+                      onStartPractice(
+                        sorted,
+                        userProfile.ulpanMode ? 'הַמִּילוֹן שֶׁלִּי' : 'Мой словарик'
+                      );
+                    }}
                     className="flex-1 sm:flex-initial px-4 py-2 rounded-xl bg-white text-blue-600 hover:bg-blue-50 text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 shadow-md transition active:scale-95 cursor-pointer font-hebrew"
                   >
                     <Layers className="w-4 h-4" />

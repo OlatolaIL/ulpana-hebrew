@@ -20,7 +20,7 @@ import {
 import confetti from 'canvas-confetti';
 import { Word, UserProfile, VerbConjugation } from '@/types';
 import { speakHebrew } from '@/lib/speech';
-import { updateCardSRS, calculateWordMastery, addWordToPersonalDict, isWordInPersonalDict, loadUserProfile, markLessonTabCompleted } from '@/lib/storage';
+import { updateCardSRS, calculateWordMastery, addWordToPersonalDict, isWordInPersonalDict, loadUserProfile, markLessonTabCompleted, sortWordsBySRSPriority } from '@/lib/storage';
 import { stripNikkud } from '@/lib/transcription';
 import { findOfflineVerbConjugation } from '@/lib/verbConjugations';
 import { VerbConjugationView } from '@/components/VerbConjugationView';
@@ -63,7 +63,15 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
   lessonId,
   onContinueLesson,
 }) => {
-  const [words, setWords] = useState<Word[]>(initialWords);
+  const [words, setWords] = useState<Word[]>(() =>
+    lessonId
+      ? initialWords
+      : sortWordsBySRSPriority(
+          initialWords,
+          userProfile.flashcardStats,
+          userProfile.flashcardProgress
+        )
+  );
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
   const [mode, setMode] = useState<TrainerMode>(initialMode || 'flip');

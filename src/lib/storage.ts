@@ -378,6 +378,58 @@ export function calculateWordMastery(stats?: FlashcardProgress): WordMasteryInfo
   };
 }
 
+/**
+ * Умная сортировка слов по алгоритму SRS (интервальное повторение):
+ * 1. В первую очередь — слова, которые наступил срок повторить (isDue === true)
+ * 2. Затем — слова в процессе изучения и с наименьшим баллом знания (score < 80)
+ * 3. Затем — новые слова (score === 0)
+ * 4. В самом конце — выученные слова (score >= 80, у которых срок повторения еще не наступил)
+ */
+export function sortWordsBySRSPriority(
+  words: Word[],
+  flashcardStats?: Record<string, FlashcardProgress>,
+  flashcardProgress?: Record<string, FlashcardProgress>
+): Word[] {
+  const statsMap = flashcardStats || flashcardProgress || {};
+
+  return [...words].sort((a, b) => {
+    const statsA =
+      statsMap[a.id] ||
+      (a.hebrewPlain ? statsMap[stripNikkud(a.hebrewPlain)] : undefined) ||
+      statsMap[stripNikkud(a.hebrew)];
+    const statsB =
+      statsMap[b.id] ||
+      (b.hebrewPlain ? statsMap[stripNikkud(b.hebrewPlain)] : undefined) ||
+      statsMap[stripNikkud(b.hebrew)];
+
+    const masteryA = calculateWordMastery(statsA);
+    const masteryB = calculateWordMastery(statsB);
+
+    // 1. Сначала слова к повторению
+    if (masteryA.isDue && !masteryB.isDue) return -1;
+    if (!masteryA.isDue && masteryB.isDue) return 1;
+
+    // 2. Если оба к повторению — сначала с меньшим баллом
+    if (masteryA.isDue && masteryB.isDue) {
+      return masteryA.score - masteryB.score;
+    }
+
+    // 3. Выученные слова (score >= 80 и не due) отправляем в самый конец
+    const isMasteredA = masteryA.score >= 80;
+    const isMasteredB = masteryB.score >= 80;
+
+    if (!isMasteredA && isMasteredB) return -1;
+    if (isMasteredA && !isMasteredB) return 1;
+
+    // 4. Среди невыученных — сначала с меньшим баллом (новые и слабые)
+    if (masteryA.score !== masteryB.score) {
+      return masteryA.score - masteryB.score;
+    }
+
+    return (b.dateAdded || 0) - (a.dateAdded || 0);
+  });
+}
+
 const CALLS_STORAGE_KEY = 'ulpana_call_history_v1';
 
 export interface SavedCallLog {

@@ -47,6 +47,7 @@ import {
   isWordInPersonalDict,
   addBatchWordsToPersonalDict,
   addWordToPersonalDict,
+  sortWordsBySRSPriority,
 } from '@/lib/storage';
 import { findOfflineVerbConjugation } from '@/lib/verbConjugations';
 import { VerbConjugationView } from '@/components/VerbConjugationView';
@@ -590,7 +591,16 @@ export const ThematicDecksView: React.FC<ThematicDecksViewProps> = ({
                 <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
                   <div className="flex items-center gap-2">
                     <button
-                      onClick={() => onStartTraining(deck.words, deck.title)}
+                      onClick={() =>
+                        onStartTraining(
+                          sortWordsBySRSPriority(
+                            deck.words,
+                            userProfile.flashcardStats,
+                            userProfile.flashcardProgress
+                          ),
+                          deck.title
+                        )
+                      }
                       className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm text-white transition active:scale-98 ${
                         isAlef
                           ? 'bg-blue-600 hover:bg-blue-700 shadow-blue-500/20'
@@ -814,7 +824,16 @@ export const ThematicDecksView: React.FC<ThematicDecksViewProps> = ({
                       <span>Вывести список слов</span>
                     </button>
                     <button
-                      onClick={() => onStartTraining(deck.words, deck.title)}
+                      onClick={() =>
+                        onStartTraining(
+                          sortWordsBySRSPriority(
+                            deck.words,
+                            userProfile.flashcardStats,
+                            userProfile.flashcardProgress
+                          ),
+                          deck.title
+                        )
+                      }
                       className="px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm transition"
                     >
                       <Play className="w-3.5 h-3.5 fill-current" />
@@ -1125,7 +1144,14 @@ export const ThematicDecksView: React.FC<ThematicDecksViewProps> = ({
                   onClick={() => {
                     const selectedWords = listModalDeck.words.filter((w) => selectedWordIds.has(w.id));
                     if (selectedWords.length > 0) {
-                      onStartTraining(selectedWords, listModalDeck.title);
+                      onStartTraining(
+                        sortWordsBySRSPriority(
+                          selectedWords,
+                          userProfile.flashcardStats,
+                          userProfile.flashcardProgress
+                        ),
+                        listModalDeck.title
+                      );
                       setListModalDeck(null);
                     }
                   }}
