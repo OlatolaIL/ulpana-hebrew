@@ -55,7 +55,7 @@ export default function RootLayout({
   return (
     <html
       lang="ru"
-      className={`${rubik.variable} ${assistant.variable} h-full antialiased`}
+      className={`${rubik.variable} ${assistant.variable} antialiased`}
     >
       <head>
         <Script
@@ -63,7 +63,7 @@ export default function RootLayout({
           strategy="beforeInteractive"
         />
       </head>
-      <body className="min-h-full flex flex-col font-sans bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-50 selection:bg-blue-500 selection:text-white">
+      <body className="min-h-screen flex flex-col font-sans bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-50 selection:bg-blue-500 selection:text-white">
         {children}
         <PwaInstallPrompt />
       </body>
