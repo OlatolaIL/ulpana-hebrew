@@ -4,7 +4,7 @@ import { createSessionToken } from '@/lib/auth';
 import { isVipUser, VIP_EXPIRES_AT } from '@/lib/vipUsers';
 import { UserSession } from '@/types';
 
-const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '8857824092:AAE3sCbuElBPEctBBXlfTCZfjmPPZTJjdnY';
+const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
 
 export async function POST(req: NextRequest) {
   try {

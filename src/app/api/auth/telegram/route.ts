@@ -11,8 +11,16 @@ import { UserSession } from '@/types';
 
 export async function POST(req: NextRequest) {
   try {
+    const botToken = process.env.TELEGRAM_BOT_TOKEN || '';
+    if (!botToken) {
+      console.error('[API Auth Telegram] TELEGRAM_BOT_TOKEN is not configured');
+      return NextResponse.json(
+        { error: 'Telegram authentication is not configured on server' },
+        { status: 500 }
+      );
+    }
+
     const body = await req.json();
-    const botToken = process.env.TELEGRAM_BOT_TOKEN || '8857824092:AAE3sCbuElBPEctBBXlfTCZfjmPPZTJjdnY';
 
     let validatedUser: {
       id: number;
