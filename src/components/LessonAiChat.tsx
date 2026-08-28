@@ -291,7 +291,7 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
 
   const toggleRecording = () => {
     if (!recognizer || !recognizer.isSupported()) {
-      alert('Голосовой ввод не поддерживается вашим браузером. Попробуйте Chrome или Safari.');
+      alert('Голосовой ввод не поддерживается вашим браузером.');
       return;
     }
 
@@ -315,6 +315,10 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
             setInputText(lastTranscript);
           }
           setIsRecording(false);
+        },
+        {
+          vocabulary: (lesson.vocabulary || []).map((w) => w.hebrew),
+          apiKey: userProfile.groqApiKey || undefined,
         }
       );
     }

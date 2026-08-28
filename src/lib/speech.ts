@@ -315,116 +315,201 @@ export function stitchSpeechChunks(chunks: string[]): string {
   return cleanDuplicatePhrases(accumulated);
 }
 
+export interface SpeechRecognizerOptions {
+  vocabulary?: string[];
+  apiKey?: string;
+  provider?: 'groq' | 'gemini';
+}
+
 /**
- * Интерфейс распознавания речи (Speech-to-Text) через браузерный API с защитой от дублирования
+ * Кроссплатформенный интерфейс распознавания речи (Speech-to-Text) для иврита
+ * с поддержкой iPhone/Safari, Android и ПК через MediaRecorder + AI Transcription.
  */
 export class HebrewSpeechRecognizer {
   private recognition: any = null;
+  private mediaRecorder: MediaRecorder | null = null;
+  private audioChunks: Blob[] = [];
+  private mediaStream: MediaStream | null = null;
   private isListening = false;
   private lastTranscript = '';
   private onResultCb: ((transcript: string, isFinal: boolean) => void) | null = null;
   private onErrorCb: ((error: string) => void) | null = null;
   private onEndCb: ((lastTranscript: string) => void) | null = null;
+  private currentOptions: SpeechRecognizerOptions = {};
 
   public isSupported(): boolean {
     if (typeof window === 'undefined') return false;
-    return !!((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition);
+    return !!(
+      (navigator.mediaDevices && typeof navigator.mediaDevices.getUserMedia === 'function') ||
+      (window as any).SpeechRecognition ||
+      (window as any).webkitSpeechRecognition
+    );
   }
 
-  public start(
+  public async start(
     onResult: (transcript: string, isFinal: boolean) => void,
     onError: (error: string) => void,
-    onEnd: (lastTranscript: string) => void
-  ): void {
+    onEnd: (lastTranscript: string) => void,
+    options?: SpeechRecognizerOptions
+  ): Promise<void> {
     if (!this.isSupported()) {
-      onError('Распознавание речи не поддерживается в этом браузере.');
+      onError('Запись звука не поддерживается в этом браузере.');
       return;
     }
 
-    // Безопасно останавливаем предыдущий экземпляр перед созданием нового
     this.stop();
 
     this.onResultCb = onResult;
     this.onErrorCb = onError;
     this.onEndCb = onEnd;
     this.lastTranscript = '';
+    this.currentOptions = options || {};
+    this.audioChunks = [];
+    this.isListening = true;
 
+    // 1. Запускаем параллельно браузерное распознавание для живого превью текста (если доступно в Chrome)
     try {
       const SpeechRecognition =
         (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      if (SpeechRecognition) {
+        const rec = new SpeechRecognition();
+        rec.lang = 'he-IL';
+        rec.continuous = true;
+        rec.interimResults = true;
+        rec.maxAlternatives = 1;
 
-      const rec = new SpeechRecognition();
-      rec.lang = 'he-IL';
-      rec.continuous = true;
-      rec.interimResults = true;
-      rec.maxAlternatives = 1;
+        rec.onresult = (event: any) => {
+          const interimChunks: string[] = [];
+          for (let i = 0; i < event.results.length; ++i) {
+            const result = event.results[i];
+            const trans = result[0]?.transcript || '';
+            if (trans) interimChunks.push(trans);
+          }
+          const stitched = stitchSpeechChunks(interimChunks).trim();
+          if (stitched && this.isListening) {
+            this.lastTranscript = stitched;
+            this.onResultCb?.(stitched, false);
+          }
+        };
 
-      rec.onresult = (event: any) => {
-        const finalChunks: string[] = [];
-        const interimChunks: string[] = [];
+        rec.onerror = () => {};
+        rec.onend = () => {
+          this.recognition = null;
+        };
 
-        for (let i = 0; i < event.results.length; ++i) {
-          const result = event.results[i];
-          const trans = result[0]?.transcript || '';
-          if (!trans) continue;
+        this.recognition = rec;
+        rec.start();
+      }
+    } catch {
+      // Игнорируем ошибки браузерного SpeechRecognition (например, в Safari)
+    }
 
-          if (result.isFinal) {
-            finalChunks.push(trans);
-          } else {
-            interimChunks.push(trans);
+    // 2. Запускаем MediaRecorder для записи высококачественного звука (работает на iPhone, Safari, Android, Chrome)
+    try {
+      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true,
+          },
+        });
+
+        if (!this.isListening) {
+          stream.getTracks().forEach((t) => t.stop());
+          return;
+        }
+
+        this.mediaStream = stream;
+
+        // Выбираем лучший поддерживаемый формат (Safari на iPhone использует audio/mp4)
+        let mimeType = '';
+        if (typeof MediaRecorder !== 'undefined') {
+          if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
+            mimeType = 'audio/webm;codecs=opus';
+          } else if (MediaRecorder.isTypeSupported('audio/webm')) {
+            mimeType = 'audio/webm';
+          } else if (MediaRecorder.isTypeSupported('audio/mp4')) {
+            mimeType = 'audio/mp4';
+          } else if (MediaRecorder.isTypeSupported('audio/aac')) {
+            mimeType = 'audio/aac';
           }
         }
 
-        const finalStitched = stitchSpeechChunks(finalChunks);
-        const interimStitched = stitchSpeechChunks(interimChunks);
+        const recorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
+        this.audioChunks = [];
 
-        let combined = '';
-        if (finalStitched && interimStitched) {
-          combined = stitchSpeechChunks([finalStitched, interimStitched]);
-        } else {
-          combined = finalStitched || interimStitched;
-        }
+        recorder.ondataavailable = (e) => {
+          if (e.data && e.data.size > 0) {
+            this.audioChunks.push(e.data);
+          }
+        };
 
-        combined = combined.trim();
-        if (combined) {
-          this.lastTranscript = combined;
-          this.onResultCb?.(combined, finalChunks.length > 0 && interimChunks.length === 0);
-        }
-      };
+        recorder.onstop = async () => {
+          const recordedChunks = [...this.audioChunks];
+          this.audioChunks = [];
 
-      rec.onerror = (event: any) => {
-        // Игнорируем штатные паузы тишины
-        if (event.error === 'no-speech' || event.error === 'aborted') {
-          return;
-        }
-        this.isListening = false;
-        this.onErrorCb?.(event.error || 'Ошибка распознавания');
-      };
+          if (recordedChunks.length > 0) {
+            const blobType = mimeType || recordedChunks[0]?.type || 'audio/webm';
+            const audioBlob = new Blob(recordedChunks, { type: blobType });
 
-      rec.onend = () => {
-        const wasListening = this.isListening;
-        this.isListening = false;
-        this.recognition = null;
-        if (wasListening) {
+            // Если размер аудио больше 1KB, отправляем на серверную транскрибацию
+            if (audioBlob.size > 1000) {
+              try {
+                const formData = new FormData();
+                const ext = blobType.includes('mp4') ? 'mp4' : blobType.includes('aac') ? 'aac' : 'webm';
+                formData.append('file', audioBlob, `speech.${ext}`);
+
+                if (this.currentOptions.vocabulary && this.currentOptions.vocabulary.length > 0) {
+                  formData.append('prompt', this.currentOptions.vocabulary.slice(0, 30).join(', '));
+                }
+                if (this.currentOptions.apiKey) {
+                  formData.append('apiKey', this.currentOptions.apiKey);
+                }
+
+                const res = await fetch('/api/ai/transcribe', {
+                  method: 'POST',
+                  body: formData,
+                });
+
+                if (res.ok) {
+                  const data = await res.json();
+                  if (data.text && data.text.trim()) {
+                    const cleanText = data.text.trim();
+                    this.lastTranscript = cleanText;
+                    this.onResultCb?.(cleanText, true);
+                    this.onEndCb?.(cleanText);
+                    return;
+                  }
+                }
+              } catch (serverErr) {
+                console.warn('Server transcription fallback:', serverErr);
+              }
+            }
+          }
+
+          // Fallback к результатам браузерного распознавания
           this.onEndCb?.(this.lastTranscript);
-        }
-      };
+        };
 
-      this.recognition = rec;
-      this.isListening = true;
-      rec.start();
+        this.mediaRecorder = recorder;
+        recorder.start(250);
+      }
     } catch (err: any) {
-      this.isListening = false;
-      this.recognition = null;
-      if (err?.name !== 'InvalidStateError') {
-        onError('Не удалось запустить микрофон');
+      console.error('MediaRecorder start error:', err);
+      // Если браузер заблокировал микрофон
+      if (!this.recognition) {
+        this.isListening = false;
+        this.onErrorCb?.(err?.message || 'Не удалось получить доступ к микрофону');
       }
     }
   }
 
   public stop(): void {
+    if (!this.isListening) return;
+    this.isListening = false;
+
     if (this.recognition) {
-      this.isListening = false;
       try {
         this.recognition.onresult = null;
         this.recognition.onerror = null;
@@ -433,5 +518,20 @@ export class HebrewSpeechRecognizer {
       } catch {}
       this.recognition = null;
     }
+
+    if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
+      try {
+        this.mediaRecorder.stop();
+      } catch {}
+      this.mediaRecorder = null;
+    }
+
+    if (this.mediaStream) {
+      try {
+        this.mediaStream.getTracks().forEach((track) => track.stop());
+      } catch {}
+      this.mediaStream = null;
+    }
   }
 }
+

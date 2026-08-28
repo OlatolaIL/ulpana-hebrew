@@ -292,6 +292,10 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
             }, 80);
           }
         }
+      },
+      {
+        vocabulary: (lesson.vocabulary || []).map((w) => w.hebrew),
+        apiKey: userProfile.groqApiKey || undefined,
       }
     );
   };
