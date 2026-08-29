@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { Word, UserProfile, PartOfSpeech } from '@/types';
 import { speakHebrew } from '@/lib/speech';
-import { stripNikkud } from '@/lib/transcription';
+import { stripNikkud, getWordTranscription } from '@/lib/transcription';
 import { saveUserProfile, markLessonTabCompleted } from '@/lib/storage';
 import { getHebrewPictogram } from '@/lib/pictograms';
 import { WordVisual } from '@/components/WordVisual';
@@ -315,9 +315,9 @@ export const LessonVocabulary: React.FC<LessonVocabularyProps> = ({
                 </div>
 
                 {/* Транскрипция с 'h' для ה (только вне режима Ульпан) */}
-                {!isUlpan && userProfile.showTranscription && (
+                {!isUlpan && userProfile.showTranscription && getWordTranscription(word) && (
                   <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 mt-1">
-                    [{word.transcription}]
+                    [{getWordTranscription(word)}]
                   </p>
                 )}
 

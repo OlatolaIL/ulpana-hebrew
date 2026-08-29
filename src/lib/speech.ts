@@ -1,5 +1,5 @@
 /**
- * Бесплатный браузерный голосовой движок (Text-to-Speech и Speech-to-Text) для иврита
+ * Бесплатный голосовой движок (Text-to-Speech и Speech-to-Text) для иврита
  */
 
 import { stripNikkud } from './transcription';
@@ -7,6 +7,7 @@ import { stripNikkud } from './transcription';
 let preferredHebrewVoice: SpeechSynthesisVoice | null = null;
 let activeUtterance: SpeechSynthesisUtterance | null = null;
 let speechSafetyTimer: any = null;
+let activeFallbackAudio: HTMLAudioElement | null = null;
 
 /**
  * Инициализация и поиск лучшего голоса для иврита в системе
@@ -19,14 +20,17 @@ export function initHebrewVoices(): Promise<SpeechSynthesisVoice | null> {
     }
 
     const findVoice = () => {
-      const voices = window.speechSynthesis.getVoices();
-      // Ищем голос с кодом he-IL или he
-      const heVoice =
-        voices.find((v) => v.lang === 'he-IL' || v.lang === 'he') ||
-        voices.find((v) => v.lang.startsWith('he')) ||
-        null;
-      preferredHebrewVoice = heVoice;
-      return heVoice;
+      try {
+        const voices = window.speechSynthesis.getVoices();
+        const heVoice =
+          voices.find((v) => v.lang === 'he-IL' || v.lang === 'he') ||
+          voices.find((v) => v.lang && v.lang.toLowerCase().startsWith('he')) ||
+          null;
+        if (heVoice) preferredHebrewVoice = heVoice;
+        return heVoice;
+      } catch {
+        return null;
+      }
     };
 
     const existing = findVoice();
@@ -35,11 +39,12 @@ export function initHebrewVoices(): Promise<SpeechSynthesisVoice | null> {
       return;
     }
 
-    window.speechSynthesis.onvoiceschanged = () => {
-      resolve(findVoice());
-    };
+    try {
+      window.speechSynthesis.onvoiceschanged = () => {
+        resolve(findVoice());
+      };
+    } catch {}
 
-    // Таймаут на случай, если голоса уже загружены
     setTimeout(() => {
       resolve(findVoice());
     }, 500);
@@ -47,47 +52,15 @@ export function initHebrewVoices(): Promise<SpeechSynthesisVoice | null> {
 }
 
 /**
- * Воспроизведение текста на иврите с помощью встроенного движка браузера
+ * Исправление базовой фонетики фраз для естественного звучания
  */
 function fixHebrewPhonetics(text: string): string {
+  if (!text) return '';
   let res = text;
-  // 1. ספרי לי -> סַפְּרִי לִי (расскажи мне [ж.р.], чтобы движок не читал как sifri li)
-  res = res.replace(/(^|\s)ספרי(\s+לי)/g, '$1סַפְּרִי$2');
-  // 2. ספר לי -> סַפֵּר לִי (расскажи мне [м.р.], чтобы движок не читал как sefer li)
-  res = res.replace(/(^|\s)ספר(\s+לי)/g, '$1סַפֵּר$2');
-  // 3. תספרי לי -> תְּסַפְּרִי לִי
-  res = res.replace(/(^|\s)תספרי(\s+לי)/g, '$1תְּסַפְּרִי$2');
-  // 4. תספר לי -> תְּסַפֵּר לִי
-  res = res.replace(/(^|\s)תספר(\s+לי)/g, '$1תְּסַפֵּר$2');
-
-  // 5. Женские местоименные суффиксы с ך (браузерные TTS движки по умолчанию читают ך как мужской суффикс -cha / lecha):
-  // לָךְ / לַךְ (lach - тебе/у тебя ж.р.) -> לַח (звучит строго как 'лах', а не 'леха')
-  res = res.replace(/(?<=^|[^\u0590-\u05FF])\u05DC[\u0591-\u05C7]*[\u05B8\u05B7][\u0591-\u05C7]*\u05DA[\u05B0]?(?=[^\u0590-\u05FF]|$)/g, '\u05DC\u05B7\u05D7');
-
-  // בָּךְ / בַּךְ (bach - в тебе ж.р.) -> בַּח (звучит как 'бах', а не 'беха')
-  res = res.replace(/(?<=^|[^\u0590-\u05FF])\u05D1[\u0591-\u05C7]*[\u05B8\u05B7][\u0591-\u05C7]*\u05DA[\u05B0]?(?=[^\u0590-\u05FF]|$)/g, '\u05D1\u05B7\u05D7');
-
-  // שֶׁלָּךְ / שֶׁלָךְ / שֶׁלַּךְ (shelach - твой/твоя ж.р.) -> שֶׁלָּח
-  res = res.replace(/(?<=^|[^\u0590-\u05FF])(\u05E9[\u0591-\u05C7]*\u05DC[\u0591-\u05C7]*[\u05B8\u05B7][\u0591-\u05C7]*)\u05DA[\u05B0]?(?=[^\u0590-\u05FF]|$)/g, (m, p1) => p1 + '\u05D7');
-
-  // אוֹתָךְ / אֹתָךְ / אותָךְ (otach - тебя ж.р. вин.п.) -> אוֹתָח
-  res = res.replace(/(?<=^|[^\u0590-\u05FF])(\u05D0[\u0591-\u05C7]*\u05D5?[\u0591-\u05C7]*\u05EA[\u0591-\u05C7]*[\u05B8\u05B7][\u0591-\u05C7]*)\u05DA[\u05B0]?(?=[^\u0590-\u05FF]|$)/g, (m, p1) => p1 + '\u05D7');
-
-  // אִתָּךְ / אִתָךְ / איתָךְ (itach - с тобой ж.р.) -> אִתָּח
-  res = res.replace(/(?<=^|[^\u0590-\u05FF])(\u05D0[\u0591-\u05C7]*\u05D9?[\u0591-\u05C7]*\u05EA[\u0591-\u05C7]*[\u05B8\u05B7][\u0591-\u05C7]*)\u05DA[\u05B0]?(?=[^\u0590-\u05FF]|$)/g, (m, p1) => p1 + '\u05D7');
-
-  // כָּמוֹךְ / כְּמוֹךְ (kamoch - как ты ж.р.) -> כָּמוֹח
-  res = res.replace(/(?<=^|[^\u0590-\u05FF])(\u05DB[\u0591-\u05C7]*\u05DE[\u0591-\u05C7]*[\u05D5\u05B9]+[\u0591-\u05C7]*)\u05DA[\u05B0]?(?=[^\u0590-\u05FF]|$)/g, (m, p1) => p1 + '\u05D7');
-
-  // מִמֵּךְ / מִמֶּךְ (mimech - от тебя ж.р.) -> מִמֵּח
-  res = res.replace(/(?<=^|[^\u0590-\u05FF])(\u05DE[\u0591-\u05C7]*\u05DE[\u0591-\u05C7]*[\u05B5\u05B6][\u0591-\u05C7]*)\u05DA[\u05B0]?(?=[^\u0590-\u05FF]|$)/g, (m, p1) => p1 + '\u05D7');
-
-  // Формы множественного склонения ж.р. (-ayich): עָלַיִךְ, אֵלַיִךְ, בִּלְעָדַיִךְ, לְפָנַיִךְ, אַחֲרַיִךְ
-  res = res.replace(/(?<=[\u0590-\u05FF]+\u05B7[\u0591-\u05C7]*\u05D9[\u05B4]?[\u0591-\u05C7]*)\u05DA[\u05B0]?(?=[^\u0590-\u05FF]|$)/g, '\u05D7');
-
-  // Суффикс -ech (ж.р.): שְׁלוֹמֵךְ, בִּשְׁבִילֵךְ, שְׁמֵךְ, לְבַדֵּךְ, אֶצְלֵךְ
-  res = res.replace(/(?<=[\u0590-\u05FF]+[\u05B5\u05B6][\u0591-\u05C7]*)\u05DA[\u05B0]?(?=[^\u0590-\u05FF]|$)/g, '\u05D7');
-
+  res = res.replace(/(^|\s)ספרי(\s+ли|\s+לי)/g, '$1סַפְּרִי$2');
+  res = res.replace(/(^|\s)ספר(\s+ли|\s+לי)/g, '$1סַפֵּר$2');
+  res = res.replace(/(^|\s)תספרי(\s+ли|\s+לי)/g, '$1תְּסַפְּרִי$2');
+  res = res.replace(/(^|\s)תספר(\s+ли|\s+לי)/g, '$1תְּסַפֵּר$2');
   return res;
 }
 
@@ -97,17 +70,15 @@ function fixHebrewPhonetics(text: string): string {
 export function cleanHebrewForSpeech(text: string): string {
   if (!text) return '';
   let res = text
-    // 1. Удаляем все Emoji и расширенные графические символы (чтобы TTS не зачитывал их названия)
-    .replace(/\p{Extended_Pictographic}/gu, '')
-    // 2. Удаляем специфичные символы меток интерфейса (♂, ♀, ⚥, ✔️, ❌, ①, ②, и т.д.)
+    // Удаляем иконки, мета-метки и эмодзи
     .replace(/[♂♀⚥✔️❌①②③④⑤👉📦🌸🎙️👥↗️➡️⬅️⬆️⬇️✨💫\u200D\uFE0F\uFE0E]/g, '')
-    // 3. Удаляем метаданные в скобках (например "(1)", "(2+)", "(мужчина)")
-    .replace(/\([а-яёА-ЯЁ0-9+ \t,.-]+\)/gi, '')
-    // 4. Очищаем кавычки и скобки
+    // Удаляем комментарии в скобках (например "(мужчина)", "(1)")
+    .replace(/\([а-яёА-ЯЁa-zA-Z0-9+ \t,.-]+\)/gi, '')
+    // Удаляем кавычки и скобки
     .replace(/["'«»[\]{}()]/g, ' ')
-    // 5. Удаляем кириллицу, если в строку случайно попал перевод
+    // Удаляем кириллицу
     .replace(/[а-яёА-ЯЁ]+/gi, '')
-    // 6. Убираем дефисы, слэши и множественные пробелы
+    // Удаляем дефисы и лишние разделители
     .replace(/[—–\-_/\\|•]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
@@ -115,13 +86,67 @@ export function cleanHebrewForSpeech(text: string): string {
   return fixHebrewPhonetics(res);
 }
 
+/**
+ * Высоконадежное воспроизведение произношения через Google TTS Audio fallback
+ */
+export function playFallbackAudio(text: string, rate: number = 0.75): Promise<void> {
+  return new Promise((resolve) => {
+    if (typeof window === 'undefined') {
+      resolve();
+      return;
+    }
+
+    try {
+      if (activeFallbackAudio) {
+        activeFallbackAudio.pause();
+        activeFallbackAudio.src = '';
+        activeFallbackAudio = null;
+      }
+
+      const cleanText = stripNikkud(text).replace(/[.,!?;:"'״׳()[\]{}—\-]/g, ' ').trim();
+      if (!cleanText) {
+        resolve();
+        return;
+      }
+
+      const url = `https://translate.google.com/translate_tts?ie=UTF-8&tl=iw&client=tw-ob&q=${encodeURIComponent(cleanText)}`;
+      const audio = new Audio(url);
+      activeFallbackAudio = audio;
+      audio.playbackRate = Math.max(0.6, Math.min(1.3, rate || 0.75));
+
+      let isEnded = false;
+      const finish = () => {
+        if (!isEnded) {
+          isEnded = true;
+          activeFallbackAudio = null;
+          resolve();
+        }
+      };
+
+      audio.onended = finish;
+      audio.onerror = finish;
+
+      const playPromise = audio.play();
+      if (playPromise !== undefined) {
+        playPromise.catch(() => finish());
+      }
+
+      setTimeout(finish, 4000);
+    } catch {
+      resolve();
+    }
+  });
+}
+
+/**
+ * Универсальная озвучка иврита (браузерный Web Speech API + моментальный фолбэк на Audio)
+ */
 export function speakHebrew(
   text: string,
   options: { rate?: number; pitch?: number } = {}
 ): Promise<void> {
   return new Promise((resolve) => {
-    if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
-      console.warn('Speech synthesis is not supported in this browser.');
+    if (typeof window === 'undefined') {
       resolve();
       return;
     }
@@ -131,9 +156,6 @@ export function speakHebrew(
       speechSafetyTimer = null;
     }
 
-    window.speechSynthesis.cancel(); // останавливаем предыдущую речь
-
-    // Очищаем от эмодзи/символов и нормализуем огласовки (ניקוד) для четкого произношения
     const speechText = cleanHebrewForSpeech(text);
     if (!speechText) {
       resolve();
@@ -149,24 +171,24 @@ export function speakHebrew(
       }
     } catch {}
 
-    const utterance = new SpeechSynthesisUtterance(speechText);
-    activeUtterance = utterance; // Защита от Garbage Collection в Chrome
-    utterance.lang = 'he-IL';
-    utterance.rate = options.rate ?? userRate;
-    utterance.pitch = options.pitch ?? 1.0;
+    const rate = options.rate ?? userRate;
 
-    if (preferredHebrewVoice) {
-      utterance.voice = preferredHebrewVoice;
-    } else {
-      const voices = window.speechSynthesis.getVoices();
-      const v = voices.find((voice) => voice.lang.startsWith('he'));
-      if (v) utterance.voice = v;
+    // Если speechSynthesis не поддерживается в браузере — сразу запускаем fallback audio
+    if (!('speechSynthesis' in window)) {
+      playFallbackAudio(speechText, rate).then(() => resolve());
+      return;
     }
 
-    let isResolved = false;
+    try {
+      if (window.speechSynthesis.speaking || window.speechSynthesis.pending) {
+        window.speechSynthesis.cancel();
+      }
+    } catch {}
+
+    let isFinished = false;
     const finish = () => {
-      if (!isResolved) {
-        isResolved = true;
+      if (!isFinished) {
+        isFinished = true;
         activeUtterance = null;
         if (speechSafetyTimer) {
           clearTimeout(speechSafetyTimer);
@@ -176,26 +198,50 @@ export function speakHebrew(
       }
     };
 
-    utterance.onend = finish;
-    utterance.onerror = (e) => {
-      console.error('TTS error:', e);
-      finish();
-    };
-
-    // Гарантированный защитный таймаут: промис завершится даже если браузер сбойнул
-    const maxDurationMs = Math.max(3000, speechText.length * 220 + 2500);
-    speechSafetyTimer = setTimeout(() => {
-      finish();
-    }, maxDurationMs);
-
     try {
-      window.speechSynthesis.speak(utterance);
-      if (window.speechSynthesis.paused) {
-        window.speechSynthesis.resume();
+      const utterance = new SpeechSynthesisUtterance(speechText);
+      activeUtterance = utterance;
+      utterance.lang = 'he-IL';
+      utterance.rate = rate;
+      utterance.pitch = options.pitch ?? 1.0;
+
+      if (preferredHebrewVoice) {
+        utterance.voice = preferredHebrewVoice;
+      } else {
+        const voices = window.speechSynthesis.getVoices();
+        const v = voices.find(
+          (voice) => voice.lang === 'he-IL' || voice.lang === 'he' || (voice.lang && voice.lang.toLowerCase().startsWith('he'))
+        );
+        if (v) utterance.voice = v;
       }
-    } catch (e) {
-      console.error('Speech synthesis speak exception:', e);
-      finish();
+
+      utterance.onend = finish;
+      utterance.onerror = (e) => {
+        console.warn('Browser TTS error, using audio fallback:', e);
+        playFallbackAudio(speechText, rate).then(() => finish());
+      };
+
+      // Защитный таймаут: если speechSynthesis завис (частый баг Chrome/iOS) — переключаемся на audio
+      const maxDurationMs = Math.max(3000, speechText.length * 200 + 2000);
+      speechSafetyTimer = setTimeout(() => {
+        if (!isFinished) {
+          playFallbackAudio(speechText, rate).then(() => finish());
+        }
+      }, maxDurationMs);
+
+      // Запуск с микрозадержкой для предотвращения бага cancel()->speak() в Chromium
+      setTimeout(() => {
+        try {
+          window.speechSynthesis.speak(utterance);
+          if (window.speechSynthesis.paused) {
+            window.speechSynthesis.resume();
+          }
+        } catch (err) {
+          playFallbackAudio(speechText, rate).then(() => finish());
+        }
+      }, 15);
+    } catch {
+      playFallbackAudio(speechText, rate).then(() => finish());
     }
   });
 }
@@ -204,13 +250,24 @@ export function speakHebrew(
  * Остановка любой воспроизводимой речи
  */
 export function stopSpeech(): void {
-  if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+  if (typeof window !== 'undefined') {
     if (speechSafetyTimer) {
       clearTimeout(speechSafetyTimer);
       speechSafetyTimer = null;
     }
     activeUtterance = null;
-    window.speechSynthesis.cancel();
+    try {
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
+    } catch {}
+    if (activeFallbackAudio) {
+      try {
+        activeFallbackAudio.pause();
+        activeFallbackAudio.src = '';
+      } catch {}
+      activeFallbackAudio = null;
+    }
   }
 }
 

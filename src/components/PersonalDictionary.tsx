@@ -29,7 +29,7 @@ import {
   isWordInPersonalDict,
   sortWordsBySRSPriority,
 } from '@/lib/storage';
-import { stripNikkud } from '@/lib/transcription';
+import { stripNikkud, getWordTranscription, generateHebrewTranscription } from '@/lib/transcription';
 import { findOfflineVerbConjugation } from '@/lib/verbConjugations';
 import { VerbConjugationView } from '@/components/VerbConjugationView';
 import { THEMATIC_DECKS } from '@/data/thematicDecks';
@@ -190,7 +190,7 @@ export const PersonalDictionary: React.FC<PersonalDictionaryProps> = ({
     addWordToPersonalDict({
       hebrew: newHebrew.trim(),
       hebrewPlain: stripNikkud(newHebrew.trim()),
-      transcription: newTranscription.trim(),
+      transcription: newTranscription.trim() || generateHebrewTranscription(newHebrew.trim()),
       translation: newTranslation.trim(),
       partOfSpeech: 'other',
       root: newRoot.trim() || undefined,
@@ -558,9 +558,9 @@ export const PersonalDictionary: React.FC<PersonalDictionaryProps> = ({
                           )}
                         </div>
 
-                        {!userProfile.ulpanMode && userProfile.showTranscription && word.transcription && (
+                        {!userProfile.ulpanMode && userProfile.showTranscription && getWordTranscription(word) && (
                           <p className="text-xs font-semibold text-blue-600 dark:text-blue-400">
-                            [{word.transcription}]
+                            [{getWordTranscription(word)}]
                           </p>
                         )}
                         <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 font-medium truncate">

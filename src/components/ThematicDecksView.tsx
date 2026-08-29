@@ -41,7 +41,7 @@ import {
   exportDeckToTsv,
 } from '@/data/thematicDecks';
 import { speakHebrew } from '@/lib/speech';
-import { stripNikkud } from '@/lib/transcription';
+import { stripNikkud, getWordTranscription } from '@/lib/transcription';
 import {
   calculateWordMastery,
   isWordInPersonalDict,
@@ -683,9 +683,11 @@ export const ThematicDecksView: React.FC<ThematicDecksViewProps> = ({
                               <div className="text-xs font-semibold text-slate-800 dark:text-slate-100">
                                 {word.translation}
                               </div>
-                              <div className="text-[11px] text-blue-600 dark:text-blue-400">
-                                [{word.transcription}]
-                              </div>
+                              {getWordTranscription(word) && (
+                                <div className="text-[11px] text-blue-600 dark:text-blue-400">
+                                  [{getWordTranscription(word)}]
+                                </div>
+                              )}
                             </div>
 
                             <div className="flex items-center gap-1.5 shrink-0">
@@ -1023,7 +1025,7 @@ export const ThematicDecksView: React.FC<ThematicDecksViewProps> = ({
 
                           {/* Транскрипция */}
                           <td className="py-3 px-3 text-blue-600 dark:text-blue-400 font-medium">
-                            [{word.transcription}]
+                            {getWordTranscription(word) ? `[${getWordTranscription(word)}]` : '—'}
                           </td>
 
                           {/* Перевод */}

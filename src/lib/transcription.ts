@@ -41,3 +41,148 @@ export function normalizeTranscription(transcription: string): string {
   if (!transcription) return '';
   return transcription.trim();
 }
+
+/**
+ * Автоматическая генерация русской фонетической транскрипции из огласованного иврита (ניקוד)
+ */
+export function generateHebrewTranscription(text: string): string {
+  if (!text) return '';
+  const cleanTokens = text.trim().split(/\s+/);
+
+  return cleanTokens
+    .map((w) => {
+      let result = '';
+      let i = 0;
+      let lastVowel = '';
+
+      while (i < w.length) {
+        const char = w[i];
+        let dagesh = false;
+        let sinDot = false;
+        let shinDot = false;
+        const vowels: number[] = [];
+        let nextIdx = i + 1;
+
+        while (
+          nextIdx < w.length &&
+          w.charCodeAt(nextIdx) >= 0x0591 &&
+          w.charCodeAt(nextIdx) <= 0x05c7
+        ) {
+          const code = w.charCodeAt(nextIdx);
+          if (code === 0x05bc) dagesh = true;
+          else if (code === 0x05c1) shinDot = true;
+          else if (code === 0x05c2) sinDot = true;
+          else vowels.push(code);
+          nextIdx++;
+        }
+
+        // Согласные буквы
+        let consonant = '';
+        if (char === 'א') consonant = '';
+        else if (char === 'ב') consonant = dagesh ? 'б' : 'в';
+        else if (char === 'ג') consonant = 'г';
+        else if (char === 'ד') consonant = 'д';
+        else if (char === 'ה')
+          consonant =
+            (i === w.length - 1 || nextIdx === w.length) && !dagesh ? '' : 'h';
+        else if (char === 'ו') {
+          if (dagesh) consonant = 'у';
+          else if (vowels.includes(0x05b9) || vowels.includes(0x05ba))
+            consonant = 'о';
+          else consonant = 'в';
+        } else if (char === 'ז') consonant = 'з';
+        else if (char === 'ח') consonant = 'х';
+        else if (char === 'ט') consonant = 'т';
+        else if (char === 'י') {
+          if (lastVowel === 'и' && vowels.length === 0) consonant = ''; // Матер лекционис после хирика
+          else consonant = 'й';
+        } else if (char === 'כ' || char === 'ך') consonant = dagesh ? 'к' : 'х';
+        else if (char === 'ל') consonant = 'л';
+        else if (char === 'מ' || char === 'ם') consonant = 'м';
+        else if (char === 'נ' || char === 'ן') consonant = 'н';
+        else if (char === 'ס') consonant = 'с';
+        else if (char === 'ע') consonant = '';
+        else if (char === 'פ' || char === 'ף') consonant = dagesh ? 'п' : 'ф';
+        else if (char === 'צ' || char === 'ץ') consonant = 'ц';
+        else if (char === 'ק') consonant = 'к';
+        else if (char === 'ר') consonant = 'р';
+        else if (char === 'ש') consonant = sinDot ? 'с' : 'ш';
+        else if (char === 'ת') consonant = 'т';
+        else consonant = char;
+
+        // Гласные огласовки
+        let vowelStr = '';
+        for (const v of vowels) {
+          if (v === 0x05b7 || v === 0x05b8 || v === 0x05b2) vowelStr = 'а'; // Патах, Камац, Хатаф-патах
+          else if (v === 0x05b5 || v === 0x05b6 || v === 0x05b1) vowelStr = 'е'; // Цере, Сеголь, Хатаф-сеголь
+          else if (v === 0x05b4) vowelStr = 'и'; // Хирик
+          else if (v === 0x05b9 || v === 0x05ba || v === 0x05b3) vowelStr = 'о'; // Холам, Хатаф-камац
+          else if (v === 0x05bb) vowelStr = 'у'; // Кубуц
+          else if (v === 0x05b0) {
+            // Шва
+            if (
+              i === 0 &&
+              (char === 'ב' ||
+                char === 'ל' ||
+                char === 'מ' ||
+                char === 'ש' ||
+                char === 'ת' ||
+                char === 'ד' ||
+                char === 'כ')
+            ) {
+              vowelStr = 'е';
+            } else if (
+              nextIdx < w.length &&
+              (w[nextIdx] === 'י' || w[nextIdx] === 'ו')
+            ) {
+              vowelStr = 'е';
+            } else {
+              vowelStr = '';
+            }
+          }
+        }
+
+        lastVowel = vowelStr;
+
+        // Фонетические правила соединения
+        if ((char === 'א' || char === 'ע') && vowelStr) {
+          if (i === 0 && (vowelStr === 'е' || vowelStr === 'э')) result += 'э';
+          else result += vowelStr;
+        } else if (char === 'י' && vowelStr) {
+          if (vowelStr === 'а') result += 'я';
+          else if (vowelStr === 'е') result += 'е';
+          else if (vowelStr === 'у') result += 'ю';
+          else if (vowelStr === 'о') result += 'йо';
+          else result += 'и';
+        } else if (char === 'ו' && (consonant === 'у' || consonant === 'о')) {
+          result += consonant;
+        } else {
+          result += consonant + vowelStr;
+        }
+
+        i = nextIdx;
+      }
+      return result;
+    })
+    .join(' ');
+}
+
+/**
+ * Получение надежной транскрипции для слова:
+ * Если у слова задана транскрипция — возвращает её;
+ * Если нет — автоматически транслитерирует огласованный иврит на русский язык.
+ */
+export function getWordTranscription(word?: {
+  hebrew?: string;
+  transcription?: string;
+  hebrewPlain?: string;
+} | null): string {
+  if (!word) return '';
+  if (word.transcription && word.transcription.trim()) {
+    return word.transcription.trim();
+  }
+  if (word.hebrew) {
+    return generateHebrewTranscription(word.hebrew);
+  }
+  return '';
+}

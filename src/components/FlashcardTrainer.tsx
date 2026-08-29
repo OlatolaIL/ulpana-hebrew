@@ -21,7 +21,7 @@ import confetti from 'canvas-confetti';
 import { Word, UserProfile, VerbConjugation } from '@/types';
 import { speakHebrew } from '@/lib/speech';
 import { updateCardSRS, calculateWordMastery, addWordToPersonalDict, isWordInPersonalDict, loadUserProfile, markLessonTabCompleted, sortWordsBySRSPriority } from '@/lib/storage';
-import { stripNikkud } from '@/lib/transcription';
+import { stripNikkud, getWordTranscription } from '@/lib/transcription';
 import { findOfflineVerbConjugation } from '@/lib/verbConjugations';
 import { VerbConjugationView } from '@/components/VerbConjugationView';
 import { getHebrewPictogram } from '@/lib/pictograms';
@@ -661,9 +661,9 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
                 >
                   {userProfile.showNikkud ? currentWord.hebrew : currentWord.hebrewPlain}
                 </div>
-                {!userProfile.ulpanMode && userProfile.showTranscription && (
+                {!userProfile.ulpanMode && userProfile.showTranscription && getWordTranscription(currentWord) && (
                   <p className="text-xs sm:text-sm font-semibold text-blue-600 dark:text-blue-400">
-                    [{currentWord.transcription}]
+                    [{getWordTranscription(currentWord)}]
                   </p>
                 )}
               </div>
@@ -713,6 +713,11 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
                 >
                   {currentWord.hebrew}
                 </div>
+                {!userProfile.ulpanMode && getWordTranscription(currentWord) && (
+                  <p className="text-xs sm:text-sm font-semibold text-blue-600 dark:text-blue-400 -mt-1">
+                    [{getWordTranscription(currentWord)}]
+                  </p>
+                )}
                 {currentWord.root && (
                   <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-xs font-semibold bg-amber-100 dark:bg-amber-950/80 text-amber-800 dark:text-amber-300 border border-amber-300/40">
                     <span>{userProfile.ulpanMode ? 'שׁוֹרֶשׁ:' : 'Шореш:'}</span>
@@ -880,9 +885,9 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
                   {currentWord.translation}
                 </div>
               )}
-              {!isUlpan && userProfile.showTranscription && (
+              {!isUlpan && userProfile.showTranscription && getWordTranscription(currentWord) && (
                 <p className="text-xs text-blue-600 dark:text-blue-400">
-                  [{currentWord.transcription}]
+                  [{getWordTranscription(currentWord)}]
                 </p>
               )}
             </div>
@@ -914,9 +919,9 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
                   {userProfile.showNikkud ? currentWord.hebrew : targetText}
                 </div>
 
-                {!isUlpan && currentWord.transcription && (
+                {!isUlpan && getWordTranscription(currentWord) && (
                   <p className="text-xs font-medium text-amber-900/80 dark:text-amber-300/80">
-                    [{currentWord.transcription}]
+                    [{getWordTranscription(currentWord)}]
                   </p>
                 )}
 
@@ -1051,9 +1056,9 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
                   {userProfile.showNikkud ? currentWord.hebrew : targetText}
                 </div>
 
-                {!isUlpan && userProfile.showTranscription && (
+                {!isUlpan && userProfile.showTranscription && getWordTranscription(currentWord) && (
                   <p className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">
-                    [{currentWord.transcription}]
+                    [{getWordTranscription(currentWord)}]
                   </p>
                 )}
 
