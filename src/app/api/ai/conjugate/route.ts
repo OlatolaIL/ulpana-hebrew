@@ -180,17 +180,19 @@ export async function POST(req: NextRequest) {
     if (provider === 'groq' && groqKey) {
       const modelsToTry = [
         process.env.GROQ_MODEL,
-        'openai/gpt-oss-120b',
-        'openai/gpt-oss-20b',
-        'qwen/qwen3.6-27b',
         'llama-3.3-70b-versatile',
         'llama-3.1-8b-instant',
+        'gemma2-9b-it',
       ].filter(Boolean) as string[];
 
       for (const groqModel of modelsToTry) {
         try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 7000);
+
           const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
             method: 'POST',
+            signal: controller.signal,
             headers: {
               'Content-Type': 'application/json',
               Authorization: `Bearer ${groqKey}`,
@@ -206,6 +208,7 @@ export async function POST(req: NextRequest) {
               max_tokens: 2500,
             }),
           });
+          clearTimeout(timeoutId);
 
           if (groqRes.ok) {
             const data = await groqRes.json();
@@ -224,10 +227,14 @@ export async function POST(req: NextRequest) {
 
     if (geminiKey) {
       try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 7000);
+
         const geminiRes = await fetch(
           `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiKey}`,
           {
             method: 'POST',
+            signal: controller.signal,
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               contents: [
@@ -246,6 +253,7 @@ export async function POST(req: NextRequest) {
             }),
           }
         );
+        clearTimeout(timeoutId);
 
         if (geminiRes.ok) {
           const data = await geminiRes.json();

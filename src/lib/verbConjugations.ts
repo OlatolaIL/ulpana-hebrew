@@ -977,6 +977,4327 @@ export const VERB_CONJUGATIONS_DATABASE: Record<string, VerbConjugation> = {
       { pronoun: 'אַתֶּם / אַתֶּן (мн.ч.)', hebrew: 'עֲנוּ', transcription: 'анӯ', translation: 'ответьте' },
     ],
   },
+  'לחפש': {
+  "infinitive": {
+    "hebrew": "לְחַפֵּשׂ",
+    "transcription": "лехапéс",
+    "translation": "искать"
+  },
+  "binyan": "פִּעֵל (Пиэль)",
+  "root": "ח-פ-שׂ",
+  "present": [
+    {
+      "pronoun": "זָכָר יָחִיד (он / я / ты)",
+      "hebrew": "מְחַפֵּשׂ",
+      "transcription": "мехапéс",
+      "translation": "ищет / ищу (м.р.)"
+    },
+    {
+      "pronoun": "נְקֵבָה יְחִידָה (она / я / ты)",
+      "hebrew": "מְחַפֶּשֶׂת",
+      "transcription": "мехапéсет",
+      "translation": "ищет / ищу (ж.р.)"
+    },
+    {
+      "pronoun": "זָכָר רַבִּים (они / мы / вы)",
+      "hebrew": "מְחַפְּשִׂים",
+      "transcription": "мехапсӣм",
+      "translation": "ищут / ищем (м.р.)"
+    },
+    {
+      "pronoun": "נְקֵבָה רַבּוֹת (они / мы / вы)",
+      "hebrew": "מְחַפְּשׂוֹת",
+      "transcription": "мехапсóт",
+      "translation": "ищут / ищем (ж.р.)"
+    }
+  ],
+  "past": [
+    {
+      "pronoun": "אֲנִי (я)",
+      "hebrew": "חִפַּשְׂתִּי",
+      "transcription": "хипáсти",
+      "translation": "я искал(а)"
+    },
+    {
+      "pronoun": "אַתָּה (ты м.р.)",
+      "hebrew": "חִפַּשְׂתָּ",
+      "transcription": "хипáста",
+      "translation": "ты искал"
+    },
+    {
+      "pronoun": "אַתְּ (ты ж.р.)",
+      "hebrew": "חִפַּשְׂתְּ",
+      "transcription": "хипáст",
+      "translation": "ты искала"
+    },
+    {
+      "pronoun": "הוּא (он)",
+      "hebrew": "חִפֵּשׂ",
+      "transcription": "хипéс",
+      "translation": "он искал"
+    },
+    {
+      "pronoun": "הִיא (она)",
+      "hebrew": "חִפְּשָׂה",
+      "transcription": "хипсá",
+      "translation": "она искала"
+    },
+    {
+      "pronoun": "אֲנַחְנוּ (мы)",
+      "hebrew": "חִפַּשְׂנוּ",
+      "transcription": "хипáсну",
+      "translation": "мы искали"
+    },
+    {
+      "pronoun": "אַתֶּם / אַתֶּן (вы)",
+      "hebrew": "חִפַּשְׂתֶּם / חִפַּשְׂתֶּן",
+      "transcription": "хипастéм / хипастéн",
+      "translation": "вы искали"
+    },
+    {
+      "pronoun": "הֵם / הֵן (они)",
+      "hebrew": "חִפְּשׂוּ",
+      "transcription": "хипсӯ",
+      "translation": "они искали"
+    }
+  ],
+  "future": [
+    {
+      "pronoun": "אֲנִי (я)",
+      "hebrew": "אֲחַפֵּשׂ",
+      "transcription": "ахапéс",
+      "translation": "я буду искать / найду"
+    },
+    {
+      "pronoun": "אַתָּה / הִיא (ты м.р. / она)",
+      "hebrew": "תְּחַפֵּשׂ",
+      "transcription": "техапéс",
+      "translation": "ты будешь искать / она будет искать"
+    },
+    {
+      "pronoun": "אַתְּ (ты ж.р.)",
+      "hebrew": "תְּחַפְּשִׂי",
+      "transcription": "техапсӣ",
+      "translation": "ты будешь искать (ж.р.)"
+    },
+    {
+      "pronoun": "הוּא (он)",
+      "hebrew": "יְחַפֵּשׂ",
+      "transcription": "йехапéс",
+      "translation": "он будет искать"
+    },
+    {
+      "pronoun": "אֲנַחְנוּ (мы)",
+      "hebrew": "נְחַפֵּשׂ",
+      "transcription": "нехапéс",
+      "translation": "мы будем искать"
+    },
+    {
+      "pronoun": "אַתֶּם / אַתֶּן (вы)",
+      "hebrew": "תְּחַפְּשׂוּ",
+      "transcription": "техапсӯ",
+      "translation": "вы будете искать"
+    },
+    {
+      "pronoun": "הֵם / הֵן (они)",
+      "hebrew": "יְחַפְּשׂוּ",
+      "transcription": "йехапсӯ",
+      "translation": "они будут искать"
+    }
+  ],
+  "imperative": [
+    {
+      "pronoun": "אַתָּה (м.р.)",
+      "hebrew": "חַפֵּשׂ",
+      "transcription": "хапéс",
+      "translation": "ищи (м.р.)"
+    },
+    {
+      "pronoun": "אַתְּ (ж.р.)",
+      "hebrew": "חַפְּשִׂי",
+      "transcription": "хапсӣ",
+      "translation": "ищи (ж.р.)"
+    },
+    {
+      "pronoun": "אַתֶּם / אַתֶּן (мн.ч.)",
+      "hebrew": "חַפְּשׂוּ",
+      "transcription": "хапсӯ",
+      "translation": "ищите"
+    }
+  ]
+},
+  'לבקש': {
+  "infinitive": {
+    "hebrew": "לְבַקֵּשׁ",
+    "transcription": "левакéш",
+    "translation": "просить"
+  },
+  "binyan": "פִּעֵל (Пиэль)",
+  "root": "ב-ק-ש",
+  "present": [
+    {
+      "pronoun": "זָכָר יָחִיד (он / я / ты)",
+      "hebrew": "מְבַקֵּשׁ",
+      "transcription": "мевакéш",
+      "translation": "просит / прошу (м.р.)"
+    },
+    {
+      "pronoun": "נְקֵבָה יְחִידָה (она / я / ты)",
+      "hebrew": "מְבַקֶּשֶׁת",
+      "transcription": "мевакéшет",
+      "translation": "просит / прошу (ж.р.)"
+    },
+    {
+      "pronoun": "זָכָר רַבִּים (они / мы / вы)",
+      "hebrew": "מְבַקְשִׁים",
+      "transcription": "мевакшӣм",
+      "translation": "просят / просим (м.р.)"
+    },
+    {
+      "pronoun": "נְקֵבָה רַבּוֹת (они / мы / вы)",
+      "hebrew": "מְבַקְשׁוֹת",
+      "transcription": "мевакшóт",
+      "translation": "просят / просим (ж.р.)"
+    }
+  ],
+  "past": [
+    {
+      "pronoun": "אֲנִי (я)",
+      "hebrew": "בִּקַּשְׁתִּי",
+      "transcription": "бикáшти",
+      "translation": "я просил(а)"
+    },
+    {
+      "pronoun": "אַתָּה (ты м.р.)",
+      "hebrew": "בִּקַּשְׁתָּ",
+      "transcription": "бикáшта",
+      "translation": "ты просил"
+    },
+    {
+      "pronoun": "אַתְּ (ты ж.р.)",
+      "hebrew": "בִּקַּשְׁתְּ",
+      "transcription": "бикáшт",
+      "translation": "ты просила"
+    },
+    {
+      "pronoun": "הוּא (он)",
+      "hebrew": "בִּקֵּשׁ",
+      "transcription": "бикéш",
+      "translation": "он просил"
+    },
+    {
+      "pronoun": "הִיא (она)",
+      "hebrew": "בִּקְּשָׁה",
+      "transcription": "бикшá",
+      "translation": "она просила"
+    },
+    {
+      "pronoun": "אֲנַחְנוּ (мы)",
+      "hebrew": "בִּקַּשְׁנוּ",
+      "transcription": "бикáшну",
+      "translation": "мы просили"
+    },
+    {
+      "pronoun": "אַתֶּם / אַתֶּן (вы)",
+      "hebrew": "בִּקַּשְׁתֶּם / בִּקַּשְׁתֶּן",
+      "transcription": "бикаштéм / бикаштéн",
+      "translation": "вы просили"
+    },
+    {
+      "pronoun": "הֵם / הֵן (они)",
+      "hebrew": "בִּקְּשׁוּ",
+      "transcription": "бикшӯ",
+      "translation": "они просили"
+    }
+  ],
+  "future": [
+    {
+      "pronoun": "אֲנִי (я)",
+      "hebrew": "אֲבַקֵּשׁ",
+      "transcription": "авакéш",
+      "translation": "я попрошу"
+    },
+    {
+      "pronoun": "אַתָּה / הִיא (ты м.р. / она)",
+      "hebrew": "תְּבַקֵּשׁ",
+      "transcription": "тевакéш",
+      "translation": "ты попросишь / она попросит"
+    },
+    {
+      "pronoun": "אַתְּ (ты ж.р.)",
+      "hebrew": "תְּבַקְשִׁי",
+      "transcription": "тевакшӣ",
+      "translation": "ты попросишь (ж.р.)"
+    },
+    {
+      "pronoun": "הוּא (он)",
+      "hebrew": "יְבַקֵּשׁ",
+      "transcription": "йевакéш",
+      "translation": "он попросит"
+    },
+    {
+      "pronoun": "אֲנַחְנוּ (мы)",
+      "hebrew": "נְבַקֵּשׁ",
+      "transcription": "невакéш",
+      "translation": "мы попросим"
+    },
+    {
+      "pronoun": "אַתֶּם / אַתֶּן (вы)",
+      "hebrew": "תְּבַקְשׁוּ",
+      "transcription": "тевакшӯ",
+      "translation": "вы попросите"
+    },
+    {
+      "pronoun": "הֵם / הֵן (они)",
+      "hebrew": "יְבַקְשׁוּ",
+      "transcription": "йевакшӯ",
+      "translation": "они попросят"
+    }
+  ],
+  "imperative": [
+    {
+      "pronoun": "אַתָּה (м.р.)",
+      "hebrew": "בַּקֵּשׁ",
+      "transcription": "бакéш",
+      "translation": "проси (м.р.)"
+    },
+    {
+      "pronoun": "אַתְּ (ж.р.)",
+      "hebrew": "בַּקְשִׁי",
+      "transcription": "бакшӣ",
+      "translation": "проси (ж.р.)"
+    },
+    {
+      "pronoun": "אַתֶּם / אַתֶּן (мн.ч.)",
+      "hebrew": "בַּקְשׁוּ",
+      "transcription": "бакшӯ",
+      "translation": "просите"
+    }
+  ]
+},
+  'לשלם': {
+  "infinitive": {
+    "hebrew": "לְשַׁלֵּם",
+    "transcription": "лешалéм",
+    "translation": "платить"
+  },
+  "binyan": "פִּעֵל (Пиэль)",
+  "root": "ש-ל-ם",
+  "present": [
+    {
+      "pronoun": "זָכָר יָחִיד (он / я / ты)",
+      "hebrew": "מְשַׁלֵּם",
+      "transcription": "мешалéм",
+      "translation": "платит / плачу (м.р.)"
+    },
+    {
+      "pronoun": "נְקֵבָה יְחִידָה (она / я / ты)",
+      "hebrew": "מְשַׁלֶּמֶת",
+      "transcription": "мешалéмет",
+      "translation": "платит / плачу (ж.р.)"
+    },
+    {
+      "pronoun": "זָכָר רַבִּים (они / мы / вы)",
+      "hebrew": "מְשַׁלְּמִים",
+      "transcription": "мешальмӣм",
+      "translation": "платят / платим (м.р.)"
+    },
+    {
+      "pronoun": "נְקֵבָה רַבּוֹת (они / мы / вы)",
+      "hebrew": "מְשַׁלְּמוֹת",
+      "transcription": "мешальмóт",
+      "translation": "платят / платим (ж.р.)"
+    }
+  ],
+  "past": [
+    {
+      "pronoun": "אֲנִי (я)",
+      "hebrew": "שִׁלַּמְתִּי",
+      "transcription": "шилáмти",
+      "translation": "я заплатил(а)"
+    },
+    {
+      "pronoun": "אַתָּה (ты м.р.)",
+      "hebrew": "שִׁלַּמְתָּ",
+      "transcription": "шилáмта",
+      "translation": "ты заплатил"
+    },
+    {
+      "pronoun": "אַתְּ (ты ж.р.)",
+      "hebrew": "שִׁלַּמְתְּ",
+      "transcription": "шилáмт",
+      "translation": "ты заплатила"
+    },
+    {
+      "pronoun": "הוּא (он)",
+      "hebrew": "שִׁלֵּם",
+      "transcription": "шилéм",
+      "translation": "он заплатил"
+    },
+    {
+      "pronoun": "הִיא (она)",
+      "hebrew": "שִׁלְּמָה",
+      "transcription": "шильмá",
+      "translation": "она заплатила"
+    },
+    {
+      "pronoun": "אֲנַחְנוּ (мы)",
+      "hebrew": "שִׁלַּמְנוּ",
+      "transcription": "шилáмну",
+      "translation": "мы заплатили"
+    },
+    {
+      "pronoun": "אַתֶּם / אַתֶּן (вы)",
+      "hebrew": "שִׁלַּמְתֶּם / שִׁלַּמְתֶּן",
+      "transcription": "шиламтéм / шиламтéн",
+      "translation": "вы заплатили"
+    },
+    {
+      "pronoun": "הֵם / הֵן (они)",
+      "hebrew": "שִׁלְּמוּ",
+      "transcription": "шильмӯ",
+      "translation": "они заплатили"
+    }
+  ],
+  "future": [
+    {
+      "pronoun": "אֲנִי (я)",
+      "hebrew": "אֲשַׁלֵּם",
+      "transcription": "ашалéм",
+      "translation": "я заплачу"
+    },
+    {
+      "pronoun": "אַתָּה / הִיא (ты м.р. / она)",
+      "hebrew": "תְּשַׁלֵּם",
+      "transcription": "тешалéм",
+      "translation": "ты заплатишь / она заплатит"
+    },
+    {
+      "pronoun": "אַתְּ (ты ж.р.)",
+      "hebrew": "תְּשַׁלְּמִי",
+      "transcription": "тешальмӣ",
+      "translation": "ты заплатишь (ж.р.)"
+    },
+    {
+      "pronoun": "הוּא (он)",
+      "hebrew": "יְשַׁלֵּם",
+      "transcription": "йешалéм",
+      "translation": "он заплатит"
+    },
+    {
+      "pronoun": "אֲנַחְנוּ (мы)",
+      "hebrew": "נְשַׁלֵּם",
+      "transcription": "нешалéм",
+      "translation": "мы заплатим"
+    },
+    {
+      "pronoun": "אַתֶּם / אַתֶּן (вы)",
+      "hebrew": "תְּשַׁלְּמוּ",
+      "transcription": "тешальмӯ",
+      "translation": "вы заплатите"
+    },
+    {
+      "pronoun": "הֵם / הֵן (они)",
+      "hebrew": "יְשַׁלְּמוּ",
+      "transcription": "йешальмӯ",
+      "translation": "они заплатят"
+    }
+  ],
+  "imperative": [
+    {
+      "pronoun": "אַתָּה (м.р.)",
+      "hebrew": "שַׁלֵּם",
+      "transcription": "шалéм",
+      "translation": "плати (м.р.)"
+    },
+    {
+      "pronoun": "אַתְּ (ж.р.)",
+      "hebrew": "שַׁלְּמִי",
+      "transcription": "шальмӣ",
+      "translation": "плати (ж.р.)"
+    },
+    {
+      "pronoun": "אַתֶּם / אַתֶּן (мн.ч.)",
+      "hebrew": "שַׁלְּמוּ",
+      "transcription": "шальмӯ",
+      "translation": "платите"
+    }
+  ]
+},
+  'לבשל': {
+  "infinitive": {
+    "hebrew": "לְבַשֵּׁל",
+    "transcription": "левашéль",
+    "translation": "готовить (еду)"
+  },
+  "binyan": "פִּעֵל (Пиэль)",
+  "root": "ב-ש-ל",
+  "present": [
+    {
+      "pronoun": "זָכָר יָחִיד (он / я / ты)",
+      "hebrew": "מְבַשֵּׁל",
+      "transcription": "мевашéль",
+      "translation": "готовит / готовлю (м.р.)"
+    },
+    {
+      "pronoun": "נְקֵבָה יְחִידָה (она / я / ты)",
+      "hebrew": "מְבַשֶּׁלֶת",
+      "transcription": "мевашéлет",
+      "translation": "готовит / готовлю (ж.р.)"
+    },
+    {
+      "pronoun": "זָכָר רַבִּים (они / мы / вы)",
+      "hebrew": "מְבַשְּׁלִים",
+      "transcription": "мевашлӣм",
+      "translation": "готовят / готовим (м.р.)"
+    },
+    {
+      "pronoun": "נְקֵבָה רַבּוֹת (они / мы / вы)",
+      "hebrew": "מְבַשְּׁלוֹת",
+      "transcription": "мевашлóт",
+      "translation": "готовят / готовим (ж.р.)"
+    }
+  ],
+  "past": [
+    {
+      "pronoun": "אֲנִי (я)",
+      "hebrew": "בִּשַּׁלְתִּי",
+      "transcription": "бишáльти",
+      "translation": "я готовил(а)"
+    },
+    {
+      "pronoun": "אַתָּה (ты м.р.)",
+      "hebrew": "בִּשַּׁלְתָּ",
+      "transcription": "бишáльта",
+      "translation": "ты готовил"
+    },
+    {
+      "pronoun": "אַתְּ (ты ж.р.)",
+      "hebrew": "בִּשַּׁלְתְּ",
+      "transcription": "бишáльт",
+      "translation": "ты готовила"
+    },
+    {
+      "pronoun": "הוּא (он)",
+      "hebrew": "בִּשֵּׁל",
+      "transcription": "бишéль",
+      "translation": "он готовил"
+    },
+    {
+      "pronoun": "הִיא (она)",
+      "hebrew": "בִּשְּׁלָה",
+      "transcription": "бишлá",
+      "translation": "она готовила"
+    },
+    {
+      "pronoun": "אֲנַחְנוּ (мы)",
+      "hebrew": "בִּשַּׁלְנוּ",
+      "transcription": "бишáльну",
+      "translation": "мы готовили"
+    },
+    {
+      "pronoun": "אַתֶּם / אַתֶּן (вы)",
+      "hebrew": "בִּשַּׁלְתֶּם / בִּשַּׁלְתֶּן",
+      "transcription": "бишальтéм / бишальтéн",
+      "translation": "вы готовили"
+    },
+    {
+      "pronoun": "הֵם / הֵן (они)",
+      "hebrew": "בִּשְּׁלוּ",
+      "transcription": "бишлӯ",
+      "translation": "они готовили"
+    }
+  ],
+  "future": [
+    {
+      "pronoun": "אֲנִי (я)",
+      "hebrew": "אֲבַשֵּׁל",
+      "transcription": "авашéль",
+      "translation": "я приготовлю"
+    },
+    {
+      "pronoun": "אַתָּה / הִיא (ты м.р. / она)",
+      "hebrew": "תְּבַשֵּׁל",
+      "transcription": "тевашéль",
+      "translation": "ты приготовишь / она приготовит"
+    },
+    {
+      "pronoun": "אַתְּ (ты ж.р.)",
+      "hebrew": "תְּבַשְּׁלִי",
+      "transcription": "тевашлӣ",
+      "translation": "ты приготовишь (ж.р.)"
+    },
+    {
+      "pronoun": "הוּא (он)",
+      "hebrew": "יְבַשֵּׁל",
+      "transcription": "йевашéль",
+      "translation": "он приготовит"
+    },
+    {
+      "pronoun": "אֲנַחְנוּ (мы)",
+      "hebrew": "נְבַשֵּׁל",
+      "transcription": "невашéль",
+      "translation": "мы приготовим"
+    },
+    {
+      "pronoun": "אַתֶּם / אַתֶּן (вы)",
+      "hebrew": "תְּבַשְּׁלוּ",
+      "transcription": "тевашлӯ",
+      "translation": "вы приготовите"
+    },
+    {
+      "pronoun": "הֵם / הֵן (они)",
+      "hebrew": "יְבַשְּׁלוּ",
+      "transcription": "йевашлӯ",
+      "translation": "они приготовят"
+    }
+  ],
+  "imperative": [
+    {
+      "pronoun": "אַתָּה (м.р.)",
+      "hebrew": "בַּשֵּׁל",
+      "transcription": "башéль",
+      "translation": "готовь (м.р.)"
+    },
+    {
+      "pronoun": "אַתְּ (ж.р.)",
+      "hebrew": "בַּשְּׁלִי",
+      "transcription": "башлӣ",
+      "translation": "готовь (ж.р.)"
+    },
+    {
+      "pronoun": "אַתֶּם / אַתֶּן (мн.ч.)",
+      "hebrew": "בַּשְּׁלוּ",
+      "transcription": "башлӯ",
+      "translation": "готовьте"
+    }
+  ]
+},
+  'לספר': {
+  "infinitive": {
+    "hebrew": "לְסַפֵּר",
+    "transcription": "лесапéр",
+    "translation": "рассказывать, стричь"
+  },
+  "binyan": "פִּעֵל (Пиэль)",
+  "root": "ס-פ-ר",
+  "present": [
+    {
+      "pronoun": "זָכָר יָחִיד (он / я / ты)",
+      "hebrew": "מְסַפֵּר",
+      "transcription": "месапéр",
+      "translation": "рассказывает / рассказываю (м.р.)"
+    },
+    {
+      "pronoun": "נְקֵבָה יְחִידָה (она / я / ты)",
+      "hebrew": "מְסַפֶּרֶת",
+      "transcription": "месапéрет",
+      "translation": "рассказывает / рассказываю (ж.р.)"
+    },
+    {
+      "pronoun": "זָכָר רַבִּים (они / мы / вы)",
+      "hebrew": "מְסַפְּרִים",
+      "transcription": "месапрӣм",
+      "translation": "рассказывают / рассказываем (м.р.)"
+    },
+    {
+      "pronoun": "נְקֵבָה רַבּוֹת (они / мы / вы)",
+      "hebrew": "מְסַפְּרוֹת",
+      "transcription": "месапрóт",
+      "translation": "рассказывают / рассказываем (ж.р.)"
+    }
+  ],
+  "past": [
+    {
+      "pronoun": "אֲנִי (я)",
+      "hebrew": "סִפַּרְתִּי",
+      "transcription": "сипáрти",
+      "translation": "я рассказал(а)"
+    },
+    {
+      "pronoun": "אַתָּה (ты м.р.)",
+      "hebrew": "סִפַּרְתָּ",
+      "transcription": "сипáрта",
+      "translation": "ты рассказал"
+    },
+    {
+      "pronoun": "אַתְּ (ты ж.р.)",
+      "hebrew": "סִפַּרְתְּ",
+      "transcription": "сипáрт",
+      "translation": "ты рассказала"
+    },
+    {
+      "pronoun": "הוּא (он)",
+      "hebrew": "סִפֵּר",
+      "transcription": "сипéр",
+      "translation": "он рассказал"
+    },
+    {
+      "pronoun": "הִיא (она)",
+      "hebrew": "סִפְּרָה",
+      "transcription": "сипрá",
+      "translation": "она рассказала"
+    },
+    {
+      "pronoun": "אֲנַחְנוּ (мы)",
+      "hebrew": "סִפַּרְנוּ",
+      "transcription": "сипáрну",
+      "translation": "мы рассказали"
+    },
+    {
+      "pronoun": "אַתֶּם / אַתֶּן (вы)",
+      "hebrew": "סִפַּרְתֶּם / סִפַּרְתֶּן",
+      "transcription": "сипартéм / сипартéн",
+      "translation": "вы рассказали"
+    },
+    {
+      "pronoun": "הֵם / הֵן (они)",
+      "hebrew": "סִפְּרוּ",
+      "transcription": "сипрӯ",
+      "translation": "они рассказали"
+    }
+  ],
+  "future": [
+    {
+      "pronoun": "אֲנִי (я)",
+      "hebrew": "אֲסַפֵּר",
+      "transcription": "асапéр",
+      "translation": "я расскажу"
+    },
+    {
+      "pronoun": "אַתָּה / הִיא (ты м.р. / она)",
+      "hebrew": "תְּסַפֵּר",
+      "transcription": "тесапéр",
+      "translation": "ты расскажешь / она расскажет"
+    },
+    {
+      "pronoun": "אַתְּ (ты ж.р.)",
+      "hebrew": "תְּסַפְּרִי",
+      "transcription": "тесапрӣ",
+      "translation": "ты расскажешь (ж.р.)"
+    },
+    {
+      "pronoun": "הוּא (он)",
+      "hebrew": "יְסַפֵּר",
+      "transcription": "йесапéр",
+      "translation": "он расскажет"
+    },
+    {
+      "pronoun": "אֲנַחְנוּ (мы)",
+      "hebrew": "נְסַפֵּר",
+      "transcription": "несапéр",
+      "translation": "мы расскажем"
+    },
+    {
+      "pronoun": "אַתֶּם / אַתֶּן (вы)",
+      "hebrew": "תְּסַפְּרוּ",
+      "transcription": "тесапрӯ",
+      "translation": "вы расскажете"
+    },
+    {
+      "pronoun": "הֵם / הֵן (они)",
+      "hebrew": "יְסַפְּרוּ",
+      "transcription": "йесапрӯ",
+      "translation": "они расскажут"
+    }
+  ],
+  "imperative": [
+    {
+      "pronoun": "אַתָּה (м.р.)",
+      "hebrew": "סַפֵּר",
+      "transcription": "сапéр",
+      "translation": "расскажи (м.р.)"
+    },
+    {
+      "pronoun": "אַתְּ (ж.р.)",
+      "hebrew": "סַפְּרִי",
+      "transcription": "сапрӣ",
+      "translation": "расскажи (ж.р.)"
+    },
+    {
+      "pronoun": "אַתֶּם / אַתֶּן (мн.ч.)",
+      "hebrew": "סַפְּרוּ",
+      "transcription": "сапрӯ",
+      "translation": "расскажите"
+    }
+  ]
+},
+  'ללמד': {
+  "infinitive": {
+    "hebrew": "לְלַמֵּד",
+    "transcription": "леламéд",
+    "translation": "обучать, преподавать"
+  },
+  "binyan": "פִּעֵל (Пиэль)",
+  "root": "ל-מ-ד",
+  "present": [
+    {
+      "pronoun": "זָכָר יָחִיד (он / я / ты)",
+      "hebrew": "מְלַמֵּד",
+      "transcription": "меламéд",
+      "translation": "обучает / обучаю (м.р.)"
+    },
+    {
+      "pronoun": "נְקֵבָה יְחִידָה (она / я / ты)",
+      "hebrew": "מְלַמֶּדֶת",
+      "transcription": "меламéдет",
+      "translation": "обучает / обучаю (ж.р.)"
+    },
+    {
+      "pronoun": "זָכָר רַבִּים (они / мы / вы)",
+      "hebrew": "מְלַמְּדִים",
+      "transcription": "меламдӣм",
+      "translation": "обучают / обучаем (м.р.)"
+    },
+    {
+      "pronoun": "נְקֵבָה רַבּוֹת (они / мы / вы)",
+      "hebrew": "מְלַמְּדוֹת",
+      "transcription": "меламдóт",
+      "translation": "обучают / обучаем (ж.р.)"
+    }
+  ],
+  "past": [
+    {
+      "pronoun": "אֲנִי (я)",
+      "hebrew": "לִמַּדְתִּי",
+      "transcription": "лимáдти",
+      "translation": "я обучал(а)"
+    },
+    {
+      "pronoun": "אַתָּה (ты м.р.)",
+      "hebrew": "לִמַּדְתָּ",
+      "transcription": "лимáдта",
+      "translation": "ты обучал"
+    },
+    {
+      "pronoun": "אַתְּ (ты ж.р.)",
+      "hebrew": "לִמַּדְתְּ",
+      "transcription": "лимáдт",
+      "translation": "ты обучала"
+    },
+    {
+      "pronoun": "הוּא (он)",
+      "hebrew": "לִמֵּד",
+      "transcription": "лимéд",
+      "translation": "он обучал"
+    },
+    {
+      "pronoun": "הִיא (она)",
+      "hebrew": "לִמְּדָה",
+      "transcription": "лимдá",
+      "translation": "она обучала"
+    },
+    {
+      "pronoun": "אֲנַחְנוּ (мы)",
+      "hebrew": "לִמַּדְנוּ",
+      "transcription": "лимáдну",
+      "translation": "мы обучали"
+    },
+    {
+      "pronoun": "אַתֶּם / אַתֶּן (вы)",
+      "hebrew": "לִמַּדְתֶּם / לִמַּדְתֶּן",
+      "transcription": "лимадтéм / лимадтéн",
+      "translation": "вы обучали"
+    },
+    {
+      "pronoun": "הֵם / הֵן (они)",
+      "hebrew": "לִמְּדוּ",
+      "transcription": "лимдӯ",
+      "translation": "они обучали"
+    }
+  ],
+  "future": [
+    {
+      "pronoun": "אֲנִי (я)",
+      "hebrew": "אֲלַמֵּד",
+      "transcription": "аламéд",
+      "translation": "я обучу"
+    },
+    {
+      "pronoun": "אַתָּה / הִיא (ты м.р. / она)",
+      "hebrew": "תְּלַמֵּד",
+      "transcription": "теламéд",
+      "translation": "ты обучишь / она обучит"
+    },
+    {
+      "pronoun": "אַתְּ (ты ж.р.)",
+      "hebrew": "תְּלַמְּדִי",
+      "transcription": "теламдӣ",
+      "translation": "ты обучишь (ж.р.)"
+    },
+    {
+      "pronoun": "הוּא (он)",
+      "hebrew": "יְלַמֵּד",
+      "transcription": "йеламéд",
+      "translation": "он обучит"
+    },
+    {
+      "pronoun": "אֲנַחְנוּ (мы)",
+      "hebrew": "נְלַמֵּד",
+      "transcription": "неламéд",
+      "translation": "мы обучим"
+    },
+    {
+      "pronoun": "אַתֶּם / אַתֶּן (вы)",
+      "hebrew": "תְּלַמְּדוּ",
+      "transcription": "теламдӯ",
+      "translation": "вы обучите"
+    },
+    {
+      "pronoun": "הֵם / הֵן (они)",
+      "hebrew": "יְלַמְּדוּ",
+      "transcription": "йеламдӯ",
+      "translation": "они обучат"
+    }
+  ],
+  "imperative": [
+    {
+      "pronoun": "אַתָּה (м.р.)",
+      "hebrew": "לַמֵּד",
+      "transcription": "ламéд",
+      "translation": "обучай (м.р.)"
+    },
+    {
+      "pronoun": "אַתְּ (ж.р.)",
+      "hebrew": "לַמְּדִי",
+      "transcription": "ламдӣ",
+      "translation": "обучай (ж.р.)"
+    },
+    {
+      "pronoun": "אַתֶּם / אַתֶּן (мн.ч.)",
+      "hebrew": "לַמְּדוּ",
+      "transcription": "ламдӯ",
+      "translation": "обучайте"
+    }
+  ]
+},
+  'לטייל': {
+  "infinitive": {
+    "hebrew": "לְטַיֵּל",
+    "transcription": "летайéль",
+    "translation": "гулять, путешествовать"
+  },
+  "binyan": "פִּעֵל (Пиэль)",
+  "root": "ט-י-ל",
+  "present": [
+    {
+      "pronoun": "זָכָר יָחִיד (он / я / ты)",
+      "hebrew": "מְטַיֵּל",
+      "transcription": "метайéль",
+      "translation": "гуляет / гуляю (м.р.)"
+    },
+    {
+      "pronoun": "נְקֵבָה יְחִידָה (она / я / ты)",
+      "hebrew": "מְטַיֶּלֶת",
+      "transcription": "метайéлет",
+      "translation": "гуляет / гуляю (ж.р.)"
+    },
+    {
+      "pronoun": "זָכָר רַבִּים (они / мы / вы)",
+      "hebrew": "מְטַיְּלִים",
+      "transcription": "метайлӣм",
+      "translation": "гуляют / гуляем (м.р.)"
+    },
+    {
+      "pronoun": "נְקֵבָה רַבּוֹת (они / мы / вы)",
+      "hebrew": "מְטַיְּלוֹת",
+      "transcription": "метайлóт",
+      "translation": "гуляют / гуляем (ж.р.)"
+    }
+  ],
+  "past": [
+    {
+      "pronoun": "אֲנִי (я)",
+      "hebrew": "טִיַּלְתִּי",
+      "transcription": "тийáльти",
+      "translation": "я гулял(а)"
+    },
+    {
+      "pronoun": "אַתָּה (ты м.р.)",
+      "hebrew": "טִיַּלְתָּ",
+      "transcription": "тийáльта",
+      "translation": "ты гулял"
+    },
+    {
+      "pronoun": "אַתְּ (ты ж.р.)",
+      "hebrew": "טִיַּלְתְּ",
+      "transcription": "тийáльт",
+      "translation": "ты гуляла"
+    },
+    {
+      "pronoun": "הוּא (он)",
+      "hebrew": "טִיֵּל",
+      "transcription": "тийéль",
+      "translation": "он гулял"
+    },
+    {
+      "pronoun": "הִיא (она)",
+      "hebrew": "טִיְּלָה",
+      "transcription": "тийлá",
+      "translation": "она гуляла"
+    },
+    {
+      "pronoun": "אֲנַחְנוּ (мы)",
+      "hebrew": "טִיַּלְנוּ",
+      "transcription": "тийáльну",
+      "translation": "мы гуляли"
+    },
+    {
+      "pronoun": "אַתֶּם / אַתֶּן (вы)",
+      "hebrew": "טִיַּלְתֶּם / טִיַּלְתֶּן",
+      "transcription": "тийяльтéм / тийяльтéн",
+      "translation": "вы гуляли"
+    },
+    {
+      "pronoun": "הֵם / הֵן (они)",
+      "hebrew": "טִיְּלוּ",
+      "transcription": "тийлӯ",
+      "translation": "они гуляли"
+    }
+  ],
+  "future": [
+    {
+      "pronoun": "אֲנִי (я)",
+      "hebrew": "אֲטַיֵּל",
+      "transcription": "атайéль",
+      "translation": "я погуляю"
+    },
+    {
+      "pronoun": "אַתָּה / הִיא (ты м.р. / она)",
+      "hebrew": "תְּטַיֵּל",
+      "transcription": "тетайéль",
+      "translation": "ты погуляешь / она погуляет"
+    },
+    {
+      "pronoun": "אַתְּ (ты ж.р.)",
+      "hebrew": "תְּטַיְּלִי",
+      "transcription": "тетайлӣ",
+      "translation": "ты погуляешь (ж.р.)"
+    },
+    {
+      "pronoun": "הוּא (он)",
+      "hebrew": "יְטַיֵּל",
+      "transcription": "йетайéль",
+      "translation": "он погуляет"
+    },
+    {
+      "pronoun": "אֲנַחְנוּ (мы)",
+      "hebrew": "נְטַיֵּל",
+      "transcription": "нетайéль",
+      "translation": "мы погуляем"
+    },
+    {
+      "pronoun": "אַתֶּם / אַתֶּן (вы)",
+      "hebrew": "תְּטַיְּלוּ",
+      "transcription": "тетайлӯ",
+      "translation": "вы погуляете"
+    },
+    {
+      "pronoun": "הֵם / הֵן (они)",
+      "hebrew": "יְטַיְּלוּ",
+      "transcription": "йетайлӯ",
+      "translation": "они погуляют"
+    }
+  ],
+  "imperative": [
+    {
+      "pronoun": "אַתָּה (м.р.)",
+      "hebrew": "טַיֵּל",
+      "transcription": "тайéль",
+      "translation": "гуляй (м.р.)"
+    },
+    {
+      "pronoun": "אַתְּ (ж.р.)",
+      "hebrew": "טַיְּלִי",
+      "transcription": "тайлӣ",
+      "translation": "гуляй (ж.р.)"
+    },
+    {
+      "pronoun": "אַתֶּם / אַתֶּן (мн.ч.)",
+      "hebrew": "טַיְּלוּ",
+      "transcription": "тайлӯ",
+      "translation": "гуляйте"
+    }
+  ]
+},
+  'להתחיל': {
+  "infinitive": {
+    "hebrew": "לְהַתְחִיל",
+    "transcription": "леhатхӣль",
+    "translation": "начинать"
+  },
+  "binyan": "הִפְעִיל (Ифъиль)",
+  "root": "ת-ח-ל",
+  "present": [
+    {
+      "pronoun": "זָכָר יָחִיד (он / я / ты)",
+      "hebrew": "מַתְחִיל",
+      "transcription": "матхӣль",
+      "translation": "начинает / начинаю (м.р.)"
+    },
+    {
+      "pronoun": "נְקֵבָה יְחִידָה (она / я / ты)",
+      "hebrew": "מַתְחִילָה",
+      "transcription": "матхилá",
+      "translation": "начинает / начинаю (ж.р.)"
+    },
+    {
+      "pronoun": "זָכָר רַבִּים (они / мы / вы)",
+      "hebrew": "מַתְחִילִים",
+      "transcription": "матхилӣм",
+      "translation": "начинают / начинаем (м.р.)"
+    },
+    {
+      "pronoun": "נְקֵבָה רַבּוֹת (они / мы / вы)",
+      "hebrew": "מַתְחִילוֹת",
+      "transcription": "матхилóт",
+      "translation": "начинают / начинаем (ж.р.)"
+    }
+  ],
+  "past": [
+    {
+      "pronoun": "אֲנִי (я)",
+      "hebrew": "הִתְחַלְתִּי",
+      "transcription": "hитхáльти",
+      "translation": "я начал(а)"
+    },
+    {
+      "pronoun": "אַתָּה (ты м.р.)",
+      "hebrew": "הִתְחַלְתָּ",
+      "transcription": "hитхáльта",
+      "translation": "ты начал"
+    },
+    {
+      "pronoun": "אַתְּ (ты ж.р.)",
+      "hebrew": "הִתְחַלְתְּ",
+      "transcription": "hитхáльт",
+      "translation": "ты начала"
+    },
+    {
+      "pronoun": "הוּא (он)",
+      "hebrew": "הִתְחִיל",
+      "transcription": "hитхӣль",
+      "translation": "он начал"
+    },
+    {
+      "pronoun": "הִיא (она)",
+      "hebrew": "הִתְחִילָה",
+      "transcription": "hитхилá",
+      "translation": "она начала"
+    },
+    {
+      "pronoun": "אֲנַחְנוּ (мы)",
+      "hebrew": "הִתְחַלְנוּ",
+      "transcription": "hитхáльну",
+      "translation": "мы начали"
+    },
+    {
+      "pronoun": "אַתֶּם / אַתֶּן (вы)",
+      "hebrew": "הִתְחַלְתֶּם / הִתְחַלְתֶּן",
+      "transcription": "hитхальтéм / hитхальтéн",
+      "translation": "вы начали"
+    },
+    {
+      "pronoun": "הֵם / הֵן (они)",
+      "hebrew": "הִתְחִילוּ",
+      "transcription": "hитхилӯ",
+      "translation": "они начали"
+    }
+  ],
+  "future": [
+    {
+      "pronoun": "אֲנִי (я)",
+      "hebrew": "אַתְחִיל",
+      "transcription": "атхӣль",
+      "translation": "я начну"
+    },
+    {
+      "pronoun": "אַתָּה / הִיא (ты м.р. / она)",
+      "hebrew": "תַּתְחִיל",
+      "transcription": "татхӣль",
+      "translation": "ты начнешь / она начнет"
+    },
+    {
+      "pronoun": "אַתְּ (ты ж.р.)",
+      "hebrew": "תַּתְחִילִי",
+      "transcription": "татхилӣ",
+      "translation": "ты начнешь (ж.р.)"
+    },
+    {
+      "pronoun": "הוּא (он)",
+      "hebrew": "יַתְחִיל",
+      "transcription": "йатхӣль",
+      "translation": "он начнет"
+    },
+    {
+      "pronoun": "אֲנַחְנוּ (мы)",
+      "hebrew": "נַתְחִיל",
+      "transcription": "натхӣль",
+      "translation": "мы начнем"
+    },
+    {
+      "pronoun": "אַתֶּם / אַתֶּן (вы)",
+      "hebrew": "תַּתְחִילוּ",
+      "transcription": "татхилӯ",
+      "translation": "вы начнете"
+    },
+    {
+      "pronoun": "הֵם / הֵן (они)",
+      "hebrew": "יַתְחִילוּ",
+      "transcription": "йатхилӯ",
+      "translation": "они начнут"
+    }
+  ],
+  "imperative": [
+    {
+      "pronoun": "אַתָּה (м.р.)",
+      "hebrew": "הַתְחֵל",
+      "transcription": "hатхéль",
+      "translation": "начинай (м.р.)"
+    },
+    {
+      "pronoun": "אַתְּ (ж.р.)",
+      "hebrew": "הַתְחִילִי",
+      "transcription": "hатхилӣ",
+      "translation": "начинай (ж.р.)"
+    },
+    {
+      "pronoun": "אַתֶּם / אַתֶּן (мн.ч.)",
+      "hebrew": "הַתְחִילוּ",
+      "transcription": "hатхилӯ",
+      "translation": "начинайте"
+    }
+  ]
+},
+  'להמשיך': {
+  "infinitive": {
+    "hebrew": "לְהַמְשִׁיךְ",
+    "transcription": "леhамшӣх",
+    "translation": "продолжать"
+  },
+  "binyan": "הִפְעִיל (Ифъиль)",
+  "root": "מ-ש-ך",
+  "present": [
+    {
+      "pronoun": "זָכָר יָחִיד (он / я / ты)",
+      "hebrew": "מַמְשִׁיךְ",
+      "transcription": "мамшӣх",
+      "translation": "продолжает / продолжаю (м.р.)"
+    },
+    {
+      "pronoun": "נְקֵבָה יְחִידָה (она / я / ты)",
+      "hebrew": "מַמְשִׁיכָה",
+      "transcription": "мамшихá",
+      "translation": "продолжает / продолжаю (ж.р.)"
+    },
+    {
+      "pronoun": "זָכָר רַבִּים (они / мы / вы)",
+      "hebrew": "מַמְשִׁיכִים",
+      "transcription": "мамшихӣм",
+      "translation": "продолжают / продолжаем (м.р.)"
+    },
+    {
+      "pronoun": "נְקֵבָה רַבּוֹת (они / мы / вы)",
+      "hebrew": "מַמְשִׁיכוֹת",
+      "transcription": "мамшихóт",
+      "translation": "продолжают / продолжаем (ж.р.)"
+    }
+  ],
+  "past": [
+    {
+      "pronoun": "אֲנִי (я)",
+      "hebrew": "הִמְשַׁכְתִּי",
+      "transcription": "hимшáхти",
+      "translation": "я продолжал(а)"
+    },
+    {
+      "pronoun": "אַתָּה (ты м.р.)",
+      "hebrew": "הִמְשַׁכְתָּ",
+      "transcription": "hимшáхта",
+      "translation": "ты продолжал"
+    },
+    {
+      "pronoun": "אַתְּ (ты ж.р.)",
+      "hebrew": "הִמְשַׁכְתְּ",
+      "transcription": "hимшáхт",
+      "translation": "ты продолжала"
+    },
+    {
+      "pronoun": "הוּא (он)",
+      "hebrew": "הִמְשִׁיךְ",
+      "transcription": "hимшӣх",
+      "translation": "он продолжал"
+    },
+    {
+      "pronoun": "הִיא (она)",
+      "hebrew": "הִמְשִׁיכָה",
+      "transcription": "hимшихá",
+      "translation": "она продолжала"
+    },
+    {
+      "pronoun": "אֲנַחְנוּ (мы)",
+      "hebrew": "הִמְשַׁכְנוּ",
+      "transcription": "hимшáхну",
+      "translation": "мы продолжали"
+    },
+    {
+      "pronoun": "אַתֶּם / אַתֶּן (вы)",
+      "hebrew": "הִמְשַׁכְתֶּם / הִמְשַׁכְתֶּן",
+      "transcription": "hимшахтéм / hимшахтéн",
+      "translation": "вы продолжали"
+    },
+    {
+      "pronoun": "הֵם / הֵן (они)",
+      "hebrew": "הִמְשִׁיכוּ",
+      "transcription": "hимшихӯ",
+      "translation": "они продолжали"
+    }
+  ],
+  "future": [
+    {
+      "pronoun": "אֲנִי (я)",
+      "hebrew": "אַמְשִׁיךְ",
+      "transcription": "амшӣх",
+      "translation": "я продолжу"
+    },
+    {
+      "pronoun": "אַתָּה / הִיא (ты м.р. / она)",
+      "hebrew": "תַּמְשִׁיךְ",
+      "transcription": "тамшӣх",
+      "translation": "ты продолжишь / она продолжит"
+    },
+    {
+      "pronoun": "אַתְּ (ты ж.р.)",
+      "hebrew": "תַּמְשִׁיכִי",
+      "transcription": "тамшихӣ",
+      "translation": "ты продолжишь (ж.р.)"
+    },
+    {
+      "pronoun": "הוּא (он)",
+      "hebrew": "יַמְשִׁיךְ",
+      "transcription": "йамшӣх",
+      "translation": "он продолжит"
+    },
+    {
+      "pronoun": "אֲנַחְנוּ (мы)",
+      "hebrew": "נַמְשִׁיךְ",
+      "transcription": "намшӣх",
+      "translation": "мы продолжим"
+    },
+    {
+      "pronoun": "אַתֶּם / אַתֶּן (вы)",
+      "hebrew": "תַּמְשִׁיכוּ",
+      "transcription": "тамшихӯ",
+      "translation": "вы продолжите"
+    },
+    {
+      "pronoun": "הֵם / הֵן (они)",
+      "hebrew": "יַמְשִׁיכוּ",
+      "transcription": "йамшихӯ",
+      "translation": "они продолжат"
+    }
+  ],
+  "imperative": [
+    {
+      "pronoun": "אַתָּה (м.р.)",
+      "hebrew": "הַמְשֵׁךְ",
+      "transcription": "hамшéх",
+      "translation": "продолжай (м.р.)"
+    },
+    {
+      "pronoun": "אַתְּ (ж.р.)",
+      "hebrew": "הַמְשִׁיכִי",
+      "transcription": "hамшихӣ",
+      "translation": "продолжай (ж.р.)"
+    },
+    {
+      "pronoun": "אַתֶּם / אַתֶּן (мн.ч.)",
+      "hebrew": "הַמְשִׁיכוּ",
+      "transcription": "hамшихӯ",
+      "translation": "продолжайте"
+    }
+  ]
+},
+  'להגיע': {
+  "infinitive": {
+    "hebrew": "לְהַגִּיעַ",
+    "transcription": "леhагӣа",
+    "translation": "прибывать, добираться"
+  },
+  "binyan": "הִפְעִיל (Ифъиль)",
+  "root": "נ-ג-ע",
+  "present": [
+    {
+      "pronoun": "זָכָר יָחִיד (он / я / ты)",
+      "hebrew": "מַגִּיעַ",
+      "transcription": "магӣа",
+      "translation": "прибывает / прибываю (м.р.)"
+    },
+    {
+      "pronoun": "נְקֵבָה יְחִידָה (она / я / ты)",
+      "hebrew": "מַגִּיעָה",
+      "transcription": "магиá",
+      "translation": "прибывает / прибываю (ж.р.)"
+    },
+    {
+      "pronoun": "זָכָר רַבִּים (они / мы / вы)",
+      "hebrew": "מַגִּיעִים",
+      "transcription": "магиӣм",
+      "translation": "прибывают / прибываем (м.р.)"
+    },
+    {
+      "pronoun": "נְקֵבָה רַבּוֹת (они / мы / вы)",
+      "hebrew": "מַגִּיעוֹת",
+      "transcription": "магиóт",
+      "translation": "прибывают / прибываем (ж.р.)"
+    }
+  ],
+  "past": [
+    {
+      "pronoun": "אֲנִי (я)",
+      "hebrew": "הִגַּעְתִּי",
+      "transcription": "hигáти",
+      "translation": "я прибыл(а)"
+    },
+    {
+      "pronoun": "אַתָּה (ты м.р.)",
+      "hebrew": "הִגַּעְתָּ",
+      "transcription": "hигáта",
+      "translation": "ты прибыл"
+    },
+    {
+      "pronoun": "אַתְּ (ты ж.р.)",
+      "hebrew": "הִגַּעְתְּ",
+      "transcription": "hигáт",
+      "translation": "ты прибыла"
+    },
+    {
+      "pronoun": "הוּא (он)",
+      "hebrew": "הִגִּיעַ",
+      "transcription": "hигӣа",
+      "translation": "он прибыл"
+    },
+    {
+      "pronoun": "הִיא (она)",
+      "hebrew": "הִגִּיעָה",
+      "transcription": "hигиá",
+      "translation": "она прибыла"
+    },
+    {
+      "pronoun": "אֲנַחְנוּ (мы)",
+      "hebrew": "הִגַּעְנוּ",
+      "transcription": "hигáну",
+      "translation": "мы прибыли"
+    },
+    {
+      "pronoun": "אַתֶּם / אַתֶּן (вы)",
+      "hebrew": "הִגַּעְתֶּם / הִגַּעְתֶּן",
+      "transcription": "hигатéм / hигатéн",
+      "translation": "вы прибыли"
+    },
+    {
+      "pronoun": "הֵם / הֵן (они)",
+      "hebrew": "הִגִּיעוּ",
+      "transcription": "hигиӯ",
+      "translation": "они прибыли"
+    }
+  ],
+  "future": [
+    {
+      "pronoun": "אֲנִי (я)",
+      "hebrew": "אַגִּיעַ",
+      "transcription": "агӣа",
+      "translation": "я прибуду"
+    },
+    {
+      "pronoun": "אַתָּה / הִיא (ты м.р. / она)",
+      "hebrew": "תַּגִּיעַ",
+      "transcription": "тагӣа",
+      "translation": "ты прибудешь / она прибудет"
+    },
+    {
+      "pronoun": "אַתְּ (ты ж.р.)",
+      "hebrew": "תַּגִּיעִי",
+      "transcription": "тагиӣ",
+      "translation": "ты прибудешь (ж.р.)"
+    },
+    {
+      "pronoun": "הוּא (он)",
+      "hebrew": "יַגִּיעַ",
+      "transcription": "йагӣа",
+      "translation": "он прибудет"
+    },
+    {
+      "pronoun": "אֲנַחְנוּ (мы)",
+      "hebrew": "נַגִּיעַ",
+      "transcription": "нагӣа",
+      "translation": "мы прибудем"
+    },
+    {
+      "pronoun": "אַתֶּם / אַתֶּן (вы)",
+      "hebrew": "תַּגִּיעוּ",
+      "transcription": "тагиӯ",
+      "translation": "вы прибудете"
+    },
+    {
+      "pronoun": "הֵם / הֵן (они)",
+      "hebrew": "יַגִּיעוּ",
+      "transcription": "йагиӯ",
+      "translation": "они прибудут"
+    }
+  ],
+  "imperative": [
+    {
+      "pronoun": "אַתָּה (м.р.)",
+      "hebrew": "הַגַּע",
+      "transcription": "hагá",
+      "translation": "прибудь (м.р.)"
+    },
+    {
+      "pronoun": "אַתְּ (ж.р.)",
+      "hebrew": "הַגִּיעִי",
+      "transcription": "hагиӣ",
+      "translation": "прибудь (ж.р.)"
+    },
+    {
+      "pronoun": "אַתֶּם / אַתֶּן (мн.ч.)",
+      "hebrew": "הַגִּיעוּ",
+      "transcription": "hагиӯ",
+      "translation": "прибудьте"
+    }
+  ]
+},
+  'להסביר': {
+  "infinitive": {
+    "hebrew": "לְהַסְבִּיר",
+    "transcription": "леhасбӣр",
+    "translation": "объяснять"
+  },
+  "binyan": "הִפְעִיל (Ифъиль)",
+  "root": "ס-ב-ר",
+  "present": [
+    {
+      "pronoun": "זָכָר יָחִיד (он / я / ты)",
+      "hebrew": "מַסְבִּיר",
+      "transcription": "масбӣр",
+      "translation": "объясняет / объясняю (м.р.)"
+    },
+    {
+      "pronoun": "נְקֵבָה יְחִידָה (она / я / ты)",
+      "hebrew": "מַסְבִּירָה",
+      "transcription": "масбирá",
+      "translation": "объясняет / объясняю (ж.р.)"
+    },
+    {
+      "pronoun": "זָכָר רַבִּים (они / мы / вы)",
+      "hebrew": "מַסְבִּירִים",
+      "transcription": "масбирӣм",
+      "translation": "объясняют / объясняем (м.р.)"
+    },
+    {
+      "pronoun": "נְקֵבָה רַבּוֹת (они / мы / вы)",
+      "hebrew": "מַסְבִּירוֹת",
+      "transcription": "масбирóт",
+      "translation": "объясняют / объясняем (ж.р.)"
+    }
+  ],
+  "past": [
+    {
+      "pronoun": "אֲנִי (я)",
+      "hebrew": "הִסְבַּרְתִּי",
+      "transcription": "hисбáрти",
+      "translation": "я объяснил(а)"
+    },
+    {
+      "pronoun": "אַתָּה (ты м.р.)",
+      "hebrew": "הִסְבַּרְתָּ",
+      "transcription": "hисбáрта",
+      "translation": "ты объяснил"
+    },
+    {
+      "pronoun": "אַתְּ (ты ж.р.)",
+      "hebrew": "הִסְבַּרְתְּ",
+      "transcription": "hисбáрт",
+      "translation": "ты объяснила"
+    },
+    {
+      "pronoun": "הוּא (он)",
+      "hebrew": "הִסְבִּיר",
+      "transcription": "hисбӣр",
+      "translation": "он объяснил"
+    },
+    {
+      "pronoun": "הִיא (она)",
+      "hebrew": "הִסְבִּירָה",
+      "transcription": "hисбирá",
+      "translation": "она объяснила"
+    },
+    {
+      "pronoun": "אֲנַחְנוּ (мы)",
+      "hebrew": "הִסְבַּרְנוּ",
+      "transcription": "hисбáрну",
+      "translation": "мы объяснили"
+    },
+    {
+      "pronoun": "אַתֶּם / אַתֶּן (вы)",
+      "hebrew": "הִסְבַּרְתֶּם / הִסְבַּרְתֶּן",
+      "transcription": "hисбартéм / hисбартéн",
+      "translation": "вы объяснили"
+    },
+    {
+      "pronoun": "הֵם / הֵן (они)",
+      "hebrew": "הִסְבִּירוּ",
+      "transcription": "hисбирӯ",
+      "translation": "они объяснили"
+    }
+  ],
+  "future": [
+    {
+      "pronoun": "אֲנִי (я)",
+      "hebrew": "אַסְבִּיר",
+      "transcription": "асбӣр",
+      "translation": "я объясню"
+    },
+    {
+      "pronoun": "אַתָּה / הִיא (ты м.р. / она)",
+      "hebrew": "תַּסְבִּיר",
+      "transcription": "тасбӣр",
+      "translation": "ты объяснишь / она объяснит"
+    },
+    {
+      "pronoun": "אַתְּ (ты ж.р.)",
+      "hebrew": "תַּסְבִּירִי",
+      "transcription": "тасбирӣ",
+      "translation": "ты объяснишь (ж.р.)"
+    },
+    {
+      "pronoun": "הוּא (он)",
+      "hebrew": "יַסְבִּיר",
+      "transcription": "йасбӣр",
+      "translation": "он объяснит"
+    },
+    {
+      "pronoun": "אֲנַחְנוּ (мы)",
+      "hebrew": "נַסְבִּיר",
+      "transcription": "насбӣр",
+      "translation": "мы объясним"
+    },
+    {
+      "pronoun": "אַתֶּם / אַתֶּן (вы)",
+      "hebrew": "תַּסְבִּירוּ",
+      "transcription": "тасбирӯ",
+      "translation": "вы объясните"
+    },
+    {
+      "pronoun": "הֵם / הֵן (они)",
+      "hebrew": "יַסְבִּירוּ",
+      "transcription": "йасбирӯ",
+      "translation": "они объяснят"
+    }
+  ],
+  "imperative": [
+    {
+      "pronoun": "אַתָּה (м.р.)",
+      "hebrew": "הַסְבֵּר",
+      "transcription": "hасбéр",
+      "translation": "объясни (м.р.)"
+    },
+    {
+      "pronoun": "אַתְּ (ж.р.)",
+      "hebrew": "הַסְבִּירִי",
+      "transcription": "hасбирӣ",
+      "translation": "объясни (ж.р.)"
+    },
+    {
+      "pronoun": "אַתֶּם / אַתֶּן (мн.ч.)",
+      "hebrew": "הַסְבִּירוּ",
+      "transcription": "hасбирӯ",
+      "translation": "объясните"
+    }
+  ]
+},
+  'להכיר': {
+  "infinitive": {
+    "hebrew": "לְהַכִּיר",
+    "transcription": "леhакӣр",
+    "translation": "знать, знакомиться"
+  },
+  "binyan": "הִפְעִיל (Ифъиль)",
+  "root": "נ-כ-ר",
+  "present": [
+    {
+      "pronoun": "זָכָר יָחִיד (он / я / ты)",
+      "hebrew": "מַכִּיר",
+      "transcription": "макӣр",
+      "translation": "знает, знаком / знаю (м.р.)"
+    },
+    {
+      "pronoun": "נְקֵבָה יְחִידָה (она / я / ты)",
+      "hebrew": "מַכִּירָה",
+      "transcription": "макирá",
+      "translation": "знает, знакома / знаю (ж.р.)"
+    },
+    {
+      "pronoun": "זָכָר רַבִּים (они / мы / вы)",
+      "hebrew": "מַכִּירִים",
+      "transcription": "макирӣм",
+      "translation": "знают, знакомы / знаем (м.р.)"
+    },
+    {
+      "pronoun": "נְקֵבָה רַבּוֹת (они / мы / вы)",
+      "hebrew": "מַכִּירוֹת",
+      "transcription": "макирóт",
+      "translation": "знают, знакомы / знаем (ж.р.)"
+    }
+  ],
+  "past": [
+    {
+      "pronoun": "אֲנִי (я)",
+      "hebrew": "הִכַּרְתִּי",
+      "transcription": "hикáрти",
+      "translation": "я знал(а) / познакомился"
+    },
+    {
+      "pronoun": "אַתָּה (ты м.р.)",
+      "hebrew": "הִכַּרְתָּ",
+      "transcription": "hикáрта",
+      "translation": "ты знал"
+    },
+    {
+      "pronoun": "אַתְּ (ты ж.р.)",
+      "hebrew": "הִכַּרְתְּ",
+      "transcription": "hикáрт",
+      "translation": "ты знала"
+    },
+    {
+      "pronoun": "הוּא (он)",
+      "hebrew": "הִכִּיר",
+      "transcription": "hикӣр",
+      "translation": "он знал"
+    },
+    {
+      "pronoun": "הִיא (она)",
+      "hebrew": "הִכִּירָה",
+      "transcription": "hикирá",
+      "translation": "она знала"
+    },
+    {
+      "pronoun": "אֲנַחְנוּ (мы)",
+      "hebrew": "הִכַּרְנוּ",
+      "transcription": "hикáрну",
+      "translation": "мы знали"
+    },
+    {
+      "pronoun": "אַתֶּם / אַתֶּן (вы)",
+      "hebrew": "הִכַּרְתֶּם / הִכַּרְתֶּן",
+      "transcription": "hикартéм / hикартéн",
+      "translation": "вы знали"
+    },
+    {
+      "pronoun": "הֵם / הֵן (они)",
+      "hebrew": "הִכִּירוּ",
+      "transcription": "hикирӯ",
+      "translation": "они знали"
+    }
+  ],
+  "future": [
+    {
+      "pronoun": "אֲנִי (я)",
+      "hebrew": "אַכִּיר",
+      "transcription": "акӣр",
+      "translation": "я познакомлюсь / узнаю"
+    },
+    {
+      "pronoun": "אַתָּה / הִיא (ты м.р. / она)",
+      "hebrew": "תַּכִּיר",
+      "transcription": "такӣр",
+      "translation": "ты познакомишься / она познакомится"
+    },
+    {
+      "pronoun": "אַתְּ (ты ж.р.)",
+      "hebrew": "תַּכִּירִי",
+      "transcription": "такирӣ",
+      "translation": "ты познакомишься (ж.р.)"
+    },
+    {
+      "pronoun": "הוּא (он)",
+      "hebrew": "יַכִּיר",
+      "transcription": "йакӣр",
+      "translation": "он познакомится"
+    },
+    {
+      "pronoun": "אֲנַחְנוּ (мы)",
+      "hebrew": "נַכִּיר",
+      "transcription": "накӣр",
+      "translation": "мы познакомимся"
+    },
+    {
+      "pronoun": "אַתֶּם / אַתֶּן (вы)",
+      "hebrew": "תַּכִּירוּ",
+      "transcription": "такирӯ",
+      "translation": "вы познакомитесь"
+    },
+    {
+      "pronoun": "הֵם / הֵן (они)",
+      "hebrew": "יַכִּירוּ",
+      "transcription": "йакирӯ",
+      "translation": "они познакомятся"
+    }
+  ],
+  "imperative": [
+    {
+      "pronoun": "אַתָּה (м.р.)",
+      "hebrew": "הַכֵּר",
+      "transcription": "hакéр",
+      "translation": "познакомься (м.р.)"
+    },
+    {
+      "pronoun": "אַתְּ (ж.р.)",
+      "hebrew": "הַכִּירִי",
+      "transcription": "hакирӣ",
+      "translation": "познакомься (ж.р.)"
+    },
+    {
+      "pronoun": "אַתֶּם / אַתֶּן (мн.ч.)",
+      "hebrew": "הַכִּירוּ",
+      "transcription": "hакирӯ",
+      "translation": "познакомьтесь"
+    }
+  ]
+},
+  'להתלבש': {
+  "infinitive": {
+    "hebrew": "לְהִתְלַבֵּשׁ",
+    "transcription": "леhитлабéш",
+    "translation": "одеваться"
+  },
+  "binyan": "הִתְפַּעֵל (Итпаэль)",
+  "root": "ל-ב-ש",
+  "present": [
+    {
+      "pronoun": "זָכָר יָחִיד (он / я / ты)",
+      "hebrew": "מִתְלַבֵּשׁ",
+      "transcription": "митлабéш",
+      "translation": "одевается / одеваюсь (м.р.)"
+    },
+    {
+      "pronoun": "נְקֵבָה יְחִידָה (она / я / ты)",
+      "hebrew": "מִתְלַבֶּשֶׁת",
+      "transcription": "митлабéшет",
+      "translation": "одевается / одеваюсь (ж.р.)"
+    },
+    {
+      "pronoun": "זָכָר רַבִּים (они / мы / вы)",
+      "hebrew": "מִתְלַבְּשִׁים",
+      "transcription": "митлабшӣм",
+      "translation": "одеваются / одеваемся (м.р.)"
+    },
+    {
+      "pronoun": "נְקֵבָה רַבּוֹת (они / мы / вы)",
+      "hebrew": "מִתְלַבְּשׁוֹת",
+      "transcription": "митлабшóт",
+      "translation": "одеваются / одеваемся (ж.р.)"
+    }
+  ],
+  "past": [
+    {
+      "pronoun": "אֲנִי (я)",
+      "hebrew": "הִתְלַבַּשְׁתִּי",
+      "transcription": "hитлабáшти",
+      "translation": "я оделся / оделась"
+    },
+    {
+      "pronoun": "אַתָּה (ты м.р.)",
+      "hebrew": "הִתְלַבַּשְׁתָּ",
+      "transcription": "hитлабáшта",
+      "translation": "ты оделся"
+    },
+    {
+      "pronoun": "אַתְּ (ты ж.р.)",
+      "hebrew": "הִתְלַבַּשְׁתְּ",
+      "transcription": "hитлабáшт",
+      "translation": "ты оделась"
+    },
+    {
+      "pronoun": "הוּא (он)",
+      "hebrew": "הִתְלַבֵּשׁ",
+      "transcription": "hитлабéш",
+      "translation": "он оделся"
+    },
+    {
+      "pronoun": "הִיא (она)",
+      "hebrew": "הִתְלַבְּשָׁה",
+      "transcription": "hитлабшá",
+      "translation": "она оделась"
+    },
+    {
+      "pronoun": "אֲנַחְנוּ (мы)",
+      "hebrew": "הִתְלַבַּשְׁנוּ",
+      "transcription": "hитлабáшну",
+      "translation": "мы оделись"
+    },
+    {
+      "pronoun": "אַתֶּם / אַתֶּן (вы)",
+      "hebrew": "הִתְלַבַּשְׁתֶּם / הִתְלַבַּשְׁתֶּן",
+      "transcription": "hитлабаштéм / hитлабаштéн",
+      "translation": "вы оделись"
+    },
+    {
+      "pronoun": "הֵם / הֵן (они)",
+      "hebrew": "הִתְלַבְּשׁוּ",
+      "transcription": "hитлабшӯ",
+      "translation": "они оделись"
+    }
+  ],
+  "future": [
+    {
+      "pronoun": "אֲנִי (я)",
+      "hebrew": "אֶתְלַבֵּשׁ",
+      "transcription": "этлабéш",
+      "translation": "я оденусь"
+    },
+    {
+      "pronoun": "אַתָּה / הִיא (ты м.р. / она)",
+      "hebrew": "תִּתְלַבֵּשׁ",
+      "transcription": "титлабéш",
+      "translation": "ты оденешься / она оденется"
+    },
+    {
+      "pronoun": "אַתְּ (ты ж.р.)",
+      "hebrew": "תִּתְלַבְּשִׁי",
+      "transcription": "титлабшӣ",
+      "translation": "ты оденешься (ж.р.)"
+    },
+    {
+      "pronoun": "הוּא (он)",
+      "hebrew": "יִתְלַבֵּשׁ",
+      "transcription": "йитлабéш",
+      "translation": "он оденется"
+    },
+    {
+      "pronoun": "אֲנַחְנוּ (мы)",
+      "hebrew": "נִתְלַבֵּשׁ",
+      "transcription": "нитлабéш",
+      "translation": "мы оденемся"
+    },
+    {
+      "pronoun": "אַתֶּם / אַתֶּן (вы)",
+      "hebrew": "תִּתְלַבְּשׁוּ",
+      "transcription": "титлабшӯ",
+      "translation": "вы оденетесь"
+    },
+    {
+      "pronoun": "הֵם / הֵן (они)",
+      "hebrew": "יִתְלַבְּשׁוּ",
+      "transcription": "йитлабшӯ",
+      "translation": "они оденутся"
+    }
+  ],
+  "imperative": [
+    {
+      "pronoun": "אַתָּה (м.р.)",
+      "hebrew": "הִתְלַבֵּשׁ",
+      "transcription": "hитлабéш",
+      "translation": "одевайся (м.р.)"
+    },
+    {
+      "pronoun": "אַתְּ (ж.р.)",
+      "hebrew": "הִתְלַבְּשִׁי",
+      "transcription": "hитлабшӣ",
+      "translation": "одевайся (ж.р.)"
+    },
+    {
+      "pronoun": "אַתֶּם / אַתֶּן (мн.ч.)",
+      "hebrew": "הִתְלַבְּשׁוּ",
+      "transcription": "hитлабшӯ",
+      "translation": "одевайтесь"
+    }
+  ]
+},
+  'להשתמש': {
+  "infinitive": {
+    "hebrew": "לְהִשְׁתַּמֵּשׁ",
+    "transcription": "леhиштаме́ш",
+    "translation": "пользоваться, использовать"
+  },
+  "binyan": "הִתְפַּעֵל (Итпаэль)",
+  "root": "ש-מ-ש",
+  "present": [
+    {
+      "pronoun": "זָכָר יָחִיד (он / я / ты)",
+      "hebrew": "מִשְׁתַּמֵּשׁ",
+      "transcription": "миштаме́ш",
+      "translation": "пользуется / пользуюсь (м.р.)"
+    },
+    {
+      "pronoun": "נְקֵבָה יְחִידָה (она / я / ты)",
+      "hebrew": "מִשְׁתַּמֶּשֶׁת",
+      "transcription": "миштаме́шет",
+      "translation": "пользуется / пользуюсь (ж.р.)"
+    },
+    {
+      "pronoun": "זָכָר רַבִּים (они / мы / вы)",
+      "hebrew": "מִשְׁתַּמְּשִׁים",
+      "transcription": "миштамшӣм",
+      "translation": "пользуются / пользуемся (м.р.)"
+    },
+    {
+      "pronoun": "נְקֵבָה רַבּוֹת (они / мы / вы)",
+      "hebrew": "מִשְׁתַּמְּשׁוֹת",
+      "transcription": "миштамшо́т",
+      "translation": "пользуются / пользуемся (ж.р.)"
+    }
+  ],
+  "past": [
+    {
+      "pronoun": "אֲנִי (я)",
+      "hebrew": "הִשְׁתַּמַּשְׁתִּי",
+      "transcription": "hиштамáшти",
+      "translation": "я пользовался / пользовалась"
+    },
+    {
+      "pronoun": "אַתָּה (ты м.р.)",
+      "hebrew": "הִשְׁתַּמַּשְׁתָּ",
+      "transcription": "hиштамáшта",
+      "translation": "ты пользовался"
+    },
+    {
+      "pronoun": "אַתְּ (ты ж.р.)",
+      "hebrew": "הִשְׁתַּמַּשְׁתְּ",
+      "transcription": "hиштамáшт",
+      "translation": "ты пользовалась"
+    },
+    {
+      "pronoun": "הוּא (он)",
+      "hebrew": "הִשְׁתַּמֵּשׁ",
+      "transcription": "hиштамéш",
+      "translation": "он пользовался"
+    },
+    {
+      "pronoun": "הִיא (она)",
+      "hebrew": "הִשְׁתַּמְּשָׁה",
+      "transcription": "hиштамшá",
+      "translation": "она пользовалась"
+    },
+    {
+      "pronoun": "אֲנַחְנוּ (мы)",
+      "hebrew": "הִשְׁתַּמַּשְׁנוּ",
+      "transcription": "hиштамáшну",
+      "translation": "мы пользовались"
+    },
+    {
+      "pronoun": "אַתֶּם / אַתֶּן (вы)",
+      "hebrew": "הִשְׁתַּמַּשְׁתֶּם / הִשְׁתַּמַּשְׁתֶּן",
+      "transcription": "hиштамаштéм / hиштамаштéн",
+      "translation": "вы пользовались"
+    },
+    {
+      "pronoun": "הֵם / הֵן (они)",
+      "hebrew": "הִשְׁתַּמְּשׁוּ",
+      "transcription": "hиштамшӯ",
+      "translation": "они пользовались"
+    }
+  ],
+  "future": [
+    {
+      "pronoun": "אֲנִי (я)",
+      "hebrew": "אֶשְׁתַּמֵּשׁ",
+      "transcription": "эштамéш",
+      "translation": "я воспользуюсь"
+    },
+    {
+      "pronoun": "אַתָּה / הִיא (ты м.р. / она)",
+      "hebrew": "תִּשְׁתַּמֵּשׁ",
+      "transcription": "тиштамéш",
+      "translation": "ты воспользуешься / она воспользуется"
+    },
+    {
+      "pronoun": "אַתְּ (ты ж.р.)",
+      "hebrew": "תִּשְׁתַּמְּשִׁי",
+      "transcription": "тиштамшӣ",
+      "translation": "ты воспользуешься (ж.р.)"
+    },
+    {
+      "pronoun": "הוּא (он)",
+      "hebrew": "יִשְׁתַּמֵּשׁ",
+      "transcription": "йиштамéш",
+      "translation": "он воспользуется"
+    },
+    {
+      "pronoun": "אֲנַחְנוּ (мы)",
+      "hebrew": "נִשְׁתַּמֵּשׁ",
+      "transcription": "ништамéш",
+      "translation": "мы воспользуемся"
+    },
+    {
+      "pronoun": "אַתֶּם / אַתֶּן (вы)",
+      "hebrew": "תִּשְׁתַּמְּשׁוּ",
+      "transcription": "тиштамшӯ",
+      "translation": "вы воспользуетесь"
+    },
+    {
+      "pronoun": "הֵם / הֵן (они)",
+      "hebrew": "יִשְׁתַּמְּשׁוּ",
+      "transcription": "йиштамшӯ",
+      "translation": "они воспользуются"
+    }
+  ],
+  "imperative": [
+    {
+      "pronoun": "אַתָּה (м.р.)",
+      "hebrew": "הִשְׁתַּמֵּשׁ",
+      "transcription": "hиштамéш",
+      "translation": "используй (м.р.)"
+    },
+    {
+      "pronoun": "אַתְּ (ж.р.)",
+      "hebrew": "הִשְׁתַּמְּשִׁי",
+      "transcription": "hиштамшӣ",
+      "translation": "используй (ж.р.)"
+    },
+    {
+      "pronoun": "אַתֶּם / אַתֶּן (мн.ч.)",
+      "hebrew": "הִשְׁתַּמְּשׁוּ",
+      "transcription": "hиштамшӯ",
+      "translation": "используйте"
+    }
+  ]
+},
+  'להתקשר': {
+  "infinitive": {
+    "hebrew": "לְהִתְקַשֵּׁר",
+    "transcription": "леhиткашéр",
+    "translation": "звонить (по телефону), связываться"
+  },
+  "binyan": "הִתְפַּעֵל (Итпаэль)",
+  "root": "ק-ש-ר",
+  "present": [
+    {
+      "pronoun": "זָכָר יָחִיד (он / я / ты)",
+      "hebrew": "מִתְקַשֵּׁר",
+      "transcription": "миткашéр",
+      "translation": "звонит / звоню (м.р.)"
+    },
+    {
+      "pronoun": "נְקֵבָה יְחִידָה (она / я / ты)",
+      "hebrew": "מִתְקַשֶּׁרֶת",
+      "transcription": "миткашéрет",
+      "translation": "звонит / звоню (ж.р.)"
+    },
+    {
+      "pronoun": "זָכָר רַבִּים (они / мы / вы)",
+      "hebrew": "מִתְקַשְׁרִים",
+      "transcription": "миткашрӣм",
+      "translation": "звонят / звоним (м.р.)"
+    },
+    {
+      "pronoun": "נְקֵבָה רַבּוֹת (они / мы / вы)",
+      "hebrew": "מִתְקַשְׁרוֹת",
+      "transcription": "миткашрóт",
+      "translation": "звонят / звоним (ж.р.)"
+    }
+  ],
+  "past": [
+    {
+      "pronoun": "אֲנִי (я)",
+      "hebrew": "הִתְקַשַּׁרְתִּי",
+      "transcription": "hиткашáрти",
+      "translation": "я позвонил(а)"
+    },
+    {
+      "pronoun": "אַתָּה (ты м.р.)",
+      "hebrew": "הִתְקַשַּׁרְתָּ",
+      "transcription": "hиткашáрта",
+      "translation": "ты позвонил"
+    },
+    {
+      "pronoun": "אַתְּ (ты ж.р.)",
+      "hebrew": "הִתְקַשַּׁרְתְּ",
+      "transcription": "hиткашáрт",
+      "translation": "ты позвонила"
+    },
+    {
+      "pronoun": "הוּא (он)",
+      "hebrew": "הִתְקַשֵּׁר",
+      "transcription": "hиткашéр",
+      "translation": "он позвонил"
+    },
+    {
+      "pronoun": "הִיא (она)",
+      "hebrew": "הִתְקַשְׁרָה",
+      "transcription": "hиткашрá",
+      "translation": "она позвонила"
+    },
+    {
+      "pronoun": "אֲנַחְנוּ (мы)",
+      "hebrew": "הִתְקַשַּׁרְנוּ",
+      "transcription": "hиткашáрну",
+      "translation": "мы позвонили"
+    },
+    {
+      "pronoun": "אַתֶּם / אַתֶּן (вы)",
+      "hebrew": "הִתְקַשַּׁרְתֶּם / הִתְקַשַּׁרְתֶּן",
+      "transcription": "hиткашартéм / hиткашартéн",
+      "translation": "вы позвонили"
+    },
+    {
+      "pronoun": "הֵם / הֵן (они)",
+      "hebrew": "הִתְקַשְׁרוּ",
+      "transcription": "hиткашрӯ",
+      "translation": "они позвонили"
+    }
+  ],
+  "future": [
+    {
+      "pronoun": "אֲנִי (я)",
+      "hebrew": "אֶתְקַשֵּׁר",
+      "transcription": "эткашéр",
+      "translation": "я позвоню"
+    },
+    {
+      "pronoun": "אַתָּה / הִיא (ты м.р. / она)",
+      "hebrew": "תִּתְקַשֵּׁר",
+      "transcription": "титкашéр",
+      "translation": "ты позвонишь / она позвонит"
+    },
+    {
+      "pronoun": "אַתְּ (ты ж.р.)",
+      "hebrew": "תִּתְקַשְׁרִי",
+      "transcription": "титкашрӣ",
+      "translation": "ты позвонишь (ж.р.)"
+    },
+    {
+      "pronoun": "הוּא (он)",
+      "hebrew": "יִתְקַשֵּׁר",
+      "transcription": "йиткашéр",
+      "translation": "он позвонит"
+    },
+    {
+      "pronoun": "אֲנַחְנוּ (мы)",
+      "hebrew": "נִתְקַשֵּׁר",
+      "transcription": "ниткашéр",
+      "translation": "мы позвоним"
+    },
+    {
+      "pronoun": "אַתֶּם / אַתֶּן (вы)",
+      "hebrew": "תִּתְקַשְׁרוּ",
+      "transcription": "титкашрӯ",
+      "translation": "вы позвоните"
+    },
+    {
+      "pronoun": "הֵם / הֵן (они)",
+      "hebrew": "יִתְקַשְׁרוּ",
+      "transcription": "йиткашрӯ",
+      "translation": "они позвонят"
+    }
+  ],
+  "imperative": [
+    {
+      "pronoun": "אַתָּה (м.р.)",
+      "hebrew": "הִתְקַשֵּׁר",
+      "transcription": "hиткашéр",
+      "translation": "позвони (м.р.)"
+    },
+    {
+      "pronoun": "אַתְּ (ж.р.)",
+      "hebrew": "הִתְקַשְׁרִי",
+      "transcription": "hиткашрӣ",
+      "translation": "позвони (ж.р.)"
+    },
+    {
+      "pronoun": "אַתֶּם / אַתֶּן (мн.ч.)",
+      "hebrew": "הִתְקַשְׁרוּ",
+      "transcription": "hиткашрӯ",
+      "translation": "позвоните"
+    }
+  ]
+},
+  'לפתוח': {
+  "infinitive": {
+    "hebrew": "לִפְתֹּחַ",
+    "transcription": "лифтóах",
+    "translation": "открывать"
+  },
+  "binyan": "פָּעַל (Пааль)",
+  "root": "פ-ת-ח",
+  "present": [
+    {
+      "pronoun": "זָכָר יָחִיד (он / я / ты)",
+      "hebrew": "פּוֹתֵחַ",
+      "transcription": "потéах",
+      "translation": "открывает / открываю (м.р.)"
+    },
+    {
+      "pronoun": "נְקֵבָה יְחִידָה (она / я / ты)",
+      "hebrew": "פּוֹתַחַת",
+      "transcription": "потáхат",
+      "translation": "открывает / открываю (ж.р.)"
+    },
+    {
+      "pronoun": "זָכָר רַבִּים (они / мы / вы)",
+      "hebrew": "פּוֹתְחִים",
+      "transcription": "потхӣм",
+      "translation": "открывают / открываем (м.р.)"
+    },
+    {
+      "pronoun": "נְקֵבָה רַבּוֹת (они / мы / вы)",
+      "hebrew": "פּוֹתְחוֹת",
+      "transcription": "потхóт",
+      "translation": "открывают / открываем (ж.р.)"
+    }
+  ],
+  "past": [
+    {
+      "pronoun": "אֲנִי (я)",
+      "hebrew": "פָּתַחְתִּי",
+      "transcription": "патáхти",
+      "translation": "я открыл(а)"
+    },
+    {
+      "pronoun": "אַתָּה (ты м.р.)",
+      "hebrew": "פָּתַחְתָּ",
+      "transcription": "патáхта",
+      "translation": "ты открыл"
+    },
+    {
+      "pronoun": "אַתְּ (ты ж.р.)",
+      "hebrew": "פָּתַחְתְּ",
+      "transcription": "патáхт",
+      "translation": "ты открыла"
+    },
+    {
+      "pronoun": "הוּא (он)",
+      "hebrew": "פָּתַח",
+      "transcription": "патáх",
+      "translation": "он открыл"
+    },
+    {
+      "pronoun": "הִיא (она)",
+      "hebrew": "פָּתְחָה",
+      "transcription": "патхá",
+      "translation": "она открыла"
+    },
+    {
+      "pronoun": "אֲנַחְנוּ (мы)",
+      "hebrew": "פָּתַחְנוּ",
+      "transcription": "патáхну",
+      "translation": "мы открыли"
+    },
+    {
+      "pronoun": "אַתֶּם / אַתֶּן (вы)",
+      "hebrew": "פְּתַחְתֶּם / פְּתַחְתֶּן",
+      "transcription": "птахтéм / птахтéн",
+      "translation": "вы открыли"
+    },
+    {
+      "pronoun": "הֵם / הֵן (они)",
+      "hebrew": "פָּתְחוּ",
+      "transcription": "патхӯ",
+      "translation": "они открыли"
+    }
+  ],
+  "future": [
+    {
+      "pronoun": "אֲנִי (я)",
+      "hebrew": "אֶפְתַּח",
+      "transcription": "эфтáх",
+      "translation": "я открою"
+    },
+    {
+      "pronoun": "אַתָּה / הִיא (ты м.р. / она)",
+      "hebrew": "תִּפְתַּח",
+      "transcription": "тифтáх",
+      "translation": "ты откроешь / она откроет"
+    },
+    {
+      "pronoun": "אַתְּ (ты ж.р.)",
+      "hebrew": "תִּפְתְּחִי",
+      "transcription": "тифтэхӣ",
+      "translation": "ты откроешь (ж.р.)"
+    },
+    {
+      "pronoun": "הוּא (он)",
+      "hebrew": "יִפְתַּח",
+      "transcription": "йифтáх",
+      "translation": "он откроет"
+    },
+    {
+      "pronoun": "אֲנַחְנוּ (мы)",
+      "hebrew": "נִפְתַּח",
+      "transcription": "нифтáх",
+      "translation": "мы откроем"
+    },
+    {
+      "pronoun": "אַתֶּם / אַתֶּן (вы)",
+      "hebrew": "תִּפְתְּחוּ",
+      "transcription": "тифтэхӯ",
+      "translation": "вы откроете"
+    },
+    {
+      "pronoun": "הֵם / הֵן (они)",
+      "hebrew": "יִפְתְּחוּ",
+      "transcription": "йифтэхӯ",
+      "translation": "они откроют"
+    }
+  ],
+  "imperative": [
+    {
+      "pronoun": "אַתָּה (м.р.)",
+      "hebrew": "פְּתַח",
+      "transcription": "птах",
+      "translation": "открой (м.р.)"
+    },
+    {
+      "pronoun": "אַתְּ (ж.р.)",
+      "hebrew": "פִּתְחִי",
+      "transcription": "питхӣ",
+      "translation": "открой (ж.р.)"
+    },
+    {
+      "pronoun": "אַתֶּם / אַתֶּן (мн.ч.)",
+      "hebrew": "פִּתְחוּ",
+      "transcription": "питхӯ",
+      "translation": "откройте"
+    }
+  ]
+},
+  'לסגור': {
+  "infinitive": {
+    "hebrew": "לִסְגֹּר",
+    "transcription": "лисгóр",
+    "translation": "закрывать"
+  },
+  "binyan": "פָּעַל (Пааль)",
+  "root": "ס-ג-ר",
+  "present": [
+    {
+      "pronoun": "זָכָר יָחִיד (он / я / ты)",
+      "hebrew": "סוֹגֵר",
+      "transcription": "согéр",
+      "translation": "закрывает / закрываю (м.р.)"
+    },
+    {
+      "pronoun": "נְקֵבָה יְחִידָה (она / я / ты)",
+      "hebrew": "סוֹגֶרֶת",
+      "transcription": "согéрет",
+      "translation": "закрывает / закрываю (ж.р.)"
+    },
+    {
+      "pronoun": "זָכָר רַבִּים (они / мы / вы)",
+      "hebrew": "סוֹגְרִים",
+      "transcription": "согрӣм",
+      "translation": "закрывают / закрываем (м.р.)"
+    },
+    {
+      "pronoun": "נְקֵבָה רַבּוֹת (они / мы / вы)",
+      "hebrew": "סוֹגְרוֹת",
+      "transcription": "согрóт",
+      "translation": "закрывают / закрываем (ж.р.)"
+    }
+  ],
+  "past": [
+    {
+      "pronoun": "אֲנִי (я)",
+      "hebrew": "סָגַרְתִּי",
+      "transcription": "сагáрти",
+      "translation": "я закрыл(а)"
+    },
+    {
+      "pronoun": "אַתָּה (ты м.р.)",
+      "hebrew": "סָגַרְתָּ",
+      "transcription": "сагáрта",
+      "translation": "ты закрыл"
+    },
+    {
+      "pronoun": "אַתְּ (ты ж.р.)",
+      "hebrew": "סָגַרְתְּ",
+      "transcription": "сагáрт",
+      "translation": "ты закрыла"
+    },
+    {
+      "pronoun": "הוּא (он)",
+      "hebrew": "סָגַר",
+      "transcription": "сагáр",
+      "translation": "он закрыл"
+    },
+    {
+      "pronoun": "הִיא (она)",
+      "hebrew": "סָגְרָה",
+      "transcription": "сагрá",
+      "translation": "она закрыла"
+    },
+    {
+      "pronoun": "אֲנַחְנוּ (мы)",
+      "hebrew": "סָגַרְנוּ",
+      "transcription": "сагáрну",
+      "translation": "мы закрыли"
+    },
+    {
+      "pronoun": "אַתֶּם / אַתֶּן (вы)",
+      "hebrew": "סְגַרְתֶּם / סְגַרְתֶּן",
+      "transcription": "сгартéм / сгартéн",
+      "translation": "вы закрыли"
+    },
+    {
+      "pronoun": "הֵם / הֵן (они)",
+      "hebrew": "סָגְרוּ",
+      "transcription": "сагрӯ",
+      "translation": "они закрыли"
+    }
+  ],
+  "future": [
+    {
+      "pronoun": "אֲנִי (я)",
+      "hebrew": "אֶסְגֹּר",
+      "transcription": "эсгóр",
+      "translation": "я закрою"
+    },
+    {
+      "pronoun": "אַתָּה / הִיא (ты м.р. / она)",
+      "hebrew": "תִּסְגֹּר",
+      "transcription": "тисгóр",
+      "translation": "ты закроешь / она закроет"
+    },
+    {
+      "pronoun": "אַתְּ (ты ж.р.)",
+      "hebrew": "תִּסְגְּרִי",
+      "transcription": "тисгерӣ",
+      "translation": "ты закроешь (ж.р.)"
+    },
+    {
+      "pronoun": "הוּא (он)",
+      "hebrew": "יִסְגֹּר",
+      "transcription": "йисгóр",
+      "translation": "он закроет"
+    },
+    {
+      "pronoun": "אֲנַחְנוּ (мы)",
+      "hebrew": "נִסְגֹּר",
+      "transcription": "нисгóр",
+      "translation": "мы закроем"
+    },
+    {
+      "pronoun": "אַתֶּם / אַתֶּן (вы)",
+      "hebrew": "תִּסְגְּרוּ",
+      "transcription": "тисгерӯ",
+      "translation": "вы закроете"
+    },
+    {
+      "pronoun": "הֵם / הֵן (они)",
+      "hebrew": "יִסְגְּרוּ",
+      "transcription": "йисгерӯ",
+      "translation": "они закроют"
+    }
+  ],
+  "imperative": [
+    {
+      "pronoun": "אַתָּה (м.р.)",
+      "hebrew": "סְגֹר",
+      "transcription": "сгор",
+      "translation": "закрой (м.р.)"
+    },
+    {
+      "pronoun": "אַתְּ (ж.р.)",
+      "hebrew": "סִגְרִי",
+      "transcription": "сигрӣ",
+      "translation": "закрой (ж.р.)"
+    },
+    {
+      "pronoun": "אַתֶּם / אַתֶּן (мн.ч.)",
+      "hebrew": "סִגְרוּ",
+      "transcription": "сигрӯ",
+      "translation": "закройте"
+    }
+  ]
+},
+  'לעזור': {
+  "infinitive": {
+    "hebrew": "לַעֲזֹר",
+    "transcription": "лаазóр",
+    "translation": "помогать"
+  },
+  "binyan": "פָּעַל (Пааль)",
+  "root": "ע-ז-ר",
+  "present": [
+    {
+      "pronoun": "זָכָר יָחִיד (он / я / ты)",
+      "hebrew": "עוֹזֵר",
+      "transcription": "озéр",
+      "translation": "помогает / помогаю (м.р.)"
+    },
+    {
+      "pronoun": "נְקֵבָה יְחִידָה (она / я / ты)",
+      "hebrew": "עוֹזֶרֶת",
+      "transcription": "озéрет",
+      "translation": "помогает / помогаю (ж.р.)"
+    },
+    {
+      "pronoun": "זָכָר רַבִּים (они / мы / вы)",
+      "hebrew": "עוֹזְרִים",
+      "transcription": "озрӣм",
+      "translation": "помогают / помогаем (м.р.)"
+    },
+    {
+      "pronoun": "נְקֵבָה רַבּוֹת (они / мы / вы)",
+      "hebrew": "עוֹזְרוֹת",
+      "transcription": "озрóт",
+      "translation": "помогают / помогаем (ж.р.)"
+    }
+  ],
+  "past": [
+    {
+      "pronoun": "אֲנִי (я)",
+      "hebrew": "עָזַרְתִּי",
+      "transcription": "азáрти",
+      "translation": "я помог(ла)"
+    },
+    {
+      "pronoun": "אַתָּה (ты м.р.)",
+      "hebrew": "עָזַרְתָּ",
+      "transcription": "азáрта",
+      "translation": "ты помог"
+    },
+    {
+      "pronoun": "אַתְּ (ты ж.р.)",
+      "hebrew": "עָזַרְתְּ",
+      "transcription": "азáрт",
+      "translation": "ты помогла"
+    },
+    {
+      "pronoun": "הוּא (он)",
+      "hebrew": "עָזַר",
+      "transcription": "азáр",
+      "translation": "он помог"
+    },
+    {
+      "pronoun": "הִיא (она)",
+      "hebrew": "עָזְרָה",
+      "transcription": "азрá",
+      "translation": "она помогла"
+    },
+    {
+      "pronoun": "אֲנַחְנוּ (мы)",
+      "hebrew": "עָזַרְנוּ",
+      "transcription": "азáрну",
+      "translation": "мы помогли"
+    },
+    {
+      "pronoun": "אַתֶּם / אַתֶּן (вы)",
+      "hebrew": "עֲזַרְתֶּם / עֲזַרְתֶּן",
+      "transcription": "азартéм / азартéн",
+      "translation": "вы помогли"
+    },
+    {
+      "pronoun": "הֵם / הֵן (они)",
+      "hebrew": "עָזְרוּ",
+      "transcription": "азрӯ",
+      "translation": "они помогли"
+    }
+  ],
+  "future": [
+    {
+      "pronoun": "אֲנִי (я)",
+      "hebrew": "אֶעֱזֹר",
+      "transcription": "ээзóр",
+      "translation": "я помогу"
+    },
+    {
+      "pronoun": "אַתָּה / הִיא (ты м.р. / она)",
+      "hebrew": "תַּעֲזֹר",
+      "transcription": "таазóр",
+      "translation": "ты поможешь / она поможет"
+    },
+    {
+      "pronoun": "אַתְּ (ты ж.р.)",
+      "hebrew": "תַּעַזְרִי",
+      "transcription": "таазрӣ",
+      "translation": "ты поможешь (ж.р.)"
+    },
+    {
+      "pronoun": "הוּא (он)",
+      "hebrew": "יַעֲזֹר",
+      "transcription": "йаазóр",
+      "translation": "он поможет"
+    },
+    {
+      "pronoun": "אֲנַחְנוּ (мы)",
+      "hebrew": "נַעֲזֹר",
+      "transcription": "наазóр",
+      "translation": "мы поможем"
+    },
+    {
+      "pronoun": "אַתֶּם / אַתֶּן (вы)",
+      "hebrew": "תַּעַזְרוּ",
+      "transcription": "таазрӯ",
+      "translation": "вы поможете"
+    },
+    {
+      "pronoun": "הֵם / הֵן (они)",
+      "hebrew": "יַעַזְרוּ",
+      "transcription": "йаазрӯ",
+      "translation": "они помогут"
+    }
+  ],
+  "imperative": [
+    {
+      "pronoun": "אַתָּה (м.р.)",
+      "hebrew": "עֲזֹר",
+      "transcription": "азóр",
+      "translation": "помоги (м.р.)"
+    },
+    {
+      "pronoun": "אַתְּ (ж.р.)",
+      "hebrew": "עִזְרִי",
+      "transcription": "изрӣ",
+      "translation": "помоги (ж.р.)"
+    },
+    {
+      "pronoun": "אַתֶּם / אַתֶּן (мн.ч.)",
+      "hebrew": "עִזְרוּ",
+      "transcription": "изрӯ",
+      "translation": "помогите"
+    }
+  ]
+},
+  'למצוא': {
+  "infinitive": {
+    "hebrew": "לִמְצֹא",
+    "transcription": "лимцó",
+    "translation": "находить"
+  },
+  "binyan": "פָּעַל (Пааль)",
+  "root": "מ-צ-א",
+  "present": [
+    {
+      "pronoun": "זָכָר יָחִיד (он / я / ты)",
+      "hebrew": "מוֹצֵא",
+      "transcription": "моцé",
+      "translation": "находит / нахожу (м.р.)"
+    },
+    {
+      "pronoun": "נְקֵבָה יְחִידָה (она / я / ты)",
+      "hebrew": "מוֹצֵאת",
+      "transcription": "моцéт",
+      "translation": "находит / нахожу (ж.р.)"
+    },
+    {
+      "pronoun": "זָכָר רַבִּים (они / мы / вы)",
+      "hebrew": "מוֹצְאִים",
+      "transcription": "моц’ӣм",
+      "translation": "находят / находим (м.р.)"
+    },
+    {
+      "pronoun": "נְקֵבָה רַבּוֹת (они / мы / вы)",
+      "hebrew": "מוֹצְאוֹת",
+      "transcription": "моц’óт",
+      "translation": "находят / находим (ж.р.)"
+    }
+  ],
+  "past": [
+    {
+      "pronoun": "אֲנִי (я)",
+      "hebrew": "מָצָאתִי",
+      "transcription": "мацáти",
+      "translation": "я нашел / нашла"
+    },
+    {
+      "pronoun": "אַתָּה (ты м.р.)",
+      "hebrew": "מָצָאתָ",
+      "transcription": "мацáта",
+      "translation": "ты нашел"
+    },
+    {
+      "pronoun": "אַתְּ (ты ж.р.)",
+      "hebrew": "מָצָאת",
+      "transcription": "мацáт",
+      "translation": "ты нашла"
+    },
+    {
+      "pronoun": "הוּא (он)",
+      "hebrew": "מָצָא",
+      "transcription": "мацá",
+      "translation": "он нашел"
+    },
+    {
+      "pronoun": "הִיא (она)",
+      "hebrew": "מָצְאָה",
+      "transcription": "мац’á",
+      "translation": "она нашла"
+    },
+    {
+      "pronoun": "אֲנַחְנוּ (мы)",
+      "hebrew": "מָצָאנוּ",
+      "transcription": "мацáну",
+      "translation": "мы нашли"
+    },
+    {
+      "pronoun": "אַתֶּם / אַתֶּן (вы)",
+      "hebrew": "מְצָאתֶם / מְצָאתֶן",
+      "transcription": "мцатéм / мцатéн",
+      "translation": "вы нашли"
+    },
+    {
+      "pronoun": "הֵם / הֵן (они)",
+      "hebrew": "מָצְאוּ",
+      "transcription": "мац’ӯ",
+      "translation": "они нашли"
+    }
+  ],
+  "future": [
+    {
+      "pronoun": "אֲנִי (я)",
+      "hebrew": "אֶמְצָא",
+      "transcription": "эмцá",
+      "translation": "я найду"
+    },
+    {
+      "pronoun": "אַתָּה / הִיא (ты м.р. / она)",
+      "hebrew": "תִּמְצָא",
+      "transcription": "тимцá",
+      "translation": "ты найдешь / она найдет"
+    },
+    {
+      "pronoun": "אַתְּ (ты ж.р.)",
+      "hebrew": "תִּמְצְאִי",
+      "transcription": "тимцэ’ӣ",
+      "translation": "ты найдешь (ж.р.)"
+    },
+    {
+      "pronoun": "הוּא (он)",
+      "hebrew": "יִמְצָא",
+      "transcription": "йимцá",
+      "translation": "он найдет"
+    },
+    {
+      "pronoun": "אֲנַחְנוּ (мы)",
+      "hebrew": "נִמְצָא",
+      "transcription": "нимцá",
+      "translation": "мы найдем"
+    },
+    {
+      "pronoun": "אַתֶּם / אַתֶּן (вы)",
+      "hebrew": "תִּמְצְאוּ",
+      "transcription": "тимцэ’ӯ",
+      "translation": "вы найдете"
+    },
+    {
+      "pronoun": "הֵם / הֵן (они)",
+      "hebrew": "יִמְצְאוּ",
+      "transcription": "йимцэ’ӯ",
+      "translation": "они найдут"
+    }
+  ],
+  "imperative": [
+    {
+      "pronoun": "אַתָּה (м.р.)",
+      "hebrew": "מְצָא",
+      "transcription": "мца",
+      "translation": "найди (м.р.)"
+    },
+    {
+      "pronoun": "אַתְּ (ж.р.)",
+      "hebrew": "מִצְאִי",
+      "transcription": "миц’ӣ",
+      "translation": "найди (ж.р.)"
+    },
+    {
+      "pronoun": "אַתֶּם / אַתֶּן (мн.ч.)",
+      "hebrew": "מִצְאוּ",
+      "transcription": "миц’ӯ",
+      "translation": "найдите"
+    }
+  ]
+},
+  'לשים': {
+  "infinitive": {
+    "hebrew": "לָשִׂים",
+    "transcription": "ласӣм",
+    "translation": "класть, ставить"
+  },
+  "binyan": "פָּעַל (Пааль)",
+  "root": "ש-י-ם",
+  "present": [
+    {
+      "pronoun": "זָכָר יָחִיד (он / я / ты)",
+      "hebrew": "שָׂם",
+      "transcription": "сам",
+      "translation": "кладет / кладу (м.р.)"
+    },
+    {
+      "pronoun": "נְקֵבָה יְחִידָה (она / я / ты)",
+      "hebrew": "שָׂמָה",
+      "transcription": "самá",
+      "translation": "кладет / кладу (ж.р.)"
+    },
+    {
+      "pronoun": "זָכָר רַבִּים (они / мы / вы)",
+      "hebrew": "שָׂמִים",
+      "transcription": "самӣм",
+      "translation": "кладут / кладем (м.р.)"
+    },
+    {
+      "pronoun": "נְקֵבָה רַבּוֹת (они / мы / вы)",
+      "hebrew": "שָׂמוֹת",
+      "transcription": "самóт",
+      "translation": "кладут / кладем (ж.р.)"
+    }
+  ],
+  "past": [
+    {
+      "pronoun": "אֲנִי (я)",
+      "hebrew": "שַׂמְתִּי",
+      "transcription": "сáмти",
+      "translation": "я положил(а)"
+    },
+    {
+      "pronoun": "אַתָּה (ты м.р.)",
+      "hebrew": "שַׂמְתָּ",
+      "transcription": "сáмта",
+      "translation": "ты положил"
+    },
+    {
+      "pronoun": "אַתְּ (ты ж.р.)",
+      "hebrew": "שַׂמְתְּ",
+      "transcription": "сáмт",
+      "translation": "ты положила"
+    },
+    {
+      "pronoun": "הוּא (он)",
+      "hebrew": "שָׂם",
+      "transcription": "сам",
+      "translation": "он положил"
+    },
+    {
+      "pronoun": "הִיא (она)",
+      "hebrew": "שָׂמָה",
+      "transcription": "самá",
+      "translation": "она положила"
+    },
+    {
+      "pronoun": "אֲנַחְנוּ (мы)",
+      "hebrew": "שַׂמְנוּ",
+      "transcription": "сáмну",
+      "translation": "мы положили"
+    },
+    {
+      "pronoun": "אַתֶּם / אַתֶּן (вы)",
+      "hebrew": "שַׂמְתֶּם / שַׂמְתֶּן",
+      "transcription": "самтéм / самтéн",
+      "translation": "вы положили"
+    },
+    {
+      "pronoun": "הֵם / הֵן (они)",
+      "hebrew": "שָׂמוּ",
+      "transcription": "самӯ",
+      "translation": "они положили"
+    }
+  ],
+  "future": [
+    {
+      "pronoun": "אֲנִי (я)",
+      "hebrew": "אָשִׂים",
+      "transcription": "асӣм",
+      "translation": "я положу"
+    },
+    {
+      "pronoun": "אַתָּה / הִיא (ты м.р. / она)",
+      "hebrew": "תָּשִׂים",
+      "transcription": "тасӣм",
+      "translation": "ты положишь / она положит"
+    },
+    {
+      "pronoun": "אַתְּ (ты ж.р.)",
+      "hebrew": "תָּשִׂימִי",
+      "transcription": "тасимӣ",
+      "translation": "ты положишь (ж.р.)"
+    },
+    {
+      "pronoun": "הוּא (он)",
+      "hebrew": "יָשִׂים",
+      "transcription": "йасӣм",
+      "translation": "он положит"
+    },
+    {
+      "pronoun": "אֲנַחְנוּ (мы)",
+      "hebrew": "נָשִׂים",
+      "transcription": "насӣм",
+      "translation": "мы положим"
+    },
+    {
+      "pronoun": "אַתֶּם / אַתֶּן (вы)",
+      "hebrew": "תָּשִׂימוּ",
+      "transcription": "тасимӯ",
+      "translation": "вы положите"
+    },
+    {
+      "pronoun": "הֵם / הֵן (они)",
+      "hebrew": "יָשִׂימוּ",
+      "transcription": "йасимӯ",
+      "translation": "они положат"
+    }
+  ],
+  "imperative": [
+    {
+      "pronoun": "אַתָּה (м.р.)",
+      "hebrew": "שִׂים",
+      "transcription": "сим",
+      "translation": "положи (м.р.)"
+    },
+    {
+      "pronoun": "אַתְּ (ж.р.)",
+      "hebrew": "שִׂימִי",
+      "transcription": "симӣ",
+      "translation": "положи (ж.р.)"
+    },
+    {
+      "pronoun": "אַתֶּם / אַתֶּן (мн.ч.)",
+      "hebrew": "שִׂימוּ",
+      "transcription": "симӯ",
+      "translation": "положите"
+    }
+  ]
+},
+  'לקום': {
+  "infinitive": {
+    "hebrew": "לָקוּם",
+    "transcription": "лакӯм",
+    "translation": "вставать"
+  },
+  "binyan": "פָּעַל (Пааль)",
+  "root": "ק-ו-ם",
+  "present": [
+    {
+      "pronoun": "זָכָר יָחִיד (он / я / ты)",
+      "hebrew": "קָם",
+      "transcription": "кам",
+      "translation": "встает / встаю (м.р.)"
+    },
+    {
+      "pronoun": "נְקֵבָה יְחִידָה (она / я / ты)",
+      "hebrew": "קָמָה",
+      "transcription": "камá",
+      "translation": "встает / встаю (ж.р.)"
+    },
+    {
+      "pronoun": "זָכָר רַבִּים (они / мы / вы)",
+      "hebrew": "קָמִים",
+      "transcription": "камӣм",
+      "translation": "встают / встаем (м.р.)"
+    },
+    {
+      "pronoun": "נְקֵבָה רַבּוֹת (они / мы / вы)",
+      "hebrew": "קָמוֹת",
+      "transcription": "камóт",
+      "translation": "встают / встаем (ж.р.)"
+    }
+  ],
+  "past": [
+    {
+      "pronoun": "אֲנִי (я)",
+      "hebrew": "קַמְתִּי",
+      "transcription": "кáмти",
+      "translation": "я встал(а)"
+    },
+    {
+      "pronoun": "אַתָּה (ты м.р.)",
+      "hebrew": "קַמְתָּ",
+      "transcription": "кáмта",
+      "translation": "ты встал"
+    },
+    {
+      "pronoun": "אַתְּ (ты ж.р.)",
+      "hebrew": "קַמְתְּ",
+      "transcription": "кáмт",
+      "translation": "ты встала"
+    },
+    {
+      "pronoun": "הוּא (он)",
+      "hebrew": "קָם",
+      "transcription": "кам",
+      "translation": "он встал"
+    },
+    {
+      "pronoun": "הִיא (она)",
+      "hebrew": "קָמָה",
+      "transcription": "камá",
+      "translation": "она встала"
+    },
+    {
+      "pronoun": "אֲנַחְנוּ (мы)",
+      "hebrew": "קַמְנוּ",
+      "transcription": "кáмну",
+      "translation": "мы встали"
+    },
+    {
+      "pronoun": "אַתֶּם / אַתֶּן (вы)",
+      "hebrew": "קַמְתֶּם / קַמְתֶּן",
+      "transcription": "камтéм / камтéн",
+      "translation": "вы встали"
+    },
+    {
+      "pronoun": "הֵם / הֵן (они)",
+      "hebrew": "קָמוּ",
+      "transcription": "камӯ",
+      "translation": "они встали"
+    }
+  ],
+  "future": [
+    {
+      "pronoun": "אֲנִי (я)",
+      "hebrew": "אָקוּם",
+      "transcription": "акӯм",
+      "translation": "я встану"
+    },
+    {
+      "pronoun": "אַתָּה / הִיא (ты м.р. / она)",
+      "hebrew": "תָּקוּם",
+      "transcription": "такӯм",
+      "translation": "ты встанешь / она встанет"
+    },
+    {
+      "pronoun": "אַתְּ (ты ж.р.)",
+      "hebrew": "תָּקוּמִי",
+      "transcription": "такумӣ",
+      "translation": "ты встанешь (ж.р.)"
+    },
+    {
+      "pronoun": "הוּא (он)",
+      "hebrew": "יָקוּם",
+      "transcription": "йакӯм",
+      "translation": "он встанет"
+    },
+    {
+      "pronoun": "אֲנַחְנוּ (мы)",
+      "hebrew": "נָקוּם",
+      "transcription": "накӯм",
+      "translation": "мы встанем"
+    },
+    {
+      "pronoun": "אַתֶּם / אַתֶּן (вы)",
+      "hebrew": "תָּקוּמוּ",
+      "transcription": "такумӯ",
+      "translation": "вы встанете"
+    },
+    {
+      "pronoun": "הֵם / הֵן (они)",
+      "hebrew": "יָקוּמוּ",
+      "transcription": "йакумӯ",
+      "translation": "они встанут"
+    }
+  ],
+  "imperative": [
+    {
+      "pronoun": "אַתָּה (м.р.)",
+      "hebrew": "קוּם",
+      "transcription": "кум",
+      "translation": "встань (м.р.)"
+    },
+    {
+      "pronoun": "אַתְּ (ж.р.)",
+      "hebrew": "קוּמִי",
+      "transcription": "кумӣ",
+      "translation": "встань (ж.р.)"
+    },
+    {
+      "pronoun": "אַתֶּם / אַתֶּן (мн.ч.)",
+      "hebrew": "קוּמוּ",
+      "transcription": "кумӯ",
+      "translation": "встаньте"
+    }
+  ]
+},
+  'לנוח': {
+  "infinitive": {
+    "hebrew": "לָנוּחַ",
+    "transcription": "ланӯах",
+    "translation": "отдыхать"
+  },
+  "binyan": "פָּעַל (Пааль)",
+  "root": "נ-ו-ח",
+  "present": [
+    {
+      "pronoun": "זָכָר יָחִיד (он / я / ты)",
+      "hebrew": "נָח",
+      "transcription": "нах",
+      "translation": "отдыхает / отдыхаю (м.р.)"
+    },
+    {
+      "pronoun": "נְקֵבָה יְחִידָה (она / я / ты)",
+      "hebrew": "נָחָה",
+      "transcription": "нахá",
+      "translation": "отдыхает / отдыхаю (ж.р.)"
+    },
+    {
+      "pronoun": "זָכָר רַבִּים (они / мы / вы)",
+      "hebrew": "נָחִים",
+      "transcription": "нахӣм",
+      "translation": "отдыхают / отдыхаем (м.р.)"
+    },
+    {
+      "pronoun": "נְקֵבָה רַבּוֹת (они / мы / вы)",
+      "hebrew": "נָחוֹת",
+      "transcription": "нахóт",
+      "translation": "отдыхают / отдыхаем (ж.р.)"
+    }
+  ],
+  "past": [
+    {
+      "pronoun": "אֲנִי (я)",
+      "hebrew": "נַחְתִּי",
+      "transcription": "нáхти",
+      "translation": "я отдохнул(а)"
+    },
+    {
+      "pronoun": "אַתָּה (ты м.р.)",
+      "hebrew": "נַחְתָּ",
+      "transcription": "нáхта",
+      "translation": "ты отдохнул"
+    },
+    {
+      "pronoun": "אַתְּ (ты ж.р.)",
+      "hebrew": "נַחְתְּ",
+      "transcription": "нáхт",
+      "translation": "ты отдохнула"
+    },
+    {
+      "pronoun": "הוּא (он)",
+      "hebrew": "נָח",
+      "transcription": "нах",
+      "translation": "он отдохнул"
+    },
+    {
+      "pronoun": "הִיא (она)",
+      "hebrew": "נָחָה",
+      "transcription": "нахá",
+      "translation": "она отдохнула"
+    },
+    {
+      "pronoun": "אֲנַחְנוּ (мы)",
+      "hebrew": "נַחְנוּ",
+      "transcription": "нáхну",
+      "translation": "мы отдохнули"
+    },
+    {
+      "pronoun": "אַתֶּם / אַתֶּן (вы)",
+      "hebrew": "נַחְתֶּם / נַחְתֶּן",
+      "transcription": "нахтéм / нахтéн",
+      "translation": "вы отдохнули"
+    },
+    {
+      "pronoun": "הֵם / הֵן (они)",
+      "hebrew": "נָחוּ",
+      "transcription": "нахӯ",
+      "translation": "они отдохнули"
+    }
+  ],
+  "future": [
+    {
+      "pronoun": "אֲנִי (я)",
+      "hebrew": "אָנוּחַ",
+      "transcription": "анӯах",
+      "translation": "я отдохну"
+    },
+    {
+      "pronoun": "אַתָּה / הִיא (ты м.р. / она)",
+      "hebrew": "תָּנוּחַ",
+      "transcription": "танӯах",
+      "translation": "ты отдохнешь / она отдохнет"
+    },
+    {
+      "pronoun": "אַתְּ (ты ж.р.)",
+      "hebrew": "תָּנוּחִי",
+      "transcription": "танӯхӣ",
+      "translation": "ты отдохнешь (ж.р.)"
+    },
+    {
+      "pronoun": "הוּא (он)",
+      "hebrew": "יָנוּחַ",
+      "transcription": "йанӯах",
+      "translation": "он отдохнет"
+    },
+    {
+      "pronoun": "אֲנַחְנוּ (мы)",
+      "hebrew": "נָנוּחַ",
+      "transcription": "нанӯах",
+      "translation": "мы отдохнем"
+    },
+    {
+      "pronoun": "אַתֶּם / אַתֶּן (вы)",
+      "hebrew": "תָּנוּחוּ",
+      "transcription": "танӯхӯ",
+      "translation": "вы отдохнете"
+    },
+    {
+      "pronoun": "הֵם / הֵן (они)",
+      "hebrew": "יָנוּחוּ",
+      "transcription": "йанӯхӯ",
+      "translation": "они отдохнут"
+    }
+  ],
+  "imperative": [
+    {
+      "pronoun": "אַתָּה (м.р.)",
+      "hebrew": "נוּחַ",
+      "transcription": "нӯах",
+      "translation": "отдыхай (м.р.)"
+    },
+    {
+      "pronoun": "אַתְּ (ж.р.)",
+      "hebrew": "נוּחִי",
+      "transcription": "нӯхӣ",
+      "translation": "отдыхай (ж.р.)"
+    },
+    {
+      "pronoun": "אַתֶּם / אַתֶּן (мн.ч.)",
+      "hebrew": "נוּחוּ",
+      "transcription": "нӯхӯ",
+      "translation": "отдыхайте"
+    }
+  ]
+},
+  'לישון': {
+  "infinitive": {
+    "hebrew": "לִישׁוֹן",
+    "transcription": "лишóн",
+    "translation": "спать"
+  },
+  "binyan": "פָּעַל (Пааль)",
+  "root": "י-ש-ן",
+  "present": [
+    {
+      "pronoun": "זָכָר יָחִיד (он / я / ты)",
+      "hebrew": "יָשֵׁן",
+      "transcription": "йашéн",
+      "translation": "спит / сплю (м.р.)"
+    },
+    {
+      "pronoun": "נְקֵבָה יְחִידָה (она / я / ты)",
+      "hebrew": "יְשֵׁנָה",
+      "transcription": "йешенá",
+      "translation": "спит / сплю (ж.р.)"
+    },
+    {
+      "pronoun": "זָכָר רַבִּים (они / мы / вы)",
+      "hebrew": "יְשֵׁנִים",
+      "transcription": "йешенӣм",
+      "translation": "спят / спим (м.р.)"
+    },
+    {
+      "pronoun": "נְקֵבָה רַבּוֹת (они / мы / вы)",
+      "hebrew": "יְשֵׁנוֹת",
+      "transcription": "йешенóт",
+      "translation": "спят / спим (ж.р.)"
+    }
+  ],
+  "past": [
+    {
+      "pronoun": "אֲנִי (я)",
+      "hebrew": "יָשַׁנְתִּי",
+      "transcription": "йашáнти",
+      "translation": "я спал(а)"
+    },
+    {
+      "pronoun": "אַתָּה (ты м.р.)",
+      "hebrew": "יָשַׁנְתָּ",
+      "transcription": "йашáнта",
+      "translation": "ты спал"
+    },
+    {
+      "pronoun": "אַתְּ (ты ж.р.)",
+      "hebrew": "יָשַׁנְתְּ",
+      "transcription": "йашáнт",
+      "translation": "ты спала"
+    },
+    {
+      "pronoun": "הוּא (он)",
+      "hebrew": "יָשַׁן",
+      "transcription": "йашáн",
+      "translation": "он спал"
+    },
+    {
+      "pronoun": "הִיא (она)",
+      "hebrew": "יָשְׁנָה",
+      "transcription": "йашнá",
+      "translation": "она спала"
+    },
+    {
+      "pronoun": "אֲנַחְנוּ (мы)",
+      "hebrew": "יָשַׁנְנוּ",
+      "transcription": "йашáнну",
+      "translation": "мы спали"
+    },
+    {
+      "pronoun": "אַתֶּם / אַתֶּן (вы)",
+      "hebrew": "יְשַׁנְתֶּם / יְשַׁנְתֶּן",
+      "transcription": "йешантéм / йешантéн",
+      "translation": "вы спали"
+    },
+    {
+      "pronoun": "הֵם / הֵן (они)",
+      "hebrew": "יָשְׁנוּ",
+      "transcription": "йашнӯ",
+      "translation": "они спали"
+    }
+  ],
+  "future": [
+    {
+      "pronoun": "אֲנִי (я)",
+      "hebrew": "אִישַׁן",
+      "transcription": "ишáн",
+      "translation": "я буду спать / посплю"
+    },
+    {
+      "pronoun": "אַתָּה / הִיא (ты м.р. / она)",
+      "hebrew": "תִּישַׁן",
+      "transcription": "тишáн",
+      "translation": "ты будешь спать / она будет спать"
+    },
+    {
+      "pronoun": "אַתְּ (ты ж.р.)",
+      "hebrew": "תִּישְׁנִי",
+      "transcription": "тишнӣ",
+      "translation": "ты будешь спать (ж.р.)"
+    },
+    {
+      "pronoun": "הוּא (он)",
+      "hebrew": "יִישַׁן",
+      "transcription": "йишáн",
+      "translation": "он будет спать"
+    },
+    {
+      "pronoun": "אֲנַחְנוּ (мы)",
+      "hebrew": "נִישַׁן",
+      "transcription": "нишáн",
+      "translation": "мы будем спать"
+    },
+    {
+      "pronoun": "אַתֶּם / אַתֶּן (вы)",
+      "hebrew": "תִּישְׁנוּ",
+      "transcription": "тишнӯ",
+      "translation": "вы будете спать"
+    },
+    {
+      "pronoun": "הֵם / הֵן (они)",
+      "hebrew": "יִישְׁנוּ",
+      "transcription": "йишнӯ",
+      "translation": "они будут спать"
+    }
+  ],
+  "imperative": [
+    {
+      "pronoun": "אַתָּה (м.р.)",
+      "hebrew": "שְׁכַב לִישׁוֹן / יְשַׁן",
+      "transcription": "шкав лишон",
+      "translation": "спи (м.р.)"
+    },
+    {
+      "pronoun": "אַתְּ (ж.р.)",
+      "hebrew": "שִׁכְבִי לִישׁוֹן / יִשְׁנִי",
+      "transcription": "шихвӣ лишон",
+      "translation": "спи (ж.р.)"
+    },
+    {
+      "pronoun": "אַתֶּם / אַתֶּן (мн.ч.)",
+      "hebrew": "שִׁכְבוּ לִישׁוֹן / יִשְׁנוּ",
+      "transcription": "шихвӯ лишон",
+      "translation": "спите"
+    }
+  ]
+},
+  'לעלות': {
+  "infinitive": {
+    "hebrew": "לַעֲלוֹת",
+    "transcription": "лаалóт",
+    "translation": "подниматься, стоить, репатриироваться"
+  },
+  "binyan": "פָּעַל (Пааль)",
+  "root": "ע-ל-ה",
+  "present": [
+    {
+      "pronoun": "זָכָר יָחִיד (он / я / ты)",
+      "hebrew": "עוֹלֶה",
+      "transcription": "олé",
+      "translation": "поднимается / стою (м.р.)"
+    },
+    {
+      "pronoun": "נְקֵבָה יְחִידָה (она / я / ты)",
+      "hebrew": "עוֹלָה",
+      "transcription": "олá",
+      "translation": "поднимается / стою (ж.р.)"
+    },
+    {
+      "pronoun": "זָכָר רַבִּים (они / мы / вы)",
+      "hebrew": "עוֹלִים",
+      "transcription": "олӣм",
+      "translation": "поднимаются / стоим (м.р.)"
+    },
+    {
+      "pronoun": "נְקֵבָה רַבּוֹת (они / мы / вы)",
+      "hebrew": "עוֹלוֹת",
+      "transcription": "олóт",
+      "translation": "поднимаются / стоим (ж.р.)"
+    }
+  ],
+  "past": [
+    {
+      "pronoun": "אֲנִי (я)",
+      "hebrew": "עָלִיתִי",
+      "transcription": "алӣти",
+      "translation": "я поднялся / репатриировалась"
+    },
+    {
+      "pronoun": "אַתָּה (ты м.р.)",
+      "hebrew": "עָלִיתָ",
+      "transcription": "алӣта",
+      "translation": "ты поднялся"
+    },
+    {
+      "pronoun": "אַתְּ (ты ж.р.)",
+      "hebrew": "עָלִית",
+      "transcription": "алӣт",
+      "translation": "ты поднялась"
+    },
+    {
+      "pronoun": "הוּא (он)",
+      "hebrew": "עָלָה",
+      "transcription": "алá",
+      "translation": "он поднялся"
+    },
+    {
+      "pronoun": "הִיא (она)",
+      "hebrew": "עָלְתָה",
+      "transcription": "алтá",
+      "translation": "она поднялась"
+    },
+    {
+      "pronoun": "אֲנַחְנוּ (мы)",
+      "hebrew": "עָלִינוּ",
+      "transcription": "алӣну",
+      "translation": "мы поднялись"
+    },
+    {
+      "pronoun": "אַתֶּם / אַתֶּן (вы)",
+      "hebrew": "עֲלִיתֶם / עֲלִיתֶן",
+      "transcription": "алитéм / алитéн",
+      "translation": "вы поднялись"
+    },
+    {
+      "pronoun": "הֵם / הֵן (они)",
+      "hebrew": "עָלוּ",
+      "transcription": "алӯ",
+      "translation": "они поднялись"
+    }
+  ],
+  "future": [
+    {
+      "pronoun": "אֲנִי (я)",
+      "hebrew": "אֶעֱלֶה",
+      "transcription": "ээлé",
+      "translation": "я поднимусь"
+    },
+    {
+      "pronoun": "אַתָּה / הִיא (ты м.р. / она)",
+      "hebrew": "תַּעֲלֶה",
+      "transcription": "таалé",
+      "translation": "ты поднимешься / она поднимется"
+    },
+    {
+      "pronoun": "אַתְּ (ты ж.р.)",
+      "hebrew": "תַּעֲלִי",
+      "transcription": "таалӣ",
+      "translation": "ты поднимешься (ж.р.)"
+    },
+    {
+      "pronoun": "הוּא (он)",
+      "hebrew": "יַעֲלֶה",
+      "transcription": "йаалé",
+      "translation": "он поднимется"
+    },
+    {
+      "pronoun": "אֲנַחְנוּ (мы)",
+      "hebrew": "נַעֲלֶה",
+      "transcription": "наалé",
+      "translation": "мы поднимемся"
+    },
+    {
+      "pronoun": "אַתֶּם / אַתֶּן (вы)",
+      "hebrew": "תַּעֲלוּ",
+      "transcription": "таалӯ",
+      "translation": "вы подниметесь"
+    },
+    {
+      "pronoun": "הֵם / הֵן (они)",
+      "hebrew": "יַעֲלוּ",
+      "transcription": "йаалӯ",
+      "translation": "они поднимутся"
+    }
+  ],
+  "imperative": [
+    {
+      "pronoun": "אַתָּה (м.р.)",
+      "hebrew": "עֲלֵה",
+      "transcription": "алé",
+      "translation": "поднимайся (м.р.)"
+    },
+    {
+      "pronoun": "אַתְּ (ж.р.)",
+      "hebrew": "עֲלִי",
+      "transcription": "алӣ",
+      "translation": "поднимайся (ж.р.)"
+    },
+    {
+      "pronoun": "אַתֶּם / אַתֶּן (мн.ч.)",
+      "hebrew": "עֲלוּ",
+      "transcription": "алӯ",
+      "translation": "поднимайтесь"
+    }
+  ]
+},
+  'לרדת': {
+  "infinitive": {
+    "hebrew": "לָרֶדֶת",
+    "transcription": "ларéдет",
+    "translation": "спускаться"
+  },
+  "binyan": "פָּעַל (Пааль)",
+  "root": "י-ר-ד",
+  "present": [
+    {
+      "pronoun": "זָכָר יָחִיד (он / я / ты)",
+      "hebrew": "יוֹרֵד",
+      "transcription": "йорéд",
+      "translation": "спускается / спускаюсь (м.р.)"
+    },
+    {
+      "pronoun": "נְקֵבָה יְחִידָה (она / я / ты)",
+      "hebrew": "יוֹרֶדֶת",
+      "transcription": "йорéдет",
+      "translation": "спускается / спускаюсь (ж.р.)"
+    },
+    {
+      "pronoun": "זָכָר רַבִּים (они / мы / вы)",
+      "hebrew": "יוֹרְדִים",
+      "transcription": "йордӣм",
+      "translation": "спускаются / спускаемся (м.р.)"
+    },
+    {
+      "pronoun": "נְקֵבָה רַבּוֹת (они / мы / вы)",
+      "hebrew": "יוֹרְדוֹת",
+      "transcription": "йордóт",
+      "translation": "спускаются / спускаемся (ж.р.)"
+    }
+  ],
+  "past": [
+    {
+      "pronoun": "אֲנִי (я)",
+      "hebrew": "יָרַדְתִּי",
+      "transcription": "йарáдти",
+      "translation": "я спустился / спустилась"
+    },
+    {
+      "pronoun": "אַתָּה (ты м.р.)",
+      "hebrew": "יָרַדְתָּ",
+      "transcription": "йарáдта",
+      "translation": "ты спустился"
+    },
+    {
+      "pronoun": "אַתְּ (ты ж.р.)",
+      "hebrew": "יָרַדְתְּ",
+      "transcription": "йарáдт",
+      "translation": "ты спустилась"
+    },
+    {
+      "pronoun": "הוּא (он)",
+      "hebrew": "יָרַד",
+      "transcription": "йарáд",
+      "translation": "он спустился"
+    },
+    {
+      "pronoun": "הִיא (она)",
+      "hebrew": "יָרְדָה",
+      "transcription": "йардá",
+      "translation": "она спустилась"
+    },
+    {
+      "pronoun": "אֲנַחְנוּ (мы)",
+      "hebrew": "יָרַדְנוּ",
+      "transcription": "йарáдну",
+      "translation": "мы спустились"
+    },
+    {
+      "pronoun": "אַתֶּם / אַתֶּן (вы)",
+      "hebrew": "יְרַדְתֶּם / יְרַדְתֶּן",
+      "transcription": "йерадтéм / йерадтéн",
+      "translation": "вы спустились"
+    },
+    {
+      "pronoun": "הֵם / הֵן (они)",
+      "hebrew": "יָרְדוּ",
+      "transcription": "йардӯ",
+      "translation": "они спустились"
+    }
+  ],
+  "future": [
+    {
+      "pronoun": "אֲנִי (я)",
+      "hebrew": "אֵרֵד",
+      "transcription": "эрéд",
+      "translation": "я спущусь"
+    },
+    {
+      "pronoun": "אַתָּה / הִיא (ты м.р. / она)",
+      "hebrew": "תֵּרֵד",
+      "transcription": "терéд",
+      "translation": "ты спустишься / она спустится"
+    },
+    {
+      "pronoun": "אַתְּ (ты ж.р.)",
+      "hebrew": "תֵּרְדִי",
+      "transcription": "тердӣ",
+      "translation": "ты спустишься (ж.р.)"
+    },
+    {
+      "pronoun": "הוּא (он)",
+      "hebrew": "יֵרֵד",
+      "transcription": "йерéд",
+      "translation": "он спустится"
+    },
+    {
+      "pronoun": "אֲנַחְנוּ (мы)",
+      "hebrew": "נֵרֵד",
+      "transcription": "нерéд",
+      "translation": "мы спустимся"
+    },
+    {
+      "pronoun": "אַתֶּם / אַתֶּן (вы)",
+      "hebrew": "תֵּרְדוּ",
+      "transcription": "тердӯ",
+      "translation": "вы спуститесь"
+    },
+    {
+      "pronoun": "הֵם / הֵן (они)",
+      "hebrew": "יֵרְדוּ",
+      "transcription": "йердӯ",
+      "translation": "они спустятся"
+    }
+  ],
+  "imperative": [
+    {
+      "pronoun": "אַתָּה (м.р.)",
+      "hebrew": "רֵד",
+      "transcription": "ред",
+      "translation": "спускайся (м.р.)"
+    },
+    {
+      "pronoun": "אַתְּ (ж.р.)",
+      "hebrew": "רְדִי",
+      "transcription": "рдӣ",
+      "translation": "спускайся (ж.р.)"
+    },
+    {
+      "pronoun": "אַתֶּם / אַתֶּן (мн.ч.)",
+      "hebrew": "רְדוּ",
+      "transcription": "рдӯ",
+      "translation": "спускайтесь"
+    }
+  ]
+},
+  'לצאת': {
+  "infinitive": {
+    "hebrew": "לָצֵאת",
+    "transcription": "лацéт",
+    "translation": "выходить"
+  },
+  "binyan": "פָּעַל (Пааль)",
+  "root": "י-צ-א",
+  "present": [
+    {
+      "pronoun": "זָכָר יָחִיד (он / я / ты)",
+      "hebrew": "יוֹצֵא",
+      "transcription": "йоцé",
+      "translation": "выходит / выхожу (м.р.)"
+    },
+    {
+      "pronoun": "נְקֵבָה יְחִידָה (она / я / ты)",
+      "hebrew": "יוֹצֵאת",
+      "transcription": "йоцéт",
+      "translation": "выходит / выхожу (ж.р.)"
+    },
+    {
+      "pronoun": "זָכָר רַבִּים (они / мы / вы)",
+      "hebrew": "יוֹצְאִים",
+      "transcription": "йоц’ӣм",
+      "translation": "выходят / выходим (м.р.)"
+    },
+    {
+      "pronoun": "נְקֵבָה רַבּוֹת (они / мы / вы)",
+      "hebrew": "יוֹצְאוֹת",
+      "transcription": "йоц’óт",
+      "translation": "выходят / выходим (ж.р.)"
+    }
+  ],
+  "past": [
+    {
+      "pronoun": "אֲנִי (я)",
+      "hebrew": "יָצָאתִי",
+      "transcription": "йацáти",
+      "translation": "я вышел / вышла"
+    },
+    {
+      "pronoun": "אַתָּה (ты м.р.)",
+      "hebrew": "יָצָאתָ",
+      "transcription": "йацáта",
+      "translation": "ты вышел"
+    },
+    {
+      "pronoun": "אַתְּ (ты ж.р.)",
+      "hebrew": "יָצָאת",
+      "transcription": "йацáт",
+      "translation": "ты вышла"
+    },
+    {
+      "pronoun": "הוּא (он)",
+      "hebrew": "יָצָא",
+      "transcription": "йацá",
+      "translation": "он вышел"
+    },
+    {
+      "pronoun": "הִיא (она)",
+      "hebrew": "יָצְאָה",
+      "transcription": "йац’á",
+      "translation": "она вышла"
+    },
+    {
+      "pronoun": "אֲנַחְנוּ (мы)",
+      "hebrew": "יָצָאנוּ",
+      "transcription": "йацáну",
+      "translation": "мы вышли"
+    },
+    {
+      "pronoun": "אַתֶּם / אַתֶּן (вы)",
+      "hebrew": "יְצָאתֶם / יְצָאתֶן",
+      "transcription": "йецатéм / йецатéн",
+      "translation": "вы вышли"
+    },
+    {
+      "pronoun": "הֵם / הֵן (они)",
+      "hebrew": "יָצְאוּ",
+      "transcription": "йац’ӯ",
+      "translation": "они вышли"
+    }
+  ],
+  "future": [
+    {
+      "pronoun": "אֲנִי (я)",
+      "hebrew": "אֵצֵא",
+      "transcription": "эцé",
+      "translation": "я выйду"
+    },
+    {
+      "pronoun": "אַתָּה / הִיא (ты м.р. / она)",
+      "hebrew": "תֵּצֵא",
+      "transcription": "тецé",
+      "translation": "ты выйдешь / она выйдет"
+    },
+    {
+      "pronoun": "אַתְּ (ты ж.р.)",
+      "hebrew": "תֵּצְאִי",
+      "transcription": "тец’ӣ",
+      "translation": "ты выйдешь (ж.р.)"
+    },
+    {
+      "pronoun": "הוּא (он)",
+      "hebrew": "יֵצֵא",
+      "transcription": "йецé",
+      "translation": "он выйдет"
+    },
+    {
+      "pronoun": "אֲנַחְנוּ (мы)",
+      "hebrew": "נֵצֵא",
+      "transcription": "нецé",
+      "translation": "мы выйдем"
+    },
+    {
+      "pronoun": "אַתֶּם / אַתֶּן (вы)",
+      "hebrew": "תֵּצְאוּ",
+      "transcription": "тец’ӯ",
+      "translation": "вы выйдете"
+    },
+    {
+      "pronoun": "הֵם / הֵן (они)",
+      "hebrew": "יֵצְאוּ",
+      "transcription": "йец’ӯ",
+      "translation": "они выйдут"
+    }
+  ],
+  "imperative": [
+    {
+      "pronoun": "אַתָּה (м.р.)",
+      "hebrew": "צֵא",
+      "transcription": "це",
+      "translation": "выйди (м.р.)"
+    },
+    {
+      "pronoun": "אַתְּ (ж.р.)",
+      "hebrew": "צְאִי",
+      "transcription": "цэ’ӣ",
+      "translation": "выйди (ж.р.)"
+    },
+    {
+      "pronoun": "אַתֶּם / אַתֶּן (мн.ч.)",
+      "hebrew": "צְאוּ",
+      "transcription": "цэ’ӯ",
+      "translation": "выйдите"
+    }
+  ]
+},
+  'לשבת': {
+  "infinitive": {
+    "hebrew": "לָשֶׁבֶת",
+    "transcription": "лашéвет",
+    "translation": "сидеть"
+  },
+  "binyan": "פָּעַל (Пааль)",
+  "root": "י-ש-ב",
+  "present": [
+    {
+      "pronoun": "זָכָר יָחִיד (он / я / ты)",
+      "hebrew": "יוֹשֵׁב",
+      "transcription": "йошéв",
+      "translation": "сидит / сижу (м.р.)"
+    },
+    {
+      "pronoun": "נְקֵבָה יְחִידָה (она / я / ты)",
+      "hebrew": "יוֹשֶׁבֶת",
+      "transcription": "йошéвет",
+      "translation": "сидит / сижу (ж.р.)"
+    },
+    {
+      "pronoun": "זָכָר רַבִּים (они / мы / вы)",
+      "hebrew": "יוֹשְׁבִים",
+      "transcription": "йошвӣм",
+      "translation": "сидят / сидим (м.р.)"
+    },
+    {
+      "pronoun": "נְקֵבָה רַבּוֹת (они / мы / вы)",
+      "hebrew": "יוֹשְׁבוֹת",
+      "transcription": "йошвóт",
+      "translation": "сидят / сидим (ж.р.)"
+    }
+  ],
+  "past": [
+    {
+      "pronoun": "אֲנִי (я)",
+      "hebrew": "יָשַׁבְתִּי",
+      "transcription": "йашáвти",
+      "translation": "я сидел(а)"
+    },
+    {
+      "pronoun": "אַתָּה (ты м.р.)",
+      "hebrew": "יָשַׁבְתָּ",
+      "transcription": "йашáвта",
+      "translation": "ты сидел"
+    },
+    {
+      "pronoun": "אַתְּ (ты ж.р.)",
+      "hebrew": "יָשַׁבְתְּ",
+      "transcription": "йашáвт",
+      "translation": "ты сидела"
+    },
+    {
+      "pronoun": "הוּא (он)",
+      "hebrew": "יָשַׁב",
+      "transcription": "йашáв",
+      "translation": "он сидел"
+    },
+    {
+      "pronoun": "הִיא (она)",
+      "hebrew": "יָשְׁבָה",
+      "transcription": "йашвá",
+      "translation": "она сидела"
+    },
+    {
+      "pronoun": "אֲנַחְנוּ (мы)",
+      "hebrew": "יָשַׁבְנוּ",
+      "transcription": "йашáвну",
+      "translation": "мы сидели"
+    },
+    {
+      "pronoun": "אַתֶּם / אַתֶּן (вы)",
+      "hebrew": "יְשַׁבְתֶּם / יְשַׁבְתֶּן",
+      "transcription": "йешавтéм / йешавтéн",
+      "translation": "вы сидели"
+    },
+    {
+      "pronoun": "הֵם / הֵן (они)",
+      "hebrew": "יָשְׁבוּ",
+      "transcription": "йашвӯ",
+      "translation": "они сидели"
+    }
+  ],
+  "future": [
+    {
+      "pronoun": "אֲנִי (я)",
+      "hebrew": "אֵשֵׁב",
+      "transcription": "эшéв",
+      "translation": "я сяду"
+    },
+    {
+      "pronoun": "אַתָּה / הִיא (ты м.р. / она)",
+      "hebrew": "תֵּשֵׁב",
+      "transcription": "тешéв",
+      "translation": "ты сядешь / она сядет"
+    },
+    {
+      "pronoun": "אַתְּ (ты ж.р.)",
+      "hebrew": "תֵּשְׁבִי",
+      "transcription": "тешвӣ",
+      "translation": "ты сядешь (ж.р.)"
+    },
+    {
+      "pronoun": "הוּא (он)",
+      "hebrew": "יֵשֵׁב",
+      "transcription": "йешéв",
+      "translation": "он сядет"
+    },
+    {
+      "pronoun": "אֲנַחְנוּ (мы)",
+      "hebrew": "נֵשֵׁב",
+      "transcription": "нешéв",
+      "translation": "мы сядем"
+    },
+    {
+      "pronoun": "אַתֶּם / אַתֶּן (вы)",
+      "hebrew": "תֵּשְׁבוּ",
+      "transcription": "тешвӯ",
+      "translation": "вы сядете"
+    },
+    {
+      "pronoun": "הֵם / הֵן (они)",
+      "hebrew": "יֵשְׁבוּ",
+      "transcription": "йешвӯ",
+      "translation": "они сядут"
+    }
+  ],
+  "imperative": [
+    {
+      "pronoun": "אַתָּה (м.р.)",
+      "hebrew": "שֵׁב",
+      "transcription": "шев",
+      "translation": "сядь / сиди (м.р.)"
+    },
+    {
+      "pronoun": "אַתְּ (ж.р.)",
+      "hebrew": "שְׁבִי",
+      "transcription": "швӣ",
+      "translation": "сядь / сиди (ж.р.)"
+    },
+    {
+      "pronoun": "אַתֶּם / אַתֶּן (мн.ч.)",
+      "hebrew": "שְׁבוּ",
+      "transcription": "швӯ",
+      "translation": "сядьте / сидите"
+    }
+  ]
+},
+  'לקחת': {
+  "infinitive": {
+    "hebrew": "לָקַחַת",
+    "transcription": "лакáхат",
+    "translation": "брать, взять"
+  },
+  "binyan": "פָּעַל (Пааль)",
+  "root": "ל-ק-ח",
+  "present": [
+    {
+      "pronoun": "זָכָר יָחִיד (он / я / ты)",
+      "hebrew": "לוֹקֵחַ",
+      "transcription": "локéах",
+      "translation": "берет / беру (м.р.)"
+    },
+    {
+      "pronoun": "נְקֵבָה יְחִידָה (она / я / ты)",
+      "hebrew": "לוֹקַחַת",
+      "transcription": "локáхат",
+      "translation": "берет / беру (ж.р.)"
+    },
+    {
+      "pronoun": "זָכָר רַבִּים (они / мы / вы)",
+      "hebrew": "לוֹקְחִים",
+      "transcription": "локхӣм",
+      "translation": "берут / берем (м.р.)"
+    },
+    {
+      "pronoun": "נְקֵבָה רַבּוֹת (они / мы / вы)",
+      "hebrew": "לוֹקְחוֹת",
+      "transcription": "локхóт",
+      "translation": "берут / берем (ж.р.)"
+    }
+  ],
+  "past": [
+    {
+      "pronoun": "אֲנִי (я)",
+      "hebrew": "לָקַחְתִּי",
+      "transcription": "лакáхти",
+      "translation": "я взял(а)"
+    },
+    {
+      "pronoun": "אַתָּה (ты м.р.)",
+      "hebrew": "לָקַחְתָּ",
+      "transcription": "лакáхта",
+      "translation": "ты взял"
+    },
+    {
+      "pronoun": "אַתְּ (ты ж.р.)",
+      "hebrew": "לָקַחְתְּ",
+      "transcription": "лакáхт",
+      "translation": "ты взяла"
+    },
+    {
+      "pronoun": "הוּא (он)",
+      "hebrew": "לָקַח",
+      "transcription": "лакáх",
+      "translation": "он взял"
+    },
+    {
+      "pronoun": "הִיא (она)",
+      "hebrew": "לָקְחָה",
+      "transcription": "лакхá",
+      "translation": "она взяла"
+    },
+    {
+      "pronoun": "אֲנַחְנוּ (мы)",
+      "hebrew": "לָקַחְנוּ",
+      "transcription": "лакáхну",
+      "translation": "мы взяли"
+    },
+    {
+      "pronoun": "אַתֶּם / אַתֶּן (вы)",
+      "hebrew": "לְקַחְתֶּם / לְקַחְתֶּן",
+      "transcription": "лекахтéм / лекахтéн",
+      "translation": "вы взяли"
+    },
+    {
+      "pronoun": "הֵם / הֵן (они)",
+      "hebrew": "לָקְחוּ",
+      "transcription": "лакхӯ",
+      "translation": "они взяли"
+    }
+  ],
+  "future": [
+    {
+      "pronoun": "אֲנִי (я)",
+      "hebrew": "אֶקַּח",
+      "transcription": "экáх",
+      "translation": "я возьму"
+    },
+    {
+      "pronoun": "אַתָּה / הִיא (ты м.р. / она)",
+      "hebrew": "תִּקַּח",
+      "transcription": "тикáх",
+      "translation": "ты возьмешь / она возьмет"
+    },
+    {
+      "pronoun": "אַתְּ (ты ж.р.)",
+      "hebrew": "תִּקְחִי",
+      "transcription": "тикхӣ",
+      "translation": "ты возьмешь (ж.р.)"
+    },
+    {
+      "pronoun": "הוּא (он)",
+      "hebrew": "יִקַּח",
+      "transcription": "йикáх",
+      "translation": "он возьмет"
+    },
+    {
+      "pronoun": "אֲנַחְנוּ (мы)",
+      "hebrew": "נִקַּח",
+      "transcription": "никáх",
+      "translation": "мы возьмем"
+    },
+    {
+      "pronoun": "אַתֶּם / אַתֶּן (вы)",
+      "hebrew": "תִּקְחוּ",
+      "transcription": "тикхӯ",
+      "translation": "вы возьмете"
+    },
+    {
+      "pronoun": "הֵם / הֵן (они)",
+      "hebrew": "יִקְחוּ",
+      "transcription": "йикхӯ",
+      "translation": "они возьмут"
+    }
+  ],
+  "imperative": [
+    {
+      "pronoun": "אַתָּה (м.р.)",
+      "hebrew": "קַח",
+      "transcription": "ках",
+      "translation": "возьми (м.р.)"
+    },
+    {
+      "pronoun": "אַתְּ (ж.р.)",
+      "hebrew": "קְחִי",
+      "transcription": "кхӣ",
+      "translation": "возьми (ж.р.)"
+    },
+    {
+      "pronoun": "אַתֶּם / אַתֶּן (мн.ч.)",
+      "hebrew": "קְחוּ",
+      "transcription": "кхӯ",
+      "translation": "возьмите"
+    }
+  ]
+},
+  'ללבוש': {
+  "infinitive": {
+    "hebrew": "לִלְבֹּשׁ",
+    "transcription": "лильбóш",
+    "translation": "надевать одежду"
+  },
+  "binyan": "פָּעַל (Пааль)",
+  "root": "ל-ב-ש",
+  "present": [
+    {
+      "pronoun": "זָכָר יָחִיד (он / я / ты)",
+      "hebrew": "לוֹבֵשׁ",
+      "transcription": "ловéш",
+      "translation": "надевает / надеваю (м.р.)"
+    },
+    {
+      "pronoun": "נְקֵבָה יְחִידָה (она / я / ты)",
+      "hebrew": "לוֹבֶשֶׁת",
+      "transcription": "ловéшет",
+      "translation": "надевает / надеваю (ж.р.)"
+    },
+    {
+      "pronoun": "זָכָר רַבִּים (они / мы / вы)",
+      "hebrew": "לוֹבְשִׁים",
+      "transcription": "ловшӣм",
+      "translation": "надевают / надеваем (м.р.)"
+    },
+    {
+      "pronoun": "נְקֵבָה רַבּוֹת (они / мы / вы)",
+      "hebrew": "לוֹבְשׁוֹת",
+      "transcription": "ловшóт",
+      "translation": "надевают / надеваем (ж.р.)"
+    }
+  ],
+  "past": [
+    {
+      "pronoun": "אֲנִי (я)",
+      "hebrew": "לָבַשְׁתִּי",
+      "transcription": "лавáшти",
+      "translation": "я надел(а)"
+    },
+    {
+      "pronoun": "אַתָּה (ты м.р.)",
+      "hebrew": "לָבַשְׁתָּ",
+      "transcription": "лавáшта",
+      "translation": "ты надел"
+    },
+    {
+      "pronoun": "אַתְּ (ты ж.р.)",
+      "hebrew": "לָבַשְׁתְּ",
+      "transcription": "лавáшт",
+      "translation": "ты надела"
+    },
+    {
+      "pronoun": "הוּא (он)",
+      "hebrew": "לָבַשׁ",
+      "transcription": "лавáш",
+      "translation": "он надел"
+    },
+    {
+      "pronoun": "הִיא (она)",
+      "hebrew": "לָבְשָׁה",
+      "transcription": "лавшá",
+      "translation": "она надела"
+    },
+    {
+      "pronoun": "אֲנַחְנוּ (мы)",
+      "hebrew": "לָבַשְׁנוּ",
+      "transcription": "лавáшну",
+      "translation": "мы надели"
+    },
+    {
+      "pronoun": "אַתֶּם / אַתֶּן (вы)",
+      "hebrew": "לְבַשְׁתֶּם / לְבַשְׁתֶּן",
+      "transcription": "леваштéм / леваштéн",
+      "translation": "вы надели"
+    },
+    {
+      "pronoun": "הֵם / הֵן (они)",
+      "hebrew": "לָבְשׁוּ",
+      "transcription": "лавшӯ",
+      "translation": "они надели"
+    }
+  ],
+  "future": [
+    {
+      "pronoun": "אֲנִי (я)",
+      "hebrew": "אֶלְבַּשׁ",
+      "transcription": "эльбáш",
+      "translation": "я надену"
+    },
+    {
+      "pronoun": "אַתָּה / הִיא (ты м.р. / она)",
+      "hebrew": "תִּלְבַּשׁ",
+      "transcription": "тильбáш",
+      "translation": "ты наденешь / она наденет"
+    },
+    {
+      "pronoun": "אַתְּ (ты ж.р.)",
+      "hebrew": "תִּלְבְּשִׁי",
+      "transcription": "тильбешӣ",
+      "translation": "ты наденешь (ж.р.)"
+    },
+    {
+      "pronoun": "הוּא (он)",
+      "hebrew": "יִלְבַּשׁ",
+      "transcription": "йильбáш",
+      "translation": "он наденет"
+    },
+    {
+      "pronoun": "אֲנַחְנוּ (мы)",
+      "hebrew": "נִלְבַּשׁ",
+      "transcription": "нильбáш",
+      "translation": "мы наденем"
+    },
+    {
+      "pronoun": "אַתֶּם / אַתֶּן (вы)",
+      "hebrew": "תִּלְבְּשׁוּ",
+      "transcription": "тильбешӯ",
+      "translation": "вы наденете"
+    },
+    {
+      "pronoun": "הֵם / הֵן (они)",
+      "hebrew": "יִלְבְּשׁוּ",
+      "transcription": "йильбешӯ",
+      "translation": "они наденут"
+    }
+  ],
+  "imperative": [
+    {
+      "pronoun": "אַתָּה (м.р.)",
+      "hebrew": "לְבַשׁ",
+      "transcription": "льваш",
+      "translation": "надень (м.р.)"
+    },
+    {
+      "pronoun": "אַתְּ (ж.р.)",
+      "hebrew": "לִבְשִׁי",
+      "transcription": "лившӣ",
+      "translation": "надень (ж.р.)"
+    },
+    {
+      "pronoun": "אַתֶּם / אַתֶּן (мн.ч.)",
+      "hebrew": "לִבְשׁוּ",
+      "transcription": "лившӯ",
+      "translation": "наденьте"
+    }
+  ]
+},
 };
 
 import { RootRelatedWord } from '@/types';
@@ -1031,6 +5352,170 @@ export const ROOT_FAMILIES_PRESETS: Record<string, RootRelatedWord[]> = {
     { hebrew: 'לִלְבֹּשׁ', hebrewPlain: 'ללבוש', transcription: 'лильбóш', translation: 'надевать одежду (Пааль)', partOfSpeech: 'verb', binyan: 'פָּעַל (Пааль)', root: 'ל-ב-ש' },
     { hebrew: 'לְהַלְבִּישׁ', hebrewPlain: 'להלביש', transcription: 'леhальбӣш', translation: 'одевать кого-то (Ифъиль)', partOfSpeech: 'verb', binyan: 'הִפְעִיל (Ифъиль)', root: 'ל-ב-ש' },
   ],
+  'חפש': [
+  {
+    "hebrew": "חִפּוּשׂ",
+    "hebrewPlain": "חיפוש",
+    "transcription": "хипӯс",
+    "translation": "поиск, обыск (м.р.)",
+    "partOfSpeech": "noun",
+    "root": "ח-פ-שׂ"
+  },
+  {
+    "hebrew": "מְחֻפָּשׂ",
+    "hebrewPlain": "מחופש",
+    "transcription": "мехупáс",
+    "translation": "переодетый, разыскиваемый",
+    "partOfSpeech": "adjective",
+    "root": "ח-פ-שׂ"
+  },
+  {
+    "hebrew": "תַּחְפֹּשֶׂת",
+    "hebrewPlain": "תחפושת",
+    "transcription": "тахпóсет",
+    "translation": "маскарадный костюм (ж.р.)",
+    "partOfSpeech": "noun",
+    "root": "ח-פ-שׂ"
+  },
+  {
+    "hebrew": "לְהִתְחַפֵּשׂ",
+    "hebrewPlain": "להתחפש",
+    "transcription": "леhитхапéс",
+    "translation": "маскироваться, наряжаться в костюм (Итпаэль)",
+    "partOfSpeech": "verb",
+    "binyan": "הִתְפַּעֵל (Итпаэль)",
+    "root": "ח-פ-שׂ"
+  }
+],
+  'בקש': [
+  {
+    "hebrew": "בַּקָּשָׁה",
+    "hebrewPlain": "בקשה",
+    "transcription": "бакашá",
+    "translation": "просьба, заявление, пожалуйста (ж.р.)",
+    "partOfSpeech": "noun",
+    "root": "ב-ק-ש"
+  },
+  {
+    "hebrew": "בְּבַקָּשָׁה",
+    "hebrewPlain": "בבקשה",
+    "transcription": "бевакашá",
+    "translation": "пожалуйста, прошу вас",
+    "partOfSpeech": "expression",
+    "root": "ב-ק-ש"
+  },
+  {
+    "hebrew": "מְבֻקָּשׁ",
+    "hebrewPlain": "מבוקש",
+    "transcription": "мевукáш",
+    "translation": "востребованный, разыскиваемый",
+    "partOfSpeech": "adjective",
+    "root": "ב-ק-ש"
+  }
+],
+  'שלם': [
+  {
+    "hebrew": "תַּשְׁלוּם",
+    "hebrewPlain": "תשלום",
+    "transcription": "ташлӯм",
+    "translation": "платеж, оплата (м.р.)",
+    "partOfSpeech": "noun",
+    "root": "ש-ל-ם"
+  },
+  {
+    "hebrew": "שָׁלוֹם",
+    "hebrewPlain": "שלום",
+    "transcription": "шалóм",
+    "translation": "мир, привет, до свидания",
+    "partOfSpeech": "noun",
+    "root": "ש-ל-ם"
+  },
+  {
+    "hebrew": "שָׁלֵם",
+    "hebrewPlain": "שלם",
+    "transcription": "шалéм",
+    "translation": "целый, полный",
+    "partOfSpeech": "adjective",
+    "root": "ש-ל-ם"
+  },
+  {
+    "hebrew": "מֻשְׁלָם",
+    "hebrewPlain": "מושלם",
+    "transcription": "мушлáм",
+    "translation": "идеальный, совершенный",
+    "partOfSpeech": "adjective",
+    "root": "ש-ל-ם"
+  },
+  {
+    "hebrew": "לְהַשְׁלִים",
+    "hebrewPlain": "להשלים",
+    "transcription": "леhашлӣм",
+    "translation": "завершать, мириться (Ифъиль)",
+    "partOfSpeech": "verb",
+    "binyan": "הִפְעִיל (Ифъиль)",
+    "root": "ש-ל-ם"
+  }
+],
+  'פתח': [
+  {
+    "hebrew": "פֶּתַח",
+    "hebrewPlain": "פתח",
+    "transcription": "пéтах",
+    "translation": "вход, отверстие (м.р.)",
+    "partOfSpeech": "noun",
+    "root": "פ-ת-ח"
+  },
+  {
+    "hebrew": "מַפְתֵּחַ",
+    "hebrewPlain": "מפתח",
+    "transcription": "мафтéах",
+    "translation": "ключ (м.р.)",
+    "partOfSpeech": "noun",
+    "root": "פ-ת-ח"
+  },
+  {
+    "hebrew": "פְּתִיחָה",
+    "hebrewPlain": "פתיחה",
+    "transcription": "птихá",
+    "translation": "открытие, вступление (ж.р.)",
+    "partOfSpeech": "noun",
+    "root": "פ-ת-ח"
+  },
+  {
+    "hebrew": "פָּתוּחַ",
+    "hebrewPlain": "פתוח",
+    "transcription": "патӯах",
+    "translation": "открытый",
+    "partOfSpeech": "adjective",
+    "root": "פ-ת-ח"
+  }
+],
+  'סגר': [
+  {
+    "hebrew": "סְגִירָה",
+    "hebrewPlain": "סגירה",
+    "transcription": "сгирá",
+    "translation": "закрытие (ж.р.)",
+    "partOfSpeech": "noun",
+    "root": "ס-ג-ר"
+  },
+  {
+    "hebrew": "סָגוּר",
+    "hebrewPlain": "סגור",
+    "transcription": "сагӯр",
+    "translation": "закрытый",
+    "partOfSpeech": "adjective",
+    "root": "ס-ג-ר"
+  },
+  {
+    "hebrew": "מִסְגֶּרֶת",
+    "hebrewPlain": "מסגרת",
+    "transcription": "мисгéрет",
+    "translation": "рамка, формат (ж.р.)",
+    "partOfSpeech": "noun",
+    "root": "ס-ג-ר"
+  }
+],
 };
 
 /**
@@ -1081,49 +5566,48 @@ export function getRootFamilyWords(root?: string, explicitList?: RootRelatedWord
  */
 export function findOfflineVerbConjugation(query: string): VerbConjugation | null {
   if (!query) return null;
-  const clean = stripNikkud(query.trim().toLowerCase());
+  const clean = stripNikkud(query.trim().toLowerCase()).replace(/["'״׳\-–—]/g, '');
   if (!clean) return null;
 
   let matchedVerb: VerbConjugation | null = null;
 
-  // 1. Прямой поиск по ключу инфинитива (без огласовок)
+  // 1. Прямой поиск по ключу инфинитива
   if (VERB_CONJUGATIONS_DATABASE[clean]) {
     matchedVerb = VERB_CONJUGATIONS_DATABASE[clean];
+  } else if (!clean.startsWith('ל') && VERB_CONJUGATIONS_DATABASE['ל' + clean]) {
+    // 1b. Поиск без начальной 'ל' (например 'חפש' -> 'לחפש')
+    matchedVerb = VERB_CONJUGATIONS_DATABASE['ל' + clean];
   } else {
-    // 2. Поиск по всем глаголам в базе (проверка всех форм)
-    for (const verb of Object.values(VERB_CONJUGATIONS_DATABASE)) {
-      if (stripNikkud(verb.infinitive.hebrew).toLowerCase() === clean) {
+    // 2. Поиск по всем глаголам в базе (инфинитив, корень, формы)
+    for (const [, verb] of Object.entries(VERB_CONJUGATIONS_DATABASE)) {
+      if (stripNikkud(verb.infinitive.hebrew).toLowerCase().replace(/["'״׳]/g, '') === clean) {
         matchedVerb = verb;
         break;
       }
-
-      if (verb.root && stripNikkud(verb.root.replace(/-/g, '')).toLowerCase() === clean.replace(/-/g, '')) {
+      if (verb.root && stripNikkud(verb.root.replace(/[^א-ת]/g, '')).toLowerCase() === clean.replace(/[^א-ת]/g, '')) {
         matchedVerb = verb;
         break;
       }
-
-      if (verb.present.some((f) => stripNikkud(f.hebrew).toLowerCase() === clean)) {
+      if (verb.present && verb.present.some((f) => stripNikkud(f.hebrew).toLowerCase().replace(/["'״׳]/g, '') === clean)) {
         matchedVerb = verb;
         break;
       }
-
       if (
+        verb.past &&
         verb.past.some(
           (f) =>
-            stripNikkud(f.hebrew).toLowerCase() === clean ||
-            f.hebrew.split(' / ').some((sub) => stripNikkud(sub).toLowerCase() === clean)
+            stripNikkud(f.hebrew).toLowerCase().replace(/["'״׳]/g, '') === clean ||
+            f.hebrew.split(' / ').some((sub) => stripNikkud(sub).toLowerCase().replace(/["'״׳]/g, '') === clean)
         )
       ) {
         matchedVerb = verb;
         break;
       }
-
-      if (verb.future.some((f) => stripNikkud(f.hebrew).toLowerCase() === clean)) {
+      if (verb.future && verb.future.some((f) => stripNikkud(f.hebrew).toLowerCase().replace(/["'״׳]/g, '') === clean)) {
         matchedVerb = verb;
         break;
       }
-
-      if (verb.imperative && verb.imperative.some((f) => stripNikkud(f.hebrew).toLowerCase() === clean)) {
+      if (verb.imperative && verb.imperative.some((f) => stripNikkud(f.hebrew).toLowerCase().replace(/["'״׳]/g, '') === clean)) {
         matchedVerb = verb;
         break;
       }
@@ -1140,4 +5624,3 @@ export function findOfflineVerbConjugation(query: string): VerbConjugation | nul
 
   return null;
 }
-
