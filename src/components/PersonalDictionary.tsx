@@ -34,6 +34,7 @@ import { findOfflineVerbConjugation } from '@/lib/verbConjugations';
 import { VerbConjugationView } from '@/components/VerbConjugationView';
 import { THEMATIC_DECKS } from '@/data/thematicDecks';
 import { ThematicDecksView } from './ThematicDecksView';
+import { useModalHistory } from '@/lib/useHistoryState';
 
 interface PersonalDictionaryProps {
   userProfile: UserProfile;
@@ -67,6 +68,9 @@ export const PersonalDictionary: React.FC<PersonalDictionaryProps> = ({
     conjugation: VerbConjugation | null;
     loading: boolean;
   } | null>(null);
+
+  useModalHistory(Boolean(pealimModalVerb), () => setPealimModalVerb(null), 'pealim-dict');
+  useModalHistory(isAddingCustom, () => setIsAddingCustom(false), 'add-custom-word');
 
   const handleOpenPealim = async (word: Word) => {
     const offlineMatch =

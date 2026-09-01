@@ -51,6 +51,7 @@ import {
 } from '@/lib/storage';
 import { findOfflineVerbConjugation } from '@/lib/verbConjugations';
 import { VerbConjugationView } from '@/components/VerbConjugationView';
+import { useModalHistory } from '@/lib/useHistoryState';
 
 interface ThematicDecksViewProps {
   userProfile: UserProfile;
@@ -83,6 +84,9 @@ export const ThematicDecksView: React.FC<ThematicDecksViewProps> = ({
     conjugation: VerbConjugation | null;
     loading: boolean;
   } | null>(null);
+
+  useModalHistory(Boolean(pealimModal), () => setPealimModal(null), 'pealim-thematic');
+  useModalHistory(Boolean(listModalDeck), () => setListModalDeck(null), 'deck-detail');
 
   const isCursive = userProfile.fontStyle === 'cursive';
 

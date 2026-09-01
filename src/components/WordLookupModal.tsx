@@ -9,6 +9,7 @@ import { stripNikkud } from '@/lib/transcription';
 import { lookupOfflineWord } from '@/lib/ulpanDictionary';
 import { findOfflineVerbConjugation } from '@/lib/verbConjugations';
 import { VerbConjugationView } from '@/components/VerbConjugationView';
+import { useModalHistory } from '@/lib/useHistoryState';
 
 interface WordLookupModalProps {
   word: string;
@@ -45,6 +46,9 @@ export const WordLookupModal: React.FC<WordLookupModalProps> = ({
     } | null;
   } | null>(null);
   const [isAdded, setIsAdded] = useState(false);
+
+  // Привязка к кнопке/свайпу Назад (popstate)
+  useModalHistory(isOpen, onClose, 'word-lookup-modal');
 
   // Обработка закрытия по Escape
   useEffect(() => {

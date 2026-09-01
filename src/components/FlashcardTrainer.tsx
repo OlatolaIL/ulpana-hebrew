@@ -26,6 +26,7 @@ import { findOfflineVerbConjugation } from '@/lib/verbConjugations';
 import { VerbConjugationView } from '@/components/VerbConjugationView';
 import { getHebrewPictogram } from '@/lib/pictograms';
 import { WordVisual } from '@/components/WordVisual';
+import { useModalHistory } from '@/lib/useHistoryState';
 
 interface FlashcardTrainerProps {
   initialWords: Word[];
@@ -95,6 +96,8 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
     conjugation: VerbConjugation | null;
     loading: boolean;
   } | null>(null);
+
+  useModalHistory(Boolean(pealimModalVerb), () => setPealimModalVerb(null), 'pealim-flashcards');
 
   const handleOpenPealim = async (word: Word) => {
     const offlineMatch =

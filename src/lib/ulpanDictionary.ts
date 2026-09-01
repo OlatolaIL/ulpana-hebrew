@@ -1,5 +1,6 @@
 import { stripNikkud } from './transcription';
 import { DETAILED_LESSONS } from '@/data/lessonsData';
+import { THEMATIC_DECKS } from '@/data/thematicDecks';
 
 export interface DictionaryEntry {
   hebrew: string;
@@ -472,7 +473,30 @@ export function lookupOfflineWord(rawQuery: string): DictionaryEntry | null {
     }
   }
 
-  // 3. Эвристика приставок (הַ-, בְּ-, לְ-, וְ-, מִ-, כְּ-, שֶׁ-)
+  // 3. Поиск по тематическим словарям (THEMATIC_DECKS)
+  if (Array.isArray(THEMATIC_DECKS)) {
+    for (const deck of THEMATIC_DECKS) {
+      if (!deck.words) continue;
+      const deckWord = deck.words.find(
+        (w) =>
+          stripNikkud((w.hebrewPlain || '').toLowerCase()) === clean ||
+          stripNikkud((w.hebrew || '').toLowerCase()) === clean
+      );
+      if (deckWord) {
+        return {
+          hebrew: deckWord.hebrew,
+          hebrewPlain: deckWord.hebrewPlain,
+          transcription: deckWord.transcription,
+          translation: deckWord.translation,
+          root: deckWord.root || null,
+          partOfSpeech: deckWord.partOfSpeech || 'other',
+          exampleSentence: deckWord.exampleSentence || null,
+        };
+      }
+    }
+  }
+
+  // 4. Эвристика приставок (הַ-, בְּ-, לְ-, וְ-, מִ-, כְּ-, שֶׁ-)
   // Если слово начинается с типичного предлога/артикля и длина основы >= 2 букв
   const prefixes = ['ה', 'ב', 'ל', 'ו', 'מ', 'כ', 'ש'];
   for (const prefix of prefixes) {
@@ -507,6 +531,29 @@ export function lookupOfflineWord(rawQuery: string): DictionaryEntry | null {
               root: lessonWord.root || null,
               partOfSpeech: lessonWord.partOfSpeech || 'other',
               exampleSentence: lessonWord.exampleSentence || null,
+            };
+          }
+        }
+      }
+
+      // Проверяем в тематических колодах
+      if (Array.isArray(THEMATIC_DECKS)) {
+        for (const deck of THEMATIC_DECKS) {
+          if (!deck.words) continue;
+          const deckWord = deck.words.find(
+            (w) =>
+              stripNikkud((w.hebrewPlain || '').toLowerCase()) === subClean ||
+              stripNikkud((w.hebrew || '').toLowerCase()) === subClean
+          );
+          if (deckWord) {
+            return {
+              hebrew: deckWord.hebrew,
+              hebrewPlain: deckWord.hebrewPlain,
+              transcription: deckWord.transcription,
+              translation: deckWord.translation,
+              root: deckWord.root || null,
+              partOfSpeech: deckWord.partOfSpeech || 'other',
+              exampleSentence: deckWord.exampleSentence || null,
             };
           }
         }
@@ -549,6 +596,28 @@ export function findWordsByRoot(root: string): DictionaryEntry[] {
     for (const lesson of Object.values(DETAILED_LESSONS)) {
       if (!lesson?.vocabulary) continue;
       for (const word of lesson.vocabulary) {
+        if (!word.root) continue;
+        const wordCleanRoot = word.root.replace(/[^א-ת]/g, '');
+        if (wordCleanRoot === cleanRoot) {
+          addIfNew({
+            hebrew: word.hebrew,
+            hebrewPlain: word.hebrewPlain || word.hebrew,
+            transcription: word.transcription,
+            translation: word.translation,
+            root: word.root,
+            partOfSpeech: word.partOfSpeech || 'other',
+            exampleSentence: word.exampleSentence || null,
+          });
+        }
+      }
+    }
+  }
+
+  // 3. Поиск в тематических колодах
+  if (Array.isArray(THEMATIC_DECKS)) {
+    for (const deck of THEMATIC_DECKS) {
+      if (!deck.words) continue;
+      for (const word of deck.words) {
         if (!word.root) continue;
         const wordCleanRoot = word.root.replace(/[^א-ת]/g, '');
         if (wordCleanRoot === cleanRoot) {

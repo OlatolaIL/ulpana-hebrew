@@ -16,6 +16,7 @@ import { loadUserProfile, saveUserProfile, resetLessonProgress } from '@/lib/sto
 import { initHebrewVoices } from '@/lib/speech';
 import { DETAILED_LESSONS, getLessonById } from '@/data/lessonsData';
 import { isVipUser, VIP_EXPIRES_AT, applyVipProfileEnhancements } from '@/lib/vipUsers';
+import { useModalHistory } from '@/lib/useHistoryState';
 
 type ViewMode = 'map' | 'lesson' | 'flashcards' | 'dictionary' | 'alphabet';
 
@@ -105,6 +106,12 @@ export default function Home() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState(false);
+
+  // Привязка модалок страницы к истории браузера (свайп назад / кнопка Back закрывает модалку)
+  useModalHistory(isSettingsOpen, () => setIsSettingsOpen(false), 'settings-modal');
+  useModalHistory(isAuthModalOpen, () => setIsAuthModalOpen(false), 'auth-modal');
+  useModalHistory(isSubscriptionModalOpen, () => setIsSubscriptionModalOpen(false), 'subscription-modal');
+  useModalHistory(isMultiLessonSetupOpen, () => setIsMultiLessonSetupOpen(false), 'setup-modal');
 
   // Синхронизация данных с облаком
   const syncToCloud = useCallback(async (updated: UserProfile) => {
@@ -283,6 +290,182 @@ export default function Home() {
     initAuth();
   }, []);
 
+  // Навигация с сохранением в историю браузера (для свайпов назад и кнопок Back)
+  const navigateTo = useCallback(
+    (
+      view: ViewMode,
+      options?: {
+        lessonId?: number;
+        tab?: 'theory' | 'vocab' | 'exercises' | 'chat' | 'phone';
+        flashcardWords?: Word[];
+        flashcardTitle?: string;
+        flashcardMode?: 'flip' | 'builder' | 'listening';
+        flashcardSourceLessonId?: number | null;
+        replace?: boolean;
+      }
+    ) => {
+      setCurrentView(view);
+      if (options?.lessonId !== undefined) setActiveLessonId(options.lessonId);
+      if (options?.tab) setLessonInitialTab(options.tab);
+      if (options?.flashcardWords) setFlashcardWords(options.flashcardWords);
+      if (options?.flashcardTitle) setFlashcardTitle(options.flashcardTitle);
+      if (options?.flashcardMode) setFlashcardMode(options.flashcardMode);
+      if (options?.flashcardSourceLessonId !== undefined) {
+        setFlashcardSourceLessonId(options.flashcardSourceLessonId);
+      }
+
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+
+      // Генерация hash для чистого URL
+      let hash = '#map';
+      if (view === 'lesson') {
+        hash = `#lesson-${options?.lessonId || activeLessonId}`;
+      } else if (view === 'flashcards') {
+        hash = '#flashcards';
+      } else if (view === 'dictionary') {
+        hash = '#dictionary';
+      } else if (view === 'alphabet') {
+        hash = '#alphabet';
+      }
+
+      const stateObj = {
+        view,
+        lessonId: options?.lessonId !== undefined ? options.lessonId : activeLessonId,
+        tab: options?.tab || lessonInitialTab,
+        flashcardSourceLessonId:
+          options?.flashcardSourceLessonId !== undefined
+            ? options.flashcardSourceLessonId
+            : flashcardSourceLessonId,
+        flashcardTitle: options?.flashcardTitle || flashcardTitle,
+        flashcardMode: options?.flashcardMode || flashcardMode,
+      };
+
+      if (typeof window !== 'undefined') {
+        if (options?.replace) {
+          window.history.replaceState(stateObj, '', hash);
+        } else {
+          window.history.pushState(stateObj, '', hash);
+        }
+      }
+    },
+    [activeLessonId, lessonInitialTab, flashcardSourceLessonId, flashcardTitle, flashcardMode]
+  );
+
+  // Обработка истории браузера (popstate) при свайпе назад / системной кнопке Назад
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    // Первичная инициализация состояния из hash
+    const initialHash = window.location.hash;
+    let initialView: ViewMode = 'map';
+    let initialLessonId = 1;
+    let initialTab: 'theory' | 'vocab' | 'exercises' | 'chat' | 'phone' = 'theory';
+
+    if (initialHash.startsWith('#lesson-')) {
+      initialView = 'lesson';
+      const num = parseInt(initialHash.replace('#lesson-', ''), 10);
+      if (!isNaN(num) && num >= 1 && num <= 100) initialLessonId = num;
+    } else if (initialHash === '#flashcards') {
+      initialView = 'flashcards';
+    } else if (initialHash === '#dictionary') {
+      initialView = 'dictionary';
+    } else if (initialHash === '#alphabet') {
+      initialView = 'alphabet';
+    }
+
+    if (initialView !== 'map') {
+      setCurrentView(initialView);
+      setActiveLessonId(initialLessonId);
+      setLessonInitialTab(initialTab);
+    }
+
+    window.history.replaceState(
+      { view: initialView, lessonId: initialLessonId, tab: initialTab },
+      '',
+      initialHash || '#map'
+    );
+
+    const handlePopState = (event: PopStateEvent) => {
+      // 1. Если открыты глобальные модалки - закрываем модалку в первую очередь
+      if (isSettingsOpen) {
+        setIsSettingsOpen(false);
+        return;
+      }
+      if (isAuthModalOpen) {
+        setIsAuthModalOpen(false);
+        return;
+      }
+      if (isSubscriptionModalOpen) {
+        setIsSubscriptionModalOpen(false);
+        return;
+      }
+      if (isMultiLessonSetupOpen) {
+        setIsMultiLessonSetupOpen(false);
+        return;
+      }
+
+      const state = event.state;
+      if (state && state.view) {
+        setCurrentView(state.view);
+        if (state.lessonId) setActiveLessonId(state.lessonId);
+        if (state.tab) setLessonInitialTab(state.tab);
+        if (state.flashcardWords) setFlashcardWords(state.flashcardWords);
+        if (state.flashcardTitle) setFlashcardTitle(state.flashcardTitle);
+        if (state.flashcardMode) setFlashcardMode(state.flashcardMode);
+        if (state.flashcardSourceLessonId !== undefined) {
+          setFlashcardSourceLessonId(state.flashcardSourceLessonId);
+        }
+      } else {
+        // Фоллбек: разбираем hash
+        const curHash = window.location.hash;
+        if (curHash.startsWith('#lesson-')) {
+          const id = parseInt(curHash.replace('#lesson-', ''), 10);
+          setCurrentView('lesson');
+          if (!isNaN(id)) setActiveLessonId(id);
+        } else if (curHash === '#flashcards') {
+          setCurrentView('flashcards');
+        } else if (curHash === '#dictionary') {
+          setCurrentView('dictionary');
+        } else if (curHash === '#alphabet') {
+          setCurrentView('alphabet');
+        } else {
+          setCurrentView('map');
+        }
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [isSettingsOpen, isAuthModalOpen, isSubscriptionModalOpen, isMultiLessonSetupOpen]);
+
+  // Интеграция с Telegram WebApp BackButton
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const tg = (window as any).Telegram?.WebApp;
+    if (!tg?.BackButton) return;
+
+    const isModalOpen =
+      isSettingsOpen ||
+      isAuthModalOpen ||
+      isSubscriptionModalOpen ||
+      isMultiLessonSetupOpen;
+
+    const isRoot = currentView === 'map' && !isModalOpen;
+
+    if (isRoot) {
+      tg.BackButton.hide();
+    } else {
+      tg.BackButton.show();
+      const handleTgBack = () => {
+        window.history.back();
+      };
+      tg.BackButton.onClick(handleTgBack);
+      return () => {
+        tg.BackButton.offClick(handleTgBack);
+      };
+    }
+  }, [currentView, isSettingsOpen, isAuthModalOpen, isSubscriptionModalOpen, isMultiLessonSetupOpen]);
+
   if (!profile) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-zinc-50 dark:bg-zinc-950">
@@ -304,10 +487,7 @@ export default function Home() {
       setIsSubscriptionModalOpen(true);
       return;
     }
-    setActiveLessonId(id);
-    setLessonInitialTab(tab || 'theory');
-    setCurrentView('lesson');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    navigateTo('lesson', { lessonId: id, tab: tab || 'theory' });
   };
 
   const handleResetLessonProgress = (lessonId: number) => {
@@ -321,29 +501,33 @@ export default function Home() {
     mode?: 'flip' | 'builder' | 'listening',
     lessonId?: number
   ) => {
-    setFlashcardWords(wordsToTrain);
-    setFlashcardTitle(
+    const customTitle =
       title ||
-        (lessonId
-          ? (profile?.ulpanMode
-              ? `שִׁיעוּר ${lessonId}: כַּרְטִיסִיּוֹת מִילִּים`
-              : `Урок ${lessonId}: Карточки словаря`)
-          : (profile?.ulpanMode
-              ? 'תִּרְגּוּל כַּרְטִיסִיּוֹת'
-              : 'Тренировка карточек'))
-    );
-    setFlashcardMode(mode || 'flip');
-    setFlashcardSourceLessonId(lessonId || null);
-    setCurrentView('flashcards');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+      (lessonId
+        ? (profile?.ulpanMode
+            ? `שִׁיעוּר ${lessonId}: כַּרְטִיסִיּוֹת מִילִּים`
+            : `Урок ${lessonId}: Карточки словаря`)
+        : (profile?.ulpanMode
+            ? 'תִּרְגּוּל כַּרְטִיסִיּוֹת'
+            : 'Тренировка карточек'));
+
+    navigateTo('flashcards', {
+      flashcardWords: wordsToTrain,
+      flashcardTitle: customTitle,
+      flashcardMode: mode || 'flip',
+      flashcardSourceLessonId: lessonId || null,
+    });
   };
 
   const handleCloseFlashcards = () => {
-    if (flashcardSourceLessonId) {
-      setActiveLessonId(flashcardSourceLessonId);
-      setCurrentView('lesson');
+    if (typeof window !== 'undefined' && window.history.length > 1) {
+      window.history.back();
     } else {
-      setCurrentView('map');
+      if (flashcardSourceLessonId) {
+        navigateTo('lesson', { lessonId: flashcardSourceLessonId, replace: true });
+      } else {
+        navigateTo('map', { replace: true });
+      }
     }
   };
 
@@ -351,10 +535,7 @@ export default function Home() {
     lessonId: number,
     nextTab: 'theory' | 'vocab' | 'exercises' | 'chat' | 'phone'
   ) => {
-    setActiveLessonId(lessonId);
-    setLessonInitialTab(nextTab);
-    setCurrentView('lesson');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    navigateTo('lesson', { lessonId, tab: nextTab });
   };
 
   const handleLaunchGeneralFlashcards = () => {
@@ -443,6 +624,14 @@ export default function Home() {
     handleUpdateProfile(updated);
   };
 
+  const handleCloseLesson = () => {
+    if (typeof window !== 'undefined' && window.history.length > 1) {
+      window.history.back();
+    } else {
+      navigateTo('map', { replace: true });
+    }
+  };
+
   return (
     <div
       data-font-style={profile.fontStyle || 'print'}
@@ -455,7 +644,7 @@ export default function Home() {
           if (view === 'flashcards') {
             handleLaunchGeneralFlashcards();
           } else {
-            setCurrentView(view);
+            navigateTo(view);
           }
         }}
         userProfile={profile}
@@ -483,7 +672,7 @@ export default function Home() {
             lessonId={activeLessonId}
             initialTab={lessonInitialTab}
             userProfile={profile}
-            onBack={() => setCurrentView('map')}
+            onBack={handleCloseLesson}
             onSelectLesson={(id) => handleSelectLesson(id, 'theory')}
             onStartFlashcards={(words, lessonId) =>
               handleStartFlashcards(
