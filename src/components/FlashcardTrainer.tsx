@@ -218,6 +218,13 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
     }
   };
 
+  const handlePrevWord = () => {
+    if (currentIndex > 0) {
+      setCurrentIndex((prev) => prev - 1);
+      setIsFlipped(false);
+    }
+  };
+
   const handleNextWord = (quality = 4) => {
     handleRecordSRS(quality);
 
@@ -251,6 +258,29 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
       triggerCelebration();
     }
   };
+
+  // Горячие клавиши для режима карточек (Стрелка влево / вправо / пробел)
+  useEffect(() => {
+    if (mode !== 'flip' || !currentWord) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement)?.tagName)) return;
+
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        handlePrevWord();
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        handleAdvanceNext();
+      } else if (e.key === ' ' || e.key === 'Enter') {
+        e.preventDefault();
+        setIsFlipped((prev) => !prev);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [mode, currentWord, currentIndex]);
 
   const handleForgotFlip = () => {
     handleRecordSRS(1);
@@ -581,10 +611,30 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
             )}
           </button>
 
-          <div className="text-xs font-semibold text-zinc-500">
-            {isUlpan
-              ? `${currentIndex + 1} מִתּוֹךְ ${words.length}`
-              : `${currentIndex + 1} из ${words.length}`}
+          <div className="flex items-center gap-1 bg-zinc-100 dark:bg-zinc-800 p-1 rounded-xl border border-zinc-200/60 dark:border-zinc-700/60">
+            <button
+              type="button"
+              disabled={currentIndex === 0}
+              onClick={handlePrevWord}
+              className="p-1 rounded-lg text-zinc-600 dark:text-zinc-400 hover:bg-white dark:hover:bg-zinc-700 hover:text-zinc-900 dark:hover:text-zinc-100 disabled:opacity-25 disabled:cursor-not-allowed transition cursor-pointer"
+              title={isUlpan ? 'מִילָּה קוֹדֶמֶת (הקודם)' : 'Предыдущее слово (Стрелка влево)'}
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+            </button>
+            <div className="text-xs font-bold text-zinc-700 dark:text-zinc-300 px-1.5 min-w-[65px] text-center select-none font-hebrew">
+              {isUlpan
+                ? `${currentIndex + 1} / ${words.length}`
+                : `${currentIndex + 1} из ${words.length}`}
+            </div>
+            <button
+              type="button"
+              disabled={currentIndex + 1 >= words.length}
+              onClick={handleAdvanceNext}
+              className="p-1 rounded-lg text-zinc-600 dark:text-zinc-400 hover:bg-white dark:hover:bg-zinc-700 hover:text-zinc-900 dark:hover:text-zinc-100 disabled:opacity-25 disabled:cursor-not-allowed transition cursor-pointer"
+              title={isUlpan ? 'הַמִּילָּה הַבָּאָה (הבא)' : 'Следующее слово (Стрелка вправо)'}
+            >
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
           </div>
         </div>
       </div>
@@ -753,14 +803,27 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
           {/* Действия для лицевой стороны (!isFlipped) */}
           {!isFlipped ? (
             <div className="space-y-2.5">
-              <button
-                type="button"
-                onClick={() => setIsFlipped(true)}
-                className="w-full py-3 px-4 rounded-2xl bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-100 dark:hover:bg-blue-900/60 text-blue-600 dark:text-blue-400 font-bold text-xs sm:text-sm border border-blue-200 dark:border-blue-800 shadow-xs flex items-center justify-center gap-2 transition active:scale-98 cursor-pointer"
-              >
-                <RotateCw className="w-4 h-4" />
-                <span>{isUlpan ? 'הַצֵּג תַּרְגּוּם וּפְרָטִים' : 'Показать перевод и детали'}</span>
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  disabled={currentIndex === 0}
+                  onClick={handlePrevWord}
+                  className="py-3 px-3.5 rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 disabled:opacity-25 disabled:cursor-not-allowed hover:bg-zinc-50 dark:hover:bg-zinc-800 font-bold text-xs sm:text-sm shadow-xs flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer shrink-0"
+                  title={isUlpan ? 'חֲזֹר לַמִּילָּה הַקּוֹדֶמֶת' : 'Предыдущее слово'}
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  <span className="hidden sm:inline">{isUlpan ? 'קוֹדֶמֶת' : 'Назад'}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setIsFlipped(true)}
+                  className="flex-1 py-3 px-4 rounded-2xl bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-100 dark:hover:bg-blue-900/60 text-blue-600 dark:text-blue-400 font-bold text-xs sm:text-sm border border-blue-200 dark:border-blue-800 shadow-xs flex items-center justify-center gap-2 transition active:scale-98 cursor-pointer"
+                >
+                  <RotateCw className="w-4 h-4" />
+                  <span>{isUlpan ? 'הַצֵּג תַּרְגּוּם וּפְרָטִים' : 'Показать перевод и детали'}</span>
+                </button>
+              </div>
 
               <div className="grid grid-cols-3 gap-2 sm:gap-3">
                 <button
@@ -803,14 +866,27 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
           ) : (
             /* Действия для открытой карточки (isFlipped) */
             <div className="space-y-2.5 animate-in fade-in">
-              <button
-                type="button"
-                onClick={handleAdvanceNext}
-                className="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-sm shadow-md flex items-center justify-center gap-2 transition active:scale-98 cursor-pointer"
-              >
-                <span>{isUlpan ? 'הַמִּילָּה הַבָּאָה' : 'Следующее слово'}</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  disabled={currentIndex === 0}
+                  onClick={handlePrevWord}
+                  className="py-3.5 px-3.5 rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 disabled:opacity-25 disabled:cursor-not-allowed hover:bg-zinc-50 dark:hover:bg-zinc-800 font-bold text-xs sm:text-sm shadow-xs flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer shrink-0"
+                  title={isUlpan ? 'חֲזֹר לַמִּילָּה הַקּוֹדֶמֶת' : 'Предыдущее слово'}
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  <span className="hidden sm:inline">{isUlpan ? 'קוֹדֶמֶת' : 'Назад'}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleAdvanceNext}
+                  className="flex-1 py-3.5 px-4 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-sm shadow-md flex items-center justify-center gap-2 transition active:scale-98 cursor-pointer"
+                >
+                  <span>{isUlpan ? 'הַמִּילָּה הַבָּאָה' : 'Следующее слово'}</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              </div>
 
               <div className="grid grid-cols-3 gap-2 sm:gap-3">
                 <button
@@ -1065,14 +1141,27 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
                   </p>
                 )}
 
-                <button
-                  type="button"
-                  onClick={() => handleNextWord(5)}
-                  className="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm shadow-md transition flex items-center justify-center gap-2 active:scale-98 cursor-pointer"
-                >
-                  <span>{isUlpan ? 'הַמִּילָּה הַבָּאָה' : 'Следующее слово'}</span>
-                  <ArrowRight className="w-4 h-4" />
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    disabled={currentIndex === 0}
+                    onClick={handlePrevWord}
+                    className="py-3 px-3.5 rounded-xl border border-emerald-300 dark:border-emerald-800 bg-white dark:bg-zinc-900 text-emerald-700 dark:text-emerald-300 disabled:opacity-25 disabled:cursor-not-allowed hover:bg-emerald-50 dark:hover:bg-emerald-950/60 font-bold text-xs sm:text-sm shadow-sm transition active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer shrink-0"
+                    title={isUlpan ? 'חֲזֹר לַמִּילָּה הַקּוֹדֶמֶת' : 'Предыдущее слово'}
+                  >
+                    <ArrowLeft className="w-4 h-4" />
+                    <span className="hidden sm:inline">{isUlpan ? 'קוֹדֶמֶת' : 'Назад'}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleNextWord(5)}
+                    className="flex-1 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm shadow-md transition flex items-center justify-center gap-2 active:scale-98 cursor-pointer"
+                  >
+                    <span>{isUlpan ? 'הַמִּילָּה הַבָּאָה' : 'Следующее слово'}</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
             )}
 
@@ -1163,6 +1252,30 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
                 </button>
               );
             })}
+          </div>
+
+          {/* Навигация в режиме аудирования */}
+          <div className="flex items-center justify-between pt-2 border-t border-zinc-100 dark:border-zinc-800">
+            <button
+              type="button"
+              disabled={currentIndex === 0}
+              onClick={handlePrevWord}
+              className="py-2 px-3 rounded-xl border border-zinc-200 dark:border-zinc-700 text-xs font-semibold text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-25 disabled:cursor-not-allowed transition flex items-center gap-1.5 cursor-pointer"
+              title={isUlpan ? 'חֲזֹר לַמִּילָּה הַקּוֹדֶמֶת' : 'Предыдущее слово'}
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span>{isUlpan ? 'מִילָּה קוֹדֶמֶת' : 'Предыдущее слово'}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleAdvanceNext}
+              className="py-2 px-3 rounded-xl bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-xs font-semibold text-zinc-700 dark:text-zinc-300 transition flex items-center gap-1.5 cursor-pointer"
+              title={isUlpan ? 'דַּלֵּג לַמִּילָּה הַבָּאָה' : 'Перейти к следующему слову'}
+            >
+              <span>{isUlpan ? 'דַּלֵּג (הַבָּא)' : 'Пропустить (далее)'}</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
           </div>
         </div>
       )}
