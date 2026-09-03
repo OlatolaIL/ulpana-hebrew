@@ -11,16 +11,16 @@ export const THEMATIC_DECKS: ThematicDeck[] = [
   // УРОВЕНЬ АЛЕФ (א) - Базовые тематические наборы
   // ==========================================
   {
-    id: 'top-100-verbs-alef',
-    title: 'Топ-100 глаголов Алеф (4 биньяна)',
-    titleHebrew: '100 פְּעָלִים בְּסִיסִיִּים',
-    description: '100 ключевых инфинитивов 4 активных биньянов (Пааль, Пиэль, Ифъиль, Итпаэль). Спряжения и семья корня доступны по кнопке «Пеалим».',
+    id: 'verbs-alef-1',
+    title: 'Глаголы Алеф — Часть 1 (Пааль: Базовые действия)',
+    titleHebrew: 'פְּעָלִים רָמָה א׳ - חֵלֶק 1 (פָּעַל)',
+    description: '25 ключевых инфинитивов биньяна Пааль: базовые потребности, еда, движение, чтение, письмо и быт. Спряжения — по кнопке «Пеалим».',
     level: 'alef',
     category: 'verbs',
     icon: 'Zap',
     words: [
       // ----------------------------------------------------
-      // БИНЬЯН ПААЛЬ (פָּעַל) - Базовые действия и движение (45 глаголов)
+      // БИНЬЯН ПААЛЬ (פָּעַל) - Базовые действия и движение (Часть 1, 25 глаголов)
       // ----------------------------------------------------
       { id: 'v_a_1', hebrew: 'לִרְצוֹת', hebrewPlain: 'לרצות', transcription: 'лирцóт', translation: 'хотеть', partOfSpeech: 'verb', root: 'ר-צ-ה', lessonId: 0 },
       { id: 'v_a_2', hebrew: 'לִשְׁתּוֹת', hebrewPlain: 'לשתות', transcription: 'лиштóт', translation: 'пить', partOfSpeech: 'verb', root: 'ש-ת-ה', lessonId: 0 },
@@ -28,7 +28,7 @@ export const THEMATIC_DECKS: ThematicDeck[] = [
       { id: 'v_a_4', hebrew: 'לָלֶכֶת', hebrewPlain: 'ללכת', transcription: 'лалéхет', translation: 'идти, ходить', partOfSpeech: 'verb', root: 'ה-ל-ך', lessonId: 0 },
       { id: 'v_a_5', hebrew: 'לִכְתֹּב', hebrewPlain: 'לכתוב', transcription: 'лихтóв', translation: 'писать', partOfSpeech: 'verb', root: 'כ-ת-ב', lessonId: 0 },
       { id: 'v_a_6', hebrew: 'לִקְרֹא', hebrewPlain: 'לקרוא', transcription: 'ликрó', translation: 'читать, звать', partOfSpeech: 'verb', root: 'ק-ר-א', lessonId: 0 },
-      { id: 'v_a_7', hebrew: 'לִלְמֹד', hebrewPlain: 'ללמוד', transcription: 'лильмóд', translation: 'учить, изучать', partOfSpeech: 'verb', root: 'ל-מ-ד', lessonId: 0 },
+      { id: 'v_a_7', hebrew: 'לִלְמֹד', hebrewPlain: 'ללמוד', transcription: 'лильмóд', translation: 'учить, изучать', partOfSpeech: 'verb', root: 'ל-מ-д', lessonId: 0 },
       { id: 'v_a_8', hebrew: 'לָגוּר', hebrewPlain: 'לגור', transcription: 'лагӯр', translation: 'жить, проживать', partOfSpeech: 'verb', root: 'ג-ו-ר', lessonId: 0 },
       { id: 'v_a_9', hebrew: 'לִקְנוֹת', hebrewPlain: 'לקנות', transcription: 'ликнóт', translation: 'покупать', partOfSpeech: 'verb', root: 'ק-נ-ה', lessonId: 0 },
       { id: 'v_a_10', hebrew: 'לַעֲבֹד', hebrewPlain: 'לעבוד', transcription: 'лаавóд', translation: 'работать', partOfSpeech: 'verb', root: 'ע-ב-ד', lessonId: 0 },
@@ -47,6 +47,21 @@ export const THEMATIC_DECKS: ThematicDeck[] = [
       { id: 'v_a_23', hebrew: 'לִשְׁאֹל', hebrewPlain: 'לשאול', transcription: 'лиш’óль', translation: 'спрашивать', partOfSpeech: 'verb', root: 'ש-א-ל', lessonId: 0 },
       { id: 'v_a_24', hebrew: 'לַעֲנוֹת', hebrewPlain: 'לענות', transcription: 'лаанóт', translation: 'отвечать', partOfSpeech: 'verb', root: 'ע-נ-ה', lessonId: 0 },
       { id: 'v_a_25', hebrew: 'לוֹמַר', hebrewPlain: 'לומר', transcription: 'ломáр', translation: 'говорить, сказать', partOfSpeech: 'verb', root: 'א-מ-ר', lessonId: 0 },
+    ],
+  },
+
+  {
+    id: 'verbs-alef-2',
+    title: 'Глаголы Алеф — Часть 2 (Пааль и Пиэль)',
+    titleHebrew: 'פְּעָלִים רָמָה א׳ - חֵלֶק 2',
+    description: '25 глаголов: движение, память, отдых, мышление, покупки (Пааль) и первые глаголы общения (Пиэль).',
+    level: 'alef',
+    category: 'verbs',
+    icon: 'Zap',
+    words: [
+      // ----------------------------------------------------
+      // БИНЬЯН ПААЛЬ (פָּעַל) - Движение, память, мышление (20 глаголов)
+      // ----------------------------------------------------
       { id: 'v_a_26', hebrew: 'לִנְסֹעַ', hebrewPlain: 'לנסוע', transcription: 'линсóа', translation: 'ехать, ехать на транспорте', partOfSpeech: 'verb', root: 'נ-ס-ע', lessonId: 0 },
       { id: 'v_a_27', hebrew: 'לַחֲזֹר', hebrewPlain: 'לחזור', transcription: 'лахазóр', translation: 'возвращаться, повторять', partOfSpeech: 'verb', root: 'ח-ז-ר', lessonId: 0 },
       { id: 'v_a_28', hebrew: 'לָרוּץ', hebrewPlain: 'לרוץ', transcription: 'ларӯц', translation: 'бегать', partOfSpeech: 'verb', root: 'ר-ו-ץ', lessonId: 0 },
@@ -67,15 +82,29 @@ export const THEMATIC_DECKS: ThematicDeck[] = [
       { id: 'v_a_43', hebrew: 'לִשְׁמֹר', hebrewPlain: 'לשמור', transcription: 'лишмóр', translation: 'сохранять, беречь', partOfSpeech: 'verb', root: 'ש-מ-ר', lessonId: 0 },
       { id: 'v_a_44', hebrew: 'לַעֲבֹר', hebrewPlain: 'לעבור', transcription: 'лаавóр', translation: 'переходить, переезжать', partOfSpeech: 'verb', root: 'ע-ב-ר', lessonId: 0 },
       { id: 'v_a_45', hebrew: 'לַעֲצֹר', hebrewPlain: 'לעצור', transcription: 'лаацóр', translation: 'останавливать(ся)', partOfSpeech: 'verb', root: 'ע-צ-ר', lessonId: 0 },
-
       // ----------------------------------------------------
-      // БИНЬЯН ПИЭЛЬ (פִּעֵל) - Разговор, организация, чувства (25 глаголов)
+      // БИНЬЯН ПИЭЛЬ (פִּעֵל) - Разговор, организация (5 глаголов)
       // ----------------------------------------------------
       { id: 'v_a_46', hebrew: 'לְדַבֵּר', hebrewPlain: 'לדבר', transcription: 'ледабéр', translation: 'разговаривать, говорить', partOfSpeech: 'verb', root: 'ד-ב-ר', lessonId: 0 },
       { id: 'v_a_47', hebrew: 'לְבַקֵּשׁ', hebrewPlain: 'לבקש', transcription: 'левакéш', translation: 'просить', partOfSpeech: 'verb', root: 'ב-ק-ש', lessonId: 0 },
       { id: 'v_a_48', hebrew: 'לְשַׁלֵּם', hebrewPlain: 'לשלם', transcription: 'лешалéм', translation: 'платить', partOfSpeech: 'verb', root: 'ש-ל-ם', lessonId: 0 },
       { id: 'v_a_49', hebrew: 'לְסַפֵּר', hebrewPlain: 'לספר', transcription: 'лесапéр', translation: 'рассказывать', partOfSpeech: 'verb', root: 'ס-פ-ר', lessonId: 0 },
       { id: 'v_a_50', hebrew: 'לְטַיֵּל', hebrewPlain: 'לטייל', transcription: 'летаéль', translation: 'гулять, путешествовать', partOfSpeech: 'verb', root: 'ט-י-ל', lessonId: 0 },
+    ],
+  },
+
+  {
+    id: 'verbs-alef-3',
+    title: 'Глаголы Алеф — Часть 3 (Пиэль и Ифъиль)',
+    titleHebrew: 'פְּעָלִים רָמָה א׳ - חֵלֶק 3',
+    description: '25 глаголов: быт, уборка, творчество, надежды (Пиэль) и ключевые глаголы биньяна Ифъиль (чувствовать, заказывать, понимать).',
+    level: 'alef',
+    category: 'verbs',
+    icon: 'Zap',
+    words: [
+      // ----------------------------------------------------
+      // БИНЬЯН ПИЭЛЬ (פִּעֵל) - Действия, организация, чувства (20 глаголов)
+      // ----------------------------------------------------
       { id: 'v_a_51', hebrew: 'לְחַפֵּשׂ', hebrewPlain: 'לחפש', transcription: 'лехапéс', translation: 'искать', partOfSpeech: 'verb', root: 'ח-פ-ש', lessonId: 0 },
       { id: 'v_a_52', hebrew: 'לְסַדֵּר', hebrewPlain: 'לסדר', transcription: 'лесадéр', translation: 'наводить порядок, устраивать', partOfSpeech: 'verb', root: 'ס-ד-ר', lessonId: 0 },
       { id: 'v_a_53', hebrew: 'לְקַבֵּל', hebrewPlain: 'לקבל', transcription: 'лекабéль', translation: 'получать, принимать', partOfSpeech: 'verb', root: 'ק-ב-ל', lessonId: 0 },
@@ -96,15 +125,29 @@ export const THEMATIC_DECKS: ThematicDeck[] = [
       { id: 'v_a_68', hebrew: 'לְאַחֵל', hebrewPlain: 'לאחל', transcription: 'леахéль', translation: 'желать (кому-то)', partOfSpeech: 'verb', root: 'א-ח-ל', lessonId: 0 },
       { id: 'v_a_69', hebrew: 'לְסַיֵּם', hebrewPlain: 'לסיים', transcription: 'лесаéм', translation: 'заканчивать, завершать', partOfSpeech: 'verb', root: 'ס-י-ם', lessonId: 0 },
       { id: 'v_a_70', hebrew: 'לְאַרְגֵּן', hebrewPlain: 'לארגן', transcription: 'леаргéн', translation: 'организовывать', partOfSpeech: 'verb', root: 'א-ר-ג-ן', lessonId: 0 },
-
       // ----------------------------------------------------
-      // БИНЬЯН ИФЪИЛЬ (הִפְעִיל) - Причинные действия, восприятие (18 глаголов)
+      // БИНЬЯН ИФЪИЛЬ (הִפְעִיל) - Восприятие, действие (5 глаголов)
       // ----------------------------------------------------
       { id: 'v_a_71', hebrew: 'לְהַרְגִּישׁ', hebrewPlain: 'להרגיש', transcription: 'леhаргӣш', translation: 'чувствовать себя', partOfSpeech: 'verb', root: 'ר-ג-ש', lessonId: 0 },
       { id: 'v_a_72', hebrew: 'לְהַזְמִין', hebrewPlain: 'להזמין', transcription: 'леhазмӣн', translation: 'заказывать, приглашать', partOfSpeech: 'verb', root: 'ז-מ-ן', lessonId: 0 },
       { id: 'v_a_73', hebrew: 'לְהַתְחִיל', hebrewPlain: 'להתחיל', transcription: 'леhатхӣль', translation: 'начинать', partOfSpeech: 'verb', root: 'ת-ח-ל', lessonId: 0 },
       { id: 'v_a_74', hebrew: 'לְהַגִּיעַ', hebrewPlain: 'להגיע', transcription: 'леhагӣа', translation: 'прибывать, добираться', partOfSpeech: 'verb', root: 'נ-ג-ע', lessonId: 0 },
       { id: 'v_a_75', hebrew: 'לְהָבִין', hebrewPlain: 'להבין', transcription: 'леhавӣн', translation: 'понимать', partOfSpeech: 'verb', root: 'ב-ו-ן', lessonId: 0 },
+    ],
+  },
+
+  {
+    id: 'verbs-alef-4',
+    title: 'Глаголы Алеф — Часть 4 (Ифъиль и Итпаэль)',
+    titleHebrew: 'פְּעָלִים רָמָה א׳ - חֵלֶק 4',
+    description: '25 глаголов: причинные действия биньяна Ифъиль (знакомство, решения, свет, рекомендации) и возвратные действия биньяна Итпаэль.',
+    level: 'alef',
+    category: 'verbs',
+    icon: 'Zap',
+    words: [
+      // ----------------------------------------------------
+      // БИНЬЯН ИФЪИЛЬ (הִפְעִיל) - Причинные действия, восприятие (13 глаголов)
+      // ----------------------------------------------------
       { id: 'v_a_76', hebrew: 'לְהַכִּיר', hebrewPlain: 'להכיר', transcription: 'леhакӣр', translation: 'знать, быть знакомым', partOfSpeech: 'verb', root: 'נ-כ-ר', lessonId: 0 },
       { id: 'v_a_77', hebrew: 'לְהַסְבִּיר', hebrewPlain: 'להסביר', transcription: 'леhасбӣр', translation: 'объяснять', partOfSpeech: 'verb', root: 'ס-ב-ר', lessonId: 0 },
       { id: 'v_a_78', hebrew: 'לְהַקְשִׁיב', hebrewPlain: 'להקשיב', transcription: 'леhакшӣв', translation: 'внимательно слушать', partOfSpeech: 'verb', root: 'ק-ש-ב', lessonId: 0 },
@@ -118,7 +161,6 @@ export const THEMATIC_DECKS: ThematicDeck[] = [
       { id: 'v_a_86', hebrew: 'לְהַצְלִיחַ', hebrewPlain: 'להצליח', transcription: 'леhацлӣах', translation: 'иметь успех, преуспевать', partOfSpeech: 'verb', root: 'צ-ל-ח', lessonId: 0 },
       { id: 'v_a_87', hebrew: 'לְהַעֲדִיף', hebrewPlain: 'להעדיף', transcription: 'леhаадӣф', translation: 'предпочитать', partOfSpeech: 'verb', root: 'ע-ד-ף', lessonId: 0 },
       { id: 'v_a_88', hebrew: 'לְהַסְכִּים', hebrewPlain: 'להסכים', transcription: 'леhаскӣм', translation: 'соглашаться', partOfSpeech: 'verb', root: 'ס-כ-ם', lessonId: 0 },
-
       // ----------------------------------------------------
       // БИНЬЯН ИТПАЭЛЬ (הִתְפַּעֵל) - Возвратные, взаимные действия (12 глаголов)
       // ----------------------------------------------------
@@ -129,7 +171,7 @@ export const THEMATIC_DECKS: ThematicDeck[] = [
       { id: 'v_a_93', hebrew: 'לְהִתְחַתֵּן', hebrewPlain: 'להתחתן', transcription: 'леhитхатéн', translation: 'жениться, выходить замуж', partOfSpeech: 'verb', root: 'ח-ת-ן', lessonId: 0 },
       { id: 'v_a_94', hebrew: 'לְהִתְפַּלֵּל', hebrewPlain: 'להתפלל', transcription: 'леhитпалéль', translation: 'молиться', partOfSpeech: 'verb', root: 'פ-ל-ל', lessonId: 0 },
       { id: 'v_a_95', hebrew: 'לְהִצְטַעֵר', hebrewPlain: 'להצטער', transcription: 'леhицта’éр', translation: 'сожалеть, извиняться', partOfSpeech: 'verb', root: 'צ-ע-ר', lessonId: 0 },
-      { id: 'v_a_96', hebrew: 'לְהִתְקַשֵּׁר', hebrewPlain: 'להתקשר', transcription: 'леhиткашéр', translation: 'связываться, звонить', partOfSpeech: 'verb', root: 'ק-ש-ר', lessonId: 0 },
+      { id: 'v_a_96', hebrew: 'לְהִתְקַשֵּׁר', hebrewPlain: 'להתקשר', transcription: 'леhиткашéр', translation: 'связываться, звонить', partOfSpeech: 'verb', root: 'ק-ש-р', lessonId: 0 },
       { id: 'v_a_97', hebrew: 'לְהִתְרָאוֹת', hebrewPlain: 'להתראות', transcription: 'леhитра’óт', translation: 'увидеться (до свидания)', partOfSpeech: 'verb', root: 'ר-א-ה', lessonId: 0 },
       { id: 'v_a_98', hebrew: 'לְהִסְתַּכֵּל', hebrewPlain: 'להסתכל', transcription: 'леhистакéль', translation: 'смотреть, глядеть', partOfSpeech: 'verb', root: 'ס-כ-ל', lessonId: 0 },
       { id: 'v_a_99', hebrew: 'לְהִתְקַדֵּם', hebrewPlain: 'להתקדם', transcription: 'леhиткадéм', translation: 'продвигаться, делать успехи', partOfSpeech: 'verb', root: 'ק-ד-ם', lessonId: 0 },
@@ -664,6 +706,9 @@ export function getDeckWords(deckId: string): Word[] {
  * Получить колоду по ID
  */
 export function getThematicDeckById(id: string): ThematicDeck | undefined {
+  if (id === 'top-100-verbs-alef') {
+    return THEMATIC_DECKS.find((deck) => deck.id === 'verbs-alef-1');
+  }
   return THEMATIC_DECKS.find((deck) => deck.id === id);
 }
 
