@@ -100,6 +100,7 @@ export default function Home() {
   const [flashcardWords, setFlashcardWords] = useState<Word[]>([]);
   const [flashcardTitle, setFlashcardTitle] = useState<string>('Тренировка карточек');
   const [flashcardMode, setFlashcardMode] = useState<'flip' | 'builder' | 'listening'>('flip');
+  const [flashcardDirection, setFlashcardDirection] = useState<'he-ru' | 'ru-he'>('he-ru');
   const [flashcardSourceLessonId, setFlashcardSourceLessonId] = useState<number | null>(null);
   const [lessonInitialTab, setLessonInitialTab] = useState<'theory' | 'vocab' | 'exercises' | 'chat' | 'phone'>('theory');
   const [isMultiLessonSetupOpen, setIsMultiLessonSetupOpen] = useState(false);
@@ -300,6 +301,7 @@ export default function Home() {
         flashcardWords?: Word[];
         flashcardTitle?: string;
         flashcardMode?: 'flip' | 'builder' | 'listening';
+        flashcardDirection?: 'he-ru' | 'ru-he';
         flashcardSourceLessonId?: number | null;
         replace?: boolean;
       }
@@ -310,6 +312,7 @@ export default function Home() {
       if (options?.flashcardWords) setFlashcardWords(options.flashcardWords);
       if (options?.flashcardTitle) setFlashcardTitle(options.flashcardTitle);
       if (options?.flashcardMode) setFlashcardMode(options.flashcardMode);
+      if (options?.flashcardDirection) setFlashcardDirection(options.flashcardDirection);
       if (options?.flashcardSourceLessonId !== undefined) {
         setFlashcardSourceLessonId(options.flashcardSourceLessonId);
       }
@@ -338,6 +341,7 @@ export default function Home() {
             : flashcardSourceLessonId,
         flashcardTitle: options?.flashcardTitle || flashcardTitle,
         flashcardMode: options?.flashcardMode || flashcardMode,
+        flashcardDirection: options?.flashcardDirection || flashcardDirection,
       };
 
       if (typeof window !== 'undefined') {
@@ -348,7 +352,7 @@ export default function Home() {
         }
       }
     },
-    [activeLessonId, lessonInitialTab, flashcardSourceLessonId, flashcardTitle, flashcardMode]
+    [activeLessonId, lessonInitialTab, flashcardSourceLessonId, flashcardTitle, flashcardMode, flashcardDirection]
   );
 
   // Обработка истории браузера (popstate) при свайпе назад / системной кнопке Назад
@@ -412,6 +416,7 @@ export default function Home() {
         if (state.flashcardWords) setFlashcardWords(state.flashcardWords);
         if (state.flashcardTitle) setFlashcardTitle(state.flashcardTitle);
         if (state.flashcardMode) setFlashcardMode(state.flashcardMode);
+        if (state.flashcardDirection) setFlashcardDirection(state.flashcardDirection);
         if (state.flashcardSourceLessonId !== undefined) {
           setFlashcardSourceLessonId(state.flashcardSourceLessonId);
         }
@@ -499,7 +504,8 @@ export default function Home() {
     wordsToTrain: Word[],
     title?: string,
     mode?: 'flip' | 'builder' | 'listening',
-    lessonId?: number
+    lessonId?: number,
+    direction?: 'he-ru' | 'ru-he'
   ) => {
     const customTitle =
       title ||
@@ -516,6 +522,7 @@ export default function Home() {
       flashcardTitle: customTitle,
       flashcardMode: mode || 'flip',
       flashcardSourceLessonId: lessonId || null,
+      flashcardDirection: direction || flashcardDirection || 'he-ru',
     });
   };
 
@@ -708,6 +715,7 @@ export default function Home() {
               userProfile={profile}
               customTitle={flashcardTitle}
               initialMode={flashcardMode}
+              initialDirection={flashcardDirection}
               lessonId={flashcardSourceLessonId || undefined}
               onContinueLesson={handleContinueLessonFromFlashcards}
               onClose={handleCloseFlashcards}
@@ -735,8 +743,8 @@ export default function Home() {
         <FlashcardSetupModal
           userProfile={profile}
           onClose={() => setIsMultiLessonSetupOpen(false)}
-          onStartSession={(words, mode, title) => {
-            handleStartFlashcards(words, title, mode);
+          onStartSession={(words, mode, title, direction) => {
+            handleStartFlashcards(words, title, mode, undefined, direction);
           }}
         />
       )}

@@ -12,6 +12,7 @@ import {
   AlertCircle,
   Clock,
   Filter,
+  ArrowLeftRight,
 } from 'lucide-react';
 import { Lesson, UserProfile, Word } from '@/types';
 import { DETAILED_LESSONS, LESSONS_CATALOG } from '@/data/lessonsData';
@@ -24,7 +25,8 @@ interface FlashcardSetupModalProps {
   onStartSession: (
     words: Word[],
     mode: 'flip' | 'builder' | 'listening',
-    title: string
+    title: string,
+    direction?: 'he-ru' | 'ru-he'
   ) => void;
 }
 
@@ -49,6 +51,14 @@ export const FlashcardSetupModal: React.FC<FlashcardSetupModalProps> = ({
   const [activeLevelTab, setActiveLevelTab] = useState<'alef' | 'bet'>('alef');
   const [filterCondition, setFilterCondition] = useState<FilterCondition>('all');
   const [trainingMode, setTrainingMode] = useState<'flip' | 'builder' | 'listening'>('flip');
+  const [cardDirection, setCardDirection] = useState<'he-ru' | 'ru-he'>(() => {
+    if (userProfile.flashcardDirection) return userProfile.flashcardDirection;
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('flashcard_direction');
+      if (saved === 'ru-he' || saved === 'he-ru') return saved;
+    }
+    return 'he-ru';
+  });
 
   // Пресеты
   const applyPreset = (type: string) => {
@@ -159,7 +169,7 @@ export const FlashcardSetupModal: React.FC<FlashcardSetupModalProps> = ({
         ? `שִׁיעוּרִים ${lessonNumbers[0]}–${lessonNumbers[lessonNumbers.length - 1]} (${lessonNumbers.length})`
         : `Уроки ${lessonNumbers[0]}–${lessonNumbers[lessonNumbers.length - 1]} (${lessonNumbers.length} ур.)`;
     }
-    onStartSession(filteredWords, trainingMode, title);
+    onStartSession(filteredWords, trainingMode, title, cardDirection);
     onClose();
   };
 
@@ -493,6 +503,55 @@ export const FlashcardSetupModal: React.FC<FlashcardSetupModalProps> = ({
               >
                 <Headphones className="w-4 h-4" />
                 <span className="text-xs">{isUlpan ? 'שְׁמִיעָה' : 'На слух'}</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Направление перевода карточек */}
+          <div>
+            <div className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2 flex items-center gap-1.5 font-hebrew">
+              <ArrowLeftRight className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+              <span>{isUlpan ? 'כִּוּוּן תִּרְגּוּל:' : 'Направление перевода:'}</span>
+            </div>
+            <div className="grid grid-cols-2 gap-2 font-hebrew">
+              <button
+                type="button"
+                onClick={() => setCardDirection('he-ru')}
+                className={`p-2.5 rounded-xl border text-center transition flex flex-col items-center justify-center gap-1 cursor-pointer ${
+                  cardDirection === 'he-ru'
+                    ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 font-bold shadow-sm'
+                    : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
+                }`}
+              >
+                <div className="flex items-center gap-1 text-xs font-bold">
+                  <span className="text-blue-600 dark:text-blue-400 font-extrabold">{isUlpan ? 'עִבְרִית' : 'Иврит'}</span>
+                  <span>→</span>
+                  <span>{isUlpan ? 'רוּסִית' : 'Русский'}</span>
+                </div>
+                <span className="text-[10px] text-slate-500 dark:text-slate-400">
+                  {isUlpan ? 'עִבְרִית בַּחֲזִית הַכַּרְטִיסִיָּה' : 'Иврит на лицевой стороне'}
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setCardDirection('ru-he')}
+                className={`p-2.5 rounded-xl border text-center transition flex flex-col items-center justify-center gap-1 cursor-pointer ${
+                  cardDirection === 'ru-he'
+                    ? 'border-amber-500 bg-amber-50 dark:bg-amber-950/50 text-amber-800 dark:text-amber-200 font-bold shadow-sm'
+                    : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
+                }`}
+              >
+                <div className="flex items-center gap-1 text-xs font-bold">
+                  <span className="text-amber-700 dark:text-amber-300 font-extrabold">{isUlpan ? 'רוּסִית' : 'Русский'}</span>
+                  <span>→</span>
+                  <span>{isUlpan ? 'עִבְרִית' : 'Иврит'}</span>
+                  <span className="text-[10px] font-semibold text-amber-600 dark:text-amber-400">
+                    {isUlpan ? '(הָפוּךְ)' : '(обратный)'}
+                  </span>
+                </div>
+                <span className="text-[10px] text-slate-500 dark:text-slate-400">
+                  {isUlpan ? 'רוּסִית בַּחֲזִית הַכַּרְטִיסִיָּה' : 'Русский на лицевой стороне'}
+                </span>
               </button>
             </div>
           </div>

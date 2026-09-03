@@ -22,6 +22,7 @@ const DEFAULT_PROFILE: UserProfile = {
   lessonProgress: {},
   personalVocabulary: [],
   flashcardStats: {},
+  flashcardDirection: 'he-ru',
 };
 
 export function loadUserProfile(): UserProfile {

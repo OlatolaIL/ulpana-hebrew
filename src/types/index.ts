@@ -263,6 +263,7 @@ export interface UserProfile {
   personalVocabulary: Word[];
   flashcardStats: Record<string, FlashcardProgress>;
   flashcardProgress?: Record<string, FlashcardProgress>;
+  flashcardDirection?: 'he-ru' | 'ru-he';
 }
 
 export interface ConjugationForm {

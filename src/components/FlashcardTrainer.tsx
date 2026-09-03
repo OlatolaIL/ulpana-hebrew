@@ -16,11 +16,12 @@ import {
   Award,
   Delete,
   Space,
+  ArrowLeftRight,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { Word, UserProfile, VerbConjugation } from '@/types';
 import { speakHebrew } from '@/lib/speech';
-import { updateCardSRS, calculateWordMastery, addWordToPersonalDict, isWordInPersonalDict, loadUserProfile, markLessonTabCompleted, sortWordsBySRSPriority } from '@/lib/storage';
+import { updateCardSRS, calculateWordMastery, addWordToPersonalDict, isWordInPersonalDict, loadUserProfile, saveUserProfile, markLessonTabCompleted, sortWordsBySRSPriority } from '@/lib/storage';
 import { stripNikkud, getWordTranscription } from '@/lib/transcription';
 import { findOfflineVerbConjugation } from '@/lib/verbConjugations';
 import { VerbConjugationView } from '@/components/VerbConjugationView';
@@ -35,6 +36,7 @@ interface FlashcardTrainerProps {
   onUpdateProfile?: (profile: UserProfile) => void;
   customTitle?: string;
   initialMode?: 'flip' | 'builder' | 'listening';
+  initialDirection?: 'he-ru' | 'ru-he';
   lessonId?: number;
   onContinueLesson?: (lessonId: number, nextTab: 'theory' | 'vocab' | 'exercises' | 'chat' | 'phone') => void;
 }
@@ -61,6 +63,7 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
   onUpdateProfile,
   customTitle,
   initialMode,
+  initialDirection,
   lessonId,
   onContinueLesson,
 }) => {
@@ -78,6 +81,30 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
   const [mode, setMode] = useState<TrainerMode>(initialMode || 'flip');
   const [isCompleted, setIsCompleted] = useState(false);
 
+  // Направление карточек: 'he-ru' (иврит на лицевой) или 'ru-he' (русский на лицевой - обратный режим)
+  const [cardDirection, setCardDirection] = useState<'he-ru' | 'ru-he'>(() => {
+    if (initialDirection) return initialDirection;
+    if (userProfile.flashcardDirection) return userProfile.flashcardDirection;
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('flashcard_direction');
+      if (saved === 'ru-he' || saved === 'he-ru') return saved;
+    }
+    return 'he-ru';
+  });
+
+  const handleToggleDirection = () => {
+    const nextDir = cardDirection === 'he-ru' ? 'ru-he' : 'he-ru';
+    setCardDirection(nextDir);
+    setIsFlipped(false);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('flashcard_direction', nextDir);
+    }
+    if (onUpdateProfile) {
+      const updated: UserProfile = { ...userProfile, flashcardDirection: nextDir };
+      saveUserProfile(updated);
+      onUpdateProfile(updated);
+    }
+  };
 
   // Для режима конструктора букв
   const [builderAvailable, setBuilderAvailable] = useState<Tile[]>([]);
@@ -259,6 +286,16 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
     }
   };
 
+  const handleFlipCard = () => {
+    setIsFlipped((prev) => {
+      const next = !prev;
+      if (next && cardDirection === 'ru-he' && currentWord) {
+        speakHebrew(currentWord.hebrew);
+      }
+      return next;
+    });
+  };
+
   // Горячие клавиши для режима карточек (Стрелка влево / вправо / пробел)
   useEffect(() => {
     if (mode !== 'flip' || !currentWord) return;
@@ -274,22 +311,28 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
         handleAdvanceNext();
       } else if (e.key === ' ' || e.key === 'Enter') {
         e.preventDefault();
-        setIsFlipped((prev) => !prev);
+        handleFlipCard();
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [mode, currentWord, currentIndex]);
+  }, [mode, currentWord, currentIndex, cardDirection]);
 
   const handleForgotFlip = () => {
     handleRecordSRS(1);
     setIsFlipped(true);
+    if (cardDirection === 'ru-he' && currentWord) {
+      speakHebrew(currentWord.hebrew);
+    }
   };
 
   const handleStruggleFlip = () => {
     handleRecordSRS(3);
     setIsFlipped(true);
+    if (cardDirection === 'ru-he' && currentWord) {
+      speakHebrew(currentWord.hebrew);
+    }
   };
 
   const handleSelectTile = (tile: Tile) => {
@@ -587,7 +630,43 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
           </button>
         </div>
 
-        <div className="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto">
+        <div className="flex items-center justify-between sm:justify-end gap-2 sm:gap-3 w-full sm:w-auto flex-wrap sm:flex-nowrap">
+          {/* Переключатель направления карточек (Иврит ↔ Русский) */}
+          <button
+            type="button"
+            onClick={handleToggleDirection}
+            className={`px-2.5 py-1.5 rounded-xl border text-xs font-semibold flex items-center gap-1.5 shadow-sm transition active:scale-95 cursor-pointer ${
+              cardDirection === 'ru-he'
+                ? 'bg-amber-50 dark:bg-amber-950/60 border-amber-300 dark:border-amber-700 text-amber-900 dark:text-amber-200'
+                : 'border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800'
+            }`}
+            title={
+              cardDirection === 'ru-he'
+                ? (isUlpan ? 'מַצָּב הָפוּךְ: רוּסִית ← עִבְרִית. לַחֲצוּ לְמַעֲבָר לְעִבְרִית ← רוּסִית' : 'Обратный режим: Русский → Иврит. Нажмите для режима Иврит → Русский')
+                : (isUlpan ? 'מַצָּב רָגִיל: עִבְרִית ← רוּסִית. לַחֲצוּ לְמַעֲבָר לְרוּסִית ← עִבְרִית' : 'Прямой режим: Иврит → Русский. Нажмите для режима Русский → Иврит')
+            }
+          >
+            <ArrowLeftRight className={`w-3.5 h-3.5 ${cardDirection === 'ru-he' ? 'text-amber-600 dark:text-amber-400' : 'text-blue-600 dark:text-blue-400'}`} />
+            <span className="font-bold flex items-center gap-1">
+              {cardDirection === 'ru-he' ? (
+                <>
+                  <span className="text-amber-700 dark:text-amber-300 font-extrabold">{isUlpan ? 'רוּ' : 'Рус'}</span>
+                  <span className="text-zinc-400">→</span>
+                  <span>{isUlpan ? 'עִבְ' : 'Ивр'}</span>
+                </>
+              ) : (
+                <>
+                  <span className="text-blue-600 dark:text-blue-400 font-extrabold">{isUlpan ? 'עִבְ' : 'Ивр'}</span>
+                  <span className="text-zinc-400">→</span>
+                  <span>{isUlpan ? 'רוּ' : 'Рус'}</span>
+                </>
+              )}
+            </span>
+            <span className="hidden sm:inline text-[10px] text-zinc-500 dark:text-zinc-400 font-normal">
+              {cardDirection === 'ru-he' ? (isUlpan ? '(הָפוּךְ)' : '(обратный)') : ''}
+            </span>
+          </button>
+
           <button
             type="button"
             onClick={() => {
@@ -652,7 +731,7 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
         <div className="space-y-3 sm:space-y-4">
           {/* Сама карточка */}
           <div
-            onClick={() => setIsFlipped(!isFlipped)}
+            onClick={handleFlipCard}
             className="min-h-[200px] sm:min-h-[270px] bg-white dark:bg-zinc-900 border-2 border-zinc-200 dark:border-zinc-800 rounded-3xl p-4 sm:p-6 flex flex-col items-center justify-center text-center cursor-pointer shadow-lg hover:border-blue-500/50 transition duration-300 relative select-none"
           >
             <div className="absolute top-3 right-3">
@@ -662,141 +741,284 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
                   speakHebrew(currentWord.hebrew);
                 }}
                 className="p-2 rounded-full bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 hover:bg-blue-100 transition shadow-sm"
-                title={isUlpan ? 'הַשְׁמַע' : 'Озвучить'}
+                title={
+                  cardDirection === 'ru-he' && !isFlipped
+                    ? (isUlpan ? 'רֶמֶז קוֹלִי (הַשְׁמַע עִבְרִית)' : 'Подсказка: прослушать на иврите')
+                    : (isUlpan ? 'הַשְׁמַע' : 'Озвучить')
+                }
               >
                 <Volume2 className="w-4 h-4" />
               </button>
             </div>
 
             {!isFlipped ? (
-              <div className="space-y-2 sm:space-y-3">
-                <span className="text-[11px] uppercase tracking-wider font-semibold text-zinc-400">
-                  {userProfile.ulpanMode ? 'עִבְרִית (לחצו להצגת מידע)' : 'Иврит (нажмите для перевода)'}
-                </span>
-
-                {/* Visual: large image in ulpan mode, small badge in normal mode */}
-                {isUlpan ? (
-                  <WordVisual
-                    hebrew={currentWord.hebrew}
-                    hebrewPlain={currentWord.hebrewPlain}
-                    size="lg"
-                    ulpanMode={true}
-                    className="my-2"
-                  />
-                ) : (
-                  getHebrewPictogram(currentWord.hebrew) && (() => {
-                    const icon = getHebrewPictogram(currentWord.hebrew)!;
-                    const isMale = icon.includes('♂');
-                    const isFemale = icon.includes('♀');
-                    return (
-                      <div
-                        className={`inline-flex items-center justify-center text-2xl sm:text-3xl px-4 py-1.5 rounded-2xl border font-bold select-none my-1 shadow-xs animate-in zoom-in-75 ${
-                          isMale
-                            ? 'bg-sky-50 dark:bg-sky-950/60 text-sky-600 dark:text-sky-300 border-sky-200 dark:border-sky-800'
-                            : isFemale
-                            ? 'bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-300 border-rose-200 dark:border-rose-800'
-                            : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border-zinc-200 dark:border-zinc-700'
-                        }`}
-                      >
-                        {icon}
-                      </div>
-                    );
-                  })()
-                )}
-
-                <div
-                  dir="rtl"
-                  className={`text-3xl sm:text-5xl font-bold text-zinc-900 dark:text-zinc-50 ${
-                    userProfile.fontStyle === 'cursive'
-                      ? 'font-cursive text-blue-600 dark:text-blue-400'
-                      : 'font-hebrew'
-                  }`}
-                >
-                  {userProfile.showNikkud ? currentWord.hebrew : currentWord.hebrewPlain}
-                </div>
-                {!userProfile.ulpanMode && userProfile.showTranscription && getWordTranscription(currentWord) && (
-                  <p className="text-xs sm:text-sm font-semibold text-blue-600 dark:text-blue-400">
-                    [{getWordTranscription(currentWord)}]
-                  </p>
-                )}
-              </div>
-            ) : (
-              <div className="space-y-2.5 sm:space-y-3 animate-in fade-in">
-                <span className="text-[11px] uppercase tracking-wider font-semibold text-zinc-400">
-                  {userProfile.ulpanMode ? 'פֵּרוּשׁ וּפְרָטִים' : 'Перевод и детали'}
-                </span>
-
-                {/* Visual on flipped side */}
-                {isUlpan ? (
-                  <WordVisual
-                    hebrew={currentWord.hebrew}
-                    hebrewPlain={currentWord.hebrewPlain}
-                    size="sm"
-                    ulpanMode={true}
-                  />
-                ) : (
-                  getHebrewPictogram(currentWord.hebrew) && (() => {
-                    const icon = getHebrewPictogram(currentWord.hebrew)!;
-                    const isMale = icon.includes('♂');
-                    const isFemale = icon.includes('♀');
-                    return (
-                      <div
-                        className={`inline-flex items-center justify-center text-xl sm:text-2xl px-3 py-1 rounded-xl border font-bold select-none shadow-xs ${
-                          isMale
-                            ? 'bg-sky-50 dark:bg-sky-950/60 text-sky-600 dark:text-sky-300 border-sky-200 dark:border-sky-800'
-                            : isFemale
-                            ? 'bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-300 border-rose-200 dark:border-rose-800'
-                            : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border-zinc-200 dark:border-zinc-700'
-                        }`}
-                      >
-                        {icon}
-                      </div>
-                    );
-                  })()
-                )}
-
-                <div className="text-xl sm:text-3xl font-bold text-zinc-900 dark:text-zinc-100">
-                  {currentWord.translation}
-                </div>
-                <div
-                  dir="rtl"
-                  className={`text-lg sm:text-2xl text-zinc-600 dark:text-zinc-300 font-bold ${
-                    userProfile.fontStyle === 'cursive' ? 'font-cursive text-blue-500' : 'font-hebrew'
-                  }`}
-                >
-                  {currentWord.hebrew}
-                </div>
-                {!userProfile.ulpanMode && getWordTranscription(currentWord) && (
-                  <p className="text-xs sm:text-sm font-semibold text-blue-600 dark:text-blue-400 -mt-1">
-                    [{getWordTranscription(currentWord)}]
-                  </p>
-                )}
-                {currentWord.root && (
-                  <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-xs font-semibold bg-amber-100 dark:bg-amber-950/80 text-amber-800 dark:text-amber-300 border border-amber-300/40">
-                    <span>{userProfile.ulpanMode ? 'שׁוֹרֶשׁ:' : 'Шореш:'}</span>
-                    <span dir="rtl" className="font-bold">
-                      {currentWord.root}
+              cardDirection === 'ru-he' ? (
+                /* Лицевая сторона: Русский → Иврит (обратный режим) */
+                <div className="space-y-3 sm:space-y-4">
+                  <div className="flex items-center justify-center gap-2">
+                    <span className="text-[11px] uppercase tracking-wider font-semibold text-zinc-400">
+                      {userProfile.ulpanMode ? 'רוּסִית (לַחֲצוּ לְהַצָּגַת עִבְרִית)' : 'Русский (вспомните иврит)'}
+                    </span>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950/70 text-amber-800 dark:text-amber-300 border border-amber-300/60">
+                      {isUlpan ? 'רוּ ← עִבְ' : 'Русский → Иврит'}
                     </span>
                   </div>
-                )}
 
-                {/* Кнопка ПЕАЛИМ для глаголов */}
-                {(currentWord.partOfSpeech === 'verb' || currentWord.hebrew.startsWith('לִ') || currentWord.hebrew.startsWith('לְ') || currentWord.hebrew.startsWith('לַ') || currentWord.hebrew.startsWith('לָ') || Boolean(currentWord.root)) && (
-                  <div className="pt-0.5">
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleOpenPealim(currentWord);
-                      }}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-50 dark:bg-purple-950/80 hover:bg-purple-100 text-purple-700 dark:text-purple-300 text-xs font-bold border border-purple-300/60 dark:border-purple-800 shadow-sm transition active:scale-95 cursor-pointer"
-                    >
-                      <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                      <span>{isUlpan ? 'פְּעָלִים וּנְטִיּוֹת ✨' : 'Пеалим (спряжения и семья корня)'}</span>
-                    </button>
+                  {/* Visual: large image in ulpan mode, small badge in normal mode */}
+                  {isUlpan ? (
+                    <WordVisual
+                      hebrew={currentWord.hebrew}
+                      hebrewPlain={currentWord.hebrewPlain}
+                      size="lg"
+                      ulpanMode={true}
+                      className="my-2"
+                    />
+                  ) : (
+                    getHebrewPictogram(currentWord.hebrew) && (() => {
+                      const icon = getHebrewPictogram(currentWord.hebrew)!;
+                      const isMale = icon.includes('♂');
+                      const isFemale = icon.includes('♀');
+                      return (
+                        <div
+                          className={`inline-flex items-center justify-center text-2xl sm:text-3xl px-4 py-1.5 rounded-2xl border font-bold select-none my-1 shadow-xs animate-in zoom-in-75 ${
+                            isMale
+                              ? 'bg-sky-50 dark:bg-sky-950/60 text-sky-600 dark:text-sky-300 border-sky-200 dark:border-sky-800'
+                              : isFemale
+                              ? 'bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-300 border-rose-200 dark:border-rose-800'
+                              : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border-zinc-200 dark:border-zinc-700'
+                          }`}
+                        >
+                          {icon}
+                        </div>
+                      );
+                    })()
+                  )}
+
+                  <div className="text-2xl sm:text-4xl font-bold text-zinc-900 dark:text-zinc-50 font-sans tracking-wide max-w-md mx-auto">
+                    {currentWord.translation}
                   </div>
-                )}
-              </div>
+
+                  <p className="text-xs text-zinc-400 font-medium">
+                    {isUlpan ? 'לַחֲצוּ כְּדֵי לִרְאוֹת אֶת הַמִּילָּה בְּעִבְרִית' : 'Нажмите на карточку или пробел, чтобы увидеть иврит'}
+                  </p>
+                </div>
+              ) : (
+                /* Лицевая сторона: Иврит → Русский (прямой режим) */
+                <div className="space-y-2 sm:space-y-3">
+                  <span className="text-[11px] uppercase tracking-wider font-semibold text-zinc-400">
+                    {userProfile.ulpanMode ? 'עִבְרִית (לחצו להצגת מידע)' : 'Иврит (нажмите для перевода)'}
+                  </span>
+
+                  {/* Visual: large image in ulpan mode, small badge in normal mode */}
+                  {isUlpan ? (
+                    <WordVisual
+                      hebrew={currentWord.hebrew}
+                      hebrewPlain={currentWord.hebrewPlain}
+                      size="lg"
+                      ulpanMode={true}
+                      className="my-2"
+                    />
+                  ) : (
+                    getHebrewPictogram(currentWord.hebrew) && (() => {
+                      const icon = getHebrewPictogram(currentWord.hebrew)!;
+                      const isMale = icon.includes('♂');
+                      const isFemale = icon.includes('♀');
+                      return (
+                        <div
+                          className={`inline-flex items-center justify-center text-2xl sm:text-3xl px-4 py-1.5 rounded-2xl border font-bold select-none my-1 shadow-xs animate-in zoom-in-75 ${
+                            isMale
+                              ? 'bg-sky-50 dark:bg-sky-950/60 text-sky-600 dark:text-sky-300 border-sky-200 dark:border-sky-800'
+                              : isFemale
+                              ? 'bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-300 border-rose-200 dark:border-rose-800'
+                              : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border-zinc-200 dark:border-zinc-700'
+                          }`}
+                        >
+                          {icon}
+                        </div>
+                      );
+                    })()
+                  )}
+
+                  <div
+                    dir="rtl"
+                    className={`text-3xl sm:text-5xl font-bold text-zinc-900 dark:text-zinc-50 ${
+                      userProfile.fontStyle === 'cursive'
+                        ? 'font-cursive text-blue-600 dark:text-blue-400'
+                        : 'font-hebrew'
+                    }`}
+                  >
+                    {userProfile.showNikkud ? currentWord.hebrew : currentWord.hebrewPlain}
+                  </div>
+                  {!userProfile.ulpanMode && userProfile.showTranscription && getWordTranscription(currentWord) && (
+                    <p className="text-xs sm:text-sm font-semibold text-blue-600 dark:text-blue-400">
+                      [{getWordTranscription(currentWord)}]
+                    </p>
+                  )}
+                </div>
+              )
+            ) : (
+              cardDirection === 'ru-he' ? (
+                /* Оборотная сторона: Иврит и детали (обратный режим) */
+                <div className="space-y-2.5 sm:space-y-3 animate-in fade-in">
+                  <span className="text-[11px] uppercase tracking-wider font-semibold text-zinc-400">
+                    {userProfile.ulpanMode ? 'עִבְרִית וּפְרָטִים' : 'Иврит и детали'}
+                  </span>
+
+                  {/* Visual on flipped side */}
+                  {isUlpan ? (
+                    <WordVisual
+                      hebrew={currentWord.hebrew}
+                      hebrewPlain={currentWord.hebrewPlain}
+                      size="sm"
+                      ulpanMode={true}
+                    />
+                  ) : (
+                    getHebrewPictogram(currentWord.hebrew) && (() => {
+                      const icon = getHebrewPictogram(currentWord.hebrew)!;
+                      const isMale = icon.includes('♂');
+                      const isFemale = icon.includes('♀');
+                      return (
+                        <div
+                          className={`inline-flex items-center justify-center text-xl sm:text-2xl px-3 py-1 rounded-xl border font-bold select-none shadow-xs ${
+                            isMale
+                              ? 'bg-sky-50 dark:bg-sky-950/60 text-sky-600 dark:text-sky-300 border-sky-200 dark:border-sky-800'
+                              : isFemale
+                              ? 'bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-300 border-rose-200 dark:border-rose-800'
+                              : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border-zinc-200 dark:border-zinc-700'
+                          }`}
+                        >
+                          {icon}
+                        </div>
+                      );
+                    })()
+                  )}
+
+                  <div
+                    dir="rtl"
+                    className={`text-3xl sm:text-5xl font-bold text-zinc-900 dark:text-zinc-50 ${
+                      userProfile.fontStyle === 'cursive'
+                        ? 'font-cursive text-blue-600 dark:text-blue-400'
+                        : 'font-hebrew'
+                    }`}
+                  >
+                    {userProfile.showNikkud ? currentWord.hebrew : currentWord.hebrewPlain}
+                  </div>
+
+                  {!userProfile.ulpanMode && getWordTranscription(currentWord) && (
+                    <p className="text-xs sm:text-sm font-semibold text-blue-600 dark:text-blue-400 -mt-1">
+                      [{getWordTranscription(currentWord)}]
+                    </p>
+                  )}
+
+                  <div className="text-lg sm:text-2xl font-bold text-zinc-700 dark:text-zinc-300 pt-0.5">
+                    {currentWord.translation}
+                  </div>
+
+                  {currentWord.root && (
+                    <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-xs font-semibold bg-amber-100 dark:bg-amber-950/80 text-amber-800 dark:text-amber-300 border border-amber-300/40">
+                      <span>{userProfile.ulpanMode ? 'שׁוֹרֶשׁ:' : 'Шореш:'}</span>
+                      <span dir="rtl" className="font-bold">
+                        {currentWord.root}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Кнопка ПЕАЛИМ для глаголов */}
+                  {(currentWord.partOfSpeech === 'verb' || currentWord.hebrew.startsWith('לִ') || currentWord.hebrew.startsWith('לְ') || currentWord.hebrew.startsWith('לַ') || currentWord.hebrew.startsWith('לָ') || Boolean(currentWord.root)) && (
+                    <div className="pt-0.5">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleOpenPealim(currentWord);
+                        }}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-50 dark:bg-purple-950/80 hover:bg-purple-100 text-purple-700 dark:text-purple-300 text-xs font-bold border border-purple-300/60 dark:border-purple-800 shadow-sm transition active:scale-95 cursor-pointer"
+                      >
+                        <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                        <span>{isUlpan ? 'פְּעָלִים וּנְטִיּוֹת ✨' : 'Пеалим (спряжения и семья корня)'}</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                /* Оборотная сторона: Перевод и детали (прямой режим) */
+                <div className="space-y-2.5 sm:space-y-3 animate-in fade-in">
+                  <span className="text-[11px] uppercase tracking-wider font-semibold text-zinc-400">
+                    {userProfile.ulpanMode ? 'פֵּרוּשׁ וּפְרָטִים' : 'Перевод и детали'}
+                  </span>
+
+                  {/* Visual on flipped side */}
+                  {isUlpan ? (
+                    <WordVisual
+                      hebrew={currentWord.hebrew}
+                      hebrewPlain={currentWord.hebrewPlain}
+                      size="sm"
+                      ulpanMode={true}
+                    />
+                  ) : (
+                    getHebrewPictogram(currentWord.hebrew) && (() => {
+                      const icon = getHebrewPictogram(currentWord.hebrew)!;
+                      const isMale = icon.includes('♂');
+                      const isFemale = icon.includes('♀');
+                      return (
+                        <div
+                          className={`inline-flex items-center justify-center text-xl sm:text-2xl px-3 py-1 rounded-xl border font-bold select-none shadow-xs ${
+                            isMale
+                              ? 'bg-sky-50 dark:bg-sky-950/60 text-sky-600 dark:text-sky-300 border-sky-200 dark:border-sky-800'
+                              : isFemale
+                              ? 'bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-300 border-rose-200 dark:border-rose-800'
+                              : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border-zinc-200 dark:border-zinc-700'
+                          }`}
+                        >
+                          {icon}
+                        </div>
+                      );
+                    })()
+                  )}
+
+                  <div className="text-xl sm:text-3xl font-bold text-zinc-900 dark:text-zinc-100">
+                    {currentWord.translation}
+                  </div>
+                  <div
+                    dir="rtl"
+                    className={`text-lg sm:text-2xl text-zinc-600 dark:text-zinc-300 font-bold ${
+                      userProfile.fontStyle === 'cursive' ? 'font-cursive text-blue-500' : 'font-hebrew'
+                    }`}
+                  >
+                    {currentWord.hebrew}
+                  </div>
+                  {!userProfile.ulpanMode && getWordTranscription(currentWord) && (
+                    <p className="text-xs sm:text-sm font-semibold text-blue-600 dark:text-blue-400 -mt-1">
+                      [{getWordTranscription(currentWord)}]
+                    </p>
+                  )}
+                  {currentWord.root && (
+                    <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-xs font-semibold bg-amber-100 dark:bg-amber-950/80 text-amber-800 dark:text-amber-300 border border-amber-300/40">
+                      <span>{userProfile.ulpanMode ? 'שׁוֹרֶשׁ:' : 'Шореш:'}</span>
+                      <span dir="rtl" className="font-bold">
+                        {currentWord.root}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Кнопка ПЕАЛИМ для глаголов */}
+                  {(currentWord.partOfSpeech === 'verb' || currentWord.hebrew.startsWith('לִ') || currentWord.hebrew.startsWith('לְ') || currentWord.hebrew.startsWith('לַ') || currentWord.hebrew.startsWith('לָ') || Boolean(currentWord.root)) && (
+                    <div className="pt-0.5">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleOpenPealim(currentWord);
+                        }}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-50 dark:bg-purple-950/80 hover:bg-purple-100 text-purple-700 dark:text-purple-300 text-xs font-bold border border-purple-300/60 dark:border-purple-800 shadow-sm transition active:scale-95 cursor-pointer"
+                      >
+                        <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                        <span>{isUlpan ? 'פְּעָלִים וּנְטִיּוֹת ✨' : 'Пеалим (спряжения и семья корня)'}</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )
             )}
           </div>
 
@@ -817,11 +1039,15 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
 
                 <button
                   type="button"
-                  onClick={() => setIsFlipped(true)}
+                  onClick={handleFlipCard}
                   className="flex-1 py-3 px-4 rounded-2xl bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-100 dark:hover:bg-blue-900/60 text-blue-600 dark:text-blue-400 font-bold text-xs sm:text-sm border border-blue-200 dark:border-blue-800 shadow-xs flex items-center justify-center gap-2 transition active:scale-98 cursor-pointer"
                 >
                   <RotateCw className="w-4 h-4" />
-                  <span>{isUlpan ? 'הַצֵּג תַּרְגּוּם וּפְרָטִים' : 'Показать перевод и детали'}</span>
+                  <span>
+                    {cardDirection === 'ru-he'
+                      ? (isUlpan ? 'הַצֵּג עִבְרִית וּפְרָטִים' : 'Показать иврит и детали')
+                      : (isUlpan ? 'הַצֵּג תַּרְגּוּם וּפְרָטִים' : 'Показать перевод и детали')}
+                  </span>
                 </button>
               </div>
 
@@ -919,7 +1145,11 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
                   className="text-xs font-semibold text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition inline-flex items-center gap-1 cursor-pointer"
                 >
                   <RotateCcw className="w-3.5 h-3.5" />
-                  <span>{isUlpan ? 'הַסְתֵּר תַּרְגּוּם' : 'Перевернуть обратно'}</span>
+                  <span>
+                    {cardDirection === 'ru-he'
+                      ? (isUlpan ? 'הַסְתֵּר עִבְרִית' : 'Скрыть иврит')
+                      : (isUlpan ? 'הַסְתֵּר תַּרְגּוּם' : 'Перевернуть обратно')}
+                  </span>
                 </button>
               </div>
             </div>
