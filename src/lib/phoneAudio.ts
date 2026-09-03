@@ -9,7 +9,7 @@ class PhoneAudioEngine {
   private hangupInterval: any = null;
   private activeOscillators: OscillatorNode[] = [];
 
-  private getContext(): AudioContext | null {
+  public getContext(): AudioContext | null {
     if (typeof window === 'undefined') return null;
     if (!this.ctx) {
       const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;

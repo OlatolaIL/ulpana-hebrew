@@ -66,10 +66,11 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
   const [showTextInput, setShowTextInput] = useState(false);
   const [lastFeedback, setLastFeedback] = useState<string | null>(null);
 
-  // Добавленные слова в словарик
   const [addedWords, setAddedWords] = useState<Record<string, boolean>>({});
+  const [speechNotice, setSpeechNotice] = useState<string | null>(null);
 
   const recognizerRef = useRef<HebrewSpeechRecognizer | null>(null);
+  const activeMicStreamRef = useRef<MediaStream | null>(null);
   const messagesRef = useRef<ChatMessage[]>([]);
   const isAiSpeakingRef = useRef(false);
   const loadingAiRef = useRef(false);
@@ -116,6 +117,12 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
       if (recognizerRef.current) {
         recognizerRef.current.stop();
       }
+      if (activeMicStreamRef.current) {
+        try {
+          activeMicStreamRef.current.getTracks().forEach((track) => track.stop());
+        } catch {}
+        activeMicStreamRef.current = null;
+      }
       if (timerRef.current) clearInterval(timerRef.current);
       if (autoListenTimeoutRef.current) clearTimeout(autoListenTimeoutRef.current);
       if (silenceTimeoutRef.current) clearTimeout(silenceTimeoutRef.current);
@@ -147,21 +154,34 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
   };
 
   // Запуск вызова
-  const handleStartCall = () => {
-    // 1. Активируем разрешение на микрофон прямо по клику пользователя (User Gesture)
+  const handleStartCall = async () => {
+    // 1. Активируем AudioContext прямо по клику пользователя (User Gesture)
+    const ctx = phoneAudio.getContext();
+    if (ctx && ctx.state === 'suspended') {
+      ctx.resume().catch(() => {});
+    }
+
+    // 2. Запрашиваем микрофон сразу в момент клика и держим активным на время звонка
     if (typeof navigator !== 'undefined' && navigator.mediaDevices?.getUserMedia) {
-      navigator.mediaDevices
-        .getUserMedia({ audio: true })
-        .then((stream) => {
-          stream.getTracks().forEach((track) => track.stop());
-        })
-        .catch((err) => console.warn('Mic permission check:', err));
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true,
+          },
+        });
+        activeMicStreamRef.current = stream;
+      } catch (err) {
+        console.warn('Mic permission error:', err);
+      }
     }
 
     setCallState('dialing');
     setBothMessages([]);
     setLastFeedback(null);
     setLiveTranscript('');
+    setSpeechNotice(null);
     setAudioLevel(0);
     setIsMuted(false);
     isMutedRef.current = false;
@@ -283,6 +303,7 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
         if (isAiSpeakingRef.current || isSendingRef.current || !callActiveRef.current || isMutedRef.current) return;
 
         setLiveTranscript(transcript);
+        setSpeechNotice(null);
 
         // Резервный таймер авто-отправки при паузе в речи (2.0 сек для уроков 1-10, 1.3 сек для остальных)
         if (silenceTimeoutRef.current) clearTimeout(silenceTimeoutRef.current);
@@ -325,6 +346,8 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
         continuous: true,
         silenceDurationMs: silenceDelayMs,
         speechThreshold: 10,
+        audioContext: phoneAudio.getContext(),
+        mediaStream: activeMicStreamRef.current,
         onAudioLevel: (level) => {
           if (!isAiSpeakingRef.current && !loadingAiRef.current && !isMutedRef.current) {
             setAudioLevel(level);
@@ -344,6 +367,9 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
             const textToSubmit = (transcript || liveTranscript).trim();
             if (textToSubmit && !isEchoFromAi(textToSubmit)) {
               handleSendMessage(textToSubmit);
+            } else if (!textToSubmit) {
+              setSpeechNotice('Не удалось разобрать слова. Повторите громче или нажмите на подсказку ниже 👇');
+              setTimeout(() => setSpeechNotice(null), 4000);
             }
           }
         },
@@ -492,6 +518,13 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
     if (autoListenTimeoutRef.current) clearTimeout(autoListenTimeoutRef.current);
     if (silenceTimeoutRef.current) clearTimeout(silenceTimeoutRef.current);
 
+    if (activeMicStreamRef.current) {
+      try {
+        activeMicStreamRef.current.getTracks().forEach((track) => track.stop());
+      } catch {}
+      activeMicStreamRef.current = null;
+    }
+
     await phoneAudio.playHangupTone(2);
     setCallState('ended');
 
@@ -539,20 +572,25 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
       }).catch(() => {});
     } catch {}
 
-    // Начисление прогресса в уроке
-    const updated = markLessonTabCompleted(lesson.id, 'phone');
-    if (onUpdateProfile) {
-      onUpdateProfile(updated);
-    }
+    const userMessages = currentMessages.filter((m) => m.role === 'user');
+    const isSuccessCall = userMessages.length >= 2;
 
-    // Запуск конфетти
-    try {
-      confetti({
-        particleCount: 70,
-        spread: 60,
-        origin: { y: 0.6 },
-      });
-    } catch {}
+    if (isSuccessCall) {
+      // Начисление прогресса в уроке только при реальном диалоге (от 2 реплик)
+      const updated = markLessonTabCompleted(lesson.id, 'phone');
+      if (onUpdateProfile) {
+        onUpdateProfile(updated);
+      }
+
+      // Запуск конфетти
+      try {
+        confetti({
+          particleCount: 70,
+          spread: 60,
+          origin: { y: 0.6 },
+        });
+      } catch {}
+    }
   };
 
   // Добавление слова в личный словарь
@@ -1003,21 +1041,42 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
               </div>
             )}
 
-            {/* Живая речь пользователя во время записи — автоматическая отправка при паузе */}
+            {/* Живая речь пользователя во время записи — автоматическая отправка при паузе или по клику */}
             {liveTranscript && (
-              <div className="w-full max-w-lg mt-3 bg-emerald-950/70 border border-emerald-700/70 rounded-2xl p-3 text-xs text-emerald-200 font-hebrew shadow-md animate-fade-in">
+              <div
+                onClick={() => {
+                  if (!isEchoFromAi(liveTranscript) && !isAiSpeaking && !loadingAi) {
+                    handleSendMessage(liveTranscript.trim());
+                  }
+                }}
+                className="w-full max-w-lg mt-3 bg-emerald-950/70 border border-emerald-700/70 hover:border-emerald-500 rounded-2xl p-3 text-xs text-emerald-200 font-hebrew shadow-md animate-fade-in cursor-pointer transition group"
+                title={userProfile.ulpanMode ? 'שְׁלִיחָה עַכְשָׁו' : 'Нажмите, чтобы отправить сейчас'}
+              >
                 <div className="flex items-center justify-between gap-2 mb-1 text-[11px] text-emerald-400 font-semibold">
                   <div className="flex items-center gap-1.5">
                     <Mic className="w-3.5 h-3.5 animate-pulse" />
                     <span>{userProfile.ulpanMode ? 'אַתֶּם אוֹמְרִים:' : 'Вы говорите:'}</span>
                   </div>
-                  <span className="text-[10px] text-emerald-400/70 font-normal">
-                    {userProfile.ulpanMode ? 'שְׁלִיחָה אוֹטוֹמָטִית בְּסִיּוּם דִּבּוּר...' : 'Отправится автоматически при паузе...'}
-                  </span>
+                  <div className="flex items-center gap-1 text-[10px] text-emerald-400/80 group-hover:text-emerald-300">
+                    <span>
+                      {userProfile.ulpanMode
+                        ? 'שְׁלִיחָה אוֹטוֹמָטִית בְּפַאוּזָה (אוֹ לְחִיצָה)'
+                        : 'Отправится само (или нажмите)'}
+                    </span>
+                    <Send className="w-3 h-3 ml-0.5" />
+                  </div>
                 </div>
                 <div className="text-sm font-bold text-white text-right leading-relaxed font-hebrew pr-1">
                   {liveTranscript}
                 </div>
+              </div>
+            )}
+
+            {/* Уведомление, если речь не была распознана */}
+            {speechNotice && (
+              <div className="w-full max-w-lg mt-2 bg-blue-950/60 border border-blue-800/60 rounded-xl p-2.5 text-xs text-blue-200 flex items-center gap-2 text-left animate-fade-in">
+                <Info className="w-4 h-4 text-blue-400 shrink-0" />
+                <span>{speechNotice}</span>
               </div>
             )}
 
@@ -1030,7 +1089,7 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
             )}
           </div>
 
-          {/* Пассивные подсказки, что сказать — без нажимаемых кнопок ответов */}
+          {/* Подсказки, что сказать — можно сказать вслух или нажать */}
           {latestAiMessage?.suggestedReplies && latestAiMessage.suggestedReplies.length > 0 && (
             <div className="px-4 py-2.5 bg-zinc-900/90 border-t border-zinc-800/80">
               <div className="flex items-center justify-between mb-1.5 font-hebrew text-[11px]">
@@ -1038,8 +1097,8 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
                   <Sparkles className="w-3 h-3 text-purple-400" />
                   <span>
                     {userProfile.ulpanMode
-                      ? 'רַעְיוֹנוֹת לִתְשׁוּבָה (אִמְרוּ בְּקוֹל):'
-                      : 'Подсказка — что можно сказать вслух:'}
+                      ? 'רַעְיוֹנוֹת לִתְשׁוּבָה (אִמְרוּ בְּקוֹל אוֹ לַחֲצוּ):'
+                      : 'Подсказка — скажите вслух или нажмите:'}
                   </span>
                 </span>
                 <span className="text-[10px] text-zinc-500">
@@ -1048,15 +1107,24 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
               </div>
               <div className="flex flex-wrap gap-1.5">
                 {latestAiMessage.suggestedReplies.map((reply, idx) => (
-                  <div
+                  <button
                     key={idx}
-                    className="px-3 py-1.5 rounded-xl bg-zinc-800/90 border border-zinc-700/70 text-xs text-zinc-200 flex flex-col"
+                    type="button"
+                    onClick={() => {
+                      if (!isAiSpeaking && !loadingAi) {
+                        handleSendMessage(reply.hebrew);
+                      }
+                    }}
+                    className="px-3 py-1.5 rounded-xl bg-zinc-800/90 hover:bg-zinc-700/90 active:scale-95 border border-zinc-700/70 hover:border-blue-500/60 text-xs text-zinc-200 flex flex-col transition cursor-pointer text-right group"
+                    title="Скажите вслух или нажмите для быстрой отправки"
                   >
-                    <span className="font-bold font-hebrew text-white">{reply.hebrew}</span>
+                    <span className="font-bold font-hebrew text-white group-hover:text-blue-200">
+                      {reply.hebrew}
+                    </span>
                     {!userProfile.ulpanMode && reply.translation && (
                       <span className="text-[10px] text-zinc-400">{reply.translation}</span>
                     )}
-                  </div>
+                  </button>
                 ))}
               </div>
             </div>
@@ -1126,50 +1194,70 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
       )}
 
       {/* 4. СОСТОЯНИЕ: ЗАВЕРШЕНИЕ И РАЗБОР РАЗГОВОРА (ENDED) */}
-      {callState === 'ended' && (
-        <div className="bg-white dark:bg-zinc-900 rounded-3xl p-6 sm:p-8 border border-zinc-200 dark:border-zinc-800 shadow-xl space-y-6">
-          {/* Поздравление */}
-          <div className="text-center">
-            <div className="w-16 h-16 rounded-full bg-emerald-100 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-700 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto mb-3 text-2xl shadow-sm">
-              🎉
-            </div>
-            <h2 className="text-xl sm:text-2xl font-bold text-zinc-900 dark:text-zinc-50 font-hebrew">
-              {userProfile.ulpanMode ? '!הַשִּׂיחָה הִסְתַּיְּמָה • כָּל הַכָּבוֹד' : 'Разговор завершен!'}
-            </h2>
-            <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-0.5 font-hebrew">
-              {userProfile.ulpanMode ? 'אִמּוּן מְצוּיָן שֶׁל עִבְרִית בַּטֶּלֶפוֹן' : 'Отличная тренировка телефонного иврита'}
-            </p>
-          </div>
+      {callState === 'ended' && (() => {
+        const userTurnsCount = messages.filter((m) => m.role === 'user').length;
+        const isCallSuccessful = userTurnsCount >= 2;
 
-          {/* Метрики звонка */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 font-hebrew">
-            <div className="bg-zinc-50 dark:bg-zinc-800/60 p-3.5 rounded-2xl border border-zinc-200 dark:border-zinc-700/60 text-center">
-              <span className="text-xs text-zinc-400 block font-medium">
-                {userProfile.ulpanMode ? 'מֶשֶׁךְ הַשִּׂיחָה' : 'Длительность'}
-              </span>
-              <span className="text-lg font-bold text-zinc-900 dark:text-zinc-100 font-mono">
-                {formatTimer(callDuration)}
-              </span>
-            </div>
+        return (
+          <div className="bg-white dark:bg-zinc-900 rounded-3xl p-6 sm:p-8 border border-zinc-200 dark:border-zinc-800 shadow-xl space-y-6">
+            {/* Заголовок звонка: успех или предупреждение о несостоявшемся разговоре */}
+            {isCallSuccessful ? (
+              <div className="text-center">
+                <div className="w-16 h-16 rounded-full bg-emerald-100 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-700 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto mb-3 text-2xl shadow-sm">
+                  🎉
+                </div>
+                <h2 className="text-xl sm:text-2xl font-bold text-zinc-900 dark:text-zinc-50 font-hebrew">
+                  {userProfile.ulpanMode ? '!הַשִּׂיחָה הִסְתַּיְּמָה • כָּל הַכָּבוֹד' : 'Разговор завершен!'}
+                </h2>
+                <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-0.5 font-hebrew">
+                  {userProfile.ulpanMode ? 'אִמּוּן מְצוּיָן שֶׁל עִבְרִית בַּטֶּלֶפוֹן' : 'Отличная тренировка телефонного иврита'}
+                </p>
+              </div>
+            ) : (
+              <div className="text-center">
+                <div className="w-16 h-16 rounded-full bg-amber-100 dark:bg-amber-950/60 border border-amber-300 dark:border-amber-700 text-amber-600 dark:text-amber-400 flex items-center justify-center mx-auto mb-3 text-2xl shadow-sm">
+                  📞
+                </div>
+                <h2 className="text-xl sm:text-2xl font-bold text-zinc-900 dark:text-zinc-50 font-hebrew">
+                  {userProfile.ulpanMode ? 'הַשִּׂיחָה הָיְתָה קְצָרָה מִדַּי' : 'Разговор был слишком коротким'}
+                </h2>
+                <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1 max-w-md mx-auto font-hebrew">
+                  {userProfile.ulpanMode
+                    ? 'לֹא נִקְלְטוּ תְּשׁוּבוֹת מֵהַמִּיקְרוֹפוֹן. כְּדֵי לְהַשְׁלִים אֶת הַשִּׁיעוּר, יֵשׁ לְשׂוֹחֵחַ עִם הַבֶּן-שִׂיחַ (לְפָחוֹת 2 מִשְׁפָּטִים).'
+                    : 'Собеседник не услышал ваших реплик (0 ответов). Чтобы урок был засчитан, произнесите ответ вслух или нажмите на подсказку.'}
+                </p>
+              </div>
+            )}
 
-            <div className="bg-zinc-50 dark:bg-zinc-800/60 p-3.5 rounded-2xl border border-zinc-200 dark:border-zinc-700/60 text-center">
-              <span className="text-xs text-zinc-400 block font-medium">
-                {userProfile.ulpanMode ? 'מִשְׁפָּטִים שֶׁנֶּאֶמְרוּ' : 'Реплик сказано'}
-              </span>
-              <span className="text-lg font-bold text-blue-600 dark:text-blue-400">
-                {messages.filter((m) => m.role === 'user').length}
-              </span>
-            </div>
+            {/* Метрики звонка */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 font-hebrew">
+              <div className="bg-zinc-50 dark:bg-zinc-800/60 p-3.5 rounded-2xl border border-zinc-200 dark:border-zinc-700/60 text-center">
+                <span className="text-xs text-zinc-400 block font-medium">
+                  {userProfile.ulpanMode ? 'מֶשֶׁךְ הַשִּׂיחָה' : 'Длительность'}
+                </span>
+                <span className="text-lg font-bold text-zinc-900 dark:text-zinc-100 font-mono">
+                  {formatTimer(callDuration)}
+                </span>
+              </div>
 
-            <div className="bg-zinc-50 dark:bg-zinc-800/60 p-3.5 rounded-2xl border border-zinc-200 dark:border-zinc-700/60 text-center col-span-2 sm:col-span-1">
-              <span className="text-xs text-zinc-400 block font-medium">
-                {userProfile.ulpanMode ? 'הֲבָנָה' : 'Понимание'}
-              </span>
-              <span className="text-lg font-bold text-emerald-600 dark:text-emerald-400">
-                100% 🏆
-              </span>
+              <div className="bg-zinc-50 dark:bg-zinc-800/60 p-3.5 rounded-2xl border border-zinc-200 dark:border-zinc-700/60 text-center">
+                <span className="text-xs text-zinc-400 block font-medium">
+                  {userProfile.ulpanMode ? 'מִשְׁפָּטִים שֶׁנֶּאֶמְרוּ' : 'Реплик сказано'}
+                </span>
+                <span className={`text-lg font-bold ${userTurnsCount > 0 ? 'text-blue-600 dark:text-blue-400' : 'text-amber-500'}`}>
+                  {userTurnsCount}
+                </span>
+              </div>
+
+              <div className="bg-zinc-50 dark:bg-zinc-800/60 p-3.5 rounded-2xl border border-zinc-200 dark:border-zinc-700/60 text-center col-span-2 sm:col-span-1">
+                <span className="text-xs text-zinc-400 block font-medium">
+                  {userProfile.ulpanMode ? 'הֲבָנָה' : 'Результат'}
+                </span>
+                <span className={`text-lg font-bold ${isCallSuccessful ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-500'}`}>
+                  {isCallSuccessful ? '100% 🏆' : 'Требуется диалог'}
+                </span>
+              </div>
             </div>
-          </div>
 
           {/* Чек-лист целей */}
           <div className="bg-zinc-50 dark:bg-zinc-800/40 p-4 rounded-2xl border border-zinc-200 dark:border-zinc-700/60 font-hebrew">
@@ -1260,7 +1348,8 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
             )}
           </div>
         </div>
-      )}
+      );
+    })()}
     </div>
   );
 };

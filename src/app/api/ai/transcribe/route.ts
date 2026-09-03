@@ -69,7 +69,9 @@ export async function POST(req: NextRequest) {
     if (groqKey) {
       try {
         const groqFormData = new FormData();
-        groqFormData.append('file', file, 'audio.webm');
+        const mime = file.type || '';
+        const ext = mime.includes('mp4') ? 'm4a' : mime.includes('aac') ? 'aac' : mime.includes('wav') ? 'wav' : mime.includes('ogg') ? 'ogg' : 'webm';
+        groqFormData.append('file', file, `audio.${ext}`);
         groqFormData.append('model', 'whisper-large-v3');
         groqFormData.append('language', 'he');
         groqFormData.append('response_format', 'json');

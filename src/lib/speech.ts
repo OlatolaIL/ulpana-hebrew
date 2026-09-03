@@ -379,6 +379,8 @@ export interface SpeechRecognizerOptions {
   continuous?: boolean;
   silenceDurationMs?: number;
   speechThreshold?: number;
+  audioContext?: AudioContext | null;
+  mediaStream?: MediaStream | null;
   onAudioLevel?: (level: number) => void;
   onSilenceDetected?: (transcript: string) => void;
 }
@@ -438,29 +440,33 @@ export class HebrewSpeechRecognizer {
     this.silenceStartTime = null;
     this.isProcessingSilence = false;
 
-    // 1. Запуск браузерного распознавания речи
+    // 1. Запуск браузерного распознавания речи (Web Speech API для живого превью)
     this.startRecognitionOnly();
 
-    // 2. Запуск аудиопотока, MediaRecorder и VAD анализатора громкости
+    // 2. Получение или переиспользование аудиопотока и VAD анализатора громкости
     try {
-      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          audio: {
-            echoCancellation: true,
-            noiseSuppression: true,
-            autoGainControl: true,
-          },
-        });
-
-        if (!this.isListening) {
-          stream.getTracks().forEach((t) => t.stop());
-          return;
+      let stream = options?.mediaStream || this.mediaStream;
+      if (!stream || !stream.active) {
+        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+          stream = await navigator.mediaDevices.getUserMedia({
+            audio: {
+              echoCancellation: true,
+              noiseSuppression: true,
+              autoGainControl: true,
+            },
+          });
         }
+      }
 
+      if (!this.isListening) {
+        return;
+      }
+
+      if (stream) {
         this.mediaStream = stream;
 
         // Настройка Web Audio API AnalyserNode для VAD и анимации звуковых волн
-        this.setupAudioAnalyser(stream);
+        this.setupAudioAnalyser(stream, options?.audioContext);
 
         // Выбираем лучший поддерживаемый формат (Safari на iPhone использует audio/mp4)
         let mimeType = '';
@@ -497,37 +503,13 @@ export class HebrewSpeechRecognizer {
             const blobType = mimeType || recordedChunks[0]?.type || 'audio/webm';
             const audioBlob = new Blob(recordedChunks, { type: blobType });
 
-            // Если размер аудио больше 1KB и текст еще не распознан браузером, отправляем на серверную транскрибацию
             if (audioBlob.size > 1000) {
-              try {
-                const formData = new FormData();
-                const ext = blobType.includes('mp4') ? 'mp4' : blobType.includes('aac') ? 'aac' : 'webm';
-                formData.append('file', audioBlob, `speech.${ext}`);
-
-                if (this.currentOptions.vocabulary && this.currentOptions.vocabulary.length > 0) {
-                  formData.append('prompt', this.currentOptions.vocabulary.slice(0, 30).join(', '));
-                }
-                if (this.currentOptions.apiKey) {
-                  formData.append('apiKey', this.currentOptions.apiKey);
-                }
-
-                const res = await fetch('/api/ai/transcribe', {
-                  method: 'POST',
-                  body: formData,
-                });
-
-                if (res.ok) {
-                  const data = await res.json();
-                  if (data.text && data.text.trim()) {
-                    const cleanText = data.text.trim();
-                    this.lastTranscript = cleanText;
-                    this.onResultCb?.(cleanText, true);
-                    this.onEndCb?.(cleanText);
-                    return;
-                  }
-                }
-              } catch (serverErr) {
-                console.warn('Server transcription fallback:', serverErr);
+              const text = await this.transcribeAudioBlob(audioBlob, blobType);
+              if (text) {
+                this.lastTranscript = text;
+                this.onResultCb?.(text, true);
+                this.onEndCb?.(text);
+                return;
               }
             }
           }
@@ -540,7 +522,7 @@ export class HebrewSpeechRecognizer {
         recorder.start(250);
       }
     } catch (err: any) {
-      console.error('MediaRecorder start error:', err);
+      console.warn('MediaRecorder / microphone error:', err);
       if (!this.recognition) {
         this.isListening = false;
         this.onErrorCb?.(err?.message || 'Не удалось получить доступ к микрофону');
@@ -554,6 +536,10 @@ export class HebrewSpeechRecognizer {
       const SpeechRecognition =
         (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
       if (!SpeechRecognition) return;
+
+      if (this.recognition) {
+        return;
+      }
 
       const rec = new SpeechRecognition();
       rec.lang = 'he-IL';
@@ -578,42 +564,46 @@ export class HebrewSpeechRecognizer {
       };
 
       rec.onerror = (e: any) => {
-        // no-speech или network ошибки во время пауз пользователя не должны прерывать сессию
         if (e.error === 'no-speech' || e.error === 'network') {
           return;
         }
+        console.warn('Browser SpeechRecognition error:', e.error);
       };
 
       rec.onend = () => {
         this.recognition = null;
-        // Автоматический непрерывный перезапуск сессии
         if (this.isListening && (this.currentOptions.continuous ?? true)) {
           setTimeout(() => {
             if (this.isListening && !this.recognition) {
               this.startRecognitionOnly();
             }
-          }, 80);
+          }, 150);
         }
       };
 
       this.recognition = rec;
       rec.start();
-    } catch {
-      // Игнорируем ошибки неподдерживаемых браузеров
+    } catch (e) {
+      console.warn('SpeechRecognition start failed:', e);
     }
   }
 
-  private setupAudioAnalyser(stream: MediaStream): void {
+  private setupAudioAnalyser(stream: MediaStream, providedCtx?: AudioContext | null): void {
     try {
-      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
-      if (!AudioCtx) return;
-      this.audioContext = new AudioCtx();
-      if (this.audioContext.state === 'suspended') {
-        this.audioContext.resume().catch(() => {});
+      let ctx = providedCtx;
+      if (!ctx || ctx.state === 'closed') {
+        const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+        if (AudioCtx) ctx = new AudioCtx();
       }
+      if (!ctx) return;
 
-      const source = this.audioContext.createMediaStreamSource(stream);
-      this.analyser = this.audioContext.createAnalyser();
+      if (ctx.state === 'suspended') {
+        ctx.resume().catch(() => {});
+      }
+      this.audioContext = ctx;
+
+      const source = ctx.createMediaStreamSource(stream);
+      this.analyser = ctx.createAnalyser();
       this.analyser.fftSize = 256;
       this.analyser.smoothingTimeConstant = 0.3;
       source.connect(this.analyser);
@@ -671,40 +661,23 @@ export class HebrewSpeechRecognizer {
       return;
     }
 
-    // Если браузерный Web Speech API не дал текста (например, на iOS Safari), транскрибируем записанный буфер
+    // Если браузерный Web Speech API не дал текста, берем аудио и транскрибируем через Groq Whisper
     if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
       try {
         this.mediaRecorder.requestData();
-        await new Promise((r) => setTimeout(r, 60));
+        await new Promise((r) => setTimeout(r, 80));
 
         if (this.audioChunks.length > 0) {
           const blobType = this.mediaRecorder.mimeType || 'audio/webm';
           const audioBlob = new Blob([...this.audioChunks], { type: blobType });
+          this.audioChunks = []; // очищаем буфер
+
           if (audioBlob.size > 1000) {
-            const formData = new FormData();
-            const ext = blobType.includes('mp4') ? 'mp4' : blobType.includes('aac') ? 'aac' : 'webm';
-            formData.append('file', audioBlob, `speech.${ext}`);
-
-            if (this.currentOptions.vocabulary && this.currentOptions.vocabulary.length > 0) {
-              formData.append('prompt', this.currentOptions.vocabulary.slice(0, 30).join(', '));
-            }
-            if (this.currentOptions.apiKey) {
-              formData.append('apiKey', this.currentOptions.apiKey);
-            }
-
-            const res = await fetch('/api/ai/transcribe', {
-              method: 'POST',
-              body: formData,
-            });
-
-            if (res.ok) {
-              const data = await res.json();
-              if (data.text && data.text.trim()) {
-                const text = data.text.trim();
-                this.lastTranscript = text;
-                this.currentOptions.onSilenceDetected?.(text);
-                return;
-              }
+            const text = await this.transcribeAudioBlob(audioBlob, blobType);
+            if (text) {
+              this.lastTranscript = text;
+              this.currentOptions.onSilenceDetected?.(text);
+              return;
             }
           }
         }
@@ -716,6 +689,36 @@ export class HebrewSpeechRecognizer {
     if (this.lastTranscript.trim()) {
       this.currentOptions.onSilenceDetected?.(this.lastTranscript.trim());
     }
+  }
+
+  private async transcribeAudioBlob(audioBlob: Blob, mimeType: string): Promise<string | null> {
+    try {
+      const formData = new FormData();
+      const ext = mimeType.includes('mp4') ? 'm4a' : mimeType.includes('aac') ? 'aac' : 'webm';
+      formData.append('file', audioBlob, `speech.${ext}`);
+
+      if (this.currentOptions.vocabulary && this.currentOptions.vocabulary.length > 0) {
+        formData.append('prompt', this.currentOptions.vocabulary.slice(0, 30).join(', '));
+      }
+      if (this.currentOptions.apiKey) {
+        formData.append('apiKey', this.currentOptions.apiKey);
+      }
+
+      const res = await fetch('/api/ai/transcribe', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.text && data.text.trim()) {
+          return data.text.trim();
+        }
+      }
+    } catch (e) {
+      console.warn('transcribeAudioBlob error:', e);
+    }
+    return null;
   }
 
   public cancel(): void {
@@ -733,12 +736,6 @@ export class HebrewSpeechRecognizer {
       this.vadInterval = null;
     }
 
-    if (this.audioContext) {
-      try {
-        this.audioContext.close();
-      } catch {}
-      this.audioContext = null;
-    }
     this.analyser = null;
 
     if (this.recognition) {
@@ -787,12 +784,6 @@ export class HebrewSpeechRecognizer {
       this.vadInterval = null;
     }
 
-    if (this.audioContext) {
-      try {
-        this.audioContext.close();
-      } catch {}
-      this.audioContext = null;
-    }
     this.analyser = null;
 
     if (this.recognition) {
@@ -810,13 +801,6 @@ export class HebrewSpeechRecognizer {
         this.mediaRecorder.stop();
       } catch {}
       this.mediaRecorder = null;
-    }
-
-    if (this.mediaStream) {
-      try {
-        this.mediaStream.getTracks().forEach((track) => track.stop());
-      } catch {}
-      this.mediaStream = null;
     }
   }
 }
