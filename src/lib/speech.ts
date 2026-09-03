@@ -503,6 +503,10 @@ export class HebrewSpeechRecognizer {
         };
 
         recorder.onstop = async () => {
+          if (!this.onEndCb && !this.onResultCb) {
+            this.audioChunks = [];
+            return;
+          }
           const recordedChunks = [...this.audioChunks];
           this.audioChunks = [];
 
@@ -529,6 +533,10 @@ export class HebrewSpeechRecognizer {
                   body: formData,
                 });
 
+                if (!this.onEndCb && !this.onResultCb) {
+                  return;
+                }
+
                 if (res.ok) {
                   const data = await res.json();
                   if (data.text && data.text.trim()) {
@@ -545,6 +553,7 @@ export class HebrewSpeechRecognizer {
             }
           }
 
+          if (!this.onEndCb && !this.onResultCb) return;
           // Fallback к результатам браузерного распознавания
           this.onEndCb?.(this.lastTranscript);
         };
@@ -562,7 +571,48 @@ export class HebrewSpeechRecognizer {
     }
   }
 
-  public stop(): void {
+  public cancel(): void {
+    this.isListening = false;
+    this.onResultCb = null;
+    this.onErrorCb = null;
+    this.onEndCb = null;
+    this.audioChunks = [];
+
+    if (this.recognition) {
+      try {
+        this.recognition.onresult = null;
+        this.recognition.onerror = null;
+        this.recognition.onend = null;
+        this.recognition.stop();
+      } catch {}
+      this.recognition = null;
+    }
+
+    if (this.mediaRecorder) {
+      try {
+        this.mediaRecorder.onstop = null;
+        this.mediaRecorder.ondataavailable = null;
+        if (this.mediaRecorder.state !== 'inactive') {
+          this.mediaRecorder.stop();
+        }
+      } catch {}
+      this.mediaRecorder = null;
+    }
+
+    if (this.mediaStream) {
+      try {
+        this.mediaStream.getTracks().forEach((track) => track.stop());
+      } catch {}
+      this.mediaStream = null;
+    }
+  }
+
+  public stop(cancelPending = false): void {
+    if (cancelPending) {
+      this.cancel();
+      return;
+    }
+
     if (!this.isListening) return;
     this.isListening = false;
 

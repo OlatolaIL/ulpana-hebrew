@@ -191,6 +191,7 @@ export interface ChatMessage {
   translation?: string;
   feedback?: string; // Поправки грамматики от ИИ
   engine?: string;
+  isCompleted?: boolean; // Флаг завершения диалога
   suggestedReplies?: Array<{
     hebrew: string;
     transcription: string;

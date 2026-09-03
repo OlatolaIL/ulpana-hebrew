@@ -106,6 +106,37 @@ function getInitialMessageForGender(lesson: Lesson, gender: 'male' | 'female'): 
     };
   }
 
+  if (lesson.number === 3) {
+    return {
+      hebrew: isFemale
+        ? 'שָׁלוֹם! נָעִים מְאוֹד. אֲנִי שָׂרָה מִצָּרְפַת. מֵאֵיפֹה אַתְּ?'
+        : 'שָׁלוֹם! נָעִים מְאוֹד. אֲנִי שָׂרָה מִצָּרְפַת. מֵאֵיפֹה אַתָּה?',
+      transcription: isFemale
+        ? 'шалóм! наӣм мэóд. анӣ Сáра ми-Царфáт. мэ-э́йфо ат?'
+        : 'шалóм! наӣм мэóд. анӣ Сáра ми-Царфáт. мэ-э́йфо атá?',
+      translation: isFemale
+        ? 'Привет! Очень приятно. Я Сара из Франции. Откуда ты? (к женщине)'
+        : 'Привет! Очень приятно. Я Сара из Франции. Откуда ты? (к мужчине)',
+      suggestedReplies: [
+        {
+          hebrew: 'שָׁלוֹם שָׂרָה! אֲנִי מֵרוּסְיָה, נָעִים מְאוֹד.',
+          transcription: 'шалóм Сáра! анӣ мэ-Рýсья, наӣм мэóд.',
+          translation: 'Привет, Сара! Я из России, очень приятно.',
+        },
+        {
+          hebrew: 'נָעִים מְאוֹד! אֲנִי מִיִּשְׂרָאֵל.',
+          transcription: 'наӣм мэóд! анӣ ми-Исраэ́ль.',
+          translation: 'Очень приятно! Я из Израиля.',
+        },
+        {
+          hebrew: 'שָׁלוֹם! אֲנִי מֵאַרְהַ"בּ, נָעִים לְהַכִּיר.',
+          transcription: 'шалóм! анӣ мэ-Арháв, наӣм лэhакӣр.',
+          translation: 'Привет! Я из США, приятно познакомиться.',
+        },
+      ],
+    };
+  }
+
   // Общий шаблон для остальных уроков
   let heb = lesson.dialogue.initialMessage.hebrew;
   let tr = lesson.dialogue.initialMessage.transcription;
@@ -123,9 +154,19 @@ function getInitialMessageForGender(lesson: Lesson, gender: 'male' | 'female'): 
     translation: lesson.dialogue.initialMessage.translation,
     suggestedReplies: [
       {
-        hebrew: isFemale ? 'שָׁלוֹם, אֲנִי כָּאן.' : 'שָׁלוֹם, אֲנִי כָּאן.',
-        transcription: 'шалóм, анӣ кан.',
-        translation: 'Привет, я здесь.',
+        hebrew: 'שָׁלוֹם! נָעִים מְאוֹד.',
+        transcription: 'шалóм! наӣм мэóд.',
+        translation: 'Привет! Очень приятно.',
+      },
+      {
+        hebrew: 'בּוֹקֶר טוֹב! מָה נִשְׁמַע?',
+        transcription: 'бóкер тов! ма нишмá?',
+        translation: 'Доброе утро! Как дела?',
+      },
+      {
+        hebrew: isFemale ? 'שָׁלוֹם, אֲנִי מוּכָנָה לִלְמוֹד.' : 'שָׁלוֹם, אֲנִי מוּכָן לִלְמוֹד.',
+        transcription: isFemale ? 'шалóм, анӣ муханá лильмóд.' : 'шалóм, анӣ мухáн лильмóд.',
+        translation: isFemale ? 'Привет, я готова учиться.' : 'Привет, я готов учиться.',
       },
     ],
   };
@@ -206,14 +247,18 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
     }
   }, [messages.length, loading]);
 
+  const TARGET_TURNS = 3;
+
   const handleSendMessage = async (textToSend?: string) => {
-    if (isRecording && recognizer) {
-      recognizer.stop();
+    if (recognizer) {
+      recognizer.stop(true);
       setIsRecording(false);
     }
 
     const text = (textToSend || inputText).trim();
     if (!text || loading) return;
+
+    setInputText('');
 
     const userMsg: ChatMessage = {
       id: `user-${Date.now()}`,
@@ -225,8 +270,9 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
     const newMessages = [...messagesRef.current, userMsg];
     messagesRef.current = newMessages;
     setMessages(newMessages);
-    setInputText('');
     setLoading(true);
+
+    const currentUserTurns = newMessages.filter((m) => m.role === 'user').length;
 
     try {
       const history = newMessages.map((m) => ({
@@ -251,6 +297,8 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
           vocabulary: (lesson.vocabulary || []).map((w) => `${w.hebrew} (${w.translation})`),
           grammarTopic: lesson.grammar?.[0]?.title || lesson.titleRussian,
           ulpanMode: Boolean(userProfile.ulpanMode),
+          turnIndex: currentUserTurns,
+          targetTurns: TARGET_TURNS,
           provider: userProfile.aiProvider,
           apiKey:
             userProfile.aiProvider === 'groq'
@@ -269,6 +317,7 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
         translation: data.translation,
         feedback: data.feedback,
         engine: data.engine || 'Groq (Живой ИИ)',
+        isCompleted: Boolean(data.isCompleted),
         suggestedReplies: data.suggestedReplies || [],
         timestamp: Date.now(),
       };
@@ -277,8 +326,15 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
       messagesRef.current = updatedHistory;
       setMessages(updatedHistory);
       setShowSuggestions(true);
-      const updated = markLessonTabCompleted(lesson.id, 'chat');
-      if (onUpdateProfile) onUpdateProfile(updated);
+
+      const isFinished = Boolean(data.isCompleted || currentUserTurns >= TARGET_TURNS);
+      if (isFinished) {
+        const updated = markLessonTabCompleted(lesson.id, 'chat');
+        if (onUpdateProfile) onUpdateProfile(updated);
+        try {
+          confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+        } catch {}
+      }
 
       // Автоматически озвучиваем ответ ИИ
       speakHebrew(aiMsg.hebrew, { rate: userProfile.speechRate || 0.7 });
@@ -335,6 +391,10 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
   };
 
   const lastAiMessage = [...messages].reverse().find((m) => m.role === 'assistant');
+
+  const userTurnsCount = messages.filter((m) => m.role === 'user').length;
+  const isTabCompleted = Boolean(userProfile.lessonProgress[lesson.id]?.completedTabs?.includes('chat'));
+  const isDialogueFinished = isTabCompleted || userTurnsCount >= TARGET_TURNS || messages.some((m) => m.role === 'assistant' && m.isCompleted);
 
   const isCursive = userProfile.fontStyle === 'cursive';
 
@@ -461,17 +521,28 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
         <div className="flex items-center gap-2 min-w-0">
           <Award className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
           <div className="min-w-0">
-            <p className="text-xs font-bold text-zinc-900 dark:text-zinc-100 truncate">
-              {userProfile.ulpanMode ? 'שָׁלָב 4/5: תִּרְגּוּל שִׂיחָה' : 'Этап 4/5: Практика диалога'}
-            </p>
+            <div className="flex items-center gap-1.5">
+              <p className="text-xs font-bold text-zinc-900 dark:text-zinc-100 truncate">
+                {userProfile.ulpanMode ? 'שָׁלָב 4/5: תִּרְגּוּל שִׂיחָה' : 'Этап 4/5: Практика диалога'}
+              </p>
+              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md ${
+                isDialogueFinished
+                  ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300'
+                  : 'bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-300'
+              }`}>
+                {userProfile.ulpanMode
+                  ? `${Math.min(userTurnsCount, TARGET_TURNS)}/${TARGET_TURNS} שְׁלָבִים`
+                  : `Ход ${Math.min(userTurnsCount, TARGET_TURNS)} из ${TARGET_TURNS}`}
+              </span>
+            </div>
             <p className="text-[11px] text-zinc-500 dark:text-zinc-400 truncate hidden xs:block">
-              {userProfile.lessonProgress[lesson.id]?.completedTabs?.includes('chat')
+              {isDialogueFinished
                 ? (userProfile.ulpanMode
                     ? 'הַשִּׂיחָה הוּשְׁלְמָה! אֶפְשָׁר לְהַמְשִׁיךְ אוֹ לַעֲבוֹר לְשִׂיחַת טֶלֶפוֹן.'
                     : 'Диалог зачтен! Можете продолжить беседу или перейти к звонку.')
                 : (userProfile.ulpanMode
-                    ? 'שׂוֹחֲחוּ עִם הַבּוֹט וְלַחֲצוּ עַל «סַיֵּם שִׂיחָה».'
-                    : 'Пообщайтесь с ИИ и нажмите «Зачесть диалог».')}
+                    ? `שׂוֹחֲחוּ עִם הַבּוֹט (${Math.max(0, TARGET_TURNS - userTurnsCount)} תְּשׁוּבוֹת נוֹתְרוּ).`
+                    : `Ответьте на вопросы ИИ (осталось ответов: ${Math.max(0, TARGET_TURNS - userTurnsCount)}).`)}
             </p>
           </div>
         </div>
@@ -485,14 +556,14 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
               confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 } });
             }}
             className={`px-3 py-1.5 rounded-xl font-bold text-xs shadow-sm transition active:scale-95 flex items-center gap-1.5 cursor-pointer ${
-              userProfile.lessonProgress[lesson.id]?.completedTabs?.includes('chat')
+              isTabCompleted
                 ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
                 : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white animate-pulse'
             }`}
             title="Зачесть 4 этап"
           >
             <CheckCircle2 className="w-3.5 h-3.5" />
-            <span>{userProfile.lessonProgress[lesson.id]?.completedTabs?.includes('chat') ? 'Диалог зачтен ✅' : 'Зачесть диалог 🎉'}</span>
+            <span>{isTabCompleted ? 'Диалог зачтен ✅' : 'Зачесть диалог 🎉'}</span>
           </button>
 
           {onGoToPhone && (
@@ -644,6 +715,45 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
             <div className="w-2 h-2 rounded-full bg-blue-600 animate-pulse delay-75" />
             <div className="w-2 h-2 rounded-full bg-blue-600 animate-pulse delay-150" />
             <span className="font-hebrew">{userProfile.ulpanMode ? 'הַבּוֹט כּוֹתֵב...' : 'Собеседник печатает...'}</span>
+          </div>
+        )}
+
+        {isDialogueFinished && userTurnsCount >= TARGET_TURNS && (
+          <div className="p-3.5 bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-blue-500/10 border border-emerald-400/40 dark:border-emerald-700/60 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left animate-in fade-in shadow-xs my-2 font-hebrew">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                <CheckCircle2 className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="font-bold text-xs sm:text-sm text-emerald-950 dark:text-emerald-100">
+                  {userProfile.ulpanMode ? '🎉 הַשִּׂיחָה הוּשְׁלְמָה בִּמְלוֹאָהּ!' : '🎉 Диалог успешно завершён!'}
+                </p>
+                <p className="text-[11px] text-emerald-700 dark:text-emerald-300">
+                  {userProfile.ulpanMode
+                    ? 'הִשְׁלַמְתֶּם אֶת יַעֲדֵי הַשִּׂיחָה. כָּעֵת מוּמלָץ לַעֲבוֹר לְשִׂיחַת טֶלֶפוֹן!'
+                    : 'Вы успешно пообщались с ИИ! Теперь закрепите живую речь в звонке.'}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto">
+              {onGoToPhone && (
+                <button
+                  type="button"
+                  onClick={onGoToPhone}
+                  className="flex-1 sm:flex-initial px-3.5 py-2 rounded-xl font-bold text-xs bg-purple-600 hover:bg-purple-700 text-white shadow-xs transition active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <span>{userProfile.ulpanMode ? 'לְשִׂיחַת טֶלֶפוֹן 📞' : 'Звонок (этап 5/5) 📞 ➡️'}</span>
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={handleResetChat}
+                className="p-2 rounded-xl text-xs font-semibold border border-zinc-300 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 transition cursor-pointer"
+                title={userProfile.ulpanMode ? 'התחל שיחה מחדש' : 'Начать диалог сначала'}
+              >
+                <RotateCcw className="w-4 h-4" />
+              </button>
+            </div>
           </div>
         )}
 

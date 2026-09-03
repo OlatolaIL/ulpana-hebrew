@@ -20,9 +20,11 @@ interface ChatRequestBody {
   isPhoneCall?: boolean;
   ulpanMode?: boolean;
   systemPromptAddition?: string;
+  turnIndex?: number;
+  targetTurns?: number;
 }
 
-function normalizeResponse(parsed: any) {
+function normalizeResponse(parsed: any, defaultIsCompleted: boolean = false) {
   return {
     hebrew: parsed.hebrew || '',
     transcription:
@@ -37,6 +39,7 @@ function normalizeResponse(parsed: any) {
       parsed.translation ||
       '',
     feedback: parsed.feedback_ru || parsed.feedback || null,
+    isCompleted: Boolean(parsed.isCompleted ?? parsed.is_completed ?? defaultIsCompleted),
     suggestedReplies: Array.isArray(parsed.suggestedReplies)
       ? parsed.suggestedReplies.map((r: any) => ({
           hebrew: r.hebrew || '',
@@ -107,6 +110,25 @@ export async function POST(req: NextRequest) {
     const isUlpan = Boolean(body.ulpanMode);
     let levelConstraint = '';
 
+    const userTurnsCount = (messages || []).filter((m) => m.role === 'user').length;
+    const currentTurn = body.turnIndex || userTurnsCount;
+    const maxTurns = body.targetTurns || 3;
+    const isFinalTurn = currentTurn >= maxTurns;
+
+    const dialogueTurnInstruction = isPhoneCall
+      ? ''
+      : isFinalTurn
+      ? `ЭТО ЗАКЛЮЧИТЕЛЬНАЯ РЕПЛИКА ДИАЛОГА (ШАГ ${currentTurn} ИЗ ${maxTurns}):
+- Ученик успешно прошёл все темы и ответил на вопросы урока №${lessonNumber}!
+- Тепло заверши диалог на простом иврите: поблагодари за приятную беседу, пожелай удачи в ульпане / отличного дня и вежливо попрощайся (например: 'נָעִים מְאוֹד לְהַכִּיר! שֶׁיִּהְיֶה לְךָ יוֹם מְצוּיָּן וּבְהַצְלָחָה בָּאוּלְפָּן! לְהִתְרָאוֹת!', 'יוֹפִי! שָׂמַחְתִּי לְדַבֵּר אִתְּךָ. נִתְרָאֶה בַּשִּׁיעוּר!').
+- СТРОГО ЗАПРЕЩЕНО задавать новые вопросы! Диалог завершён.
+- В "suggestedReplies" предложи ровно 3 простых варианта прощания на иврите (например: 'תּוֹדָה רַבָּה, לְהִתְרָאוֹת!', 'יוֹם נִפְלָא, בַּיי!', 'נָעִים מְאוֹד, שָׁלוֹם!').
+- В JSON-ответе ОБЯЗАТЕЛЬНО установи: "isCompleted": true.`
+      : `ЭТАП ДИАЛОГА: ШАГ ${currentTurn} ИЗ ${maxTurns}.
+- Продвигай диалог вперед к целям урока №${lessonNumber}.
+- Задай ровно один следующий естественный вопрос по теме урока.
+- В JSON-ответе укажи: "isCompleted": false.`;
+
     if (isLevelAlef) {
       if (lessonNumber === 1) {
         levelConstraint = `СУПЕР-ПРОСТЫЕ ОГРАНИЧЕНИЯ ПО ИВРИТУ (Урок 1, Алеф):
@@ -161,6 +183,7 @@ ${genderInstruction}
 ${levelConstraint}
 ${ulpanImmersionPrompt}
 ${phoneContext}
+${dialogueTurnInstruction}
 ${systemPromptAddition ? `ДОПОЛНИТЕЛЬНЫЕ ИНСТРУКЦИИ: ${systemPromptAddition}` : ''}
 Цели диалога: ${goals.join('; ')}.
 
@@ -196,6 +219,7 @@ ${systemPromptAddition ? `ДОПОЛНИТЕЛЬНЫЕ ИНСТРУКЦИИ: ${s
   "cyrillic_transcription": "русская транскрипция кириллицей с 'h' (напр. шалóм, то́да)",
   "russian_translation": "перевод исключительно на чистом русском языке",
   "feedback_ru": null,
+  "isCompleted": false,
   "suggestedReplies": [
     { "hebrew": "Вариант 1 на иврите с огласовками", "cyrillic_transcription": "русская транскрипция 1", "russian_translation": "русский перевод 1" },
     { "hebrew": "Вариант 2 на иврите с огласовками", "cyrillic_transcription": "русская транскрипция 2", "russian_translation": "русский перевод 2" },
@@ -238,7 +262,7 @@ ${systemPromptAddition ? `ДОПОЛНИТЕЛЬНЫЕ ИНСТРУКЦИИ: ${s
             const data = await groqResponse.json();
             const contentStr = data.choices[0]?.message?.content || '{}';
             const parsed = JSON.parse(contentStr);
-            const normalized = normalizeResponse(parsed);
+            const normalized = normalizeResponse(parsed, isFinalTurn);
             return NextResponse.json({
               ...normalized,
               engine: 'Groq (Живой ИИ)',
@@ -282,7 +306,7 @@ ${systemPromptAddition ? `ДОПОЛНИТЕЛЬНЫЕ ИНСТРУКЦИИ: ${s
           const data = await geminiRes.json();
           const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
           const parsed = JSON.parse(text);
-          const normalized = normalizeResponse(parsed);
+          const normalized = normalizeResponse(parsed, isFinalTurn);
           return NextResponse.json({
             ...normalized,
             engine: 'Gemini (Живой ИИ)',
@@ -294,27 +318,32 @@ ${systemPromptAddition ? `ДОПОЛНИТЕЛЬНЫЕ ИНСТРУКЦИИ: ${s
     }
 
     return NextResponse.json({
-      hebrew: isFemale
-        ? `שָׁלוֹם! בָּרוּכָה הַבָּאָה לְשִׁיעוּר ${lessonNumber}. סַפְּרִי לִי, אֵיךְ אַתְּ מַרְגִּישָׁה הַיּוֹם?`
-        : `שָׁלוֹם! בָּרוּךְ הַבָּא לְשִׁיעוּר ${lessonNumber}. סַפֵּר לִי, אֵיךְ אַתָּה מַרְגִּישׁ הַיּוֹם?`,
-      transcription: isFemale
-        ? `шалóм! барӯхá hа-баá лэ-шиӯр ${lessonNumber}. сапрӣ ли, эйх ат маргишá hайóм?`
-        : `шалóм! барӯх hа-ба лэ-шиӯр ${lessonNumber}. сапéр ли, эйх атá маргӣш hайóм?`,
-      translation: `Здравствуйте! Добро пожаловать на урок ${lessonNumber}. Расскажите, как вы себя чувствуете сегодня?`,
+      hebrew: isFinalTurn
+        ? (isFemale ? 'נָעִים מְאוֹד לְהַכִּיר! בְּהַצְלָחָה בָּאוּלְפָּן, לְהִתְרָאוֹת!' : 'נָעִים מְאוֹד לְהַכִּיר! בְּהַצְלָחָה בָּאוּלְפָּן, לְהִתְרָאוֹת!')
+        : (isFemale
+            ? `שָׁלוֹם! בָּרוּכָה הַבָּאָה לְשִׁיעוּר ${lessonNumber}. סַפְּרִי לִי, אֵיךְ אַתְּ מַרְגִּישָׁה הַיּוֹם?`
+            : `שָׁלוֹם! בָּרוּךְ הַבָּא לְשִׁיעוּר ${lessonNumber}. סַפֵּר לִי, אֵיךְ אַתָּה מַרְגִּישׁ הַיּוֹם?`),
+      transcription: isFinalTurn
+        ? 'наӣм мэóд лэhакӣр! бэhацлахá ба-ульпáн, лэhитраóт!'
+        : (isFemale
+            ? `шалóм! барӯхá hа-баá лэ-шиӯр ${lessonNumber}. сапрӣ ли, эйх ат маргишá hайóм?`
+            : `шалóм! барӯх hа-ба лэ-шиӯр ${lessonNumber}. сапéр ли, эйх атá маргӣш hайóм?`),
+      translation: isFinalTurn
+        ? 'Очень приятно познакомиться! Удачи в ульпане, до свидания!'
+        : `Здравствуйте! Добро пожаловать на урок ${lessonNumber}. Расскажите, как вы себя чувствуете сегодня?`,
       feedback: null,
+      isCompleted: isFinalTurn,
       engine: 'Ульпан-автоответчик',
-      suggestedReplies: [
-        {
-          hebrew: 'הַכֹּל מְצוּיָן, תּוֹדָה!',
-          transcription: 'hа-коль мэцуйáн, тодá!',
-          translation: 'Всё отлично, спасибо!',
-        },
-        {
-          hebrew: 'בְּסֵדֶר, תּוֹדָה.',
-          transcription: 'бэсéдер, тодá.',
-          translation: 'В порядке, спасибо.',
-        },
-      ],
+      suggestedReplies: isFinalTurn
+        ? [
+            { hebrew: 'תּוֹדָה רַבָּה, לְהִתְרָאוֹת!', transcription: 'тодá рабá, лэhитраóт!', translation: 'Большое спасибо, до свидания!' },
+            { hebrew: 'יוֹם טוֹב, בַּיי!', transcription: 'йом тов, бай!', translation: 'Хорошего дня, пока!' },
+            { hebrew: 'שָׁלוֹם וְתוֹדָה!', transcription: 'шалóм вэ-тодá!', translation: 'Пока и спасибо!' },
+          ]
+        : [
+            { hebrew: 'הַכֹּל מְצוּיָן, תּוֹדָה!', transcription: 'hа-коль мэцуйáн, тодá!', translation: 'Всё отлично, спасибо!' },
+            { hebrew: 'בְּסֵדֶר, תּוֹדָה.', transcription: 'бэсéдер, тодá.', translation: 'В порядке, спасибо.' },
+          ],
     });
   } catch (error: any) {
     return NextResponse.json({
