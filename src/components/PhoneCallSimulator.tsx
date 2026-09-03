@@ -57,10 +57,11 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isAiSpeaking, setIsAiSpeaking] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
+  const [audioLevel, setAudioLevel] = useState(0);
+  const [isMuted, setIsMuted] = useState(false);
   const [liveTranscript, setLiveTranscript] = useState('');
   const [loadingAi, setLoadingAi] = useState(false);
   const [showSubtitles, setShowSubtitles] = useState(true);
-  const [handsFree, setHandsFree] = useState(true); // Автоматический разговор по громкой связи включен по умолчанию
   const [textInput, setTextInput] = useState('');
   const [showTextInput, setShowTextInput] = useState(false);
   const [lastFeedback, setLastFeedback] = useState<string | null>(null);
@@ -73,9 +74,9 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
   const isAiSpeakingRef = useRef(false);
   const loadingAiRef = useRef(false);
   const isRecordingRef = useRef(false);
-  const handsFreeRef = useRef(true);
+  const isMutedRef = useRef(false);
   const timerRef = useRef<any>(null);
-  const handsFreeTimeoutRef = useRef<any>(null);
+  const autoListenTimeoutRef = useRef<any>(null);
   const silenceTimeoutRef = useRef<any>(null);
   const isSendingRef = useRef(false);
   const callActiveRef = useRef(false);
@@ -116,7 +117,7 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
         recognizerRef.current.stop();
       }
       if (timerRef.current) clearInterval(timerRef.current);
-      if (handsFreeTimeoutRef.current) clearTimeout(handsFreeTimeoutRef.current);
+      if (autoListenTimeoutRef.current) clearTimeout(autoListenTimeoutRef.current);
       if (silenceTimeoutRef.current) clearTimeout(silenceTimeoutRef.current);
     };
   }, []);
@@ -161,6 +162,9 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
     setBothMessages([]);
     setLastFeedback(null);
     setLiveTranscript('');
+    setAudioLevel(0);
+    setIsMuted(false);
+    isMutedRef.current = false;
     isSendingRef.current = false;
     callActiveRef.current = false;
     shouldListenRef.current = false;
@@ -195,6 +199,7 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
     // 1. Глушим микрофон перед тем, как ИИ начнет говорить
     stopListening();
     setAiSpeaking(true);
+    setAudioLevel(0);
     lastAiSpokenTextRef.current = stripNikkud(text).trim().toLowerCase();
 
     try {
@@ -205,14 +210,20 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
       setAiSpeaking(false);
       lastAiSpokenTimeRef.current = Date.now();
 
-      // Безопасная пауза 650мс после того, как динамик затих, перед авто-включением микрофона
-      if (handsFreeRef.current && callActiveRef.current) {
-        if (handsFreeTimeoutRef.current) clearTimeout(handsFreeTimeoutRef.current);
-        handsFreeTimeoutRef.current = setTimeout(() => {
-          if (callActiveRef.current && !isAiSpeakingRef.current && !loadingAiRef.current && !isSendingRef.current) {
+      // Безопасная пауза 500мс после того, как динамик затих, перед авто-включением микрофона
+      if (callActiveRef.current && !isMutedRef.current) {
+        if (autoListenTimeoutRef.current) clearTimeout(autoListenTimeoutRef.current);
+        autoListenTimeoutRef.current = setTimeout(() => {
+          if (
+            callActiveRef.current &&
+            !isAiSpeakingRef.current &&
+            !loadingAiRef.current &&
+            !isSendingRef.current &&
+            !isMutedRef.current
+          ) {
             startListening();
           }
-        }, 650);
+        }, 500);
       }
     }
   };
@@ -240,9 +251,16 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
     return false;
   };
 
-  // Запуск микрофона
+  // Запуск микрофона (автоматический hands-free режим)
   const startListening = (force = false) => {
-    if ((isRecordingRef.current && !force) || isAiSpeakingRef.current || loadingAiRef.current || isSendingRef.current || !callActiveRef.current) {
+    if (
+      (isRecordingRef.current && !force) ||
+      isAiSpeakingRef.current ||
+      loadingAiRef.current ||
+      isSendingRef.current ||
+      !callActiveRef.current ||
+      isMutedRef.current
+    ) {
       return;
     }
 
@@ -257,45 +275,78 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
 
     if (silenceTimeoutRef.current) clearTimeout(silenceTimeoutRef.current);
 
+    // В первых 10 уроках увеличиваем паузу до 2.0 секунд, чтобы начинающим было комфортно формулировать фразы
+    const silenceDelayMs = lesson.number && lesson.number <= 10 ? 2000 : 1300;
+
     recognizerRef.current.start(
       (transcript, isFinal) => {
-        if (isAiSpeakingRef.current || isSendingRef.current || !callActiveRef.current) return;
+        if (isAiSpeakingRef.current || isSendingRef.current || !callActiveRef.current || isMutedRef.current) return;
 
         setLiveTranscript(transcript);
 
-        // Таймер авто-отправки при паузе в речи (1.5 секунды тишины)
+        // Резервный таймер авто-отправки при паузе в речи (2.0 сек для уроков 1-10, 1.3 сек для остальных)
         if (silenceTimeoutRef.current) clearTimeout(silenceTimeoutRef.current);
-        if (transcript.trim() && handsFreeRef.current) {
+        if (transcript.trim()) {
           silenceTimeoutRef.current = setTimeout(() => {
-            if (!isEchoFromAi(transcript) && callActiveRef.current && shouldListenRef.current && !isSendingRef.current && !isAiSpeakingRef.current) {
+            if (
+              !isEchoFromAi(transcript) &&
+              callActiveRef.current &&
+              shouldListenRef.current &&
+              !isSendingRef.current &&
+              !isAiSpeakingRef.current &&
+              !isMutedRef.current
+            ) {
               handleSendMessage(transcript.trim());
             }
-          }, 1500);
+          }, silenceDelayMs);
         }
       },
       (error) => {
         console.warn('Speech recognition warning:', error);
-        setRecording(false);
       },
       (lastTranscript) => {
-        setRecording(false);
-        // Если браузер завершил сессию распознавания, но мы все еще в режиме ожидания ответа:
-        if (callActiveRef.current && shouldListenRef.current && !isAiSpeakingRef.current && !loadingAiRef.current && !isSendingRef.current) {
+        // Завершение сессии распознавания: если все еще слушаем, проверяем наличие фразы
+        if (
+          callActiveRef.current &&
+          shouldListenRef.current &&
+          !isAiSpeakingRef.current &&
+          !loadingAiRef.current &&
+          !isSendingRef.current &&
+          !isMutedRef.current
+        ) {
           if (lastTranscript && lastTranscript.trim() && !isEchoFromAi(lastTranscript)) {
             handleSendMessage(lastTranscript.trim());
-          } else {
-            // Мгновенный и надежный перезапуск без зависаний
-            setTimeout(() => {
-              if (callActiveRef.current && shouldListenRef.current && !isAiSpeakingRef.current && !loadingAiRef.current && !isSendingRef.current) {
-                startListening(true);
-              }
-            }, 80);
           }
         }
       },
       {
         vocabulary: (lesson.vocabulary || []).map((w) => w.hebrew),
         apiKey: userProfile.groqApiKey || undefined,
+        continuous: true,
+        silenceDurationMs: silenceDelayMs,
+        speechThreshold: 10,
+        onAudioLevel: (level) => {
+          if (!isAiSpeakingRef.current && !loadingAiRef.current && !isMutedRef.current) {
+            setAudioLevel(level);
+          } else {
+            setAudioLevel(0);
+          }
+        },
+        onSilenceDetected: (transcript) => {
+          if (
+            callActiveRef.current &&
+            shouldListenRef.current &&
+            !isSendingRef.current &&
+            !isAiSpeakingRef.current &&
+            !loadingAiRef.current &&
+            !isMutedRef.current
+          ) {
+            const textToSubmit = (transcript || liveTranscript).trim();
+            if (textToSubmit && !isEchoFromAi(textToSubmit)) {
+              handleSendMessage(textToSubmit);
+            }
+          }
+        },
       }
     );
   };
@@ -303,6 +354,7 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
   // Остановка микрофона
   const stopListening = () => {
     shouldListenRef.current = false;
+    setAudioLevel(0);
     if (silenceTimeoutRef.current) {
       clearTimeout(silenceTimeoutRef.current);
       silenceTimeoutRef.current = null;
@@ -311,6 +363,18 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
       recognizerRef.current.stop();
     }
     setRecording(false);
+  };
+
+  // Переключение Mute микрофона
+  const toggleMute = () => {
+    const nextMuted = !isMuted;
+    setIsMuted(nextMuted);
+    isMutedRef.current = nextMuted;
+    if (nextMuted) {
+      stopListening();
+    } else if (callActiveRef.current && !isAiSpeakingRef.current && !loadingAiRef.current) {
+      startListening(true);
+    }
   };
 
   // Отправка реплики собеседнику
@@ -326,12 +390,18 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
     if (isEchoFromAi(text) && !textToSend && !textInput) {
       console.warn('Blocked AI echo loop detected:', text);
       setLiveTranscript('');
+      setTimeout(() => {
+        if (callActiveRef.current && !isAiSpeakingRef.current && !loadingAiRef.current && !isMutedRef.current) {
+          startListening(true);
+        }
+      }, 200);
       return;
     }
 
     isSendingRef.current = true;
     setTextInput('');
     setLiveTranscript('');
+    setAudioLevel(0);
     setAiLoading(true);
 
     const userMsg: ChatMessage = {
@@ -405,6 +475,11 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
       console.error('Phone AI Error:', err);
       setAiLoading(false);
       isSendingRef.current = false;
+      setTimeout(() => {
+        if (callActiveRef.current && !isMutedRef.current) {
+          startListening(true);
+        }
+      }, 500);
     }
   };
 
@@ -414,7 +489,7 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
     stopSpeech();
     stopListening();
     phoneAudio.stopAll();
-    if (handsFreeTimeoutRef.current) clearTimeout(handsFreeTimeoutRef.current);
+    if (autoListenTimeoutRef.current) clearTimeout(autoListenTimeoutRef.current);
     if (silenceTimeoutRef.current) clearTimeout(silenceTimeoutRef.current);
 
     await phoneAudio.playHangupTone(2);
@@ -755,13 +830,13 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
         </div>
       )}
 
-      {/* 3. СОСТОЯНИЕ: АКТИВНЫЙ РАЗГОВОР (CONNECTED) */}
+      {/* 3. СОСТОЯНИЕ: АКТИВНЫЙ РАЗГОВОР (CONNECTED) — ПОЛНОСТЬЮ ГОЛОСОВОЙ HANDS-FREE РЕЖИМ */}
       {callState === 'connected' && (
-        <div className="bg-gradient-to-b from-zinc-900 via-zinc-900 to-zinc-950 text-white rounded-3xl border border-zinc-800 shadow-2xl overflow-hidden flex flex-col min-h-[560px]">
+        <div className="bg-gradient-to-b from-zinc-900 via-zinc-900 to-zinc-950 text-white rounded-3xl border border-zinc-800 shadow-2xl overflow-hidden flex flex-col min-h-[580px]">
           {/* Верхний бар вызова */}
-          <div className="p-4 bg-zinc-800/50 border-b border-zinc-800 flex items-center justify-between">
+          <div className="p-4 bg-zinc-800/60 border-b border-zinc-800 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-zinc-700/80 border border-zinc-600 flex items-center justify-center text-xl">
+              <div className="w-10 h-10 rounded-full bg-zinc-700/80 border border-zinc-600 flex items-center justify-center text-xl shadow-inner">
                 {scenario.avatarEmoji}
               </div>
               <div>
@@ -770,99 +845,129 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
                 </h4>
                 <div className="flex items-center gap-2">
                   <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                  <span className="text-xs font-mono text-emerald-400">
+                  <span className="text-xs font-mono text-emerald-400 font-bold">
                     {formatTimer(callDuration)}
+                  </span>
+                  <span className="text-[10px] text-zinc-400 hidden sm:inline font-hebrew">
+                    • {userProfile.ulpanMode ? 'שִׂיחָה קוֹלִית' : 'Голосовой звонок'}
                   </span>
                 </div>
               </div>
             </div>
 
-            {/* Быстрые переключатели режима */}
-            <div className="flex items-center gap-1.5">
-              <button
-                onClick={() => {
-                  const next = !handsFree;
-                  handsFreeRef.current = next;
-                  setHandsFree(next);
-                }}
-                className={`px-2.5 py-1 rounded-xl text-xs font-semibold flex items-center gap-1 transition ${
-                  handsFree
-                    ? 'bg-emerald-600/30 text-emerald-400 border border-emerald-500/40'
-                    : 'bg-zinc-800 text-zinc-400 border border-zinc-700'
-                }`}
-                title={handsFree ? 'Громкая связь (Автоматический ответ)' : 'Ручной режим по кнопке'}
-              >
-                <Headphones className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">
-                  {handsFree ? 'Авто-разговор' : 'По кнопке'}
-                </span>
-              </button>
-
+            {/* Быстрые переключатели: Субтитры */}
+            <div className="flex items-center gap-2">
               <button
                 onClick={() => setShowSubtitles(!showSubtitles)}
-                className={`p-1.5 rounded-xl border text-xs transition ${
+                className={`px-2.5 py-1.5 rounded-xl border text-xs font-medium flex items-center gap-1.5 transition cursor-pointer ${
                   showSubtitles
-                    ? 'bg-purple-600/30 text-purple-400 border-purple-500/40'
+                    ? 'bg-purple-600/30 text-purple-300 border-purple-500/40'
                     : 'bg-zinc-800 text-zinc-400 border-zinc-700'
                 }`}
-                title={showSubtitles ? 'Скрыть субтитры (режим на слух)' : 'Показать субтитры'}
+                title={showSubtitles ? (userProfile.ulpanMode ? 'הסתר כתוביות' : 'Скрыть субтитры (на слух)') : (userProfile.ulpanMode ? 'הצג כתוביות' : 'Показать субтитры')}
               >
-                {showSubtitles ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                {showSubtitles ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
+                <span className="text-[11px] font-hebrew">
+                  {userProfile.ulpanMode ? 'כְּתוּבִיּוֹת' : 'Субтитры'}
+                </span>
               </button>
             </div>
           </div>
 
-          {/* Центральная часть: Анимация речи и субтитры */}
-          <div className="flex-1 p-5 flex flex-col justify-between items-center text-center">
-            {/* Аниматор говорящего */}
+          {/* Центральная часть: Индикатор разговора и субтитры */}
+          <div className="flex-1 p-5 sm:p-6 flex flex-col justify-between items-center text-center">
+            {/* Аниматор говорящего с динамическими аудио-волнами */}
             <div className="my-auto flex flex-col items-center">
-              <div className="relative mb-4">
+              <div className="relative mb-5">
+                {/* Пульсирующие волны при речи ИИ */}
                 {isAiSpeaking && (
-                  <div className="absolute inset-0 rounded-full bg-blue-500/20 animate-ping" />
+                  <>
+                    <div className="absolute inset-0 rounded-full bg-blue-500/20 animate-ping" />
+                    <div className="absolute -inset-4 rounded-full bg-blue-500/10 animate-pulse" />
+                  </>
                 )}
-                {isRecording && (
-                  <div className="absolute inset-0 rounded-full bg-emerald-500/20 animate-ping" />
+
+                {/* Живые аудио-волны при речи пользователя (VAD) */}
+                {isRecording && !isMuted && (
+                  <>
+                    <div
+                      className="absolute inset-0 rounded-full bg-emerald-500/25 transition-transform duration-75 pointer-events-none"
+                      style={{ transform: `scale(${1.08 + audioLevel * 0.45})` }}
+                    />
+                    <div
+                      className="absolute -inset-3 rounded-full bg-emerald-500/15 transition-transform duration-100 pointer-events-none"
+                      style={{ transform: `scale(${1.04 + audioLevel * 0.3})` }}
+                    />
+                  </>
                 )}
+
                 <div
-                  className={`w-28 h-28 sm:w-32 sm:h-32 rounded-full flex items-center justify-center text-5xl sm:text-6xl border-4 transition-all duration-300 shadow-2xl ${
+                  className={`w-28 h-28 sm:w-36 sm:h-36 rounded-full flex items-center justify-center text-5xl sm:text-6xl border-4 transition-all duration-200 shadow-2xl relative z-10 ${
                     isAiSpeaking
-                      ? 'border-blue-500 bg-blue-950/40 shadow-blue-500/30 scale-105'
-                      : isRecording
-                      ? 'border-emerald-500 bg-emerald-950/40 shadow-emerald-500/30 scale-105'
-                      : 'border-zinc-700 bg-zinc-800/80 shadow-black'
+                      ? 'border-blue-500 bg-blue-950/50 shadow-blue-500/30 scale-105 ring-4 ring-blue-500/20'
+                      : isRecording && !isMuted
+                      ? 'border-emerald-500 bg-emerald-950/40 shadow-emerald-500/30 ring-4 ring-emerald-500/25'
+                      : loadingAi
+                      ? 'border-purple-500 bg-purple-950/40 shadow-purple-500/30'
+                      : 'border-zinc-700 bg-zinc-800/90 shadow-black'
                   }`}
+                  style={
+                    isRecording && !isMuted
+                      ? { transform: `scale(${1 + Math.min(0.12, audioLevel * 0.2)})` }
+                      : undefined
+                  }
                 >
                   {scenario.avatarEmoji}
                 </div>
               </div>
 
-              {/* Статус речи */}
-              <div className="h-7">
+              {/* Статус речи и аудио-визуализатор */}
+              <div className="h-10 flex flex-col items-center justify-center">
                 {isAiSpeaking && (
-                  <div className="flex items-center gap-2 text-xs font-bold text-blue-400 bg-blue-950/50 px-3 py-1 rounded-full border border-blue-800/50 animate-pulse font-hebrew">
+                  <div className="flex items-center gap-2 text-xs font-bold text-blue-400 bg-blue-950/60 px-3.5 py-1.5 rounded-full border border-blue-800/50 animate-pulse font-hebrew shadow-sm">
                     <Volume2 className="w-3.5 h-3.5" />
                     <span>{userProfile.ulpanMode ? `...${scenario.callerName} מְדַבֵּר` : `${scenario.callerNameRu} говорит...`}</span>
                   </div>
                 )}
-                {isRecording && (
-                  <div className="flex items-center gap-2 text-xs font-bold text-emerald-400 bg-emerald-950/50 px-3 py-1 rounded-full border border-emerald-800/50 animate-pulse font-hebrew">
-                    <Mic className="w-3.5 h-3.5" />
-                    <span>{userProfile.ulpanMode ? '...מַאֲזִין לָכֶם, דַּבְּרוּ בְּעִבְרִית' : 'Слушаю вас... Говорите на иврите'}</span>
-                  </div>
-                )}
+
                 {loadingAi && (
-                  <div className="flex items-center gap-2 text-xs font-bold text-purple-400 bg-purple-950/50 px-3 py-1 rounded-full border border-purple-800/50 font-hebrew">
+                  <div className="flex items-center gap-2 text-xs font-bold text-purple-400 bg-purple-950/60 px-3.5 py-1.5 rounded-full border border-purple-800/50 font-hebrew shadow-sm">
                     <Sparkles className="w-3.5 h-3.5 animate-spin" />
                     <span>{userProfile.ulpanMode ? '...חוֹשֵׁב' : 'Собеседник думает...'}</span>
                   </div>
                 )}
-                {!isAiSpeaking && !isRecording && !loadingAi && (
-                  <div className="text-xs text-zinc-400 font-hebrew">
-                    {userProfile.ulpanMode
-                      ? 'דַּבְּרוּ בְּקוֹל בְּעִבְרִית...'
-                      : handsFree
-                      ? 'Говорите вслух на иврите...'
-                      : 'Нажмите на микрофон или выберите ответ ниже 👇'}
+
+                {isRecording && !isMuted && !isAiSpeaking && !loadingAi && (
+                  <div className="flex flex-col items-center gap-1.5">
+                    <div className="flex items-center gap-2 text-xs font-bold text-emerald-400 bg-emerald-950/60 px-3.5 py-1.5 rounded-full border border-emerald-800/50 font-hebrew shadow-sm">
+                      <Mic className="w-3.5 h-3.5 animate-pulse" />
+                      <span>
+                        {userProfile.ulpanMode
+                          ? '...מַאֲזִין לָכֶם, דַּבְּרוּ בְּעִבְרִית'
+                          : 'Слушаю вас... Говорите на иврите'}
+                      </span>
+                    </div>
+
+                    {/* Живые полоски громкости голоса */}
+                    <div className="flex items-center gap-1 h-3">
+                      {[0.5, 0.9, 1.3, 0.9, 0.5].map((factor, i) => {
+                        const barHeight = Math.max(3, Math.min(14, audioLevel * 16 * factor + 3));
+                        return (
+                          <div
+                            key={i}
+                            className="w-1 bg-emerald-400 rounded-full transition-all duration-75"
+                            style={{ height: `${barHeight}px`, opacity: audioLevel > 0.05 ? 0.9 : 0.4 }}
+                          />
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {isMuted && !isAiSpeaking && !loadingAi && (
+                  <div className="flex items-center gap-2 text-xs font-bold text-amber-400 bg-amber-950/60 px-3.5 py-1.5 rounded-full border border-amber-800/50 font-hebrew shadow-sm">
+                    <MicOff className="w-3.5 h-3.5" />
+                    <span>{userProfile.ulpanMode ? 'הַמִּיקְרוֹפוֹן מֻשְׁתָּק' : 'Микрофон выключен'}</span>
                   </div>
                 )}
               </div>
@@ -871,7 +976,7 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
             {/* Текущие субтитры реплики собеседника */}
             {latestAiMessage && (
               <div
-                className={`w-full max-w-lg bg-zinc-800/80 backdrop-blur rounded-2xl p-4 border border-zinc-700/80 text-center transition-all ${
+                className={`w-full max-w-lg bg-zinc-800/80 backdrop-blur rounded-2xl p-4 border border-zinc-700/80 text-center transition-all shadow-md ${
                   !showSubtitles ? 'filter blur-sm select-none opacity-40 hover:filter-none hover:opacity-100' : ''
                 }`}
               >
@@ -898,61 +1003,68 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
               </div>
             )}
 
-            {/* Живая речь пользователя во время записи */}
+            {/* Живая речь пользователя во время записи — автоматическая отправка при паузе */}
             {liveTranscript && (
-              <div className="w-full max-w-lg mt-2 bg-emerald-950/60 border border-emerald-800/60 rounded-xl p-2.5 text-xs text-emerald-300 font-hebrew flex items-center justify-between">
-                <div className="truncate mr-2">
-                  <span className="opacity-70">{userProfile.ulpanMode ? 'אַתֶּם אוֹמְרִים: ' : 'Вы говорите: '}</span>
-                  <span className="font-bold">{liveTranscript}</span>
+              <div className="w-full max-w-lg mt-3 bg-emerald-950/70 border border-emerald-700/70 rounded-2xl p-3 text-xs text-emerald-200 font-hebrew shadow-md animate-fade-in">
+                <div className="flex items-center justify-between gap-2 mb-1 text-[11px] text-emerald-400 font-semibold">
+                  <div className="flex items-center gap-1.5">
+                    <Mic className="w-3.5 h-3.5 animate-pulse" />
+                    <span>{userProfile.ulpanMode ? 'אַתֶּם אוֹמְרִים:' : 'Вы говорите:'}</span>
+                  </div>
+                  <span className="text-[10px] text-emerald-400/70 font-normal">
+                    {userProfile.ulpanMode ? 'שְׁלִיחָה אוֹטוֹמָטִית בְּסִיּוּם דִּבּוּר...' : 'Отправится автоматически при паузе...'}
+                  </span>
                 </div>
-                <button
-                  onClick={() => handleSendMessage(liveTranscript)}
-                  className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shrink-0 transition cursor-pointer"
-                >
-                  {userProfile.ulpanMode ? 'שְׁלַח' : 'Отправить'}
-                </button>
+                <div className="text-sm font-bold text-white text-right leading-relaxed font-hebrew pr-1">
+                  {liveTranscript}
+                </div>
               </div>
             )}
 
             {/* Подсказка об ошибке (Feedback) */}
             {lastFeedback && (
-              <div className="w-full max-w-lg mt-2 bg-amber-950/50 border border-amber-800/50 rounded-xl p-2 text-xs text-amber-300 flex items-center gap-2 text-left">
+              <div className="w-full max-w-lg mt-2 bg-amber-950/50 border border-amber-800/50 rounded-xl p-2.5 text-xs text-amber-300 flex items-center gap-2 text-left">
                 <AlertCircle className="w-4 h-4 text-amber-400 shrink-0" />
                 <span>{lastFeedback}</span>
               </div>
             )}
           </div>
 
-          {/* Быстрые варианты ответов (Suggested Replies) */}
+          {/* Пассивные подсказки, что сказать — без нажимаемых кнопок ответов */}
           {latestAiMessage?.suggestedReplies && latestAiMessage.suggestedReplies.length > 0 && (
-            <div className="px-4 py-2 bg-zinc-900/90 border-t border-zinc-800/80">
-              <div className="flex items-center justify-between mb-1.5 font-hebrew">
-                <span className="text-[11px] font-bold text-zinc-400 flex items-center gap-1">
+            <div className="px-4 py-2.5 bg-zinc-900/90 border-t border-zinc-800/80">
+              <div className="flex items-center justify-between mb-1.5 font-hebrew text-[11px]">
+                <span className="font-bold text-zinc-400 flex items-center gap-1.5">
                   <Sparkles className="w-3 h-3 text-purple-400" />
-                  <span>{userProfile.ulpanMode ? 'תְּשׁוּבָה מְהִירָה:' : 'Быстрый ответ (нажмите, чтобы сказать):'}</span>
+                  <span>
+                    {userProfile.ulpanMode
+                      ? 'רַעְיוֹנוֹת לִתְשׁוּבָה (אִמְרוּ בְּקוֹל):'
+                      : 'Подсказка — что можно сказать вслух:'}
+                  </span>
+                </span>
+                <span className="text-[10px] text-zinc-500">
+                  {userProfile.ulpanMode ? 'דַּבְּרוּ בַּמִּיקְרוֹפוֹן 🎙️' : 'Говорите в микрофон 🎙️'}
                 </span>
               </div>
               <div className="flex flex-wrap gap-1.5">
                 {latestAiMessage.suggestedReplies.map((reply, idx) => (
-                  <button
+                  <div
                     key={idx}
-                    disabled={isAiSpeaking || loadingAi}
-                    onClick={() => handleSendMessage(reply.hebrew)}
-                    className="text-left px-3 py-1.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-xs text-zinc-200 hover:text-white transition flex flex-col cursor-pointer disabled:opacity-50"
+                    className="px-3 py-1.5 rounded-xl bg-zinc-800/90 border border-zinc-700/70 text-xs text-zinc-200 flex flex-col"
                   >
                     <span className="font-bold font-hebrew text-white">{reply.hebrew}</span>
                     {!userProfile.ulpanMode && reply.translation && (
                       <span className="text-[10px] text-zinc-400">{reply.translation}</span>
                     )}
-                  </button>
+                  </div>
                 ))}
               </div>
             </div>
           )}
 
-          {/* Текстовый ввод (если микрофон выключен или недоступен) */}
+          {/* Текстовый ввод (только как скрытый резерв для случаев без микрофона) */}
           {showTextInput && (
-            <div className="px-4 py-2 bg-zinc-900 border-t border-zinc-800 flex gap-2">
+            <div className="px-4 py-2.5 bg-zinc-900 border-t border-zinc-800 flex gap-2">
               <input
                 type="text"
                 value={textInput}
@@ -970,49 +1082,44 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
             </div>
           )}
 
-          {/* Нижняя панель управления звонком */}
-          <div className="p-4 sm:p-5 bg-zinc-950 border-t border-zinc-800 flex items-center justify-around">
-            {/* Кнопка клавиатуры/текста */}
+          {/* Нижняя панель управления звонком — как в настоящем телефоне */}
+          <div className="p-4 sm:p-5 bg-zinc-950 border-t border-zinc-800/80 flex items-center justify-around">
+            {/* Кнопка Mute (Заглушить / включить микрофон) */}
             <button
-              onClick={() => setShowTextInput(!showTextInput)}
-              className={`p-3.5 rounded-full border transition cursor-pointer ${
-                showTextInput
-                  ? 'bg-blue-600 border-blue-500 text-white'
-                  : 'bg-zinc-800 border-zinc-700 text-zinc-400 hover:text-white'
+              onClick={toggleMute}
+              className={`p-3.5 rounded-full border transition cursor-pointer flex items-center justify-center ${
+                isMuted
+                  ? 'bg-amber-600/30 border-amber-500/60 text-amber-400'
+                  : 'bg-zinc-800/90 border-zinc-700 text-zinc-300 hover:text-white hover:bg-zinc-700'
               }`}
-              title={userProfile.ulpanMode ? 'מקלדת' : 'Текстовый ввод'}
+              title={isMuted ? (userProfile.ulpanMode ? 'הפעל מיקרופון' : 'Включить микрофон') : (userProfile.ulpanMode ? 'השתק מיקרופון' : 'Выключить микрофон')}
             >
-              <Send className="w-5 h-5" />
+              {isMuted ? <MicOff className="w-5 h-5 text-amber-400" /> : <Mic className="w-5 h-5" />}
             </button>
 
-            {/* Главная кнопка: МИКРОФОН (Tap-to-Talk / Индикатор) */}
+            {/* Главная кнопка в звонке: КРАСНАЯ ТРУБКА (Положить трубку) */}
             <button
-              onClick={() => (isRecording ? stopListening() : startListening())}
-              disabled={isAiSpeaking || loadingAi}
-              className={`px-6 py-4 rounded-full font-bold transition-all shadow-xl active:scale-95 flex items-center gap-2 cursor-pointer ${
-                isRecording
-                  ? 'bg-emerald-500 text-white shadow-emerald-500/40 ring-4 ring-emerald-500/30 animate-pulse'
-                  : isAiSpeaking || loadingAi
-                  ? 'bg-zinc-800 text-zinc-600 border border-zinc-700 cursor-not-allowed opacity-50'
-                  : 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-500 hover:to-indigo-500 shadow-blue-500/30'
-              }`}
-              title={isRecording ? (userProfile.ulpanMode ? 'מקליט... לחץ לעצירה' : 'Идет запись (нажмите, чтобы остановить)') : (userProfile.ulpanMode ? 'לחץ כדי לדבר' : 'Нажмите, чтобы говорить')}
+              onClick={() => handleEndCall()}
+              className="px-8 py-3.5 rounded-full bg-rose-600 hover:bg-rose-700 active:scale-95 text-white font-bold shadow-lg shadow-rose-600/30 transition flex items-center gap-2.5 cursor-pointer font-hebrew"
+              title={userProfile.ulpanMode ? 'סיום שיחה' : 'Положить трубку'}
             >
-              <Mic className="w-6 h-6" />
-              <span className="text-sm font-semibold font-hebrew">
-                {isRecording
-                  ? (userProfile.ulpanMode ? '...מַאֲזִין' : 'Слушаю...')
-                  : (userProfile.ulpanMode ? 'דַּבֵּר' : 'Говорить')}
+              <PhoneOff className="w-5 h-5" />
+              <span className="text-sm">
+                {userProfile.ulpanMode ? 'לְנַתֵּק' : 'Положить трубку'}
               </span>
             </button>
 
-            {/* Кнопка: ЗАВЕРШИТЬ ЗВОНОК (Красная трубка) */}
+            {/* Резервная кнопка клавиатуры (если микрофон не работает) */}
             <button
-              onClick={() => handleEndCall()}
-              className="p-4 rounded-full bg-rose-600 hover:bg-rose-700 active:scale-95 text-white shadow-lg shadow-rose-600/30 transition cursor-pointer"
-              title={userProfile.ulpanMode ? 'סיום שיחה' : 'Завершить разговор'}
+              onClick={() => setShowTextInput(!showTextInput)}
+              className={`p-3.5 rounded-full border transition cursor-pointer flex items-center justify-center ${
+                showTextInput
+                  ? 'bg-blue-600 border-blue-500 text-white'
+                  : 'bg-zinc-800/90 border-zinc-700 text-zinc-400 hover:text-white hover:bg-zinc-700'
+              }`}
+              title={userProfile.ulpanMode ? 'מקלדת' : 'Резервная клавиатура'}
             >
-              <PhoneOff className="w-6 h-6" />
+              <Send className="w-4 h-4" />
             </button>
           </div>
         </div>

@@ -376,23 +376,34 @@ export interface SpeechRecognizerOptions {
   vocabulary?: string[];
   apiKey?: string;
   provider?: 'groq' | 'gemini';
+  continuous?: boolean;
+  silenceDurationMs?: number;
+  speechThreshold?: number;
+  onAudioLevel?: (level: number) => void;
+  onSilenceDetected?: (transcript: string) => void;
 }
 
 /**
  * Кроссплатформенный интерфейс распознавания речи (Speech-to-Text) для иврита
- * с поддержкой iPhone/Safari, Android и ПК через MediaRecorder + AI Transcription.
+ * с поддержкой iPhone/Safari, Android и ПК через MediaRecorder + VAD + AI Transcription.
  */
 export class HebrewSpeechRecognizer {
   private recognition: any = null;
   private mediaRecorder: MediaRecorder | null = null;
   private audioChunks: Blob[] = [];
   private mediaStream: MediaStream | null = null;
+  private audioContext: AudioContext | null = null;
+  private analyser: AnalyserNode | null = null;
+  private vadInterval: any = null;
   private isListening = false;
   private lastTranscript = '';
   private onResultCb: ((transcript: string, isFinal: boolean) => void) | null = null;
   private onErrorCb: ((error: string) => void) | null = null;
   private onEndCb: ((lastTranscript: string) => void) | null = null;
   private currentOptions: SpeechRecognizerOptions = {};
+  private hasDetectedSpeech = false;
+  private silenceStartTime: number | null = null;
+  private isProcessingSilence = false;
 
   public isSupported(): boolean {
     if (typeof window === 'undefined') return false;
@@ -423,45 +434,14 @@ export class HebrewSpeechRecognizer {
     this.currentOptions = options || {};
     this.audioChunks = [];
     this.isListening = true;
+    this.hasDetectedSpeech = false;
+    this.silenceStartTime = null;
+    this.isProcessingSilence = false;
 
-    // 1. Запускаем параллельно браузерное распознавание для живого превью текста (если доступно в Chrome)
-    try {
-      const SpeechRecognition =
-        (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-      if (SpeechRecognition) {
-        const rec = new SpeechRecognition();
-        rec.lang = 'he-IL';
-        rec.continuous = true;
-        rec.interimResults = true;
-        rec.maxAlternatives = 1;
+    // 1. Запуск браузерного распознавания речи
+    this.startRecognitionOnly();
 
-        rec.onresult = (event: any) => {
-          const interimChunks: string[] = [];
-          for (let i = 0; i < event.results.length; ++i) {
-            const result = event.results[i];
-            const trans = result[0]?.transcript || '';
-            if (trans) interimChunks.push(trans);
-          }
-          const stitched = stitchSpeechChunks(interimChunks).trim();
-          if (stitched && this.isListening) {
-            this.lastTranscript = stitched;
-            this.onResultCb?.(stitched, false);
-          }
-        };
-
-        rec.onerror = () => {};
-        rec.onend = () => {
-          this.recognition = null;
-        };
-
-        this.recognition = rec;
-        rec.start();
-      }
-    } catch {
-      // Игнорируем ошибки браузерного SpeechRecognition (например, в Safari)
-    }
-
-    // 2. Запускаем MediaRecorder для записи высококачественного звука (работает на iPhone, Safari, Android, Chrome)
+    // 2. Запуск аудиопотока, MediaRecorder и VAD анализатора громкости
     try {
       if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
         const stream = await navigator.mediaDevices.getUserMedia({
@@ -478,6 +458,9 @@ export class HebrewSpeechRecognizer {
         }
 
         this.mediaStream = stream;
+
+        // Настройка Web Audio API AnalyserNode для VAD и анимации звуковых волн
+        this.setupAudioAnalyser(stream);
 
         // Выбираем лучший поддерживаемый формат (Safari на iPhone использует audio/mp4)
         let mimeType = '';
@@ -510,11 +493,11 @@ export class HebrewSpeechRecognizer {
           const recordedChunks = [...this.audioChunks];
           this.audioChunks = [];
 
-          if (recordedChunks.length > 0) {
+          if (recordedChunks.length > 0 && !this.lastTranscript.trim()) {
             const blobType = mimeType || recordedChunks[0]?.type || 'audio/webm';
             const audioBlob = new Blob(recordedChunks, { type: blobType });
 
-            // Если размер аудио больше 1KB, отправляем на серверную транскрибацию
+            // Если размер аудио больше 1KB и текст еще не распознан браузером, отправляем на серверную транскрибацию
             if (audioBlob.size > 1000) {
               try {
                 const formData = new FormData();
@@ -533,10 +516,6 @@ export class HebrewSpeechRecognizer {
                   body: formData,
                 });
 
-                if (!this.onEndCb && !this.onResultCb) {
-                  return;
-                }
-
                 if (res.ok) {
                   const data = await res.json();
                   if (data.text && data.text.trim()) {
@@ -554,7 +533,6 @@ export class HebrewSpeechRecognizer {
           }
 
           if (!this.onEndCb && !this.onResultCb) return;
-          // Fallback к результатам браузерного распознавания
           this.onEndCb?.(this.lastTranscript);
         };
 
@@ -563,11 +541,180 @@ export class HebrewSpeechRecognizer {
       }
     } catch (err: any) {
       console.error('MediaRecorder start error:', err);
-      // Если браузер заблокировал микрофон
       if (!this.recognition) {
         this.isListening = false;
         this.onErrorCb?.(err?.message || 'Не удалось получить доступ к микрофону');
       }
+    }
+  }
+
+  private startRecognitionOnly(): void {
+    if (!this.isListening) return;
+    try {
+      const SpeechRecognition =
+        (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      if (!SpeechRecognition) return;
+
+      const rec = new SpeechRecognition();
+      rec.lang = 'he-IL';
+      rec.continuous = true;
+      rec.interimResults = true;
+      rec.maxAlternatives = 1;
+
+      rec.onresult = (event: any) => {
+        const interimChunks: string[] = [];
+        for (let i = 0; i < event.results.length; ++i) {
+          const result = event.results[i];
+          const trans = result[0]?.transcript || '';
+          if (trans) interimChunks.push(trans);
+        }
+        const stitched = stitchSpeechChunks(interimChunks).trim();
+        if (stitched && this.isListening) {
+          this.lastTranscript = stitched;
+          this.hasDetectedSpeech = true;
+          this.silenceStartTime = null;
+          this.onResultCb?.(stitched, false);
+        }
+      };
+
+      rec.onerror = (e: any) => {
+        // no-speech или network ошибки во время пауз пользователя не должны прерывать сессию
+        if (e.error === 'no-speech' || e.error === 'network') {
+          return;
+        }
+      };
+
+      rec.onend = () => {
+        this.recognition = null;
+        // Автоматический непрерывный перезапуск сессии
+        if (this.isListening && (this.currentOptions.continuous ?? true)) {
+          setTimeout(() => {
+            if (this.isListening && !this.recognition) {
+              this.startRecognitionOnly();
+            }
+          }, 80);
+        }
+      };
+
+      this.recognition = rec;
+      rec.start();
+    } catch {
+      // Игнорируем ошибки неподдерживаемых браузеров
+    }
+  }
+
+  private setupAudioAnalyser(stream: MediaStream): void {
+    try {
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioCtx) return;
+      this.audioContext = new AudioCtx();
+      if (this.audioContext.state === 'suspended') {
+        this.audioContext.resume().catch(() => {});
+      }
+
+      const source = this.audioContext.createMediaStreamSource(stream);
+      this.analyser = this.audioContext.createAnalyser();
+      this.analyser.fftSize = 256;
+      this.analyser.smoothingTimeConstant = 0.3;
+      source.connect(this.analyser);
+
+      const bufferLength = this.analyser.frequencyBinCount;
+      const dataArray = new Uint8Array(bufferLength);
+
+      this.hasDetectedSpeech = false;
+      this.silenceStartTime = null;
+      this.isProcessingSilence = false;
+
+      this.vadInterval = setInterval(async () => {
+        if (!this.isListening || !this.analyser) return;
+
+        this.analyser.getByteFrequencyData(dataArray);
+        let sum = 0;
+        for (let i = 0; i < bufferLength; i++) {
+          sum += dataArray[i];
+        }
+        const avg = sum / bufferLength;
+        const normalized = Math.min(1, Math.max(0, (avg - 3) / 45));
+        this.currentOptions.onAudioLevel?.(normalized);
+
+        const threshold = this.currentOptions.speechThreshold ?? 10;
+        const isSpeakingNow = avg > threshold;
+
+        if (isSpeakingNow) {
+          this.hasDetectedSpeech = true;
+          this.silenceStartTime = null;
+        } else if (this.hasDetectedSpeech && !this.isProcessingSilence) {
+          if (!this.silenceStartTime) {
+            this.silenceStartTime = Date.now();
+          } else {
+            const silenceDuration = this.currentOptions.silenceDurationMs ?? 1300;
+            if (Date.now() - this.silenceStartTime >= silenceDuration) {
+              this.isProcessingSilence = true;
+              this.silenceStartTime = null;
+              this.hasDetectedSpeech = false;
+
+              await this.handleSilenceDetected();
+              this.isProcessingSilence = false;
+            }
+          }
+        }
+      }, 50);
+    } catch (e) {
+      console.warn('Audio analyser setup error:', e);
+    }
+  }
+
+  private async handleSilenceDetected(): Promise<void> {
+    const recognizedText = this.lastTranscript.trim();
+    if (recognizedText) {
+      this.currentOptions.onSilenceDetected?.(recognizedText);
+      return;
+    }
+
+    // Если браузерный Web Speech API не дал текста (например, на iOS Safari), транскрибируем записанный буфер
+    if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
+      try {
+        this.mediaRecorder.requestData();
+        await new Promise((r) => setTimeout(r, 60));
+
+        if (this.audioChunks.length > 0) {
+          const blobType = this.mediaRecorder.mimeType || 'audio/webm';
+          const audioBlob = new Blob([...this.audioChunks], { type: blobType });
+          if (audioBlob.size > 1000) {
+            const formData = new FormData();
+            const ext = blobType.includes('mp4') ? 'mp4' : blobType.includes('aac') ? 'aac' : 'webm';
+            formData.append('file', audioBlob, `speech.${ext}`);
+
+            if (this.currentOptions.vocabulary && this.currentOptions.vocabulary.length > 0) {
+              formData.append('prompt', this.currentOptions.vocabulary.slice(0, 30).join(', '));
+            }
+            if (this.currentOptions.apiKey) {
+              formData.append('apiKey', this.currentOptions.apiKey);
+            }
+
+            const res = await fetch('/api/ai/transcribe', {
+              method: 'POST',
+              body: formData,
+            });
+
+            if (res.ok) {
+              const data = await res.json();
+              if (data.text && data.text.trim()) {
+                const text = data.text.trim();
+                this.lastTranscript = text;
+                this.currentOptions.onSilenceDetected?.(text);
+                return;
+              }
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('VAD transcribe fallback error:', err);
+      }
+    }
+
+    if (this.lastTranscript.trim()) {
+      this.currentOptions.onSilenceDetected?.(this.lastTranscript.trim());
     }
   }
 
@@ -577,6 +724,22 @@ export class HebrewSpeechRecognizer {
     this.onErrorCb = null;
     this.onEndCb = null;
     this.audioChunks = [];
+    this.hasDetectedSpeech = false;
+    this.silenceStartTime = null;
+    this.isProcessingSilence = false;
+
+    if (this.vadInterval) {
+      clearInterval(this.vadInterval);
+      this.vadInterval = null;
+    }
+
+    if (this.audioContext) {
+      try {
+        this.audioContext.close();
+      } catch {}
+      this.audioContext = null;
+    }
+    this.analyser = null;
 
     if (this.recognition) {
       try {
@@ -615,6 +778,22 @@ export class HebrewSpeechRecognizer {
 
     if (!this.isListening) return;
     this.isListening = false;
+    this.hasDetectedSpeech = false;
+    this.silenceStartTime = null;
+    this.isProcessingSilence = false;
+
+    if (this.vadInterval) {
+      clearInterval(this.vadInterval);
+      this.vadInterval = null;
+    }
+
+    if (this.audioContext) {
+      try {
+        this.audioContext.close();
+      } catch {}
+      this.audioContext = null;
+    }
+    this.analyser = null;
 
     if (this.recognition) {
       try {
