@@ -39,7 +39,10 @@ export function tokenizeText(text: string): TextToken[] {
 
 export function normalizeTranscription(transcription: string): string {
   if (!transcription) return '';
-  return transcription.trim();
+  let res = transcription.trim();
+  // Союз «ו» в современном разговорном иврите всегда звучит как «вэ-», заменяем архаичное книжное «у-»
+  res = res.replace(/(^|[\s"«(—])у-([а-яёА-ЯЁa-zA-Z])/gi, '$1вэ-$2');
+  return res;
 }
 
 /**
@@ -49,7 +52,7 @@ export function generateHebrewTranscription(text: string): string {
   if (!text) return '';
   const cleanTokens = text.trim().split(/\s+/);
 
-  return cleanTokens
+  const rawTranscription = cleanTokens
     .map((w) => {
       let result = '';
       let i = 0;
@@ -86,7 +89,10 @@ export function generateHebrewTranscription(text: string): string {
           consonant =
             (i === w.length - 1 || nextIdx === w.length) && !dagesh ? '' : 'h';
         else if (char === 'ו') {
-          if (dagesh) consonant = 'у';
+          if (i === 0 && dagesh && nextIdx < w.length) {
+            // Союз "וּ" в начале слова: в современном разговорном иврите произносится как "вэ-"
+            consonant = 'вэ-';
+          } else if (dagesh) consonant = 'у';
           else if (vowels.includes(0x05b9) || vowels.includes(0x05ba))
             consonant = 'о';
           else consonant = 'в';
@@ -128,7 +134,8 @@ export function generateHebrewTranscription(text: string): string {
                 char === 'ש' ||
                 char === 'ת' ||
                 char === 'ד' ||
-                char === 'כ')
+                char === 'כ' ||
+                char === 'ו')
             ) {
               vowelStr = 'е';
             } else if (
@@ -165,6 +172,8 @@ export function generateHebrewTranscription(text: string): string {
       return result;
     })
     .join(' ');
+
+  return normalizeTranscription(rawTranscription);
 }
 
 /**

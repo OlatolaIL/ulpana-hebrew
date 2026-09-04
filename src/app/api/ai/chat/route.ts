@@ -88,6 +88,14 @@ export function sanitizeRussianTranslation(text: string): string {
   return res;
 }
 
+function sanitizeTranscription(text: string): string {
+  if (!text) return '';
+  let res = text.trim();
+  // Союз «ו» в современном разговорном иврите всегда звучит как «вэ-», заменяем архаичное книжное «у-»
+  res = res.replace(/(^|[\s"«(—])у-([а-яёА-ЯЁa-zA-Z])/gi, '$1вэ-$2');
+  return res;
+}
+
 function normalizeResponse(parsed: any, defaultIsCompleted: boolean = false) {
   const rawTranslation =
     parsed.russian_translation ||
@@ -95,17 +103,19 @@ function normalizeResponse(parsed: any, defaultIsCompleted: boolean = false) {
     parsed.translation ||
     '';
 
+  const rawTranscription =
+    parsed.cyrillic_transcription ||
+    parsed.russian_transcription ||
+    parsed.transcription_ru ||
+    parsed.transcription ||
+    '';
+
   const isCompleted = Boolean(parsed.isCompleted ?? parsed.is_completed ?? defaultIsCompleted);
   const shouldHangUp = Boolean(parsed.shouldHangUp ?? parsed.should_hang_up ?? isCompleted);
 
   return {
     hebrew: parsed.hebrew || '',
-    transcription:
-      parsed.cyrillic_transcription ||
-      parsed.russian_transcription ||
-      parsed.transcription_ru ||
-      parsed.transcription ||
-      '',
+    transcription: sanitizeTranscription(rawTranscription),
     translation: sanitizeRussianTranslation(rawTranslation),
     feedback: parsed.feedback_ru || parsed.feedback || null,
     isCompleted,
@@ -113,12 +123,13 @@ function normalizeResponse(parsed: any, defaultIsCompleted: boolean = false) {
     suggestedReplies: Array.isArray(parsed.suggestedReplies)
       ? parsed.suggestedReplies.map((r: any) => ({
           hebrew: r.hebrew || '',
-          transcription:
+          transcription: sanitizeTranscription(
             r.cyrillic_transcription ||
             r.russian_transcription ||
             r.transcription_ru ||
             r.transcription ||
-            '',
+            ''
+          ),
           translation: sanitizeRussianTranslation(
             r.russian_translation ||
             r.translation_ru ||
@@ -305,14 +316,14 @@ ${studentKnownWords && studentKnownWords.length > 0 ? `ПЕРСОНАЛЬНЫЙ 
 - СТРОГО ЗАПРЕЩЕНО: "что твой мир" -> ПРАВИЛЬНО: "Как твои дела?" (для מַה שְּׁלוֹמְךָ)
 - СТРОГО ЗАПРЕЩЕНО: "приятный очень" -> ПРАВИЛЬНО: "Очень приятно" (для נָעִים מְאוֹד)
 - Перевод обязан звучать абсолютно естественно для носителя русского языка, с правильными русскими падежами, предлогами и естественным порядком слов!
-2. Поле "cyrillic_transcription" ОБЯЗАНО быть только РУССКИМИ БУКВАМИ (кириллица с ударением и с 'h', например: "hа-бáйит", "то́да", "ма нишмá"). Латинские и английские транскрипции СТРОГО ЗАПРЕЩЕНЫ!
-3. В "suggestedReplies" поле "russian_translation" ОБЯЗАНО содержать перевод этой фразы только на безупречный РУССКИЙ язык ("Спасибо, хорошо", "Отлично, спасибо", "Хочу кофе"), а "cyrillic_transcription" — только кириллицу с 'h'!
+2. Поле "cyrillic_transcription" ОБЯЗАНО быть только РУССКИМИ БУКВАМИ (кириллица с ударением и с 'h', например: "hа-бáйит", "то́да", "ма нишмá"). Латинские и английские транскрипции СТРОГО ЗАПРЕЩЕНЫ! СОЮЗ «ו» («и») В РУССКОЙ ТРАНСКРИПЦИИ ВСЕГДА ПЕРЕДАВАЙ КАК «вэ-» (например: «вэ-махбэ́рэт», «вэ-ма», «вэ-гвинá», «вэ-сéфер», «вэ-штэй»). СТРОГО ЗАПРЕЩЕНО писать книжное/библейское «у-» («у-ма», «у-махберет»)!
+3. В "suggestedReplies" поле "russian_translation" ОБЯЗАНО содержать перевод этой фразы только на безупречный РУССКИЙ язык ("Спасибо, хорошо", "Отлично, спасибо", "Хочу кофе"), а "cyrillic_transcription" — только кириллицу с 'h' и союзом "вэ-"!
 4. Поле "feedback_ru" — только на грамотном русском языке или null.
 
 ТРЕБОВАНИЯ ВЕДЕНИЯ ДИАЛОГА:
 1. Веди органичный диалог, реагируй живо на иврите (1-2 коротких предложения). Реагируй именно на то, что написал или выбрал ученик, и вежливо продвигай диалог вперед к целям урока №${lessonNumber}.
 2. В сообщении расставляй точные полные огласовки (никуд) на иврите везде (например: שָׁלוֹם, בֹּקֶר טוֹב, מָה נִשְׁמַע).
-3. Русская транскрипция: русская транскрипция кириллицей с ударением (´), но букву ה (хей) ВСЕГДА обозначать строчной латинской буквой "h" ("hа-бáйит", "hа-йóм", "hу hолéх", "hакéтер шэлхá"). Буквы ח и כ - русской "х" ("халав").
+3. Русская транскрипция: русская транскрипция кириллицей с ударением (´), но букву ה (хей) ВСЕГДА обозначать строчной латинской буквой "h" ("hа-бáйит", "hа-йóм", "hу hолéх", "hакéтер шэлхá"). Буквы ח и כ - русской "х" ("халав"). Союз ו (и) ВСЕГДА транскрибировать как «вэ-» (не «у-»).
 4. УЧЕНИК ОТВЕЧАЕТ САМОСТОЯТЕЛЬНО УСТНО / ГОЛОСОМ:
 - Внимательно оцени сказанное учеником. Если ученик ответил в тему, похвали его («יוֹפִי!», «מְעֻלֶּה!», «נָכוֹן מְאוֹד!»).
 - Если ученик сделал грамматическую ошибку (в согласовании рода: זֶה / זֹאת, времени, предлоге или окончании), в поле "feedback_ru" вежливо и кратко поясни на грамотном русском языке, в чём ошибка и как сказать правильно. Если ошибок нет, верни null.
@@ -438,12 +449,12 @@ ${studentKnownWords && studentKnownWords.length > 0 ? `ПЕРСОНАЛЬНЫЙ 
           ? (isFemale
               ? 'מְעֻלֶּה! כָּל הַכָּבוֹד, עַכְשָׁיו אַתְּ יוֹדַעַת אֶת הַמִּלִּים וְאֶת הַהֶבְדֵּל בֵּין זֶה לְזֹאת. לְהִתְרָאוֹת!'
               : 'מְעֻלֶּה! כָּל הַכָּבוֹד, עַכְשָׁיו אַתָּה יוֹדֵעַ אֶת הַמִּלִּים וְאֶת הַהֶבְדֵּל בֵּין זֶה לְזֹאת. לְהִתְרָאוֹת!')
-          : 'יוֹפִי מְאוֹד! נָכוֹן מְאוֹד. וּמָה זֶה? מָה יֵשׁ עוֹד עַל הַשֻּׁלְחָן?',
+          : 'יוֹפִי מְאוֹד! נָכוֹן מְאוֹד. וְמָה זֶה? מָה יֵשׁ עוֹד עַל הַשֻּׁלְחָן?',
         transcription: isFinalTurn
           ? (isFemale
               ? 'мэулé! коль hа-кавóд, ахшáв ат йодáат эт hа-милӣм вэ-эт hа-hевдéль бейн зэ лэ-зот. лэhитраóт!'
               : 'мэулé! коль hа-кавóд, ахшáв атá йодéа эт hа-милӣм вэ-эт hа-hевдéль бейн зэ лэ-зот. лэhитраóт!')
-          : 'йóфи мэóд! нахóн мэóд. у-ма зэ? ма йеш од аль hа-шульхáн?',
+          : 'йóфи мэóд! нахóн мэóд. вэ-ма зэ? ма йеш од аль hа-шульхáн?',
         translation: isFinalTurn
           ? 'Превосходно! Молодец, теперь ты отлично знаешь слова и разницу между «זה» и «זאת». До свидания!'
           : 'Очень хорошо! Совершенно верно. А что это? Что еще есть на столе?',

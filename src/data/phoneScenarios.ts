@@ -208,7 +208,7 @@ export const BESPOKE_PHONE_SCENARIOS: Record<number, PhoneScenario> = {
       },
       {
         hebrew: 'אֲנִי מְדַבֵּר רוּסִית, אַנְגְּלִית וּקְצָת עִבְרִית.',
-        transcription: 'анӣ мэдабэ́р русӣт, англӣт у-кцат иврӣт.',
+        transcription: 'анӣ мэдабэ́р русӣт, англӣт вэ-кцат иврӣт.',
         translation: 'Я говорю по-русски, по-английски и немного на иврите.',
       },
     ],

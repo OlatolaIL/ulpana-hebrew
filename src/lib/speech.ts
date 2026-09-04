@@ -57,6 +57,14 @@ export function initHebrewVoices(): Promise<SpeechSynthesisVoice | null> {
 function fixHebrewPhonetics(text: string): string {
   if (!text) return '';
   let res = text;
+
+  // 1. В современном разговорном иврите союз «ו» всегда звучит как «вэ-» (ve-),
+  // а не как книжное/библейское «у-» (u-) по правилу БУМАФ.
+  // Заменяем начальный шурук וּ (\u05D5\u05BC или \uFB35) на וְ (\u05D5\u05B0),
+  // чтобы системные синтезаторы речи (Microsoft, Apple, Google) четко произносили «вэ-»:
+  res = res.replace(/(^|[\s"״'(\[])(?:\u05D5\u05BC|\uFB35)([\u05D0-\u05EA])/g, '$1\u05D5\u05B0$2');
+  res = res.replace(/(^|[\s"״'(\[])וּ([\u05D0-\u05EA])/g, '$1וְ$2');
+
   res = res.replace(/(^|\s)ספרי(\s+ли|\s+לי)/g, '$1סַפְּרִי$2');
   res = res.replace(/(^|\s)ספר(\s+ли|\s+לי)/g, '$1סַפֵּר$2');
   res = res.replace(/(^|\s)תספרי(\s+ли|\s+לי)/g, '$1תְּסַפְּרִי$2');
