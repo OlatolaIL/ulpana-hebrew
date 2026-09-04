@@ -359,6 +359,11 @@ ${studentKnownWords && studentKnownWords.length > 0 ? `ПЕРСОНАЛЬНЫЙ 
     if (provider === 'groq' && groqKey) {
       const modelsToTry = [
         process.env.GROQ_MODEL,
+        'qwen/qwen3.8-27b',
+        'openai/gpt-oss-120b',
+        'openai/gpt-oss-20b',
+        'qwen/qwen3.6-27b',
+        'groq/compound',
         'llama-3.3-70b-versatile',
         'llama-3.1-8b-instant',
       ].filter(Boolean) as string[];
@@ -392,6 +397,9 @@ ${studentKnownWords && studentKnownWords.length > 0 ? `ПЕРСОНАЛЬНЫЙ 
               ...normalized,
               engine: 'Groq (Живой ИИ)',
             });
+          } else {
+            const errData = await groqResponse.json().catch(() => ({}));
+            console.warn(`Groq model ${groqModel} returned status ${groqResponse.status}:`, errData);
           }
         } catch (groqErr) {
           console.error(`Groq fetch error with model ${groqModel}:`, groqErr);

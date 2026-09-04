@@ -180,6 +180,11 @@ export async function POST(req: NextRequest) {
     if (provider === 'groq' && groqKey) {
       const modelsToTry = [
         process.env.GROQ_MODEL,
+        'qwen/qwen3.8-27b',
+        'openai/gpt-oss-120b',
+        'openai/gpt-oss-20b',
+        'qwen/qwen3.6-27b',
+        'groq/compound',
         'llama-3.3-70b-versatile',
         'llama-3.1-8b-instant',
         'gemma2-9b-it',
