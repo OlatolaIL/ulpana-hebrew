@@ -24,7 +24,55 @@ interface ChatRequestBody {
   targetTurns?: number;
 }
 
+/**
+ * Очистка и исправление типичных дословных калек с иврита в русском переводе
+ */
+export function sanitizeRussianTranslation(text: string): string {
+  if (!text || typeof text !== 'string') return '';
+  let res = text.trim();
+
+  // 1. Исправление калек о языках: "на какой язык ты говоришь" -> "на каком языке ты говоришь"
+  res = res.replace(/на\s+как(?:ой|ом)\s+язык(\?|\s+|$)/gi, 'на каком языке$1');
+  res = res.replace(/на\s+как(?:ой|ом)\s+язык\s+ты\s+говоришь/gi, 'на каком языке ты говоришь');
+  res = res.replace(/на\s+как(?:ой|ом)\s+язык\s+вы\s+говорите/gi, 'на каком языке вы говорите');
+  res = res.replace(/на\s+какие\s+языки\s+ты\s+говоришь/gi, 'на каких языках ты говоришь');
+  res = res.replace(/на\s+какие\s+языки\s+вы\s+говорите/gi, 'на каких языках вы говорите');
+  res = res.replace(/говори(?:шь|те)\s+иврит(\?|\s+|$)/gi, (m, end) => m.toLowerCase().startsWith('говорите') ? `говорите на иврите${end}` : `говоришь на иврите${end}`);
+  res = res.replace(/говори(?:шь|те)\s+русский(\?|\s+|$)/gi, (m, end) => m.toLowerCase().startsWith('говорите') ? `говорите по-русски${end}` : `говоришь по-русски${end}`);
+  res = res.replace(/говори(?:шь|те)\s+английский(\?|\s+|$)/gi, (m, end) => m.toLowerCase().startsWith('говорите') ? `говорите по-английски${end}` : `говоришь по-английски${end}`);
+
+  // 2. Исправление калек о проживании: "откуда ты живешь" -> "где ты живешь"
+  res = res.replace(/откуда\s+ты\s+живешь/gi, 'где ты живешь');
+  res = res.replace(/откуда\s+вы\s+живете/gi, 'где вы живете');
+  res = res.replace(/откуда\s+ты\s+проживаешь/gi, 'где ты живешь');
+  res = res.replace(/в\s+как(?:ой|ом)\s+город\s+ты\s+живешь/gi, 'в каком городе ты живешь');
+  res = res.replace(/в\s+как(?:ой|ом)\s+город\s+вы\s+живете/gi, 'в каком городе вы живете');
+  res = res.replace(/из\s+какой\s+город/gi, 'из какого города');
+  res = res.replace(/из\s+какой\s+страна/gi, 'из какой страны');
+
+  // 3. Другие типичные кальки с иврита:
+  res = res.replace(/как\s+(?:читают|называют)\s+теб(?:е|я)/gi, 'как тебя зовут');
+  res = res.replace(/как\s+(?:читают|называют)\s+вам/gi, 'как вас зовут');
+  res = res.replace(/приятный\s+очень/gi, 'очень приятно');
+  res = res.replace(/что\s+твой\s+мир/gi, 'как дела');
+  res = res.replace(/что\s+слышно\s+с\s+тобой/gi, 'как дела');
+  res = res.replace(/сын\s+скольких?\s+(?:лет|ты)/gi, 'сколько тебе лет');
+
+  // Сохраняем заглавную букву в начале первого предложения
+  if (text.length > 0 && text[0] === text[0].toUpperCase() && res.length > 0) {
+    res = res[0].toUpperCase() + res.slice(1);
+  }
+
+  return res;
+}
+
 function normalizeResponse(parsed: any, defaultIsCompleted: boolean = false) {
+  const rawTranslation =
+    parsed.russian_translation ||
+    parsed.translation_ru ||
+    parsed.translation ||
+    '';
+
   return {
     hebrew: parsed.hebrew || '',
     transcription:
@@ -33,11 +81,7 @@ function normalizeResponse(parsed: any, defaultIsCompleted: boolean = false) {
       parsed.transcription_ru ||
       parsed.transcription ||
       '',
-    translation:
-      parsed.russian_translation ||
-      parsed.translation_ru ||
-      parsed.translation ||
-      '',
+    translation: sanitizeRussianTranslation(rawTranslation),
     feedback: parsed.feedback_ru || parsed.feedback || null,
     isCompleted: Boolean(parsed.isCompleted ?? parsed.is_completed ?? defaultIsCompleted),
     suggestedReplies: Array.isArray(parsed.suggestedReplies)
@@ -49,11 +93,12 @@ function normalizeResponse(parsed: any, defaultIsCompleted: boolean = false) {
             r.transcription_ru ||
             r.transcription ||
             '',
-          translation:
+          translation: sanitizeRussianTranslation(
             r.russian_translation ||
             r.translation_ru ||
             r.translation ||
-            '',
+            ''
+          ),
         }))
       : [],
   };
@@ -190,10 +235,19 @@ ${systemPromptAddition ? `ДОПОЛНИТЕЛЬНЫЕ ИНСТРУКЦИИ: ${s
 КРИТИЧЕСКИЕ ПРАВИЛА ВЫВОДА ЯЗЫКОВ:
 В твоём ответе используются ТОЛЬКО ДВА ЯЗЫКА: ИВРИТ И РУССКИЙ.
 АНГЛИЙСКИЙ ЯЗЫК (ENGLISH) СТРОГО И НАВСЕГДА ЗАПРЕЩЁН!
-1. Поле "russian_translation" ОБЯЗАНО быть исключительно на РУССКОМ языке (грамотный литературный!).
+1. Поле "russian_translation" ОБЯЗАНО быть исключительно на БЕЗУПРЕЧНОМ, ГРАМОТНОМ ЛИТЕРАТУРНОМ РУССКОМ языке!
+СТРОГО ЗАПРЕЩЕНЫ ДОСЛОВНЫЕ МАШИННЫЕ КАЛЬКИ С ИВРИТА:
+- СТРОГО ЗАПРЕЩЕНО: "на какой язык ты говоришь" -> ПРАВИЛЬНО: "На каком языке ты говоришь?" или "На каких языках ты говоришь?"
+- СТРОГО ЗАПРЕЩЕНО: "откуда ты живешь" -> ПРАВИЛЬНО: "Где ты живешь?" (для אֵיפֹה אַתָּה גָּר) или "Откуда ты?" / "Откуда ты приехал?" (для מֵאֵיפֹה אַתָּה)
+- СТРОГО ЗАПРЕЩЕНО: "в какой город ты живешь" -> ПРАВИЛЬНО: "В каком городе ты живешь?"
+- СТРОГО ЗАПРЕЩЕНО: "из какой город" -> ПРАВИЛЬНО: "Из какого города?"
+- СТРОГО ЗАПРЕЩЕНО: "как читают тебе" -> ПРАВИЛЬНО: "Как тебя зовут?" (для אֵיךְ קוֹרְאִים לְךָ)
+- СТРОГО ЗАПРЕЩЕНО: "что твой мир" -> ПРАВИЛЬНО: "Как твои дела?" (для מַה שְּׁלוֹמְךָ)
+- СТРОГО ЗАПРЕЩЕНО: "приятный очень" -> ПРАВИЛЬНО: "Очень приятно" (для נָעִים מְאוֹד)
+- Перевод обязан звучать абсолютно естественно для носителя русского языка, с правильными русскими падежами, предлогами и естественным порядком слов!
 2. Поле "cyrillic_transcription" ОБЯЗАНО быть только РУССКИМИ БУКВАМИ (кириллица с ударением и с 'h', например: "hа-бáйит", "то́да", "ма нишмá"). Латинские и английские транскрипции СТРОГО ЗАПРЕЩЕНЫ!
-3. В "suggestedReplies" поле "russian_translation" ОБЯЗАНО содержать перевод этой фразы только на РУССКИЙ язык ("Спасибо, хорошо", "Отлично, спасибо", "Хочу кофе"), а "cyrillic_transcription" — только кириллицу с 'h'!
-4. Поле "feedback_ru" — только на русском языке или null.
+3. В "suggestedReplies" поле "russian_translation" ОБЯЗАНО содержать перевод этой фразы только на безупречный РУССКИЙ язык ("Спасибо, хорошо", "Отлично, спасибо", "Хочу кофе"), а "cyrillic_transcription" — только кириллицу с 'h'!
+4. Поле "feedback_ru" — только на грамотном русском языке или null.
 
 ТРЕБОВАНИЯ ВЕДЕНИЯ ДИАЛОГА:
 1. Веди органичный диалог, реагируй живо на иврите (1-2 коротких предложения). Реагируй именно на то, что написал или выбрал ученик, и вежливо продвигай диалог вперед к целям урока №${lessonNumber}.

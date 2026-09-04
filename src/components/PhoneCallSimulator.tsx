@@ -295,8 +295,8 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
 
     if (silenceTimeoutRef.current) clearTimeout(silenceTimeoutRef.current);
 
-    // В первых 10 уроках увеличиваем паузу до 2.0 секунд, чтобы начинающим было комфортно формулировать фразы
-    const silenceDelayMs = lesson.number && lesson.number <= 10 ? 2000 : 1300;
+    // В первых 10 уроках пауза 1.5 секунды для комфортного темпа речи начинающих
+    const silenceDelayMs = lesson.number && lesson.number <= 10 ? 1500 : 1300;
 
     recognizerRef.current.start(
       (transcript, isFinal) => {
@@ -305,7 +305,7 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
         setLiveTranscript(transcript);
         setSpeechNotice(null);
 
-        // Резервный таймер авто-отправки при паузе в речи (2.0 сек для уроков 1-10, 1.3 сек для остальных)
+        // Резервный таймер авто-отправки при паузе в речи (1.5 сек для уроков 1-10, 1.3 сек для остальных)
         if (silenceTimeoutRef.current) clearTimeout(silenceTimeoutRef.current);
         if (transcript.trim()) {
           silenceTimeoutRef.current = setTimeout(() => {
