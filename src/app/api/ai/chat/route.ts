@@ -14,6 +14,7 @@ interface ChatRequestBody {
   goals: string[];
   topic?: string;
   vocabulary?: string[];
+  vocabularyHints?: string[];
   grammarTopic?: string;
   provider?: 'groq' | 'gemini';
   apiKey?: string;
