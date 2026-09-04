@@ -111,6 +111,28 @@ export interface GrammarTopic {
   }>;
 }
 
+export interface DialogueWord {
+  hebrew: string;
+  transcription: string;
+  translation: string;
+  isNew?: boolean; // Новое слово/выражение к этому диалогу
+  explanation?: string; // Краткое пояснение грамматики или значения
+}
+
+export interface DialogueStep {
+  stepIndex: number; // 1, 2, 3
+  fact: string; // Заданный контекст/факт (напр. "На столе лежит книга и тетрадь")
+  aiQuestionHebrew: string; // Что говорит/спрашивает учитель
+  aiQuestionRu: string; // Перевод вопроса учителя
+  expectedConcept: string; // Что тренирует ученик (напр. "זֹאת מַחְבֶּרֶת")
+  targetWords?: string[]; // Обязательные ключевые слова для проверки (напр. ["זאת", "מחברת"])
+  sampleAnswers?: Array<{
+    hebrew: string;
+    transcription: string;
+    translation: string;
+  }>;
+}
+
 export interface DialogueScenario {
   title: string;
   situation: string; // Описание контекста (напр. "Вы в кафе в Тель-Авиве")
@@ -123,6 +145,8 @@ export interface DialogueScenario {
   };
   goals: string[]; // Цели диалога для ученика
   vocabularyHints: string[]; // Ключевые слова урока для подсказок
+  steps?: DialogueStep[]; // Пошаговый сценарий из 3 ходов (Fact First)
+  usefulWords?: DialogueWord[]; // Слова и фразы к диалогу с карточками
 }
 
 export interface Exercise {
@@ -197,6 +221,7 @@ export interface ChatMessage {
     transcription: string;
     translation: string;
   }>;
+  newWords?: DialogueWord[]; // Карточки новых/полезных слов реплики
   timestamp: number;
 }
 

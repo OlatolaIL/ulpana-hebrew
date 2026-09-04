@@ -15,9 +15,13 @@ import {
   Award,
   CheckCircle2,
   Lightbulb,
+  ChevronDown,
+  ChevronUp,
+  BookmarkPlus,
+  Check,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
-import { Lesson, UserProfile, ChatMessage, Word } from '@/types';
+import { Lesson, UserProfile, ChatMessage, Word, DialogueWord, DialogueStep } from '@/types';
 import { tokenizeText, TextToken, stripNikkud } from '@/lib/transcription';
 import { speakHebrew, HebrewSpeechRecognizer } from '@/lib/speech';
 import { getDialogueHelpForLesson } from '@/lib/dialogueHints';
@@ -26,8 +30,11 @@ import {
   markLessonTabCompleted,
   unmarkLessonTabCompleted,
   saveUserProfile,
+  loadUserProfile,
   saveLocalCallLog,
   getStudentKnownVocabulary,
+  addWordToPersonalDict,
+  isWordInPersonalDict,
 } from '@/lib/storage';
 
 interface LessonAiChatProps {
@@ -157,12 +164,29 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
   const [selectedWord, setSelectedWord] = useState<string | null>(null);
   const [wordContext, setWordContext] = useState<string>('');
   const [recognizer, setRecognizer] = useState<HebrewSpeechRecognizer | null>(null);
+  const [addedWords, setAddedWords] = useState<Record<string, boolean>>({});
+  const [showUsefulWords, setShowUsefulWords] = useState(true);
   const lastMessageRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesRef = useRef<ChatMessage[]>([]);
   const sessionIdRef = useRef<string>(`chat_${lesson.id}_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`);
   const startTimeRef = useRef<number>(Date.now());
   const lastFeedbackRef = useRef<string | null>(null);
+
+  const handleAddWordDirectly = (wordItem: DialogueWord) => {
+    const newWord: Omit<Word, 'id' | 'dateAdded' | 'isUserAdded'> = {
+      hebrew: wordItem.hebrew,
+      hebrewPlain: stripNikkud(wordItem.hebrew),
+      transcription: wordItem.transcription,
+      translation: wordItem.translation,
+      partOfSpeech: 'other',
+      lessonId: lesson.id,
+    };
+    const added = addWordToPersonalDict(newWord);
+    setAddedWords((prev) => ({ ...prev, [wordItem.hebrew]: true }));
+    if (onWordAdded) onWordAdded(added);
+    if (onUpdateProfile) onUpdateProfile(loadUserProfile());
+  };
 
   const logChatSession = (history: ChatMessage[], feedback?: string | null) => {
     const userMessages = history.filter((m) => m.role === 'user');
@@ -217,7 +241,7 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
   };
 
   const knownWords = useMemo(
-    () => getStudentKnownVocabulary(userProfile, 50),
+    () => getStudentKnownVocabulary(userProfile, 60, 25),
     [userProfile]
   );
 
@@ -312,6 +336,9 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
     setLoading(true);
 
     const currentUserTurns = newMessages.filter((m) => m.role === 'user').length;
+    const stepsCount = lesson.dialogue.steps?.length || TARGET_TURNS;
+    const currentStepIndex = Math.min(Math.max(0, currentUserTurns - 1), stepsCount - 1);
+    const currentStep = lesson.dialogue.steps?.[currentStepIndex];
 
     try {
       const history = newMessages.map((m) => ({
@@ -340,6 +367,9 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
           ulpanMode: Boolean(userProfile.ulpanMode),
           turnIndex: currentUserTurns,
           targetTurns: TARGET_TURNS,
+          currentStep,
+          allSteps: lesson.dialogue.steps,
+          usefulWords: lesson.dialogue.usefulWords,
           provider: userProfile.aiProvider,
           apiKey:
             userProfile.aiProvider === 'groq'
@@ -360,6 +390,7 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
         engine: data.engine || 'Groq (Живой ИИ)',
         isCompleted: Boolean(data.isCompleted),
         suggestedReplies: data.suggestedReplies || [],
+        newWords: data.newWords,
         timestamp: Date.now(),
       };
 
@@ -454,6 +485,9 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
   const lastAiMessage = [...messages].reverse().find((m) => m.role === 'assistant');
 
   const userTurnsCount = messages.filter((m) => m.role === 'user').length;
+  const stepsCount = lesson.dialogue.steps?.length || TARGET_TURNS;
+  const currentStepIndex = Math.min(Math.max(0, userTurnsCount), stepsCount - 1);
+  const activeStep = lesson.dialogue.steps?.[currentStepIndex];
   const isTabCompleted = Boolean(userProfile.lessonProgress[lesson.id]?.completedTabs?.includes('chat'));
   const isDialogueFinished = isTabCompleted || userTurnsCount >= TARGET_TURNS || messages.some((m) => m.role === 'assistant' && m.isCompleted);
 
@@ -652,6 +686,103 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
         </div>
       </div>
 
+      {/* Индикатор факта текущего шага диалога (Fact First) */}
+      {activeStep && (
+        <div className="px-3.5 py-1.5 bg-blue-50/90 dark:bg-blue-950/40 border-b border-blue-200/60 dark:border-blue-900/40 text-xs text-blue-950 dark:text-blue-200 flex items-center gap-2 font-hebrew">
+          <span className="font-bold text-blue-700 dark:text-blue-300 shrink-0">
+            📌 {userProfile.ulpanMode ? `שָׁלָב ${activeStep.stepIndex}:` : `Шаг ${activeStep.stepIndex}:`}
+          </span>
+          <span className="truncate leading-tight font-medium">{activeStep.fact}</span>
+        </div>
+      )}
+
+      {/* Выдвижная панель слов к диалогу (Useful words) */}
+      {lesson.dialogue.usefulWords && lesson.dialogue.usefulWords.length > 0 && (
+        <div className="border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50/90 dark:bg-zinc-900/50">
+          <button
+            type="button"
+            onClick={() => setShowUsefulWords(!showUsefulWords)}
+            className="w-full px-3.5 py-1.5 flex items-center justify-between text-xs font-bold text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800/60 transition cursor-pointer font-hebrew"
+          >
+            <div className="flex items-center gap-1.5">
+              <Sparkles className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+              <span>
+                {userProfile.ulpanMode
+                  ? `מִילִּים שֶׁיַּעַזְרוּ בַּשִּׂיחָה (${lesson.dialogue.usefulWords.length}):`
+                  : `Слова и подсказки к диалогу (${lesson.dialogue.usefulWords.length}):`}
+              </span>
+            </div>
+            <div className="flex items-center gap-1 text-[11px] text-zinc-400">
+              <span>{showUsefulWords ? (userProfile.ulpanMode ? 'הַסְתֵּר' : 'Свернуть') : (userProfile.ulpanMode ? 'הַצֵּג' : 'Развернуть')}</span>
+              {showUsefulWords ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+            </div>
+          </button>
+
+          {showUsefulWords && (
+            <div className="p-2.5 pt-0.5 grid grid-cols-1 sm:grid-cols-2 gap-1.5 animate-in fade-in max-h-36 overflow-y-auto">
+              {lesson.dialogue.usefulWords.map((word, idx) => {
+                const isAdded = addedWords[word.hebrew] || isWordInPersonalDict(word.hebrew, userProfile.personalVocabulary);
+                return (
+                  <div
+                    key={idx}
+                    className="bg-white dark:bg-zinc-800/90 border border-zinc-200 dark:border-zinc-700/80 rounded-xl px-2 py-1.5 flex items-center justify-between gap-2 shadow-2xs text-xs"
+                  >
+                    <div className="min-w-0 flex items-baseline gap-1.5">
+                      <span dir="rtl" className="font-hebrew font-bold text-zinc-900 dark:text-zinc-100">
+                        {userProfile.showNikkud ? word.hebrew : stripNikkud(word.hebrew)}
+                      </span>
+                      {word.isNew && (
+                        <span className="text-[9px] font-bold px-1 py-0.2 rounded bg-amber-500/20 text-amber-600 dark:text-amber-300">
+                          {userProfile.ulpanMode ? 'חָדָשׁ' : 'Новое'}
+                        </span>
+                      )}
+                      <span className="text-[11px] text-zinc-500 dark:text-zinc-400 truncate">
+                        {!userProfile.ulpanMode && word.transcription && <span className="text-blue-500 mr-1">[{word.transcription}]</span>}
+                        <span>{word.translation}</span>
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-1 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => speakHebrew(word.hebrew, { rate: userProfile.speechRate || 0.7 })}
+                        className="p-1 rounded text-zinc-400 hover:text-blue-500 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition cursor-pointer"
+                        title="Озвучить"
+                      >
+                        <Volume2 className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        disabled={isAdded}
+                        onClick={() => handleAddWordDirectly(word)}
+                        className={`px-1.5 py-0.5 rounded text-[10px] font-semibold transition cursor-pointer flex items-center gap-0.5 ${
+                          isAdded
+                            ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400'
+                            : 'bg-zinc-100 hover:bg-amber-500 hover:text-white dark:bg-zinc-700 text-zinc-700 dark:text-zinc-200'
+                        }`}
+                        title={isAdded ? 'В словаре' : 'Добавить в личный словарик'}
+                      >
+                        {isAdded ? (
+                          <>
+                            <Check className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+                            <span>{userProfile.ulpanMode ? 'בַּמִּילּוֹן' : 'В словаре'}</span>
+                          </>
+                        ) : (
+                          <>
+                            <BookmarkPlus className="w-3 h-3" />
+                            <span>{userProfile.ulpanMode ? 'הוֹסֵף' : '+ В словарик'}</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Список сообщений */}
       <div className="flex-1 p-3 sm:p-4 overflow-y-auto space-y-3 bg-zinc-50/50 dark:bg-zinc-950/30">
         {messages.map((msg, index) => {
@@ -725,6 +856,69 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
                     <p className="text-xs text-zinc-600 dark:text-zinc-300 mt-1">
                       {msg.translation}
                     </p>
+                  )}
+
+                  {/* Карточки новых/полезных слов этой реплики */}
+                  {isAi && msg.newWords && msg.newWords.length > 0 && (
+                    <div className="mt-2.5 pt-2 border-t border-amber-200/70 dark:border-amber-900/50 bg-amber-50/60 dark:bg-amber-950/30 rounded-xl p-2 font-hebrew">
+                      <div className="flex items-center gap-1.5 text-[11px] font-bold text-amber-800 dark:text-amber-300 mb-1.5">
+                        <Sparkles className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                        <span>{userProfile.ulpanMode ? 'מִילִּים חֲדָשׁוֹת:' : 'Новые слова в реплике:'}</span>
+                      </div>
+                      <div className="space-y-1">
+                        {msg.newWords.map((nw, nwIdx) => {
+                          const isAdded = addedWords[nw.hebrew] || isWordInPersonalDict(nw.hebrew, userProfile.personalVocabulary);
+                          return (
+                            <div
+                              key={nwIdx}
+                              className="flex items-center justify-between gap-1.5 bg-white dark:bg-zinc-800 px-2 py-1 rounded-lg border border-amber-200/50 dark:border-amber-800/30 text-xs shadow-2xs"
+                            >
+                              <div className="flex items-baseline gap-1.5 min-w-0">
+                                <span dir="rtl" className="font-hebrew font-bold text-zinc-900 dark:text-zinc-100">
+                                  {userProfile.showNikkud ? nw.hebrew : stripNikkud(nw.hebrew)}
+                                </span>
+                                {!userProfile.ulpanMode && nw.transcription && (
+                                  <span className="text-[10px] text-blue-500">[{nw.transcription}]</span>
+                                )}
+                                <span className="text-zinc-600 dark:text-zinc-300 text-[11px] truncate">— {nw.translation}</span>
+                              </div>
+                              <div className="flex items-center gap-1 shrink-0">
+                                <button
+                                  type="button"
+                                  onClick={() => speakHebrew(nw.hebrew, { rate: userProfile.speechRate || 0.7 })}
+                                  className="p-1 text-zinc-400 hover:text-blue-500 rounded cursor-pointer"
+                                  title="Озвучить"
+                                >
+                                  <Volume2 className="w-3 h-3" />
+                                </button>
+                                <button
+                                  type="button"
+                                  disabled={isAdded}
+                                  onClick={() => handleAddWordDirectly(nw)}
+                                  className={`px-1.5 py-0.5 rounded text-[9px] font-bold transition cursor-pointer flex items-center gap-0.5 ${
+                                    isAdded
+                                      ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400'
+                                      : 'bg-amber-500 hover:bg-amber-600 text-white'
+                                  }`}
+                                >
+                                  {isAdded ? (
+                                    <>
+                                      <Check className="w-2.5 h-2.5" />
+                                      <span>{userProfile.ulpanMode ? 'בַּמִּילּוֹן' : 'В словаре'}</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <BookmarkPlus className="w-2.5 h-2.5" />
+                                      <span>{userProfile.ulpanMode ? 'הוֹסֵף' : '+ В словарик'}</span>
+                                    </>
+                                  )}
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
                   )}
 
                   {/* Кнопка озвучки и бейдж движка */}

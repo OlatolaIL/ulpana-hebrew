@@ -495,26 +495,27 @@ export function loadLocalCallLogs(): SavedCallLog[] {
 
 /**
  * Извлекает список освоенных учеником слов (из личного словаря, тематических колод и тренировок карточек)
- * со скорингом знания >= minScore (по умолчанию 50%) или успешными повторениями в SRS
+ * со скорингом знания >= minScore (по умолчанию 60%) или успешными повторениями в SRS.
+ * Ограничивает размер выборки до maxWords (по умолчанию 25), чтобы не раздувать системный промпт ИИ.
  */
-export function getStudentKnownVocabulary(profile: UserProfile, minScore = 50): string[] {
+export function getStudentKnownVocabulary(profile: UserProfile, minScore = 60, maxWords = 25): string[] {
   if (!profile) return [];
   const statsMap = profile.flashcardStats || profile.flashcardProgress || {};
   const wordsSet = new Set<string>();
 
-  // 1. Слова из личного словарика с баллом знания >= minScore или тренировками >= 1
+  // 1. Слова из личного словарика с баллом знания >= minScore
   const personal = profile.personalVocabulary || [];
   for (const w of personal) {
     const cleanHebrew = stripNikkud(w.hebrewPlain || w.hebrew);
     const stat = statsMap[w.id] || statsMap[cleanHebrew] || statsMap[w.hebrew];
     const mastery = calculateWordMastery(stat);
-    if (mastery.score >= minScore || (stat && stat.repetitions >= 1)) {
+    if (mastery.score >= minScore || (stat && stat.repetitions >= 2)) {
       if (w.hebrew) wordsSet.add(w.hebrew);
-      if (cleanHebrew) wordsSet.add(cleanHebrew);
+      else if (cleanHebrew) wordsSet.add(cleanHebrew);
     }
   }
 
-  // 2. Слова из общих карточек с успешными повторениями
+  // 2. Слова из общих и тематических карточек со скором знания >= minScore (60%+)
   for (const [key, stat] of Object.entries(statsMap)) {
     if (stat && stat.repetitions >= 1) {
       const mastery = calculateWordMastery(stat);
@@ -527,13 +528,13 @@ export function getStudentKnownVocabulary(profile: UserProfile, minScore = 50): 
     }
   }
 
-  // Если активных слов пока мало, берем до 15 недавно добавленных слов
+  // Если активных слов пока мало, берем до 10 недавно добавленных слов из личного словаря
   if (wordsSet.size < 5 && personal.length > 0) {
-    personal.slice(0, 15).forEach((w) => {
-      wordsSet.add(w.hebrew);
+    personal.slice(0, 10).forEach((w) => {
+      if (w.hebrew) wordsSet.add(w.hebrew);
     });
   }
 
-  return Array.from(wordsSet).slice(0, 50);
+  return Array.from(wordsSet).slice(0, maxWords);
 }
 

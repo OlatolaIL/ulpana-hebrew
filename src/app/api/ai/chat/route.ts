@@ -24,6 +24,29 @@ interface ChatRequestBody {
   studentKnownWords?: string[];
   turnIndex?: number;
   targetTurns?: number;
+  currentStep?: {
+    stepIndex: number;
+    fact: string;
+    aiQuestionHebrew: string;
+    aiQuestionRu: string;
+    expectedConcept: string;
+    targetWords?: string[];
+  };
+  allSteps?: Array<{
+    stepIndex: number;
+    fact: string;
+    aiQuestionHebrew: string;
+    aiQuestionRu: string;
+    expectedConcept: string;
+    targetWords?: string[];
+  }>;
+  usefulWords?: Array<{
+    hebrew: string;
+    transcription: string;
+    translation: string;
+    isNew?: boolean;
+    explanation?: string;
+  }>;
 }
 
 /**
@@ -114,6 +137,18 @@ function normalizeResponse(parsed: any, defaultIsCompleted: boolean = false) {
   const isCompleted = Boolean(parsed.isCompleted ?? parsed.is_completed ?? defaultIsCompleted);
   const shouldHangUp = Boolean(parsed.shouldHangUp ?? parsed.should_hang_up ?? isCompleted);
 
+  const rawNewWords = parsed.new_words || parsed.newWords;
+  const newWords = Array.isArray(rawNewWords) && rawNewWords.length > 0
+    ? rawNewWords
+        .map((nw: any) => ({
+          hebrew: nw.hebrew || '',
+          transcription: sanitizeTranscription(nw.cyrillic_transcription || nw.transcription || ''),
+          translation: sanitizeRussianTranslation(nw.russian_translation || nw.translation || ''),
+          explanation: nw.explanation || undefined,
+        }))
+        .filter((nw: any) => nw.hebrew && nw.translation)
+    : undefined;
+
   return {
     hebrew: parsed.hebrew || '',
     transcription: sanitizeTranscription(rawTranscription),
@@ -121,6 +156,7 @@ function normalizeResponse(parsed: any, defaultIsCompleted: boolean = false) {
     feedback: parsed.feedback_ru || parsed.feedback || null,
     isCompleted,
     shouldHangUp,
+    newWords,
     suggestedReplies: Array.isArray(parsed.suggestedReplies)
       ? parsed.suggestedReplies.map((r: any) => ({
           hebrew: r.hebrew || '',
@@ -163,6 +199,9 @@ export async function POST(req: NextRequest) {
       isPhoneCall = false,
       systemPromptAddition = '',
       studentKnownWords = [],
+      currentStep,
+      allSteps,
+      usefulWords = [],
     } = body;
 
     // 1. Проверка авторизации: уроки 1-3 бесплатны для всех, уроки 4+ требуют сессии
@@ -232,6 +271,26 @@ export async function POST(req: NextRequest) {
 - СТРОГО ЗАПРЕЩЕНО задавать новые вопросы! Диалог завершён.
 - В "suggestedReplies" предложи ровно 3 простых варианта прощания на иврите (например: 'תּוֹדָה רַבָּה, לְהִתְרָאוֹת!', 'יוֹם נִפְלָא, בַּיי!', 'נָעִים מְאוֹד, שָׁלוֹם!').
 - В JSON-ответе ОБЯЗАТЕЛЬНО установи: "isCompleted": true.`
+      : currentStep
+      ? `ЭТАП ДИАЛОГА: ШАГ ${currentStep.stepIndex} ИЗ ${maxTurns} (СЦЕНАРНЫЙ КАРКАС "FACT FIRST"):
+1. БАЗОВЫЙ ФАКТ ШАГА (НА ЧТО ОПИРАЕТСЯ СОБЕСЕДНИК):
+   "${currentStep.fact}"
+   - Ты ОБЯЗАН вести беседу строго в рамках этого факта!
+2. ВОПРОС/РЕПЛИКА СОБЕСЕДНИКА:
+   "${currentStep.aiQuestionHebrew}" (${currentStep.aiQuestionRu}).
+   - Отреагируй на слова ученика, подтверди факт и задай этот вопрос!
+3. ЧТО ТРЕНИРУЕТ УЧЕНИК:
+   "${currentStep.expectedConcept}" ${currentStep.targetWords?.length ? `(Обязательные ключевые слова темы: ${currentStep.targetWords.join(', ')})` : ''}.
+4. СТРОГИЙ АНАЛИЗ И ЧЕСТНАЯ ОБРАТНАЯ СВЯЗЬ ("feedback_ru"):
+   - ВНИМАТЕЛЬНО проанализируй реальный ответ ученика!
+   - СТРОГО ЗАПРЕЩЕНО хвалить ученика за слова, которых он НЕ говорил!
+   - Если ученик ответил правильно по смыслу, но пропустил ключевое грамматическое слово урока (например, не использовал «זֹאת» или «זֶה»), в поле "feedback_ru" вежливо и доброжелательно подскажи на русском языке: "Смысл передан верно! Но чтобы потренировать тему урока, попробуйте сказать с указательным словом: [правильная фраза]".
+   - Если ученик перепутал род (например, сказал «זה» вместо «זאת» для ж.р.), укажи на род слова и напиши правильную форму.
+   - Если ученик ответил идеально — верни null или кратко похвали именно за его слова.
+5. ЖЕСТКИЙ ЗАПРЕТ ГАЛЛЮЦИНАЦИЙ И СЛОЖНЫХ СЛОВ:
+   - СТРОГО ЗАПРЕЩЕНО выдумывать посторонних людей, девушек, неизвестные предметы, о которых не сказано в фактах шага!
+   - СТРОГО ЗАПРЕЩЕНО использовать редкие канцеляризмы или книжные слова (вроде 'נציגה', 'פקידה' и т.п.)! Используй ТОЛЬКО базовые слова урока.
+- В JSON-ответе укажи: "isCompleted": false.`
       : `ЭТАП ДИАЛОГА: ШАГ ${currentTurn} ИЗ ${maxTurns}.
 - ВНИМАТЕЛЬНО ПРОАНАЛИЗИРУЙ последний ответ ученика!
 - Отреагируй строго на то, что сказал ученик: похвали за правильные слова или грамматику (זֶה / זֹאת, правильный род) или мягко подскажи в "feedback_ru".
@@ -302,6 +361,9 @@ ${studentKnownWords && studentKnownWords.length > 0 ? `ПЕРСОНАЛЬНЫЙ 
 - По возможности органично используй эти знакомые ученику слова в своих репликах для живого закрепления.
 - Ожидай, что ученик может использовать их в своих ответах.
 - СТРОГО ЗАПРЕЩЕНО использовать сложные абстрактные слова, выходящие далеко за рамки этого словаря и текущего урока №${lessonNumber}!` : ''}
+${usefulWords && usefulWords.length > 0 ? `ПОЛЕЗНЫЕ СЛОВА ДИАЛОГА (КАРТОЧКИ ДЛЯ УЧЕНИКА):
+${usefulWords.map((w) => `- ${w.hebrew} (${w.translation})${w.explanation ? ` — ${w.explanation}` : ''}`).join('\n')}
+- Если в реплике уместно ввести/использовать новое слово из этого списка, укажи его в массиве "new_words" с переводом и пояснением!` : ''}
 Цели диалога: ${goals.join('; ')}.
 
 КРИТИЧЕСКИЕ ПРАВИЛА ВЫВОДА ЯЗЫКОВ:
@@ -353,19 +415,20 @@ ${studentKnownWords && studentKnownWords.length > 0 ? `ПЕРСОНАЛЬНЫЙ 
     { "hebrew": "Вариант 1 на иврите с огласовками", "cyrillic_transcription": "русская транскрипция 1", "russian_translation": "русский перевод 1" },
     { "hebrew": "Вариант 2 на иврите с огласовками", "cyrillic_transcription": "русская транскрипция 2", "russian_translation": "русский перевод 2" },
     { "hebrew": "Вариант 3 на иврите с огласовками", "cyrillic_transcription": "русская транскрипция 3", "russian_translation": "русский перевод 3" }
-  ]
+  ],
+  "new_words": []
 }`;
 
     // 1. Попытка запроса через Groq API
     if (provider === 'groq' && groqKey) {
       const modelsToTry = [
         process.env.GROQ_MODEL,
-        'qwen/qwen3.8-27b',
+        'llama-3.3-70b-versatile',
         'openai/gpt-oss-120b',
         'openai/gpt-oss-20b',
+        'qwen/qwen3.8-27b',
         'qwen/qwen3.6-27b',
         'groq/compound',
-        'llama-3.3-70b-versatile',
         'llama-3.1-8b-instant',
       ].filter(Boolean) as string[];
 
