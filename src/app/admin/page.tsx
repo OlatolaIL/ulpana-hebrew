@@ -142,6 +142,7 @@ export default function AdminPage() {
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [calls, setCalls] = useState<AdminCallLog[]>([]);
   const [selectedCall, setSelectedCall] = useState<AdminCallLog | null>(null);
+  const [callTypeFilter, setCallTypeFilter] = useState<'all' | 'chat' | 'phone'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [promos, setPromos] = useState<PromoCode[]>([]);
 
@@ -482,10 +483,10 @@ export default function AdminPage() {
                 : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900'
             }`}
           >
-            <Phone className="w-4 h-4" />
-            <span>Логи звонков ИИ</span>
+            <MessageSquare className="w-4 h-4" />
+            <span>Диалоги и звонки</span>
             {calls.length > 0 && (
-              <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${activeTab === 'calls' ? 'bg-blue-700 text-white' : 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300'}`}>
+              <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${activeTab === 'calls' ? 'bg-blue-700 text-white' : 'bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300'}`}>
                 {calls.length}
               </span>
             )}
@@ -1017,152 +1018,204 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* TAB 4: CALL LOGS */}
+        {/* TAB 4: CALL & CHAT LOGS */}
         {activeTab === 'calls' && (
           <div className="flex flex-col gap-5">
             <div className="bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200 dark:border-zinc-800 p-5 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div>
                 <h2 className="text-lg font-bold text-zinc-900 dark:text-zinc-50 flex items-center gap-2">
-                  <Phone className="w-5 h-5 text-emerald-500" />
-                  <span>История телефонных звонков с ИИ</span>
+                  <MessageSquare className="w-5 h-5 text-blue-600" />
+                  <span>История диалогов и звонков с ИИ</span>
                 </h2>
                 <p className="text-xs text-zinc-400 mt-0.5">
-                  Полная стенограмма реальных голосовых разговоров учеников с AI-собеседником
+                  Полная стенограмма реальных разговоров учеников с AI (ИИ-чат 4-го этапа и Телефонные звонки 5-го этапа)
                 </p>
               </div>
 
-              <div className="flex items-center gap-2">
-                <span className="px-3 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 font-bold text-xs">
-                  Всего звонков: {calls.length}
-                </span>
+              {/* Type Filter */}
+              <div className="flex items-center gap-2 flex-wrap">
+                <div className="inline-flex p-1 bg-zinc-100 dark:bg-zinc-800 rounded-xl text-xs font-semibold">
+                  <button
+                    type="button"
+                    onClick={() => setCallTypeFilter('all')}
+                    className={`px-3 py-1.5 rounded-lg transition ${
+                      callTypeFilter === 'all'
+                        ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 shadow-xs'
+                        : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100'
+                    }`}
+                  >
+                    Все ({calls.length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCallTypeFilter('chat')}
+                    className={`px-3 py-1.5 rounded-lg transition flex items-center gap-1 ${
+                      callTypeFilter === 'chat'
+                        ? 'bg-blue-600 text-white shadow-xs'
+                        : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100'
+                    }`}
+                  >
+                    💬 Чаты ({calls.filter((c) => c.caller_role?.includes('чат') || c.caller_role?.includes('Этап 4')).length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCallTypeFilter('phone')}
+                    className={`px-3 py-1.5 rounded-lg transition flex items-center gap-1 ${
+                      callTypeFilter === 'phone'
+                        ? 'bg-emerald-600 text-white shadow-xs'
+                        : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100'
+                    }`}
+                  >
+                    📞 Звонки ({calls.filter((c) => !c.caller_role?.includes('чат') && !c.caller_role?.includes('Этап 4')).length})
+                  </button>
+                </div>
               </div>
             </div>
 
             {calls.length === 0 ? (
               <div className="bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200 dark:border-zinc-800 p-12 text-center text-zinc-400 text-sm">
-                <Phone className="w-10 h-10 mx-auto text-zinc-300 dark:text-zinc-700 mb-3" />
-                <p className="font-bold text-zinc-700 dark:text-zinc-300">Звонков пока нет</p>
+                <MessageSquare className="w-10 h-10 mx-auto text-zinc-300 dark:text-zinc-700 mb-3" />
+                <p className="font-bold text-zinc-700 dark:text-zinc-300">Записей пока нет</p>
                 <p className="text-xs text-zinc-400 mt-1 max-w-sm mx-auto">
-                  Как только вы или ученики совершите первый звонок в любом из 100 уроков, полная стенограмма разговора появится здесь.
+                  Как только вы или ученики пообщаетесь в ИИ-диалоге (этап 4) или совершите звонок (этап 5) в любом из 100 уроков, полная стенограмма разговора появится здесь.
                 </p>
               </div>
             ) : (
               <div className="grid grid-cols-1 gap-4">
-                {calls.map((call) => {
-                  const lesson = getLessonById(call.lesson_id);
-                  const isExpanded = selectedCall?.id === call.id;
+                {calls
+                  .filter((call) => {
+                    const isChat = call.caller_role?.includes('чат') || call.caller_role?.includes('Этап 4');
+                    if (callTypeFilter === 'chat') return isChat;
+                    if (callTypeFilter === 'phone') return !isChat;
+                    return true;
+                  })
+                  .map((call) => {
+                    const isChat = call.caller_role?.includes('чат') || call.caller_role?.includes('Этап 4');
+                    const isExpanded = selectedCall?.id === call.id;
 
-                  return (
-                    <div
-                      key={call.id}
-                      className="bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200 dark:border-zinc-800 p-5 shadow-sm space-y-4 hover:border-blue-400/50 transition"
-                    >
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-zinc-100 dark:border-zinc-800 pb-3">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center justify-center font-bold">
-                            📞
+                    return (
+                      <div
+                        key={call.id}
+                        className="bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200 dark:border-zinc-800 p-5 shadow-sm space-y-4 hover:border-blue-400/50 transition"
+                      >
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-zinc-100 dark:border-zinc-800 pb-3">
+                          <div className="flex items-center gap-3">
+                            <div
+                              className={`w-10 h-10 rounded-2xl flex items-center justify-center font-bold text-base ${
+                                isChat
+                                  ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20'
+                                  : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
+                              }`}
+                            >
+                              {isChat ? '💬' : '📞'}
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400">
+                                  Урок {call.lesson_id}
+                                </span>
+                                <span
+                                  className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${
+                                    isChat
+                                      ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/60 dark:text-blue-300'
+                                      : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-300'
+                                  }`}
+                                >
+                                  {isChat ? 'ИИ-чат (Этап 4)' : 'Звонок (Этап 5)'}
+                                </span>
+                                <span className="font-bold text-sm text-zinc-900 dark:text-zinc-100">
+                                  {call.caller_name}
+                                </span>
+                              </div>
+                              <div className="text-xs text-zinc-400 mt-0.5 flex items-center gap-2">
+                                <span>Ученик: <strong className="text-zinc-700 dark:text-zinc-300">{call.user_name || 'Ученик'}</strong></span>
+                                <span>•</span>
+                                <span>{new Date(call.created_at).toLocaleString('ru-RU')}</span>
+                              </div>
+                            </div>
                           </div>
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400">
-                                Урок {call.lesson_id}
+
+                          <div className="flex items-center gap-3 self-end sm:self-center">
+                            <div className="text-right text-xs">
+                              <span className="font-mono font-bold text-zinc-700 dark:text-zinc-300 block">
+                                ⏱️ {Math.floor(call.duration_seconds / 60)}:{(call.duration_seconds % 60).toString().padStart(2, '0')}
                               </span>
-                              <span className="font-bold text-sm text-zinc-900 dark:text-zinc-100">
-                                {call.caller_name}
-                              </span>
-                              <span className="text-xs text-zinc-400">
-                                ({call.caller_role})
+                              <span className="text-[11px] text-zinc-400">
+                                {call.messages_count} реплик
                               </span>
                             </div>
-                            <div className="text-xs text-zinc-400 mt-0.5 flex items-center gap-2">
-                              <span>Ученик: <strong className="text-zinc-700 dark:text-zinc-300">{call.user_name || 'Ученик'}</strong></span>
-                              <span>•</span>
-                              <span>{new Date(call.created_at).toLocaleString('ru-RU')}</span>
-                            </div>
+
+                            <button
+                              onClick={() => setSelectedCall(isExpanded ? null : call)}
+                              className="px-3 py-1.5 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-xs font-semibold text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition flex items-center gap-1 cursor-pointer"
+                            >
+                              <MessageSquare className="w-3.5 h-3.5" />
+                              <span>{isExpanded ? 'Скрыть диалог' : 'Смотреть диалог'}</span>
+                            </button>
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-3 self-end sm:self-center">
-                          <div className="text-right text-xs">
-                            <span className="font-mono font-bold text-zinc-700 dark:text-zinc-300 block">
-                              ⏱️ {Math.floor(call.duration_seconds / 60)}:{(call.duration_seconds % 60).toString().padStart(2, '0')}
-                            </span>
-                            <span className="text-[11px] text-zinc-400">
-                              {call.messages_count} реплик
-                            </span>
-                          </div>
+                        {/* Expandable Transcript */}
+                        {isExpanded && (
+                          <div className="pt-2 space-y-3">
+                            <h4 className="text-xs font-bold text-zinc-500 uppercase tracking-wider">
+                              Стенограмма разговора:
+                            </h4>
 
-                          <button
-                            onClick={() => setSelectedCall(isExpanded ? null : call)}
-                            className="px-3 py-1.5 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-xs font-semibold text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition flex items-center gap-1"
-                          >
-                            <MessageSquare className="w-3.5 h-3.5" />
-                            <span>{isExpanded ? 'Скрыть диалог' : 'Смотреть диалог'}</span>
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Expandable Transcript */}
-                      {isExpanded && (
-                        <div className="pt-2 space-y-3">
-                          <h4 className="text-xs font-bold text-zinc-500 uppercase tracking-wider">
-                            Стенограмма разговора:
-                          </h4>
-
-                          <div className="space-y-2.5 bg-zinc-50 dark:bg-zinc-950/60 p-4 rounded-2xl border border-zinc-200 dark:border-zinc-800">
-                            {Array.isArray(call.transcript) && call.transcript.length > 0 ? (
-                              call.transcript.map((msg: any, idx: number) => {
-                                const isUser = msg.role === 'user';
-                                return (
-                                  <div
-                                    key={idx}
-                                    className={`flex flex-col ${isUser ? 'items-end' : 'items-start'}`}
-                                  >
+                            <div className="space-y-2.5 bg-zinc-50 dark:bg-zinc-950/60 p-4 rounded-2xl border border-zinc-200 dark:border-zinc-800">
+                              {Array.isArray(call.transcript) && call.transcript.length > 0 ? (
+                                call.transcript.map((msg: any, idx: number) => {
+                                  const isUser = msg.role === 'user';
+                                  return (
                                     <div
-                                      className={`max-w-[85%] rounded-2xl p-3 text-xs sm:text-sm ${
-                                        isUser
-                                          ? 'bg-emerald-600 text-white rounded-tr-xs'
-                                          : 'bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-100 rounded-tl-xs shadow-xs'
-                                      }`}
+                                      key={idx}
+                                      className={`flex flex-col ${isUser ? 'items-end' : 'items-start'}`}
                                     >
-                                      <div className="font-bold text-xs opacity-75 mb-1 font-sans">
-                                        {isUser ? 'Ученик (голос)' : call.caller_name}
-                                      </div>
-                                      <div className="font-hebrew font-bold text-base leading-relaxed">
-                                        {msg.hebrew}
-                                      </div>
-                                      {msg.transcription && (
-                                        <div className="text-[11px] opacity-85 font-mono mt-0.5">
-                                          {msg.transcription}
+                                      <div
+                                        className={`max-w-[85%] rounded-2xl p-3 text-xs sm:text-sm ${
+                                          isUser
+                                            ? 'bg-blue-600 text-white rounded-tr-xs'
+                                            : 'bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-100 rounded-tl-xs shadow-xs'
+                                        }`}
+                                      >
+                                        <div className="font-bold text-xs opacity-75 mb-1 font-sans">
+                                          {isUser ? 'Ученик (голос / ввод)' : call.caller_name}
                                         </div>
-                                      )}
-                                      {msg.translation && (
-                                        <div className="text-xs opacity-90 mt-1">
-                                          {msg.translation}
+                                        <div className="font-hebrew font-bold text-base leading-relaxed">
+                                          {msg.hebrew}
                                         </div>
-                                      )}
+                                        {msg.transcription && (
+                                          <div className="text-[11px] opacity-85 font-mono mt-0.5">
+                                            {msg.transcription}
+                                          </div>
+                                        )}
+                                        {msg.translation && (
+                                          <div className="text-xs opacity-90 mt-1">
+                                            {msg.translation}
+                                          </div>
+                                        )}
+                                      </div>
                                     </div>
-                                  </div>
-                                );
-                              })
-                            ) : (
-                              <div className="text-xs text-zinc-400 text-center py-2">
-                                Нет текстовых записей
+                                  );
+                                })
+                              ) : (
+                                <div className="text-xs text-zinc-400 text-center py-2">
+                                  Нет текстовых записей
+                                </div>
+                              )}
+                            </div>
+
+                            {call.feedback && (
+                              <div className="p-3 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 rounded-xl text-xs text-amber-800 dark:text-amber-300 flex items-center gap-2">
+                                <AlertCircle className="w-4 h-4 shrink-0 text-amber-500" />
+                                <span>Подсказка грамматики: {call.feedback}</span>
                               </div>
                             )}
                           </div>
-
-                          {call.feedback && (
-                            <div className="p-3 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 rounded-xl text-xs text-amber-800 dark:text-amber-300 flex items-center gap-2">
-                              <AlertCircle className="w-4 h-4 shrink-0 text-amber-500" />
-                              <span>Подсказка грамматики: {call.feedback}</span>
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
+                        )}
+                      </div>
+                    );
+                  })}
               </div>
             )}
           </div>

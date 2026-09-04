@@ -6,6 +6,7 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const {
+      id: customId,
       lessonId,
       callerName,
       callerRole,
@@ -27,12 +28,17 @@ export async function POST(req: NextRequest) {
 
     await initDatabase();
 
-    const callId = `call_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    const callId = customId || `call_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
 
     await db.query(
       `INSERT INTO ulpana_call_logs 
         (id, user_id, user_name, lesson_id, caller_name, caller_role, duration_seconds, messages_count, transcript, feedback, created_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW())`,
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW())
+       ON CONFLICT (id) DO UPDATE SET
+        duration_seconds = EXCLUDED.duration_seconds,
+        messages_count = EXCLUDED.messages_count,
+        transcript = EXCLUDED.transcript,
+        feedback = EXCLUDED.feedback`,
       [
         callId,
         userId,

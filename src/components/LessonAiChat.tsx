@@ -22,7 +22,7 @@ import { tokenizeText, TextToken, stripNikkud } from '@/lib/transcription';
 import { speakHebrew, HebrewSpeechRecognizer } from '@/lib/speech';
 import { getDialogueHelpForLesson } from '@/lib/dialogueHints';
 import { WordLookupModal } from './WordLookupModal';
-import { markLessonTabCompleted, saveUserProfile } from '@/lib/storage';
+import { markLessonTabCompleted, saveUserProfile, saveLocalCallLog } from '@/lib/storage';
 
 interface LessonAiChatProps {
   lesson: Lesson;
@@ -158,6 +158,61 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
   const lastMessageRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesRef = useRef<ChatMessage[]>([]);
+  const sessionIdRef = useRef<string>(`chat_${lesson.id}_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`);
+  const startTimeRef = useRef<number>(Date.now());
+  const lastFeedbackRef = useRef<string | null>(null);
+
+  const logChatSession = (history: ChatMessage[], feedback?: string | null) => {
+    const userMessages = history.filter((m) => m.role === 'user');
+    if (userMessages.length === 0) return;
+
+    const formattedTranscript = history.map((m) => ({
+      role: m.role,
+      hebrew: m.hebrew,
+      translation: m.translation,
+      transcription: m.transcription,
+    }));
+
+    const durationSeconds = Math.max(1, Math.round((Date.now() - startTimeRef.current) / 1000));
+    const effectiveFeedback = feedback || lastFeedbackRef.current || undefined;
+
+    // 1. Сохраняем в локальное хранилище (для админки и оффлайн-доступа)
+    try {
+      saveLocalCallLog({
+        id: sessionIdRef.current,
+        user_id: userProfile.name || 'local_user',
+        user_name: userProfile.name || 'Ученик',
+        lesson_id: lesson.id,
+        caller_name: lesson.dialogue.aiRole || 'Преподаватель ульпана',
+        caller_role: 'ИИ-чат (Этап 4)',
+        duration_seconds: durationSeconds,
+        messages_count: history.length,
+        transcript: formattedTranscript,
+        feedback: effectiveFeedback,
+        created_at: new Date(startTimeRef.current).toISOString(),
+      });
+    } catch (e) {
+      console.warn('Chat local log error:', e);
+    }
+
+    // 2. Логируем в базу данных сервера
+    try {
+      fetch('/api/calls/log', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: sessionIdRef.current,
+          lessonId: lesson.id,
+          callerName: lesson.dialogue.aiRole || 'Преподаватель ульпана',
+          callerRole: 'ИИ-чат (Этап 4)',
+          durationSeconds,
+          transcript: formattedTranscript,
+          feedback: effectiveFeedback,
+          userName: userProfile.name || 'Ученик',
+        }),
+      }).catch(() => {});
+    } catch {}
+  };
 
   const helpData = useMemo(
     () => getDialogueHelpForLesson(lesson, userProfile.gender),
@@ -178,6 +233,9 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
   }, [messages]);
 
   const initChat = (gender: 'male' | 'female') => {
+    sessionIdRef.current = `chat_${lesson.id}_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+    startTimeRef.current = Date.now();
+    lastFeedbackRef.current = null;
     const data = getInitialMessageForGender(lesson, gender);
     const initial: ChatMessage = {
       id: 'init-1',
@@ -199,6 +257,9 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
 
     return () => {
       rec.stop();
+      if (messagesRef.current.length > 1) {
+        logChatSession(messagesRef.current);
+      }
     };
   }, [lesson, userProfile.gender]);
 
@@ -299,6 +360,11 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
       setMessages(updatedHistory);
       setShowSuggestions(true);
 
+      if (data.feedback) {
+        lastFeedbackRef.current = data.feedback;
+      }
+      logChatSession(updatedHistory, data.feedback);
+
       const isFinished = Boolean(data.isCompleted || currentUserTurns >= TARGET_TURNS);
       if (isFinished) {
         const updated = markLessonTabCompleted(lesson.id, 'chat');
@@ -365,6 +431,9 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
   };
 
   const handleResetChat = () => {
+    if (messagesRef.current.length > 1) {
+      logChatSession(messagesRef.current);
+    }
     initChat(userProfile.gender);
   };
 
