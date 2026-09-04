@@ -68,11 +68,13 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
 
   const [addedWords, setAddedWords] = useState<Record<string, boolean>>({});
   const [speechNotice, setSpeechNotice] = useState<string | null>(null);
+  const [isAiHangingUp, setIsAiHangingUp] = useState(false);
 
   const recognizerRef = useRef<HebrewSpeechRecognizer | null>(null);
   const activeMicStreamRef = useRef<MediaStream | null>(null);
   const messagesRef = useRef<ChatMessage[]>([]);
   const isAiSpeakingRef = useRef(false);
+  const isAiHangingUpRef = useRef(false);
   const loadingAiRef = useRef(false);
   const isRecordingRef = useRef(false);
   const isMutedRef = useRef(false);
@@ -188,6 +190,8 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
     isSendingRef.current = false;
     callActiveRef.current = false;
     shouldListenRef.current = false;
+    setIsAiHangingUp(false);
+    isAiHangingUpRef.current = false;
     phoneAudio.startRingingTone();
 
     // Через 2.4 секунды контакт "поднимает трубку"
@@ -215,7 +219,7 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
   };
 
   // Озвучивание реплики ИИ с надежной защитой от самопрослушивания
-  const playAiVoice = async (text: string) => {
+  const playAiVoice = async (text: string, willHangUp: boolean = false) => {
     // 1. Глушим микрофон перед тем, как ИИ начнет говорить
     stopListening();
     setAiSpeaking(true);
@@ -230,8 +234,21 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
       setAiSpeaking(false);
       lastAiSpokenTimeRef.current = Date.now();
 
+      if (willHangUp) {
+        // Собеседник прощается и САМ вешает трубку!
+        if (callActiveRef.current) {
+          if (autoListenTimeoutRef.current) clearTimeout(autoListenTimeoutRef.current);
+          autoListenTimeoutRef.current = setTimeout(async () => {
+            if (callActiveRef.current) {
+              await handleEndCall();
+            }
+          }, 1200);
+        }
+        return;
+      }
+
       // Безопасная пауза 500мс после того, как динамик затих, перед авто-включением микрофона
-      if (callActiveRef.current && !isMutedRef.current) {
+      if (callActiveRef.current && !isMutedRef.current && !isAiHangingUpRef.current) {
         if (autoListenTimeoutRef.current) clearTimeout(autoListenTimeoutRef.current);
         autoListenTimeoutRef.current = setTimeout(() => {
           if (
@@ -239,7 +256,8 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
             !isAiSpeakingRef.current &&
             !loadingAiRef.current &&
             !isSendingRef.current &&
-            !isMutedRef.current
+            !isMutedRef.current &&
+            !isAiHangingUpRef.current
           ) {
             startListening();
           }
@@ -468,12 +486,19 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
               ? userProfile.groqApiKey
               : userProfile.geminiApiKey,
           isPhoneCall: true,
+          targetTurns: scenario.goals && scenario.goals.length > 0 ? Math.max(3, scenario.goals.length) : 3,
           ulpanMode: Boolean(userProfile.ulpanMode),
           systemPromptAddition: scenario.systemPromptAddition,
         }),
       });
 
       const data = await res.json();
+      const willHangUp = Boolean(data.shouldHangUp || data.isCompleted);
+
+      if (willHangUp) {
+        setIsAiHangingUp(true);
+        isAiHangingUpRef.current = true;
+      }
 
       const aiMsg: ChatMessage = {
         id: `ai-${Date.now()}`,
@@ -482,7 +507,7 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
         transcription: data.transcription,
         translation: data.translation,
         feedback: data.feedback,
-        suggestedReplies: data.suggestedReplies || [],
+        suggestedReplies: willHangUp ? [] : (data.suggestedReplies || []),
         timestamp: Date.now(),
       };
 
@@ -495,14 +520,14 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
       setAiLoading(false);
       isSendingRef.current = false;
 
-      // Озвучиваем ответ ИИ
-      playAiVoice(aiMsg.hebrew);
+      // Озвучиваем ответ ИИ (если willHangUp = true, после реплики ИИ сам повесит трубку)
+      playAiVoice(aiMsg.hebrew, willHangUp);
     } catch (err) {
       console.error('Phone AI Error:', err);
       setAiLoading(false);
       isSendingRef.current = false;
       setTimeout(() => {
-        if (callActiveRef.current && !isMutedRef.current) {
+        if (callActiveRef.current && !isMutedRef.current && !isAiHangingUpRef.current) {
           startListening(true);
         }
       }, 500);
@@ -512,6 +537,8 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
   // Завершение звонка
   const handleEndCall = async () => {
     callActiveRef.current = false;
+    setIsAiHangingUp(false);
+    isAiHangingUpRef.current = false;
     stopSpeech();
     stopListening();
     phoneAudio.stopAll();
@@ -961,21 +988,32 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
 
               {/* Статус речи и аудио-визуализатор */}
               <div className="h-10 flex flex-col items-center justify-center">
-                {isAiSpeaking && (
+                {isAiHangingUp && (
+                  <div className="flex items-center gap-2 text-xs font-bold text-rose-300 bg-rose-950/70 px-4 py-1.5 rounded-full border border-rose-800/60 font-hebrew shadow-md animate-pulse">
+                    <PhoneOff className="w-3.5 h-3.5 text-rose-400" />
+                    <span>
+                      {userProfile.ulpanMode
+                        ? 'הַבֶּן-שִׂיחַ נִפְרָד וּמְנַתֵּק אֶת הַשִּׂיחָה...'
+                        : 'Собеседник прощается и вешает трубку...'}
+                    </span>
+                  </div>
+                )}
+
+                {!isAiHangingUp && isAiSpeaking && (
                   <div className="flex items-center gap-2 text-xs font-bold text-blue-400 bg-blue-950/60 px-3.5 py-1.5 rounded-full border border-blue-800/50 animate-pulse font-hebrew shadow-sm">
                     <Volume2 className="w-3.5 h-3.5" />
                     <span>{userProfile.ulpanMode ? `...${scenario.callerName} מְדַבֵּר` : `${scenario.callerNameRu} говорит...`}</span>
                   </div>
                 )}
 
-                {loadingAi && (
+                {!isAiHangingUp && loadingAi && (
                   <div className="flex items-center gap-2 text-xs font-bold text-purple-400 bg-purple-950/60 px-3.5 py-1.5 rounded-full border border-purple-800/50 font-hebrew shadow-sm">
                     <Sparkles className="w-3.5 h-3.5 animate-spin" />
                     <span>{userProfile.ulpanMode ? '...חוֹשֵׁב' : 'Собеседник думает...'}</span>
                   </div>
                 )}
 
-                {isRecording && !isMuted && !isAiSpeaking && !loadingAi && (
+                {!isAiHangingUp && isRecording && !isMuted && !isAiSpeaking && !loadingAi && (
                   <div className="flex flex-col items-center gap-1.5">
                     <div className="flex items-center gap-2 text-xs font-bold text-emerald-400 bg-emerald-950/60 px-3.5 py-1.5 rounded-full border border-emerald-800/50 font-hebrew shadow-sm">
                       <Mic className="w-3.5 h-3.5 animate-pulse" />
@@ -1090,7 +1128,7 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
           </div>
 
           {/* Подсказки, что сказать — можно сказать вслух или нажать */}
-          {latestAiMessage?.suggestedReplies && latestAiMessage.suggestedReplies.length > 0 && (
+          {latestAiMessage?.suggestedReplies && latestAiMessage.suggestedReplies.length > 0 && !isAiHangingUp && (
             <div className="px-4 py-2.5 bg-zinc-900/90 border-t border-zinc-800/80">
               <div className="flex items-center justify-between mb-1.5 font-hebrew text-[11px]">
                 <span className="font-bold text-zinc-400 flex items-center gap-1.5">
@@ -1111,7 +1149,7 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
                     key={idx}
                     type="button"
                     onClick={() => {
-                      if (!isAiSpeaking && !loadingAi) {
+                      if (!isAiSpeaking && !loadingAi && !isAiHangingUp) {
                         handleSendMessage(reply.hebrew);
                       }
                     }}
@@ -1168,12 +1206,19 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
             {/* Главная кнопка в звонке: КРАСНАЯ ТРУБКА (Положить трубку) */}
             <button
               onClick={() => handleEndCall()}
-              className="px-8 py-3.5 rounded-full bg-rose-600 hover:bg-rose-700 active:scale-95 text-white font-bold shadow-lg shadow-rose-600/30 transition flex items-center gap-2.5 cursor-pointer font-hebrew"
+              disabled={isAiHangingUp}
+              className={`px-8 py-3.5 rounded-full font-bold shadow-lg transition flex items-center gap-2.5 font-hebrew ${
+                isAiHangingUp
+                  ? 'bg-rose-950/80 border border-rose-800/60 text-rose-300 opacity-90 cursor-wait animate-pulse'
+                  : 'bg-rose-600 hover:bg-rose-700 active:scale-95 text-white shadow-rose-600/30 cursor-pointer'
+              }`}
               title={userProfile.ulpanMode ? 'סיום שיחה' : 'Положить трубку'}
             >
-              <PhoneOff className="w-5 h-5" />
+              <PhoneOff className={`w-5 h-5 ${isAiHangingUp ? 'animate-bounce' : ''}`} />
               <span className="text-sm">
-                {userProfile.ulpanMode ? 'לְנַתֵּק' : 'Положить трубку'}
+                {isAiHangingUp
+                  ? (userProfile.ulpanMode ? 'מְנַתֵּק...' : 'Завершение...')
+                  : (userProfile.ulpanMode ? 'לְנַתֵּק' : 'Положить трубку')}
               </span>
             </button>
 

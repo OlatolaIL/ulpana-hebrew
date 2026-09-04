@@ -3,7 +3,7 @@ import { verifySessionToken } from '@/lib/auth';
 import { checkRateLimit } from '@/lib/rateLimit';
 
 interface ChatRequestBody {
-  messages: Array<{ role: 'user' | 'assistant'; content: string }>;
+  messages: Array<{ role: 'user' | 'assistant'; content: string; hebrew?: string }>;
   lessonNumber: number;
   level: 'alef' | 'bet';
   userGender: 'male' | 'female';
@@ -94,6 +94,9 @@ function normalizeResponse(parsed: any, defaultIsCompleted: boolean = false) {
     parsed.translation ||
     '';
 
+  const isCompleted = Boolean(parsed.isCompleted ?? parsed.is_completed ?? defaultIsCompleted);
+  const shouldHangUp = Boolean(parsed.shouldHangUp ?? parsed.should_hang_up ?? isCompleted);
+
   return {
     hebrew: parsed.hebrew || '',
     transcription:
@@ -104,7 +107,8 @@ function normalizeResponse(parsed: any, defaultIsCompleted: boolean = false) {
       '',
     translation: sanitizeRussianTranslation(rawTranslation),
     feedback: parsed.feedback_ru || parsed.feedback || null,
-    isCompleted: Boolean(parsed.isCompleted ?? parsed.is_completed ?? defaultIsCompleted),
+    isCompleted,
+    shouldHangUp,
     suggestedReplies: Array.isArray(parsed.suggestedReplies)
       ? parsed.suggestedReplies.map((r: any) => ({
           hebrew: r.hebrew || '',
@@ -178,15 +182,38 @@ export async function POST(req: NextRequest) {
 
     const userTurnsCount = (messages || []).filter((m) => m.role === 'user').length;
     const currentTurn = body.turnIndex || userTurnsCount;
-    const maxTurns = body.targetTurns || 3;
-    const isFinalTurn = currentTurn >= maxTurns;
+    const maxTurns = body.targetTurns || (isPhoneCall ? 3 : 3);
+
+    const lastUserMsg = (messages || []).filter((m) => m.role === 'user').slice(-1)[0];
+    const lastUserHebrew = (lastUserMsg?.content || lastUserMsg?.hebrew || '').toLowerCase();
+    const isUserSayingGoodbye =
+      lastUserHebrew.includes('להתראות') ||
+      lastUserHebrew.includes('ביי') ||
+      lastUserHebrew.includes('יום טוב') ||
+      lastUserHebrew.includes('לילה טוב') ||
+      lastUserHebrew.includes('נשתמע') ||
+      lastUserHebrew.includes('שלום ולהתראות');
+
+    const isFinalTurn = isPhoneCall
+      ? currentTurn >= maxTurns || (isUserSayingGoodbye && currentTurn >= 2)
+      : currentTurn >= maxTurns;
 
     const dialogueTurnInstruction = isPhoneCall
-      ? ''
+      ? isFinalTurn
+        ? `ЭТО ЗАКЛЮЧИТЕЛЬНАЯ РЕПЛИКА ТЕЛЕФОННОГО ЗВОНКА (СОБЕСЕДНИК САМ ВЕШАЕТ ТРУБКУ):
+- Разговор подошел к логическому завершению, цели звонка достигнуты (или ученик попрощался).
+- Собеседник тепло и коротко благодарит, прощается и САМ ВЕШАЕТ ТРУБКУ (ровно 1 короткая прощальная фраза на простом иврите, например: 'יוֹפִי, תּוֹדָה רַבָּה! שֶׁיִּהְיֶה לְךָ יוֹם מְצוּיָּן, לְהִתְרָאוֹת! בַּיי!', 'מְעֻלֶּה, אֲנִי יוֹרֵד! לְהִתְרָאוֹת!', 'בְּסֵדֶר גָּמוּר, תּוֹדָה! נִתְרָאֶה, בַּיי!').
+- СТРОГО ЗАПРЕЩЕНО задавать новые вопросы! Телефонный разговор завершается прямо сейчас.
+- В JSON-ответе ОБЯЗАТЕЛЬНО установи: "isCompleted": true и "shouldHangUp": true.
+- В "suggestedReplies" верни пустой массив [] или 1 простой вариант прощания ('תּוֹדָה רַבָּה, בַּיי!').`
+        : `ЭТАП ТЕЛЕФОННОГО ЗВОНКА: ШАГ ${currentTurn} ИЗ ${maxTurns}.
+- Продвигай телефонный диалог вперед по теме урока.
+- Кратко отреагируй на слова ученика (например: 'יוֹפִי!', 'מְעֻלֶּה!', 'בְּסֵדֶר!') и задай ОДИН следующий конкретный вопрос по звонку.
+- В JSON-ответе укажи: "isCompleted": false, "shouldHangUp": false.`
       : isFinalTurn
       ? `ЭТО ЗАКЛЮЧИТЕЛЬНАЯ РЕПЛИКА ДИАЛОГА (ШАГ ${currentTurn} ИЗ ${maxTurns}):
 - Ученик успешно прошёл все темы и ответил на вопросы урока №${lessonNumber}!
-- Тепло заверши диалог на простом иврите: поблагодари за приятную беседу, пожелай удачи в ульпане / отличного дня и вежливо попрощайся (например: 'נָעִים מְאוֹד לְהַכִּיר! שֶׁיִּהְיֶה לְךָ יוֹם מְצוּיָּן וּבְהַצְלָחָה בָּאוּלְפָּן! לְהִתְרָאוֹת!', 'יוֹפִי! שָׂמַחְתִּי לְדַבֵּר אִתְּךָ. נִתְרָאֶה בַּשִּׁיעוּר!').
+- Тепло заверши диалог на простом иврите: поблагодари за приятную беседу, пожелай удачи в ульпане / отличного дня и вежливо попрощайся (например: 'נָעִים מְאוֹד לְהַכִּיר! שֶׁיִּהְיֶה לְךָ יוֹם מְצוּיָּן וּבְהַצְלָחָה בָּאוּלְפָּן! לְהִתְרָאוֹת!', 'יוֹפִי! שָׂמัחְתִּי לְדַבֵּר אִתְּךָ. נִתְרָאֶה בַּשִּׁיעוּר!').
 - СТРОГО ЗАПРЕЩЕНО задавать новые вопросы! Диалог завершён.
 - В "suggestedReplies" предложи ровно 3 простых варианта прощания на иврите (например: 'תּוֹדָה רַבָּה, לְהִתְרָאוֹת!', 'יוֹם נִפְלָא, בַּיי!', 'נָעִים מְאוֹד, שָׁלוֹם!').
 - В JSON-ответе ОБЯЗАТЕЛЬНО установи: "isCompleted": true.`
@@ -295,6 +322,7 @@ ${systemPromptAddition ? `ДОПОЛНИТЕЛЬНЫЕ ИНСТРУКЦИИ: ${s
   "russian_translation": "перевод исключительно на чистом русском языке",
   "feedback_ru": null,
   "isCompleted": false,
+  "shouldHangUp": false,
   "suggestedReplies": [
     { "hebrew": "Вариант 1 на иврите с огласовками", "cyrillic_transcription": "русская транскрипция 1", "russian_translation": "русский перевод 1" },
     { "hebrew": "Вариант 2 на иврите с огласовками", "cyrillic_transcription": "русская транскрипция 2", "russian_translation": "русский перевод 2" },
