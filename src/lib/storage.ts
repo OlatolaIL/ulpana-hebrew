@@ -224,6 +224,25 @@ export function markLessonTabCompleted(lessonId: number, tab: string): UserProfi
 }
 
 /**
+ * Сброс зачёта конкретной вкладки (этапа) урока
+ */
+export function unmarkLessonTabCompleted(
+  lessonId: number,
+  tab: 'theory' | 'vocab' | 'exercises' | 'chat' | 'phone'
+): UserProfile {
+  const profile = loadUserProfile();
+  if (profile.lessonProgress && profile.lessonProgress[lessonId]) {
+    const current = profile.lessonProgress[lessonId];
+    current.completedTabs = (current.completedTabs || []).filter((t) => t !== tab);
+    current.isCompleted = false;
+    profile.completedLessons = (profile.completedLessons || []).filter((id) => id !== lessonId);
+    profile.lessonProgress[lessonId] = current;
+    saveUserProfile(profile);
+  }
+  return profile;
+}
+
+/**
  * Сброс прогресса конкретного урока
  */
 export function resetLessonProgress(lessonId: number): UserProfile {

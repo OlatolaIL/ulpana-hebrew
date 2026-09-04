@@ -24,6 +24,7 @@ import { getDialogueHelpForLesson } from '@/lib/dialogueHints';
 import { WordLookupModal } from './WordLookupModal';
 import {
   markLessonTabCompleted,
+  unmarkLessonTabCompleted,
   saveUserProfile,
   saveLocalCallLog,
   getStudentKnownVocabulary,
@@ -86,7 +87,7 @@ function getInitialMessageForGender(lesson: Lesson, gender: 'male' | 'female'): 
     };
   }
 
-  if (lesson.number === 4) {
+  if (lesson.number === 4 || lesson.id === 4) {
     return {
       hebrew: 'שָׁלוֹם! הִנֵּה הַשֻּׁלְחָן שֶׁלָּנוּ. עַל הַשֻּׁלְחָן יֵשׁ סֵפֶר: זֶה סֵפֶר. וְמָה יֵשׁ לְיַד הַסֵּפֶר? מָה זֹאת?',
       transcription: 'шалóм! hинэ́ hа-шульхáн шелáну. аль hа-шульхáн йеш сéфер: зэ сéфер. вэ-ма йеш лэ-йáд hа-сéфер? ма зот?',
@@ -442,6 +443,11 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
     if (messagesRef.current.length > 1) {
       logChatSession(messagesRef.current);
     }
+    // 1. Снимаем зачёт 4 этапа в профиле, чтобы ученик мог пройти его заново с нуля
+    const updated = unmarkLessonTabCompleted(lesson.id, 'chat');
+    if (onUpdateProfile) onUpdateProfile(updated);
+    // 2. Очищаем поле ввода и инициализируем диалог с начальной реплики
+    setInputText('');
     initChat(userProfile.gender);
   };
 
@@ -525,11 +531,13 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
             </div>
 
             <button
+              type="button"
               onClick={handleResetChat}
-              className="p-1.5 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 rounded-lg hover:bg-white dark:hover:bg-zinc-700 transition cursor-pointer"
-              title={userProfile.ulpanMode ? 'התחל שיחה מחדש' : 'Начать диалог сначала'}
+              className="px-2 py-1 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-sm text-xs font-semibold flex items-center gap-1 text-zinc-600 dark:text-zinc-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition cursor-pointer"
+              title={userProfile.ulpanMode ? 'התחל שיחה מחדש' : 'Сбросить диалог и начать заново'}
             >
               <RotateCcw className="w-3.5 h-3.5" />
+              <span>{userProfile.ulpanMode ? 'אִתְחוּל' : 'Сброс'}</span>
             </button>
           </div>
         </div>
@@ -603,6 +611,16 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
         </div>
 
         <div className="flex items-center gap-1.5 shrink-0">
+          <button
+            type="button"
+            onClick={handleResetChat}
+            className="px-2.5 py-1.5 rounded-xl font-bold text-xs bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700 shadow-sm transition active:scale-95 flex items-center gap-1 cursor-pointer"
+            title="Сбросить диалог и начать этап 4 заново"
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
+            <span>{userProfile.ulpanMode ? 'הַתְחֵל מֵחָדָשׁ' : 'Начать заново'}</span>
+          </button>
+
           <button
             type="button"
             onClick={() => {

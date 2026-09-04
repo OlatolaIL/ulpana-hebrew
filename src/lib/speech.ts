@@ -60,10 +60,13 @@ function fixHebrewPhonetics(text: string): string {
 
   // 1. В современном разговорном иврите союз «ו» всегда звучит как «вэ-» (ve-),
   // а не как книжное/библейское «у-» (u-) по правилу БУМАФ.
-  // Заменяем начальный шурук וּ (\u05D5\u05BC или \uFB35) на וְ (\u05D5\u05B0),
-  // чтобы системные синтезаторы речи (Microsoft, Apple, Google) четко произносили «вэ-»:
-  res = res.replace(/(^|[\s"״'(\[])(?:\u05D5\u05BC|\uFB35)([\u05D0-\u05EA])/g, '$1\u05D5\u05B0$2');
-  res = res.replace(/(^|[\s"״'(\[])וּ([\u05D0-\u05EA])/g, '$1וְ$2');
+  // Синтезаторы речи (Microsoft Asaf/Hila, Google, Apple) при наличии шурука וּ (\u05D5\u05BC)
+  // или шва וְ (\u05D5\u05B0) перед буквами БУМАФ (ב, ו, מ, פ) принудительно озвучивают его как «у-».
+  // Заменяем огласовку союза на сэголь וֶ (\u05D5\u05B6), который однозначно заставляет 
+  // все голосовые движки произносить слог «вэ-» (ve-):
+  res = res.replace(/(^|[\s"״'(\[])(?:\u05D5[\u05BC\u05B0\u05B6]?|\uFB35)([\u05D0-\u05EA])/g, '$1\u05D5\u05B6$2');
+  res = res.replace(/(^|[\s"״'(\[])וּ([\u05D0-\u05EA])/g, '$1וֶ$2');
+  res = res.replace(/(^|[\s"״'(\[])וְ([\u05D0-\u05EA])/g, '$1וֶ$2');
 
   res = res.replace(/(^|\s)ספרי(\s+ли|\s+לי)/g, '$1סַפְּרִי$2');
   res = res.replace(/(^|\s)ספר(\s+ли|\s+לי)/g, '$1סַפֵּר$2');
@@ -111,7 +114,8 @@ export function playFallbackAudio(text: string, rate: number = 0.75): Promise<vo
         activeFallbackAudio = null;
       }
 
-      const cleanText = stripNikkud(text).replace(/[.,!?;:"'״׳()[\]{}—\-]/g, ' ').trim();
+      // Сохраняем огласовки (ניקוד) для корректного чтения гласных и союза движком Google TTS
+      const cleanText = text.replace(/[.,!?;:"'״׳()[\]{}—\-]/g, ' ').trim();
       if (!cleanText) {
         resolve();
         return;
