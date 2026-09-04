@@ -589,7 +589,7 @@ export function getLessonPhoneScenario(lesson: Lesson, gender: UserGender): Phon
     ],
     vocabularyHints: dial.vocabularyHints || (lesson.vocabulary || []).slice(0, 5).map(w => w.hebrew),
     usefulWords: dynamicUsefulWords,
-    systemPromptAddition: `Это реалистичный телефонный звонок в Израиле. Ты ${dial.aiRole || 'израильский собеседник'}. Говори короткими телефонными репликами (1-2 предложения). Поддерживай живой диалог.`,
+    systemPromptAddition: `Это реалистичный телефонный звонок в Израиле. Ты ${dial.aiRole || 'израильский собеседник'}. Говори короткими телефонными репликами (1-2 предложения). Поддерживай живой диалог. В русском переводе строго используй естественный грамотный русский язык без дословных калек с иврита (никаких «на какой язык ты говоришь», «откуда ты живешь» и т.п.).`,
   };
 }
 
