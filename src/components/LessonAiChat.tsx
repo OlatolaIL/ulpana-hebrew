@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   Send,
   Mic,
@@ -14,11 +14,13 @@ import {
   X,
   Award,
   CheckCircle2,
+  Lightbulb,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { Lesson, UserProfile, ChatMessage, Word } from '@/types';
 import { tokenizeText, TextToken, stripNikkud } from '@/lib/transcription';
 import { speakHebrew, HebrewSpeechRecognizer } from '@/lib/speech';
+import { getDialogueHelpForLesson } from '@/lib/dialogueHints';
 import { WordLookupModal } from './WordLookupModal';
 import { markLessonTabCompleted, saveUserProfile } from '@/lib/storage';
 
@@ -34,7 +36,6 @@ function getInitialMessageForGender(lesson: Lesson, gender: 'male' | 'female'): 
   hebrew: string;
   transcription: string;
   translation: string;
-  suggestedReplies: Array<{ hebrew: string; transcription: string; translation: string }>;
 } {
   const isFemale = gender === 'female';
 
@@ -49,23 +50,6 @@ function getInitialMessageForGender(lesson: Lesson, gender: 'male' | 'female'): 
       translation: isFemale
         ? 'Привет! Доброе утро. Я Ноам. Как тебя зовут? (к женщине)'
         : 'Привет! Доброе утро. Я Ноам. Как тебя зовут? (к мужчине)',
-      suggestedReplies: [
-        {
-          hebrew: 'שָׁלוֹם, קוֹרְאִים לִי...',
-          transcription: 'шалóм, коръӣм ли...',
-          translation: 'Привет, меня зовут...',
-        },
-        {
-          hebrew: 'בּוֹקֶר טוֹב! מָה נִשְׁמַע?',
-          transcription: 'бóкер тов! ма нишмá?',
-          translation: 'Доброе утро! Как дела?',
-        },
-        {
-          hebrew: isFemale ? 'אֲנִי לוֹמֶדֶת עִבְרִית.' : 'אֲנִי לוֹמֵד עִבְרִית.',
-          transcription: isFemale ? 'анӣ ломéдет иврӣт.' : 'анӣ ломéд иврӣт.',
-          translation: isFemale ? 'Я учу иврит (женщина).' : 'Я учу иврит (мужчина).',
-        },
-      ],
     };
   }
 
@@ -80,29 +64,6 @@ function getInitialMessageForGender(lesson: Lesson, gender: 'male' | 'female'): 
       translation: isFemale
         ? 'Здравствуйте! Что вы хотите выпить сегодня? (к женщине)'
         : 'Здравствуйте! Что вы хотите выпить сегодня? (к мужчине)',
-      suggestedReplies: [
-        {
-          hebrew: isFemale
-            ? 'אֲנִי רוֹצָה קָפֶה עִם חָלָב, בְּבַקָּשָׁה.'
-            : 'אֲנִי רוֹצֶה קָפֶה עִם חָלָב, בְּבַקָּשָׁה.',
-          transcription: isFemale
-            ? 'анӣ роцá кафэ́ им халáв, бэвакашá.'
-            : 'анӣ роцé кафэ́ им халáв, бэвакашá.',
-          translation: isFemale
-            ? 'Я хочу кофе с молоком, пожалуйста (женщина).'
-            : 'Я хочу кофе с молоком, пожалуйста (мужчина).',
-        },
-        {
-          hebrew: 'אֶפְשָׁר תֵּה עִם סוּכָּר?',
-          transcription: 'эфшáр тэ им сукáр?',
-          translation: 'Можно чай с сахаром?',
-        },
-        {
-          hebrew: 'מַיִם קָרִים, בְּבַקָּשָׁה.',
-          transcription: 'мáйим карӣм, бэвакашá.',
-          translation: 'Холодную воду, пожалуйста.',
-        },
-      ],
     };
   }
 
@@ -117,58 +78,56 @@ function getInitialMessageForGender(lesson: Lesson, gender: 'male' | 'female'): 
       translation: isFemale
         ? 'Привет! Очень приятно. Я Сара из Франции. Откуда ты? (к женщине)'
         : 'Привет! Очень приятно. Я Сара из Франции. Откуда ты? (к мужчине)',
-      suggestedReplies: [
-        {
-          hebrew: 'שָׁלוֹם שָׂרָה! אֲנִי מֵרוּסְיָה, נָעִים מְאוֹד.',
-          transcription: 'шалóм Сáра! анӣ мэ-Рýсья, наӣм мэóд.',
-          translation: 'Привет, Сара! Я из России, очень приятно.',
-        },
-        {
-          hebrew: 'נָעִים מְאוֹד! אֲנִי מִיִּשְׂרָאֵל.',
-          transcription: 'наӣм мэóд! анӣ ми-Исраэ́ль.',
-          translation: 'Очень приятно! Я из Израиля.',
-        },
-        {
-          hebrew: 'שָׁלוֹם! אֲנִי מֵאַרְהַ"בּ, נָעִים לְהַכִּיר.',
-          transcription: 'шалóм! анӣ мэ-Арháв, наӣм лэhакӣр.',
-          translation: 'Привет! Я из США, приятно познакомиться.',
-        },
-      ],
     };
   }
 
-  // Общий шаблон для остальных уроков
+  if (lesson.number === 4) {
+    return {
+      hebrew: isFemale
+        ? 'שָׁלוֹם! תִּסְתַּכְּלִי עַל הַשֻּׁלְחָן: מָה זֶה וּמָה זֹאת?'
+        : 'שָׁלוֹם! תִּסְתַּכֵּל עַל הַשֻּׁלְחָן: מָה זֶה וּמָה זֹאת?',
+      transcription: isFemale
+        ? 'шалóм! тистаклӣ аль hа-шульхáн: ма зэ у-ма зот?'
+        : 'шалóм! тистакэ́ль аль hа-шульхáн: ма зэ у-ма зот?',
+      translation: isFemale
+        ? 'Привет! Посмотри на стол: что это (м.р.) и что это (ж.р.)? (к ученице)'
+        : 'Привет! Посмотри на стол: что это (м.р.) и что это (ж.р.)? (к ученику)',
+    };
+  }
+
+  // Общий шаблон для остальных уроков с автозаменой обращений
   let heb = lesson.dialogue.initialMessage.hebrew;
   let tr = lesson.dialogue.initialMessage.transcription;
+  let transl = lesson.dialogue.initialMessage.translation;
+
   if (!isFemale) {
-    heb = heb.replace(/לָךְ \/ לְךָ/g, 'לְךָ').replace(/תִּרְצֶה \/ תִּרְצִי/g, 'תִּרְצֶה');
-    tr = tr.replace(/лах \/ лэхá/g, 'лэхá').replace(/тирцé \/ тирцӣ/g, 'тирцé');
+    heb = heb.replace(/לָךְ \/ לְךָ/g, 'לְךָ')
+             .replace(/תִּרְצֶה \/ תִּרְצִי/g, 'תִּרְצֶה')
+             .replace(/תִּסְתַּכֵּל \/ תִּסְתַּכְּלִי/g, 'תִּסְתַּכֵּל')
+             .replace(/אַתָּה \/ אַתְּ/g, 'אַתָּה')
+             .replace(/שֶׁלְּךָ \/ שֶׁלָּךְ/g, 'שֶׁלְּךָ');
+    tr = tr.replace(/лах \/ лэхá/g, 'лэхá')
+           .replace(/тирцé \/ тирцӣ/g, 'тирцé')
+           .replace(/тистакэ́ль \/ тистаклӣ/g, 'тистакэ́ль')
+           .replace(/атá \/ ат/g, 'атá')
+           .replace(/шельхá \/ шелáх/g, 'шельхá');
   } else {
-    heb = heb.replace(/לָךְ \/ לְךָ/g, 'לָךְ').replace(/תִּרְצֶה \/ תִּרְצִי/g, 'תִּרְצִי');
-    tr = tr.replace(/лах \/ лэхá/g, 'лах').replace(/тирцé \/ тирцӣ/g, 'тирцӣ');
+    heb = heb.replace(/לָךְ \/ לְךָ/g, 'לָךְ')
+             .replace(/תִּרְצֶה \/ תִּרְצִי/g, 'תִּרְצִי')
+             .replace(/תִּסְתַּכֵּל \/ תִּסְתַּכְּלִי/g, 'תִּסְתַּכְּלִי')
+             .replace(/אַתָּה \/ אַתְּ/g, 'אַתְּ')
+             .replace(/שֶׁלְּךָ \/ שֶׁלָּךְ/g, 'שֶׁלָּךְ');
+    tr = tr.replace(/лах \/ лэхá/g, 'лах')
+           .replace(/тирцé \/ тирцӣ/g, 'тирцӣ')
+           .replace(/тистакэ́ль \/ тистаклӣ/g, 'тистаклӣ')
+           .replace(/атá \/ ат/g, 'ат')
+           .replace(/шельхá \/ шелáх/g, 'шелáх');
   }
 
   return {
     hebrew: heb,
     transcription: tr,
-    translation: lesson.dialogue.initialMessage.translation,
-    suggestedReplies: [
-      {
-        hebrew: 'שָׁלוֹם! נָעִים מְאוֹד.',
-        transcription: 'шалóм! наӣм мэóд.',
-        translation: 'Привет! Очень приятно.',
-      },
-      {
-        hebrew: 'בּוֹקֶר טוֹב! מָה נִשְׁמַע?',
-        transcription: 'бóкер тов! ма нишмá?',
-        translation: 'Доброе утро! Как дела?',
-      },
-      {
-        hebrew: isFemale ? 'שָׁלוֹם, אֲנִי מוּכָנָה לִלְמוֹד.' : 'שָׁלוֹם, אֲנִי מוּכָן לִלְמוֹד.',
-        transcription: isFemale ? 'шалóм, анӣ муханá лильмóд.' : 'шалóм, анӣ мухáн лильмóд.',
-        translation: isFemale ? 'Привет, я готова учиться.' : 'Привет, я готов учиться.',
-      },
-    ],
+    translation: transl,
   };
 }
 
@@ -200,6 +159,20 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesRef = useRef<ChatMessage[]>([]);
 
+  const helpData = useMemo(
+    () => getDialogueHelpForLesson(lesson, userProfile.gender),
+    [lesson, userProfile.gender]
+  );
+
+  const handleAppendWord = (wordHebrew: string) => {
+    const wordToAdd = userProfile.showNikkud ? wordHebrew : stripNikkud(wordHebrew);
+    setInputText((prev) => {
+      const trimmed = prev.trim();
+      if (!trimmed) return wordToAdd;
+      return `${trimmed} ${wordToAdd}`;
+    });
+  };
+
   useEffect(() => {
     messagesRef.current = messages;
   }, [messages]);
@@ -213,11 +186,9 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
       transcription: data.transcription,
       translation: data.translation,
       timestamp: Date.now(),
-      suggestedReplies: data.suggestedReplies,
     };
     messagesRef.current = [initial];
     setMessages([initial]);
-    setShowSuggestions(true);
   };
 
   useEffect(() => {
@@ -295,6 +266,7 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
           goals: lesson.dialogue.goals,
           topic: lesson.titleRussian,
           vocabulary: (lesson.vocabulary || []).map((w) => `${w.hebrew} (${w.translation})`),
+          vocabularyHints: lesson.dialogue?.vocabularyHints || [],
           grammarTopic: lesson.grammar?.[0]?.title || lesson.titleRussian,
           ulpanMode: Boolean(userProfile.ulpanMode),
           turnIndex: currentUserTurns,
@@ -373,7 +345,13 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
           setIsRecording(false);
         },
         {
-          vocabulary: (lesson.vocabulary || []).map((w) => w.hebrew),
+          vocabulary: Array.from(
+            new Set([
+              ...(lesson.vocabulary || []).map((w) => w.hebrew),
+              ...(lesson.dialogue?.vocabularyHints || []),
+              ...helpData.usefulWords.map((w) => w.hebrew),
+            ])
+          ),
           apiKey: userProfile.groqApiKey || undefined,
         }
       );
@@ -760,91 +738,111 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Горизонтальная панель быстрых вариантов ответов (Quick-Reply Chips) */}
-      {lastAiMessage && lastAiMessage.suggestedReplies && lastAiMessage.suggestedReplies.length > 0 && showSuggestions && (
-        <div className="px-3 py-2 bg-zinc-50/95 dark:bg-zinc-900/95 border-t border-zinc-200/80 dark:border-zinc-800/80 backdrop-blur-sm">
+      {/* Панель «Слова-подсказки для ответа» (Word Bank & Шаблон фразы) */}
+      {helpData.usefulWords.length > 0 && (
+        <div className="px-3 py-2 bg-gradient-to-r from-blue-50/70 via-indigo-50/50 to-purple-50/70 dark:from-zinc-900/90 dark:via-zinc-800/80 dark:to-zinc-900/90 border-t border-zinc-200/80 dark:border-zinc-800">
           <div className="flex items-center justify-between mb-1.5 px-0.5">
-            <span className="text-[11px] font-bold text-zinc-600 dark:text-zinc-300 flex items-center gap-1.5 font-hebrew">
-              <Sparkles className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+            <span className="text-[11px] font-bold text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5 font-hebrew">
+              <Lightbulb className="w-3.5 h-3.5 text-amber-500" />
               <span>
                 {userProfile.ulpanMode
-                  ? `הַצָּעוֹת לִתְשׁוּבָה (${lastAiMessage.suggestedReplies.length}):`
-                  : `Варианты ответа (${lastAiMessage.suggestedReplies.length}):`}
+                  ? 'מִילִּים מוֹעִילוֹת לִתְשׁוּבָה (דַּבְּרוּ בְּקוֹל 🎙️):'
+                  : 'Слова-подсказки для ответа (скажите вслух 🎙️):'}
               </span>
             </span>
-            <button
-              type="button"
-              onClick={() => setShowSuggestions(false)}
-              className="text-[11px] text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 transition font-medium cursor-pointer font-hebrew"
-            >
-              {userProfile.ulpanMode ? 'הַסְתֵּר' : 'Скрыть'}
-            </button>
+
+            {helpData.sentencePatterns.length > 0 && (
+              <div className="hidden sm:flex items-center gap-1 text-[11px] text-indigo-700 dark:text-indigo-300">
+                <span className="opacity-70 font-medium">{userProfile.ulpanMode ? 'דֻּגְמָה:' : 'Образец:'}</span>
+                <span className="font-bold font-hebrew px-1.5 py-0.5 rounded-md bg-white/80 dark:bg-zinc-800 border border-indigo-200 dark:border-indigo-800/60 shadow-2xs">
+                  {helpData.sentencePatterns[0]}
+                </span>
+              </div>
+            )}
           </div>
-          <div className="flex items-stretch gap-2 overflow-x-auto pb-1 scrollbar-none">
-            {lastAiMessage.suggestedReplies.map((reply, i) => (
-              <div
-                key={i}
-                onClick={() => handleSendMessage(reply.hebrew)}
-                className="group shrink-0 max-w-[280px] sm:max-w-[320px] cursor-pointer text-left bg-white dark:bg-zinc-800 border border-blue-200 dark:border-blue-900 hover:border-blue-500 dark:hover:border-blue-400 p-2.5 rounded-xl text-xs transition shadow-sm hover:scale-[1.01] active:scale-[0.98] flex flex-col justify-between"
-              >
-                <div className="flex items-start justify-between gap-1.5">
-                  <div
-                    dir="rtl"
-                    className={`font-bold text-sm leading-snug ${
-                      isCursive
-                        ? 'font-cursive text-lg text-blue-600 dark:text-blue-400'
-                        : 'font-hebrew text-zinc-900 dark:text-zinc-100'
-                    }`}
-                  >
-                    {userProfile.showNikkud ? reply.hebrew : stripNikkud(reply.hebrew)}
+
+          {/* Горизонтальная лента карточек слов с озвучкой и вставкой кликом */}
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+            {helpData.usefulWords.map((word, idx) => {
+              const displayHebrew = userProfile.showNikkud ? word.hebrew : stripNikkud(word.hebrew);
+
+              return (
+                <div
+                  key={idx}
+                  onClick={() => handleAppendWord(word.hebrew)}
+                  className="group shrink-0 cursor-pointer bg-white dark:bg-zinc-800 hover:bg-blue-50/80 dark:hover:bg-zinc-750 border border-zinc-200 dark:border-zinc-700 hover:border-blue-400 dark:hover:border-blue-500 px-2.5 py-1.5 rounded-xl transition shadow-2xs hover:shadow-xs active:scale-95 flex items-center gap-1.5"
+                  title={userProfile.ulpanMode ? 'לַחֲצוּ לְהוֹסָפַת הַמִּילָּה לַתְּשׁוּבָה' : 'Нажмите, чтобы добавить слово в поле ответа'}
+                >
+                  <div className="text-right">
+                    <div
+                      dir="rtl"
+                      className={`font-bold text-xs leading-none text-zinc-900 dark:text-zinc-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition ${
+                        isCursive ? 'font-cursive text-sm' : 'font-hebrew'
+                      }`}
+                    >
+                      {displayHebrew}
+                    </div>
+                    {!userProfile.ulpanMode && word.translation && (
+                      <div className="text-[10px] text-zinc-500 dark:text-zinc-400 leading-tight mt-0.5 max-w-[130px] truncate">
+                        {word.translation}
+                      </div>
+                    )}
                   </div>
+
                   <button
                     type="button"
                     onClick={(e) => {
                       e.stopPropagation();
-                      speakHebrew(reply.hebrew, { rate: userProfile.speechRate || 0.7 });
+                      speakHebrew(word.hebrew, { rate: userProfile.speechRate || 0.7 });
                     }}
-                    className="p-1 rounded-lg text-zinc-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-zinc-700 transition shrink-0 cursor-pointer"
-                    title={userProfile.ulpanMode ? 'השמע תשובה זו' : 'Прослушать этот ответ'}
+                    className="p-1 rounded-md text-zinc-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-100/60 dark:hover:bg-zinc-700 transition shrink-0 cursor-pointer"
+                    title={userProfile.ulpanMode ? 'הַשְׁמָעָה' : 'Прослушать произношение слова'}
                   >
-                    <Volume2 className="w-3.5 h-3.5" />
+                    <Volume2 className="w-3 h-3" />
                   </button>
                 </div>
-                {!userProfile.ulpanMode && userProfile.showTranscription && reply.transcription && (
-                  <div className="text-[10px] text-blue-600 dark:text-blue-400 font-medium mt-0.5 truncate">
-                    [{reply.transcription}]
-                  </div>
-                )}
-                {!userProfile.ulpanMode && reply.translation && (
-                  <div className="text-[11px] text-zinc-600 dark:text-zinc-300 mt-0.5 line-clamp-2">
-                    {reply.translation}
-                  </div>
-                )}
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
 
-      {/* Поле ввода сообщения */}
-      <div className="p-2.5 sm:p-3 bg-white dark:bg-zinc-900 border-t border-zinc-200 dark:border-zinc-800">
-        {!showSuggestions && lastAiMessage?.suggestedReplies && lastAiMessage.suggestedReplies.length > 0 && (
-          <div className="mb-2 flex items-center justify-start">
-            <button
-              type="button"
-              onClick={() => setShowSuggestions(true)}
-              className="text-[11px] font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/60 px-2.5 py-1 rounded-lg flex items-center gap-1.5 hover:bg-blue-100 dark:hover:bg-blue-900/40 transition shadow-sm cursor-pointer font-hebrew"
-            >
-              <Sparkles className="w-3 h-3 text-blue-500" />
-              <span>
+      {/* Поле ввода сообщения с приоритетом устной речи (Voice-First) */}
+      <div className="p-2.5 sm:p-3 bg-white dark:bg-zinc-900 border-t border-zinc-200 dark:border-zinc-800 space-y-2">
+        {/* Большая заметная кнопка микрофона */}
+        <button
+          type="button"
+          onClick={toggleRecording}
+          className={`w-full py-2.5 px-4 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition duration-200 shadow-xs cursor-pointer ${
+            isRecording
+              ? 'bg-rose-600 hover:bg-rose-700 text-white ring-4 ring-rose-400/40 animate-pulse shadow-md'
+              : 'bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-600 hover:from-blue-700 hover:to-indigo-700 text-white hover:shadow-md active:scale-[0.99]'
+          }`}
+          title={isRecording ? (userProfile.ulpanMode ? 'עצור הקלטה' : 'Остановить запись') : (userProfile.ulpanMode ? 'ענה בקול' : 'Ответить голосом')}
+        >
+          {isRecording ? (
+            <>
+              <span className="w-2.5 h-2.5 rounded-full bg-white animate-ping" />
+              <Mic className="w-4 h-4 text-white animate-pulse" />
+              <span className="font-hebrew">
                 {userProfile.ulpanMode
-                  ? `הַצֵּג תְּשׁוּבוֹת מוּצָעוֹת (${lastAiMessage.suggestedReplies.length})`
-                  : `Показать варианты ответов (${lastAiMessage.suggestedReplies.length})`}
+                  ? '🎙️ מַאֲזִין... דַּבְּרוּ בְּעִבְרִית! (לַחֲצוּ לְסִיּוּם)'
+                  : '🎙️ Слушаю... Говорите на иврите! (нажмите для завершения)'}
               </span>
-            </button>
-          </div>
-        )}
+            </>
+          ) : (
+            <>
+              <Mic className="w-4 h-4" />
+              <span className="font-hebrew">
+                {userProfile.ulpanMode
+                  ? '🎙️ עֲנוּ בְּקוֹל בְּעִבְרִית (לַחֲצוּ לְהַקְלָטָה)'
+                  : '🎙️ Ответьте голосом на иврите (нажмите микрофон)'}
+              </span>
+            </>
+          )}
+        </button>
 
+        {/* Форма с текстовым полем и кнопкой отправки */}
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -852,43 +850,43 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
           }}
           className="flex items-center gap-2"
         >
-          <button
-            type="button"
-            onClick={toggleRecording}
-            className={`p-2.5 rounded-xl border transition duration-200 shrink-0 cursor-pointer ${
-              isRecording
-                ? 'bg-emerald-500 hover:bg-emerald-600 text-white border-emerald-600 ring-4 ring-emerald-400/40 shadow-lg shadow-emerald-500/30 scale-105 animate-pulse'
-                : 'border-zinc-200 dark:border-zinc-700 text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-800 dark:hover:text-zinc-200'
-            }`}
-            title={isRecording ? (userProfile.ulpanMode ? 'מקליט... לחץ לעצירה' : 'Идет запись... Нажмите для остановки') : (userProfile.ulpanMode ? 'הקלטה קולית בעברית' : 'Голосовой ввод на иврите')}
-          >
-            {isRecording ? <Mic className="w-5 h-5 animate-pulse text-white" /> : <Mic className="w-5 h-5" />}
-          </button>
-
-          <input
-            type="text"
-            dir="auto"
-            value={inputText}
-            onChange={(e) => setInputText(e.target.value)}
-            placeholder={
-              isRecording
-                ? (userProfile.ulpanMode ? '🎙️ מַאֲזִין... דַּבְּרוּ בְּעִבְרִית' : '🎙️ Слушаю... говорите на иврите')
-                : (userProfile.ulpanMode ? 'כִּתְבוּ תְּשׁוּבָה בְּעִבְרִית...' : 'Напишите ответ на иврите...')
-            }
-            className={`min-w-0 flex-1 px-3.5 sm:px-4 py-2.5 rounded-xl border text-sm focus:outline-none transition ${
-              isRecording
-                ? 'border-emerald-500 ring-2 ring-emerald-400/50 bg-emerald-50/40 dark:bg-emerald-950/30 text-emerald-950 dark:text-emerald-100 placeholder:text-emerald-600 font-medium'
-                : 'border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:ring-2 focus:ring-blue-600'
-            }`}
-          />
+          <div className="relative flex-1">
+            <input
+              type="text"
+              dir="auto"
+              value={inputText}
+              onChange={(e) => setInputText(e.target.value)}
+              placeholder={
+                isRecording
+                  ? (userProfile.ulpanMode ? '🎙️ מַאֲזִין... דַּבְּרוּ בְּעִבְרִית' : '🎙️ Слушаю... говорите на иврите')
+                  : (userProfile.ulpanMode ? 'כִּתְבוּ תְּשׁוּבָה אוֹ שַׁלְבוּ מִילִּים...' : 'Ваш ответ (или наберите текст)...')
+              }
+              className={`w-full pl-3 pr-8 py-2 sm:py-2.5 rounded-xl border text-sm focus:outline-none transition ${
+                isRecording
+                  ? 'border-rose-400 ring-2 ring-rose-400/40 bg-rose-50/40 dark:bg-rose-950/30 text-rose-950 dark:text-rose-100 placeholder:text-rose-600 font-medium'
+                  : 'border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:ring-2 focus:ring-blue-600'
+              }`}
+            />
+            {inputText && (
+              <button
+                type="button"
+                onClick={() => setInputText('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 p-0.5 rounded transition cursor-pointer"
+                title="Очистить"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
 
           <button
             type="submit"
             disabled={!inputText.trim() || loading}
-            className="p-2.5 rounded-xl bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition shrink-0 shadow-sm"
-            title="Отправить сообщение"
+            className="px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs sm:text-sm disabled:opacity-40 disabled:cursor-not-allowed transition shrink-0 shadow-sm flex items-center gap-1.5 cursor-pointer"
+            title="Отправить ответ"
           >
-            <Send className="w-5 h-5" />
+            <span>{userProfile.ulpanMode ? 'שְׁלַח' : 'Отправить'}</span>
+            <Send className="w-3.5 h-3.5" />
           </button>
         </form>
       </div>
