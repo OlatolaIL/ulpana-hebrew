@@ -474,3 +474,47 @@ export function loadLocalCallLogs(): SavedCallLog[] {
   }
 }
 
+/**
+ * Извлекает список освоенных учеником слов (из личного словаря, тематических колод и тренировок карточек)
+ * со скорингом знания >= minScore (по умолчанию 50%) или успешными повторениями в SRS
+ */
+export function getStudentKnownVocabulary(profile: UserProfile, minScore = 50): string[] {
+  if (!profile) return [];
+  const statsMap = profile.flashcardStats || profile.flashcardProgress || {};
+  const wordsSet = new Set<string>();
+
+  // 1. Слова из личного словарика с баллом знания >= minScore или тренировками >= 1
+  const personal = profile.personalVocabulary || [];
+  for (const w of personal) {
+    const cleanHebrew = stripNikkud(w.hebrewPlain || w.hebrew);
+    const stat = statsMap[w.id] || statsMap[cleanHebrew] || statsMap[w.hebrew];
+    const mastery = calculateWordMastery(stat);
+    if (mastery.score >= minScore || (stat && stat.repetitions >= 1)) {
+      if (w.hebrew) wordsSet.add(w.hebrew);
+      if (cleanHebrew) wordsSet.add(cleanHebrew);
+    }
+  }
+
+  // 2. Слова из общих карточек с успешными повторениями
+  for (const [key, stat] of Object.entries(statsMap)) {
+    if (stat && stat.repetitions >= 1) {
+      const mastery = calculateWordMastery(stat);
+      if (mastery.score >= minScore) {
+        const clean = stripNikkud(key);
+        if (clean && clean.length > 1 && !clean.startsWith('ex') && !clean.startsWith('s') && !clean.startsWith('deck')) {
+          wordsSet.add(clean);
+        }
+      }
+    }
+  }
+
+  // Если активных слов пока мало, берем до 15 недавно добавленных слов
+  if (wordsSet.size < 5 && personal.length > 0) {
+    personal.slice(0, 15).forEach((w) => {
+      wordsSet.add(w.hebrew);
+    });
+  }
+
+  return Array.from(wordsSet).slice(0, 50);
+}
+

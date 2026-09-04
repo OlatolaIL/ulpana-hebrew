@@ -22,7 +22,12 @@ import { tokenizeText, TextToken, stripNikkud } from '@/lib/transcription';
 import { speakHebrew, HebrewSpeechRecognizer } from '@/lib/speech';
 import { getDialogueHelpForLesson } from '@/lib/dialogueHints';
 import { WordLookupModal } from './WordLookupModal';
-import { markLessonTabCompleted, saveUserProfile, saveLocalCallLog } from '@/lib/storage';
+import {
+  markLessonTabCompleted,
+  saveUserProfile,
+  saveLocalCallLog,
+  getStudentKnownVocabulary,
+} from '@/lib/storage';
 
 interface LessonAiChatProps {
   lesson: Lesson;
@@ -56,14 +61,14 @@ function getInitialMessageForGender(lesson: Lesson, gender: 'male' | 'female'): 
   if (lesson.number === 2) {
     return {
       hebrew: isFemale
-        ? 'שָׁלוֹם! מָה תִּרְצִי לִשְׁתּוֹת הַיּוֹם?'
-        : 'שָׁלוֹם! מָה תִּרְצֶה לִשְׁתּוֹת הַיּוֹם?',
+        ? 'שָׁלוֹם! בְּרוּכָה הַבָּאָה לַקָּפֶה שֶׁלָּנוּ. הַקָּפֶה הַיּוֹם מְעֻלֶּה! מָה תִּרְצִי לִשְׁתּוֹת?'
+        : 'שָׁלוֹם! בָּרוּךְ הַבָּא לַקָּפֶה שֶׁלָּנוּ. הַקָּפֶה הַיּוֹם מְעֻלֶּה! מָה תִּרְצֶה לִשְׁתּוֹת?',
       transcription: isFemale
-        ? 'шалóм! ма тирцӣ лишто́т hайóм?'
-        : 'шалóм! ма тирцé лишто́т hайóм?',
+        ? 'шалóм! брухá hа-баá ла-кафэ́ шелáну. hа-кафэ́ hайóм мэулé! ма тирцӣ лишто́т?'
+        : 'шалóм! барӯх hа-ба ла-кафэ́ шелáну. hа-кафэ́ hайóм мэулé! ма тирцé лишто́т?',
       translation: isFemale
-        ? 'Здравствуйте! Что вы хотите выпить сегодня? (к женщине)'
-        : 'Здравствуйте! Что вы хотите выпить сегодня? (к мужчине)',
+        ? 'Здравствуйте! Добро пожаловать в наше кафе. Кофе сегодня отличный! Что вы хотите выпить? (к женщине)'
+        : 'Здравствуйте! Добро пожаловать в наше кафе. Кофе сегодня отличный! Что вы хотите выпить? (к мужчине)',
     };
   }
 
@@ -83,15 +88,11 @@ function getInitialMessageForGender(lesson: Lesson, gender: 'male' | 'female'): 
 
   if (lesson.number === 4) {
     return {
-      hebrew: isFemale
-        ? 'שָׁלוֹם! תִּסְתַּכְּלִי עַל הַשֻּׁלְחָן: מָה זֶה וּמָה זֹאת?'
-        : 'שָׁלוֹם! תִּסְתַּכֵּל עַל הַשֻּׁלְחָן: מָה זֶה וּמָה זֹאת?',
-      transcription: isFemale
-        ? 'шалóм! тистаклӣ аль hа-шульхáн: ма зэ у-ма зот?'
-        : 'шалóм! тистакэ́ль аль hа-шульхáн: ма зэ у-ма зот?',
+      hebrew: 'שָׁלוֹם! הִנֵּה הַשֻּׁלְחָן שֶׁלָּנוּ. עַל הַשֻּׁלְחָן יֵשׁ סֵפֶר: זֶה סֵפֶר. וּמָה יֵשׁ לְיַד הַסֵּפֶר? מָה זֹאת?',
+      transcription: 'шалóм! hинэ́ hа-шульхáн шелáну. аль hа-шульхáн йеш сéфер: зэ сéфер. у-ма йеш лэ-йáд hа-сéфер? ма зот?',
       translation: isFemale
-        ? 'Привет! Посмотри на стол: что это (м.р.) и что это (ж.р.)? (к ученице)'
-        : 'Привет! Посмотри на стол: что это (м.р.) и что это (ж.р.)? (к ученику)',
+        ? 'Привет! Вот наш стол. На столе лежит книга: это книга (זֶה סֵפֶר). А что лежит рядом с книгой? Что это (ж.р.)? (к ученице)'
+        : 'Привет! Вот наш стол. На столе лежит книга: это книга (זֶה סֵפֶר). А что лежит рядом с книгой? Что это (ж.р.)? (к ученику)',
     };
   }
 
@@ -214,6 +215,11 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
     } catch {}
   };
 
+  const knownWords = useMemo(
+    () => getStudentKnownVocabulary(userProfile, 50),
+    [userProfile]
+  );
+
   const helpData = useMemo(
     () => getDialogueHelpForLesson(lesson, userProfile.gender),
     [lesson, userProfile.gender]
@@ -329,6 +335,7 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
           vocabulary: (lesson.vocabulary || []).map((w) => `${w.hebrew} (${w.translation})`),
           vocabularyHints: lesson.dialogue?.vocabularyHints || [],
           grammarTopic: lesson.grammar?.[0]?.title || lesson.titleRussian,
+          studentKnownWords: knownWords,
           ulpanMode: Boolean(userProfile.ulpanMode),
           turnIndex: currentUserTurns,
           targetTurns: TARGET_TURNS,
@@ -416,6 +423,7 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
               ...(lesson.vocabulary || []).map((w) => w.hebrew),
               ...(lesson.dialogue?.vocabularyHints || []),
               ...helpData.usefulWords.map((w) => w.hebrew),
+              ...knownWords,
             ])
           ),
           apiKey: userProfile.groqApiKey || undefined,

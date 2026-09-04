@@ -20,6 +20,7 @@ interface ChatRequestBody {
   isPhoneCall?: boolean;
   ulpanMode?: boolean;
   systemPromptAddition?: string;
+  studentKnownWords?: string[];
   turnIndex?: number;
   targetTurns?: number;
 }
@@ -149,6 +150,7 @@ export async function POST(req: NextRequest) {
       apiKey,
       isPhoneCall = false,
       systemPromptAddition = '',
+      studentKnownWords = [],
     } = body;
 
     // 1. Проверка авторизации: уроки 1-3 бесплатны для всех, уроки 4+ требуют сессии
@@ -283,6 +285,11 @@ ${ulpanImmersionPrompt}
 ${phoneContext}
 ${dialogueTurnInstruction}
 ${systemPromptAddition ? `ДОПОЛНИТЕЛЬНЫЕ ИНСТРУКЦИИ: ${systemPromptAddition}` : ''}
+${studentKnownWords && studentKnownWords.length > 0 ? `ПЕРСОНАЛЬНЫЙ АКТИВНЫЙ СЛОВАРЬ УЧЕНИКА (ВЫУЧЕННЫЕ СЛОВА):
+Ученик уже выучил и успешно повторяет следующие слова: ${studentKnownWords.slice(0, 40).join(', ')}.
+- По возможности органично используй эти знакомые ученику слова в своих репликах для живого закрепления.
+- Ожидай, что ученик может использовать их в своих ответах.
+- СТРОГО ЗАПРЕЩЕНО использовать сложные абстрактные слова, выходящие далеко за рамки этого словаря и текущего урока №${lessonNumber}!` : ''}
 Цели диалога: ${goals.join('; ')}.
 
 КРИТИЧЕСКИЕ ПРАВИЛА ВЫВОДА ЯЗЫКОВ:

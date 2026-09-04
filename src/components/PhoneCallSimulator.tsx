@@ -31,7 +31,13 @@ import { getLessonPhoneScenario } from '@/data/phoneScenarios';
 import { phoneAudio } from '@/lib/phoneAudio';
 import { speakHebrew, stopSpeech, HebrewSpeechRecognizer } from '@/lib/speech';
 import { stripNikkud } from '@/lib/transcription';
-import { isWordInPersonalDict, addWordToPersonalDict, markLessonTabCompleted, saveLocalCallLog } from '@/lib/storage';
+import {
+  isWordInPersonalDict,
+  addWordToPersonalDict,
+  markLessonTabCompleted,
+  saveLocalCallLog,
+  getStudentKnownVocabulary,
+} from '@/lib/storage';
 
 interface PhoneCallSimulatorProps {
   lesson: Lesson;
@@ -86,6 +92,11 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
   const shouldListenRef = useRef(false);
   const lastAiSpokenTextRef = useRef('');
   const lastAiSpokenTimeRef = useRef(0);
+
+  const knownWords = useMemo(
+    () => getStudentKnownVocabulary(userProfile, 50),
+    [userProfile]
+  );
 
   // Синхронизированные методы управления состоянием
   const setBothMessages = (msgs: ChatMessage[]) => {
@@ -359,7 +370,12 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
         }
       },
       {
-        vocabulary: (lesson.vocabulary || []).map((w) => w.hebrew),
+        vocabulary: Array.from(
+          new Set([
+            ...(lesson.vocabulary || []).map((w) => w.hebrew),
+            ...knownWords,
+          ])
+        ),
         apiKey: userProfile.groqApiKey || undefined,
         continuous: true,
         silenceDurationMs: silenceDelayMs,
@@ -487,6 +503,7 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
               : userProfile.geminiApiKey,
           isPhoneCall: true,
           targetTurns: scenario.goals && scenario.goals.length > 0 ? Math.max(3, scenario.goals.length) : 3,
+          studentKnownWords: knownWords,
           ulpanMode: Boolean(userProfile.ulpanMode),
           systemPromptAddition: scenario.systemPromptAddition,
         }),
