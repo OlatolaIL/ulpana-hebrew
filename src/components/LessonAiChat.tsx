@@ -408,8 +408,12 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
 
     const currentUserTurns = newMessages.filter((m) => m.role === 'user').length;
     const stepsCount = lesson.dialogue.steps?.length || TARGET_TURNS;
-    const currentStepIndex = Math.min(Math.max(0, currentUserTurns - 1), stepsCount - 1);
-    const currentStep = lesson.dialogue.steps?.[currentStepIndex];
+    // currentUserTurns: 1 = пользователь ответил на 1-й шаг, ИИ переходит к шагу 2 (индекс 1)
+    // currentUserTurns: 2 = пользователь ответил на 2-й шаг, ИИ переходит к шагу 3 (индекс 2)
+    const nextStepIndex = Math.min(currentUserTurns, stepsCount - 1);
+    const previousStepIndex = Math.max(0, currentUserTurns - 1);
+    const currentStep = lesson.dialogue.steps?.[nextStepIndex];
+    const previousStep = currentUserTurns > 0 ? lesson.dialogue.steps?.[previousStepIndex] : undefined;
 
     try {
       const history = newMessages.map((m) => ({
@@ -439,6 +443,7 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
           turnIndex: currentUserTurns,
           targetTurns: TARGET_TURNS,
           currentStep,
+          previousStep,
           allSteps: lesson.dialogue.steps,
           usefulWords: lesson.dialogue.usefulWords,
           provider: userProfile.aiProvider,

@@ -31,6 +31,24 @@ interface ChatRequestBody {
     aiQuestionRu: string;
     expectedConcept: string;
     targetWords?: string[];
+    sampleAnswers?: Array<{
+      hebrew: string;
+      transcription: string;
+      translation: string;
+    }>;
+  };
+  previousStep?: {
+    stepIndex: number;
+    fact: string;
+    aiQuestionHebrew: string;
+    aiQuestionRu: string;
+    expectedConcept: string;
+    targetWords?: string[];
+    sampleAnswers?: Array<{
+      hebrew: string;
+      transcription: string;
+      translation: string;
+    }>;
   };
   allSteps?: Array<{
     stepIndex: number;
@@ -213,6 +231,7 @@ export async function POST(req: NextRequest) {
       systemPromptAddition = '',
       studentKnownWords = [],
       currentStep,
+      previousStep,
       allSteps,
       usefulWords = [],
     } = body;
@@ -298,13 +317,22 @@ export async function POST(req: NextRequest) {
 - В JSON-ответе ОБЯЗАТЕЛЬНО установи: "isCompleted": true.`
       : currentStep
       ? `ЭТАП ДИАЛОГА: ШАГ ${currentStep.stepIndex} ИЗ ${maxTurns} (СЦЕНАРНЫЙ КАРКАС "FACT FIRST"):
-1. БАЗОВЫЙ ФАКТ ШАГА (НА ЧТО ОПИРАЕТСЯ СОБЕСЕДНИК):
+${previousStep ? `ПРЕДЫДУЩИЙ ШАГ №${previousStep.stepIndex} (НА КОТОРЫЙ ТОЛЬКО ЧТО ОТВЕТИЛ УЧЕНИК):
+- Факт прошлого шага: "${previousStep.fact}"
+- Вопрос прошлого шага: "${previousStep.aiQuestionHebrew}"
+- Ожидавшийся ответ ученика: "${previousStep.expectedConcept}"
+- ТВОЯ РЕАКЦИЯ НА ПРЕДЫДУЩИЙ ШАГ (teacher_reaction_hebrew / teacher_reaction_ru):
+  Обязательно оцени ответ ученика на вопрос прошлого шага и тепло похвали его (например: "יוֹפִי! נָכוֹן מְאוֹד, זֹאת מַחְבֶּרֶת!" или "מְעֻלֶּה, נָכוֹן מְאוֹד!").
+` : ''}
+НОВЫЙ ТЕКУЩИЙ ШАГ №${currentStep.stepIndex} (АКТУАЛЬНАЯ СИТУАЦИЯ СЕЙЧАС):
+1. БАЗОВЫЙ ФАКТ НОВОГО ШАГА (ЧТО ПРОИСХОДИТ ПРЯМО СЕЙЧАС):
    "${currentStep.fact}"
-   - Ты ОБЯЗАН вести беседу строго в рамках этого факта!
-2. ВОПРОС/РЕПЛИКА СОБЕСЕДНИКА:
+   - Ты ОБЯЗАН вести беседу строго в рамках этой новой ситуации!
+2. ВОПРОС/РЕПЛИКА СОБЕСЕДНИКА В ЭТОМ ШАГЕ:
    "${currentStep.aiQuestionHebrew}" (${currentStep.aiQuestionRu}).
-   - Отреагируй на слова ученика, подтверди факт и задай этот вопрос!
-3. ЧТО ТРЕНИРУЕТ УЧЕНИК:
+   - В поле "hebrew" ты ОБЯЗАН озвучить этот конкретный вопрос нового шага: "${currentStep.aiQuestionHebrew}"!
+   - КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО возвращаться к старым предметам из прошлых шагов (например, переспрашивать про книгу или тетрадь)! Задай вопрос строго о новом факте шага!
+3. ЧТО ТРЕНИРУЕТ УЧЕНИК В ЭТОМ ШАГЕ:
    "${currentStep.expectedConcept}" ${currentStep.targetWords?.length ? `(Обязательные ключевые слова темы: ${currentStep.targetWords.join(', ')})` : ''}.
 4. ГИБКОСТЬ И ПРИНЯТИЕ РЕЧИ УЧЕНИКА (НЕ ТРЕБОВАТЬ ДОСЛОВНОГО СОВПАДЕНИЯ):
    - Ученик НЕ ОБЯЗАН повторять ответ слово в слово!
@@ -456,12 +484,12 @@ ${usefulWords.map((w) => `- ${w.hebrew} (${w.translation})${w.explanation ? ` �
     if (provider === 'groq' && groqKey) {
       const modelsToTry = [
         process.env.GROQ_MODEL,
-        'llama-3.3-70b-versatile',
         'openai/gpt-oss-120b',
-        'openai/gpt-oss-20b',
         'qwen/qwen3.8-27b',
+        'openai/gpt-oss-20b',
         'qwen/qwen3.6-27b',
         'groq/compound',
+        'llama-3.3-70b-versatile',
         'llama-3.1-8b-instant',
       ].filter(Boolean) as string[];
 
@@ -547,22 +575,46 @@ ${usefulWords.map((w) => `- ${w.hebrew} (${w.translation})${w.explanation ? ` �
       }
     }
 
-    // 3. Умный контекстный фолбэк строго по теме урока
+    // 3. Умный контекстный фолбэк строго по текущему шагу урока
+    if (currentStep && !isFinalTurn) {
+      const fallbackReplies = (currentStep.sampleAnswers && currentStep.sampleAnswers.length > 0)
+        ? currentStep.sampleAnswers
+        : (lessonNumber === 4
+            ? [
+                { hebrew: 'זֶה עֵט', transcription: 'зэ эт', translation: 'Это ручка' },
+                { hebrew: 'זֹאת מַחְבֶּרֶת', transcription: 'зот махбэ́рэт', translation: 'Это тетрадь' },
+                { hebrew: 'אֵלֶּה תַּלְמִידִים', transcription: 'э́ле тальмиди́м', translation: 'Это ученики' },
+              ]
+            : []);
+
+      return NextResponse.json({
+        hebrew: currentStep.aiQuestionHebrew,
+        transcription: '',
+        translation: currentStep.aiQuestionRu,
+        teacherReactionHebrew: previousStep ? 'יוֹפִי! נָכוֹן מְאוֹד!' : null,
+        teacherReactionRu: previousStep ? 'Прекрасно! Очень правильно!' : null,
+        feedback: null,
+        isCompleted: false,
+        engine: 'Ульпан-автоответчик (Сценарный шаг)',
+        suggestedReplies: fallbackReplies,
+      });
+    }
+
     if (lessonNumber === 4) {
       return NextResponse.json({
         hebrew: isFinalTurn
           ? (isFemale
               ? 'מְעֻלֶּה! כָּל הַכָּבוֹד, עַכְשָׁיו אַתְּ יוֹדַעַת אֶת הַמִּלִּים וְאֶת הַהֶבְדֵּל בֵּין זֶה לְזֹאת. לְהִתְרָאוֹת!'
               : 'מְעֻלֶּה! כָּל הַכָּבוֹד, עַכְשָׁיו אַתָּה יוֹדֵעַ אֶת הַמִּלִּים וְאֶת הַהֶבְדֵּל בֵּין זֶה לְזֹאת. לְהִתְרָאוֹת!')
-          : 'יוֹפִי מְאוֹד! נָכוֹן מְאוֹד. וְמָה זֶה? מָה יֵשׁ עוֹד עַל הַשֻּׁלְחָן?',
+          : 'יוֹפִי מְאוֹד! נָכוֹן מְאוֹד. וְמָה זֶה?',
         transcription: isFinalTurn
           ? (isFemale
               ? 'мэулé! коль hа-кавóд, ахшáв ат йодáат эт hа-милӣм вэ-эт hа-hевдéль бейн зэ лэ-зот. лэhитраóт!'
               : 'мэулé! коль hа-кавóд, ахшáв атá йодéа эт hа-милӣм вэ-эт hа-hевдéль бейн зэ лэ-зот. лэhитраóт!')
-          : 'йóфи мэóд! нахóн мэóд. вэ-ма зэ? ма йеш од аль hа-шульхáн?',
+          : 'йóфи мэóд! нахóн мэóд. вэ-ма зэ?',
         translation: isFinalTurn
           ? 'Превосходно! Молодец, теперь ты отлично знаешь слова и разницу между «זה» и «זאת». До свидания!'
-          : 'Очень хорошо! Совершенно верно. А что это? Что еще есть на столе?',
+          : 'Очень хорошо! Совершенно верно. А что это?',
         feedback: null,
         isCompleted: isFinalTurn,
         engine: 'Ульпан-автоответчик (Урок 4)',
