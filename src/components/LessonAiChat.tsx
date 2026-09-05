@@ -15,8 +15,6 @@ import {
   Award,
   CheckCircle2,
   Lightbulb,
-  ChevronDown,
-  ChevronUp,
   BookmarkPlus,
   Check,
   BookOpen,
@@ -166,7 +164,8 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
   const [wordContext, setWordContext] = useState<string>('');
   const [recognizer, setRecognizer] = useState<HebrewSpeechRecognizer | null>(null);
   const [addedWords, setAddedWords] = useState<Record<string, boolean>>({});
-  const [activeShelf, setActiveShelf] = useState<'words' | 'replies' | null>('words');
+  const [isWordsDrawerOpen, setIsWordsDrawerOpen] = useState(false);
+  const [drawerTab, setDrawerTab] = useState<'words' | 'replies'>('words');
   const lastMessageRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesRef = useRef<ChatMessage[]>([]);
@@ -505,7 +504,7 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
         <div className="flex-1 min-h-0 p-3 sm:p-4 overflow-y-auto space-y-3 bg-zinc-50/40 dark:bg-zinc-950/20">
           {/* КАРТОЧКА СИТУАЦИИ (FACT FIRST) - на главном экране перед глазами */}
           {activeStep && (
-            <div className="bg-gradient-to-r from-blue-50/95 via-indigo-50/80 to-white dark:from-blue-950/60 dark:via-zinc-900 dark:to-zinc-900 border border-blue-200/80 dark:border-blue-900/60 rounded-xl p-2.5 sm:p-3 shadow-2xs font-hebrew">
+            <div className="bg-gradient-to-r from-blue-50/95 via-indigo-50/80 to-white dark:from-blue-950/60 dark:via-zinc-900 dark:to-zinc-900 border border-blue-200/80 dark:border-blue-900/60 rounded-xl p-3 shadow-2xs font-hebrew">
               <div className="flex items-center justify-between gap-2 mb-1.5">
                 <div className="flex items-center gap-1.5 text-xs font-bold text-blue-900 dark:text-blue-300">
                   <span className="text-sm">📍</span>
@@ -516,91 +515,23 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
                   </span>
                 </div>
 
-                {/* Правые компактные кнопки: пол ♂ ♀ + сброс + слова шага */}
-                <div className="flex items-center gap-1.5 shrink-0">
-                  {/* Переключатель пола */}
-                  <div className="flex items-center bg-white dark:bg-zinc-850 p-0.5 rounded-lg border border-blue-200 dark:border-blue-900/70 text-xs shadow-2xs">
-                    <button
-                      type="button"
-                      onClick={() => handleGenderSwitch('male')}
-                      className={`px-1.5 py-0.5 rounded font-semibold text-[10px] transition cursor-pointer ${
-                        userProfile.gender === 'male' ? 'bg-blue-600 text-white shadow-2xs' : 'text-zinc-500 dark:text-zinc-400'
-                      }`}
-                      title="זָכָר ♂ (Мужской род)"
-                    >
-                      ♂
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleGenderSwitch('female')}
-                      className={`px-1.5 py-0.5 rounded font-semibold text-[10px] transition cursor-pointer ${
-                        userProfile.gender === 'female' ? 'bg-blue-600 text-white shadow-2xs' : 'text-zinc-500 dark:text-zinc-400'
-                      }`}
-                      title="נְקֵבָה ♀ (Женский род)"
-                    >
-                      ♀
-                    </button>
-                  </div>
-
-                  {/* Сброс диалога */}
+                {/* Кнопка открытия боковой шторки подсказок */}
+                {lesson.dialogue.usefulWords && lesson.dialogue.usefulWords.length > 0 && (
                   <button
                     type="button"
-                    onClick={handleResetChat}
-                    className="p-1 rounded-lg border border-blue-200 dark:border-blue-900/70 bg-white dark:bg-zinc-850 text-zinc-500 hover:text-blue-600 dark:text-zinc-400 transition cursor-pointer shadow-2xs"
-                    title="Начать диалог сначала"
+                    onClick={() => setIsWordsDrawerOpen(true)}
+                    className="text-[11px] font-bold px-2.5 py-1 rounded-lg transition flex items-center gap-1.5 cursor-pointer bg-blue-100/90 hover:bg-blue-200 dark:bg-blue-900/60 dark:hover:bg-blue-900/90 text-blue-700 dark:text-blue-300 shadow-2xs active:scale-95"
+                    title="Открыть шпаргалку со словами (шторка справа)"
                   >
-                    <RotateCcw className="w-3 h-3" />
+                    <BookOpen className="w-3.5 h-3.5" />
+                    <span>Слова шага ({lesson.dialogue.usefulWords.length})</span>
                   </button>
-
-                  {/* Кнопка быстрого открытия слов шага */}
-                  {lesson.dialogue.usefulWords && lesson.dialogue.usefulWords.length > 0 && (
-                    <button
-                      type="button"
-                      onClick={() => setActiveShelf((prev) => (prev === 'words' ? null : 'words'))}
-                      className={`text-[10px] font-bold px-2 py-0.5 rounded-lg transition flex items-center gap-1 cursor-pointer active:scale-95 shadow-2xs ${
-                        activeShelf === 'words'
-                          ? 'bg-blue-600 text-white'
-                          : 'text-blue-700 dark:text-blue-300 bg-blue-100/90 dark:bg-blue-900/60 hover:bg-blue-200'
-                      }`}
-                      title="Показать / скрыть полезные слова шага"
-                    >
-                      <BookOpen className="w-3 h-3" />
-                      <span className="hidden xs:inline">{activeShelf === 'words' ? 'Скрыть слова' : 'Слова шага'}</span>
-                    </button>
-                  )}
-                </div>
+                )}
               </div>
 
-              <p className="text-xs sm:text-sm text-blue-950 dark:text-blue-100 font-medium leading-snug">
+              <p className="text-xs sm:text-sm text-blue-950 dark:text-blue-100 font-medium leading-relaxed">
                 {activeStep.fact}
               </p>
-
-              {activeStep.expectedConcept && (
-                <div className="mt-1.5 pt-1 border-t border-blue-200/50 dark:border-blue-900/40 flex items-center justify-between gap-1.5 text-[11px] text-blue-700 dark:text-blue-300">
-                  <div className="flex items-center gap-1">
-                    <span className="font-bold">🎯 Фокус:</span>
-                    <span>{activeStep.expectedConcept}</span>
-                  </div>
-                  {/* Кнопка зачета шага */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const updated = markLessonTabCompleted(lesson.id, 'chat');
-                      if (onUpdateProfile) onUpdateProfile(updated);
-                      confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
-                    }}
-                    className={`text-[9px] font-bold px-1.5 py-0.5 rounded transition flex items-center gap-0.5 cursor-pointer ${
-                      isTabCompleted
-                        ? 'bg-emerald-600 text-white'
-                        : 'bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 hover:bg-blue-200'
-                    }`}
-                    title="Отметить диалог как пройденный"
-                  >
-                    <CheckCircle2 className="w-2.5 h-2.5" />
-                    <span>{isTabCompleted ? 'Зачтено' : 'Зачесть'}</span>
-                  </button>
-                </div>
-              )}
             </div>
           )}
 
@@ -846,77 +777,47 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
           <div ref={messagesEndRef} />
         </div>
 
-        {/* 3. Нижняя зона: Встроенные кнопки-переключатели + компактная полка материалов + строка ввода */}
+        {/* 3. Нижняя зона: Фиксированная панель действий + строка ввода (всегда зафиксирована на экране) */}
         <div className="shrink-0 bg-white dark:bg-zinc-900 border-t border-zinc-200 dark:border-zinc-800 sticky bottom-0 z-20 pb-[env(safe-area-inset-bottom,0px)] shadow-lg">
-          {/* Панель кнопок-переключателей материалов (Docked Switcher Bar) */}
+          {/* Тонкая панель кнопок (32px): Открытие шторки подсказок + Переключение пола + Сброс */}
           <div className="px-2.5 sm:px-3 py-1.5 bg-zinc-50/90 dark:bg-zinc-850/70 border-b border-zinc-200/80 dark:border-zinc-800/80 flex items-center justify-between gap-1.5">
             <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none">
-              {/* Переключатель: Полезные слова */}
+              {/* Кнопка: Полезные слова (открывает шторку справа) */}
               {lesson.dialogue.usefulWords && lesson.dialogue.usefulWords.length > 0 && (
                 <button
                   type="button"
-                  onClick={() => setActiveShelf((prev) => (prev === 'words' ? null : 'words'))}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer active:scale-95 ${
-                    activeShelf === 'words'
-                      ? 'bg-blue-600 text-white shadow-2xs font-bold'
-                      : 'bg-white dark:bg-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700'
-                  }`}
-                  title="Показать / скрыть полезные слова шага"
+                  onClick={() => {
+                    setDrawerTab('words');
+                    setIsWordsDrawerOpen(true);
+                  }}
+                  className="px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer active:scale-95 bg-white dark:bg-zinc-800 hover:bg-blue-50 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700 hover:border-blue-300 shadow-2xs"
+                  title="Показать слова шага (шторка справа)"
                 >
-                  <BookOpen className="w-3.5 h-3.5" />
+                  <BookOpen className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
                   <span>{userProfile.ulpanMode ? 'מִילִּים' : 'Слова шага'}</span>
-                  <span
-                    className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
-                      activeShelf === 'words'
-                        ? 'bg-blue-700 text-white'
-                        : 'bg-zinc-100 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300'
-                    }`}
-                  >
+                  <span className="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300">
                     {lesson.dialogue.usefulWords.length}
                   </span>
-                  {activeShelf === 'words' ? (
-                    <ChevronUp className="w-3 h-3" />
-                  ) : (
-                    <ChevronDown className="w-3 h-3 text-zinc-400" />
-                  )}
                 </button>
               )}
 
-              {/* Переключатель: Быстрые варианты ответов */}
+              {/* Кнопка: Быстрые варианты ответов (открывает шторку справа) */}
               {lastAiMessage?.suggestedReplies && lastAiMessage.suggestedReplies.length > 0 && !isDialogueFinished && (
                 <button
                   type="button"
-                  onClick={() => setActiveShelf((prev) => (prev === 'replies' ? null : 'replies'))}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer active:scale-95 ${
-                    activeShelf === 'replies'
-                      ? 'bg-indigo-600 text-white shadow-2xs font-bold'
-                      : 'bg-white dark:bg-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700'
-                  }`}
-                  title="Показать готовые примеры ответа"
+                  onClick={() => {
+                    setDrawerTab('replies');
+                    setIsWordsDrawerOpen(true);
+                  }}
+                  className="px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer active:scale-95 bg-white dark:bg-zinc-800 hover:bg-indigo-50 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700 hover:border-indigo-300 shadow-2xs"
+                  title="Показать готовые варианты ответа (шторка справа)"
                 >
                   <Lightbulb className="w-3.5 h-3.5 text-amber-500" />
                   <span>{userProfile.ulpanMode ? 'דֻּגְמָאוֹת' : 'Варианты'}</span>
-                  <span
-                    className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
-                      activeShelf === 'replies'
-                        ? 'bg-indigo-700 text-white'
-                        : 'bg-zinc-100 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300'
-                    }`}
-                  >
+                  <span className="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-indigo-100 dark:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300">
                     {lastAiMessage.suggestedReplies.length}
                   </span>
-                  {activeShelf === 'replies' ? (
-                    <ChevronUp className="w-3 h-3" />
-                  ) : (
-                    <ChevronDown className="w-3 h-3 text-zinc-400" />
-                  )}
                 </button>
-              )}
-
-              {activeStep?.expectedConcept && (
-                <span className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium truncate hidden sm:inline">
-                  🎯 {activeStep.expectedConcept}
-                </span>
               )}
             </div>
 
@@ -955,97 +856,6 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
               </button>
             </div>
           </div>
-
-          {/* Встроенная компактная полка полезных слов (Docked Words Tray) */}
-          {activeShelf === 'words' && lesson.dialogue.usefulWords && lesson.dialogue.usefulWords.length > 0 && (
-            <div className="px-3 py-2 bg-blue-50/40 dark:bg-blue-950/20 border-b border-zinc-200 dark:border-zinc-800 animate-in slide-in-from-top-1 duration-150">
-              <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-thin">
-                {lesson.dialogue.usefulWords.map((word, idx) => {
-                  const isAdded =
-                    addedWords[word.hebrew] || isWordInPersonalDict(word.hebrew, userProfile.personalVocabulary);
-                  return (
-                    <div
-                      key={idx}
-                      onClick={() => handleAppendWord(word.hebrew)}
-                      className="group shrink-0 cursor-pointer bg-white dark:bg-zinc-800 hover:bg-blue-50/80 dark:hover:bg-zinc-750 border border-zinc-200 dark:border-zinc-700 rounded-xl p-2 min-w-[130px] max-w-[180px] shadow-2xs transition active:scale-98 flex flex-col justify-between"
-                      title="Нажмите для вставки слова в поле ответа"
-                    >
-                      <div className="flex items-start justify-between gap-1">
-                        <span
-                          dir="rtl"
-                          className="font-hebrew font-bold text-sm text-zinc-900 dark:text-zinc-100 group-hover:text-blue-600 transition truncate"
-                        >
-                          {userProfile.showNikkud ? word.hebrew : stripNikkud(word.hebrew)}
-                        </span>
-                        <div className="flex items-center gap-0.5 shrink-0">
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              speakHebrew(word.hebrew, { rate: userProfile.speechRate || 0.7 });
-                            }}
-                            className="p-1 rounded text-zinc-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition cursor-pointer"
-                            title="Озвучить слово"
-                          >
-                            <Volume2 className="w-3.5 h-3.5" />
-                          </button>
-                          <button
-                            type="button"
-                            disabled={isAdded}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleAddWordDirectly(word);
-                            }}
-                            className={`p-1 rounded transition cursor-pointer ${
-                              isAdded
-                                ? 'text-emerald-600 dark:text-emerald-400'
-                                : 'text-zinc-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-zinc-700'
-                            }`}
-                            title={isAdded ? 'В словаре' : 'В личный словарь'}
-                          >
-                            {isAdded ? (
-                              <Check className="w-3.5 h-3.5" />
-                            ) : (
-                              <BookmarkPlus className="w-3.5 h-3.5" />
-                            )}
-                          </button>
-                        </div>
-                      </div>
-
-                      <div className="text-[11px] text-zinc-500 dark:text-zinc-400 truncate mt-1 flex items-center gap-1">
-                        {!userProfile.ulpanMode && word.transcription && (
-                          <span className="text-blue-500 text-[10px]">[{word.transcription}]</span>
-                        )}
-                        <span className="truncate">{word.translation}</span>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* Встроенная компактная полка быстрых ответов (Docked Replies Tray) */}
-          {activeShelf === 'replies' && lastAiMessage?.suggestedReplies && lastAiMessage.suggestedReplies.length > 0 && !isDialogueFinished && (
-            <div className="px-3 py-2 bg-indigo-50/40 dark:bg-indigo-950/20 border-b border-zinc-200 dark:border-zinc-800 animate-in slide-in-from-top-1 duration-150">
-              <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-thin">
-                {lastAiMessage.suggestedReplies.map((reply, rIdx) => (
-                  <button
-                    key={rIdx}
-                    type="button"
-                    onClick={() => {
-                      setInputText(reply.hebrew);
-                    }}
-                    className="shrink-0 text-right px-3 py-1.5 rounded-xl bg-white dark:bg-zinc-800 hover:bg-indigo-50 dark:hover:bg-zinc-700 border border-indigo-200/80 dark:border-indigo-800/60 text-zinc-900 dark:text-zinc-100 text-xs font-hebrew font-medium transition active:scale-95 flex items-center gap-1.5 shadow-2xs cursor-pointer"
-                    title="Подставить фразу в поле ответа"
-                  >
-                    <span className="text-[10px] text-indigo-500 font-normal">↵</span>
-                    <span dir="rtl">{reply.hebrew}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
 
           {/* Строка ввода со встроенным микрофоном */}
           <div className="p-2.5 sm:p-3">
@@ -1140,12 +950,6 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
               <p className="text-xs text-blue-950 dark:text-blue-100 leading-relaxed font-medium">
                 {activeStep.fact}
               </p>
-              {activeStep.expectedConcept && (
-                <div className="mt-2 pt-1.5 border-t border-blue-200/60 dark:border-blue-900/40 text-[11px] text-blue-700 dark:text-blue-300">
-                  <span className="font-bold">🎯 Фокус: </span>
-                  <span>{activeStep.expectedConcept}</span>
-                </div>
-              )}
             </div>
           )}
 
@@ -1230,6 +1034,230 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
         </div>
       </div>
 
+
+      {/* БОКОВАЯ ШТОРКА (SIDE DRAWER СПРАВА) ДЛЯ ПОДСКАЗОК И СЛОВ */}
+      {isWordsDrawerOpen && (
+        <div className="fixed inset-0 z-50 flex justify-end">
+          {/* Затемнение фона (Backdrop) */}
+          <div
+            className="fixed inset-0 bg-black/40 dark:bg-black/60 backdrop-blur-xs transition-opacity animate-in fade-in duration-200"
+            onClick={() => setIsWordsDrawerOpen(false)}
+          />
+
+          {/* Сама панель шторки */}
+          <div className="relative w-full max-w-sm sm:max-w-md h-full bg-white dark:bg-zinc-900 shadow-2xl z-10 flex flex-col border-l border-zinc-200 dark:border-zinc-800 animate-in slide-in-from-right duration-200 ease-out font-hebrew">
+            {/* Шапка шторки */}
+            <div className="p-3.5 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between bg-zinc-50/80 dark:bg-zinc-850/60 shrink-0">
+              <div className="flex items-center gap-2">
+                <span className="text-lg">📖</span>
+                <div>
+                  <h3 className="font-bold text-sm text-zinc-900 dark:text-zinc-100">
+                    {userProfile.ulpanMode ? 'שִׁלְדַּת הַשִּׂיחָה' : 'Шпаргалка к диалогу'}
+                  </h3>
+                  <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
+                    {userProfile.ulpanMode ? 'מִילִּים וּדֻּגְמָאוֹת' : 'Слова шага и готовые примеры'}
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setIsWordsDrawerOpen(false)}
+                className="p-1.5 rounded-xl hover:bg-zinc-200 dark:hover:bg-zinc-800 text-zinc-500 dark:text-zinc-400 transition cursor-pointer"
+                title="Закрыть шторку"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Вкладки внутри шторки: Слова / Варианты (если есть варианты) */}
+            {lastAiMessage?.suggestedReplies && lastAiMessage.suggestedReplies.length > 0 && !isDialogueFinished && (
+              <div className="flex border-b border-zinc-200 dark:border-zinc-800 px-3 pt-2 gap-2 bg-zinc-50/50 dark:bg-zinc-850/30 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setDrawerTab('words')}
+                  className={`pb-2 px-3 text-xs font-bold border-b-2 transition cursor-pointer flex items-center gap-1.5 ${
+                    drawerTab === 'words'
+                      ? 'border-blue-600 text-blue-600 dark:text-blue-400'
+                      : 'border-transparent text-zinc-500 hover:text-zinc-800 dark:text-zinc-400'
+                  }`}
+                >
+                  <BookOpen className="w-3.5 h-3.5" />
+                  <span>{userProfile.ulpanMode ? 'מִילִּים' : 'Слова шага'}</span>
+                  {lesson.dialogue.usefulWords && (
+                    <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 font-semibold">
+                      {lesson.dialogue.usefulWords.length}
+                    </span>
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setDrawerTab('replies')}
+                  className={`pb-2 px-3 text-xs font-bold border-b-2 transition cursor-pointer flex items-center gap-1.5 ${
+                    drawerTab === 'replies'
+                      ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400'
+                      : 'border-transparent text-zinc-500 hover:text-zinc-800 dark:text-zinc-400'
+                  }`}
+                >
+                  <Lightbulb className="w-3.5 h-3.5 text-amber-500" />
+                  <span>{userProfile.ulpanMode ? 'דֻּגְמָאוֹת' : 'Варианты'}</span>
+                  <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-indigo-100 dark:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 font-semibold">
+                    {lastAiMessage.suggestedReplies.length}
+                  </span>
+                </button>
+              </div>
+            )}
+
+            {/* Контент шторки с независимым скроллом */}
+            <div className="flex-1 overflow-y-auto p-3.5 space-y-3">
+              {drawerTab === 'words' ? (
+                /* Список слов */
+                lesson.dialogue.usefulWords && lesson.dialogue.usefulWords.length > 0 ? (
+                  <div className="space-y-2">
+                    <p className="text-[11px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider px-0.5">
+                      {userProfile.ulpanMode ? 'מִילִּים לַתְּשׁוּבָה:' : 'Слова для ответа:'}
+                    </p>
+                    {lesson.dialogue.usefulWords.map((word, idx) => {
+                      const isAdded =
+                        addedWords[word.hebrew] || isWordInPersonalDict(word.hebrew, userProfile.personalVocabulary);
+                      return (
+                        <div
+                          key={idx}
+                          className="bg-white dark:bg-zinc-800/90 border border-zinc-200 dark:border-zinc-700/80 rounded-xl p-2.5 flex items-center justify-between gap-2 shadow-2xs hover:border-blue-300 dark:hover:border-blue-700 transition"
+                        >
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-1.5">
+                              <span
+                                dir="rtl"
+                                className="font-hebrew font-bold text-base text-zinc-900 dark:text-zinc-100"
+                              >
+                                {userProfile.showNikkud ? word.hebrew : stripNikkud(word.hebrew)}
+                              </span>
+                              {word.isNew && (
+                                <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-600 dark:text-amber-300">
+                                  {userProfile.ulpanMode ? 'חָדָשׁ' : 'Новое'}
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-xs text-zinc-500 dark:text-zinc-400 truncate mt-0.5">
+                              {!userProfile.ulpanMode && word.transcription && (
+                                <span className="text-blue-500 font-medium mr-1.5">[{word.transcription}]</span>
+                              )}
+                              <span>{word.translation}</span>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-1 shrink-0">
+                            {/* Озвучить */}
+                            <button
+                              type="button"
+                              onClick={() => speakHebrew(word.hebrew, { rate: userProfile.speechRate || 0.7 })}
+                              className="p-1.5 rounded-lg text-zinc-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-zinc-700 transition cursor-pointer"
+                              title="Озвучить"
+                            >
+                              <Volume2 className="w-4 h-4" />
+                            </button>
+
+                            {/* В личный словарь */}
+                            <button
+                              type="button"
+                              disabled={isAdded}
+                              onClick={() => handleAddWordDirectly(word)}
+                              className={`p-1.5 rounded-lg transition cursor-pointer ${
+                                isAdded
+                                  ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40'
+                                  : 'text-zinc-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-zinc-700'
+                              }`}
+                              title={isAdded ? 'В словаре' : 'В личный словарь'}
+                            >
+                              {isAdded ? <Check className="w-4 h-4 text-emerald-600" /> : <BookmarkPlus className="w-4 h-4" />}
+                            </button>
+
+                            {/* Вставить в поле ввода */}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                handleAppendWord(word.hebrew);
+                              }}
+                              className="px-2 py-1 rounded-lg bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/60 dark:hover:bg-blue-900 text-blue-700 dark:text-blue-300 font-bold text-xs flex items-center gap-1 transition cursor-pointer active:scale-95"
+                              title="Вставить в строку ввода"
+                            >
+                              <span>↵</span>
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <p className="text-xs text-zinc-500 text-center py-8">
+                    {userProfile.ulpanMode ? 'אֵין מִילִּים נוֹסָפוֹת' : 'Для этого шага нет дополнительных слов'}
+                  </p>
+                )
+              ) : (
+                /* Список вариантов ответов */
+                lastAiMessage?.suggestedReplies && (
+                  <div className="space-y-2">
+                    <p className="text-[11px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider px-0.5">
+                      {userProfile.ulpanMode ? 'דֻּגְמָאוֹת לַתְּשׁוּבָה:' : 'Готовые варианты ответа:'}
+                    </p>
+                    {lastAiMessage.suggestedReplies.map((reply, rIdx) => (
+                      <div
+                        key={rIdx}
+                        className="bg-white dark:bg-zinc-800/90 border border-indigo-200/70 dark:border-indigo-800/60 rounded-xl p-3 flex flex-col gap-2 shadow-2xs hover:border-indigo-400 transition"
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <p dir="rtl" className="font-hebrew font-bold text-sm text-zinc-900 dark:text-zinc-100 leading-relaxed text-right flex-1">
+                            {reply.hebrew}
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() => speakHebrew(reply.hebrew, { rate: userProfile.speechRate || 0.7 })}
+                            className="p-1 rounded-md text-zinc-400 hover:text-blue-600 transition cursor-pointer shrink-0"
+                            title="Озвучить"
+                          >
+                            <Volume2 className="w-4 h-4" />
+                          </button>
+                        </div>
+
+                        {reply.translation && (
+                          <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                            {reply.translation}
+                          </p>
+                        )}
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setInputText(reply.hebrew);
+                            setIsWordsDrawerOpen(false);
+                          }}
+                          className="w-full py-1.5 px-2.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/60 dark:hover:bg-indigo-900 text-indigo-700 dark:text-indigo-300 font-semibold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer active:scale-98"
+                        >
+                          <span>Использовать эту фразу</span>
+                          <span>↵</span>
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )
+              )}
+            </div>
+
+            {/* Подвал шторки с кнопкой Закрыть */}
+            <div className="p-3 border-t border-zinc-200 dark:border-zinc-800 bg-zinc-50/80 dark:bg-zinc-850/50 shrink-0">
+              <button
+                type="button"
+                onClick={() => setIsWordsDrawerOpen(false)}
+                className="w-full py-2 px-3 rounded-xl bg-zinc-200 dark:bg-zinc-800 hover:bg-zinc-300 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 text-xs font-bold transition cursor-pointer"
+              >
+                {userProfile.ulpanMode ? 'סְגִירָה' : 'Закрыть подсказки'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Модалка разбора слова */}
       {selectedWord && (
