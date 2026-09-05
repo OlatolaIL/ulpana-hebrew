@@ -497,7 +497,7 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
   return (
     <div
       data-font-style={userProfile.fontStyle || 'print'}
-      className="flex flex-col lg:grid lg:grid-cols-[1fr_340px] h-[calc(100dvh-260px)] sm:h-[640px] lg:h-[720px] min-h-[460px] max-h-[820px] bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm overflow-hidden"
+      className="flex flex-col lg:grid lg:grid-cols-[1fr_340px] h-full flex-1 min-h-0 bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm overflow-hidden"
     >
       {/* ЛЕВАЯ КОЛОНКА: ОСНОВНОЙ ЧАТ */}
       <div className="flex flex-col h-full min-w-0 border-b lg:border-b-0 lg:border-r border-zinc-200 dark:border-zinc-800 overflow-hidden">
