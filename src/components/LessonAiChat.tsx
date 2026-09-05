@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Send,
   Mic,
@@ -166,6 +167,10 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
   const [addedWords, setAddedWords] = useState<Record<string, boolean>>({});
   const [isWordsDrawerOpen, setIsWordsDrawerOpen] = useState(false);
   const [drawerTab, setDrawerTab] = useState<'words' | 'replies'>('words');
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
   const lastMessageRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesRef = useRef<ChatMessage[]>([]);
@@ -505,28 +510,13 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
           {/* КАРТОЧКА СИТУАЦИИ (FACT FIRST) - на главном экране перед глазами */}
           {activeStep && (
             <div className="bg-gradient-to-r from-blue-50/95 via-indigo-50/80 to-white dark:from-blue-950/60 dark:via-zinc-900 dark:to-zinc-900 border border-blue-200/80 dark:border-blue-900/60 rounded-xl p-3 shadow-2xs font-hebrew">
-              <div className="flex items-center justify-between gap-2 mb-1.5">
-                <div className="flex items-center gap-1.5 text-xs font-bold text-blue-900 dark:text-blue-300">
-                  <span className="text-sm">📍</span>
-                  <span>
-                    {userProfile.ulpanMode
-                      ? `שָׁלָב ${activeStep.stepIndex}: מַצָּב`
-                      : `Ситуация (Шаг ${activeStep.stepIndex} из ${stepsCount})`}
-                  </span>
-                </div>
-
-                {/* Кнопка открытия боковой шторки подсказок */}
-                {lesson.dialogue.usefulWords && lesson.dialogue.usefulWords.length > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => setIsWordsDrawerOpen(true)}
-                    className="text-[11px] font-bold px-2.5 py-1 rounded-lg transition flex items-center gap-1.5 cursor-pointer bg-blue-100/90 hover:bg-blue-200 dark:bg-blue-900/60 dark:hover:bg-blue-900/90 text-blue-700 dark:text-blue-300 shadow-2xs active:scale-95"
-                    title="Открыть шпаргалку со словами (шторка справа)"
-                  >
-                    <BookOpen className="w-3.5 h-3.5" />
-                    <span>Слова шага ({lesson.dialogue.usefulWords.length})</span>
-                  </button>
-                )}
+              <div className="flex items-center gap-1.5 text-xs font-bold text-blue-900 dark:text-blue-300 mb-1">
+                <span className="text-sm">📍</span>
+                <span>
+                  {userProfile.ulpanMode
+                    ? `שָׁלָב ${activeStep.stepIndex}: מַצָּב`
+                    : `Ситуация (Шаг ${activeStep.stepIndex} из ${stepsCount})`}
+                </span>
               </div>
 
               <p className="text-xs sm:text-sm text-blue-950 dark:text-blue-100 font-medium leading-relaxed">
@@ -791,10 +781,10 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
                     setIsWordsDrawerOpen(true);
                   }}
                   className="px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer active:scale-95 bg-white dark:bg-zinc-800 hover:bg-blue-50 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700 hover:border-blue-300 shadow-2xs"
-                  title="Показать слова шага (шторка справа)"
+                  title="Открыть боковую шторку со словами"
                 >
                   <BookOpen className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
-                  <span>{userProfile.ulpanMode ? 'מִילִּים' : 'Слова шага'}</span>
+                  <span>{userProfile.ulpanMode ? 'מִילִּים' : 'Шторка слов'}</span>
                   <span className="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300">
                     {lesson.dialogue.usefulWords.length}
                   </span>
@@ -1035,24 +1025,48 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
       </div>
 
 
-      {/* БОКОВАЯ ШТОРКА (SIDE DRAWER СПРАВА) ДЛЯ ПОДСКАЗОК И СЛОВ */}
-      {isWordsDrawerOpen && (
-        <div className="fixed inset-0 z-50 flex justify-end">
+      {/* БОКОВОЙ ЯРЛЫЧОК ШТОРКИ (Floating Drawer Tab справа) - всегда на виду на мобильных */}
+      {lesson.dialogue.usefulWords && lesson.dialogue.usefulWords.length > 0 && (
+        <button
+          type="button"
+          onClick={() => {
+            setDrawerTab('words');
+            setIsWordsDrawerOpen(true);
+          }}
+          className="fixed right-0 top-1/2 -translate-y-1/2 z-30 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white shadow-xl rounded-l-2xl py-3 px-1.5 sm:px-2 flex flex-col items-center gap-1.5 cursor-pointer border-y border-l border-blue-400/60 lg:hidden group transition-all"
+          title="Открыть боковую шторку со словами"
+        >
+          <BookOpen className="w-4 h-4 text-white group-hover:scale-110 transition-transform" />
+          <span className="text-[10px] font-bold uppercase [writing-mode:vertical-rl] tracking-widest text-blue-100">
+            {userProfile.ulpanMode ? 'מִילִּים' : 'ШТОРКА'}
+          </span>
+          <span className="w-5 h-5 rounded-full bg-white text-blue-700 text-[10px] font-black flex items-center justify-center shadow-xs">
+            {lesson.dialogue.usefulWords.length}
+          </span>
+        </button>
+      )}
+
+      {/* БОКОВАЯ ШТОРКА (SIDE DRAWER СПРАВА) ЧЕРЕЗ CREATEPORTAL */}
+      {mounted && isWordsDrawerOpen && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 z-[9999] flex justify-end">
           {/* Затемнение фона (Backdrop) */}
           <div
-            className="fixed inset-0 bg-black/40 dark:bg-black/60 backdrop-blur-xs transition-opacity animate-in fade-in duration-200"
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-200 cursor-pointer"
             onClick={() => setIsWordsDrawerOpen(false)}
           />
 
-          {/* Сама панель шторки */}
-          <div className="relative w-full max-w-sm sm:max-w-md h-full bg-white dark:bg-zinc-900 shadow-2xl z-10 flex flex-col border-l border-zinc-200 dark:border-zinc-800 animate-in slide-in-from-right duration-200 ease-out font-hebrew">
+          {/* Панель шторки */}
+          <div
+            className="relative z-10 w-[88vw] max-w-sm sm:max-w-md h-full bg-white dark:bg-zinc-900 shadow-2xl flex flex-col border-l border-zinc-200 dark:border-zinc-800 font-hebrew"
+            onClick={(e) => e.stopPropagation()}
+          >
             {/* Шапка шторки */}
-            <div className="p-3.5 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between bg-zinc-50/80 dark:bg-zinc-850/60 shrink-0">
+            <div className="p-3.5 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between bg-zinc-50/90 dark:bg-zinc-850/80 shrink-0">
               <div className="flex items-center gap-2">
-                <span className="text-lg">📖</span>
+                <span className="text-xl">📖</span>
                 <div>
                   <h3 className="font-bold text-sm text-zinc-900 dark:text-zinc-100">
-                    {userProfile.ulpanMode ? 'שִׁלְדַּת הַשִּׂיחָה' : 'Шпаргалка к диалогу'}
+                    {userProfile.ulpanMode ? 'שִׁלְדַּת הַשִּׂיחָה' : 'Шторка: подсказки к диалогу'}
                   </h3>
                   <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
                     {userProfile.ulpanMode ? 'מִילִּים וּדֻּגְמָאוֹת' : 'Слова шага и готовые примеры'}
@@ -1070,7 +1084,7 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
               </button>
             </div>
 
-            {/* Вкладки внутри шторки: Слова / Варианты (если есть варианты) */}
+            {/* Вкладки внутри шторки: Слова / Варианты */}
             {lastAiMessage?.suggestedReplies && lastAiMessage.suggestedReplies.length > 0 && !isDialogueFinished && (
               <div className="flex border-b border-zinc-200 dark:border-zinc-800 px-3 pt-2 gap-2 bg-zinc-50/50 dark:bg-zinc-850/30 shrink-0">
                 <button
@@ -1110,7 +1124,7 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
             )}
 
             {/* Контент шторки с независимым скроллом */}
-            <div className="flex-1 overflow-y-auto p-3.5 space-y-3">
+            <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-2.5">
               {drawerTab === 'words' ? (
                 /* Список слов */
                 lesson.dialogue.usefulWords && lesson.dialogue.usefulWords.length > 0 ? (
@@ -1183,7 +1197,7 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
                               className="px-2 py-1 rounded-lg bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/60 dark:hover:bg-blue-900 text-blue-700 dark:text-blue-300 font-bold text-xs flex items-center gap-1 transition cursor-pointer active:scale-95"
                               title="Вставить в строку ввода"
                             >
-                              <span>↵</span>
+                              <span>↵ Вставить</span>
                             </button>
                           </div>
                         </div>
@@ -1246,17 +1260,18 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
             </div>
 
             {/* Подвал шторки с кнопкой Закрыть */}
-            <div className="p-3 border-t border-zinc-200 dark:border-zinc-800 bg-zinc-50/80 dark:bg-zinc-850/50 shrink-0">
+            <div className="p-3 border-t border-zinc-200 dark:border-zinc-800 bg-zinc-50/90 dark:bg-zinc-850/70 shrink-0">
               <button
                 type="button"
                 onClick={() => setIsWordsDrawerOpen(false)}
-                className="w-full py-2 px-3 rounded-xl bg-zinc-200 dark:bg-zinc-800 hover:bg-zinc-300 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 text-xs font-bold transition cursor-pointer"
+                className="w-full py-2.5 px-3 rounded-xl bg-zinc-200 dark:bg-zinc-800 hover:bg-zinc-300 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 text-xs font-bold transition cursor-pointer active:scale-98"
               >
                 {userProfile.ulpanMode ? 'סְגִירָה' : 'Закрыть подсказки'}
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Модалка разбора слова */}
