@@ -664,7 +664,7 @@ export default function Home() {
       />
 
       {/* Основная рабочая область */}
-      <main className="flex-1 max-w-6xl w-full mx-auto px-3 sm:px-4 py-4 md:py-6 pb-24 md:pb-8">
+      <main className={`flex-1 max-w-6xl w-full mx-auto px-3 sm:px-4 py-4 md:py-6 ${currentView === 'lesson' ? 'pb-4 md:pb-8' : 'pb-24 md:pb-8'}`}>
         {currentView === 'map' && (
           <CourseMap
             userProfile={profile}

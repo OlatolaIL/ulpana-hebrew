@@ -242,71 +242,73 @@ export const Navbar: React.FC<NavbarProps> = ({
         </div>
       </header>
 
-      {/* Мобильная нижняя панель навигации (Bottom Bar) */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-lg border-t border-zinc-200 dark:border-zinc-800 px-3 py-1.5 flex items-center justify-around shadow-lg">
-        <button
-          onClick={() => onNavigate('map')}
-          className={`flex flex-col items-center justify-center py-1 px-3 rounded-xl transition ${
-            currentView === 'map' || currentView === 'lesson'
-              ? 'text-blue-600 dark:text-blue-400 font-bold'
-              : 'text-zinc-400 font-medium'
-          }`}
-        >
-          <BookOpen className="w-5 h-5 mb-0.5" />
-          <span className="text-[11px] leading-tight">
-            {userProfile.ulpanMode ? 'שִׁיעוּרִים' : 'Уроки'}
-          </span>
-        </button>
+      {/* Мобильная нижняя панель навигации (Bottom Bar) - скрыта во время прохождения урока */}
+      {currentView !== 'lesson' && (
+        <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-lg border-t border-zinc-200 dark:border-zinc-800 px-3 py-1.5 flex items-center justify-around shadow-lg">
+          <button
+            onClick={() => onNavigate('map')}
+            className={`flex flex-col items-center justify-center py-1 px-3 rounded-xl transition ${
+              currentView === 'map'
+                ? 'text-blue-600 dark:text-blue-400 font-bold'
+                : 'text-zinc-400 font-medium'
+            }`}
+          >
+            <BookOpen className="w-5 h-5 mb-0.5" />
+            <span className="text-[11px] leading-tight">
+              {userProfile.ulpanMode ? 'שִׁיעוּרִים' : 'Уроки'}
+            </span>
+          </button>
 
-        <button
-          onClick={() => onNavigate('alphabet')}
-          className={`flex flex-col items-center justify-center py-1 px-3 rounded-xl transition ${
-            currentView === 'alphabet'
-              ? 'text-blue-600 dark:text-blue-400 font-bold'
-              : 'text-zinc-400 font-medium'
-          }`}
-        >
-          <span className="font-cursive font-bold text-xl leading-none mb-0.5">א</span>
-          <span className="text-[11px] leading-tight">
-            {userProfile.ulpanMode ? 'כְּתַב' : 'Прописи'}
-          </span>
-        </button>
+          <button
+            onClick={() => onNavigate('alphabet')}
+            className={`flex flex-col items-center justify-center py-1 px-3 rounded-xl transition ${
+              currentView === 'alphabet'
+                ? 'text-blue-600 dark:text-blue-400 font-bold'
+                : 'text-zinc-400 font-medium'
+            }`}
+          >
+            <span className="font-cursive font-bold text-xl leading-none mb-0.5">א</span>
+            <span className="text-[11px] leading-tight">
+              {userProfile.ulpanMode ? 'כְּתַב' : 'Прописи'}
+            </span>
+          </button>
 
-        <button
-          onClick={() => onNavigate('flashcards')}
-          className={`flex flex-col items-center justify-center py-1 px-3 rounded-xl transition ${
-            currentView === 'flashcards'
-              ? 'text-blue-600 dark:text-blue-400 font-bold'
-              : 'text-zinc-400 font-medium'
-          }`}
-        >
-          <Layers className="w-5 h-5 mb-0.5" />
-          <span className="text-[11px] leading-tight">
-            {userProfile.ulpanMode ? 'כַּרְטִיסִיּוֹת' : 'Карточки'}
-          </span>
-        </button>
+          <button
+            onClick={() => onNavigate('flashcards')}
+            className={`flex flex-col items-center justify-center py-1 px-3 rounded-xl transition ${
+              currentView === 'flashcards'
+                ? 'text-blue-600 dark:text-blue-400 font-bold'
+                : 'text-zinc-400 font-medium'
+            }`}
+          >
+            <Layers className="w-5 h-5 mb-0.5" />
+            <span className="text-[11px] leading-tight">
+              {userProfile.ulpanMode ? 'כַּרְטִיסִיּוֹת' : 'Карточки'}
+            </span>
+          </button>
 
-        <button
-          onClick={() => onNavigate('dictionary')}
-          className={`flex flex-col items-center justify-center py-1 px-3 rounded-xl transition ${
-            currentView === 'dictionary'
-              ? 'text-blue-600 dark:text-blue-400 font-bold'
-              : 'text-zinc-400 font-medium'
-          }`}
-        >
-          <div className="relative mb-0.5">
-            <Sparkles className="w-5 h-5 text-amber-500" />
-            {dictCount > 0 && (
-              <span className="absolute -top-1 -right-2 px-1 min-w-[14px] h-[14px] flex items-center justify-center rounded-full text-[9px] font-bold bg-amber-500 text-white">
-                {dictCount}
-              </span>
-            )}
-          </div>
-          <span className="text-[11px] leading-tight">
-            {userProfile.ulpanMode ? 'מִילּוֹן' : 'Словарик'}
-          </span>
-        </button>
-      </nav>
+          <button
+            onClick={() => onNavigate('dictionary')}
+            className={`flex flex-col items-center justify-center py-1 px-3 rounded-xl transition ${
+              currentView === 'dictionary'
+                ? 'text-blue-600 dark:text-blue-400 font-bold'
+                : 'text-zinc-400 font-medium'
+            }`}
+          >
+            <div className="relative mb-0.5">
+              <Sparkles className="w-5 h-5 text-amber-500" />
+              {dictCount > 0 && (
+                <span className="absolute -top-1 -right-2 px-1 min-w-[14px] h-[14px] flex items-center justify-center rounded-full text-[9px] font-bold bg-amber-500 text-white">
+                  {dictCount}
+                </span>
+              )}
+            </div>
+            <span className="text-[11px] leading-tight">
+              {userProfile.ulpanMode ? 'מִילּוֹן' : 'Словарик'}
+            </span>
+          </button>
+        </nav>
+      )}
     </>
   );
 };
