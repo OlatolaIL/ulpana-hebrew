@@ -28,6 +28,7 @@ import { tokenizeText, TextToken, stripNikkud } from '@/lib/transcription';
 import { speakHebrew, HebrewSpeechRecognizer } from '@/lib/speech';
 import { getDialogueHelpForLesson } from '@/lib/dialogueHints';
 import { WordLookupModal } from './WordLookupModal';
+import { phoneAudio } from '@/lib/phoneAudio';
 import {
   markLessonTabCompleted,
   unmarkLessonTabCompleted,
@@ -171,6 +172,9 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
   const [showBriefingModal, setShowBriefingModal] = useState(false);
   const [drawerTab, setDrawerTab] = useState<'words' | 'replies'>('words');
   const [stepChangeModal, setStepChangeModal] = useState<DialogueStep | null>(null);
+  const [isTranscribing, setIsTranscribing] = useState(false);
+  const [audioLevel, setAudioLevel] = useState(0);
+  const activeMicStreamRef = useRef<MediaStream | null>(null);
   const prevStepIndexRef = useRef<number>(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const [mounted, setMounted] = useState(false);
@@ -301,6 +305,12 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
 
     return () => {
       rec.stop();
+      if (activeMicStreamRef.current) {
+        try {
+          activeMicStreamRef.current.getTracks().forEach((t) => t.stop());
+        } catch {}
+        activeMicStreamRef.current = null;
+      }
       if (messagesRef.current.length > 1) {
         logChatSession(messagesRef.current);
       }
@@ -445,46 +455,99 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
     }
   };
 
-  const toggleRecording = () => {
+  const toggleRecording = async () => {
     if (!recognizer || !recognizer.isSupported()) {
       alert('Голосовой ввод не поддерживается вашим браузером.');
       return;
     }
 
     if (isRecording) {
-      recognizer.stop();
       setIsRecording(false);
-    } else {
-      setIsRecording(true);
-      recognizer.start(
-        (transcript) => {
-          if (transcript) {
-            setInputText(transcript);
-          }
-        },
-        (err) => {
-          console.error('Speech error:', err);
-          setIsRecording(false);
-        },
-        (lastTranscript) => {
-          if (lastTranscript) {
-            setInputText(lastTranscript);
-          }
-          setIsRecording(false);
-        },
-        {
-          vocabulary: Array.from(
-            new Set([
-              ...(lesson.vocabulary || []).map((w) => w.hebrew),
-              ...(lesson.dialogue?.vocabularyHints || []),
-              ...helpData.usefulWords.map((w) => w.hebrew),
-              ...knownWords,
-            ])
-          ),
-          apiKey: userProfile.groqApiKey || undefined,
-        }
-      );
+      setIsTranscribing(true);
+      recognizer.stop();
+      return;
     }
+
+    // 1. Активируем AudioContext по клику пользователя (User gesture для браузеров)
+    const ctx = phoneAudio.getContext();
+    if (ctx && ctx.state === 'suspended') {
+      ctx.resume().catch(() => {});
+    }
+
+    // 2. Запрашиваем микрофон с шумо- и эхоподавлением (как в звонках на 5 этапе)
+    if (typeof navigator !== 'undefined' && navigator.mediaDevices?.getUserMedia) {
+      try {
+        if (!activeMicStreamRef.current || !activeMicStreamRef.current.active) {
+          const stream = await navigator.mediaDevices.getUserMedia({
+            audio: {
+              echoCancellation: true,
+              noiseSuppression: true,
+              autoGainControl: true,
+            },
+          });
+          activeMicStreamRef.current = stream;
+        }
+      } catch (err) {
+        console.warn('Mic permission error:', err);
+      }
+    }
+
+    setIsRecording(true);
+    setIsTranscribing(false);
+    setAudioLevel(0);
+
+    const silenceDelayMs = lesson.number && lesson.number <= 10 ? 1600 : 1400;
+
+    recognizer.start(
+      (transcript, isFinal) => {
+        if (transcript) {
+          setInputText(transcript);
+        }
+        if (isFinal) {
+          setIsRecording(false);
+          setIsTranscribing(false);
+        }
+      },
+      (err) => {
+        console.error('Speech error:', err);
+        setIsRecording(false);
+        setIsTranscribing(false);
+      },
+      (lastTranscript) => {
+        if (lastTranscript) {
+          setInputText(lastTranscript);
+        }
+        setIsRecording(false);
+        setIsTranscribing(false);
+      },
+      {
+        vocabulary: Array.from(
+          new Set([
+            ...(lesson.vocabulary || []).map((w) => w.hebrew),
+            ...(lesson.dialogue?.vocabularyHints || []),
+            ...helpData.usefulWords.map((w) => w.hebrew),
+            ...knownWords,
+          ])
+        ),
+        apiKey: userProfile.groqApiKey || undefined,
+        continuous: true,
+        silenceDurationMs: silenceDelayMs,
+        speechThreshold: 10,
+        audioContext: ctx,
+        mediaStream: activeMicStreamRef.current,
+        onAudioLevel: (level) => {
+          setAudioLevel(level);
+        },
+        onSilenceDetected: (transcript) => {
+          if (transcript && transcript.trim()) {
+            setInputText(transcript.trim());
+          }
+          setIsRecording(false);
+          setIsTranscribing(false);
+          recognizer.stop();
+        },
+      }
+    );
   };
 
   const handleWordClick = (token: TextToken, fullSentence: string) => {
@@ -922,6 +985,39 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
             </div>
           )}
 
+          {/* Индикатор активной записи речи с эквалайзером */}
+          {isRecording && (
+            <div className="px-3 py-1.5 bg-rose-50 dark:bg-rose-950/40 border-b border-rose-200 dark:border-rose-900/60 flex items-center justify-between text-xs text-rose-700 dark:text-rose-300 animate-in fade-in duration-150">
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-rose-600 animate-ping shrink-0" />
+                <span className="font-bold">
+                  {userProfile.ulpanMode ? '🎙️ מַאֲזִין... דַּבְּרוּ בְּעִבְרִית' : '🎙️ Запись голоса (говорите на иврите):'}
+                </span>
+              </div>
+              <div className="flex items-center gap-1 h-3 shrink-0">
+                {[0.4, 0.8, 1.2, 0.9, 0.5].map((h, i) => (
+                  <span
+                    key={i}
+                    className="w-1 bg-rose-500 rounded-full transition-all duration-75"
+                    style={{
+                      height: `${Math.max(4, Math.min(14, (audioLevel > 0.05 ? audioLevel : 0.15) * 16 * h))}px`,
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Индикатор обработки речи через Whisper AI */}
+          {isTranscribing && (
+            <div className="px-3 py-1.5 bg-indigo-50 dark:bg-indigo-950/40 border-b border-indigo-200 dark:border-indigo-900/60 flex items-center gap-2 text-xs text-indigo-700 dark:text-indigo-300 animate-in fade-in duration-150">
+              <Sparkles className="w-4 h-4 animate-spin text-indigo-600 shrink-0" />
+              <span className="font-bold">
+                {userProfile.ulpanMode ? 'מְעַבֵּד אֶת הַדִּבּוּר בְּבִינָה מְלָאכוּתִית...' : 'Распознавание речи через ИИ (Whisper V3)...'}
+              </span>
+            </div>
+          )}
+
           {/* Строка ввода со встроенным микрофоном */}
           <div className="p-2.5 sm:p-3">
             <form
@@ -934,14 +1030,21 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
               <button
                 type="button"
                 onClick={toggleRecording}
+                disabled={isTranscribing}
                 className={`p-2.5 rounded-xl transition cursor-pointer shrink-0 flex items-center justify-center ${
-                  isRecording
-                    ? 'bg-rose-600 text-white ring-4 ring-rose-400/40 animate-pulse shadow-md'
+                  isTranscribing
+                    ? 'bg-indigo-600 text-white animate-pulse shadow-md'
+                    : isRecording
+                    ? 'bg-rose-600 text-white ring-4 ring-rose-400/50 animate-pulse shadow-md'
                     : 'bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-blue-600 dark:text-blue-400 border border-zinc-200 dark:border-zinc-700'
                 }`}
                 title={isRecording ? 'Остановить запись' : 'Ответить голосом на иврите'}
               >
-                <Mic className={`w-5 h-5 ${isRecording ? 'animate-bounce' : ''}`} />
+                {isTranscribing ? (
+                  <Sparkles className="w-5 h-5 animate-spin" />
+                ) : (
+                  <Mic className={`w-5 h-5 ${isRecording ? 'animate-bounce' : ''}`} />
+                )}
               </button>
 
               <div className="relative flex-1">
@@ -952,13 +1055,17 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
                   value={inputText}
                   onChange={(e) => setInputText(e.target.value)}
                   placeholder={
-                    isRecording
+                    isTranscribing
+                      ? (userProfile.ulpanMode ? '✨ מְעַבֵּד אֶת הַדִּבּוּר...' : '✨ Обработка речи через ИИ...')
+                      : isRecording
                       ? (userProfile.ulpanMode ? '🎙️ מַאֲזִין... דַּבְּרוּ בְּעִבְרִית' : '🎙️ Слушаю... говорите на иврите')
                       : (userProfile.ulpanMode ? 'הַקְלִידוּ אוֹ דַּבְּרוּ בְּעִבְרִית...' : 'Напишите или продиктуйте ответ на иврите...')
                   }
-                  className={`w-full py-2.5 pl-3.5 pr-8 rounded-xl border text-sm transition focus:outline-none ${
-                    isRecording
-                      ? 'border-rose-500 ring-2 ring-rose-300 dark:ring-rose-900/50 bg-rose-50/30 text-rose-950 dark:text-rose-100 font-medium'
+                  className={`w-full py-2.5 pl-3.5 pr-8 rounded-xl border text-base sm:text-sm transition focus:outline-none ${
+                    isTranscribing
+                      ? 'border-indigo-500 ring-2 ring-indigo-300 dark:ring-indigo-900/50 bg-indigo-50/40 dark:bg-indigo-950/20 text-indigo-950 dark:text-indigo-100 font-medium'
+                      : isRecording
+                      ? 'border-rose-500 ring-2 ring-rose-300 dark:ring-rose-900/50 bg-rose-50/40 dark:bg-rose-950/20 text-rose-950 dark:text-rose-100 font-medium'
                       : 'border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/90 text-zinc-900 dark:text-zinc-100 focus:border-blue-500 focus:bg-white dark:focus:bg-zinc-800'
                   }`}
                 />
@@ -976,7 +1083,7 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
 
               <button
                 type="submit"
-                disabled={!inputText.trim() || loading}
+                disabled={!inputText.trim() || loading || isTranscribing}
                 className="p-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl shadow-xs transition active:scale-95 shrink-0 cursor-pointer flex items-center justify-center"
                 title="Отправить ответ"
               >

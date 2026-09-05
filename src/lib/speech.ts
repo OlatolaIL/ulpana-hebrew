@@ -511,16 +511,17 @@ export class HebrewSpeechRecognizer {
           const recordedChunks = [...this.audioChunks];
           this.audioChunks = [];
 
-          if (recordedChunks.length > 0 && !this.lastTranscript.trim()) {
+          if (recordedChunks.length > 0) {
             const blobType = mimeType || recordedChunks[0]?.type || 'audio/webm';
             const audioBlob = new Blob(recordedChunks, { type: blobType });
 
+            // Если записано реальное аудио (более 1000 байт), транскрибируем через Groq Whisper V3
             if (audioBlob.size > 1000) {
               const text = await this.transcribeAudioBlob(audioBlob, blobType);
-              if (text) {
-                this.lastTranscript = text;
-                this.onResultCb?.(text, true);
-                this.onEndCb?.(text);
+              if (text && text.trim()) {
+                this.lastTranscript = text.trim();
+                this.onResultCb?.(this.lastTranscript, true);
+                this.onEndCb?.(this.lastTranscript);
                 return;
               }
             }
@@ -667,13 +668,7 @@ export class HebrewSpeechRecognizer {
   }
 
   private async handleSilenceDetected(): Promise<void> {
-    const recognizedText = this.lastTranscript.trim();
-    if (recognizedText) {
-      this.currentOptions.onSilenceDetected?.(recognizedText);
-      return;
-    }
-
-    // Если браузерный Web Speech API не дал текста, берем аудио и транскрибируем через Groq Whisper
+    // 1. Пробуем транскрибировать накопленное аудио через Groq Whisper V3 для максимальной полноты фразы
     if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
       try {
         this.mediaRecorder.requestData();
@@ -686,9 +681,9 @@ export class HebrewSpeechRecognizer {
 
           if (audioBlob.size > 1000) {
             const text = await this.transcribeAudioBlob(audioBlob, blobType);
-            if (text) {
-              this.lastTranscript = text;
-              this.currentOptions.onSilenceDetected?.(text);
+            if (text && text.trim()) {
+              this.lastTranscript = text.trim();
+              this.currentOptions.onSilenceDetected?.(this.lastTranscript);
               return;
             }
           }
@@ -698,8 +693,10 @@ export class HebrewSpeechRecognizer {
       }
     }
 
-    if (this.lastTranscript.trim()) {
-      this.currentOptions.onSilenceDetected?.(this.lastTranscript.trim());
+    // 2. Fallback на браузерный Web Speech API
+    const recognizedText = this.lastTranscript.trim();
+    if (recognizedText) {
+      this.currentOptions.onSilenceDetected?.(recognizedText);
     }
   }
 
