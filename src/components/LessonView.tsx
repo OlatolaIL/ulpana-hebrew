@@ -218,7 +218,7 @@ export const LessonView: React.FC<LessonViewProps> = ({
       </div>
 
       {/* 2. Рабочая область выбранного этапа */}
-      <div className={`flex-1 min-h-0 ${activeTab === 'chat' ? 'flex flex-col overflow-hidden' : 'overflow-y-auto pr-1'}`}>
+      <div className={`flex-1 min-h-0 ${activeTab === 'chat' ? 'flex flex-col min-h-0 h-full overflow-hidden' : 'overflow-y-auto pr-1'}`}>
         {activeTab === 'theory' && (
           <LessonTheory
             lesson={lesson}

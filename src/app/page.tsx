@@ -642,7 +642,9 @@ export default function Home() {
   return (
     <div
       data-font-style={profile.fontStyle || 'print'}
-      className="min-h-screen flex flex-col bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-50 font-sans"
+      className={`flex flex-col bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-50 font-sans ${
+        currentView === 'lesson' ? 'h-[100dvh] max-h-[100dvh] overflow-hidden' : 'min-h-screen'
+      }`}
     >
       {/* Навбар */}
       <Navbar
@@ -665,9 +667,9 @@ export default function Home() {
 
       {/* Основная рабочая область */}
       <main
-        className={`flex-1 max-w-6xl w-full mx-auto ${
+        className={`flex-1 max-w-6xl w-full mx-auto min-h-0 ${
           currentView === 'lesson'
-            ? 'p-1.5 sm:p-2 sm:px-4 flex flex-col min-h-0 h-[100dvh] overflow-hidden'
+            ? 'p-1.5 sm:p-2 sm:px-4 flex flex-col overflow-hidden h-full'
             : 'px-2 sm:px-4 py-4 md:py-6 pb-24 md:pb-8'
         }`}
       >

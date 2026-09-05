@@ -19,6 +19,8 @@ import {
   BookmarkPlus,
   Check,
   BookOpen,
+  Target,
+  ArrowRight,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { Lesson, UserProfile, ChatMessage, Word, DialogueWord, DialogueStep } from '@/types';
@@ -168,6 +170,9 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
   const [isWordsDrawerOpen, setIsWordsDrawerOpen] = useState(false);
   const [showBriefingModal, setShowBriefingModal] = useState(false);
   const [drawerTab, setDrawerTab] = useState<'words' | 'replies'>('words');
+  const [stepChangeModal, setStepChangeModal] = useState<DialogueStep | null>(null);
+  const prevStepIndexRef = useRef<number>(0);
+  const inputRef = useRef<HTMLInputElement>(null);
   const [mounted, setMounted] = useState(false);
   useEffect(() => {
     setMounted(true);
@@ -273,6 +278,8 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
     sessionIdRef.current = `chat_${lesson.id}_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
     startTimeRef.current = Date.now();
     lastFeedbackRef.current = null;
+    prevStepIndexRef.current = 0;
+    setStepChangeModal(null);
     const data = getInitialMessageForGender(lesson, gender);
     const initial: ChatMessage = {
       id: 'init-1',
@@ -417,6 +424,16 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
         try {
           confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
         } catch {}
+      } else {
+        // Проверяем смену шага: если новый шаг наступил, показываем всплывающий экран
+        const steps = lesson.dialogue.steps;
+        if (steps && steps.length > 0) {
+          const nextStepIndex = Math.min(currentUserTurns, steps.length - 1);
+          if (nextStepIndex > prevStepIndexRef.current && nextStepIndex < steps.length) {
+            prevStepIndexRef.current = nextStepIndex;
+            setStepChangeModal(steps[nextStepIndex]);
+          }
+        }
       }
 
       // Автоматически озвучиваем ответ ИИ
@@ -480,6 +497,8 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
     if (messagesRef.current.length > 1) {
       logChatSession(messagesRef.current);
     }
+    prevStepIndexRef.current = 0;
+    setStepChangeModal(null);
     // 1. Снимаем зачёт 4 этапа в профиле, чтобы ученик мог пройти его заново с нуля
     const updated = unmarkLessonTabCompleted(lesson.id, 'chat');
     if (onUpdateProfile) onUpdateProfile(updated);
@@ -502,10 +521,10 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
   return (
     <div
       data-font-style={userProfile.fontStyle || 'print'}
-      className="flex flex-col lg:grid lg:grid-cols-[1fr_340px] h-full flex-1 min-h-0 bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm overflow-hidden"
+      className="flex flex-col lg:flex-row h-full flex-1 min-h-0 bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm overflow-hidden"
     >
       {/* ЛЕВАЯ КОЛОНКА: ОСНОВНОЙ ЧАТ */}
-      <div className="flex flex-col h-full min-w-0 min-h-0 border-b lg:border-b-0 lg:border-r border-zinc-200 dark:border-zinc-800 overflow-hidden">
+      <div className="flex-1 min-w-0 min-h-0 flex flex-col h-full overflow-hidden border-b lg:border-b-0 lg:border-r border-zinc-200 dark:border-zinc-800">
         {/* ВЕРХНЯЯ ЗАКРЕПЛЕННАЯ ПАНЕЛЬ: Вводные данные шага + Переключение пола ♂ ♀ + Сброс ⟲ */}
         <div className="shrink-0 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 px-3 py-2 sm:px-4 sm:py-2.5 z-10 shadow-2xs font-hebrew">
           <div className="flex items-center justify-between gap-2">
@@ -927,6 +946,7 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
 
               <div className="relative flex-1">
                 <input
+                  ref={inputRef}
                   type="text"
                   dir="auto"
                   value={inputText}
@@ -968,7 +988,7 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
       </div>
 
       {/* ПРАВАЯ КОЛОНКА: БОКОВАЯ ПАНЕЛЬ ШПАРГАЛКИ (DESKTOP SIDEBAR) */}
-      <div className="hidden lg:flex flex-col h-full bg-zinc-50/70 dark:bg-zinc-900/90 overflow-hidden">
+      <div className="hidden lg:flex flex-col w-[320px] xl:w-[340px] shrink-0 h-full min-h-0 bg-zinc-50/70 dark:bg-zinc-900/90 overflow-hidden">
         {/* Шапка боковой панели */}
         <div className="h-12 px-3.5 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between shrink-0 bg-white dark:bg-zinc-900">
           <div className="flex items-center gap-1.5 font-bold text-xs text-zinc-900 dark:text-zinc-100 font-hebrew">
@@ -1496,6 +1516,97 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
                 className="w-full sm:w-auto px-5 py-2.5 rounded-xl font-bold text-sm bg-blue-600 hover:bg-blue-700 text-white shadow-sm transition active:scale-95 cursor-pointer flex items-center justify-center gap-2"
               >
                 <span>{userProfile.ulpanMode ? 'הֵבַנְתִּי, לַשִּׂיחָה 💬' : 'Понятно, к диалогу 💬'}</span>
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* ВСПЛЫВАЮЩИЙ ЭКРАН ПРИ СМЕНЕ ШАГА (Step Change Popup Modal) */}
+      {stepChangeModal && mounted && createPortal(
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200"
+          onClick={() => {
+            setStepChangeModal(null);
+            setTimeout(() => inputRef.current?.focus(), 80);
+          }}
+        >
+          <div
+            className="bg-white dark:bg-zinc-900 border border-blue-200 dark:border-blue-900/60 rounded-3xl shadow-2xl max-w-lg w-full overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col text-zinc-900 dark:text-zinc-100"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Верхняя шапка модалки */}
+            <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-sky-600 text-white p-4 sm:p-5 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-2xl bg-white/20 backdrop-blur flex items-center justify-center shadow-xs shrink-0">
+                  <Sparkles className="w-5 h-5 text-yellow-300" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-white/25 text-white">
+                      {userProfile.ulpanMode
+                        ? `שָׁלָב ${stepChangeModal.stepIndex} מִתּוֹךְ ${stepsCount}`
+                        : `Шаг ${stepChangeModal.stepIndex} из ${stepsCount}`}
+                    </span>
+                  </div>
+                  <h3 className="text-base sm:text-lg font-bold leading-tight mt-0.5">
+                    {userProfile.ulpanMode ? 'מַצָּב חָדָשׁ בַּשִּׂיחָה!' : 'Ситуация изменилась!'}
+                  </h3>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setStepChangeModal(null);
+                  setTimeout(() => inputRef.current?.focus(), 80);
+                }}
+                className="p-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white transition cursor-pointer"
+                title="Закрыть"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Тело модалки */}
+            <div className="p-4 sm:p-5 space-y-4">
+              {/* Карточка факта новой ситуации */}
+              <div className="bg-blue-50/90 dark:bg-blue-950/40 border-2 border-blue-200 dark:border-blue-800/80 rounded-2xl p-4 shadow-sm space-y-1.5">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-blue-700 dark:text-blue-300 uppercase tracking-wider">
+                  <Target className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
+                  <span>{userProfile.ulpanMode ? 'עֻבְדָּה חֲדָשָׁה (מַה שֶׁקּוֹרֶה כָּעֵת):' : 'Что произошло прямо сейчас (новый факт):'}</span>
+                </div>
+                <p className="text-sm sm:text-base font-bold text-blue-950 dark:text-blue-50 leading-relaxed font-hebrew">
+                  {stepChangeModal.fact}
+                </p>
+              </div>
+
+              {/* Подсказка, что делать дальше */}
+              <div className="bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700/80 rounded-xl p-3 text-xs text-zinc-600 dark:text-zinc-300 space-y-1">
+                <span className="font-bold text-zinc-800 dark:text-zinc-200 block">
+                  {userProfile.ulpanMode ? 'הוֹרָאוֹת:' : 'Ваша задача:'}
+                </span>
+                <p className="leading-relaxed">
+                  {userProfile.ulpanMode
+                    ? 'הַמּוֹרֶה שָׁאַל אֶתְכֶם שְׁאֵלָה עַל הַמַּצָּב הֶחָדָשׁ. עֲנוּ לוֹ בְּעִבְרִית!'
+                    : 'Преподаватель только что отреагировал на ваш ответ и задал новый вопрос с учётом этой ситуации. Ответьте ему на иврите!'}
+                </p>
+              </div>
+
+              {/* Кнопка продолжить */}
+              <button
+                type="button"
+                onClick={() => {
+                  setStepChangeModal(null);
+                  setTimeout(() => inputRef.current?.focus(), 80);
+                }}
+                className="w-full py-3 px-4 rounded-xl font-bold text-sm bg-blue-600 hover:bg-blue-700 text-white shadow-md transition active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <span>{userProfile.ulpanMode ? 'הֵבַנְתִּי, לַעֲנוֹת לַמּוֹרֶה 💬' : 'Понятно, ответить на вопрос 💬'}</span>
+                <ArrowRight className="w-4 h-4" />
               </button>
             </div>
           </div>
