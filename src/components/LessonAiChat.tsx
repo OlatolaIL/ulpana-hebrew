@@ -166,6 +166,7 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
   const [recognizer, setRecognizer] = useState<HebrewSpeechRecognizer | null>(null);
   const [addedWords, setAddedWords] = useState<Record<string, boolean>>({});
   const [isWordsDrawerOpen, setIsWordsDrawerOpen] = useState(false);
+  const [showBriefingModal, setShowBriefingModal] = useState(false);
   const [drawerTab, setDrawerTab] = useState<'words' | 'replies'>('words');
   const [mounted, setMounted] = useState(false);
   useEffect(() => {
@@ -505,25 +506,102 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
     >
       {/* ЛЕВАЯ КОЛОНКА: ОСНОВНОЙ ЧАТ */}
       <div className="flex flex-col h-full min-w-0 min-h-0 border-b lg:border-b-0 lg:border-r border-zinc-200 dark:border-zinc-800 overflow-hidden">
-        {/* Просторная область сообщений чата */}
-        <div className="flex-1 min-h-0 p-3 sm:p-4 overflow-y-auto space-y-3 bg-zinc-50/40 dark:bg-zinc-950/20">
-          {/* КАРТОЧКА СИТУАЦИИ (FACT FIRST) - на главном экране перед глазами */}
-          {activeStep && (
-            <div className="bg-gradient-to-r from-blue-50/95 via-indigo-50/80 to-white dark:from-blue-950/60 dark:via-zinc-900 dark:to-zinc-900 border border-blue-200/80 dark:border-blue-900/60 rounded-xl p-3 shadow-2xs font-hebrew">
-              <div className="flex items-center gap-1.5 text-xs font-bold text-blue-900 dark:text-blue-300 mb-1">
-                <span className="text-sm">📍</span>
-                <span>
-                  {userProfile.ulpanMode
-                    ? `שָׁלָב ${activeStep.stepIndex}: מַצָּב`
-                    : `Ситуация (Шаг ${activeStep.stepIndex} из ${stepsCount})`}
+        {/* ВЕРХНЯЯ ЗАКРЕПЛЕННАЯ ПАНЕЛЬ: Вводные данные шага + Переключение пола ♂ ♀ + Сброс ⟲ */}
+        <div className="shrink-0 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 px-3 py-2 sm:px-4 sm:py-2.5 z-10 shadow-2xs font-hebrew">
+          <div className="flex items-center justify-between gap-2">
+            {/* Слева: Текущий шаг + кнопка Вводные данные */}
+            <div className="flex items-center gap-2 min-w-0">
+              {activeStep ? (
+                <>
+                  <span className="text-xs font-bold text-blue-900 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-900 px-2.5 py-1 rounded-lg shrink-0">
+                    {userProfile.ulpanMode
+                      ? `שָׁלָב ${activeStep.stepIndex}/${stepsCount}`
+                      : `Шаг ${activeStep.stepIndex}/${stepsCount}`}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setShowBriefingModal(true)}
+                    className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/50 dark:hover:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200/80 dark:border-indigo-800/60 transition cursor-pointer active:scale-95 shadow-2xs truncate"
+                    title="Открыть подробные вводные данные шага"
+                  >
+                    <Info className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400 shrink-0" />
+                    <span className="font-bold truncate">
+                      {userProfile.ulpanMode ? 'הַקְשֵׁר וְעֻבְדּוֹת' : 'Вводные данные'}
+                    </span>
+                  </button>
+                </>
+              ) : (
+                <span className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 truncate">
+                  {lesson.dialogue.title}
                 </span>
+              )}
+            </div>
+
+            {/* Справа: Смена пола ♂ ♀ + Кнопка сброса ⟲ */}
+            <div className="flex items-center gap-1.5 shrink-0">
+              {/* Переключатель пола */}
+              <div className="flex items-center bg-zinc-100 dark:bg-zinc-800 p-0.5 rounded-lg border border-zinc-200 dark:border-zinc-700 text-xs shadow-2xs">
+                <button
+                  type="button"
+                  onClick={() => handleGenderSwitch('male')}
+                  className={`px-2 py-1 rounded-md font-bold text-xs transition cursor-pointer ${
+                    userProfile.gender === 'male'
+                      ? 'bg-blue-600 text-white shadow-xs'
+                      : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200'
+                  }`}
+                  title="זָכָר ♂ (Мужской род)"
+                >
+                  ♂
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleGenderSwitch('female')}
+                  className={`px-2 py-1 rounded-md font-bold text-xs transition cursor-pointer ${
+                    userProfile.gender === 'female'
+                      ? 'bg-blue-600 text-white shadow-xs'
+                      : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200'
+                  }`}
+                  title="נְקֵבָה ♀ (Женский род)"
+                >
+                  ♀
+                </button>
               </div>
 
-              <p className="text-xs sm:text-sm text-blue-950 dark:text-blue-100 font-medium leading-relaxed">
-                {activeStep.fact}
-              </p>
+              {/* Сброс диалога */}
+              <button
+                type="button"
+                onClick={handleResetChat}
+                className="p-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-600 hover:text-blue-600 dark:text-zinc-400 transition cursor-pointer shadow-2xs"
+                title="Начать диалог сначала"
+              >
+                <RotateCcw className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+
+          {/* Быстрый факт шага (кликабельный) */}
+          {activeStep && (
+            <div
+              onClick={() => setShowBriefingModal(true)}
+              className="mt-1.5 pt-1.5 border-t border-zinc-100 dark:border-zinc-800/80 flex items-center justify-between gap-2 text-xs cursor-pointer group"
+              title="Нажмите, чтобы открыть подробные вводные данные шага"
+            >
+              <div className="flex items-center gap-1.5 min-w-0 text-zinc-700 dark:text-zinc-300">
+                <span className="text-blue-600 dark:text-blue-400 font-bold shrink-0">📍 Факт:</span>
+                <span className="font-medium truncate group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                  {activeStep.fact}
+                </span>
+              </div>
+              <span className="text-[11px] text-indigo-600 dark:text-indigo-400 font-semibold shrink-0 group-hover:underline flex items-center gap-0.5">
+                <span>Подробнее</span>
+                <span>→</span>
+              </span>
             </div>
           )}
+        </div>
+
+        {/* Просторная область сообщений чата */}
+        <div className="flex-1 min-h-0 p-3 sm:p-4 overflow-y-auto space-y-3 bg-zinc-50/40 dark:bg-zinc-950/20">
 
           {messages.map((msg, index) => {
             const isAi = msg.role === 'assistant';
@@ -767,67 +845,31 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
           <div ref={messagesEndRef} />
         </div>
 
-        {/* 3. Нижняя зона: Фиксированная панель действий + строка ввода (всегда зафиксирована на экране) */}
+        {/* 3. Нижняя зона: Фиксированная строка ввода со встроенным микрофоном */}
         <div className="shrink-0 bg-white dark:bg-zinc-900 border-t border-zinc-200 dark:border-zinc-800 sticky bottom-0 z-20 pb-[env(safe-area-inset-bottom,0px)] shadow-lg">
-          {/* Тонкая панель кнопок (32px): Варианты + Переключение пола + Сброс */}
-          <div className="px-2.5 sm:px-3 py-1.5 bg-zinc-50 dark:bg-zinc-900 border-b border-zinc-200/80 dark:border-zinc-800/80 flex items-center justify-between gap-1.5">
-            <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none">
-
-              {/* Кнопка: Быстрые варианты ответов (открывает шторку справа) */}
-              {lastAiMessage?.suggestedReplies && lastAiMessage.suggestedReplies.length > 0 && !isDialogueFinished && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setDrawerTab('replies');
-                    setIsWordsDrawerOpen(true);
-                  }}
-                  className="px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer active:scale-95 bg-white dark:bg-zinc-800 hover:bg-indigo-50 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700 hover:border-indigo-300 shadow-2xs"
-                  title="Показать готовые варианты ответа (шторка справа)"
-                >
-                  <Lightbulb className="w-3.5 h-3.5 text-amber-500" />
-                  <span>{userProfile.ulpanMode ? 'דֻּגְמָאוֹת' : 'Варианты'}</span>
-                  <span className="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-indigo-100 dark:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300">
-                    {lastAiMessage.suggestedReplies.length}
-                  </span>
-                </button>
-              )}
-            </div>
-
-            {/* Правая часть: Пол ♂ ♀ + Сброс */}
-            <div className="flex items-center gap-1.5 shrink-0">
-              <div className="flex items-center bg-white dark:bg-zinc-800 p-0.5 rounded-lg border border-zinc-200 dark:border-zinc-700 text-xs shrink-0 shadow-2xs">
-                <button
-                  type="button"
-                  onClick={() => handleGenderSwitch('male')}
-                  className={`px-1.5 py-0.5 rounded-md font-semibold text-[10px] transition cursor-pointer ${
-                    userProfile.gender === 'male' ? 'bg-blue-600 text-white shadow-2xs' : 'text-zinc-500 dark:text-zinc-400'
-                  }`}
-                  title="זָכָר ♂ (Мужской род)"
-                >
-                  ♂
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleGenderSwitch('female')}
-                  className={`px-1.5 py-0.5 rounded-md font-semibold text-[10px] transition cursor-pointer ${
-                    userProfile.gender === 'female' ? 'bg-blue-600 text-white shadow-2xs' : 'text-zinc-500 dark:text-zinc-400'
-                  }`}
-                  title="נְקֵבָה ♀ (Женский род)"
-                >
-                  ♀
-                </button>
-              </div>
-
+          {/* Если есть готовые примеры ответа — тонкая информативная плашка с кнопкой */}
+          {lastAiMessage?.suggestedReplies && lastAiMessage.suggestedReplies.length > 0 && !isDialogueFinished && (
+            <div className="px-3 py-1.5 bg-indigo-50/50 dark:bg-indigo-950/20 border-b border-indigo-100 dark:border-indigo-900/40 flex items-center justify-between">
               <button
                 type="button"
-                onClick={handleResetChat}
-                className="p-1 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-500 hover:text-blue-600 dark:text-zinc-400 transition cursor-pointer shadow-2xs"
-                title="Начать диалог сначала"
+                onClick={() => {
+                  setDrawerTab('replies');
+                  setIsWordsDrawerOpen(true);
+                }}
+                className="px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer active:scale-95 bg-white dark:bg-zinc-800 hover:bg-indigo-50 dark:hover:bg-zinc-700 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 shadow-2xs"
+                title="Показать готовые варианты ответа в шторке"
               >
-                <RotateCcw className="w-3.5 h-3.5" />
+                <Lightbulb className="w-3.5 h-3.5 text-amber-500" />
+                <span>{userProfile.ulpanMode ? 'דֻּגְמָאוֹת לַתְּשׁוּבָה' : 'Готовые варианты ответа'}</span>
+                <span className="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-indigo-100 dark:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300">
+                  {lastAiMessage.suggestedReplies.length}
+                </span>
               </button>
+              <span className="text-[11px] text-zinc-400 dark:text-zinc-500 hidden sm:inline">
+                {userProfile.ulpanMode ? 'לַחֲצוּ לִצְפִיָּה בַּשְּׁטוֹרְקָה' : 'нажмите для просмотра'}
+              </span>
             </div>
-          </div>
+          )}
 
           {/* Строка ввода со встроенным микрофоном */}
           <div className="p-2.5 sm:p-3">
@@ -1020,7 +1062,7 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
         >
           <BookOpen className="w-4 h-4 text-white group-hover:scale-110 transition-transform" />
           <span className="text-[10px] font-bold uppercase [writing-mode:vertical-rl] tracking-widest text-blue-100">
-            {userProfile.ulpanMode ? 'מִילִּים' : 'ШТОРКА'}
+            {userProfile.ulpanMode ? 'מִילִּים' : 'СЛОВА'}
           </span>
           <span className="w-5 h-5 rounded-full bg-white text-blue-700 text-[10px] font-black flex items-center justify-center shadow-xs">
             {lesson.dialogue.usefulWords.length}
@@ -1043,7 +1085,7 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
             onClick={(e) => e.stopPropagation()}
           >
             {/* Шапка шторки */}
-            <div className="p-3.5 sm:p-4 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between bg-zinc-100 dark:bg-zinc-900 shrink-0">
+            <div className="p-3.5 sm:p-4 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between bg-white dark:bg-zinc-900 shrink-0">
               <div className="flex items-center gap-2.5 min-w-0">
                 <span className="text-xl">📖</span>
                 <div className="min-w-0">
@@ -1165,18 +1207,6 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
                               >
                                 {isAdded ? <Check className="w-4 h-4 text-emerald-600" /> : <BookmarkPlus className="w-4 h-4" />}
                               </button>
-
-                              {/* Вставить в поле ввода */}
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  handleAppendWord(word.hebrew);
-                                }}
-                                className="px-2.5 py-1 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center gap-1 transition cursor-pointer active:scale-95 shadow-2xs"
-                                title="Вставить в строку ввода"
-                              >
-                                <span>↵ Вставить</span>
-                              </button>
                             </div>
                           </div>
 
@@ -1251,13 +1281,135 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
             </div>
 
             {/* Подвал шторки с кнопкой Закрыть */}
-            <div className="p-3 border-t border-zinc-200 dark:border-zinc-800 bg-zinc-100 dark:bg-zinc-900 shrink-0">
+            <div className="p-3 border-t border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shrink-0">
               <button
                 type="button"
                 onClick={() => setIsWordsDrawerOpen(false)}
-                className="w-full py-2.5 px-3 rounded-xl bg-zinc-200 dark:bg-zinc-800 hover:bg-zinc-300 dark:hover:bg-zinc-700 text-zinc-900 dark:text-zinc-100 text-xs font-bold transition cursor-pointer active:scale-98"
+                className="w-full py-2.5 px-3 rounded-xl bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-750 text-zinc-900 dark:text-zinc-100 text-xs font-bold transition cursor-pointer active:scale-98 border border-zinc-200 dark:border-zinc-700"
               >
                 {userProfile.ulpanMode ? 'סְגִירָה' : 'Закрыть подсказки'}
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* МОДАЛЬНОЕ ОКНО: ВВОДНЫЕ ДАННЫЕ ШАГА (ЧЕРЕЗ CREATEPORTAL) */}
+      {mounted && showBriefingModal && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-4">
+          {/* Затемнение фона */}
+          <div
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-200 cursor-pointer"
+            onClick={() => setShowBriefingModal(false)}
+          />
+
+          {/* Модальное окно */}
+          <div
+            className="relative z-10 w-full max-w-lg bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl border border-zinc-200 dark:border-zinc-800 overflow-hidden font-hebrew flex flex-col max-h-[90vh] animate-in fade-in zoom-in-95 duration-150"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Шапка модального окна */}
+            <div className="p-4 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-850 flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <span className="text-2xl">📍</span>
+                <div className="min-w-0">
+                  <h3 className="font-bold text-sm sm:text-base text-zinc-900 dark:text-zinc-50 truncate">
+                    {userProfile.ulpanMode
+                      ? `שָׁלָב ${activeStep?.stepIndex || 1}: מַצָּב וְהַקְשֵׁר`
+                      : `Вводные данные: Шаг ${activeStep?.stepIndex || 1} из ${stepsCount}`}
+                  </h3>
+                  <p className="text-[11px] text-zinc-500 dark:text-zinc-400 truncate">
+                    {lesson.dialogue.title}
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShowBriefingModal(false)}
+                className="p-1.5 rounded-xl text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-200/60 dark:hover:bg-zinc-800 transition cursor-pointer"
+                title="Закрыть"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Тело модального окна */}
+            <div className="p-4 sm:p-5 overflow-y-auto space-y-4 text-left">
+              {/* Общая ситуация диалога */}
+              {lesson.dialogue.situation && (
+                <div className="bg-zinc-50 dark:bg-zinc-850/60 rounded-xl p-3.5 border border-zinc-200/80 dark:border-zinc-800 text-xs">
+                  <span className="font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider block mb-1">
+                    {userProfile.ulpanMode ? 'מַצָּב כְּלָלִי' : 'Общая ситуация диалога:'}
+                  </span>
+                  <p className="text-zinc-800 dark:text-zinc-200 font-medium leading-relaxed">
+                    {lesson.dialogue.situation}
+                  </p>
+                </div>
+              )}
+
+              {/* Факт текущего шага */}
+              {activeStep && (
+                <div className="bg-blue-50/80 dark:bg-blue-950/40 rounded-xl p-4 border border-blue-200 dark:border-blue-900/60">
+                  <span className="text-xs font-bold text-blue-800 dark:text-blue-300 uppercase tracking-wider block mb-1.5 flex items-center gap-1.5">
+                    <span>🎯</span>
+                    <span>{userProfile.ulpanMode ? 'מַה שֶׁקּוֹרֶה עַכְשָׁו (עֻבְדָּה):' : 'Что происходит прямо сейчас (факт):'}</span>
+                  </span>
+                  <p className="text-sm sm:text-base font-semibold text-blue-950 dark:text-blue-100 leading-relaxed">
+                    {activeStep.fact}
+                  </p>
+                </div>
+              )}
+
+              {/* Вопрос учителя */}
+              {activeStep?.aiQuestionHebrew && (
+                <div className="bg-zinc-50 dark:bg-zinc-850/70 rounded-xl p-4 border border-zinc-200 dark:border-zinc-750 space-y-2">
+                  <span className="text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider block">
+                    {userProfile.ulpanMode ? 'שְׁאֵלַת הַמּוֹרֶה:' : 'Вопрос учителя:'}
+                  </span>
+                  <div className="flex items-start justify-between gap-3">
+                    <p dir="rtl" className="font-hebrew font-bold text-lg sm:text-xl text-zinc-900 dark:text-zinc-100 leading-relaxed text-right flex-1">
+                      {userProfile.showNikkud ? activeStep.aiQuestionHebrew : stripNikkud(activeStep.aiQuestionHebrew)}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => speakHebrew(activeStep.aiQuestionHebrew, { rate: userProfile.speechRate || 0.7 })}
+                      className="p-2 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 hover:bg-blue-100 transition cursor-pointer shrink-0 shadow-2xs"
+                      title="Озвучить вопрос"
+                    >
+                      <Volume2 className="w-5 h-5" />
+                    </button>
+                  </div>
+                  {activeStep.aiQuestionRu && !userProfile.ulpanMode && (
+                    <p className="text-xs text-zinc-600 dark:text-zinc-300 border-t border-zinc-200/80 dark:border-zinc-700/80 pt-2 italic">
+                      {activeStep.aiQuestionRu}
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* Цель ответа ученика */}
+              {activeStep?.expectedConcept && (
+                <div className="bg-amber-50/80 dark:bg-amber-950/30 rounded-xl p-3.5 border border-amber-200 dark:border-amber-900/50">
+                  <span className="text-xs font-bold text-amber-800 dark:text-amber-300 uppercase tracking-wider block mb-1">
+                    💡 {userProfile.ulpanMode ? 'מַה מְּתַרְגְּלִים:' : 'Ваша задача:'}
+                  </span>
+                  <p className="text-xs sm:text-sm text-amber-950 dark:text-amber-100 font-medium">
+                    {activeStep.expectedConcept}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Подвал с кнопкой Понятно */}
+            <div className="p-3.5 sm:p-4 border-t border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-850 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setShowBriefingModal(false)}
+                className="w-full sm:w-auto px-5 py-2.5 rounded-xl font-bold text-sm bg-blue-600 hover:bg-blue-700 text-white shadow-sm transition active:scale-95 cursor-pointer flex items-center justify-center gap-2"
+              >
+                <span>{userProfile.ulpanMode ? 'הֵבַנְתִּי, לַשִּׂיחָה 💬' : 'Понятно, к диалогу 💬'}</span>
               </button>
             </div>
           </div>
