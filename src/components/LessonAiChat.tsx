@@ -24,7 +24,7 @@ import {
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { Lesson, UserProfile, ChatMessage, Word, DialogueWord, DialogueStep } from '@/types';
-import { tokenizeText, TextToken, stripNikkud } from '@/lib/transcription';
+import { tokenizeText, TextToken, stripNikkud, alignTranscriptToVocabulary } from '@/lib/transcription';
 import { speakHebrew, stopSpeech, HebrewSpeechRecognizer, normalizeHebrewSpeechTranscript } from '@/lib/speech';
 import { getDialogueHelpForLesson } from '@/lib/dialogueHints';
 import { WordLookupModal } from './WordLookupModal';
@@ -293,6 +293,37 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
     [lesson, userProfile.gender]
   );
 
+  const lessonVocabularyList = useMemo(() => {
+    return Array.from(
+      new Set([
+        'זה עט',
+        'זאת מחברת',
+        'זה ספר',
+        'אלה תלמידים',
+        ...(lesson.vocabulary || []).flatMap((w) => [
+          w.hebrew,
+          stripNikkud(w.hebrew),
+          ...w.hebrew.split('/').map((p) => p.trim()),
+          ...stripNikkud(w.hebrew).split('/').map((p) => p.trim()),
+        ]),
+        ...(lesson.dialogue?.steps || []).flatMap((s) => [
+          ...(s.targetWords || []),
+          ...(s.sampleAnswers || []).map((a) => a.hebrew),
+          ...(s.sampleAnswers || []).map((a) => stripNikkud(a.hebrew)),
+        ]),
+        ...(lesson.dialogue?.vocabularyHints || []),
+        ...helpData.usefulWords.map((w) => w.hebrew),
+        ...knownWords,
+      ])
+    ).filter(Boolean);
+  }, [lesson, helpData, knownWords]);
+
+  const normalizeUserInput = (raw: string): string => {
+    if (!raw) return '';
+    const step1 = normalizeHebrewSpeechTranscript(raw);
+    return alignTranscriptToVocabulary(step1, lessonVocabularyList);
+  };
+
   const handleAppendWord = (wordHebrew: string) => {
     const wordToAdd = userProfile.showNikkud ? wordHebrew : stripNikkud(wordHebrew);
     setInputText((prev) => {
@@ -392,7 +423,7 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
     const rawText = (textToSend || inputText).trim();
     if (!rawText || loading) return;
 
-    const text = normalizeHebrewSpeechTranscript(rawText);
+    const text = normalizeUserInput(rawText);
 
     setInputText('');
 
@@ -590,7 +621,7 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
     recognizer.start(
       (transcript, isFinal) => {
         if (transcript) {
-          setInputText(normalizeHebrewSpeechTranscript(transcript));
+          setInputText(normalizeUserInput(transcript));
         }
         if (isFinal) {
           setIsRecording(false);
@@ -604,34 +635,13 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
       },
       (lastTranscript) => {
         if (lastTranscript) {
-          setInputText(normalizeHebrewSpeechTranscript(lastTranscript));
+          setInputText(normalizeUserInput(lastTranscript));
         }
         setIsRecording(false);
         setIsTranscribing(false);
       },
       {
-        vocabulary: Array.from(
-          new Set([
-            'זה עט',
-            'זאת מחברת',
-            'זה ספר',
-            'אלה תלמידים',
-            ...(lesson.vocabulary || []).flatMap((w) => [
-              w.hebrew,
-              stripNikkud(w.hebrew),
-              ...w.hebrew.split('/').map((p) => p.trim()),
-              ...stripNikkud(w.hebrew).split('/').map((p) => p.trim()),
-            ]),
-            ...(lesson.dialogue?.steps || []).flatMap((s) => [
-              ...(s.targetWords || []),
-              ...(s.sampleAnswers || []).map((a) => a.hebrew),
-              ...(s.sampleAnswers || []).map((a) => stripNikkud(a.hebrew)),
-            ]),
-            ...(lesson.dialogue?.vocabularyHints || []),
-            ...helpData.usefulWords.map((w) => w.hebrew),
-            ...knownWords,
-          ])
-        ).filter(Boolean),
+        vocabulary: lessonVocabularyList,
         apiKey: userProfile.groqApiKey || undefined,
         continuous: true,
         silenceDurationMs: silenceDelayMs,
@@ -643,7 +653,7 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
         },
         onSilenceDetected: (transcript) => {
           if (transcript && transcript.trim()) {
-            setInputText(normalizeHebrewSpeechTranscript(transcript.trim()));
+            setInputText(normalizeUserInput(transcript.trim()));
           }
           setIsRecording(false);
           setIsTranscribing(false);

@@ -195,3 +195,72 @@ export function getWordTranscription(word?: {
   }
   return '';
 }
+
+/**
+ * Фонетический ключ слова на иврите для устранения омофонических ошибок распознавания речи (ASR):
+ * ע/א -> 'א', ט/ת -> 'ת', כ/ח -> 'ח', ס/שׂ -> 'ס', ב/ו -> 'ו', ק/כּ -> 'כ'
+ */
+export function getHebrewPhoneticSignature(text: string): string {
+  if (!text) return '';
+  return stripNikkud(text)
+    .trim()
+    .toLowerCase()
+    .replace(/[\s\-_.,!?:;"'״׳()[\]{}—]+/g, '')
+    .replace(/[עא]/g, 'א')
+    .replace(/[טת]/g, 'ת')
+    .replace(/[כךח]/g, 'ח')
+    .replace(/[סש]/g, 'ס')
+    .replace(/[בו]/g, 'ו')
+    .replace(/[ק]/g, 'כ');
+}
+
+/**
+ * Проверка, совпадают ли два слова/фразы на слух (фонетические омофоны)
+ */
+export function areHebrewWordsPhoneticMatch(word1: string, word2: string): boolean {
+  if (!word1 || !word2) return false;
+  return getHebrewPhoneticSignature(word1) === getHebrewPhoneticSignature(word2);
+}
+
+/**
+ * Фонетическое выравнивание транскрипта по словарю урока:
+ * Если распознанное слово/фраза фонетически совпадает с целевым словом урока,
+ * но содержит омофоническую подмену (напр. טודה -> תודה, ספה -> שפה, זה את -> זה עט),
+ * заменяет его на каноническое написание из урока.
+ */
+export function alignTranscriptToVocabulary(transcript: string, vocabulary?: string[]): string {
+  if (!transcript || !vocabulary || vocabulary.length === 0) return transcript;
+
+  // 1. Создаем карту фонетических сигнатур для целевых фраз и слов урока
+  const vocabMap = new Map<string, string>();
+  for (const v of vocabulary) {
+    const clean = stripNikkud(v).trim();
+    if (clean) {
+      const sig = getHebrewPhoneticSignature(clean);
+      if (!vocabMap.has(sig)) {
+        vocabMap.set(sig, clean);
+      }
+    }
+  }
+
+  // 2. Сначала проверяем фразу целиком (для связок вроде "זה עט", "בוקר טוב")
+  const wholeSig = getHebrewPhoneticSignature(transcript);
+  if (vocabMap.has(wholeSig)) {
+    return vocabMap.get(wholeSig)!;
+  }
+
+  // 3. Проверяем по отдельным словам
+  const words = transcript.split(/\s+/);
+  let changed = false;
+  const alignedWords = words.map((w) => {
+    const wSig = getHebrewPhoneticSignature(w);
+    if (vocabMap.has(wSig)) {
+      changed = true;
+      return vocabMap.get(wSig)!;
+    }
+    return w;
+  });
+
+  return changed ? alignedWords.join(' ') : transcript;
+}
+
