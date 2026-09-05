@@ -500,122 +500,13 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
       className="flex flex-col lg:grid lg:grid-cols-[1fr_340px] h-full flex-1 min-h-0 bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm overflow-hidden"
     >
       {/* ЛЕВАЯ КОЛОНКА: ОСНОВНОЙ ЧАТ */}
-      <div className="flex flex-col h-full min-w-0 border-b lg:border-b-0 lg:border-r border-zinc-200 dark:border-zinc-800 overflow-hidden">
-        {/* 1. Единый компактный верхний бар (Header) - без слипания кнопок на мобильном */}
-        <div className="h-12 px-2.5 sm:px-4 bg-zinc-50/90 dark:bg-zinc-850/80 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between gap-1.5 sm:gap-2 shrink-0">
-          <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
-            <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-blue-600 text-white shrink-0 font-hebrew">
-              {userProfile.ulpanMode ? 'שִׂיחָה' : 'Диалог'}
-            </span>
-            <span className="font-bold text-xs sm:text-sm text-zinc-900 dark:text-zinc-100 truncate hidden xs:inline">
-              {lesson.dialogue.aiRole || (userProfile.ulpanMode ? 'מוֹרֶה' : 'Учитель')}
-            </span>
-            <span
-              className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${
-                isDialogueFinished
-                  ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300'
-                  : 'bg-blue-100 text-blue-800 dark:bg-blue-950/80 dark:text-blue-300'
-              }`}
-            >
-              {userProfile.ulpanMode
-                ? `שָׁלָב ${Math.min(userTurnsCount, TARGET_TURNS)}/${TARGET_TURNS}`
-                : `Шаг ${Math.min(userTurnsCount, TARGET_TURNS)}/${TARGET_TURNS}`}
-            </span>
-          </div>
-
-          {/* Правые контролы */}
-          <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
-            {/* Переключатель шрифта - скрыт на мобильных, так как уже есть в шапке урока */}
-            <button
-              type="button"
-              onClick={() => {
-                const nextStyle: 'print' | 'cursive' = userProfile.fontStyle === 'cursive' ? 'print' : 'cursive';
-                const updated: UserProfile = { ...userProfile, fontStyle: nextStyle };
-                saveUserProfile(updated);
-                if (onUpdateProfile) onUpdateProfile(updated);
-              }}
-              className="hidden md:flex px-2 py-1 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-xs font-semibold text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700 transition cursor-pointer"
-              title="Шрифт: Печатный / Рукописный"
-            >
-              {isCursive ? (
-                <span className="font-cursive font-bold text-sm text-blue-500">כתב</span>
-              ) : (
-                <span className="font-hebrew font-bold text-xs">דפוס</span>
-              )}
-            </button>
-
-            {/* Переключатель пола */}
-            <div className="flex items-center bg-white dark:bg-zinc-800 p-0.5 rounded-lg border border-zinc-200 dark:border-zinc-700 text-xs shrink-0">
-              <button
-                type="button"
-                onClick={() => handleGenderSwitch('male')}
-                className={`px-1.5 py-0.5 rounded-md font-semibold text-[11px] transition cursor-pointer ${
-                  userProfile.gender === 'male' ? 'bg-blue-600 text-white shadow-2xs' : 'text-zinc-400'
-                }`}
-                title="זָכָר ♂"
-              >
-                ♂
-              </button>
-              <button
-                type="button"
-                onClick={() => handleGenderSwitch('female')}
-                className={`px-1.5 py-0.5 rounded-md font-semibold text-[11px] transition cursor-pointer ${
-                  userProfile.gender === 'female' ? 'bg-blue-600 text-white shadow-2xs' : 'text-zinc-400'
-                }`}
-                title="נְקֵבָה ♀"
-              >
-                ♀
-              </button>
-            </div>
-
-            {/* Кнопка сброса */}
-            <button
-              type="button"
-              onClick={handleResetChat}
-              className="p-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 hover:text-blue-600 transition cursor-pointer shrink-0"
-              title="Начать диалог сначала"
-            >
-              <RotateCcw className="w-3.5 h-3.5" />
-            </button>
-
-            {/* Кнопка зачета */}
-            <button
-              type="button"
-              onClick={() => {
-                const updated = markLessonTabCompleted(lesson.id, 'chat');
-                if (onUpdateProfile) onUpdateProfile(updated);
-                confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
-              }}
-              className={`px-2 sm:px-2.5 py-1 rounded-lg font-bold text-xs transition flex items-center gap-1 cursor-pointer shrink-0 ${
-                isTabCompleted
-                  ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
-                  : 'bg-blue-600 hover:bg-blue-700 text-white'
-              }`}
-              title="Зачесть 4 этап"
-            >
-              <CheckCircle2 className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">{isTabCompleted ? 'Зачтен' : 'Зачесть'}</span>
-            </button>
-
-            {onGoToPhone && isDialogueFinished && (
-              <button
-                type="button"
-                onClick={onGoToPhone}
-                className="px-2 sm:px-2.5 py-1 rounded-lg font-bold text-xs bg-purple-600 hover:bg-purple-700 text-white transition flex items-center gap-1 cursor-pointer shadow-xs shrink-0"
-                title="Перейти к этапу звонка"
-              >
-                <span>Звонок ➡️</span>
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* 2. Просторная область сообщений чата */}
-        <div className="flex-1 p-3 sm:p-4 overflow-y-auto space-y-3 bg-zinc-50/40 dark:bg-zinc-950/20">
+      <div className="flex flex-col h-full min-w-0 min-h-0 border-b lg:border-b-0 lg:border-r border-zinc-200 dark:border-zinc-800 overflow-hidden">
+        {/* Просторная область сообщений чата */}
+        <div className="flex-1 min-h-0 p-3 sm:p-4 overflow-y-auto space-y-3 bg-zinc-50/40 dark:bg-zinc-950/20">
           {/* КАРТОЧКА СИТУАЦИИ (FACT FIRST) - на главном экране перед глазами */}
           {activeStep && (
             <div className="bg-gradient-to-r from-blue-50/95 via-indigo-50/80 to-white dark:from-blue-950/60 dark:via-zinc-900 dark:to-zinc-900 border border-blue-200/80 dark:border-blue-900/60 rounded-xl p-2.5 sm:p-3 shadow-2xs font-hebrew">
-              <div className="flex items-center justify-between gap-2 mb-1">
+              <div className="flex items-center justify-between gap-2 mb-1.5">
                 <div className="flex items-center gap-1.5 text-xs font-bold text-blue-900 dark:text-blue-300">
                   <span className="text-sm">📍</span>
                   <span>
@@ -624,29 +515,90 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
                       : `Ситуация (Шаг ${activeStep.stepIndex} из ${stepsCount})`}
                   </span>
                 </div>
-                {lesson.dialogue.usefulWords && lesson.dialogue.usefulWords.length > 0 && (
+
+                {/* Правые компактные кнопки: пол ♂ ♀ + сброс + слова шага */}
+                <div className="flex items-center gap-1.5 shrink-0">
+                  {/* Переключатель пола */}
+                  <div className="flex items-center bg-white dark:bg-zinc-850 p-0.5 rounded-lg border border-blue-200 dark:border-blue-900/70 text-xs shadow-2xs">
+                    <button
+                      type="button"
+                      onClick={() => handleGenderSwitch('male')}
+                      className={`px-1.5 py-0.5 rounded font-semibold text-[10px] transition cursor-pointer ${
+                        userProfile.gender === 'male' ? 'bg-blue-600 text-white shadow-2xs' : 'text-zinc-500 dark:text-zinc-400'
+                      }`}
+                      title="זָכָר ♂ (Мужской род)"
+                    >
+                      ♂
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleGenderSwitch('female')}
+                      className={`px-1.5 py-0.5 rounded font-semibold text-[10px] transition cursor-pointer ${
+                        userProfile.gender === 'female' ? 'bg-blue-600 text-white shadow-2xs' : 'text-zinc-500 dark:text-zinc-400'
+                      }`}
+                      title="נְקֵבָה ♀ (Женский род)"
+                    >
+                      ♀
+                    </button>
+                  </div>
+
+                  {/* Сброс диалога */}
                   <button
                     type="button"
-                    onClick={() => setActiveShelf((prev) => (prev === 'words' ? null : 'words'))}
-                    className={`text-[11px] font-bold px-2 py-0.5 rounded-lg transition flex items-center gap-1 cursor-pointer active:scale-95 ${
-                      activeShelf === 'words'
-                        ? 'bg-blue-600 text-white shadow-2xs'
-                        : 'text-blue-700 dark:text-blue-300 bg-blue-100/80 dark:bg-blue-900/50 hover:bg-blue-200'
-                    }`}
-                    title="Показать / скрыть полезные слова шага"
+                    onClick={handleResetChat}
+                    className="p-1 rounded-lg border border-blue-200 dark:border-blue-900/70 bg-white dark:bg-zinc-850 text-zinc-500 hover:text-blue-600 dark:text-zinc-400 transition cursor-pointer shadow-2xs"
+                    title="Начать диалог сначала"
                   >
-                    <BookOpen className="w-3 h-3" />
-                    <span>{activeShelf === 'words' ? 'Скрыть слова ▴' : 'Слова шага ▾'}</span>
+                    <RotateCcw className="w-3 h-3" />
                   </button>
-                )}
+
+                  {/* Кнопка быстрого открытия слов шага */}
+                  {lesson.dialogue.usefulWords && lesson.dialogue.usefulWords.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setActiveShelf((prev) => (prev === 'words' ? null : 'words'))}
+                      className={`text-[10px] font-bold px-2 py-0.5 rounded-lg transition flex items-center gap-1 cursor-pointer active:scale-95 shadow-2xs ${
+                        activeShelf === 'words'
+                          ? 'bg-blue-600 text-white'
+                          : 'text-blue-700 dark:text-blue-300 bg-blue-100/90 dark:bg-blue-900/60 hover:bg-blue-200'
+                      }`}
+                      title="Показать / скрыть полезные слова шага"
+                    >
+                      <BookOpen className="w-3 h-3" />
+                      <span className="hidden xs:inline">{activeShelf === 'words' ? 'Скрыть слова' : 'Слова шага'}</span>
+                    </button>
+                  )}
+                </div>
               </div>
+
               <p className="text-xs sm:text-sm text-blue-950 dark:text-blue-100 font-medium leading-snug">
                 {activeStep.fact}
               </p>
+
               {activeStep.expectedConcept && (
-                <div className="mt-1.5 pt-1 border-t border-blue-200/50 dark:border-blue-900/40 flex items-center gap-1.5 text-[11px] text-blue-700 dark:text-blue-300">
-                  <span className="font-bold">🎯 Фокус:</span>
-                  <span>{activeStep.expectedConcept}</span>
+                <div className="mt-1.5 pt-1 border-t border-blue-200/50 dark:border-blue-900/40 flex items-center justify-between gap-1.5 text-[11px] text-blue-700 dark:text-blue-300">
+                  <div className="flex items-center gap-1">
+                    <span className="font-bold">🎯 Фокус:</span>
+                    <span>{activeStep.expectedConcept}</span>
+                  </div>
+                  {/* Кнопка зачета шага */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const updated = markLessonTabCompleted(lesson.id, 'chat');
+                      if (onUpdateProfile) onUpdateProfile(updated);
+                      confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+                    }}
+                    className={`text-[9px] font-bold px-1.5 py-0.5 rounded transition flex items-center gap-0.5 cursor-pointer ${
+                      isTabCompleted
+                        ? 'bg-emerald-600 text-white'
+                        : 'bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 hover:bg-blue-200'
+                    }`}
+                    title="Отметить диалог как пройденный"
+                  >
+                    <CheckCircle2 className="w-2.5 h-2.5" />
+                    <span>{isTabCompleted ? 'Зачтено' : 'Зачесть'}</span>
+                  </button>
                 </div>
               )}
             </div>
@@ -895,74 +847,71 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
         </div>
 
         {/* 3. Нижняя зона: Встроенные кнопки-переключатели + компактная полка материалов + строка ввода */}
-        <div className="bg-white dark:bg-zinc-900 border-t border-zinc-200 dark:border-zinc-800">
+        <div className="shrink-0 bg-white dark:bg-zinc-900 border-t border-zinc-200 dark:border-zinc-800 sticky bottom-0 z-20 pb-[env(safe-area-inset-bottom,0px)] shadow-lg">
           {/* Панель кнопок-переключателей материалов (Docked Switcher Bar) */}
-          {((lesson.dialogue.usefulWords && lesson.dialogue.usefulWords.length > 0) ||
-            (lastAiMessage?.suggestedReplies && lastAiMessage.suggestedReplies.length > 0 && !isDialogueFinished)) && (
-            <div className="px-3 py-1.5 bg-zinc-50/90 dark:bg-zinc-850/70 border-b border-zinc-200/80 dark:border-zinc-800/80 flex items-center justify-between gap-1.5">
-              <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none">
-                {/* Переключатель: Полезные слова */}
-                {lesson.dialogue.usefulWords && lesson.dialogue.usefulWords.length > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => setActiveShelf((prev) => (prev === 'words' ? null : 'words'))}
-                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer active:scale-95 ${
+          <div className="px-2.5 sm:px-3 py-1.5 bg-zinc-50/90 dark:bg-zinc-850/70 border-b border-zinc-200/80 dark:border-zinc-800/80 flex items-center justify-between gap-1.5">
+            <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none">
+              {/* Переключатель: Полезные слова */}
+              {lesson.dialogue.usefulWords && lesson.dialogue.usefulWords.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setActiveShelf((prev) => (prev === 'words' ? null : 'words'))}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer active:scale-95 ${
+                    activeShelf === 'words'
+                      ? 'bg-blue-600 text-white shadow-2xs font-bold'
+                      : 'bg-white dark:bg-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700'
+                  }`}
+                  title="Показать / скрыть полезные слова шага"
+                >
+                  <BookOpen className="w-3.5 h-3.5" />
+                  <span>{userProfile.ulpanMode ? 'מִילִּים' : 'Слова шага'}</span>
+                  <span
+                    className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
                       activeShelf === 'words'
-                        ? 'bg-blue-600 text-white shadow-2xs font-bold'
-                        : 'bg-white dark:bg-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700'
+                        ? 'bg-blue-700 text-white'
+                        : 'bg-zinc-100 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300'
                     }`}
-                    title="Показать / скрыть полезные слова шага"
                   >
-                    <BookOpen className="w-3.5 h-3.5" />
-                    <span>{userProfile.ulpanMode ? 'מִילִּים' : 'Слова шага'}</span>
-                    <span
-                      className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
-                        activeShelf === 'words'
-                          ? 'bg-blue-700 text-white'
-                          : 'bg-zinc-100 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300'
-                      }`}
-                    >
-                      {lesson.dialogue.usefulWords.length}
-                    </span>
-                    {activeShelf === 'words' ? (
-                      <ChevronUp className="w-3 h-3" />
-                    ) : (
-                      <ChevronDown className="w-3 h-3 text-zinc-400" />
-                    )}
-                  </button>
-                )}
+                    {lesson.dialogue.usefulWords.length}
+                  </span>
+                  {activeShelf === 'words' ? (
+                    <ChevronUp className="w-3 h-3" />
+                  ) : (
+                    <ChevronDown className="w-3 h-3 text-zinc-400" />
+                  )}
+                </button>
+              )}
 
-                {/* Переключатель: Быстрые варианты ответов */}
-                {lastAiMessage?.suggestedReplies && lastAiMessage.suggestedReplies.length > 0 && !isDialogueFinished && (
-                  <button
-                    type="button"
-                    onClick={() => setActiveShelf((prev) => (prev === 'replies' ? null : 'replies'))}
-                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer active:scale-95 ${
+              {/* Переключатель: Быстрые варианты ответов */}
+              {lastAiMessage?.suggestedReplies && lastAiMessage.suggestedReplies.length > 0 && !isDialogueFinished && (
+                <button
+                  type="button"
+                  onClick={() => setActiveShelf((prev) => (prev === 'replies' ? null : 'replies'))}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer active:scale-95 ${
+                    activeShelf === 'replies'
+                      ? 'bg-indigo-600 text-white shadow-2xs font-bold'
+                      : 'bg-white dark:bg-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700'
+                  }`}
+                  title="Показать готовые примеры ответа"
+                >
+                  <Lightbulb className="w-3.5 h-3.5 text-amber-500" />
+                  <span>{userProfile.ulpanMode ? 'דֻּגְמָאוֹת' : 'Варианты'}</span>
+                  <span
+                    className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
                       activeShelf === 'replies'
-                        ? 'bg-indigo-600 text-white shadow-2xs font-bold'
-                        : 'bg-white dark:bg-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700'
+                        ? 'bg-indigo-700 text-white'
+                        : 'bg-zinc-100 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300'
                     }`}
-                    title="Показать готовые примеры ответа"
                   >
-                    <Lightbulb className="w-3.5 h-3.5 text-amber-500" />
-                    <span>{userProfile.ulpanMode ? 'דֻּגְמָאוֹת' : 'Варианты'}</span>
-                    <span
-                      className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
-                        activeShelf === 'replies'
-                          ? 'bg-indigo-700 text-white'
-                          : 'bg-zinc-100 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300'
-                      }`}
-                    >
-                      {lastAiMessage.suggestedReplies.length}
-                    </span>
-                    {activeShelf === 'replies' ? (
-                      <ChevronUp className="w-3 h-3" />
-                    ) : (
-                      <ChevronDown className="w-3 h-3 text-zinc-400" />
-                    )}
-                  </button>
-                )}
-              </div>
+                    {lastAiMessage.suggestedReplies.length}
+                  </span>
+                  {activeShelf === 'replies' ? (
+                    <ChevronUp className="w-3 h-3" />
+                  ) : (
+                    <ChevronDown className="w-3 h-3 text-zinc-400" />
+                  )}
+                </button>
+              )}
 
               {activeStep?.expectedConcept && (
                 <span className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium truncate hidden sm:inline">
@@ -970,7 +919,42 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
                 </span>
               )}
             </div>
-          )}
+
+            {/* Правая часть: Пол ♂ ♀ + Сброс */}
+            <div className="flex items-center gap-1.5 shrink-0">
+              <div className="flex items-center bg-white dark:bg-zinc-800 p-0.5 rounded-lg border border-zinc-200 dark:border-zinc-700 text-xs shrink-0 shadow-2xs">
+                <button
+                  type="button"
+                  onClick={() => handleGenderSwitch('male')}
+                  className={`px-1.5 py-0.5 rounded-md font-semibold text-[10px] transition cursor-pointer ${
+                    userProfile.gender === 'male' ? 'bg-blue-600 text-white shadow-2xs' : 'text-zinc-500 dark:text-zinc-400'
+                  }`}
+                  title="זָכָר ♂ (Мужской род)"
+                >
+                  ♂
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleGenderSwitch('female')}
+                  className={`px-1.5 py-0.5 rounded-md font-semibold text-[10px] transition cursor-pointer ${
+                    userProfile.gender === 'female' ? 'bg-blue-600 text-white shadow-2xs' : 'text-zinc-500 dark:text-zinc-400'
+                  }`}
+                  title="נְקֵבָה ♀ (Женский род)"
+                >
+                  ♀
+                </button>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleResetChat}
+                className="p-1 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-500 hover:text-blue-600 dark:text-zinc-400 transition cursor-pointer shadow-2xs"
+                title="Начать диалог сначала"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
 
           {/* Встроенная компактная полка полезных слов (Docked Words Tray) */}
           {activeShelf === 'words' && lesson.dialogue.usefulWords && lesson.dialogue.usefulWords.length > 0 && (

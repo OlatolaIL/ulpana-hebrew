@@ -45,8 +45,9 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   return (
     <>
-      {/* Верхний компактный навбар */}
-      <header className="sticky top-0 z-40 w-full bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md border-b border-zinc-200 dark:border-zinc-800">
+      {/* Верхний компактный навбар - скрыт во время прохождения урока (Full Immersion Focus Mode) */}
+      {currentView !== 'lesson' && (
+        <header className="sticky top-0 z-40 w-full bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md border-b border-zinc-200 dark:border-zinc-800">
         <div className="max-w-6xl mx-auto px-2 sm:px-4 h-14 sm:h-16 flex items-center justify-between gap-1 sm:gap-2">
           {/* Логотип */}
           <div
@@ -73,7 +74,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             <button
               onClick={() => onNavigate('map')}
               className={`px-3.5 py-2 rounded-xl text-sm font-semibold flex items-center gap-2 transition ${
-                currentView === 'map' || currentView === 'lesson'
+                currentView === 'map'
                   ? 'bg-zinc-100 dark:bg-zinc-800 text-blue-600 dark:text-blue-400'
                   : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100'
               }`}
@@ -241,6 +242,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
         </div>
       </header>
+      )}
 
       {/* Мобильная нижняя панель навигации (Bottom Bar) - скрыта во время прохождения урока */}
       {currentView !== 'lesson' && (

@@ -665,10 +665,10 @@ export default function Home() {
 
       {/* Основная рабочая область */}
       <main
-        className={`flex-1 max-w-6xl w-full mx-auto px-2 sm:px-4 ${
+        className={`flex-1 max-w-6xl w-full mx-auto ${
           currentView === 'lesson'
-            ? 'py-2 sm:py-3 flex flex-col min-h-0 h-[calc(100dvh-3.5rem)] sm:h-[calc(100dvh-4rem)] overflow-hidden'
-            : 'py-4 md:py-6 pb-24 md:pb-8'
+            ? 'p-1.5 sm:p-2 sm:px-4 flex flex-col min-h-0 h-[100dvh] overflow-hidden'
+            : 'px-2 sm:px-4 py-4 md:py-6 pb-24 md:pb-8'
         }`}
       >
         {currentView === 'map' && (
