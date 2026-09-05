@@ -498,17 +498,17 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
   return (
     <div
       data-font-style={userProfile.fontStyle || 'print'}
-      className="flex flex-col lg:grid lg:grid-cols-[1fr_340px] h-[720px] max-h-[calc(100dvh-140px)] min-h-[520px] bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm overflow-hidden"
+      className="flex flex-col lg:grid lg:grid-cols-[1fr_340px] h-[calc(100dvh-260px)] sm:h-[640px] lg:h-[720px] min-h-[460px] max-h-[820px] bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm overflow-hidden"
     >
       {/* ЛЕВАЯ КОЛОНКА: ОСНОВНОЙ ЧАТ */}
       <div className="flex flex-col h-full min-w-0 border-b lg:border-b-0 lg:border-r border-zinc-200 dark:border-zinc-800 overflow-hidden">
-        {/* 1. Единый компактный верхний бар (Header) */}
-        <div className="h-12 px-3 sm:px-4 bg-zinc-50/90 dark:bg-zinc-850/80 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between gap-2 shrink-0">
-          <div className="flex items-center gap-2 min-w-0">
+        {/* 1. Единый компактный верхний бар (Header) - без слипания кнопок на мобильном */}
+        <div className="h-12 px-2.5 sm:px-4 bg-zinc-50/90 dark:bg-zinc-850/80 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between gap-1.5 sm:gap-2 shrink-0">
+          <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
             <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-blue-600 text-white shrink-0 font-hebrew">
               {userProfile.ulpanMode ? 'שִׂיחָה' : 'Диалог'}
             </span>
-            <span className="font-bold text-xs sm:text-sm text-zinc-900 dark:text-zinc-100 truncate">
+            <span className="font-bold text-xs sm:text-sm text-zinc-900 dark:text-zinc-100 truncate hidden xs:inline">
               {lesson.dialogue.aiRole || (userProfile.ulpanMode ? 'מוֹרֶה' : 'Учитель')}
             </span>
             <span
@@ -520,25 +520,31 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
             >
               {userProfile.ulpanMode
                 ? `שָׁלָב ${Math.min(userTurnsCount, TARGET_TURNS)}/${TARGET_TURNS}`
-                : `Шаг ${Math.min(userTurnsCount, TARGET_TURNS)} из ${TARGET_TURNS}`}
+                : `Шаг ${Math.min(userTurnsCount, TARGET_TURNS)}/${TARGET_TURNS}`}
             </span>
-
-            {/* Кнопка шпаргалки для мобильных устройств */}
-            {((lesson.dialogue.usefulWords && lesson.dialogue.usefulWords.length > 0) || activeStep) && (
-              <button
-                type="button"
-                onClick={() => setShowMobileSidebar(true)}
-                className="lg:hidden px-2 py-0.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800/60 text-[11px] font-semibold flex items-center gap-1 shrink-0 cursor-pointer"
-                title="Шпаргалка: словарь и факт шага"
-              >
-                <BookOpen className="w-3.5 h-3.5" />
-                <span>Шпаргалка</span>
-              </button>
-            )}
           </div>
 
           {/* Правые контролы */}
           <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
+            {/* Кнопка открытия шторки шпаргалки */}
+            {((lesson.dialogue.usefulWords && lesson.dialogue.usefulWords.length > 0) || activeStep) && (
+              <button
+                type="button"
+                onClick={() => setShowMobileSidebar(true)}
+                className="px-2 py-1 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-300/50 dark:border-amber-800/60 text-[11px] font-bold flex items-center gap-1 shrink-0 cursor-pointer transition active:scale-95"
+                title="Шпаргалка: словарь и подсказки к шагу"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                <span className="hidden sm:inline">Шпаргалка</span>
+                {lesson.dialogue.usefulWords && lesson.dialogue.usefulWords.length > 0 && (
+                  <span className="px-1 py-0.2 rounded-full bg-amber-500 text-white text-[9px] leading-tight">
+                    {lesson.dialogue.usefulWords.length}
+                  </span>
+                )}
+              </button>
+            )}
+
+            {/* Переключатель шрифта - скрыт на мобильных, так как уже есть в шапке урока */}
             <button
               type="button"
               onClick={() => {
@@ -547,7 +553,7 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
                 saveUserProfile(updated);
                 if (onUpdateProfile) onUpdateProfile(updated);
               }}
-              className="px-2 py-1 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-xs font-semibold text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700 transition cursor-pointer"
+              className="hidden md:flex px-2 py-1 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-xs font-semibold text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700 transition cursor-pointer"
               title="Шрифт: Печатный / Рукописный"
             >
               {isCursive ? (
@@ -557,7 +563,8 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
               )}
             </button>
 
-            <div className="flex items-center bg-white dark:bg-zinc-800 p-0.5 rounded-lg border border-zinc-200 dark:border-zinc-700 text-xs">
+            {/* Переключатель пола */}
+            <div className="flex items-center bg-white dark:bg-zinc-800 p-0.5 rounded-lg border border-zinc-200 dark:border-zinc-700 text-xs shrink-0">
               <button
                 type="button"
                 onClick={() => handleGenderSwitch('male')}
@@ -580,15 +587,17 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
               </button>
             </div>
 
+            {/* Кнопка сброса */}
             <button
               type="button"
               onClick={handleResetChat}
-              className="p-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 hover:text-blue-600 transition cursor-pointer"
+              className="p-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 hover:text-blue-600 transition cursor-pointer shrink-0"
               title="Начать диалог сначала"
             >
               <RotateCcw className="w-3.5 h-3.5" />
             </button>
 
+            {/* Кнопка зачета */}
             <button
               type="button"
               onClick={() => {
@@ -596,7 +605,7 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
                 if (onUpdateProfile) onUpdateProfile(updated);
                 confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
               }}
-              className={`px-2.5 py-1 rounded-lg font-bold text-xs transition flex items-center gap-1 cursor-pointer ${
+              className={`px-2 sm:px-2.5 py-1 rounded-lg font-bold text-xs transition flex items-center gap-1 cursor-pointer shrink-0 ${
                 isTabCompleted
                   ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
                   : 'bg-blue-600 hover:bg-blue-700 text-white'
@@ -611,7 +620,7 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
               <button
                 type="button"
                 onClick={onGoToPhone}
-                className="px-2.5 py-1 rounded-lg font-bold text-xs bg-purple-600 hover:bg-purple-700 text-white transition flex items-center gap-1 cursor-pointer shadow-xs"
+                className="px-2 sm:px-2.5 py-1 rounded-lg font-bold text-xs bg-purple-600 hover:bg-purple-700 text-white transition flex items-center gap-1 cursor-pointer shadow-xs shrink-0"
                 title="Перейти к этапу звонка"
               >
                 <span>Звонок ➡️</span>
@@ -622,6 +631,40 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
 
         {/* 2. Просторная область сообщений чата */}
         <div className="flex-1 p-3 sm:p-4 overflow-y-auto space-y-3 bg-zinc-50/40 dark:bg-zinc-950/20">
+          {/* КАРТОЧКА СИТУАЦИИ (FACT FIRST) - на главном экране перед глазами */}
+          {activeStep && (
+            <div className="bg-gradient-to-r from-blue-50/95 via-indigo-50/80 to-white dark:from-blue-950/60 dark:via-zinc-900 dark:to-zinc-900 border border-blue-200/80 dark:border-blue-900/60 rounded-xl p-2.5 sm:p-3 shadow-2xs font-hebrew">
+              <div className="flex items-center justify-between gap-2 mb-1">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-blue-900 dark:text-blue-300">
+                  <span className="text-sm">📍</span>
+                  <span>
+                    {userProfile.ulpanMode
+                      ? `שָׁלָב ${activeStep.stepIndex}: מַצָּב`
+                      : `Ситуация (Шаг ${activeStep.stepIndex} из ${stepsCount})`}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowMobileSidebar(true)}
+                  className="text-[11px] font-bold text-amber-700 dark:text-amber-300 bg-amber-100/80 dark:bg-amber-950/60 hover:bg-amber-200 dark:hover:bg-amber-900/80 px-2 py-0.5 rounded-lg transition flex items-center gap-1 cursor-pointer"
+                  title="Открыть подсказки и слова"
+                >
+                  <Sparkles className="w-3 h-3 text-amber-500" />
+                  <span>Шпаргалка</span>
+                </button>
+              </div>
+              <p className="text-xs sm:text-sm text-blue-950 dark:text-blue-100 font-medium leading-snug">
+                {activeStep.fact}
+              </p>
+              {activeStep.expectedConcept && (
+                <div className="mt-1.5 pt-1 border-t border-blue-200/50 dark:border-blue-900/40 flex items-center gap-1.5 text-[11px] text-blue-700 dark:text-blue-300">
+                  <span className="font-bold">🎯 Фокус:</span>
+                  <span>{activeStep.expectedConcept}</span>
+                </div>
+              )}
+            </div>
+          )}
+
           {messages.map((msg, index) => {
             const isAi = msg.role === 'assistant';
             const isLastMessage = index === messages.length - 1;
@@ -866,22 +909,39 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
 
         {/* 3. Нижняя зона: быстрые пилюли ответа + аккуратная строка ввода */}
         <div className="bg-white dark:bg-zinc-900 border-t border-zinc-200 dark:border-zinc-800">
-          {/* Быстрые подсказки прямо над строкой ввода */}
-          {showSuggestions && lastAiMessage?.suggestedReplies && lastAiMessage.suggestedReplies.length > 0 && !isDialogueFinished && (
+          {/* Быстрые подсказки и кнопка вызова шторки прямо над строкой ввода */}
+          {(!isDialogueFinished || (lastAiMessage?.suggestedReplies && lastAiMessage.suggestedReplies.length > 0)) && (
             <div className="px-3 pt-2 pb-1 bg-zinc-50/70 dark:bg-zinc-850/50 flex items-center gap-1.5 overflow-x-auto scrollbar-none">
-              <span className="text-[10px] font-bold text-zinc-400 shrink-0">
-                {userProfile.ulpanMode ? 'תְּשׁוּבָה מְהִירָה:' : 'Быстрый ответ:'}
-              </span>
-              {lastAiMessage.suggestedReplies.map((reply, rIdx) => (
+              {/* Кнопка шторки для пальца на мобильном */}
+              {((lesson.dialogue.usefulWords && lesson.dialogue.usefulWords.length > 0) || activeStep) && (
                 <button
-                  key={rIdx}
                   type="button"
-                  onClick={() => setInputText(reply.hebrew)}
-                  className="shrink-0 px-2.5 py-1 rounded-lg bg-white dark:bg-zinc-800 hover:bg-blue-50 dark:hover:bg-zinc-700 border border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-zinc-100 text-xs font-hebrew font-medium transition active:scale-95 flex items-center gap-1 shadow-2xs cursor-pointer"
+                  onClick={() => setShowMobileSidebar(true)}
+                  className="lg:hidden shrink-0 px-2.5 py-1 rounded-lg bg-amber-100/90 dark:bg-amber-950/70 hover:bg-amber-200 dark:hover:bg-amber-900/80 border border-amber-300/60 text-amber-900 dark:text-amber-200 text-xs font-semibold flex items-center gap-1 shadow-2xs transition active:scale-95 cursor-pointer"
+                  title="Открыть шпаргалку и слова"
                 >
-                  <span dir="rtl">{reply.hebrew}</span>
+                  <Sparkles className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+                  <span>Шпаргалка к шагу</span>
                 </button>
-              ))}
+              )}
+
+              {showSuggestions && lastAiMessage?.suggestedReplies && lastAiMessage.suggestedReplies.length > 0 && !isDialogueFinished && (
+                <>
+                  <span className="text-[10px] font-bold text-zinc-400 shrink-0 hidden xs:inline">
+                    {userProfile.ulpanMode ? 'תְּשׁוּבָה:' : 'Ответ:'}
+                  </span>
+                  {lastAiMessage.suggestedReplies.map((reply, rIdx) => (
+                    <button
+                      key={rIdx}
+                      type="button"
+                      onClick={() => setInputText(reply.hebrew)}
+                      className="shrink-0 px-2.5 py-1 rounded-lg bg-white dark:bg-zinc-800 hover:bg-blue-50 dark:hover:bg-zinc-700 border border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-zinc-100 text-xs font-hebrew font-medium transition active:scale-95 flex items-center gap-1 shadow-2xs cursor-pointer"
+                    >
+                      <span dir="rtl">{reply.hebrew}</span>
+                    </button>
+                  ))}
+                </>
+              )}
             </div>
           )}
 
@@ -1068,87 +1128,182 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
         </div>
       </div>
 
-      {/* МОБИЛЬНАЯ ШТОРКА (ДЛЯ ЭКРАНОВ МЕНЬШЕ 1024px) */}
+      {/* МОБИЛЬНАЯ ВЫПАДАЮЩАЯ ШТОРКА (BOTTOM SHEET) */}
       {showMobileSidebar && (
-        <div className="fixed inset-0 z-50 lg:hidden flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-xs p-0 sm:p-4 animate-in fade-in">
-          <div className="w-full sm:max-w-md bg-white dark:bg-zinc-900 rounded-t-3xl sm:rounded-2xl max-h-[85vh] flex flex-col shadow-xl overflow-hidden animate-in slide-in-from-bottom duration-200">
-            <div className="px-4 py-3 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
+        <div
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-xs p-0 sm:p-4 animate-in fade-in duration-200"
+          onClick={() => setShowMobileSidebar(false)}
+        >
+          <div
+            className="w-full sm:max-w-lg bg-white dark:bg-zinc-900 rounded-t-3xl sm:rounded-2xl max-h-[85vh] flex flex-col shadow-2xl overflow-hidden animate-in slide-in-from-bottom duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Ручка свайпа шторки (Drag handle) */}
+            <div className="pt-2.5 pb-1 flex justify-center sm:hidden">
+              <div className="w-12 h-1.5 rounded-full bg-zinc-300 dark:bg-zinc-700" />
+            </div>
+
+            {/* Шапка шторки */}
+            <div className="px-4 py-2.5 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
               <div className="flex items-center gap-2 font-bold text-sm text-zinc-900 dark:text-zinc-100">
                 <Sparkles className="w-4 h-4 text-amber-500" />
-                <span>Шпаргалка к диалогу</span>
+                <span>{userProfile.ulpanMode ? 'שִׁלְדַּת הַשִּׂיחָה וּמִילּוֹן' : 'Шпаргалка к шагу диалога'}</span>
               </div>
               <button
                 type="button"
                 onClick={() => setShowMobileSidebar(false)}
-                className="p-1 rounded-lg text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer"
+                className="p-1.5 rounded-xl text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer transition"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="p-4 overflow-y-auto space-y-3">
+            {/* Тело шторки */}
+            <div className="p-4 overflow-y-auto space-y-3.5">
+              {/* 1. Факт текущего шага */}
               {activeStep && (
-                <div className="bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900/50 rounded-xl p-3">
-                  <p className="text-xs font-bold text-blue-900 dark:text-blue-300 mb-1">
-                    📌 Шаг {activeStep.stepIndex} из {stepsCount}
+                <div className="bg-blue-50/90 dark:bg-blue-950/40 border border-blue-200/80 dark:border-blue-900/50 rounded-2xl p-3 font-hebrew">
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-blue-900 dark:text-blue-300 mb-1">
+                    <span>📌</span>
+                    <span>
+                      {userProfile.ulpanMode
+                        ? `שָׁלָב ${activeStep.stepIndex}: מַצָּב`
+                        : `Шаг ${activeStep.stepIndex} из ${stepsCount}`}
+                    </span>
+                  </div>
+                  <p className="text-xs sm:text-sm text-blue-950 dark:text-blue-100 font-medium leading-relaxed">
+                    {activeStep.fact}
                   </p>
-                  <p className="text-xs text-blue-950 dark:text-blue-100">{activeStep.fact}</p>
+                  {activeStep.expectedConcept && (
+                    <div className="mt-2 pt-1.5 border-t border-blue-200/60 dark:border-blue-900/40 text-[11px] text-blue-700 dark:text-blue-300">
+                      <span className="font-bold">🎯 Фокус ответа: </span>
+                      <span>{activeStep.expectedConcept}</span>
+                    </div>
+                  )}
                 </div>
               )}
 
-              {lesson.dialogue.usefulWords && (
-                <div className="space-y-1.5">
-                  {lesson.dialogue.usefulWords.map((word, idx) => {
-                    const isAdded =
-                      addedWords[word.hebrew] || isWordInPersonalDict(word.hebrew, userProfile.personalVocabulary);
-                    return (
-                      <div
-                        key={idx}
-                        onClick={() => {
-                          handleAppendWord(word.hebrew);
-                          setShowMobileSidebar(false);
-                        }}
-                        className="bg-zinc-50 dark:bg-zinc-800/80 border border-zinc-200 dark:border-zinc-700/80 rounded-xl p-2.5 flex items-center justify-between gap-2 cursor-pointer"
-                      >
-                        <div>
-                          <span dir="rtl" className="font-hebrew font-bold text-base text-zinc-900 dark:text-zinc-100">
-                            {word.hebrew}
-                          </span>
-                          <div className="text-xs text-zinc-500 mt-0.5">
-                            {word.transcription && <span className="text-blue-500 mr-1">[{word.transcription}]</span>}
-                            <span>{word.translation}</span>
+              {/* 2. Полезные слова к диалогу */}
+              {lesson.dialogue.usefulWords && lesson.dialogue.usefulWords.length > 0 && (
+                <div>
+                  <div className="flex items-center justify-between mb-2 px-0.5">
+                    <p className="text-[11px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider font-hebrew">
+                      {userProfile.ulpanMode ? 'מִילִּים שֶׁיַּעַזְרוּ לָכֶם:' : 'Слова для ответа:'}
+                    </p>
+                    <span className="text-[10px] text-zinc-400">Нажмите на слово для вставки</span>
+                  </div>
+                  <div className="space-y-1.5">
+                    {lesson.dialogue.usefulWords.map((word, idx) => {
+                      const isAdded =
+                        addedWords[word.hebrew] || isWordInPersonalDict(word.hebrew, userProfile.personalVocabulary);
+                      return (
+                        <div
+                          key={idx}
+                          onClick={() => {
+                            handleAppendWord(word.hebrew);
+                            setShowMobileSidebar(false);
+                          }}
+                          className="group cursor-pointer bg-zinc-50 dark:bg-zinc-800/90 hover:bg-blue-50/70 dark:hover:bg-zinc-750 border border-zinc-200 dark:border-zinc-700/80 rounded-xl p-2.5 flex items-center justify-between gap-2 shadow-2xs transition active:scale-[0.99]"
+                          title="Вставить слово в поле ответа"
+                        >
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-1.5">
+                              <span
+                                dir="rtl"
+                                className="font-hebrew font-bold text-base text-zinc-900 dark:text-zinc-100 group-hover:text-blue-600 transition"
+                              >
+                                {userProfile.showNikkud ? word.hebrew : stripNikkud(word.hebrew)}
+                              </span>
+                              {word.isNew && (
+                                <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-600 dark:text-amber-300">
+                                  {userProfile.ulpanMode ? 'חָדָשׁ' : 'Новое'}
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-xs text-zinc-500 dark:text-zinc-400 truncate mt-0.5">
+                              {!userProfile.ulpanMode && word.transcription && (
+                                <span className="text-blue-500 mr-1.5">[{word.transcription}]</span>
+                              )}
+                              <span>{word.translation}</span>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-1 shrink-0">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                speakHebrew(word.hebrew, { rate: userProfile.speechRate || 0.7 });
+                              }}
+                              className="p-1.5 rounded-lg text-zinc-400 hover:text-blue-500 hover:bg-white dark:hover:bg-zinc-700 transition cursor-pointer"
+                              title="Озвучить"
+                            >
+                              <Volume2 className="w-4 h-4" />
+                            </button>
+                            <button
+                              type="button"
+                              disabled={isAdded}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleAddWordDirectly(word);
+                              }}
+                              className={`px-2 py-1 rounded-lg text-[11px] font-semibold transition cursor-pointer flex items-center gap-1 ${
+                                isAdded
+                                  ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400'
+                                  : 'bg-white dark:bg-zinc-700 hover:bg-amber-500 hover:text-white text-zinc-700 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-600'
+                              }`}
+                              title={isAdded ? 'В словаре' : 'В словарик'}
+                            >
+                              {isAdded ? (
+                                <Check className="w-3 h-3 text-emerald-600" />
+                              ) : (
+                                <BookmarkPlus className="w-3 h-3" />
+                              )}
+                              <span>{isAdded ? 'В словаре' : '+ В словарь'}</span>
+                            </button>
                           </div>
                         </div>
-                        <div className="flex items-center gap-1">
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              speakHebrew(word.hebrew, { rate: userProfile.speechRate || 0.7 });
-                            }}
-                            className="p-1.5 text-zinc-400 hover:text-blue-500 cursor-pointer"
-                          >
-                            <Volume2 className="w-4 h-4" />
-                          </button>
-                          <button
-                            type="button"
-                            disabled={isAdded}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleAddWordDirectly(word);
-                            }}
-                            className={`px-2 py-1 rounded-lg text-xs font-semibold cursor-pointer ${
-                              isAdded ? 'bg-emerald-100 text-emerald-700' : 'bg-zinc-200 text-zinc-700'
-                            }`}
-                          >
-                            {isAdded ? 'В словаре' : '+ В словарик'}
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
+                  </div>
                 </div>
               )}
+
+              {/* 3. Готовые подсказки ответов (если есть) */}
+              {lastAiMessage?.suggestedReplies && lastAiMessage.suggestedReplies.length > 0 && !isDialogueFinished && (
+                <div className="pt-2 border-t border-zinc-200 dark:border-zinc-800">
+                  <p className="text-[11px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-2 px-0.5">
+                    {userProfile.ulpanMode ? 'דֻּגְמָאוֹת לִתְשׁוּבָה:' : 'Готовые варианты ответа:'}
+                  </p>
+                  <div className="space-y-1.5">
+                    {lastAiMessage.suggestedReplies.map((reply, rIdx) => (
+                      <button
+                        key={rIdx}
+                        type="button"
+                        onClick={() => {
+                          setInputText(reply.hebrew);
+                          setShowMobileSidebar(false);
+                        }}
+                        className="w-full text-right p-2.5 rounded-xl bg-blue-50/70 hover:bg-blue-100/70 dark:bg-blue-950/40 dark:hover:bg-blue-900/50 border border-blue-200/60 dark:border-blue-800/50 text-blue-950 dark:text-blue-100 text-xs font-hebrew font-semibold transition active:scale-[0.99] flex items-center justify-between cursor-pointer"
+                      >
+                        <span className="text-[11px] text-blue-500 font-normal">Подставить ↵</span>
+                        <span dir="rtl">{reply.hebrew}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Подвал шторки с кнопкой возврата */}
+            <div className="p-3 border-t border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-850/50 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setShowMobileSidebar(false)}
+                className="w-full py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs transition active:scale-98 cursor-pointer"
+              >
+                Понятно, вернуться к чату
+              </button>
             </div>
           </div>
         </div>
