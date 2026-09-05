@@ -25,7 +25,7 @@ import {
 import confetti from 'canvas-confetti';
 import { Lesson, UserProfile, ChatMessage, Word, DialogueWord, DialogueStep } from '@/types';
 import { tokenizeText, TextToken, stripNikkud } from '@/lib/transcription';
-import { speakHebrew, HebrewSpeechRecognizer } from '@/lib/speech';
+import { speakHebrew, stopSpeech, HebrewSpeechRecognizer } from '@/lib/speech';
 import { getDialogueHelpForLesson } from '@/lib/dialogueHints';
 import { WordLookupModal } from './WordLookupModal';
 import { phoneAudio } from '@/lib/phoneAudio';
@@ -176,7 +176,30 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
   const [audioLevel, setAudioLevel] = useState(0);
   const activeMicStreamRef = useRef<MediaStream | null>(null);
   const prevStepIndexRef = useRef<number>(0);
+  const pendingSpeechTextRef = useRef<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const handleCloseStepModal = () => {
+    setStepChangeModal(null);
+    if (pendingSpeechTextRef.current) {
+      const textToSpeak = pendingSpeechTextRef.current;
+      pendingSpeechTextRef.current = null;
+      speakHebrew(textToSpeak, { rate: userProfile.speechRate || 0.7 });
+    }
+    setTimeout(() => inputRef.current?.focus(), 80);
+  };
+
+  useEffect(() => {
+    if (!stepChangeModal) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        handleCloseStepModal();
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [stepChangeModal]);
+
   const [mounted, setMounted] = useState(false);
   useEffect(() => {
     setMounted(true);
@@ -279,6 +302,7 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
   }, [messages]);
 
   const initChat = (gender: 'male' | 'female') => {
+    stopSpeech();
     sessionIdRef.current = `chat_${lesson.id}_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
     startTimeRef.current = Date.now();
     lastFeedbackRef.current = null;
@@ -295,6 +319,22 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
     };
     messagesRef.current = [initial];
     setMessages([initial]);
+
+    // Показываем вводную ситуацию для Шага 1 во всплывающем окне (без преждевременного звука)
+    const steps = lesson.dialogue.steps;
+    if (steps && steps.length > 0) {
+      pendingSpeechTextRef.current = initial.hebrew;
+      setStepChangeModal(steps[0]);
+    } else if (lesson.dialogue.situation) {
+      pendingSpeechTextRef.current = initial.hebrew;
+      setStepChangeModal({
+        stepIndex: 1,
+        fact: lesson.dialogue.situation,
+        aiQuestionHebrew: initial.hebrew,
+        aiQuestionRu: initial.translation || '',
+        expectedConcept: '',
+      });
+    }
   };
 
   useEffect(() => {
@@ -305,6 +345,8 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
 
     return () => {
       rec.stop();
+      stopSpeech();
+      pendingSpeechTextRef.current = null;
       if (activeMicStreamRef.current) {
         try {
           activeMicStreamRef.current.getTracks().forEach((t) => t.stop());
@@ -428,6 +470,7 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
       logChatSession(updatedHistory, data.feedback);
 
       const isFinished = Boolean(data.isCompleted || currentUserTurns >= TARGET_TURNS);
+      let stepChanged = false;
       if (isFinished) {
         const updated = markLessonTabCompleted(lesson.id, 'chat');
         if (onUpdateProfile) onUpdateProfile(updated);
@@ -442,12 +485,19 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
           if (nextStepIndex > prevStepIndexRef.current && nextStepIndex < steps.length) {
             prevStepIndexRef.current = nextStepIndex;
             setStepChangeModal(steps[nextStepIndex]);
+            stepChanged = true;
           }
         }
       }
 
-      // Автоматически озвучиваем ответ ИИ
-      speakHebrew(aiMsg.hebrew, { rate: userProfile.speechRate || 0.7 });
+      if (stepChanged) {
+        // Во время показа всплывающего окна звук НЕ звучит - сохраняем текст для озвучки ПОСЛЕ закрытия окна
+        stopSpeech();
+        pendingSpeechTextRef.current = aiMsg.hebrew;
+      } else {
+        // Автоматически озвучиваем ответ ИИ (если окно не открывается: финал диалога или уточнение в том же шаге)
+        speakHebrew(aiMsg.hebrew, { rate: userProfile.speechRate || 0.7 });
+      }
     } catch (err) {
       console.error(err);
     } finally {
@@ -1630,16 +1680,13 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
         document.body
       )}
 
-      {/* ВСПЛЫВАЮЩИЙ ЭКРАН ПРИ СМЕНЕ ШАГА (Step Change Popup Modal) */}
+      {/* ВСПЛЫВАЮЩИЙ ЭКРАН ПРИ СМЕНЕ ШАГА И В НАЧАЛЕ УРОКА (Step Modal) */}
       {stepChangeModal && mounted && createPortal(
         <div
           role="dialog"
           aria-modal="true"
           className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200"
-          onClick={() => {
-            setStepChangeModal(null);
-            setTimeout(() => inputRef.current?.focus(), 80);
-          }}
+          onClick={handleCloseStepModal}
         >
           <div
             className="bg-white dark:bg-zinc-900 border border-blue-200 dark:border-blue-900/60 rounded-3xl shadow-2xl max-w-lg w-full overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col text-zinc-900 dark:text-zinc-100"
@@ -1655,22 +1702,29 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
                   <div className="flex items-center gap-2">
                     <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-white/25 text-white">
                       {userProfile.ulpanMode
-                        ? `שָׁלָב ${stepChangeModal.stepIndex} מִתּוֹךְ ${stepsCount}`
-                        : `Шаг ${stepChangeModal.stepIndex} из ${stepsCount}`}
+                        ? (stepChangeModal.stepIndex === 1
+                            ? `שָׁלָב 1 מִתּוֹךְ ${stepsCount}`
+                            : `שָׁלָב ${stepChangeModal.stepIndex} מִתּוֹךְ ${stepsCount}`)
+                        : (stepChangeModal.stepIndex === 1
+                            ? `🏁 Начало • Шаг 1 из ${stepsCount}`
+                            : `Шаг ${stepChangeModal.stepIndex} из ${stepsCount}`)}
                     </span>
                   </div>
                   <h3 className="text-base sm:text-lg font-bold leading-tight mt-0.5">
-                    {userProfile.ulpanMode ? 'מַצָּב חָדָשׁ בַּשִּׂיחָה!' : 'Ситуация изменилась!'}
+                    {userProfile.ulpanMode
+                      ? (stepChangeModal.stepIndex === 1
+                          ? 'מַצָּב הַתְחָלָתִי בַּשִּׂיחָה'
+                          : 'מַצָּב חָדָשׁ בַּשִּׂיחָה!')
+                      : (stepChangeModal.stepIndex === 1
+                          ? 'Вводная ситуация урока'
+                          : 'Ситуация изменилась!')}
                   </h3>
                 </div>
               </div>
 
               <button
                 type="button"
-                onClick={() => {
-                  setStepChangeModal(null);
-                  setTimeout(() => inputRef.current?.focus(), 80);
-                }}
+                onClick={handleCloseStepModal}
                 className="p-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white transition cursor-pointer"
                 title="Закрыть"
               >
@@ -1680,16 +1734,36 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
 
             {/* Тело модалки */}
             <div className="p-4 sm:p-5 space-y-4">
-              {/* Карточка факта новой ситуации */}
+              {/* Карточка факта ситуации */}
               <div className="bg-blue-50/90 dark:bg-blue-950/40 border-2 border-blue-200 dark:border-blue-800/80 rounded-2xl p-4 shadow-sm space-y-1.5">
                 <div className="flex items-center gap-1.5 text-xs font-bold text-blue-700 dark:text-blue-300 uppercase tracking-wider">
                   <Target className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
-                  <span>{userProfile.ulpanMode ? 'עֻבְדָּה חֲדָשָׁה (מַה שֶׁקּוֹרֶה כָּעֵת):' : 'Что произошло прямо сейчас (новый факт):'}</span>
+                  <span>
+                    {userProfile.ulpanMode
+                      ? (stepChangeModal.stepIndex === 1
+                          ? 'עֻבְדָּה (מַה שֶׁקּוֹרֶה עַכְשָׁו):'
+                          : 'עֻבְדָּה חֲדָשָׁה (מַה שֶׁקּוֹרֶה כָּעֵת):')
+                      : (stepChangeModal.stepIndex === 1
+                          ? 'Что происходит прямо сейчас (факт):'
+                          : 'Что произошло прямо сейчас (новый факт):')}
+                  </span>
                 </div>
                 <p className="text-sm sm:text-base font-bold text-blue-950 dark:text-blue-50 leading-relaxed font-hebrew">
                   {stepChangeModal.fact}
                 </p>
               </div>
+
+              {/* Если это шаг 1 и есть общая тема диалога, отличающаяся от факта */}
+              {stepChangeModal.stepIndex === 1 && lesson.dialogue.situation && lesson.dialogue.situation !== stepChangeModal.fact && (
+                <div className="bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700/80 rounded-xl p-3 text-xs text-zinc-600 dark:text-zinc-300 space-y-1">
+                  <span className="font-bold text-zinc-800 dark:text-zinc-200 block">
+                    {userProfile.ulpanMode ? 'מַצָּב כְּלָלִי:' : 'Общая тема диалога:'}
+                  </span>
+                  <p className="leading-relaxed">
+                    {lesson.dialogue.situation}
+                  </p>
+                </div>
+              )}
 
               {/* Подсказка, что делать дальше */}
               <div className="bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700/80 rounded-xl p-3 text-xs text-zinc-600 dark:text-zinc-300 space-y-1">
@@ -1698,21 +1772,30 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
                 </span>
                 <p className="leading-relaxed">
                   {userProfile.ulpanMode
-                    ? 'הַמּוֹרֶה שָׁאַל אֶתְכֶם שְׁאֵלָה עַל הַמַּצָּב הֶחָדָשׁ. עֲנוּ לוֹ בְּעִבְרִית!'
-                    : 'Преподаватель только что отреагировал на ваш ответ и задал новый вопрос с учётом этой ситуации. Ответьте ему на иврите!'}
+                    ? (stepChangeModal.stepIndex === 1
+                        ? 'לַחֲצוּ עַל הַכַּפְתּוֹר, הַקְשִׁיבוּ לִשְׁאֵלַת הַמּוֹרֶה וַעֲנוּ לוֹ בְּעִבְרִית!'
+                        : 'הַמּוֹרֶה שָׁאַל אֶתְכֶם שְׁאֵלָה עַל הַמַּצָּב הֶחָדָשׁ. לַחֲצוּ עַל הַכַּפְתּוֹר כְּדֵי לִשְׁמוֹעַ אֶת הַשְּׁאֵלָה וַעֲנוּ לוֹ בְּעִבְרִית!')
+                    : (stepChangeModal.stepIndex === 1
+                        ? 'Сейчас преподаватель обратится к вам с первым вопросом. Нажмите кнопку, внимательно послушайте и ответьте на иврите!'
+                        : 'Преподаватель только что отреагировал на ваш ответ и задал новый вопрос с учётом этой ситуации. Нажмите кнопку, послушайте и ответьте ему на иврите!')}
                 </p>
               </div>
 
-              {/* Кнопка продолжить */}
+              {/* Кнопка закрытия/продолжения */}
               <button
                 type="button"
-                onClick={() => {
-                  setStepChangeModal(null);
-                  setTimeout(() => inputRef.current?.focus(), 80);
-                }}
+                onClick={handleCloseStepModal}
                 className="w-full py-3 px-4 rounded-xl font-bold text-sm bg-blue-600 hover:bg-blue-700 text-white shadow-md transition active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
               >
-                <span>{userProfile.ulpanMode ? 'הֵבַנְתִּי, לַעֲנוֹת לַמּוֹרֶה 💬' : 'Понятно, ответить на вопрос 💬'}</span>
+                <span>
+                  {userProfile.ulpanMode
+                    ? (stepChangeModal.stepIndex === 1
+                        ? 'הֵבַנְתִּי, לְהַתְחִיל שִׂיחָה 💬'
+                        : 'הֵבַנְתִּי, לַעֲנוֹת לַמּוֹרֶה 💬')
+                    : (stepChangeModal.stepIndex === 1
+                        ? 'Понятно, начать диалог 💬 ➡️'
+                        : 'Понятно, ответить на вопрос 💬 ➡️')}
+                </span>
                 <ArrowRight className="w-4 h-4" />
               </button>
             </div>
