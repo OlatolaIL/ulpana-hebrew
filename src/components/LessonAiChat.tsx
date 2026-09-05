@@ -172,6 +172,11 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
   const [showBriefingModal, setShowBriefingModal] = useState(false);
   const [drawerTab, setDrawerTab] = useState<'words' | 'replies'>('words');
   const [stepChangeModal, setStepChangeModal] = useState<DialogueStep | null>(null);
+  const [stepReaction, setStepReaction] = useState<{
+    hebrew: string;
+    translation?: string;
+    feedback?: string | null;
+  } | null>(null);
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [audioLevel, setAudioLevel] = useState(0);
   const activeMicStreamRef = useRef<MediaStream | null>(null);
@@ -308,6 +313,7 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
     lastFeedbackRef.current = null;
     prevStepIndexRef.current = 0;
     setStepChangeModal(null);
+    setStepReaction(null);
     const data = getInitialMessageForGender(lesson, gender);
     const initial: ChatMessage = {
       id: 'init-1',
@@ -491,6 +497,32 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
       }
 
       if (stepChanged) {
+        // Извлекаем реакцию учителя на предыдущий ответ ученика для отображения во всплывающем окне
+        let reactionHebrew = data.teacherReactionHebrew || '';
+        let reactionRu = data.teacherReactionRu || '';
+
+        if (!reactionHebrew && data.hebrew) {
+          const clean = data.hebrew.trim();
+          const match = clean.match(/^([^\n?]+?[.!])(?:\s+(?:וְ?עַכְשָׁו|וְ?הִנֵּה|מָה|מִי|\?)|$)/);
+          if (match && match[1]) {
+            reactionHebrew = match[1].trim();
+          } else {
+            const sentences = clean.split(/(?<=[.!?])\s+/);
+            reactionHebrew = sentences[0] || clean;
+          }
+        }
+
+        if (!reactionRu && data.translation) {
+          const sentences = data.translation.trim().split(/(?<=[.!?])\s+/);
+          reactionRu = sentences[0] || '';
+        }
+
+        setStepReaction({
+          hebrew: reactionHebrew,
+          translation: reactionRu,
+          feedback: data.feedback || null,
+        });
+
         // Во время показа всплывающего окна звук НЕ звучит - сохраняем текст для озвучки ПОСЛЕ закрытия окна
         stopSpeech();
         pendingSpeechTextRef.current = aiMsg.hebrew;
@@ -573,12 +605,26 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
       {
         vocabulary: Array.from(
           new Set([
-            ...(lesson.vocabulary || []).map((w) => w.hebrew),
+            'זה עט',
+            'זאת מחברת',
+            'זה ספר',
+            'אלה תלמידים',
+            ...(lesson.vocabulary || []).flatMap((w) => [
+              w.hebrew,
+              stripNikkud(w.hebrew),
+              ...w.hebrew.split('/').map((p) => p.trim()),
+              ...stripNikkud(w.hebrew).split('/').map((p) => p.trim()),
+            ]),
+            ...(lesson.dialogue?.steps || []).flatMap((s) => [
+              ...(s.targetWords || []),
+              ...(s.sampleAnswers || []).map((a) => a.hebrew),
+              ...(s.sampleAnswers || []).map((a) => stripNikkud(a.hebrew)),
+            ]),
             ...(lesson.dialogue?.vocabularyHints || []),
             ...helpData.usefulWords.map((w) => w.hebrew),
             ...knownWords,
           ])
-        ),
+        ).filter(Boolean),
         apiKey: userProfile.groqApiKey || undefined,
         continuous: true,
         silenceDurationMs: silenceDelayMs,
@@ -1733,7 +1779,49 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
             </div>
 
             {/* Тело модалки */}
-            <div className="p-4 sm:p-5 space-y-4">
+            <div className="p-4 sm:p-5 space-y-4 max-h-[80vh] overflow-y-auto">
+              {/* Реакция учителя на предыдущий ответ ученика (для шагов 2+) */}
+              {stepReaction && stepChangeModal.stepIndex > 1 && (
+                <div className="bg-emerald-50 dark:bg-emerald-950/40 border-2 border-emerald-200 dark:border-emerald-800/80 rounded-2xl p-4 shadow-sm space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-800 dark:text-emerald-300 uppercase tracking-wider">
+                      <span>💬</span>
+                      <span>
+                        {userProfile.ulpanMode
+                          ? 'תְּגוּבַת הַמּוֹרֶה לַתְּשׁוּבָה שֶׁלְּךָ:'
+                          : 'Реакция учителя на ваш ответ:'}
+                      </span>
+                    </div>
+                    {stepReaction.hebrew && (
+                      <button
+                        type="button"
+                        onClick={() => speakHebrew(stepReaction.hebrew, { rate: userProfile.speechRate || 0.7 })}
+                        className="p-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs transition cursor-pointer shrink-0"
+                        title="Послушать реакцию учителя"
+                      >
+                        <Volume2 className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+                  {stepReaction.hebrew && (
+                    <p dir="rtl" className="text-base sm:text-lg font-bold text-emerald-950 dark:text-emerald-100 font-hebrew text-right leading-relaxed">
+                      {userProfile.showNikkud ? stepReaction.hebrew : stripNikkud(stepReaction.hebrew)}
+                    </p>
+                  )}
+                  {stepReaction.translation && !userProfile.ulpanMode && (
+                    <p className="text-xs text-emerald-900/80 dark:text-emerald-200/80 italic border-t border-emerald-200 dark:border-emerald-800/50 pt-1.5">
+                      {stepReaction.translation}
+                    </p>
+                  )}
+                  {stepReaction.feedback && (
+                    <div className="text-xs bg-white/80 dark:bg-zinc-900/80 p-2.5 rounded-xl border border-emerald-300 dark:border-emerald-700/60 text-emerald-950 dark:text-emerald-200 space-y-0.5">
+                      <span className="font-bold text-emerald-800 dark:text-emerald-300 block">💡 Обратная связь:</span>
+                      <p className="leading-relaxed">{stepReaction.feedback}</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Карточка факта ситуации */}
               <div className="bg-blue-50/90 dark:bg-blue-950/40 border-2 border-blue-200 dark:border-blue-800/80 rounded-2xl p-4 shadow-sm space-y-1.5">
                 <div className="flex items-center gap-1.5 text-xs font-bold text-blue-700 dark:text-blue-300 uppercase tracking-wider">

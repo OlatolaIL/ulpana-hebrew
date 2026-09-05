@@ -149,11 +149,24 @@ function normalizeResponse(parsed: any, defaultIsCompleted: boolean = false) {
         .filter((nw: any) => nw.hebrew && nw.translation)
     : undefined;
 
+  const rawTeacherReactionHebrew =
+    parsed.teacher_reaction_hebrew ||
+    parsed.reaction_hebrew ||
+    parsed.teacher_reaction ||
+    null;
+
+  const rawTeacherReactionRu =
+    parsed.teacher_reaction_ru ||
+    parsed.reaction_ru ||
+    null;
+
   return {
     hebrew: parsed.hebrew || '',
     transcription: sanitizeTranscription(rawTranscription),
     translation: sanitizeRussianTranslation(rawTranslation),
     feedback: parsed.feedback_ru || parsed.feedback || null,
+    teacherReactionHebrew: rawTeacherReactionHebrew ? rawTeacherReactionHebrew.trim() : null,
+    teacherReactionRu: rawTeacherReactionRu ? sanitizeRussianTranslation(rawTeacherReactionRu) : null,
     isCompleted,
     shouldHangUp,
     newWords,
@@ -234,12 +247,24 @@ export async function POST(req: NextRequest) {
     const isUlpan = Boolean(body.ulpanMode);
     let levelConstraint = '';
 
-    const userTurnsCount = (messages || []).filter((m) => m.role === 'user').length;
+    const sanitizedMessages = (messages || []).map((m) => {
+      if (m.role === 'user') {
+        let content = m.content || m.hebrew || '';
+        // Коррекция типичной омофонической ошибки голосового ввода:
+        // "זה את" -> "זה עט" (ручка [эт], буквы א и ע звучат одинаково)
+        content = content.replace(/(^|\s)זה\s+את(?=[\s.,!?:;]|$)/gi, '$1זה עט');
+        content = content.replace(/(^|\s)זֶה\s+(?:אֶת|אַתְּ|את)(?=[\s.,!?:;]|$)/gi, '$1זֶה עֵט');
+        return { role: m.role, content };
+      }
+      return { role: m.role, content: m.content || m.hebrew || '' };
+    });
+
+    const userTurnsCount = sanitizedMessages.filter((m) => m.role === 'user').length;
     const currentTurn = body.turnIndex || userTurnsCount;
     const maxTurns = body.targetTurns || (isPhoneCall ? 3 : 3);
 
-    const lastUserMsg = (messages || []).filter((m) => m.role === 'user').slice(-1)[0];
-    const lastUserHebrew = (lastUserMsg?.content || lastUserMsg?.hebrew || '').toLowerCase();
+    const lastUserMsg = sanitizedMessages.filter((m) => m.role === 'user').slice(-1)[0];
+    const lastUserHebrew = (lastUserMsg?.content || '').toLowerCase();
     const isUserSayingGoodbye =
       lastUserHebrew.includes('להתראות') ||
       lastUserHebrew.includes('ביי') ||
@@ -291,6 +316,11 @@ export async function POST(req: NextRequest) {
 5. ЖЕСТКИЙ ЗАПРЕТ ГАЛЛЮЦИНАЦИЙ И СЛОЖНЫХ СЛОВ:
    - СТРОГО ЗАПРЕЩЕНО выдумывать посторонних людей, девушек, неизвестные предметы, о которых не сказано в фактах шага!
    - СТРОГО ЗАПРЕЩЕНО использовать редкие канцеляризмы или книжные слова (вроде 'נציגה', 'פקידה' и т.п.)! Используй ТОЛЬКО базовые слова урока.
+6. УЧЕТ ФОНЕТИЧЕСКИХ ОШИБОК ГОЛОСОВОГО ВВОДА (ASR / ОМОФОНЫ ע и א):
+   - Ученик часто отвечает ГОЛОСОМ через микрофон. Распознавание речи может путать фонетические омофоны из-за идентичного звучания букв ע и א:
+   * Фраза "זה את" или "זה עט" при вопросе о ручке (עֵט) — это 100% ПРАВИЛЬНЫЙ ответ "זֶה עֵט" ("это ручка")! Буквы א и ע звучат одинаково [эт]. В иврите фраза "זה את" грамматически не существует.
+   * СТРОГО ЗАПРЕЩЕНО ругать ученика за "זה את", переспрашивать или говорить "почему ты сказал 'это ты'"! Трактуй это как верный ответ "זֶה עֵט" (ручка), обязательно похвали ученика ("יוֹפִי! נָכוֹן מְאוֹד, זֶה עֵט!") и продолжай диалог к следующему шагу!
+   * Если ответ ученика звучит фонетически похоже на целевое понятие шага, ВСЕГДА принимай ответ как верный, хвали и продвигай диалог вперед!
 - В JSON-ответе укажи: "isCompleted": false.`
       : `ЭТАП ДИАЛОГА: ШАГ ${currentTurn} ИЗ ${maxTurns}.
 - ВНИМАТЕЛЬНО ПРОАНАЛИЗИРУЙ последний ответ ученика!
@@ -406,7 +436,9 @@ ${usefulWords.map((w) => `- ${w.hebrew} (${w.translation})${w.explanation ? ` �
 
 Ты ОБЯЗАН ответить СТРОГО валидным JSON-объектом:
 {
-  "hebrew": "Фраза на иврите с огласовками",
+  "hebrew": "Полная реплика собеседника на иврите с огласовками",
+  "teacher_reaction_hebrew": "Короткая живая реакция на ответ ученика на иврите с огласовками (например: 'יוֹפִי! נָכוֹן מְאוֹד, זֹאת מַחְבֶּרֶת!' или 'מְעֻלֶּה, נָכוֹן מְאוֹד, זֶה עֵט!')",
+  "teacher_reaction_ru": "Перевод реакции учителя на русский язык (например: 'Прекрасно! Очень правильно, это тетрадь!' или 'Отлично, очень правильно, это ручка!')",
   "cyrillic_transcription": "русская транскрипция кириллицей с 'h' (напр. шалóм, то́да)",
   "russian_translation": "перевод исключительно на чистом русском языке",
   "feedback_ru": null,
@@ -445,7 +477,7 @@ ${usefulWords.map((w) => `- ${w.hebrew} (${w.translation})${w.explanation ? ` �
               model: groqModel,
               messages: [
                 { role: 'system', content: systemPrompt },
-                ...messages.map((m) => ({ role: m.role, content: m.content })),
+                ...sanitizedMessages.map((m) => ({ role: m.role, content: m.content })),
               ],
               response_format: { type: 'json_object' },
               temperature: 0.4,
@@ -485,7 +517,7 @@ ${usefulWords.map((w) => `- ${w.hebrew} (${w.translation})${w.explanation ? ` �
                 {
                   parts: [
                     {
-                      text: `${systemPrompt}\n\nИстория диалога:\n${messages
+                      text: `${systemPrompt}\n\nИстория диалога:\n${sanitizedMessages
                         .map((m) => `${m.role === 'user' ? 'Ученик' : 'Собеседник'}: ${m.content}`)
                         .join('\n')}`,
                     },

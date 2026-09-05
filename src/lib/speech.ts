@@ -384,6 +384,20 @@ export function stitchSpeechChunks(chunks: string[]): string {
   return cleanDuplicatePhrases(accumulated);
 }
 
+/**
+ * Омофоническая нормализация типичных ошибок распознавания речи на иврите.
+ * Буквы ע и א звучат одинаково [эт]. Фраза "זה את" в иврите грамматически не существует
+ * (при обращении к женщине говорят "זאת את", а не "זה את").
+ * ASR часто ошибочно распознает "זה עט" (ручка) как "זה את".
+ */
+export function normalizeHebrewSpeechTranscript(text: string): string {
+  if (!text) return '';
+  let res = text.trim();
+  res = res.replace(/(^|\s)זה\s+את(?=[\s.,!?:;]|$)/gi, '$1זה עט');
+  res = res.replace(/(^|\s)זֶה\s+(?:אֶת|אַתְּ|את)(?=[\s.,!?:;]|$)/gi, '$1זֶה עֵט');
+  return res;
+}
+
 export interface SpeechRecognizerOptions {
   vocabulary?: string[];
   apiKey?: string;
@@ -567,7 +581,7 @@ export class HebrewSpeechRecognizer {
           const trans = result[0]?.transcript || '';
           if (trans) interimChunks.push(trans);
         }
-        const stitched = stitchSpeechChunks(interimChunks).trim();
+        const stitched = normalizeHebrewSpeechTranscript(stitchSpeechChunks(interimChunks).trim());
         if (stitched && this.isListening) {
           this.lastTranscript = stitched;
           this.hasDetectedSpeech = true;
@@ -721,7 +735,7 @@ export class HebrewSpeechRecognizer {
       if (res.ok) {
         const data = await res.json();
         if (data.text && data.text.trim()) {
-          return data.text.trim();
+          return normalizeHebrewSpeechTranscript(data.text.trim());
         }
       }
     } catch (e) {

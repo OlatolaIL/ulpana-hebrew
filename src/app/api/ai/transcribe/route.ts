@@ -52,10 +52,12 @@ export async function POST(req: NextRequest) {
 
         if (geminiRes.ok) {
           const gData = await geminiRes.json();
-          const gText = gData.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
-          if (gText) {
+          const rawGText = gData.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+          if (rawGText) {
+            let text = rawGText.replace(/(^|\s)זה\s+את(?=[\s.,!?:;]|$)/gi, '$1זה עט');
+            text = text.replace(/(^|\s)זֶה\s+(?:אֶת|אַתְּ|את)(?=[\s.,!?:;]|$)/gi, '$1זֶה עֵט');
             return NextResponse.json({
-              text: gText,
+              text,
               engine: 'Gemini 3.5 Transcribe',
             });
           }
@@ -90,7 +92,9 @@ export async function POST(req: NextRequest) {
 
         if (groqRes.ok) {
           const data = await groqRes.json();
-          const text = (data.text || '').trim();
+          let text = (data.text || '').trim();
+          text = text.replace(/(^|\s)זה\s+את(?=[\s.,!?:;]|$)/gi, '$1זה עט');
+          text = text.replace(/(^|\s)זֶה\s+(?:אֶת|אַתְּ|את)(?=[\s.,!?:;]|$)/gi, '$1זֶה עֵט');
           return NextResponse.json({
             text,
             engine: 'Groq Whisper V3',
