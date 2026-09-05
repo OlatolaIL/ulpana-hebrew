@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Phone,
   PhoneCall,
@@ -24,6 +25,13 @@ import {
   Radio,
   ChevronDown,
   ChevronUp,
+  X,
+  BookOpen,
+  MessageSquare,
+  Bot,
+  User as UserIcon,
+  Lightbulb,
+  BookmarkPlus,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { Lesson, UserProfile, Word, ChatMessage } from '@/types';
@@ -75,6 +83,9 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
   const [addedWords, setAddedWords] = useState<Record<string, boolean>>({});
   const [speechNotice, setSpeechNotice] = useState<string | null>(null);
   const [isAiHangingUp, setIsAiHangingUp] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const [isWordsDrawerOpen, setIsWordsDrawerOpen] = useState(false);
+  const [showDialogueReviewModal, setShowDialogueReviewModal] = useState(false);
 
   const recognizerRef = useRef<HebrewSpeechRecognizer | null>(null);
   const activeMicStreamRef = useRef<MediaStream | null>(null);
@@ -121,6 +132,7 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
 
   // Инициализация распознавания речи
   useEffect(() => {
+    setMounted(true);
     recognizerRef.current = new HebrewSpeechRecognizer();
     return () => {
       callActiveRef.current = false;
@@ -438,7 +450,10 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
   };
 
   // Отправка реплики собеседнику
-  const handleSendMessage = async (textToSend?: string) => {
+  const handleSendMessage = async (
+    textToSend?: string,
+    meta?: { translation?: string; transcription?: string }
+  ) => {
     stopListening();
     const text = (textToSend || textInput || liveTranscript).trim();
 
@@ -468,6 +483,8 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
       id: `user-${Date.now()}`,
       role: 'user',
       hebrew: text,
+      transcription: meta?.transcription,
+      translation: meta?.translation,
       timestamp: Date.now(),
     };
 
@@ -517,19 +534,30 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
         isAiHangingUpRef.current = true;
       }
 
+      const teacherReactionRu = data.teacherReactionRu || data.teacher_reaction_ru || null;
+      const teacherReactionHebrew = data.teacherReactionHebrew || data.teacher_reaction_hebrew || null;
+      const effectiveFeedback = data.feedback || null;
+
+      // Привязываем комментарий учителя к реплике ученика
+      userMsg.feedback = effectiveFeedback || undefined;
+      userMsg.teacherReactionRu = teacherReactionRu;
+      userMsg.teacherReactionHebrew = teacherReactionHebrew;
+
       const aiMsg: ChatMessage = {
         id: `ai-${Date.now()}`,
         role: 'assistant',
         hebrew: data.hebrew || 'בְּסֵדֶר גָּמוּר!',
         transcription: data.transcription,
         translation: data.translation,
-        feedback: data.feedback,
+        feedback: effectiveFeedback,
+        teacherReactionRu,
+        teacherReactionHebrew,
         suggestedReplies: willHangUp ? [] : (data.suggestedReplies || []),
         timestamp: Date.now(),
       };
 
-      if (data.feedback) {
-        setLastFeedback(data.feedback);
+      if (effectiveFeedback) {
+        setLastFeedback(effectiveFeedback);
       }
 
       const updatedHistory = [...messagesRef.current, aiMsg];
@@ -571,6 +599,7 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
 
     await phoneAudio.playHangupTone(2);
     setCallState('ended');
+    setShowDialogueReviewModal(true);
 
     const currentMessages = messagesRef.current;
     const formattedTranscript = currentMessages.map((m) => ({
@@ -751,116 +780,35 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
               </div>
             </div>
 
-            {/* Карточки полезных слов и подсказок к звонку */}
+            {/* Кнопка вызова шторки полезных фраз и подсказок к звонку */}
             {scenario.usefulWords && scenario.usefulWords.length > 0 && (
-              <div className="w-full bg-zinc-800/60 backdrop-blur border border-zinc-700/60 rounded-2xl p-4 mb-5 text-left font-hebrew">
-                <div className="flex items-center justify-between gap-2 mb-2.5">
-                  <div className="flex items-center gap-1.5 font-bold text-zinc-200 text-xs sm:text-sm">
-                    <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
-                    <span>
-                      {userProfile.ulpanMode
-                        ? `מִילִּים שֶׁיַּעַזְרוּ לָכֶם בַּשִּׂיחָה (${scenario.usefulWords.length}):`
-                        : `Слова и подсказки к звонку (${scenario.usefulWords.length}):`}
-                    </span>
+              <button
+                type="button"
+                onClick={() => setIsWordsDrawerOpen(true)}
+                className="w-full bg-zinc-800/80 hover:bg-zinc-800 border border-zinc-700/80 hover:border-blue-500/50 rounded-2xl p-3.5 mb-5 flex items-center justify-between gap-3 text-left transition group cursor-pointer font-hebrew shadow-sm"
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="w-8 h-8 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                    <BookOpen className="w-4 h-4" />
                   </div>
-                  <span className="text-[10px] text-zinc-400">
-                    {userProfile.ulpanMode ? 'הַשְׁמָעָה 🔊' : 'Нажмите 🔊 для озвучки'}
-                  </span>
+                  <div className="min-w-0">
+                    <div className="text-xs sm:text-sm font-bold text-zinc-100 group-hover:text-blue-300 transition truncate">
+                      {userProfile.ulpanMode
+                        ? `מִילִּים וּבִיטּוּיִים לַשִּׂיחָה (${scenario.usefulWords.length})`
+                        : `Полезные фразы и подсказки (${scenario.usefulWords.length})`}
+                    </div>
+                    <div className="text-[11px] text-zinc-400 truncate">
+                      {userProfile.ulpanMode
+                        ? 'לַחֲצוּ לִפְתִיחַת הַשְּׁטוֹרְקָה עִם תַּרְגּוּם וְהַשְׁמָעָה 🔊'
+                        : 'Нажмите, чтобы открыть шторку с переводом и озвучкой 🔊'}
+                    </div>
+                  </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {scenario.usefulWords.map((word, idx) => {
-                    const isAdded = addedWords[word.hebrew] || isWordInPersonalDict(word.hebrew);
-                    const displayHebrew = userProfile.showNikkud ? word.hebrew : stripNikkud(word.hebrew);
-
-                    return (
-                      <div
-                        key={idx}
-                        className="bg-zinc-900/80 hover:bg-zinc-900 border border-zinc-700/70 hover:border-zinc-600 rounded-xl p-2.5 flex flex-col justify-between transition group shadow-xs"
-                      >
-                        <div>
-                          <div className="flex items-start justify-between gap-1.5">
-                            <div
-                              dir="rtl"
-                              className="font-bold text-sm font-hebrew text-white group-hover:text-blue-300 transition"
-                            >
-                              {displayHebrew}
-                            </div>
-                            <div className="flex items-center gap-1 shrink-0">
-                              {word.isNew && (
-                                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/30 font-hebrew">
-                                  {userProfile.ulpanMode ? 'חָדָשׁ' : 'Новое'}
-                                </span>
-                              )}
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  speakHebrew(word.hebrew, { rate: userProfile.speechRate || 0.7 });
-                                }}
-                                className="p-1 rounded-lg text-zinc-400 hover:text-blue-400 hover:bg-zinc-800 transition cursor-pointer"
-                                title={userProfile.ulpanMode ? 'השמע מילה' : 'Прослушать произношение'}
-                              >
-                                <Volume2 className="w-3.5 h-3.5" />
-                              </button>
-                            </div>
-                          </div>
-
-                          {!userProfile.ulpanMode && userProfile.showTranscription && word.transcription && (
-                            <div className="text-[11px] text-blue-400/90 font-mono mt-0.5">
-                              [{word.transcription}]
-                            </div>
-                          )}
-
-                          {!userProfile.ulpanMode && (
-                            <div className="text-xs text-zinc-300 mt-1 line-clamp-2">
-                              {word.translation}
-                            </div>
-                          )}
-                        </div>
-
-                        <div className="mt-2 pt-1.5 border-t border-zinc-800 flex justify-end font-hebrew">
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleAddWord({
-                                id: `phone-w-${idx}`,
-                                hebrew: word.hebrew,
-                                hebrewPlain: stripNikkud(word.hebrew),
-                                transcription: word.transcription,
-                                translation: word.translation,
-                                partOfSpeech: 'expression',
-                                lessonId: lesson.id,
-                                isUserAdded: true,
-                                dateAdded: Date.now(),
-                              });
-                            }}
-                            disabled={isAdded}
-                            className={`text-[10px] font-semibold px-2 py-0.5 rounded-lg flex items-center gap-1 transition ${
-                              isAdded
-                                ? 'text-emerald-400 bg-emerald-950/40 border border-emerald-800/40 cursor-default'
-                                : 'text-zinc-400 hover:text-zinc-200 bg-zinc-800/80 hover:bg-zinc-700/80 border border-zinc-700 cursor-pointer'
-                            }`}
-                          >
-                            {isAdded ? (
-                              <>
-                                <Check className="w-3 h-3 text-emerald-400" />
-                                <span>{userProfile.ulpanMode ? 'בַּמִּילוֹן ✔️' : 'В словаре'}</span>
-                              </>
-                            ) : (
-                              <>
-                                <Plus className="w-3 h-3" />
-                                <span>{userProfile.ulpanMode ? 'לַמִּילוֹן' : 'В словарь'}</span>
-                              </>
-                            )}
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
+                <span className="text-xs font-bold px-2.5 py-1 rounded-lg bg-blue-600/30 text-blue-300 border border-blue-500/40 shrink-0 group-hover:bg-blue-600 group-hover:text-white transition">
+                  {userProfile.ulpanMode ? 'פְּתַח 📖' : 'Шторка 📖 →'}
+                </span>
+              </button>
             )}
 
             {/* Кнопка запуска звонка */}
@@ -1167,7 +1115,10 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
                     type="button"
                     onClick={() => {
                       if (!isAiSpeaking && !loadingAi && !isAiHangingUp) {
-                        handleSendMessage(reply.hebrew);
+                        handleSendMessage(reply.hebrew, {
+                          translation: reply.translation,
+                          transcription: reply.transcription,
+                        });
                       }
                     }}
                     className="px-3 py-1.5 rounded-xl bg-zinc-800/90 hover:bg-zinc-700/90 active:scale-95 border border-zinc-700/70 hover:border-blue-500/60 text-xs text-zinc-200 flex flex-col transition cursor-pointer text-right group"
@@ -1390,6 +1341,20 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
             </div>
           )}
 
+          {/* Кнопка открытия полного разбора диалога с комментариями учителя */}
+          <button
+            type="button"
+            onClick={() => setShowDialogueReviewModal(true)}
+            className="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 active:scale-[0.99] text-white font-bold text-sm shadow-md transition flex items-center justify-center gap-2.5 cursor-pointer font-hebrew"
+          >
+            <MessageSquare className="w-5 h-5 text-blue-100" />
+            <span>
+              {userProfile.ulpanMode
+                ? 'צְפִיָּה בַּשִּׂיחָה הַמְּלֵאָה וּבְמַשּׁוֹב הַמּוֹרֶה 💬'
+                : 'Посмотреть полный диалог и комментарии учителя 💬'}
+            </span>
+          </button>
+
           {/* Кнопки действий */}
           <div className="flex flex-col sm:flex-row gap-2.5 pt-2 font-hebrew">
             <button
@@ -1412,6 +1377,365 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
         </div>
       );
     })()}
+
+      {/* 5. БОКОВОЙ ЯРЛЫЧОК ШТОРКИ (Floating Drawer Tab справа) - как на этапе 4 */}
+      {scenario.usefulWords && scenario.usefulWords.length > 0 && callState !== 'ended' && (
+        <button
+          type="button"
+          onClick={() => setIsWordsDrawerOpen(true)}
+          className="fixed right-0 top-1/2 -translate-y-1/2 z-30 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white shadow-xl rounded-l-2xl py-3 px-1.5 sm:px-2 flex flex-col items-center gap-1.5 cursor-pointer border-y border-l border-blue-400/60 transition-all group font-hebrew"
+          title={userProfile.ulpanMode ? 'מִילִּים שֶׁיַּעַזְרוּ בַּשִּׂיחָה' : 'Полезные фразы к звонку'}
+        >
+          <BookOpen className="w-4 h-4 text-white group-hover:scale-110 transition-transform" />
+          <span className="text-[10px] font-bold uppercase [writing-mode:vertical-rl] tracking-widest text-blue-100">
+            {userProfile.ulpanMode ? 'מִילִּים' : 'ФРАЗЫ'}
+          </span>
+          <span className="w-5 h-5 rounded-full bg-white text-blue-700 text-[10px] font-black flex items-center justify-center shadow-xs">
+            {scenario.usefulWords.length}
+          </span>
+        </button>
+      )}
+
+      {/* 6. БОКОВАЯ ШТОРКА (SIDE DRAWER СПРАВА) ЧЕРЕЗ CREATEPORTAL */}
+      {mounted && isWordsDrawerOpen && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 z-[9999] flex justify-end">
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-200 cursor-pointer"
+            onClick={() => setIsWordsDrawerOpen(false)}
+          />
+
+          {/* Панель шторки */}
+          <div
+            className="relative z-10 w-[88vw] max-w-sm sm:max-w-md h-full bg-white dark:bg-zinc-900 shadow-2xl flex flex-col border-l border-zinc-200 dark:border-zinc-800 font-hebrew"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Шапка шторки */}
+            <div className="p-3.5 sm:p-4 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between bg-white dark:bg-zinc-900 shrink-0">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <span className="text-xl">📖</span>
+                <div className="min-w-0">
+                  <h3 className="font-bold text-sm sm:text-base text-zinc-900 dark:text-zinc-50 truncate">
+                    {userProfile.ulpanMode ? 'מִילִּים לַשִּׂיחָה' : 'Полезные фразы'}
+                  </h3>
+                  <p className="text-[11px] sm:text-xs text-zinc-500 dark:text-zinc-400 truncate">
+                    {userProfile.ulpanMode ? 'מִילִּים וּבִיטּוּיִים שֶׁיַּעַזְרוּ לָכֶם' : 'Шпаргалка и подсказки к звонку'}
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setIsWordsDrawerOpen(false)}
+                className="p-2 rounded-xl text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 hover:bg-zinc-200 dark:hover:bg-zinc-800 transition cursor-pointer"
+                title="Закрыть"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Контент шторки: список фраз с независимым скроллом */}
+            <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-2.5">
+              {scenario.usefulWords && scenario.usefulWords.length > 0 ? (
+                <div className="space-y-2.5">
+                  <div className="flex items-center justify-between px-0.5">
+                    <p className="text-[11px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
+                      {userProfile.ulpanMode ? 'מִילִּים וּבִיטּוּיִים:' : 'Слова и выражения:'}
+                    </p>
+                    <span className="text-[11px] text-zinc-400">
+                      {scenario.usefulWords.length} шт.
+                    </span>
+                  </div>
+
+                  {scenario.usefulWords.map((word, idx) => {
+                    const isAdded =
+                      addedWords[word.hebrew] || isWordInPersonalDict(word.hebrew, userProfile.personalVocabulary);
+                    const isCursive = userProfile.fontStyle === 'cursive';
+                    return (
+                      <div
+                        key={idx}
+                        className="bg-zinc-50 dark:bg-zinc-800/80 border border-zinc-200 dark:border-zinc-700/80 rounded-2xl p-3 shadow-2xs hover:border-blue-300 dark:hover:border-blue-600 transition space-y-1.5"
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span
+                              dir="rtl"
+                              className={`font-hebrew font-bold text-lg text-zinc-900 dark:text-zinc-50 ${
+                                isCursive ? 'font-cursive text-xl text-blue-600 dark:text-blue-400' : ''
+                              }`}
+                            >
+                              {userProfile.showNikkud ? word.hebrew : stripNikkud(word.hebrew)}
+                            </span>
+                            {word.isNew && (
+                              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-amber-500/20 text-amber-600 dark:text-amber-300 border border-amber-500/30 font-hebrew shrink-0">
+                                {userProfile.ulpanMode ? 'חָדָשׁ' : 'Новое'}
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="flex items-center gap-1 shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => speakHebrew(word.hebrew, { rate: userProfile.speechRate || 0.7 })}
+                              className="p-1.5 rounded-lg text-zinc-500 hover:text-blue-600 dark:text-zinc-400 dark:hover:text-blue-400 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition cursor-pointer"
+                              title="Озвучить"
+                            >
+                              <Volume2 className="w-4 h-4" />
+                            </button>
+                            <button
+                              type="button"
+                              disabled={isAdded}
+                              onClick={() =>
+                                handleAddWord({
+                                  id: `phone-sc-w-${idx}`,
+                                  hebrew: word.hebrew,
+                                  hebrewPlain: stripNikkud(word.hebrew),
+                                  transcription: word.transcription,
+                                  translation: word.translation,
+                                  partOfSpeech: 'expression',
+                                  lessonId: lesson.id,
+                                  isUserAdded: true,
+                                  dateAdded: Date.now(),
+                                })
+                              }
+                              className={`px-2 py-1 rounded-lg text-[11px] font-semibold transition cursor-pointer flex items-center gap-1 ${
+                                isAdded
+                                  ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400'
+                                  : 'bg-zinc-200 hover:bg-amber-500 hover:text-white dark:bg-zinc-700 text-zinc-700 dark:text-zinc-200'
+                              }`}
+                              title={isAdded ? 'В словаре' : 'В личный словарь'}
+                            >
+                              {isAdded ? (
+                                <>
+                                  <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                                  <span>{userProfile.ulpanMode ? 'בַּמִּילוֹן' : 'В словаре'}</span>
+                                </>
+                              ) : (
+                                <>
+                                  <BookmarkPlus className="w-3.5 h-3.5" />
+                                  <span>{userProfile.ulpanMode ? 'לַמִּילוֹן' : 'В словарь'}</span>
+                                </>
+                              )}
+                            </button>
+                          </div>
+                        </div>
+
+                        {!userProfile.ulpanMode && userProfile.showTranscription && word.transcription && (
+                          <div className="text-xs text-blue-600 dark:text-blue-400 font-mono">
+                            [{word.transcription}]
+                          </div>
+                        )}
+
+                        {!userProfile.ulpanMode && (
+                          <div className="text-xs text-zinc-600 dark:text-zinc-300">
+                            {word.translation}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="text-xs text-zinc-400 text-center py-8">
+                  {userProfile.ulpanMode ? 'אֵין מִילִּים נוֹסָפוֹת לְשִׂיחָה זוֹ' : 'К этому сценарию нет дополнительных фраз'}
+                </p>
+              )}
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* 7. МОДАЛЬНОЕ ОКНО ПОЛНОГО ДИАЛОГА И КОММЕНТАРИЕВ ИИ-УЧИТЕЛЯ К ОТВЕТАМ */}
+      {mounted && showDialogueReviewModal && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-5 bg-black/75 backdrop-blur-sm animate-in fade-in duration-200">
+          <div
+            className="relative w-full max-w-2xl max-h-[90vh] bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-2xl flex flex-col overflow-hidden font-hebrew"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Шапка модального окна */}
+            <div className="px-5 py-4 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between bg-zinc-50/80 dark:bg-zinc-900/80 shrink-0">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-11 h-11 rounded-2xl bg-blue-100 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-900 flex items-center justify-center text-2xl shrink-0 shadow-2xs">
+                  {scenario.avatarEmoji}
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-bold text-base sm:text-lg text-zinc-900 dark:text-zinc-50 truncate">
+                      {userProfile.ulpanMode ? 'סִיכּוּם וּפֵירוּט הַשִּׂיחָה' : 'Полный диалог и разбор ответов'}
+                    </h3>
+                  </div>
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400 truncate">
+                    {scenario.callerName} • {scenario.callerRole} • {formatTimer(callDuration)}
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShowDialogueReviewModal(false)}
+                className="p-2 rounded-xl text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 hover:bg-zinc-200 dark:hover:bg-zinc-800 transition cursor-pointer"
+                title="Закрыть"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Скроллируемое тело с диалогом и комментариями */}
+            <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4">
+              {/* Верхняя плашка от ИИ-учителя */}
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/40 dark:to-indigo-950/40 border border-blue-200 dark:border-blue-900/60 rounded-2xl p-3.5 sm:p-4 shadow-2xs">
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                    <Bot className="w-4 h-4" />
+                  </div>
+                  <div className="flex-1 min-w-0 text-xs sm:text-sm">
+                    <div className="font-bold text-blue-950 dark:text-blue-200 mb-0.5">
+                      {userProfile.ulpanMode ? 'מַשּׁוֹב הַמּוֹרֶה עַל שִׂיחַת הַטֶּלֶפוֹן' : 'Комментарий ИИ-учителя к телефонному звонку:'}
+                    </div>
+                    <p className="text-zinc-700 dark:text-zinc-300 leading-relaxed">
+                      {messages.filter((m) => m.role === 'user').length >= 2
+                        ? (userProfile.ulpanMode
+                            ? 'כָּל הַכָּבוֹד! שׂוֹחַחְתֶּם בְּהַצְלָחָה בְּעִבְרִית. לְמַטָּה מוֹפִיעַ הַדִּיאָלוֹג הַמָּלֵא עִם מַשּׁוֹב מְפֹרָט לְכָל אַחַת מֵהַתְּשׁוּבוֹת שֶׁלָּכֶם.'
+                            : 'Отличная работа! Вы провели живой телефонный диалог на иврите. Ниже представлен полный текст разговора с подробным разбором каждой вашей реплики.')
+                        : (userProfile.ulpanMode
+                            ? 'הַשִּׂיחָה הָיְתָה קְצָרָה מִדַּי. נַסּוּ שׁוּב וַעֲנוּ עַל כָּל שְׁאֵלוֹת הַנָּצִיג.'
+                            : 'Разговор получился слишком коротким. Попробуйте еще раз и ответьте на вопросы собеседника.')}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Список реплик с комментариями к ответам ученика */}
+              <div className="space-y-3.5">
+                {messages.map((msg, idx) => {
+                  const isUser = msg.role === 'user';
+                  const isCursive = userProfile.fontStyle === 'cursive';
+                  const nextAiMsg = !isUser ? null : messages.slice(idx + 1).find((m) => m.role === 'assistant');
+                  const teacherFeedback = isUser ? (nextAiMsg?.feedback || msg.feedback || null) : null;
+                  const teacherReaction = isUser ? (nextAiMsg?.teacherReactionRu || msg.teacherReactionRu || null) : null;
+
+                  return (
+                    <div
+                      key={msg.id || idx}
+                      className={`rounded-2xl p-3.5 sm:p-4 border transition ${
+                        isUser
+                          ? 'bg-blue-50/70 dark:bg-blue-950/30 border-blue-200/80 dark:border-blue-900/60 ml-2 sm:ml-6'
+                          : 'bg-zinc-50 dark:bg-zinc-800/60 border-zinc-200 dark:border-zinc-700/60 mr-2 sm:mr-6'
+                      }`}
+                    >
+                      {/* Шапка сообщения: кто говорит + кнопка озвучки */}
+                      <div className="flex items-center justify-between gap-2 mb-2">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs shrink-0 ${
+                            isUser
+                              ? 'bg-blue-600 text-white'
+                              : 'bg-zinc-200 dark:bg-zinc-700 text-zinc-800 dark:text-zinc-200'
+                          }`}>
+                            {isUser ? <UserIcon className="w-3.5 h-3.5" /> : scenario.avatarEmoji}
+                          </span>
+                          <span className="font-bold text-xs text-zinc-900 dark:text-zinc-200 truncate">
+                            {isUser
+                              ? (userProfile.ulpanMode ? 'אַתֶּם (תַּלְמִיד)' : 'Вы (ученик)')
+                              : `${scenario.callerName} (${scenario.callerRole})`}
+                          </span>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => speakHebrew(msg.hebrew, { rate: userProfile.speechRate || 0.7 })}
+                          className="p-1.5 rounded-lg text-zinc-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition cursor-pointer"
+                          title="Прослушать реплику"
+                        >
+                          <Volume2 className="w-4 h-4" />
+                        </button>
+                      </div>
+
+                      {/* Текст реплики на иврите */}
+                      <div
+                        dir="rtl"
+                        className={`text-base sm:text-lg font-hebrew font-bold text-zinc-900 dark:text-zinc-50 leading-relaxed ${
+                          isCursive ? 'font-cursive text-xl text-blue-600 dark:text-blue-400' : ''
+                        }`}
+                      >
+                        {userProfile.showNikkud ? msg.hebrew : stripNikkud(msg.hebrew)}
+                      </div>
+
+                      {/* Транскрипция кириллицей */}
+                      {!userProfile.ulpanMode && userProfile.showTranscription && msg.transcription && (
+                        <div className="text-xs text-blue-600 dark:text-blue-400 font-mono mt-1">
+                          [{msg.transcription}]
+                        </div>
+                      )}
+
+                      {/* Перевод на русский язык */}
+                      {!userProfile.ulpanMode && msg.translation && (
+                        <div className="text-xs sm:text-sm text-zinc-600 dark:text-zinc-300 mt-1 leading-snug">
+                          {msg.translation}
+                        </div>
+                      )}
+
+                      {/* БЛОК РАЗБОРА И КОММЕНТАРИЕВ ИИ-УЧИТЕЛЯ К ОТВЕТУ УЧЕНИКА */}
+                      {isUser && (
+                        <div className="mt-3 pt-2.5 border-t border-blue-200/60 dark:border-blue-900/50 space-y-1.5">
+                          <div className="flex items-center gap-1.5 text-xs font-bold text-indigo-900 dark:text-indigo-300">
+                            <Bot className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+                            <span>{userProfile.ulpanMode ? 'מַשּׁוֹב הַמּוֹרֶה לַתְּשׁוּבָה:' : 'Комментарий учителя к вашему ответу:'}</span>
+                          </div>
+
+                          {teacherFeedback ? (
+                            /* Если есть конкретная подсказка об ошибке */
+                            <div className="p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/80 text-xs text-amber-900 dark:text-amber-200 flex items-start gap-2">
+                              <Lightbulb className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+                              <span className="leading-relaxed">{teacherFeedback}</span>
+                            </div>
+                          ) : teacherReaction ? (
+                            /* Если учитель похвалил или прокомментировал */
+                            <div className="p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/80 text-xs text-emerald-900 dark:text-emerald-200 flex items-start gap-2">
+                              <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                              <span className="leading-relaxed">{teacherReaction}</span>
+                            </div>
+                          ) : (
+                            /* Если ответ правильный и органичный */
+                            <div className="p-2 rounded-xl bg-emerald-50/80 dark:bg-emerald-950/30 border border-emerald-200/60 dark:border-emerald-900/40 text-xs text-emerald-800 dark:text-emerald-300 flex items-center gap-2">
+                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                              <span>{userProfile.ulpanMode ? 'תְּשׁוּבָה נְכוֹנָה וּבְרוּרָה בַּהֶקְשֵׁר הַשִּׂיחָה! ✔️' : 'Точный и грамматически верный ответ по контексту звонка! ✔️'}</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Футер модального окна с кнопками действий */}
+            <div className="p-3.5 sm:p-4 border-t border-zinc-200 dark:border-zinc-800 flex flex-col sm:flex-row items-center justify-end gap-2 bg-zinc-50/80 dark:bg-zinc-900/80 shrink-0">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowDialogueReviewModal(false);
+                  handleStartCall();
+                }}
+                className="w-full sm:w-auto px-4 py-2.5 rounded-xl border border-zinc-300 dark:border-zinc-700 text-xs font-semibold text-zinc-700 dark:text-zinc-200 hover:bg-zinc-200 dark:hover:bg-zinc-800 transition flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>{userProfile.ulpanMode ? 'שִׂיחָה חוֹזֶרֶת 🔄' : 'Позвонить еще раз'}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setShowDialogueReviewModal(false)}
+                className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
+              >
+                <span>{userProfile.ulpanMode ? 'סְגִירָה' : 'Закрыть'}</span>
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
     </div>
   );
 };

@@ -1956,12 +1956,13 @@ export const ALEF_LESSONS_01_10: Record<number, Lesson> = {
       },
       {
         "id": "w5-9",
-        "hebrew": "עוֹלֶה / עוֹלָה",
+        "hebrew": "עוֹלֶה",
         "hebrewPlain": "עולה",
-        "transcription": "олé / олá",
-        "translation": "стоит (по цене)",
+        "transcription": "олé",
+        "translation": "стоит (по цене, м.р.)",
         "partOfSpeech": "verb",
         "root": "ע-ל-ה",
+        "gender": "m",
         "lessonId": 5
       },
       {
@@ -1987,12 +1988,12 @@ export const ALEF_LESSONS_01_10: Record<number, Lesson> = {
       },
       {
         "id": "w5-12",
-        "hebrew": "חֶנְוָנִי / מוֹכֵר",
+        "hebrew": "מוֹכֵר",
         "hebrewPlain": "מוכר",
         "transcription": "мохэ́р",
         "translation": "продавец",
         "partOfSpeech": "noun",
-        "root": "ח-נ-ה / מ-כ-ר",
+        "root": "מ-כ-ר",
         "gender": "m",
         "lessonId": 5
       }

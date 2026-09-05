@@ -7294,152 +7294,152 @@ export const VERB_CONJUGATIONS_DATABASE: Record<string, VerbConjugation> = {
     }
   ]
 },
-  'לטלפן': {
+  'לבקר': {
   "infinitive": {
-    "hebrew": "לְטַלְפֵּן",
-    "transcription": "леталпéн",
-    "translation": "звонить по телефону"
+    "hebrew": "לְבַקֵּר",
+    "transcription": "левакéр",
+    "translation": "навещать, посещать"
   },
   "binyan": "פִּעֵל (Пиэль)",
-  "root": "ט-ל-פ-ן",
+  "root": "ב-ק-ר",
   "present": [
     {
       "pronoun": "זָכָר יָחִיד (он / я / ты)",
-      "hebrew": "מְטַלְפֵּן",
-      "transcription": "металпéн",
-      "translation": "звонит / звоню (м.р.)"
+      "hebrew": "מְבַקֵּר",
+      "transcription": "мевакéр",
+      "translation": "навещает / навещаю (м.р.)"
     },
     {
       "pronoun": "נְקֵבָה יְחִידָה (она / я / ты)",
-      "hebrew": "מְטַלְפֶּנֶת",
-      "transcription": "металпéнет",
-      "translation": "звонит / звоню (ж.р.)"
+      "hebrew": "מְבַקֶּרֶת",
+      "transcription": "мевакéрет",
+      "translation": "навещает / навещаю (ж.р.)"
     },
     {
       "pronoun": "זָכָר רַבִּים (они / мы / вы)",
-      "hebrew": "מְטַלְפְּנִים",
-      "transcription": "металпенӣм",
-      "translation": "звонят / звоним (м.р.)"
+      "hebrew": "מְבַקְּרִים",
+      "transcription": "мевакрӣм",
+      "translation": "навещают / навещаем (м.р.)"
     },
     {
       "pronoun": "נְקֵבָה רַבּוֹת (они / мы / вы)",
-      "hebrew": "מְטַלְפְּנוֹת",
-      "transcription": "металпенóт",
-      "translation": "звонят / звоним (ж.р.)"
+      "hebrew": "מְבַקְּרוֹת",
+      "transcription": "мевакрóт",
+      "translation": "навещают / навещаем (ж.р.)"
     }
   ],
   "past": [
     {
       "pronoun": "אֲנִי (я)",
-      "hebrew": "טִלְפַּנְתִּי",
-      "transcription": "тилпáнти",
-      "translation": "я позвонил(а)"
+      "hebrew": "בִּקַּרְתִּי",
+      "transcription": "бикáрти",
+      "translation": "я навестил(а)"
     },
     {
       "pronoun": "אַתָּה (ты м.р.)",
-      "hebrew": "טִלְפַּנְתָּ",
-      "transcription": "тилпáнта",
-      "translation": "ты позвонил"
+      "hebrew": "בִּקַּרְתָּ",
+      "transcription": "бикáрта",
+      "translation": "ты навестил"
     },
     {
       "pronoun": "אַתְּ (ты ж.р.)",
-      "hebrew": "טִלְפַּנְתְּ",
-      "transcription": "тилпáнт",
-      "translation": "ты позвонила"
+      "hebrew": "בִּקַּרְתְּ",
+      "transcription": "бикáрт",
+      "translation": "ты навестила"
     },
     {
       "pronoun": "הוּא (он)",
-      "hebrew": "טִלְפֵּן",
-      "transcription": "тилпéн",
-      "translation": "он позвонил"
+      "hebrew": "בִּקֵּר",
+      "transcription": "бикéр",
+      "translation": "он навестил"
     },
     {
       "pronoun": "הִיא (она)",
-      "hebrew": "טִלְפְּנָה",
-      "transcription": "тилпенá",
-      "translation": "она позвонила"
+      "hebrew": "בִּקְּרָה",
+      "transcription": "бикрá",
+      "translation": "она навестила"
     },
     {
       "pronoun": "אֲנַחְנוּ (мы)",
-      "hebrew": "טִלְפַּנְנוּ",
-      "transcription": "тилпáнну",
-      "translation": "мы позвонили"
+      "hebrew": "בִּקַּרְנוּ",
+      "transcription": "бикáрну",
+      "translation": "мы навестили"
     },
     {
       "pronoun": "אַתֶּם / אַתֶּן (вы)",
-      "hebrew": "טִלְפַּנְתֶּם / טִלְפַּנְתֶּן",
-      "transcription": "тилпантéм / тилпантéн",
-      "translation": "вы позвонили"
+      "hebrew": "בִּקַּרְתֶּם / בִּקַּרְתֶּן",
+      "transcription": "бикартéм / бикартéн",
+      "translation": "вы навестили"
     },
     {
       "pronoun": "הֵם / הֵן (они)",
-      "hebrew": "טִלְפְּנוּ",
-      "transcription": "тилпенӯ",
-      "translation": "они позвонили"
+      "hebrew": "בִּקְּרוּ",
+      "transcription": "бикрӯ",
+      "translation": "они навестили"
     }
   ],
   "future": [
     {
       "pronoun": "אֲנִי (я)",
-      "hebrew": "אֲטַלְפֵּן",
-      "transcription": "аталпéн",
-      "translation": "я позвоню"
+      "hebrew": "אֲבַקֵּר",
+      "transcription": "авакéр",
+      "translation": "я навещу / буду навещать"
     },
     {
       "pronoun": "אַתָּה / הִיא (ты м.р. / она)",
-      "hebrew": "תְּטַלְפֵּן",
-      "transcription": "теталпéн",
-      "translation": "ты позвонишь / она позвонит"
+      "hebrew": "תְּבַקֵּר",
+      "transcription": "тевакéр",
+      "translation": "ты навестишь / она навестит"
     },
     {
       "pronoun": "אַתְּ (ты ж.р.)",
-      "hebrew": "תְּטַלְפְּנִי",
-      "transcription": "теталпенӣ",
-      "translation": "ты позвонишь (ж.р.)"
+      "hebrew": "תְּבַקְּרִי",
+      "transcription": "тевакрӣ",
+      "translation": "ты навестишь (ж.р.)"
     },
     {
       "pronoun": "הוּא (он)",
-      "hebrew": "יְטַלְפֵּן",
-      "transcription": "йеталпéн",
-      "translation": "он позвонит"
+      "hebrew": "יְבַקֵּר",
+      "transcription": "йевакéр",
+      "translation": "он навестит"
     },
     {
       "pronoun": "אֲנַחְנוּ (мы)",
-      "hebrew": "נְטַלְפֵּן",
-      "transcription": "неталпéн",
-      "translation": "мы позвоним"
+      "hebrew": "נְבַקֵּר",
+      "transcription": "невакéр",
+      "translation": "мы навестим"
     },
     {
       "pronoun": "אַתֶּם / אַתֶּן (вы)",
-      "hebrew": "תְּטַלְפְּנוּ",
-      "transcription": "теталпенӯ",
-      "translation": "вы позвоните"
+      "hebrew": "תְּבַקְּרוּ",
+      "transcription": "тевакрӯ",
+      "translation": "вы навестите"
     },
     {
       "pronoun": "הֵם / הֵן (они)",
-      "hebrew": "יְטַלְפְּנוּ",
-      "transcription": "йеталпенӯ",
-      "translation": "они позвонят"
+      "hebrew": "יְבַקְּרוּ",
+      "transcription": "йевакрӯ",
+      "translation": "они навестят"
     }
   ],
   "imperative": [
     {
       "pronoun": "אַתָּה (м.р.)",
-      "hebrew": "טַלְפֵּן",
-      "transcription": "талпéн",
-      "translation": "позвони (м.р.)"
+      "hebrew": "בַּקֵּר",
+      "transcription": "бакéр",
+      "translation": "навести (м.р.)"
     },
     {
       "pronoun": "אַתְּ (ж.р.)",
-      "hebrew": "טַלְפְּנִי",
-      "transcription": "талпенӣ",
-      "translation": "позвони (ж.р.)"
+      "hebrew": "בַּקְּרִי",
+      "transcription": "бакрӣ",
+      "translation": "навести (ж.р.)"
     },
     {
       "pronoun": "אַתֶּם / אַתֶּן (мн.ч.)",
-      "hebrew": "טַלְפְּנוּ",
-      "transcription": "талпенӯ",
-      "translation": "позвоните"
+      "hebrew": "בַּקְּרוּ",
+      "transcription": "бакрӯ",
+      "translation": "навестите (мн.ч.)"
     }
   ]
 },

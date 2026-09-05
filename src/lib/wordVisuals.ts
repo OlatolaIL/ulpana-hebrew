@@ -384,6 +384,7 @@ export const WORD_VISUAL_MAP: Record<string, WordVisualConfig> = {
   'חג שמח':         { openmojiHex: '1F389', emoji: '🎉' },
   'שיעור':          { openmojiHex: '1F4DA', emoji: '📚' },
   'כמה זה עולה':    { openmojiHex: '1F3F7', emoji: '🏷️' },
+  'עולה':           { openmojiHex: '1F3F7', emoji: '🏷️' },
   'מה השעה':        { openmojiHex: '23F0',  emoji: '⏰' },
 
   // Professions & Work

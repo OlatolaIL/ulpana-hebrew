@@ -206,6 +206,7 @@ export const HEBREW_PICTOGRAM_MAP: Record<string, { icon: string; gender?: 'male
   'מבשל': { icon: '🍳' },
   'משלם': { icon: '💳' },
   'מקבל': { icon: '🎁' },
+  'עולה': { icon: '🏷️ ♂', gender: 'male' },
 
   // ─── 5. Еда и напитки (Food & Drinks) ─────────────────────────────────────
   'קפה': { icon: '☕' },
@@ -318,6 +319,8 @@ export const HEBREW_PICTOGRAM_MAP: Record<string, { icon: string; gender?: 'male
   'מלצר': { icon: '🧑‍🍳 ♂', gender: 'male' },
   'מלצרית': { icon: '🧑‍🍳 ♀', gender: 'female' },
   'נהג': { icon: '🚌 ♂', gender: 'male' },
+  'מוכר': { icon: '🛍️ ♂', gender: 'male' },
+  'מוכרת': { icon: '🛍️ ♀', gender: 'female' },
   'שכן': { icon: '🏘️ ♂', gender: 'male' },
   'שכנה': { icon: '🏘️ ♀', gender: 'female' },
   'כלב': { icon: '🐕 ♂', gender: 'male' },

@@ -152,6 +152,41 @@ export const LessonVocabulary: React.FC<LessonVocabularyProps> = ({
     }
   };
 
+  const getGenderBadge = (gender?: 'm' | 'f' | 'both') => {
+    if (!gender) return null;
+    if (gender === 'm') {
+      return (
+        <span
+          className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-sky-50 dark:bg-sky-950/60 text-sky-700 dark:text-sky-300 border border-sky-200/80 dark:border-sky-800/60"
+          title={isUlpan ? 'זָכָר (ז׳)' : 'Мужской род'}
+        >
+          {isUlpan ? 'זָכָר ♂' : 'м.р. ♂'}
+        </span>
+      );
+    }
+    if (gender === 'f') {
+      return (
+        <span
+          className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border border-rose-200/80 dark:border-rose-800/60"
+          title={isUlpan ? 'נְקֵבָה (נ׳)' : 'Женский род'}
+        >
+          {isUlpan ? 'נְקֵבָה ♀' : 'ж.р. ♀'}
+        </span>
+      );
+    }
+    if (gender === 'both') {
+      return (
+        <span
+          className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200/80 dark:border-indigo-800/60"
+          title={isUlpan ? 'זָכָר וּנְקֵבָה' : 'Общий род'}
+        >
+          {isUlpan ? 'זו״נ ⚥' : 'общ. ⚥'}
+        </span>
+      );
+    }
+    return null;
+  };
+
   const isCursive = userProfile.fontStyle === 'cursive';
 
   return (
@@ -251,7 +286,10 @@ export const LessonVocabulary: React.FC<LessonVocabularyProps> = ({
             >
               <div>
                 <div className="flex items-center justify-between gap-2 mb-2">
-                  {getPosBadge(word.partOfSpeech)}
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    {getPosBadge(word.partOfSpeech)}
+                    {getGenderBadge(word.gender)}
+                  </div>
 
                   <div className="flex items-center gap-1.5">
                     <button

@@ -214,6 +214,8 @@ export interface ChatMessage {
   transcription?: string;
   translation?: string;
   feedback?: string; // Поправки грамматики от ИИ
+  teacherReactionRu?: string | null; // Реакция/похвала учителя на русском
+  teacherReactionHebrew?: string | null; // Реакция учителя на иврите
   engine?: string;
   isCompleted?: boolean; // Флаг завершения диалога
   suggestedReplies?: Array<{
