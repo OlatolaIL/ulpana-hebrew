@@ -111,6 +111,33 @@ export interface GrammarTopic {
   }>;
 }
 
+export interface SpokenHebrewPhrase {
+  hebrew: string;
+  transcription: string;
+  translation: string;
+  stressNote?: string;
+  context?: string;
+  category?: 'price' | 'question' | 'slang' | 'polite' | 'daily';
+}
+
+export interface SpokenHebrewGuide {
+  lessonId?: number;
+  topicTitle: string;
+  stressRuleNote?: {
+    word: string;
+    academic: string;
+    spoken: string;
+    explanation: string;
+  };
+  phrases: SpokenHebrewPhrase[];
+  slangAndShortcuts?: Array<{
+    term: string;
+    transcription: string;
+    meaning: string;
+    usageTip: string;
+  }>;
+}
+
 export interface DialogueWord {
   hebrew: string;
   transcription: string;

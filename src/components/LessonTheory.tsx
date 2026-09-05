@@ -7,6 +7,7 @@ import { speakHebrew } from '@/lib/speech';
 import { markLessonTabCompleted } from '@/lib/storage';
 import { stripNikkud } from '@/lib/transcription';
 import { getHebrewPictogram, getHebrewGenderLabel, getPictogramDetails } from '@/lib/pictograms';
+import { SpokenHebrewDrawer } from './SpokenHebrewDrawer';
 
 interface LessonTheoryProps {
   lesson: Lesson;
@@ -131,6 +132,7 @@ export const LessonTheory: React.FC<LessonTheoryProps> = ({
 }) => {
   const [revealedHints, setRevealedHints] = useState<Record<string, boolean>>({});
   const [playingKey, setPlayingKey] = useState<string | null>(null);
+  const [isSpokenDrawerOpen, setIsSpokenDrawerOpen] = useState(false);
 
   const handlePlay = (text: string, key?: string) => {
     if (!text) return;
@@ -505,6 +507,18 @@ export const LessonTheory: React.FC<LessonTheoryProps> = ({
                   </li>
                 ))}
               </ul>
+
+              <div className="pt-2 border-t border-amber-200/80 dark:border-amber-900/40 flex items-center justify-between">
+                <button
+                  type="button"
+                  onClick={() => setIsSpokenDrawerOpen(true)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-100/90 hover:bg-amber-200 dark:bg-amber-900/60 dark:hover:bg-amber-800/70 text-amber-900 dark:text-amber-100 font-bold text-xs transition cursor-pointer border border-amber-300 dark:border-amber-700 shadow-xs active:scale-98"
+                  title="Открыть шторку живой разговорной речи и ударений"
+                >
+                  <span>🗣️ Шторка: Живая речь и секреты ударения</span>
+                  <span className="text-[10px] opacity-75">→</span>
+                </button>
+              </div>
             </div>
           )}
         </div>
@@ -621,6 +635,29 @@ export const LessonTheory: React.FC<LessonTheoryProps> = ({
           </span>
         </button>
       </div>
+
+      {/* БОКОВОЙ ЯРЛЫЧОК ШТОРКИ (Floating Drawer Tab справа) */}
+      <button
+        type="button"
+        onClick={() => setIsSpokenDrawerOpen(true)}
+        className="fixed right-0 top-1/2 -translate-y-1/2 z-40 bg-gradient-to-b from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-bold px-2 py-3.5 rounded-l-2xl shadow-xl border-y border-l border-amber-400/80 flex flex-col items-center gap-1.5 transition active:scale-95 cursor-pointer group hover:pr-3"
+        title="Открыть шторку живой речи и ударений"
+      >
+        <span className="text-base group-hover:scale-125 transition-transform duration-200">🗣️</span>
+        <span className="text-[10px] uppercase tracking-wider [writing-mode:vertical-rl] rotate-180 font-extrabold text-amber-50">
+          {isUlpan ? 'שְׂפַת דִּבּוּר' : 'Живая речь'}
+        </span>
+      </button>
+
+      {/* ВЫЕЗЖАЮЩАЯ ШТОРКА ЖИВОЙ РЕЧИ */}
+      <SpokenHebrewDrawer
+        isOpen={isSpokenDrawerOpen}
+        onClose={() => setIsSpokenDrawerOpen(false)}
+        lessonId={lesson.id}
+        category={lesson.category}
+        lessonTitle={lesson.titleRussian || lesson.titleRu}
+        userProfile={userProfile}
+      />
     </div>
   );
 };
