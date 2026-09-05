@@ -25,7 +25,7 @@ import {
 import confetti from 'canvas-confetti';
 import { Lesson, UserProfile, ChatMessage, Word, DialogueWord, DialogueStep } from '@/types';
 import { tokenizeText, TextToken, stripNikkud } from '@/lib/transcription';
-import { speakHebrew, stopSpeech, HebrewSpeechRecognizer } from '@/lib/speech';
+import { speakHebrew, stopSpeech, HebrewSpeechRecognizer, normalizeHebrewSpeechTranscript } from '@/lib/speech';
 import { getDialogueHelpForLesson } from '@/lib/dialogueHints';
 import { WordLookupModal } from './WordLookupModal';
 import { phoneAudio } from '@/lib/phoneAudio';
@@ -389,8 +389,10 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
       setIsRecording(false);
     }
 
-    const text = (textToSend || inputText).trim();
-    if (!text || loading) return;
+    const rawText = (textToSend || inputText).trim();
+    if (!rawText || loading) return;
+
+    const text = normalizeHebrewSpeechTranscript(rawText);
 
     setInputText('');
 
@@ -588,7 +590,7 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
     recognizer.start(
       (transcript, isFinal) => {
         if (transcript) {
-          setInputText(transcript);
+          setInputText(normalizeHebrewSpeechTranscript(transcript));
         }
         if (isFinal) {
           setIsRecording(false);
@@ -602,7 +604,7 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
       },
       (lastTranscript) => {
         if (lastTranscript) {
-          setInputText(lastTranscript);
+          setInputText(normalizeHebrewSpeechTranscript(lastTranscript));
         }
         setIsRecording(false);
         setIsTranscribing(false);
@@ -641,7 +643,7 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
         },
         onSilenceDetected: (transcript) => {
           if (transcript && transcript.trim()) {
-            setInputText(transcript.trim());
+            setInputText(normalizeHebrewSpeechTranscript(transcript.trim()));
           }
           setIsRecording(false);
           setIsTranscribing(false);

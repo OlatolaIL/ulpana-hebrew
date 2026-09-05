@@ -1,5 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+function normalizeHebrewHomophones(text: string): string {
+  if (!text) return '';
+  let res = text.trim();
+  res = res.replace(/(^|[\s.,!?:;])(זֶ?ה|הִ?נֵּ?ה|כֵּ?ן\s+זֶ?ה)\s+(?:אֶ?ת|עֵ?ת|אֵ?ט|טֵ?ת|טת)(?=[\s.,!?:;]|$)/gi, '$1$2 עֵט');
+  res = res.replace(/(^|[\s.,!?:;])(זה|הנה|כן\s+זה)\s+(?:את|עת|אט|טת)(?=[\s.,!?:;]|$)/gi, '$1$2 עט');
+  res = res.replace(/^(?:את|עת|אט|טת)[.!?]?$/gi, 'עט');
+  res = res.replace(/^(?:אֶת|עֵת|אֵט|טֵת)[.!?]?$/gi, 'עֵט');
+  res = res.replace(/^(?:זה\s+זאת)[.!?]?$/gi, 'זה עט');
+  return res;
+}
+
 export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData();
@@ -54,8 +65,7 @@ export async function POST(req: NextRequest) {
           const gData = await geminiRes.json();
           const rawGText = gData.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
           if (rawGText) {
-            let text = rawGText.replace(/(^|\s)זה\s+את(?=[\s.,!?:;]|$)/gi, '$1זה עט');
-            text = text.replace(/(^|\s)זֶה\s+(?:אֶת|אַתְּ|את)(?=[\s.,!?:;]|$)/gi, '$1זֶה עֵט');
+            const text = normalizeHebrewHomophones(rawGText);
             return NextResponse.json({
               text,
               engine: 'Gemini 3.5 Transcribe',
@@ -92,9 +102,7 @@ export async function POST(req: NextRequest) {
 
         if (groqRes.ok) {
           const data = await groqRes.json();
-          let text = (data.text || '').trim();
-          text = text.replace(/(^|\s)זה\s+את(?=[\s.,!?:;]|$)/gi, '$1זה עט');
-          text = text.replace(/(^|\s)זֶה\s+(?:אֶת|אַתְּ|את)(?=[\s.,!?:;]|$)/gi, '$1זֶה עֵט');
+          const text = normalizeHebrewHomophones((data.text || '').trim());
           return NextResponse.json({
             text,
             engine: 'Groq Whisper V3',
