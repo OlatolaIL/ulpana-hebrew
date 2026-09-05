@@ -769,27 +769,9 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
 
         {/* 3. Нижняя зона: Фиксированная панель действий + строка ввода (всегда зафиксирована на экране) */}
         <div className="shrink-0 bg-white dark:bg-zinc-900 border-t border-zinc-200 dark:border-zinc-800 sticky bottom-0 z-20 pb-[env(safe-area-inset-bottom,0px)] shadow-lg">
-          {/* Тонкая панель кнопок (32px): Открытие шторки подсказок + Переключение пола + Сброс */}
-          <div className="px-2.5 sm:px-3 py-1.5 bg-zinc-50/90 dark:bg-zinc-850/70 border-b border-zinc-200/80 dark:border-zinc-800/80 flex items-center justify-between gap-1.5">
+          {/* Тонкая панель кнопок (32px): Варианты + Переключение пола + Сброс */}
+          <div className="px-2.5 sm:px-3 py-1.5 bg-zinc-50 dark:bg-zinc-900 border-b border-zinc-200/80 dark:border-zinc-800/80 flex items-center justify-between gap-1.5">
             <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none">
-              {/* Кнопка: Полезные слова (открывает шторку справа) */}
-              {lesson.dialogue.usefulWords && lesson.dialogue.usefulWords.length > 0 && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setDrawerTab('words');
-                    setIsWordsDrawerOpen(true);
-                  }}
-                  className="px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer active:scale-95 bg-white dark:bg-zinc-800 hover:bg-blue-50 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700 hover:border-blue-300 shadow-2xs"
-                  title="Открыть боковую шторку со словами"
-                >
-                  <BookOpen className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
-                  <span>{userProfile.ulpanMode ? 'מִילִּים' : 'Шторка слов'}</span>
-                  <span className="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300">
-                    {lesson.dialogue.usefulWords.length}
-                  </span>
-                </button>
-              )}
 
               {/* Кнопка: Быстрые варианты ответов (открывает шторку справа) */}
               {lastAiMessage?.suggestedReplies && lastAiMessage.suggestedReplies.length > 0 && !isDialogueFinished && (
@@ -1061,14 +1043,14 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
             onClick={(e) => e.stopPropagation()}
           >
             {/* Шапка шторки */}
-            <div className="p-3.5 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between bg-zinc-50/90 dark:bg-zinc-850/80 shrink-0">
-              <div className="flex items-center gap-2">
+            <div className="p-3.5 sm:p-4 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between bg-zinc-100 dark:bg-zinc-900 shrink-0">
+              <div className="flex items-center gap-2.5 min-w-0">
                 <span className="text-xl">📖</span>
-                <div>
-                  <h3 className="font-bold text-sm text-zinc-900 dark:text-zinc-100">
-                    {userProfile.ulpanMode ? 'שִׁלְדַּת הַשִּׂיחָה' : 'Шторка: подсказки к диалогу'}
+                <div className="min-w-0">
+                  <h3 className="font-bold text-sm sm:text-base text-zinc-900 dark:text-zinc-50 truncate">
+                    {userProfile.ulpanMode ? 'שִׁלְדַּת הַשִּׂיחָה' : 'Подсказки к шагу'}
                   </h3>
-                  <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
+                  <p className="text-[11px] sm:text-xs text-zinc-500 dark:text-zinc-400 truncate">
                     {userProfile.ulpanMode ? 'מִילִּים וּדֻּגְמָאוֹת' : 'Слова шага и готовые примеры'}
                   </p>
                 </div>
@@ -1077,8 +1059,8 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
               <button
                 type="button"
                 onClick={() => setIsWordsDrawerOpen(false)}
-                className="p-1.5 rounded-xl hover:bg-zinc-200 dark:hover:bg-zinc-800 text-zinc-500 dark:text-zinc-400 transition cursor-pointer"
-                title="Закрыть шторку"
+                className="p-2 rounded-xl text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 hover:bg-zinc-200 dark:hover:bg-zinc-800 transition cursor-pointer"
+                title="Закрыть"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -1086,7 +1068,7 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
 
             {/* Вкладки внутри шторки: Слова / Варианты */}
             {lastAiMessage?.suggestedReplies && lastAiMessage.suggestedReplies.length > 0 && !isDialogueFinished && (
-              <div className="flex border-b border-zinc-200 dark:border-zinc-800 px-3 pt-2 gap-2 bg-zinc-50/50 dark:bg-zinc-850/30 shrink-0">
+              <div className="flex border-b border-zinc-200 dark:border-zinc-800 px-3 pt-2 gap-2 bg-zinc-50 dark:bg-zinc-900 shrink-0">
                 <button
                   type="button"
                   onClick={() => setDrawerTab('words')}
@@ -1128,7 +1110,7 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
               {drawerTab === 'words' ? (
                 /* Список слов */
                 lesson.dialogue.usefulWords && lesson.dialogue.usefulWords.length > 0 ? (
-                  <div className="space-y-2">
+                  <div className="space-y-2.5">
                     <p className="text-[11px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider px-0.5">
                       {userProfile.ulpanMode ? 'מִילִּים לַתְּשׁוּבָה:' : 'Слова для ответа:'}
                     </p>
@@ -1138,67 +1120,76 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
                       return (
                         <div
                           key={idx}
-                          className="bg-white dark:bg-zinc-800/90 border border-zinc-200 dark:border-zinc-700/80 rounded-xl p-2.5 flex items-center justify-between gap-2 shadow-2xs hover:border-blue-300 dark:hover:border-blue-700 transition"
+                          className="bg-zinc-50 dark:bg-zinc-800/80 border border-zinc-200 dark:border-zinc-700/80 rounded-2xl p-3 shadow-2xs hover:border-blue-300 dark:hover:border-blue-600 transition space-y-1.5"
                         >
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-1.5">
+                          {/* Верхняя строка: Иврит + бейдж + кнопки действий */}
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-2 min-w-0">
                               <span
                                 dir="rtl"
-                                className="font-hebrew font-bold text-base text-zinc-900 dark:text-zinc-100"
+                                className={`font-hebrew font-bold text-lg text-zinc-900 dark:text-zinc-50 ${
+                                  isCursive ? 'font-cursive text-xl text-blue-600 dark:text-blue-400' : ''
+                                }`}
                               >
                                 {userProfile.showNikkud ? word.hebrew : stripNikkud(word.hebrew)}
                               </span>
                               {word.isNew && (
-                                <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-600 dark:text-amber-300">
+                                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-600 dark:text-amber-300 shrink-0">
                                   {userProfile.ulpanMode ? 'חָדָשׁ' : 'Новое'}
                                 </span>
                               )}
                             </div>
-                            <div className="text-xs text-zinc-500 dark:text-zinc-400 truncate mt-0.5">
-                              {!userProfile.ulpanMode && word.transcription && (
-                                <span className="text-blue-500 font-medium mr-1.5">[{word.transcription}]</span>
-                              )}
-                              <span>{word.translation}</span>
+
+                            <div className="flex items-center gap-1 shrink-0">
+                              {/* Озвучить */}
+                              <button
+                                type="button"
+                                onClick={() => speakHebrew(word.hebrew, { rate: userProfile.speechRate || 0.7 })}
+                                className="p-1.5 rounded-lg text-zinc-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-zinc-700 transition cursor-pointer"
+                                title="Озвучить"
+                              >
+                                <Volume2 className="w-4 h-4" />
+                              </button>
+
+                              {/* В личный словарь */}
+                              <button
+                                type="button"
+                                disabled={isAdded}
+                                onClick={() => handleAddWordDirectly(word)}
+                                className={`p-1.5 rounded-lg transition cursor-pointer ${
+                                  isAdded
+                                    ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40'
+                                    : 'text-zinc-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-zinc-700'
+                                }`}
+                                title={isAdded ? 'В словаре' : 'В личный словарь'}
+                              >
+                                {isAdded ? <Check className="w-4 h-4 text-emerald-600" /> : <BookmarkPlus className="w-4 h-4" />}
+                              </button>
+
+                              {/* Вставить в поле ввода */}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  handleAppendWord(word.hebrew);
+                                }}
+                                className="px-2.5 py-1 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center gap-1 transition cursor-pointer active:scale-95 shadow-2xs"
+                                title="Вставить в строку ввода"
+                              >
+                                <span>↵ Вставить</span>
+                              </button>
                             </div>
                           </div>
 
-                          <div className="flex items-center gap-1 shrink-0">
-                            {/* Озвучить */}
-                            <button
-                              type="button"
-                              onClick={() => speakHebrew(word.hebrew, { rate: userProfile.speechRate || 0.7 })}
-                              className="p-1.5 rounded-lg text-zinc-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-zinc-700 transition cursor-pointer"
-                              title="Озвучить"
-                            >
-                              <Volume2 className="w-4 h-4" />
-                            </button>
-
-                            {/* В личный словарь */}
-                            <button
-                              type="button"
-                              disabled={isAdded}
-                              onClick={() => handleAddWordDirectly(word)}
-                              className={`p-1.5 rounded-lg transition cursor-pointer ${
-                                isAdded
-                                  ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40'
-                                  : 'text-zinc-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-zinc-700'
-                              }`}
-                              title={isAdded ? 'В словаре' : 'В личный словарь'}
-                            >
-                              {isAdded ? <Check className="w-4 h-4 text-emerald-600" /> : <BookmarkPlus className="w-4 h-4" />}
-                            </button>
-
-                            {/* Вставить в поле ввода */}
-                            <button
-                              type="button"
-                              onClick={() => {
-                                handleAppendWord(word.hebrew);
-                              }}
-                              className="px-2 py-1 rounded-lg bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/60 dark:hover:bg-blue-900 text-blue-700 dark:text-blue-300 font-bold text-xs flex items-center gap-1 transition cursor-pointer active:scale-95"
-                              title="Вставить в строку ввода"
-                            >
-                              <span>↵ Вставить</span>
-                            </button>
+                          {/* Нижняя строка: Транскрипция и ПОЛНЫЙ перевод (без truncate) */}
+                          <div className="text-xs sm:text-sm leading-snug flex items-baseline gap-1.5 flex-wrap">
+                            {!userProfile.ulpanMode && word.transcription && (
+                              <span className="text-blue-600 dark:text-blue-400 font-semibold shrink-0">
+                                [{word.transcription}]
+                              </span>
+                            )}
+                            <span className="text-zinc-600 dark:text-zinc-300 font-medium">
+                              {word.translation}
+                            </span>
                           </div>
                         </div>
                       );
@@ -1260,11 +1251,11 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
             </div>
 
             {/* Подвал шторки с кнопкой Закрыть */}
-            <div className="p-3 border-t border-zinc-200 dark:border-zinc-800 bg-zinc-50/90 dark:bg-zinc-850/70 shrink-0">
+            <div className="p-3 border-t border-zinc-200 dark:border-zinc-800 bg-zinc-100 dark:bg-zinc-900 shrink-0">
               <button
                 type="button"
                 onClick={() => setIsWordsDrawerOpen(false)}
-                className="w-full py-2.5 px-3 rounded-xl bg-zinc-200 dark:bg-zinc-800 hover:bg-zinc-300 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 text-xs font-bold transition cursor-pointer active:scale-98"
+                className="w-full py-2.5 px-3 rounded-xl bg-zinc-200 dark:bg-zinc-800 hover:bg-zinc-300 dark:hover:bg-zinc-700 text-zinc-900 dark:text-zinc-100 text-xs font-bold transition cursor-pointer active:scale-98"
               >
                 {userProfile.ulpanMode ? 'סְגִירָה' : 'Закрыть подсказки'}
               </button>
