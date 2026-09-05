@@ -886,7 +886,7 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
                 className={`p-2.5 rounded-xl transition cursor-pointer shrink-0 flex items-center justify-center ${
                   isRecording
                     ? 'bg-rose-600 text-white ring-4 ring-rose-400/40 animate-pulse shadow-md'
-                    : 'bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-750 text-blue-600 dark:text-blue-400 border border-zinc-200 dark:border-zinc-700'
+                    : 'bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-blue-600 dark:text-blue-400 border border-zinc-200 dark:border-zinc-700'
                 }`}
                 title={isRecording ? 'Остановить запись' : 'Ответить голосом на иврите'}
               >
@@ -938,7 +938,7 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
       {/* ПРАВАЯ КОЛОНКА: БОКОВАЯ ПАНЕЛЬ ШПАРГАЛКИ (DESKTOP SIDEBAR) */}
       <div className="hidden lg:flex flex-col h-full bg-zinc-50/70 dark:bg-zinc-900/90 overflow-hidden">
         {/* Шапка боковой панели */}
-        <div className="h-12 px-3.5 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between shrink-0 bg-white dark:bg-zinc-850/50">
+        <div className="h-12 px-3.5 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between shrink-0 bg-white dark:bg-zinc-900">
           <div className="flex items-center gap-1.5 font-bold text-xs text-zinc-900 dark:text-zinc-100 font-hebrew">
             <Sparkles className="w-3.5 h-3.5 text-amber-500" />
             <span>{userProfile.ulpanMode ? 'שִׁלְדַּת הַשִּׂיחָה וּמִילּוֹן' : 'Шпаргалка к диалогу'}</span>
@@ -981,7 +981,7 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
                     <div
                       key={idx}
                       onClick={() => handleAppendWord(word.hebrew)}
-                      className="group cursor-pointer bg-white dark:bg-zinc-800/90 hover:bg-blue-50/60 dark:hover:bg-zinc-750 border border-zinc-200 dark:border-zinc-700/80 rounded-xl p-2 flex items-center justify-between gap-2 shadow-2xs transition active:scale-[0.99]"
+                      className="group cursor-pointer bg-white dark:bg-zinc-800/90 hover:bg-blue-50/60 dark:hover:bg-zinc-700 border border-zinc-200 dark:border-zinc-700/80 rounded-xl p-2 flex items-center justify-between gap-2 shadow-2xs transition active:scale-[0.99]"
                       title="Нажмите, чтобы вставить в поле ответа"
                     >
                       <div className="min-w-0 flex-1">
@@ -1285,7 +1285,7 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
               <button
                 type="button"
                 onClick={() => setIsWordsDrawerOpen(false)}
-                className="w-full py-2.5 px-3 rounded-xl bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-750 text-zinc-900 dark:text-zinc-100 text-xs font-bold transition cursor-pointer active:scale-98 border border-zinc-200 dark:border-zinc-700"
+                className="w-full py-2.5 px-3 rounded-xl bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-900 dark:text-zinc-100 text-xs font-bold transition cursor-pointer active:scale-98 border border-zinc-200 dark:border-zinc-700"
               >
                 {userProfile.ulpanMode ? 'סְגִירָה' : 'Закрыть подсказки'}
               </button>
@@ -1310,11 +1310,11 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
             onClick={(e) => e.stopPropagation()}
           >
             {/* Шапка модального окна */}
-            <div className="p-4 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-850 flex items-center justify-between shrink-0">
+            <div className="p-4 border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 flex items-center justify-between shrink-0">
               <div className="flex items-center gap-2.5 min-w-0">
                 <span className="text-2xl">📍</span>
                 <div className="min-w-0">
-                  <h3 className="font-bold text-sm sm:text-base text-zinc-900 dark:text-zinc-50 truncate">
+                  <h3 className="font-bold text-sm sm:text-base text-zinc-900 dark:text-zinc-100 truncate">
                     {userProfile.ulpanMode
                       ? `שָׁלָב ${activeStep?.stepIndex || 1}: מַצָּב וְהַקְשֵׁר`
                       : `Вводные данные: Шаг ${activeStep?.stepIndex || 1} из ${stepsCount}`}
@@ -1328,7 +1328,7 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
               <button
                 type="button"
                 onClick={() => setShowBriefingModal(false)}
-                className="p-1.5 rounded-xl text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-200/60 dark:hover:bg-zinc-800 transition cursor-pointer"
+                className="p-1.5 rounded-xl text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition cursor-pointer"
                 title="Закрыть"
               >
                 <X className="w-5 h-5" />
@@ -1339,11 +1339,11 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
             <div className="p-4 sm:p-5 overflow-y-auto space-y-4 text-left">
               {/* Общая ситуация диалога */}
               {lesson.dialogue.situation && (
-                <div className="bg-zinc-50 dark:bg-zinc-850/60 rounded-xl p-3.5 border border-zinc-200/80 dark:border-zinc-800 text-xs">
-                  <span className="font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider block mb-1">
+                <div className="bg-zinc-100 dark:bg-zinc-800 rounded-xl p-3.5 border border-zinc-200 dark:border-zinc-700 text-xs">
+                  <span className="font-bold text-zinc-600 dark:text-zinc-400 uppercase tracking-wider block mb-1">
                     {userProfile.ulpanMode ? 'מַצָּב כְּלָלִי' : 'Общая ситуация диалога:'}
                   </span>
-                  <p className="text-zinc-800 dark:text-zinc-200 font-medium leading-relaxed">
+                  <p className="text-zinc-900 dark:text-zinc-100 font-medium leading-relaxed">
                     {lesson.dialogue.situation}
                   </p>
                 </div>
@@ -1351,12 +1351,12 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
 
               {/* Факт текущего шага */}
               {activeStep && (
-                <div className="bg-blue-50/80 dark:bg-blue-950/40 rounded-xl p-4 border border-blue-200 dark:border-blue-900/60">
-                  <span className="text-xs font-bold text-blue-800 dark:text-blue-300 uppercase tracking-wider block mb-1.5 flex items-center gap-1.5">
+                <div className="bg-blue-50 dark:bg-blue-950/60 rounded-xl p-4 border border-blue-200 dark:border-blue-800">
+                  <span className="text-xs font-bold text-blue-700 dark:text-blue-300 uppercase tracking-wider block mb-1.5 flex items-center gap-1.5">
                     <span>🎯</span>
                     <span>{userProfile.ulpanMode ? 'מַה שֶׁקּוֹרֶה עַכְשָׁו (עֻבְדָּה):' : 'Что происходит прямо сейчас (факт):'}</span>
                   </span>
-                  <p className="text-sm sm:text-base font-semibold text-blue-950 dark:text-blue-100 leading-relaxed">
+                  <p className="text-sm sm:text-base font-bold text-blue-950 dark:text-blue-100 leading-relaxed">
                     {activeStep.fact}
                   </p>
                 </div>
@@ -1364,8 +1364,8 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
 
               {/* Вопрос учителя */}
               {activeStep?.aiQuestionHebrew && (
-                <div className="bg-zinc-50 dark:bg-zinc-850/70 rounded-xl p-4 border border-zinc-200 dark:border-zinc-750 space-y-2">
-                  <span className="text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider block">
+                <div className="bg-zinc-100 dark:bg-zinc-800 rounded-xl p-4 border border-zinc-200 dark:border-zinc-700 space-y-2.5">
+                  <span className="text-xs font-bold text-zinc-600 dark:text-zinc-400 uppercase tracking-wider block">
                     {userProfile.ulpanMode ? 'שְׁאֵלַת הַמּוֹרֶה:' : 'Вопрос учителя:'}
                   </span>
                   <div className="flex items-start justify-between gap-3">
@@ -1375,14 +1375,14 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
                     <button
                       type="button"
                       onClick={() => speakHebrew(activeStep.aiQuestionHebrew, { rate: userProfile.speechRate || 0.7 })}
-                      className="p-2 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 hover:bg-blue-100 transition cursor-pointer shrink-0 shadow-2xs"
+                      className="p-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white shadow-xs transition cursor-pointer shrink-0"
                       title="Озвучить вопрос"
                     >
                       <Volume2 className="w-5 h-5" />
                     </button>
                   </div>
                   {activeStep.aiQuestionRu && !userProfile.ulpanMode && (
-                    <p className="text-xs text-zinc-600 dark:text-zinc-300 border-t border-zinc-200/80 dark:border-zinc-700/80 pt-2 italic">
+                    <p className="text-xs text-zinc-700 dark:text-zinc-300 border-t border-zinc-200 dark:border-zinc-700 pt-2 italic">
                       {activeStep.aiQuestionRu}
                     </p>
                   )}
@@ -1391,7 +1391,7 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
 
               {/* Цель ответа ученика */}
               {activeStep?.expectedConcept && (
-                <div className="bg-amber-50/80 dark:bg-amber-950/30 rounded-xl p-3.5 border border-amber-200 dark:border-amber-900/50">
+                <div className="bg-amber-50 dark:bg-amber-950/40 rounded-xl p-3.5 border border-amber-200 dark:border-amber-900/60">
                   <span className="text-xs font-bold text-amber-800 dark:text-amber-300 uppercase tracking-wider block mb-1">
                     💡 {userProfile.ulpanMode ? 'מַה מְּתַרְגְּלִים:' : 'Ваша задача:'}
                   </span>
@@ -1403,7 +1403,7 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
             </div>
 
             {/* Подвал с кнопкой Понятно */}
-            <div className="p-3.5 sm:p-4 border-t border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-850 flex justify-end">
+            <div className="p-3.5 sm:p-4 border-t border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 flex justify-end">
               <button
                 type="button"
                 onClick={() => setShowBriefingModal(false)}
