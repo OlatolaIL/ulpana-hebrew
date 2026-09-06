@@ -176,104 +176,102 @@ export const FlashcardSetupModal: React.FC<FlashcardSetupModalProps> = ({
   const isUlpan = Boolean(userProfile.ulpanMode);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-sm animate-fade-in font-sans">
-      <div className="bg-white dark:bg-slate-900 w-full max-w-2xl rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 flex flex-col max-h-[92vh] overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4 bg-black/60 backdrop-blur-sm animate-fade-in font-sans">
+      <div className="bg-white dark:bg-slate-900 w-full max-w-2xl rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 flex flex-col max-h-[calc(100dvh-1.5rem)] sm:max-h-[90vh] overflow-hidden">
         {/* Шапка модального окна */}
         <div className="flex items-center justify-between p-4 sm:p-5 border-b border-slate-200 dark:border-slate-800 shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-blue-100 dark:bg-blue-900/60 text-blue-600 dark:text-blue-400 flex items-center justify-center">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-10 h-10 rounded-2xl bg-blue-100 dark:bg-blue-900/60 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
               <Layers className="w-5 h-5" />
             </div>
-            <div>
-              <h3 className="font-bold text-slate-900 dark:text-white text-base sm:text-lg font-hebrew">
-                {isUlpan ? 'הַגְדָּרַת אִמּוּן כַּרְטִיסִיּוֹת' : 'Выбор уроков для тренировки'}
+            <div className="min-w-0">
+              <h3 className="font-bold text-slate-900 dark:text-white text-base sm:text-lg truncate">
+                Выбор уроков для тренировки
               </h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400 font-hebrew">
-                {isUlpan
-                  ? 'בַּחֲרוּ שִׁיעוּרִים וְסַנְנוּ אֶת הַמִּילִּים לְתִרְגּוּל'
-                  : 'Выберите любые уроки Ульпана (1–100) и настройте фильтр слов'}
+              <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                Выберите уроки (1–100) и настройте фильтр слов
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
+            className="p-2 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer shrink-0 ml-2"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Тело с прокруткой */}
-        <div className="p-4 sm:p-5 overflow-y-auto space-y-5 flex-1 font-hebrew">
+        <div className="p-4 sm:p-5 overflow-y-auto space-y-5 flex-1">
           {/* Пресеты быстрого выбора */}
           <div>
-            <div className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2 flex items-center gap-1.5 font-hebrew">
+            <div className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2 flex items-center gap-1.5">
               <Sparkles className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
-              <span>{isUlpan ? 'עֶרְכוֹת מְהִירוֹת:' : 'Быстрые наборы уроков:'}</span>
+              <span>Быстрые наборы уроков:</span>
             </div>
-            <div className="flex flex-wrap gap-1.5 font-hebrew">
+            <div className="flex flex-wrap gap-1.5">
               <button
                 type="button"
                 onClick={() => applyPreset('completed')}
-                className="px-2.5 py-1 rounded-xl text-xs font-semibold bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 hover:bg-blue-100 cursor-pointer"
+                className="px-2.5 py-1 rounded-xl text-xs font-semibold bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 hover:bg-blue-100 cursor-pointer transition"
               >
-                {isUlpan ? `שֶׁלָּמַדְתִּי (1–${userProfile.currentLesson || 1})` : `Пройденные мной (1–${userProfile.currentLesson || 1})`}
+                Пройденные (1–{userProfile.currentLesson || 1})
               </button>
               <button
                 type="button"
                 onClick={() => applyPreset('alef_1_10')}
-                className="px-2.5 py-1 rounded-xl text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 cursor-pointer"
+                className="px-2.5 py-1 rounded-xl text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 cursor-pointer transition"
               >
-                {isUlpan ? 'אָלֶף: 1–10' : 'Алеф: 1–10'}
+                Алеф: 1–10
               </button>
               <button
                 type="button"
                 onClick={() => applyPreset('alef_11_25')}
-                className="px-2.5 py-1 rounded-xl text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 cursor-pointer"
+                className="px-2.5 py-1 rounded-xl text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 cursor-pointer transition"
               >
-                {isUlpan ? 'אָלֶף: 11–25' : 'Алеф: 11–25'}
+                Алеф: 11–25
               </button>
               <button
                 type="button"
                 onClick={() => applyPreset('alef_26_50')}
-                className="px-2.5 py-1 rounded-xl text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 cursor-pointer"
+                className="px-2.5 py-1 rounded-xl text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 cursor-pointer transition"
               >
-                {isUlpan ? 'אָלֶף: 26–50' : 'Алеф: 26–50'}
+                Алеф: 26–50
               </button>
               <button
                 type="button"
                 onClick={() => applyPreset('alef_all')}
-                className="px-2.5 py-1 rounded-xl text-xs font-semibold bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-300 hover:bg-blue-200 cursor-pointer"
+                className="px-2.5 py-1 rounded-xl text-xs font-semibold bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-300 hover:bg-blue-200 cursor-pointer transition"
               >
-                {isUlpan ? 'כָּל אָלֶף (1–50)' : 'Весь Алеф (1–50)'}
+                Весь Алеф (1–50)
               </button>
               <button
                 type="button"
                 onClick={() => applyPreset('bet_51_75')}
-                className="px-2.5 py-1 rounded-xl text-xs font-semibold bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800 hover:bg-purple-100 cursor-pointer"
+                className="px-2.5 py-1 rounded-xl text-xs font-semibold bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800 hover:bg-purple-100 cursor-pointer transition"
               >
-                {isUlpan ? 'בֵּית: 51–75' : 'Бет: 51–75'}
+                Бет: 51–75
               </button>
               <button
                 type="button"
                 onClick={() => applyPreset('bet_76_100')}
-                className="px-2.5 py-1 rounded-xl text-xs font-semibold bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800 hover:bg-purple-100 cursor-pointer"
+                className="px-2.5 py-1 rounded-xl text-xs font-semibold bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800 hover:bg-purple-100 cursor-pointer transition"
               >
-                {isUlpan ? 'בֵּית: 76–100' : 'Бет: 76–100'}
+                Бет: 76–100
               </button>
               <button
                 type="button"
                 onClick={() => applyPreset('bet_all')}
-                className="px-2.5 py-1 rounded-xl text-xs font-semibold bg-purple-100 dark:bg-purple-900/50 text-purple-800 dark:text-purple-300 hover:bg-purple-200 cursor-pointer"
+                className="px-2.5 py-1 rounded-xl text-xs font-semibold bg-purple-100 dark:bg-purple-900/50 text-purple-800 dark:text-purple-300 hover:bg-purple-200 cursor-pointer transition"
               >
-                {isUlpan ? 'כָּל בֵּית (51–100)' : 'Весь Бет (51–100)'}
+                Весь Бет (51–100)
               </button>
               <button
                 type="button"
                 onClick={() => applyPreset('clear')}
-                className="px-2.5 py-1 rounded-xl text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 cursor-pointer"
+                className="px-2.5 py-1 rounded-xl text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 cursor-pointer transition"
               >
-                {isUlpan ? 'נַקֵּה' : 'Сбросить'}
+                Сбросить
               </button>
             </div>
           </div>
@@ -285,37 +283,29 @@ export const FlashcardSetupModal: React.FC<FlashcardSetupModalProps> = ({
                 <button
                   type="button"
                   onClick={() => setActiveLevelTab('alef')}
-                  className={`px-3 py-1 rounded-lg text-xs font-bold transition cursor-pointer font-hebrew ${
+                  className={`px-3 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
                     activeLevelTab === 'alef'
                       ? 'bg-blue-600 text-white shadow-sm'
                       : 'text-slate-600 dark:text-slate-400'
                   }`}
                 >
-                  {isUlpan ? 'רָמָה א׳ (1–50)' : 'Уровень Алеф (1–50)'}
+                  Уровень Алеф (1–50)
                 </button>
                 <button
                   type="button"
                   onClick={() => setActiveLevelTab('bet')}
-                  className={`px-3 py-1 rounded-lg text-xs font-bold transition cursor-pointer font-hebrew ${
+                  className={`px-3 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
                     activeLevelTab === 'bet'
                       ? 'bg-purple-600 text-white shadow-sm'
                       : 'text-slate-600 dark:text-slate-400'
                   }`}
                 >
-                  {isUlpan ? 'רָמָה ב׳ (51–100)' : 'Уровень Бет (51–100)'}
+                  Уровень Бет (51–100)
                 </button>
               </div>
 
-              <div className="text-xs text-slate-500 dark:text-slate-400 font-hebrew">
-                {isUlpan ? (
-                  <>
-                    נִבְחֲרוּ: <span className="font-bold text-slate-900 dark:text-white">{selectedLessons.size}</span> שִׁיעוּרִים
-                  </>
-                ) : (
-                  <>
-                    Выбрано: <span className="font-bold text-slate-900 dark:text-white">{selectedLessons.size}</span> уроков
-                  </>
-                )}
+              <div className="text-xs text-slate-500 dark:text-slate-400">
+                Выбрано: <span className="font-bold text-slate-900 dark:text-white">{selectedLessons.size}</span> ур.
               </div>
             </div>
 
@@ -341,11 +331,11 @@ export const FlashcardSetupModal: React.FC<FlashcardSetupModalProps> = ({
                           : 'bg-purple-600 text-white font-bold shadow-sm scale-105'
                         : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:border-blue-400 border border-slate-200 dark:border-slate-700'
                     }`}
-                    title={lessonData ? `${isUlpan ? lessonData.titleHebrew : lessonData.titleRussian} (${wordCount})` : `Lesson ${num}`}
+                    title={lessonData ? `${lessonData.titleRussian} (${wordCount})` : `Урок ${num}`}
                   >
                     <span className="text-xs font-bold leading-none">{num}</span>
                     <span className="text-[9px] opacity-75 mt-0.5 leading-none">
-                      {wordCount} {isUlpan ? 'מִילִּים' : 'сл.'}
+                      {wordCount} сл.
                     </span>
                   </button>
                 );
@@ -355,11 +345,11 @@ export const FlashcardSetupModal: React.FC<FlashcardSetupModalProps> = ({
 
           {/* Фильтр слов */}
           <div>
-            <div className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2 flex items-center gap-1.5 font-hebrew">
+            <div className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2 flex items-center gap-1.5">
               <Filter className="w-3.5 h-3.5 text-blue-600" />
-              <span>{isUlpan ? 'סִנּוּן מִילִּים לְתִרְגּוּל:' : 'Какие слова тренировать:'}</span>
+              <span>Какие слова тренировать:</span>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 font-hebrew">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <label
                 className={`flex items-center gap-2.5 p-2.5 rounded-xl border cursor-pointer transition ${
                   filterCondition === 'all'
@@ -376,10 +366,10 @@ export const FlashcardSetupModal: React.FC<FlashcardSetupModalProps> = ({
                 />
                 <div>
                   <div className="text-xs font-bold">
-                    {isUlpan ? 'כָּל הַמִּילִּים שֶׁבַּשִּׁיעוּרִים' : 'Все слова уроков'}
+                    Все слова уроков
                   </div>
                   <div className="text-[11px] text-slate-500 dark:text-slate-400">
-                    {isUlpan ? `מַאֲגָר מָלֵא (${poolWords.length} מִילִּים)` : `Полный набор (${poolWords.length} слов)`}
+                    Полный набор ({poolWords.length} слов)
                   </div>
                 </div>
               </label>
@@ -401,10 +391,10 @@ export const FlashcardSetupModal: React.FC<FlashcardSetupModalProps> = ({
                 <div>
                   <div className="text-xs font-bold flex items-center gap-1">
                     <Clock className="w-3 h-3 text-amber-600" />
-                    <span>{isUlpan ? 'מִילִּים לַחֲזָרָה (SM-2)' : 'Требующие повторения (SM-2)'}</span>
+                    <span>Требующие повторения (SM-2)</span>
                   </div>
                   <div className="text-[11px] text-slate-500 dark:text-slate-400">
-                    {isUlpan ? 'לְפִי אֵלְגּוֹרִיתְם חֲזָרָה' : 'По интервальному алгоритму'}
+                    По интервальному алгоритму
                   </div>
                 </div>
               </label>
@@ -426,10 +416,10 @@ export const FlashcardSetupModal: React.FC<FlashcardSetupModalProps> = ({
                 <div>
                   <div className="text-xs font-bold flex items-center gap-1">
                     <AlertCircle className="w-3 h-3 text-rose-600" />
-                    <span>{isUlpan ? 'מִילִּים לְחִזּוּק (< 60%)' : 'Слабые слова (< 60% знания)'}</span>
+                    <span>Слабые слова (&lt; 60% знания)</span>
                   </div>
                   <div className="text-[11px] text-slate-500 dark:text-slate-400">
-                    {isUlpan ? 'מִילִּים שֶׁהָיוּ בָּהֶן טָעֻיּוֹת' : 'Слова с частыми ошибками'}
+                    Слова с частыми ошибками
                   </div>
                 </div>
               </label>
@@ -451,10 +441,10 @@ export const FlashcardSetupModal: React.FC<FlashcardSetupModalProps> = ({
                 <div>
                   <div className="text-xs font-bold flex items-center gap-1">
                     <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                    <span>{isUlpan ? 'מִילִּים חֲדָשׁוֹת' : 'Новые неизученные слова'}</span>
+                    <span>Новые неизученные слова</span>
                   </div>
                   <div className="text-[11px] text-slate-500 dark:text-slate-400">
-                    {isUlpan ? 'טֶרֶם תֻּרְגְּלוּ' : 'Еще не тренировались'}
+                    Еще не тренировались
                   </div>
                 </div>
               </label>
@@ -463,127 +453,142 @@ export const FlashcardSetupModal: React.FC<FlashcardSetupModalProps> = ({
 
           {/* Режим тренировки */}
           <div>
-            <div className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2 flex items-center gap-1.5 font-hebrew">
+            <div className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2 flex items-center gap-1.5">
               <RotateCcw className="w-3.5 h-3.5 text-blue-600" />
-              <span>{isUlpan ? 'סוּג אִמּוּן:' : 'Режим карточек:'}</span>
+              <span>Режим карточек:</span>
             </div>
-            <div className="grid grid-cols-3 gap-2 font-hebrew">
+            <div className="grid grid-cols-3 gap-2">
               <button
                 type="button"
                 onClick={() => setTrainingMode('flip')}
                 className={`p-2.5 rounded-xl border text-center transition flex flex-col items-center gap-1 cursor-pointer ${
                   trainingMode === 'flip'
-                    ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 font-bold'
-                    : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50'
+                    ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 font-bold shadow-xs'
+                    : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
                 }`}
               >
                 <RotateCcw className="w-4 h-4" />
-                <span className="text-xs">{isUlpan ? 'כַּרְטִיסִייָה' : 'Переворот'}</span>
+                <span className="text-xs">Переворот</span>
               </button>
               <button
                 type="button"
                 onClick={() => setTrainingMode('builder')}
                 className={`p-2.5 rounded-xl border text-center transition flex flex-col items-center gap-1 cursor-pointer ${
                   trainingMode === 'builder'
-                    ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 font-bold'
-                    : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50'
+                    ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 font-bold shadow-xs'
+                    : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
                 }`}
               >
                 <Layers className="w-4 h-4" />
-                <span className="text-xs">{isUlpan ? 'הַרְכָּבָה' : 'Конструктор'}</span>
+                <span className="text-xs">Конструктор</span>
               </button>
               <button
                 type="button"
                 onClick={() => setTrainingMode('listening')}
                 className={`p-2.5 rounded-xl border text-center transition flex flex-col items-center gap-1 cursor-pointer ${
                   trainingMode === 'listening'
-                    ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 font-bold'
-                    : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50'
+                    ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 font-bold shadow-xs'
+                    : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
                 }`}
               >
                 <Headphones className="w-4 h-4" />
-                <span className="text-xs">{isUlpan ? 'שְׁמִיעָה' : 'На слух'}</span>
+                <span className="text-xs">На слух</span>
               </button>
             </div>
           </div>
 
           {/* Направление перевода карточек */}
           <div>
-            <div className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2 flex items-center gap-1.5 font-hebrew">
+            <div className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2 flex items-center gap-1.5">
               <ArrowLeftRight className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
-              <span>{isUlpan ? 'כִּוּוּן תִּרְגּוּל:' : 'Направление перевода:'}</span>
+              <span>Направление перевода:</span>
             </div>
-            <div className="grid grid-cols-2 gap-2 font-hebrew">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
               <button
                 type="button"
                 onClick={() => setCardDirection('he-ru')}
-                className={`p-2.5 rounded-xl border text-center transition flex flex-col items-center justify-center gap-1 cursor-pointer ${
+                className={`p-3 rounded-2xl border text-left transition flex items-center justify-between gap-3 cursor-pointer ${
                   cardDirection === 'he-ru'
-                    ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 font-bold shadow-sm'
-                    : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
+                    ? 'border-blue-500 bg-blue-50/70 dark:bg-blue-950/40 ring-1 ring-blue-500/30'
+                    : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/60'
                 }`}
               >
-                <div className="flex items-center gap-1 text-xs font-bold">
-                  <span className="text-blue-600 dark:text-blue-400 font-extrabold">{isUlpan ? 'עִבְרִית' : 'Иврит'}</span>
-                  <span>→</span>
-                  <span>{isUlpan ? 'רוּסִית' : 'Русский'}</span>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1.5 text-xs sm:text-sm font-bold">
+                    <span className="text-blue-600 dark:text-blue-400 font-extrabold font-hebrew" dir="rtl">עִבְרִית</span>
+                    <span className="text-slate-400">→</span>
+                    <span className="text-slate-800 dark:text-slate-200">Русский</span>
+                  </div>
+                  <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                    Иврит на лицевой стороне (стандарт)
+                  </div>
                 </div>
-                <span className="text-[10px] text-slate-500 dark:text-slate-400">
-                  {isUlpan ? 'עִבְרִית בַּחֲזִית הַכַּרְטִיסִיָּה' : 'Иврит на лицевой стороне'}
-                </span>
+                <div className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ${
+                  cardDirection === 'he-ru' ? 'border-blue-600 bg-blue-600 text-white' : 'border-slate-300 dark:border-slate-600'
+                }`}>
+                  {cardDirection === 'he-ru' && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                </div>
               </button>
+
               <button
                 type="button"
                 onClick={() => setCardDirection('ru-he')}
-                className={`p-2.5 rounded-xl border text-center transition flex flex-col items-center justify-center gap-1 cursor-pointer ${
+                className={`p-3 rounded-2xl border text-left transition flex items-center justify-between gap-3 cursor-pointer ${
                   cardDirection === 'ru-he'
-                    ? 'border-amber-500 bg-amber-50 dark:bg-amber-950/50 text-amber-800 dark:text-amber-200 font-bold shadow-sm'
-                    : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
+                    ? 'border-amber-500 bg-amber-50/70 dark:bg-amber-950/40 ring-1 ring-amber-500/30'
+                    : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/60'
                 }`}
               >
-                <div className="flex items-center gap-1 text-xs font-bold">
-                  <span className="text-amber-700 dark:text-amber-300 font-extrabold">{isUlpan ? 'רוּסִית' : 'Русский'}</span>
-                  <span>→</span>
-                  <span>{isUlpan ? 'עִבְרִית' : 'Иврит'}</span>
-                  <span className="text-[10px] font-semibold text-amber-600 dark:text-amber-400">
-                    {isUlpan ? '(הָפוּךְ)' : '(обратный)'}
-                  </span>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1.5 text-xs sm:text-sm font-bold flex-wrap">
+                    <span className="text-amber-700 dark:text-amber-300 font-extrabold">Русский</span>
+                    <span className="text-slate-400">→</span>
+                    <span className="text-amber-600 dark:text-amber-400 font-bold font-hebrew" dir="rtl">עִבְרִית</span>
+                    <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-amber-100 dark:bg-amber-900/60 text-amber-800 dark:text-amber-300 font-semibold">
+                      обратный
+                    </span>
+                  </div>
+                  <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                    Русский на лицевой (вспомните иврит)
+                  </div>
                 </div>
-                <span className="text-[10px] text-slate-500 dark:text-slate-400">
-                  {isUlpan ? 'רוּסִית בַּחֲזִית הַכַּרְטִיסִיָּה' : 'Русский на лицевой стороне'}
-                </span>
+                <div className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ${
+                  cardDirection === 'ru-he' ? 'border-amber-600 bg-amber-600 text-white' : 'border-slate-300 dark:border-slate-600'
+                }`}>
+                  {cardDirection === 'ru-he' && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                </div>
               </button>
             </div>
           </div>
         </div>
 
         {/* Футер с кнопкой старта */}
-        <div className="p-4 sm:p-5 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/80 flex items-center justify-between gap-3 shrink-0 font-hebrew">
-          <div>
-            <div className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-              {isUlpan ? 'נִבְחֲרוּ לְתִרְגּוּל:' : 'Отобрано для тренировки:'}
+        <div className="p-3.5 sm:p-5 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/80 flex items-center justify-between gap-2 shrink-0">
+          <div className="min-w-0">
+            <div className="text-[11px] text-slate-500 dark:text-slate-400 font-medium truncate">
+              К тренировке:
             </div>
-            <div className="text-base font-extrabold text-blue-600 dark:text-blue-400">
-              {isUlpan ? `${filteredWords.length} מִילִּים` : `${filteredWords.length} слов`}
+            <div className="text-sm sm:text-base font-extrabold text-blue-600 dark:text-blue-400 whitespace-nowrap">
+              {filteredWords.length} {filteredWords.length === 1 ? 'слово' : filteredWords.length > 1 && filteredWords.length < 5 ? 'слова' : 'слов'}
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2.5 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 transition cursor-pointer"
+              className="px-3.5 py-2.5 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 transition cursor-pointer"
             >
-              {isUlpan ? 'בִּטּוּל' : 'Отмена'}
+              Отмена
             </button>
             <button
               type="button"
               onClick={handleStart}
               disabled={filteredWords.length === 0}
-              className="px-6 py-2.5 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white shadow-lg shadow-blue-500/25 flex items-center gap-1.5 transition active:scale-98 cursor-pointer"
+              className="px-4 sm:px-6 py-2.5 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white shadow-lg shadow-blue-500/25 flex items-center gap-1.5 transition active:scale-98 cursor-pointer whitespace-nowrap"
             >
-              <Play className="w-4 h-4 fill-current" />
-              <span>{isUlpan ? 'הַתְחֵל תִּרְגּוּל 🚀' : 'Начать тренировку'}</span>
+              <Play className="w-4 h-4 fill-current shrink-0" />
+              <span>Начать тренировку</span>
             </button>
           </div>
         </div>

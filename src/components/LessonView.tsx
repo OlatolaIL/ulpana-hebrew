@@ -11,6 +11,7 @@ import {
   CheckCircle2,
   ListTodo,
   Phone,
+  MessageSquare,
 } from 'lucide-react';
 import { Lesson, UserProfile, Word } from '@/types';
 import { LessonTheory } from './LessonTheory';
@@ -31,6 +32,7 @@ interface LessonViewProps {
   onSelectLesson: (id: number) => void;
   onStartFlashcards: (words: Word[], lessonId?: number) => void;
   onUpdateProfile: (profile: UserProfile) => void;
+  onOpenFeedback?: (tab?: LessonTab) => void;
 }
 
 export const LessonView: React.FC<LessonViewProps> = ({
@@ -41,6 +43,7 @@ export const LessonView: React.FC<LessonViewProps> = ({
   onSelectLesson,
   onStartFlashcards,
   onUpdateProfile,
+  onOpenFeedback,
 }) => {
   const [activeTab, setActiveTab] = useState<LessonTab>(initialTab);
 
@@ -192,6 +195,17 @@ export const LessonView: React.FC<LessonViewProps> = ({
               <span className="font-hebrew font-bold text-xs text-zinc-700 dark:text-zinc-300 leading-none">דפוס</span>
             )}
           </button>
+
+          {onOpenFeedback && (
+            <button
+              type="button"
+              onClick={() => onOpenFeedback(activeTab)}
+              className="p-1.5 rounded-xl border border-zinc-200 dark:border-zinc-700 text-zinc-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition cursor-pointer shrink-0"
+              title="Сообщить об ошибке в уроке / на вкладке (@Osa_IL)"
+            >
+              <MessageSquare className="w-3.5 h-3.5" />
+            </button>
+          )}
 
           {prevLesson && (
             <button

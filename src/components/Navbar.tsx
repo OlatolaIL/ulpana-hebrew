@@ -12,6 +12,8 @@ import {
   Zap,
   ShieldCheck,
   GraduationCap,
+  HelpCircle,
+  MessageSquare,
 } from 'lucide-react';
 import { UserProfile } from '@/types';
 import { isVipUser } from '@/lib/vipUsers';
@@ -21,6 +23,8 @@ interface NavbarProps {
   onNavigate: (view: 'map' | 'flashcards' | 'dictionary' | 'alphabet') => void;
   userProfile: UserProfile;
   onOpenSettings: () => void;
+  onOpenFeedback?: () => void;
+  onOpenGuide?: () => void;
   onToggleFontStyle?: () => void;
   onToggleUlpanMode?: () => void;
   onOpenAuth?: () => void;
@@ -33,6 +37,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   onNavigate,
   userProfile,
   onOpenSettings,
+  onOpenFeedback,
+  onOpenGuide,
   onToggleFontStyle,
   onToggleUlpanMode,
   onOpenAuth,
@@ -153,29 +159,6 @@ export const Navbar: React.FC<NavbarProps> = ({
               <span>PRO</span>
             </button>
 
-            {/* Быстрый переключатель Режима Ульпан (Погружение עברית בעברית) */}
-            <button
-              onClick={onToggleUlpanMode}
-              className={`p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl border text-xs font-semibold flex items-center gap-1 transition shrink-0 cursor-pointer ${
-                userProfile.ulpanMode
-                  ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 font-bold ring-2 ring-emerald-500/20 shadow-xs'
-                  : 'border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400'
-              }`}
-              title={
-                userProfile.ulpanMode
-                  ? 'Режим «Ульпан» (עברית בעברית) активен. Нажмите, чтобы вернуться в стандартный режим.'
-                  : 'Включить Режим «Ульпан» (погружение עברית בעברית без перевода)'
-              }
-            >
-              <GraduationCap className={`w-3.5 h-3.5 shrink-0 ${userProfile.ulpanMode ? 'text-emerald-600 dark:text-emerald-400' : 'text-zinc-400'}`} />
-              <span className="hidden md:inline">
-                {userProfile.ulpanMode ? 'Ульпан' : 'Ульпан'}
-              </span>
-              {userProfile.ulpanMode && (
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-              )}
-            </button>
-
             {/* Быстрый переключатель шрифта (десктоп) */}
             <button
               onClick={onToggleFontStyle}
@@ -198,6 +181,18 @@ export const Navbar: React.FC<NavbarProps> = ({
                 </>
               )}
             </button>
+
+            {/* Кнопка интерактивного Гида по разделу */}
+            {onOpenGuide && (
+              <button
+                onClick={onOpenGuide}
+                className="p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl border border-blue-200/80 dark:border-blue-900/60 bg-blue-50/50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-300 hover:bg-blue-100/70 dark:hover:bg-blue-900/50 text-xs font-bold flex items-center gap-1.5 shadow-xs transition active:scale-95 shrink-0"
+                title="Инструкция и подсказки по возможностям платформы"
+              >
+                <HelpCircle className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
+                <span className="hidden sm:inline">Гид</span>
+              </button>
+            )}
 
             {/* Кнопка входа / Профиль пользователя */}
             {userProfile.isLoggedIn ? (
@@ -228,6 +223,17 @@ export const Navbar: React.FC<NavbarProps> = ({
                 title="Войти через Telegram для синхронизации прогресса"
               >
                 <span>{userProfile.ulpanMode ? 'כְּנִיסָה' : 'Войти'}</span>
+              </button>
+            )}
+
+            {/* Кнопка обратной связи / ошибки */}
+            {onOpenFeedback && (
+              <button
+                onClick={onOpenFeedback}
+                className="p-1.5 sm:p-2 rounded-xl border border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition shrink-0"
+                title="Обратная связь и сообщение об ошибках (@Osa_IL)"
+              >
+                <MessageSquare className="w-4 h-4 shrink-0" />
               </button>
             )}
 

@@ -3,6 +3,7 @@ import { verifySessionToken } from '@/lib/auth';
 import { checkRateLimit } from '@/lib/rateLimit';
 import { stripNikkud } from '@/lib/transcription';
 import { DialogueStep, DialogueWord } from '@/types';
+import { IS_EARLY_ACCESS_FREE, FREE_LESSONS_LIMIT } from '@/lib/config';
 
 interface ChatRequestBody {
   messages: Array<{ role: 'user' | 'assistant'; content: string; hebrew?: string }>;
@@ -258,10 +259,10 @@ export async function POST(req: NextRequest) {
       usefulWords = [],
     } = body;
 
-    // 1. Проверка авторизации: уроки 1-3 бесплатны для всех, уроки 4+ требуют сессии
+    // 1. Проверка авторизации: в платном режиме уроки выше FREE_LESSONS_LIMIT требуют авторизации
     const sessionCookie = req.cookies.get('ulpana_session')?.value;
     const session = sessionCookie ? await verifySessionToken(sessionCookie) : null;
-    if (!session && lessonNumber > 3) {
+    if (!IS_EARLY_ACCESS_FREE && !session && lessonNumber > FREE_LESSONS_LIMIT) {
       return NextResponse.json(
         { error: 'Unauthorized: Требуется авторизация и подписка PRO для уроков выше 3-го' },
         { status: 401 }

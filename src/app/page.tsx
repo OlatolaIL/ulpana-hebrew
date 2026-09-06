@@ -11,12 +11,16 @@ import { FlashcardSetupModal } from '@/components/FlashcardSetupModal';
 import { SettingsModal } from '@/components/SettingsModal';
 import { AuthModal } from '@/components/AuthModal';
 import { SubscriptionModal } from '@/components/SubscriptionModal';
+import { SectionGuideDrawer } from '@/components/SectionGuideDrawer';
+import { FeedbackDrawer } from '@/components/FeedbackDrawer';
+import { FeedbackButton } from '@/components/FeedbackButton';
 import { UserProfile, Word, UserSession } from '@/types';
 import { loadUserProfile, saveUserProfile, resetLessonProgress } from '@/lib/storage';
 import { initHebrewVoices } from '@/lib/speech';
 import { DETAILED_LESSONS, getLessonById } from '@/data/lessonsData';
 import { isVipUser, VIP_EXPIRES_AT, applyVipProfileEnhancements } from '@/lib/vipUsers';
 import { useModalHistory } from '@/lib/useHistoryState';
+import { isLessonLockedForUser } from '@/lib/config';
 
 type ViewMode = 'map' | 'lesson' | 'flashcards' | 'dictionary' | 'alphabet';
 
@@ -108,11 +112,15 @@ export default function Home() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState(false);
+  const [isGuideDrawerOpen, setIsGuideDrawerOpen] = useState(false);
+  const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
+  const [feedbackLessonTab, setFeedbackLessonTab] = useState<string | undefined>(undefined);
 
   // Привязка модалок страницы к истории браузера (свайп назад / кнопка Back закрывает модалку)
   useModalHistory(isSettingsOpen, () => setIsSettingsOpen(false), 'settings-modal');
   useModalHistory(isAuthModalOpen, () => setIsAuthModalOpen(false), 'auth-modal');
   useModalHistory(isSubscriptionModalOpen, () => setIsSubscriptionModalOpen(false), 'subscription-modal');
+  useModalHistory(isGuideDrawerOpen, () => setIsGuideDrawerOpen(false), 'guide-drawer');
   useModalHistory(isMultiLessonSetupOpen, () => setIsMultiLessonSetupOpen(false), 'setup-modal');
 
   // Синхронизация данных с облаком
@@ -148,6 +156,10 @@ export default function Home() {
   useEffect(() => {
     let p = loadUserProfile();
     p = applyVipProfileEnhancements(p);
+    if (p.ulpanMode) {
+      p = { ...p, ulpanMode: false };
+      saveUserProfile(p);
+    }
     setProfile(p);
     initHebrewVoices();
 
@@ -161,6 +173,7 @@ export default function Home() {
         name: fullName,
         avatarUrl: u.photo_url,
         isLoggedIn: true,
+        ulpanMode: false,
       });
       setProfile(instantProfile);
       saveUserProfile(instantProfile);
@@ -501,7 +514,7 @@ export default function Home() {
     id: number,
     tab?: 'theory' | 'vocab' | 'exercises' | 'chat' | 'phone'
   ) => {
-    if (id > 3 && !isPro) {
+    if (isLessonLockedForUser(id, isPro)) {
       setIsSubscriptionModalOpen(true);
       return;
     }
@@ -646,6 +659,19 @@ export default function Home() {
     navigateTo('map');
   };
 
+  const handleOpenFeedback = (tab?: string) => {
+    setFeedbackLessonTab(tab);
+    setIsFeedbackOpen(true);
+  };
+
+  const activeLessonData = getLessonById(activeLessonId);
+  const feedbackContext = {
+    view: currentView,
+    lessonId: currentView === 'lesson' ? activeLessonId : undefined,
+    lessonTitle: currentView === 'lesson' ? (activeLessonData?.titleRussian || activeLessonData?.titleHebrew) : undefined,
+    lessonTab: currentView === 'lesson' ? (feedbackLessonTab || lessonInitialTab) : undefined,
+  };
+
   return (
     <div
       data-font-style={profile.fontStyle || 'print'}
@@ -665,6 +691,7 @@ export default function Home() {
         }}
         userProfile={profile}
         onOpenSettings={() => setIsSettingsOpen(true)}
+        onOpenFeedback={() => handleOpenFeedback()}
         onToggleFontStyle={handleToggleFontStyle}
         onToggleUlpanMode={handleToggleUlpanMode}
         onOpenAuth={() => setIsAuthModalOpen(true)}
@@ -705,6 +732,7 @@ export default function Home() {
               )
             }
             onUpdateProfile={handleUpdateProfile}
+            onOpenFeedback={(tab) => handleOpenFeedback(tab)}
           />
         )}
 
@@ -776,6 +804,7 @@ export default function Home() {
         onUpdateProfile={handleUpdateProfile}
         onOpenAuth={() => setIsAuthModalOpen(true)}
         onOpenSubscription={() => setIsSubscriptionModalOpen(true)}
+        onOpenFeedback={() => handleOpenFeedback()}
         onLogout={handleLogout}
       />
 
@@ -793,6 +822,20 @@ export default function Home() {
         userProfile={profile}
         onPromoActivated={handlePromoActivated}
         onOpenAuth={() => setIsAuthModalOpen(true)}
+      />
+
+      {/* Плавающая кнопка сообщения об ошибке / обратной связи */}
+      <FeedbackButton
+        onClick={() => handleOpenFeedback()}
+        isLessonMode={currentView === 'lesson'}
+      />
+
+      {/* Всплывающая шторка обратной связи и сообщений об ошибках (@Osa_IL) */}
+      <FeedbackDrawer
+        isOpen={isFeedbackOpen}
+        onClose={() => setIsFeedbackOpen(false)}
+        userProfile={profile}
+        pageContext={feedbackContext}
       />
     </div>
   );

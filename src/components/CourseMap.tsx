@@ -16,6 +16,7 @@ import {
 import { LESSONS_CATALOG } from '@/data/lessonsData';
 import { Level, UserProfile } from '@/types';
 import { stripNikkud } from '@/lib/transcription';
+import { isLessonLockedForUser, IS_EARLY_ACCESS_FREE } from '@/lib/config';
 
 interface CourseMapProps {
   userProfile: UserProfile;
@@ -81,7 +82,7 @@ export const CourseMap: React.FC<CourseMapProps> = ({
   const currentProgress = userProfile.lessonProgress[currentLesson.id];
   const currentCompletedTabs = currentProgress?.completedTabs?.length || 0;
   const isCurrentCompleted = userProfile.completedLessons.includes(currentLesson.id);
-  const currentLessonLocked = currentLesson.id > 3 && !isPro;
+  const currentLessonLocked = isLessonLockedForUser(currentLesson.id, isPro);
 
   // По умолчанию открываем уровень текущего урока
   const [selectedLevel, setSelectedLevel] = useState<Level>(() => currentLesson.level);
@@ -232,11 +233,15 @@ export const CourseMap: React.FC<CourseMapProps> = ({
               <span className="text-xs font-bold px-2 py-0.5 rounded-lg bg-black/25 text-blue-100">
                 {isUlpan ? `שִׁיעוּר ${currentLesson.number}` : `Урок ${currentLesson.number}`}
               </span>
-              {currentLessonLocked && (
+              {currentLessonLocked ? (
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-xs font-bold bg-amber-400 text-amber-950">
                   🔒 PRO
                 </span>
-              )}
+              ) : IS_EARLY_ACCESS_FREE ? (
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg text-xs font-bold bg-emerald-400/90 text-emerald-950 shadow-xs">
+                  ✨ Ранний доступ (все 100 уроков открыты)
+                </span>
+              ) : null}
             </div>
 
             <div>
@@ -508,7 +513,7 @@ export const CourseMap: React.FC<CourseMapProps> = ({
             const progress = userProfile.lessonProgress[lesson.id];
             const completedTabsCount = progress?.completedTabs?.length || 0;
             const hasProgress = isCompleted || completedTabsCount > 0;
-            const isLessonLocked = lesson.id > 3 && !isPro;
+            const isLessonLocked = isLessonLockedForUser(lesson.id, isPro);
             const isCurrent = lesson.id === currentLessonId;
 
             const handleCardClick = () => {

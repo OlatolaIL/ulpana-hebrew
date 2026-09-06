@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { X, Key, User, Volume2, Eye, HelpCircle, CheckCircle2, ShieldCheck, GraduationCap, Sparkles } from 'lucide-react';
+import { X, Key, User, Volume2, Eye, HelpCircle, CheckCircle2, ShieldCheck, GraduationCap, Sparkles, MessageSquare } from 'lucide-react';
 import { UserProfile, UserGender, AiProvider } from '@/types';
 import { isVipUser } from '@/lib/vipUsers';
 import { saveUserProfile } from '@/lib/storage';
@@ -15,6 +15,7 @@ interface SettingsModalProps {
   onUpdateProfile: (newProfile: UserProfile) => void;
   onOpenAuth?: () => void;
   onOpenSubscription?: () => void;
+  onOpenFeedback?: () => void;
   onLogout?: () => void;
 }
 
@@ -25,11 +26,18 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   onUpdateProfile,
   onOpenAuth,
   onOpenSubscription,
+  onOpenFeedback,
   onLogout,
 }) => {
   if (!isOpen) return null;
 
   const isPro = profile.subscriptionTier === 'pro' || profile.subscriptionTier === 'admin';
+  const [autoShowGuides, setAutoShowGuides] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('ulpana_auto_show_guides') !== 'false';
+    }
+    return true;
+  });
 
   const handleChange = (fields: Partial<UserProfile>) => {
     const updated = { ...profile, ...fields };
@@ -285,6 +293,28 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 />
               </label>
 
+              {/* Настройка автопоказа подсказок к разделам */}
+              <label className="flex items-center justify-between p-3 rounded-xl border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 cursor-pointer">
+                <div>
+                  <span className="text-sm font-medium text-zinc-800 dark:text-zinc-200">
+                    Автоматические подсказки к разделам
+                  </span>
+                  <p className="text-xs text-zinc-500">
+                    Показывать шторку с возможностями при переходе на новые экраны
+                  </p>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={autoShowGuides}
+                  onChange={(e) => {
+                    const val = e.target.checked;
+                    setAutoShowGuides(val);
+                    localStorage.setItem('ulpana_auto_show_guides', val ? 'true' : 'false');
+                  }}
+                  className="w-5 h-5 accent-blue-600 rounded cursor-pointer"
+                />
+              </label>
+
               {/* Переключатель печатного / рукописного шрифта */}
               <div className="p-3 rounded-xl border border-zinc-200 dark:border-zinc-800 space-y-2">
                 <div>
@@ -492,6 +522,33 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 </p>
               </div>
             )}
+          </div>
+
+          {/* 5. Обратная связь и ошибки */}
+          <div className="bg-zinc-50 dark:bg-zinc-800/50 rounded-2xl p-4 border border-zinc-200/80 dark:border-zinc-700/60 space-y-3">
+            <div className="flex items-center gap-2.5">
+              <div className="p-2 rounded-xl bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 shrink-0">
+                <MessageSquare className="w-4 h-4" />
+              </div>
+              <div>
+                <h3 className="font-bold text-sm text-zinc-900 dark:text-zinc-100">
+                  Обратная связь и поддержка
+                </h3>
+                <p className="text-xs text-zinc-500">Сообщить об ошибке или написать разработчику @Osa_IL</p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                onClose();
+                if (onOpenFeedback) onOpenFeedback();
+              }}
+              className="w-full py-2.5 px-4 rounded-xl bg-white dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 hover:border-blue-500 text-xs font-bold text-zinc-800 dark:text-zinc-200 flex items-center justify-center gap-2 transition shadow-2xs hover:bg-blue-50/50 dark:hover:bg-blue-950/30 cursor-pointer"
+            >
+              <MessageSquare className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+              <span>Сообщить об ошибке / Написать в Telegram</span>
+            </button>
           </div>
         </div>
 
