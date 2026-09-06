@@ -21,6 +21,7 @@ import {
   BookOpen,
   Target,
   ArrowRight,
+  VolumeX,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { Lesson, UserProfile, ChatMessage, Word, DialogueWord, DialogueStep } from '@/types';
@@ -191,6 +192,7 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
     translation?: string;
     feedback?: string | null;
   } | null>(null);
+  const [isPlayingReaction, setIsPlayingReaction] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [audioLevel, setAudioLevel] = useState(0);
   const activeMicStreamRef = useRef<MediaStream | null>(null);
@@ -199,6 +201,8 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleCloseStepModal = () => {
+    stopSpeech();
+    setIsPlayingReaction(false);
     setStepChangeModal(null);
     if (pendingSpeechTextRef.current) {
       const textToSpeak = pendingSpeechTextRef.current;
@@ -222,6 +226,9 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
   const [mounted, setMounted] = useState(false);
   useEffect(() => {
     setMounted(true);
+    return () => {
+      stopSpeech();
+    };
   }, []);
   const lastMessageRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -1828,11 +1835,27 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
                     {stepReaction.hebrew && (
                       <button
                         type="button"
-                        onClick={() => speakHebrew(stepReaction.hebrew, { rate: userProfile.speechRate || 0.7 })}
-                        className="p-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs transition cursor-pointer shrink-0"
-                        title="Послушать реакцию собеседника"
+                        onClick={async () => {
+                          if (isPlayingReaction) {
+                            stopSpeech();
+                            setIsPlayingReaction(false);
+                            return;
+                          }
+                          setIsPlayingReaction(true);
+                          try {
+                            await speakHebrew(stepReaction.hebrew, { rate: userProfile.speechRate || 0.7 });
+                          } finally {
+                            setIsPlayingReaction(false);
+                          }
+                        }}
+                        className={`p-1.5 rounded-lg text-white shadow-xs transition cursor-pointer shrink-0 ${
+                          isPlayingReaction
+                            ? 'bg-amber-600 hover:bg-amber-700 animate-pulse'
+                            : 'bg-emerald-600 hover:bg-emerald-700'
+                        }`}
+                        title={isPlayingReaction ? 'Остановить воспроизведение' : 'Послушать реакцию собеседника'}
                       >
-                        <Volume2 className="w-4 h-4" />
+                        {isPlayingReaction ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
                       </button>
                     )}
                   </div>

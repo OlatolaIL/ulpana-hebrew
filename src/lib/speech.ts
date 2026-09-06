@@ -112,8 +112,12 @@ export function playFallbackAudio(text: string, rate: number = 0.75): Promise<vo
 
     try {
       if (activeFallbackAudio) {
-        activeFallbackAudio.pause();
-        activeFallbackAudio.src = '';
+        try {
+          activeFallbackAudio.onended = null;
+          activeFallbackAudio.onerror = null;
+          activeFallbackAudio.pause();
+          activeFallbackAudio.src = '';
+        } catch {}
         activeFallbackAudio = null;
       }
 
@@ -130,10 +134,20 @@ export function playFallbackAudio(text: string, rate: number = 0.75): Promise<vo
       audio.playbackRate = Math.max(0.6, Math.min(1.3, rate || 0.75));
 
       let isEnded = false;
+      let fallbackTimeout: any = null;
+
       const finish = () => {
         if (!isEnded) {
           isEnded = true;
-          activeFallbackAudio = null;
+          if (fallbackTimeout) {
+            clearTimeout(fallbackTimeout);
+            fallbackTimeout = null;
+          }
+          audio.onended = null;
+          audio.onerror = null;
+          if (activeFallbackAudio === audio) {
+            activeFallbackAudio = null;
+          }
           resolve();
         }
       };
@@ -146,7 +160,7 @@ export function playFallbackAudio(text: string, rate: number = 0.75): Promise<vo
         playPromise.catch(() => finish());
       }
 
-      setTimeout(finish, 4000);
+      fallbackTimeout = setTimeout(finish, 6000);
     } catch {
       resolve();
     }
@@ -166,9 +180,26 @@ export function speakHebrew(
       return;
     }
 
+    // 1. Очищаем все предыдущие таймеры и активные проигрыватели
     if (speechSafetyTimer) {
       clearTimeout(speechSafetyTimer);
       speechSafetyTimer = null;
+    }
+
+    if (activeUtterance) {
+      activeUtterance.onend = null;
+      activeUtterance.onerror = null;
+      activeUtterance = null;
+    }
+
+    if (activeFallbackAudio) {
+      try {
+        activeFallbackAudio.onended = null;
+        activeFallbackAudio.onerror = null;
+        activeFallbackAudio.pause();
+        activeFallbackAudio.src = '';
+      } catch {}
+      activeFallbackAudio = null;
     }
 
     const speechText = cleanHebrewForSpeech(text);
@@ -230,16 +261,42 @@ export function speakHebrew(
         if (v) utterance.voice = v;
       }
 
-      utterance.onend = finish;
+      utterance.onend = () => {
+        if (speechSafetyTimer) {
+          clearTimeout(speechSafetyTimer);
+          speechSafetyTimer = null;
+        }
+        finish();
+      };
+
       utterance.onerror = (e) => {
+        if (speechSafetyTimer) {
+          clearTimeout(speechSafetyTimer);
+          speechSafetyTimer = null;
+        }
+        // Если воспроизведение было отменено пользователем или кодом — НЕ запускаем фолбэк повторно!
+        if (e.error === 'canceled' || e.error === 'interrupted') {
+          finish();
+          return;
+        }
         console.warn('Browser TTS error, using audio fallback:', e);
         playFallbackAudio(speechText, rate).then(() => finish());
       };
 
-      // Защитный таймаут: если speechSynthesis завис (частый баг Chrome/iOS) — переключаемся на audio
-      const maxDurationMs = Math.max(3000, speechText.length * 200 + 2000);
+      // Защитный таймаут: если speechSynthesis завис (частый баг Chrome/iOS) — один раз переключаемся на audio
+      const maxDurationMs = Math.max(3500, speechText.length * 200 + 2000);
       speechSafetyTimer = setTimeout(() => {
         if (!isFinished) {
+          isFinished = true;
+          speechSafetyTimer = null;
+          if (activeUtterance) {
+            activeUtterance.onend = null;
+            activeUtterance.onerror = null;
+            activeUtterance = null;
+          }
+          try {
+            window.speechSynthesis.cancel();
+          } catch {}
           playFallbackAudio(speechText, rate).then(() => finish());
         }
       }, maxDurationMs);
@@ -252,10 +309,18 @@ export function speakHebrew(
             window.speechSynthesis.resume();
           }
         } catch (err) {
+          if (speechSafetyTimer) {
+            clearTimeout(speechSafetyTimer);
+            speechSafetyTimer = null;
+          }
           playFallbackAudio(speechText, rate).then(() => finish());
         }
       }, 15);
     } catch {
+      if (speechSafetyTimer) {
+        clearTimeout(speechSafetyTimer);
+        speechSafetyTimer = null;
+      }
       playFallbackAudio(speechText, rate).then(() => finish());
     }
   });
@@ -270,7 +335,11 @@ export function stopSpeech(): void {
       clearTimeout(speechSafetyTimer);
       speechSafetyTimer = null;
     }
-    activeUtterance = null;
+    if (activeUtterance) {
+      activeUtterance.onend = null;
+      activeUtterance.onerror = null;
+      activeUtterance = null;
+    }
     try {
       if ('speechSynthesis' in window) {
         window.speechSynthesis.cancel();
@@ -278,7 +347,10 @@ export function stopSpeech(): void {
     } catch {}
     if (activeFallbackAudio) {
       try {
+        activeFallbackAudio.onended = null;
+        activeFallbackAudio.onerror = null;
         activeFallbackAudio.pause();
+        activeFallbackAudio.currentTime = 0;
         activeFallbackAudio.src = '';
       } catch {}
       activeFallbackAudio = null;
