@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifySessionToken } from '@/lib/auth';
 import { checkRateLimit } from '@/lib/rateLimit';
+import { stripNikkud } from '@/lib/transcription';
 
 interface ChatRequestBody {
   messages: Array<{ role: 'user' | 'assistant'; content: string; hebrew?: string }>;
@@ -303,6 +304,24 @@ export async function POST(req: NextRequest) {
     const evaluatingStep = previousStep || (currentTurn > 1 && allSteps ? allSteps[currentTurn - 2] : currentStep);
     const nextStep = currentStep;
 
+    const effectiveEvaluatingQuestion = isFemale && evaluatingStep?.aiQuestionHebrewFemale
+      ? evaluatingStep.aiQuestionHebrewFemale
+      : (isFemale && evaluatingStep?.aiQuestionHebrew
+          ? evaluatingStep.aiQuestionHebrew
+              .replace(/אַתָּה צָרִיךְ/g, 'אַתְּ צְרִיכָה')
+              .replace(/תִּרְצֶה/g, 'תִּרְצִי')
+              .replace(/שָׁלוֹם אֲחִי/g, 'שָׁלוֹם אֲחוֹתִי')
+          : evaluatingStep?.aiQuestionHebrew);
+
+    const effectiveNextQuestionHebrew = isFemale && nextStep?.aiQuestionHebrewFemale
+      ? nextStep.aiQuestionHebrewFemale
+      : (isFemale && nextStep?.aiQuestionHebrew
+          ? nextStep.aiQuestionHebrew
+              .replace(/אַתָּה צָרִיךְ/g, 'אַתְּ צְרִיכָה')
+              .replace(/תִּרְצֶה/g, 'תִּרְצִי')
+              .replace(/שָׁלוֹם אֲחִי/g, 'שָׁלוֹם אֲחוֹתִי')
+          : nextStep?.aiQuestionHebrew);
+
     const dialogueTurnInstruction = isPhoneCall
       ? isFinalTurn
         ? `ЭТО ЗАКЛЮЧИТЕЛЬНАЯ РЕПЛИКА ТЕЛЕФОННОГО ЗВОНКА (СОБЕСЕДНИК САМ ВЕШАЕТ ТРУБКУ):
@@ -321,14 +340,15 @@ ${evaluatingStep ? `
 ============================================================
 ОЦЕНКА ПОСЛЕДНЕГО ОТВЕТА УЧЕНИКА (ШАГ №${evaluatingStep.stepIndex}):
 ============================================================
-- В последнем сообщении ученик отвечал на вопрос шага №${evaluatingStep.stepIndex}: "${evaluatingStep.aiQuestionHebrew}" (${evaluatingStep.aiQuestionRu}).
+- В последнем сообщении ученик отвечал на вопрос шага №${evaluatingStep.stepIndex}: "${effectiveEvaluatingQuestion}" (${evaluatingStep.aiQuestionRu}).
 - Ожидавшийся ответ: "${evaluatingStep.expectedConcept}" ${evaluatingStep.targetWords?.length ? `(ключевые слова: ${evaluatingStep.targetWords.join(', ')})` : ''}.
+${evaluatingStep.sampleAnswers && evaluatingStep.sampleAnswers.length > 0 ? `- Примеры правильных ответов шага: ${evaluatingStep.sampleAnswers.map(sa => `«${sa.hebrew}» (${sa.translation})`).join('; ')}` : ''}
 - В полях "teacher_reaction_hebrew" и "teacher_reaction_ru": обязательно дай короткую теплую похвалу за ответ на этот шаг (например: "יוֹפִי! נָכוֹן מְאוֹד!" / "Прекрасно! Очень правильно!").
 - В поле "feedback_ru": если ответ понятен и верен по смыслу — верни null! Подсказывай только при явной ошибке рода или грамматики.
 ` : ''}
 ЗАКЛЮЧЕНИЕ И ПРОЩАНИЕ:
-- Ученик успешно прошёл все темы и ответил на вопросы урока №${lessonNumber}!
-- Тепло заверши диалог на простом иврите: похвали за отличную работу, пожелай удачи в ульпане / отличного дня и вежливо попрощайся (например: 'מְעֻלֶּה! כָּל הַכָּבוֹด, סִיַּמְנוּ אֶת הַשִּׁיעוּר! שֶׁיִּהְיֶה לְךָ יוֹם מְצוּיָּן וּבְהַצְלָחָה בָּאוּלְפָּן! לְהִתְרָאוֹת!', 'יוֹפִי! שָׂמַחְתִּי לְדַבֵּר אִתְּךָ. נִתְרָאֶה בַּשִּׁיעוּר!').
+- Ученик успешно прошёл все этапы диалога урока №${lessonNumber}!
+- Тепло заверши диалог в своей роли (${aiRole}): похвали за отличную работу/покупку, пожелай отличного дня и вежливо попрощайся (например: 'יוֹפִי! הִנֵּה הַשַּׂקִּית. תּוֹדָה רַבָּה, שֶׁיִּהְיֶה לְךָ יוֹם מְצוּיָּן וּבְתֵאָבוֹן! לְהִתְרָאוֹת!', 'מְעֻלֶּה! כָּל הַכָּבוֹד, סִיַּמְנוּ אֶת הַשִּׂיחָה! שֶׁיִּהְיֶה לְךָ יוֹם מְצוּיָּן! לְהִתְרָאוֹת!').
 - СТРОГО ЗАПРЕЩЕНО задавать новые вопросы! Диалог завершён.
 - В "suggestedReplies" предложи ровно 3 простых варианта прощания на иврите (например: 'תּוֹדָה רַבָּה, לְהִתְרָאוֹת!', 'יוֹם נִפְלָא, בַּיי!', 'נָעִים מְאוֹד, שָׁלוֹם!').
 - В JSON-ответе ОБЯЗАТЕЛЬНО установи: "isCompleted": true.`
@@ -339,38 +359,38 @@ ${evaluatingStep ? `
 ЧАСТЬ 1: ОЦЕНКА ПОСЛЕДНЕГО ОТВЕТА УЧЕНИКА (ШАГ №${evaluatingStep ? evaluatingStep.stepIndex : nextStep.stepIndex - 1}):
 ============================================================
 ${evaluatingStep ? `- Ситуация шага, на которую только что отвечал ученик: "${evaluatingStep.fact}"
-- Вопрос, на который отвечал ученик: "${evaluatingStep.aiQuestionHebrew}" (${evaluatingStep.aiQuestionRu})
+- Вопрос, на который отвечал ученик: "${effectiveEvaluatingQuestion}" (${evaluatingStep.aiQuestionRu})
 - Что требовалось от ученика в этом шаге: "${evaluatingStep.expectedConcept}"
-- Ключевые слова ответа: ${evaluatingStep.targetWords?.join(', ') || ''}` : ''}
+- Ключевые слова ответа: ${evaluatingStep.targetWords?.join(', ') || ''}
+${evaluatingStep.sampleAnswers && evaluatingStep.sampleAnswers.length > 0 ? `- Образцы правильных ответов шага: ${evaluatingStep.sampleAnswers.map(sa => `«${sa.hebrew}» (${sa.translation})`).join('; ')}` : ''}` : ''}
 
 КРИТИЧЕСКИЕ ПРАВИЛА ОЦЕНКИ И ОБРАТНОЙ СВЯЗИ (feedback_ru и teacher_reaction):
-1. Оценивай последний ответ ученика СТРОГО И ИСКЛЮЧИТЕЛЬНО относительно шага №${evaluatingStep ? evaluatingStep.stepIndex : nextStep.stepIndex - 1} («${evaluatingStep ? evaluatingStep.aiQuestionHebrew : ''}»)!
-2. В поле "teacher_reaction_hebrew": дай короткую живую реакцию с теплой похвалой за ответ на шаг №${evaluatingStep ? evaluatingStep.stepIndex : nextStep.stepIndex - 1} (например: "יוֹפִי! נָכוֹן מְאוֹד, זֶה עֵט!" или "מְעֻלֶּה, נָכוֹן מְאוֹד, זֹאת מַחְבֶּרֶת!").
-3. В поле "teacher_reaction_ru": качественный перевод похвалы на русский язык (например: "Прекрасно! Очень правильно, это ручка!").
+1. Оценивай последний ответ ученика СТРОГО И ИСКЛЮЧИТЕЛЬНО относительно шага №${evaluatingStep ? evaluatingStep.stepIndex : nextStep.stepIndex - 1} («${effectiveEvaluatingQuestion || ''}»)!
+2. В поле "teacher_reaction_hebrew": дай короткую живую реакцию с теплой похвалой за ответ на шаг №${evaluatingStep ? evaluatingStep.stepIndex : nextStep.stepIndex - 1} (например: "יוֹפִי! נָכוֹן מְאוֹד, זֶה עֵט!" или "מְעֻלֶּה, שְׁאֵלָה מְצוּיֶנֶת!").
+3. В поле "teacher_reaction_ru": качественный перевод похвалы на русский язык (например: "Прекрасно! Очень правильно!" или "Отлично! Прекрасный вопрос!").
 4. В поле "feedback_ru":
-   - Если ученик ответил понятно и верно по смыслу на вопрос шага №${evaluatingStep ? evaluatingStep.stepIndex : nextStep.stepIndex - 1} (пусть даже своими словами, коротко, или через омофоны распознавания речи: например, при вопросе о ручке עֵט ответил "זה עט", "עט", "זה את", "כן זה עט") — ЭТО ПОЛНОСТЬЮ ПРАВИЛЬНЫЙ ОТВЕТ!
+   - Если ученик ответил понятно и верно по смыслу на вопрос шага №${evaluatingStep ? evaluatingStep.stepIndex : nextStep.stepIndex - 1} (пусть даже своими словами, коротко, или через омофоны распознавания речи: например, при вопросе о помидорах ответил "כמה עולה קילו עגבניות?", "כמה זה עולה?", "כמה עולה קילו?") — ЭТО ПОЛНОСТЬЮ ПРАВИЛЬНЫЙ ОТВЕТ!
    - В поле "feedback_ru" ОБЯЗАТЕЛЬНО верни null!
    - КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО требовать от ученика ответ на следующий вопрос (шаг №${nextStep.stepIndex})! Ученик ЕЩЁ НЕ ВИДЕЛ И НЕ СЛЫШАЛ следующий вопрос! СТРОГО ЗАПРЕЩЕНО писать в "feedback_ru" замечания о том, что ученик должен был назвать людей или предметы из шага №${nextStep.stepIndex}!
-   - Заполняй "feedback_ru" ТОЛЬКО если ученик допустил грубую ошибку именно в шаге №${evaluatingStep ? evaluatingStep.stepIndex : nextStep.stepIndex - 1} (например, ошибся в грамматическом роде: сказал «זאת עט» вместо «זה עט»).
+   - Заполняй "feedback_ru" ТОЛЬКО если ученик допустил грубую ошибку именно в шаге №${evaluatingStep ? evaluatingStep.stepIndex : nextStep.stepIndex - 1}.
 5. УЧЕТ ФОНЕТИЧЕСКИХ ОМОФОНОВ ГОЛОСОВОГО ВВОДА (ОМОФОНЫ ע/א, ט/ת, כ/ח, ב/ו, ס/שׂ):
-   - Ученик отвечает ГОЛОСОМ через микрофон. Распознавание речи неизбежно заменяет буквы с одинаковым звучанием:
-     * עֵט (ручка) и אֶת / עֵת / אֵט / טת звучат абсолютно одинаково: [эт].
-     * Ответы ученика: "זה עט", "זה את", "זה עת", "זה אט", "זה טת", "את", "עת", "אט", "טת" — это 100% ПРАВИЛЬНЫЙ ответ "זֶה עֵט" ("это ручка")!
-     * СТРОГО ЗАПРЕЩЕНО ругать ученика за подобные омофоны! Всегда трактуй как правильный ответ и возвращай "feedback_ru": null!
-     * Если ответ ученика фонетически соответствует целевому понятию шага, ВСЕГДА принимай ответ как верный, хвали и продвигай диалог вперед!
+   - Ученик отвечает ГОЛОСОМ через микрофон. Распознавание речи неизбежно заменяет буквы с одинаковым звучанием.
+   - Если ответ ученика фонетически соответствует целевому понятию шага, ВСЕГДА принимай ответ как верный, хвали и продвигай диалог вперед!
 
 ============================================================
 ЧАСТЬ 2: ЗАДАНИЕ СЛЕДУЮЩЕГО ВОПРОСА (НОВЫЙ ШАГ №${nextStep.stepIndex}):
 ============================================================
 1. БАЗОВЫЙ ФАКТ НОВОГО ШАГА (ЧТО ПРОИСХОДИТ ПРЯМО СЕЙЧАС):
    "${nextStep.fact}"
-   - Ты ОБЯЗАН вести беседу строго в рамках этой новой ситуации!
+   - Ты ОБЯЗАН вести беседу строго в рамках этой новой ситуации в роли ${aiRole}!
 2. ВОПРОС/РЕПЛИКА СОБЕСЕДНИКА В ЭТОМ ШАГЕ:
-   "${nextStep.aiQuestionHebrew}" (${nextStep.aiQuestionRu}).
-   - В поле "hebrew" ты ОБЯЗАН озвучить этот конкретный вопрос нового шага: "${nextStep.aiQuestionHebrew}"!
+   "${effectiveNextQuestionHebrew}" (${nextStep.aiQuestionRu}).
+   - В поле "hebrew" ты ОБЯЗАН озвучить этот конкретный вопрос нового шага: "${effectiveNextQuestionHebrew}"!
    - КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО возвращаться к старым предметам или переспрашивать о пройденном! Задай вопрос строго о новом факте шага!
 3. В "suggestedReplies":
-   - Предложи ровно 3 простых варианта ответа ученика ИМЕННО НА ЭТОТ НОВЫЙ ВОПРОС шага №${nextStep.stepIndex} («${nextStep.aiQuestionHebrew}»).
+   - Предложи ровно 3 простых варианта ответа ученика ИМЕННО НА ЭТОТ НОВЫЙ ВОПРОС шага №${nextStep.stepIndex} («${effectiveNextQuestionHebrew}»).
+${nextStep.sampleAnswers && nextStep.sampleAnswers.length > 0 ? `   - Примеры правильных ответов для suggestedReplies:
+${nextStep.sampleAnswers.map(sa => `     * hebrew: "${sa.hebrew}", translation: "${sa.translation}"`).join('\n')}` : ''}
 4. В JSON-ответе укажи: "isCompleted": false.`
       : `ЭТАП ДИАЛОГА: ШАГ ${currentTurn} ИЗ ${maxTurns}.
 - ВНИМАТЕЛЬНО ПРОАНАЛИЗИРУЙ последний ответ ученика!

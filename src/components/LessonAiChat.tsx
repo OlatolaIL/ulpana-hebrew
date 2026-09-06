@@ -107,6 +107,20 @@ function getInitialMessageForGender(lesson: Lesson, gender: 'male' | 'female'): 
     };
   }
 
+  if (lesson.number === 5 || lesson.id === 5) {
+    return {
+      hebrew: isFemale
+        ? 'שָׁלוֹם אֲחוֹתִי! יֵשׁ לָנוּ עַגְבָנִיּוֹת וּמְלָפְפֹנִים מְצוּיָנִים הַיּוֹם. מָה תִּרְצִי לִקְנוֹת?'
+        : 'שָׁלוֹם אֲחִי! יֵשׁ לָנוּ עַגְבָנִיּוֹת וּמְלָפְפֹנִים מְצוּיָנִים הַיּוֹם. מָה תִּרְצֶה לִקְנוֹת?',
+      transcription: isFemale
+        ? 'шалóм ахотӣ! йеш лáну агванийóт вэ-млафэфонӣм мэцуянӣм hайóм. ма тирцӣ ликнóт?'
+        : 'шалóм ахӣ! йеш лáну агванийóт вэ-млафэфонӣм мэцуянӣм hайóм. ма тирцé ликнóт?',
+      translation: isFemale
+        ? 'Привет, сестрёнка! У нас сегодня отличные помидоры и огурцы. Что ты хочешь купить? (к покупательнице)'
+        : 'Привет, друг! У нас сегодня отличные помидоры и огурцы. Что ты хочешь купить? (к покупателю)',
+    };
+  }
+
   // Общий шаблон для остальных уроков с автозаменой обращений
   let heb = lesson.dialogue.initialMessage.hebrew;
   let tr = lesson.dialogue.initialMessage.transcription;
@@ -346,19 +360,21 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
     setStepChangeModal(null);
     setStepReaction(null);
     const data = getInitialMessageForGender(lesson, gender);
+    const steps = lesson.dialogue.steps;
+    const initialSuggestions = steps && steps[0]?.sampleAnswers ? steps[0].sampleAnswers : [];
     const initial: ChatMessage = {
       id: 'init-1',
       role: 'assistant',
       hebrew: data.hebrew,
       transcription: data.transcription,
       translation: data.translation,
+      suggestedReplies: initialSuggestions,
       timestamp: Date.now(),
     };
     messagesRef.current = [initial];
     setMessages([initial]);
 
     // Показываем вводную ситуацию для Шага 1 во всплывающем окне (без преждевременного звука)
-    const steps = lesson.dialogue.steps;
     if (steps && steps.length > 0) {
       pendingSpeechTextRef.current = initial.hebrew;
       setStepChangeModal(steps[0]);
@@ -1797,7 +1813,7 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
 
             {/* Тело модалки */}
             <div className="p-4 sm:p-5 space-y-4 max-h-[80vh] overflow-y-auto">
-              {/* Реакция учителя на предыдущий ответ ученика (для шагов 2+) */}
+              {/* Реакция собеседника на предыдущий ответ ученика (для шагов 2+) */}
               {stepReaction && stepChangeModal.stepIndex > 1 && (
                 <div className="bg-emerald-50 dark:bg-emerald-950/40 border-2 border-emerald-200 dark:border-emerald-800/80 rounded-2xl p-4 shadow-sm space-y-2">
                   <div className="flex items-center justify-between gap-2">
@@ -1805,8 +1821,8 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
                       <span>💬</span>
                       <span>
                         {userProfile.ulpanMode
-                          ? 'תְּגוּבַת הַמּוֹרֶה לַתְּשׁוּבָה שֶׁלְּךָ:'
-                          : 'Реакция учителя на ваш ответ:'}
+                          ? 'תְּגוּבַת הַדּוֹבֵר לַתְּשׁוּבָה שֶׁלְּךָ:'
+                          : (lesson.dialogue.aiRole ? `Реакция (${lesson.dialogue.aiRole}) на ваш ответ:` : 'Реакция собеседника на ваш ответ:')}
                       </span>
                     </div>
                     {stepReaction.hebrew && (
@@ -1814,7 +1830,7 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
                         type="button"
                         onClick={() => speakHebrew(stepReaction.hebrew, { rate: userProfile.speechRate || 0.7 })}
                         className="p-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs transition cursor-pointer shrink-0"
-                        title="Послушать реакцию учителя"
+                        title="Послушать реакцию собеседника"
                       >
                         <Volume2 className="w-4 h-4" />
                       </button>
@@ -1878,11 +1894,11 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
                 <p className="leading-relaxed">
                   {userProfile.ulpanMode
                     ? (stepChangeModal.stepIndex === 1
-                        ? 'לַחֲצוּ עַל הַכַּפְתּוֹר, הַקְשִׁיבוּ לִשְׁאֵלַת הַמּוֹרֶה וַעֲנוּ לוֹ בְּעִבְרִית!'
-                        : 'הַמּוֹרֶה שָׁאַל אֶתְכֶם שְׁאֵלָה עַל הַמַּצָּב הֶחָדָשׁ. לַחֲצוּ עַל הַכַּפְתּוֹר כְּדֵי לִשְׁמוֹעַ אֶת הַשְּׁאֵלָה וַעֲנוּ לוֹ בְּעִבְרִית!')
+                        ? 'לַחֲצוּ עַל הַכַּפְתּוֹר, הַקְשִׁיבוּ לַשְּׁאֵלָה וַעֲנוּ בְּעִבְרִית!'
+                        : 'הַדּוֹבֵר שָׁאַל אֶתְכֶם שְׁאֵלָה עַל הַמַּצָּב הֶחָדָשׁ. לַחֲצוּ עַל הַכַּפְתּוֹר כְּדֵי לִשְׁמוֹעַ אֶת הַשְּׁאֵלָה וַעֲנוּ בְּעִבְרִית!')
                     : (stepChangeModal.stepIndex === 1
-                        ? 'Сейчас преподаватель обратится к вам с первым вопросом. Нажмите кнопку, внимательно послушайте и ответьте на иврите!'
-                        : 'Преподаватель только что отреагировал на ваш ответ и задал новый вопрос с учётом этой ситуации. Нажмите кнопку, послушайте и ответьте ему на иврите!')}
+                        ? `Сейчас ${lesson.dialogue.aiRole || 'собеседник'} обратится к вам с первой репликой. Нажмите кнопку, внимательно послушайте и ответьте на иврите!`
+                        : `${lesson.dialogue.aiRole || 'Собеседник'} только что отреагировал на ваш ответ и продолжил разговор с учётом этой ситуации. Нажмите кнопку, послушайте и ответьте на иврите!`)}
                 </p>
               </div>
 
@@ -1896,10 +1912,10 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
                   {userProfile.ulpanMode
                     ? (stepChangeModal.stepIndex === 1
                         ? 'הֵבַנְתִּי, לְהַתְחִיל שִׂיחָה 💬'
-                        : 'הֵבַנְתִּי, לַעֲנוֹת לַמּוֹרֶה 💬')
+                        : 'הֵבַנְתִּי, לַעֲנוֹת 💬')
                     : (stepChangeModal.stepIndex === 1
                         ? 'Понятно, начать диалог 💬 ➡️'
-                        : 'Понятно, ответить на вопрос 💬 ➡️')}
+                        : 'Понятно, ответить 💬 ➡️')}
                 </span>
                 <ArrowRight className="w-4 h-4" />
               </button>

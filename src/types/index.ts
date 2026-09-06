@@ -150,6 +150,7 @@ export interface DialogueStep {
   stepIndex: number; // 1, 2, 3
   fact: string; // Заданный контекст/факт (напр. "На столе лежит книга и тетрадь")
   aiQuestionHebrew: string; // Что говорит/спрашивает учитель
+  aiQuestionHebrewFemale?: string; // Вариант вопроса для ученицы
   aiQuestionRu: string; // Перевод вопроса учителя
   expectedConcept: string; // Что тренирует ученик (напр. "זֹאת מַחְבֶּרֶת")
   targetWords?: string[]; // Обязательные ключевые слова для проверки (напр. ["זאת", "מחברת"])
