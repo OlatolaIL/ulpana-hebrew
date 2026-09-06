@@ -708,6 +708,7 @@ export default function Home() {
         }}
         userProfile={profile}
         onOpenSettings={() => setIsSettingsOpen(true)}
+        onOpenGuide={() => setIsGuideDrawerOpen(true)}
         onOpenFeedback={() => handleOpenFeedback()}
         onToggleFontStyle={handleToggleFontStyle}
         onToggleUlpanMode={handleToggleUlpanMode}
@@ -853,6 +854,17 @@ export default function Home() {
         onClose={() => setIsFeedbackOpen(false)}
         userProfile={profile}
         pageContext={feedbackContext}
+      />
+
+      {/* Выезжающая шторка-гид по возможностям разделов платформы */}
+      <SectionGuideDrawer
+        isOpen={isGuideDrawerOpen}
+        onClose={() => setIsGuideDrawerOpen(false)}
+        activeSection={currentView}
+        onNavigateSection={(view) => {
+          setIsGuideDrawerOpen(false);
+          navigateTo(view);
+        }}
       />
     </div>
   );
