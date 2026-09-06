@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { X, Key, User, Volume2, Eye, HelpCircle, CheckCircle2, ShieldCheck, GraduationCap, Sparkles, MessageSquare } from 'lucide-react';
 import { UserProfile, UserGender, AiProvider } from '@/types';
