@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   BookOpen,
   Sparkles,
@@ -59,12 +59,16 @@ interface ThematicDecksViewProps {
   userProfile: UserProfile;
   onStartTraining: (words: Word[], deckTitle: string, shuffle?: boolean) => void;
   onUpdateVocabulary: (newWords: Word[]) => void;
+  initialDeckId?: string | null;
+  onCloseInitialDeck?: () => void;
 }
 
 export const ThematicDecksView: React.FC<ThematicDecksViewProps> = ({
   userProfile,
   onStartTraining,
   onUpdateVocabulary,
+  initialDeckId,
+  onCloseInitialDeck,
 }) => {
   const [selectedLevel, setSelectedLevel] = useState<'all' | 'alef' | 'bet'>('all');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
@@ -93,10 +97,39 @@ export const ThematicDecksView: React.FC<ThematicDecksViewProps> = ({
   };
 
   // Состояние модального окна подробного списка колоды
-  const [listModalDeck, setListModalDeck] = useState<ThematicDeck | null>(null);
+  const [listModalDeck, setListModalDeck] = useState<ThematicDeck | null>(() => {
+    if (initialDeckId) {
+      return THEMATIC_DECKS.find((d) => d.id === initialDeckId) || null;
+    }
+    return null;
+  });
   const [modalSearch, setModalSearch] = useState('');
   const [copiedNotification, setCopiedNotification] = useState(false);
-  const [selectedWordIds, setSelectedWordIds] = useState<Set<string>>(new Set());
+  const [selectedWordIds, setSelectedWordIds] = useState<Set<string>>(() => {
+    if (initialDeckId) {
+      const found = THEMATIC_DECKS.find((d) => d.id === initialDeckId);
+      if (found) return new Set(found.words.map((w) => w.id));
+    }
+    return new Set();
+  });
+
+  const handleCloseListModal = () => {
+    setListModalDeck(null);
+    if (onCloseInitialDeck) {
+      onCloseInitialDeck();
+    }
+  };
+
+  useEffect(() => {
+    if (initialDeckId) {
+      const found = THEMATIC_DECKS.find((d) => d.id === initialDeckId);
+      if (found) {
+        setListModalDeck(found);
+        setModalSearch('');
+        setSelectedWordIds(new Set(found.words.map((w) => w.id)));
+      }
+    }
+  }, [initialDeckId]);
 
   // Состояние модального окна Pealim (Спряжения глагола и семья корней)
   const [pealimModal, setPealimModal] = useState<{
@@ -106,7 +139,7 @@ export const ThematicDecksView: React.FC<ThematicDecksViewProps> = ({
   } | null>(null);
 
   useModalHistory(Boolean(pealimModal), () => setPealimModal(null), 'pealim-thematic');
-  useModalHistory(Boolean(listModalDeck), () => setListModalDeck(null), 'deck-detail');
+  useModalHistory(Boolean(listModalDeck), handleCloseListModal, 'deck-detail');
 
   const isCursive = userProfile.fontStyle === 'cursive';
 
@@ -556,12 +589,16 @@ export const ThematicDecksView: React.FC<ThematicDecksViewProps> = ({
                 key={deck.id}
                 className="bg-white dark:bg-slate-800/90 rounded-2xl border border-slate-200 dark:border-slate-700/80 p-4 sm:p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between"
               >
-                <div>
+                <div
+                  className="cursor-pointer group/card"
+                  onClick={() => handleOpenListModal(deck)}
+                  title={`Открыть колоду «${deck.title}»`}
+                >
                   {/* Верхняя строка: Иконка, Уровень, Кол-во слов */}
                   <div className="flex items-start justify-between gap-3 mb-3">
                     <div className="flex items-center gap-3">
                       <div
-                        className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 ${
+                        className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 group-hover/card:scale-105 transition ${
                           isAlef
                             ? 'bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400'
                             : 'bg-purple-100 dark:bg-purple-900/50 text-purple-600 dark:text-purple-400'
@@ -584,7 +621,7 @@ export const ThematicDecksView: React.FC<ThematicDecksViewProps> = ({
                             {deck.words.length} слов
                           </span>
                         </div>
-                        <h3 className="font-bold text-slate-900 dark:text-white text-base mt-0.5">
+                        <h3 className="font-bold text-slate-900 dark:text-white text-base mt-0.5 group-hover/card:text-blue-600 dark:group-hover/card:text-blue-400 transition">
                           {deck.title}
                         </h3>
                       </div>
@@ -850,11 +887,13 @@ export const ThematicDecksView: React.FC<ThematicDecksViewProps> = ({
               return (
                 <div
                   key={deck.id}
-                  className="p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 hover:bg-slate-50 dark:hover:bg-slate-700/30 transition"
+                  onClick={() => handleOpenListModal(deck)}
+                  className="p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 hover:bg-slate-50 dark:hover:bg-slate-700/30 transition cursor-pointer group/row"
+                  title={`Открыть колоду «${deck.title}»`}
                 >
                   <div className="flex items-center gap-3.5 min-w-0">
                     <div
-                      className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 ${
+                      className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 group-hover/row:scale-105 transition ${
                         isAlef
                           ? 'bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400'
                           : 'bg-purple-100 dark:bg-purple-900/50 text-purple-600 dark:text-purple-400'
@@ -873,7 +912,7 @@ export const ThematicDecksView: React.FC<ThematicDecksViewProps> = ({
                         >
                           {isAlef ? 'Алеф (א)' : 'Бет (ב)'}
                         </span>
-                        <h4 className="font-bold text-slate-900 dark:text-white text-sm sm:text-base">
+                        <h4 className="font-bold text-slate-900 dark:text-white text-sm sm:text-base group-hover/row:text-blue-600 dark:group-hover/row:text-blue-400 transition">
                           {deck.title}
                         </h4>
                       </div>
@@ -883,7 +922,10 @@ export const ThematicDecksView: React.FC<ThematicDecksViewProps> = ({
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+                  <div
+                    className="flex items-center gap-2 w-full sm:w-auto justify-end"
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     <button
                       onClick={() => handleOpenListModal(deck)}
                       className="px-3 py-2 rounded-xl bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 hover:bg-blue-100 border border-blue-200 dark:border-blue-800 text-xs font-bold flex items-center gap-1.5 transition cursor-pointer"
@@ -934,8 +976,14 @@ export const ThematicDecksView: React.FC<ThematicDecksViewProps> = ({
 
       {/* МОДАЛЬНОЕ ОКНО «ВЫВЕСТИ КОЛОДУ СПИСКОМ» */}
       {listModalDeck && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-          <div className="bg-white dark:bg-slate-900 w-full max-w-4xl rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 flex flex-col max-h-[92vh] overflow-hidden">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-sm animate-fade-in"
+          onClick={handleCloseListModal}
+        >
+          <div
+            className="bg-white dark:bg-slate-900 w-full max-w-4xl rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 flex flex-col max-h-[92vh] overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
             {/* Шапка модалки */}
             <div className="p-4 sm:p-5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between gap-3 shrink-0 bg-slate-50 dark:bg-slate-800/50">
               <div className="flex items-center gap-3 min-w-0">
@@ -963,16 +1011,21 @@ export const ThematicDecksView: React.FC<ThematicDecksViewProps> = ({
                 </div>
               </div>
 
+              {/* Действия шапки: Копировать слова, Экспорт TSV, Закрыть */}
               <div className="flex items-center gap-2 shrink-0">
                 <button
                   onClick={() => handleCopyList(listModalDeck)}
-                  className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-100 text-xs font-semibold flex items-center gap-1.5 text-slate-700 dark:text-slate-300 transition"
-                  title="Скопировать текстовый список в буфер"
+                  className={`p-1.5 sm:px-3 sm:py-1.5 rounded-xl border text-xs font-semibold flex items-center gap-1.5 transition ${
+                    copiedNotification
+                      ? 'border-emerald-300 bg-emerald-50 text-emerald-600'
+                      : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-100 text-slate-700 dark:text-slate-300'
+                  }`}
+                  title="Скопировать все слова набора в буфер обмена"
                 >
                   {copiedNotification ? (
                     <>
                       <Check className="w-3.5 h-3.5 text-emerald-600" />
-                      <span className="text-emerald-600 font-bold">Скопировано!</span>
+                      <span className="hidden sm:inline">Скопировано!</span>
                     </>
                   ) : (
                     <>
@@ -992,7 +1045,7 @@ export const ThematicDecksView: React.FC<ThematicDecksViewProps> = ({
                 </button>
 
                 <button
-                  onClick={() => setListModalDeck(null)}
+                  onClick={handleCloseListModal}
                   className="p-2 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
                 >
                   <X className="w-5 h-5" />
@@ -1254,7 +1307,7 @@ export const ThematicDecksView: React.FC<ThematicDecksViewProps> = ({
                         listModalDeck.title,
                         true
                       );
-                      setListModalDeck(null);
+                      handleCloseListModal();
                     }
                   }}
                   disabled={selectedWordIds.size === 0}
@@ -1281,7 +1334,7 @@ export const ThematicDecksView: React.FC<ThematicDecksViewProps> = ({
                         listModalDeck.title,
                         shuffleDecks
                       );
-                      setListModalDeck(null);
+                      handleCloseListModal();
                     }
                   }}
                   disabled={selectedWordIds.size === 0}

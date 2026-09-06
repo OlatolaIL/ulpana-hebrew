@@ -67,6 +67,13 @@ export const PersonalDictionary: React.FC<PersonalDictionaryProps> = ({
   const [newTranslation, setNewTranslation] = useState('');
   const [newRoot, setNewRoot] = useState('');
 
+  const [selectedThematicDeckId, setSelectedThematicDeckId] = useState<string | null>(null);
+
+  const handleOpenThematicDeck = (deckId: string) => {
+    setSelectedThematicDeckId(deckId);
+    setActiveTab('thematic');
+  };
+
   // Состояние модального окна Pealim для просмотра спряжений и корней
   const [pealimModalVerb, setPealimModalVerb] = useState<{
     word: Word;
@@ -282,6 +289,8 @@ export const PersonalDictionary: React.FC<PersonalDictionaryProps> = ({
       {activeTab === 'thematic' && (
         <ThematicDecksView
           userProfile={userProfile}
+          initialDeckId={selectedThematicDeckId}
+          onCloseInitialDeck={() => setSelectedThematicDeckId(null)}
           onStartTraining={(deckWords, title, shuffle) =>
             onStartPractice(deckWords, title, undefined, shuffle)
           }
@@ -305,30 +314,32 @@ export const PersonalDictionary: React.FC<PersonalDictionaryProps> = ({
               </div>
               <button
                 type="button"
-                onClick={() => setActiveTab('thematic')}
-                className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
+                onClick={() => {
+                  setSelectedThematicDeckId(null);
+                  setActiveTab('thematic');
+                }}
+                className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1 cursor-pointer"
               >
                 <span>Все колоды</span>
                 <span className="text-[10px]">➔</span>
               </button>
             </div>
 
-            {/* Горизонтальный скролл популярных колод */}
+            {/* Горизонтальный скролл тематических колод */}
             <div className="flex items-center gap-2 overflow-x-auto pb-1 pt-0.5 no-scrollbar">
-              {THEMATIC_DECKS.slice(0, 6).map((deck) => (
+              {THEMATIC_DECKS.map((deck) => (
                 <button
                   key={deck.id}
                   type="button"
-                  onClick={() => {
-                    setActiveTab('thematic');
-                  }}
-                  className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-700/80 hover:border-purple-400 dark:hover:border-purple-500 text-left shrink-0 transition-all hover:shadow-sm group active:scale-98"
+                  onClick={() => handleOpenThematicDeck(deck.id)}
+                  className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-700/80 hover:border-purple-400 dark:hover:border-purple-500 hover:bg-purple-50/40 dark:hover:bg-purple-950/20 text-left shrink-0 transition-all hover:shadow-sm group active:scale-98 cursor-pointer"
+                  title={`Открыть колоду «${deck.title}» (${deck.words.length} слов)`}
                 >
                   <span className="text-sm">
                     {deck.id.includes('verb') ? '⚡' : deck.id.includes('food') ? '🥐' : deck.id.includes('cafe') ? '☕' : deck.id.includes('body') ? '🏥' : deck.id.includes('slang') ? '🗣️' : '🏙️'}
                   </span>
                   <div className="min-w-0">
-                    <div className="text-xs font-bold text-slate-800 dark:text-slate-200 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition truncate max-w-[130px]">
+                    <div className="text-xs font-bold text-slate-800 dark:text-slate-200 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition truncate max-w-[140px]">
                       {deck.title}
                     </div>
                     <div className="text-[10px] text-slate-400 font-medium">
@@ -340,10 +351,14 @@ export const PersonalDictionary: React.FC<PersonalDictionaryProps> = ({
 
               <button
                 type="button"
-                onClick={() => setActiveTab('thematic')}
-                className="px-3 py-2 rounded-xl bg-purple-50 dark:bg-purple-950/60 border border-purple-200 dark:border-purple-800/80 text-purple-700 dark:text-purple-300 text-xs font-bold shrink-0 hover:bg-purple-100 transition whitespace-nowrap"
+                onClick={() => {
+                  setSelectedThematicDeckId(null);
+                  setActiveTab('thematic');
+                }}
+                className="px-3.5 py-2 rounded-xl bg-purple-50 dark:bg-purple-950/60 border border-purple-200 dark:border-purple-800/80 text-purple-700 dark:text-purple-300 text-xs font-bold shrink-0 hover:bg-purple-100 transition whitespace-nowrap cursor-pointer flex items-center gap-1.5"
               >
-                + Ещё {THEMATIC_DECKS.length - 6} колод ➔
+                <span>Все {THEMATIC_DECKS.length} колод</span>
+                <span className="text-xs">➔</span>
               </button>
             </div>
           </div>
