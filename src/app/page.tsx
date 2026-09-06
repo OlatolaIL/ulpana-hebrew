@@ -497,6 +497,23 @@ export default function Home() {
     }
   }, [currentView, isSettingsOpen, isAuthModalOpen, isSubscriptionModalOpen, isMultiLessonSetupOpen]);
 
+  // Автоматический показ шторки-подсказки при первом посещении раздела
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const autoShowAllowed = localStorage.getItem('ulpana_auto_show_guides') !== 'false';
+    if (!autoShowAllowed) return;
+
+    const seenKey = `ulpana_seen_guide_${currentView}`;
+    const alreadySeen = localStorage.getItem(seenKey);
+    if (!alreadySeen) {
+      localStorage.setItem(seenKey, 'true');
+      const timer = setTimeout(() => {
+        setIsGuideDrawerOpen(true);
+      }, 700);
+      return () => clearTimeout(timer);
+    }
+  }, [currentView]);
+
   if (!profile) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-zinc-50 dark:bg-zinc-950">
