@@ -1,5 +1,5 @@
 import crypto from 'crypto';
-import { SignJWT, jwtVerify } from 'jose';
+import { SignJWT, jwtVerify, createRemoteJWKSet } from 'jose';
 import { UserSession } from '@/types';
 
 const JWT_SECRET = new TextEncoder().encode(
@@ -162,6 +162,54 @@ export async function verifySessionToken(token: string): Promise<UserSession | n
     const { payload } = await jwtVerify(token, JWT_SECRET);
     return payload as unknown as UserSession;
   } catch {
+    return null;
+  }
+}
+
+export interface GoogleTokenPayload {
+  sub: string;
+  email: string;
+  email_verified?: boolean;
+  name: string;
+  picture?: string;
+  given_name?: string;
+  family_name?: string;
+}
+
+const GOOGLE_JWKS = createRemoteJWKSet(
+  new URL('https://www.googleapis.com/oauth2/v3/certs')
+);
+
+/**
+ * Валидация криптографической подписи и данных Google ID Token (JWT)
+ */
+export async function verifyGoogleIdToken(
+  idToken: string,
+  expectedClientId?: string
+): Promise<GoogleTokenPayload | null> {
+  try {
+    const clientId = expectedClientId || process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || process.env.GOOGLE_CLIENT_ID;
+    
+    const { payload } = await jwtVerify(idToken, GOOGLE_JWKS, {
+      issuer: ['https://accounts.google.com', 'accounts.google.com'],
+      audience: clientId || undefined,
+    });
+
+    if (!payload || !payload.sub || !payload.email) {
+      return null;
+    }
+
+    return {
+      sub: payload.sub as string,
+      email: payload.email as string,
+      email_verified: Boolean(payload.email_verified),
+      name: (payload.name as string) || (payload.email as string).split('@')[0],
+      picture: payload.picture as string | undefined,
+      given_name: payload.given_name as string | undefined,
+      family_name: payload.family_name as string | undefined,
+    };
+  } catch (error) {
+    console.error('[verifyGoogleIdToken] Error verifying Google token:', error);
     return null;
   }
 }
