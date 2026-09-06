@@ -16,6 +16,8 @@ interface SettingsModalProps {
   onOpenAuth?: () => void;
   onOpenSubscription?: () => void;
   onOpenFeedback?: () => void;
+  showFloatingFeedback?: boolean;
+  onToggleFloatingFeedback?: (show: boolean) => void;
   onLogout?: () => void;
 }
 
@@ -27,6 +29,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   onOpenAuth,
   onOpenSubscription,
   onOpenFeedback,
+  showFloatingFeedback = true,
+  onToggleFloatingFeedback,
   onLogout,
 }) => {
   if (!isOpen) return null;
@@ -549,6 +553,36 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               <MessageSquare className="w-4 h-4 text-blue-600 dark:text-blue-400" />
               <span>Сообщить об ошибке / Написать в Telegram</span>
             </button>
+
+            {/* Тумблер плавающей кнопки на экране */}
+            <div className="flex items-center justify-between pt-1 border-t border-zinc-200/60 dark:border-zinc-700/50">
+              <div className="text-xs">
+                <div className="font-semibold text-zinc-800 dark:text-zinc-200">
+                  Плавающая кнопка на экране
+                </div>
+                <div className="text-[11px] text-zinc-500">
+                  Круглая кнопка в нижнем углу (также доступна в шапке)
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  if (onToggleFloatingFeedback) {
+                    onToggleFloatingFeedback(!showFloatingFeedback);
+                  }
+                }}
+                className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                  showFloatingFeedback ? 'bg-blue-600' : 'bg-zinc-300 dark:bg-zinc-700'
+                }`}
+                title={showFloatingFeedback ? 'Скрыть плавающую кнопку' : 'Показать плавающую кнопку'}
+              >
+                <span
+                  className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                    showFloatingFeedback ? 'translate-x-4' : 'translate-x-0'
+                  }`}
+                />
+              </button>
+            </div>
           </div>
         </div>
 

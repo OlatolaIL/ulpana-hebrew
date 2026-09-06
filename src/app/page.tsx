@@ -115,6 +115,19 @@ export default function Home() {
   const [isGuideDrawerOpen, setIsGuideDrawerOpen] = useState(false);
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
   const [feedbackLessonTab, setFeedbackLessonTab] = useState<string | undefined>(undefined);
+  const [showFloatingFeedback, setShowFloatingFeedback] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('ulpana_show_floating_feedback') !== 'false';
+    }
+    return true;
+  });
+
+  const handleToggleFloatingFeedback = (show: boolean) => {
+    setShowFloatingFeedback(show);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('ulpana_show_floating_feedback', show ? 'true' : 'false');
+    }
+  };
 
   // Привязка модалок страницы к истории браузера (свайп назад / кнопка Back закрывает модалку)
   useModalHistory(isSettingsOpen, () => setIsSettingsOpen(false), 'settings-modal');
@@ -823,6 +836,8 @@ export default function Home() {
         onOpenAuth={() => setIsAuthModalOpen(true)}
         onOpenSubscription={() => setIsSubscriptionModalOpen(true)}
         onOpenFeedback={() => handleOpenFeedback()}
+        showFloatingFeedback={showFloatingFeedback}
+        onToggleFloatingFeedback={handleToggleFloatingFeedback}
         onLogout={handleLogout}
       />
 
@@ -842,11 +857,14 @@ export default function Home() {
         onOpenAuth={() => setIsAuthModalOpen(true)}
       />
 
-      {/* Плавающая кнопка сообщения об ошибке / обратной связи */}
-      <FeedbackButton
-        onClick={() => handleOpenFeedback()}
-        isLessonMode={currentView === 'lesson'}
-      />
+      {/* Плавающая кнопка сообщения об ошибке / обратной связи (можно скрыть) */}
+      {showFloatingFeedback && (
+        <FeedbackButton
+          onClick={() => handleOpenFeedback()}
+          onDismiss={() => handleToggleFloatingFeedback(false)}
+          isLessonMode={currentView === 'lesson'}
+        />
+      )}
 
       {/* Всплывающая шторка обратной связи и сообщений об ошибках (@Osa_IL) */}
       <FeedbackDrawer
