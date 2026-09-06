@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifySessionToken } from '@/lib/auth';
 import { checkRateLimit } from '@/lib/rateLimit';
 import { stripNikkud } from '@/lib/transcription';
+import { DialogueStep, DialogueWord } from '@/types';
 
 interface ChatRequestBody {
   messages: Array<{ role: 'user' | 'assistant'; content: string; hebrew?: string }>;
@@ -25,47 +26,10 @@ interface ChatRequestBody {
   studentKnownWords?: string[];
   turnIndex?: number;
   targetTurns?: number;
-  currentStep?: {
-    stepIndex: number;
-    fact: string;
-    aiQuestionHebrew: string;
-    aiQuestionRu: string;
-    expectedConcept: string;
-    targetWords?: string[];
-    sampleAnswers?: Array<{
-      hebrew: string;
-      transcription: string;
-      translation: string;
-    }>;
-  };
-  previousStep?: {
-    stepIndex: number;
-    fact: string;
-    aiQuestionHebrew: string;
-    aiQuestionRu: string;
-    expectedConcept: string;
-    targetWords?: string[];
-    sampleAnswers?: Array<{
-      hebrew: string;
-      transcription: string;
-      translation: string;
-    }>;
-  };
-  allSteps?: Array<{
-    stepIndex: number;
-    fact: string;
-    aiQuestionHebrew: string;
-    aiQuestionRu: string;
-    expectedConcept: string;
-    targetWords?: string[];
-  }>;
-  usefulWords?: Array<{
-    hebrew: string;
-    transcription: string;
-    translation: string;
-    isNew?: boolean;
-    explanation?: string;
-  }>;
+  currentStep?: DialogueStep;
+  previousStep?: DialogueStep;
+  allSteps?: DialogueStep[];
+  usefulWords?: DialogueWord[];
 }
 
 /**
@@ -144,7 +108,8 @@ function normalizeResponse(
   defaultIsCompleted: boolean = false,
   nextStep?: any,
   effectiveNextQuestionHebrew?: string,
-  isFemale: boolean = false
+  isFemale: boolean = false,
+  aiRole?: string
 ) {
   let rawTranslation =
     parsed.russian_translation ||
@@ -187,27 +152,25 @@ function normalizeResponse(
 
   let rawHebrew = (parsed.hebrew || '').trim();
 
-  // Привязка сценарного вопроса (Step Question Anchoring) для всех сценарных уроков:
+  // Привязка сценарного вопроса (Step Role & Goal Integrity) для всех сценарных уроков:
   if (nextStep && effectiveNextQuestionHebrew && !isCompleted) {
-    const strippedNext = stripNikkud(effectiveNextQuestionHebrew).trim();
     const strippedHebrew = stripNikkud(rawHebrew).trim();
 
-    // Проверяем, содержит ли сгенерированный ответ канонический вопрос шага
-    const nextWords = strippedNext.split(/\s+/).filter((w: string) => w.length > 2);
-    const matchedWordsCount = nextWords.filter((w: string) => strippedHebrew.includes(w)).length;
-    const hasCoreQuestion = strippedHebrew.includes(strippedNext) ||
-      (nextWords.length > 0 && matchedWordsCount / nextWords.length >= 0.5);
+    // 1. Проверка на ролевую инверсию (например, продавец/официант не спрашивает цену у покупателя):
+    const isServiceRole = /מוכר|קופאי|מלצר|נהג|продавец|официант|водитель|кассир|бариста/i.test(aiRole || '');
+    const isRoleInversion = isServiceRole && /כמה\s+זה\s+עולה|מה\s+המחיר|כמה\s+עולה/i.test(strippedHebrew);
 
-    if (!hasCoreQuestion) {
-      // LLM сбилась со сценария (задала вопрос не по роли, галлюцинировала или спросила цену)
-      // Если в начале была короткая похвала/реакция, сохраняем её в teacherReactionHebrew
-      if (!rawTeacherReactionHebrew && rawHebrew) {
+    // 2. Проверка на пустоту или отсутствие букв иврита:
+    const isBrokenHebrew = !rawHebrew || strippedHebrew.length < 3 || !/[\u0590-\u05FF]/.test(rawHebrew);
+
+    if (isRoleInversion || isBrokenHebrew) {
+      // LLM сбилась со своей роли или сгенерировала битый ответ -> возвращаем канонический вопрос шага
+      if (!rawTeacherReactionHebrew && rawHebrew && !isRoleInversion) {
         const reactionMatch = rawHebrew.match(/^([^\n?]+?[.!])(?:\s+|$)/);
         if (reactionMatch && reactionMatch[1]) {
           rawTeacherReactionHebrew = reactionMatch[1].trim();
         }
       }
-      // Жестко фиксируем канонический вопрос шага
       rawHebrew = effectiveNextQuestionHebrew;
       rawTranslation = nextStep.aiQuestionRu;
       rawTranscription = '';
@@ -259,6 +222,8 @@ function normalizeResponse(
     feedback: parsed.feedback_ru || parsed.feedback || null,
     teacherReactionHebrew: rawTeacherReactionHebrew ? rawTeacherReactionHebrew.trim() : null,
     teacherReactionRu: rawTeacherReactionRu ? sanitizeRussianTranslation(rawTeacherReactionRu) : null,
+    stepFact: nextStep?.fact || null,
+    stepIndex: nextStep?.stepIndex || null,
     isCompleted,
     shouldHangUp,
     newWords,
@@ -442,13 +407,17 @@ ${evaluatingStep.sampleAnswers && evaluatingStep.sampleAnswers.length > 0 ? `- �
 1. БАЗОВЫЙ ФАКТ НОВОГО ШАГА (ЧТО ПРОИСХОДИТ ПРЯМО СЕЙЧАС):
    "${nextStep.fact}"
    - Ты ОБЯЗАН вести беседу строго в рамках этой новой ситуации в роли ${aiRole}!
-2. ВОПРОС/РЕПЛИКА СОБЕСЕДНИКА В ЭТОМ ШАГЕ:
-   "${effectiveNextQuestionHebrew}" (${nextStep.aiQuestionRu}).
-   - В поле "hebrew" ты ОБЯЗАН озвучить этот конкретный канонический вопрос нового шага: "${effectiveNextQuestionHebrew}"!
-   - Допускается предварить вопрос короткой связкой-реакцией (например: "מְעֻלֶּה! ${effectiveNextQuestionHebrew}" или "יוֹפִי! ${effectiveNextQuestionHebrew}").
-   - КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО менять смысл вопроса, переспрашивать о пройденном или задавать встречные вопросы о цене/заказе от лица продавца/официанта!
+2. ЗАДАЧА И РЕПЛИКА СОБЕСЕДНИКА В ЭТОМ ШАГЕ:
+   - Канонический ориентир шага: "${effectiveNextQuestionHebrew}" (${nextStep.aiQuestionRu}).
+   - ПРАВИЛО АДАПТИВНОСТИ К ВЫБОРУ УЧЕНИКА:
+     Если ученик в предыдущей реплике конкретизировал выбор из предложенных вариантов темы урока (например, выбрал огурцы «מלפפונים» вместо помидоров «עגבניות», чай вместо кофе, 2 билета вместо 1):
+     * Ты ОБЯЗАН естественно адаптировать свою реплику под конкретный выбор ученика!
+     * Сохраняй при этом коммуникативную и грамматическую цель шага (например: назвать цену за килограмм выбранного товара и спросить количество/вес: «כמה קילו תרצה?»).
+     * Если ученик выбрал помидоры или не уточнил товар — используй канонический ориентир: "${effectiveNextQuestionHebrew}".
+   - СТРОГИЙ ЗАПРЕТ ВЫХОДА ИЗ РОЛИ:
+     Ты — ${aiRole}. Категорически запрещено выходить из роли: продавец или официант НИКОГДА не спрашивает покупателя «сколько это стоит?» (כמה זה עולה?) или «что у вас есть?». Продавец САМ называет цену и спрашивает вес/заказ!
 3. В "suggestedReplies":
-   - Предложи ровно 3 простых варианта ответа ученика ИМЕННО НА ЭТОТ НОВЫЙ ВОПРОС шага №${nextStep.stepIndex} («${effectiveNextQuestionHebrew}»).
+   - Предложи ровно 3 простых варианта ответа ученика ИМЕННО НА ЭТОТ НОВЫЙ ВОПРОС шага №${nextStep.stepIndex}. Если ученик выбрал огурцы — предложи варианты с огурцами и весом.
 ${nextStep.sampleAnswers && nextStep.sampleAnswers.length > 0 ? `   - Примеры правильных ответов для suggestedReplies:
 ${nextStep.sampleAnswers.map(sa => `     * hebrew: "${sa.hebrew}", translation: "${sa.translation}"`).join('\n')}` : ''}
 4. В JSON-ответе укажи: "isCompleted": false.`
@@ -637,7 +606,7 @@ ${goals.map((g, idx) => `${idx + 1}. Ученик должен: ${g}`).join('\n'
             const data = await groqResponse.json();
             const contentStr = data.choices[0]?.message?.content || '{}';
             const parsed = JSON.parse(contentStr);
-            const normalized = normalizeResponse(parsed, isFinalTurn, nextStep, effectiveNextQuestionHebrew, isFemale);
+            const normalized = normalizeResponse(parsed, isFinalTurn, nextStep, effectiveNextQuestionHebrew, isFemale, aiRole);
             return NextResponse.json({
               ...normalized,
               engine: 'Groq (Живой ИИ)',
@@ -684,7 +653,7 @@ ${goals.map((g, idx) => `${idx + 1}. Ученик должен: ${g}`).join('\n'
           const data = await geminiRes.json();
           const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
           const parsed = JSON.parse(text);
-          const normalized = normalizeResponse(parsed, isFinalTurn, nextStep, effectiveNextQuestionHebrew, isFemale);
+          const normalized = normalizeResponse(parsed, isFinalTurn, nextStep, effectiveNextQuestionHebrew, isFemale, aiRole);
           return NextResponse.json({
             ...normalized,
             engine: 'Gemini (Живой ИИ)',
@@ -723,6 +692,8 @@ ${goals.map((g, idx) => `${idx + 1}. Ученик должен: ${g}`).join('\n'
         teacherReactionHebrew: fallbackReactionHebrew,
         teacherReactionRu: fallbackReactionRu,
         feedback: null,
+        stepFact: currentStep.fact || null,
+        stepIndex: currentStep.stepIndex || null,
         isCompleted: false,
         engine: 'Ульпан-автоответчик (Сценарный шаг)',
         suggestedReplies: fallbackReplies,

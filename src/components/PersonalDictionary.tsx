@@ -39,7 +39,12 @@ import { useModalHistory } from '@/lib/useHistoryState';
 interface PersonalDictionaryProps {
   userProfile: UserProfile;
   onUpdateProfile: (profile: UserProfile) => void;
-  onStartPractice: (words: Word[], title?: string) => void;
+  onStartPractice: (
+    words: Word[],
+    title?: string,
+    mode?: 'flip' | 'builder' | 'listening',
+    shuffle?: boolean
+  ) => void;
   onOpenMultiLessonSetup?: () => void;
 }
 
@@ -277,7 +282,9 @@ export const PersonalDictionary: React.FC<PersonalDictionaryProps> = ({
       {activeTab === 'thematic' && (
         <ThematicDecksView
           userProfile={userProfile}
-          onStartTraining={(deckWords, title) => onStartPractice(deckWords, title)}
+          onStartTraining={(deckWords, title, shuffle) =>
+            onStartPractice(deckWords, title, undefined, shuffle)
+          }
           onUpdateVocabulary={(newWords) => {
             onUpdateProfile(loadUserProfile());
           }}

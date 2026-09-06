@@ -22,6 +22,8 @@ import {
   Target,
   ArrowRight,
   VolumeX,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { Lesson, UserProfile, ChatMessage, Word, DialogueWord, DialogueStep } from '@/types';
@@ -186,42 +188,16 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
   const [isWordsDrawerOpen, setIsWordsDrawerOpen] = useState(false);
   const [showBriefingModal, setShowBriefingModal] = useState(false);
   const [drawerTab, setDrawerTab] = useState<'words' | 'replies'>('words');
-  const [stepChangeModal, setStepChangeModal] = useState<DialogueStep | null>(null);
-  const [stepReaction, setStepReaction] = useState<{
-    hebrew: string;
-    translation?: string;
-    feedback?: string | null;
-  } | null>(null);
-  const [isPlayingReaction, setIsPlayingReaction] = useState(false);
+  const [revealedTranslations, setRevealedTranslations] = useState<Record<string, boolean>>({});
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [audioLevel, setAudioLevel] = useState(0);
   const activeMicStreamRef = useRef<MediaStream | null>(null);
   const prevStepIndexRef = useRef<number>(0);
-  const pendingSpeechTextRef = useRef<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const handleCloseStepModal = () => {
-    stopSpeech();
-    setIsPlayingReaction(false);
-    setStepChangeModal(null);
-    if (pendingSpeechTextRef.current) {
-      const textToSpeak = pendingSpeechTextRef.current;
-      pendingSpeechTextRef.current = null;
-      speakHebrew(textToSpeak, { rate: userProfile.speechRate || 0.7 });
-    }
-    setTimeout(() => inputRef.current?.focus(), 80);
+  const toggleTranslation = (msgId: string) => {
+    setRevealedTranslations((prev) => ({ ...prev, [msgId]: !prev[msgId] }));
   };
-
-  useEffect(() => {
-    if (!stepChangeModal) return;
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        handleCloseStepModal();
-      }
-    };
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, [stepChangeModal]);
 
   const [mounted, setMounted] = useState(false);
   useEffect(() => {
@@ -364,37 +340,28 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
     startTimeRef.current = Date.now();
     lastFeedbackRef.current = null;
     prevStepIndexRef.current = 0;
-    setStepChangeModal(null);
-    setStepReaction(null);
+    setRevealedTranslations({});
     const data = getInitialMessageForGender(lesson, gender);
     const steps = lesson.dialogue.steps;
     const initialSuggestions = steps && steps[0]?.sampleAnswers ? steps[0].sampleAnswers : [];
+    const initialFact = steps && steps[0]?.fact ? steps[0].fact : (lesson.dialogue.situation || undefined);
+
     const initial: ChatMessage = {
       id: 'init-1',
       role: 'assistant',
       hebrew: data.hebrew,
       transcription: data.transcription,
       translation: data.translation,
+      stepFact: initialFact,
+      stepIndex: 1,
       suggestedReplies: initialSuggestions,
       timestamp: Date.now(),
     };
     messagesRef.current = [initial];
     setMessages([initial]);
 
-    // Показываем вводную ситуацию для Шага 1 во всплывающем окне (без преждевременного звука)
-    if (steps && steps.length > 0) {
-      pendingSpeechTextRef.current = initial.hebrew;
-      setStepChangeModal(steps[0]);
-    } else if (lesson.dialogue.situation) {
-      pendingSpeechTextRef.current = initial.hebrew;
-      setStepChangeModal({
-        stepIndex: 1,
-        fact: lesson.dialogue.situation,
-        aiQuestionHebrew: initial.hebrew,
-        aiQuestionRu: initial.translation || '',
-        expectedConcept: '',
-      });
-    }
+    // Audio-First: сразу озвучиваем приветствие собеседника!
+    speakHebrew(initial.hebrew, { rate: userProfile.speechRate || 0.7 });
   };
 
   useEffect(() => {
@@ -406,7 +373,6 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
     return () => {
       rec.stop();
       stopSpeech();
-      pendingSpeechTextRef.current = null;
       if (activeMicStreamRef.current) {
         try {
           activeMicStreamRef.current.getTracks().forEach((t) => t.stop());
@@ -512,6 +478,29 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
 
       const data = await res.json();
 
+      const isFinished = Boolean(data.isCompleted || currentUserTurns >= TARGET_TURNS);
+      let stepFact: string | undefined = undefined;
+      let stepIndex: number | undefined = undefined;
+
+      if (isFinished) {
+        const updated = markLessonTabCompleted(lesson.id, 'chat');
+        if (onUpdateProfile) onUpdateProfile(updated);
+        try {
+          confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+        } catch {}
+      } else {
+        // Проверяем смену шага
+        const steps = lesson.dialogue.steps;
+        if (steps && steps.length > 0) {
+          const nextStepIndex = Math.min(currentUserTurns, steps.length - 1);
+          if (nextStepIndex > prevStepIndexRef.current && nextStepIndex < steps.length) {
+            prevStepIndexRef.current = nextStepIndex;
+            stepFact = data.stepFact || steps[nextStepIndex].fact;
+            stepIndex = data.stepIndex || steps[nextStepIndex].stepIndex;
+          }
+        }
+      }
+
       const aiMsg: ChatMessage = {
         id: `ai-${Date.now()}`,
         role: 'assistant',
@@ -519,6 +508,10 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
         transcription: data.transcription,
         translation: data.translation,
         feedback: data.feedback,
+        teacherReactionHebrew: data.teacherReactionHebrew,
+        teacherReactionRu: data.teacherReactionRu,
+        stepFact,
+        stepIndex,
         engine: data.engine || 'Groq (Живой ИИ)',
         isCompleted: Boolean(data.isCompleted),
         suggestedReplies: data.suggestedReplies || [],
@@ -536,61 +529,8 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
       }
       logChatSession(updatedHistory, data.feedback);
 
-      const isFinished = Boolean(data.isCompleted || currentUserTurns >= TARGET_TURNS);
-      let stepChanged = false;
-      if (isFinished) {
-        const updated = markLessonTabCompleted(lesson.id, 'chat');
-        if (onUpdateProfile) onUpdateProfile(updated);
-        try {
-          confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
-        } catch {}
-      } else {
-        // Проверяем смену шага: если новый шаг наступил, показываем всплывающий экран
-        const steps = lesson.dialogue.steps;
-        if (steps && steps.length > 0) {
-          const nextStepIndex = Math.min(currentUserTurns, steps.length - 1);
-          if (nextStepIndex > prevStepIndexRef.current && nextStepIndex < steps.length) {
-            prevStepIndexRef.current = nextStepIndex;
-            setStepChangeModal(steps[nextStepIndex]);
-            stepChanged = true;
-          }
-        }
-      }
-
-      if (stepChanged) {
-        // Извлекаем реакцию учителя на предыдущий ответ ученика для отображения во всплывающем окне
-        let reactionHebrew = data.teacherReactionHebrew || '';
-        let reactionRu = data.teacherReactionRu || '';
-
-        if (!reactionHebrew && data.hebrew) {
-          const clean = data.hebrew.trim();
-          const match = clean.match(/^([^\n?]+?[.!])(?:\s+(?:וְ?עַכְשָׁו|וְ?הִנֵּה|מָה|מִי|\?)|$)/);
-          if (match && match[1]) {
-            reactionHebrew = match[1].trim();
-          } else {
-            const sentences = clean.split(/(?<=[.!?])\s+/);
-            reactionHebrew = sentences[0] || clean;
-          }
-        }
-
-        if (!reactionRu && data.translation) {
-          const sentences = data.translation.trim().split(/(?<=[.!?])\s+/);
-          reactionRu = sentences[0] || '';
-        }
-
-        setStepReaction({
-          hebrew: reactionHebrew,
-          translation: reactionRu,
-          feedback: data.feedback || null,
-        });
-
-        // Во время показа всплывающего окна звук НЕ звучит - сохраняем текст для озвучки ПОСЛЕ закрытия окна
-        stopSpeech();
-        pendingSpeechTextRef.current = aiMsg.hebrew;
-      } else {
-        // Автоматически озвучиваем ответ ИИ (если окно не открывается: финал диалога или уточнение в том же шаге)
-        speakHebrew(aiMsg.hebrew, { rate: userProfile.speechRate || 0.7 });
-      }
+      // Audio-First: голос собеседника звучит СРАЗУ, без блокировки экрана!
+      speakHebrew(aiMsg.hebrew, { rate: userProfile.speechRate || 0.7 });
     } catch (err) {
       console.error(err);
     } finally {
@@ -697,7 +637,6 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
       logChatSession(messagesRef.current);
     }
     prevStepIndexRef.current = 0;
-    setStepChangeModal(null);
     // 1. Снимаем зачёт 4 этапа в профиле, чтобы ученик мог пройти его заново с нуля
     const updated = unmarkLessonTabCompleted(lesson.id, 'chat');
     if (onUpdateProfile) onUpdateProfile(updated);
@@ -857,190 +796,246 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
             const isAi = msg.role === 'assistant';
             const isLastMessage = index === messages.length - 1;
             const tokens = tokenizeText(msg.hebrew);
+            const isTranslationRevealed = Boolean(revealedTranslations[msg.id]);
 
             return (
-              <div
-                key={msg.id}
-                ref={isLastMessage ? lastMessageRef : null}
-                className={`flex flex-col ${isAi ? 'items-start' : 'items-end'} space-y-1`}
-              >
-                <div className="flex items-end gap-1.5 sm:gap-2 max-w-[92%] sm:max-w-[85%]">
-                  {isAi && (
-                    <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-blue-600 text-white flex items-center justify-center shrink-0 mb-1 shadow-sm">
-                      <Bot className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                    </div>
-                  )}
-
-                  <div
-                    className={`p-3 sm:p-3.5 rounded-2xl shadow-sm ${
-                      isAi
-                        ? 'bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-zinc-100 rounded-bl-sm'
-                        : 'bg-blue-600 text-white rounded-br-sm'
-                    }`}
-                  >
-                    {/* Текст на иврите с учетом настройки showNikkud */}
-                    <div
-                      dir="rtl"
-                      className={`font-bold leading-relaxed text-right ${
-                        isCursive
-                          ? 'font-cursive text-xl sm:text-2xl text-blue-600 dark:text-blue-400'
-                          : 'font-hebrew text-lg sm:text-xl'
-                      }`}
-                    >
-                      {tokens.map((token) => {
-                        const displayWord = userProfile.showNikkud
-                          ? token.text
-                          : stripNikkud(token.text);
-
-                        if (token.isHebrew) {
-                          return (
-                            <span
-                              key={token.id}
-                              onClick={() => handleWordClick(token, msg.hebrew)}
-                              className={`inline-block px-1 py-0.5 rounded-md transition cursor-pointer select-text ${
-                                isAi
-                                  ? 'hover:text-blue-600 dark:hover:text-blue-400 hover:underline hover:bg-blue-100/70 dark:hover:bg-blue-900/50 active:scale-95'
-                                  : 'hover:text-yellow-200 hover:underline hover:bg-blue-700/60 active:scale-95'
-                              }`}
-                              title="Нажмите для перевода и словарика"
-                            >
-                              {displayWord}
-                            </span>
-                          );
-                        }
-                        return <span key={token.id}>{token.text}</span>;
-                      })}
-                    </div>
-
-                    {/* Транскрипция с 'h' для ה */}
-                    {!userProfile.ulpanMode && userProfile.showTranscription && msg.transcription && (
-                      <p className="text-xs text-blue-600 dark:text-blue-400 font-medium mt-1">
-                        [{msg.transcription}]
+              <React.Fragment key={msg.id}>
+                {/* Карточка новой ситуации прямо в ленте сообщений (Audio-First, без блокирующих окон) */}
+                {msg.stepFact && (
+                  <div className="my-2 mx-auto max-w-[96%] sm:max-w-md bg-blue-50/90 dark:bg-blue-950/40 border-2 border-blue-200 dark:border-blue-800/80 rounded-2xl p-3 sm:p-3.5 shadow-xs text-xs text-blue-950 dark:text-blue-100 flex items-start gap-2.5">
+                    <Target className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
+                    <div className="space-y-0.5 flex-1 min-w-0">
+                      <span className="font-bold text-blue-700 dark:text-blue-300 block uppercase tracking-wider text-[10px]">
+                        {userProfile.ulpanMode
+                          ? (msg.stepIndex === 1 ? 'שָׁלָב 1: הַתְחָלַת הַשִּׂיחָה' : `שָׁלָב ${msg.stepIndex || 2}: הַמַּצָּב הִשְׁתַּנָּה!`)
+                          : (msg.stepIndex === 1 ? 'Шаг 1 из 3: Начало диалога' : `Шаг ${msg.stepIndex || 2} из 3: Ситуация изменилась!`)}
+                      </span>
+                      <p className="leading-relaxed text-zinc-700 dark:text-zinc-300 font-normal">
+                        {msg.stepFact}
                       </p>
-                    )}
-
-                    {/* Перевод на русский */}
-                    {!userProfile.ulpanMode && msg.translation && (
-                      <p className="text-xs text-zinc-600 dark:text-zinc-300 mt-1">
-                        {msg.translation}
-                      </p>
-                    )}
-
-                    {/* Карточки новых/полезных слов этой реплики */}
-                    {isAi && msg.newWords && msg.newWords.length > 0 && (
-                      <div className="mt-2.5 pt-2 border-t border-amber-200/70 dark:border-amber-900/50 bg-amber-50/60 dark:bg-amber-950/30 rounded-xl p-2 font-hebrew">
-                        <div className="flex items-center gap-1.5 text-[11px] font-bold text-amber-800 dark:text-amber-300 mb-1.5">
-                          <Sparkles className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-                          <span>{userProfile.ulpanMode ? 'מִילִּים חֲדָשׁוֹת:' : 'Новые слова в реплике:'}</span>
-                        </div>
-                        <div className="space-y-1">
-                          {msg.newWords.map((nw, nwIdx) => {
-                            const isAdded = addedWords[nw.hebrew] || isWordInPersonalDict(nw.hebrew, userProfile.personalVocabulary);
-                            return (
-                              <div
-                                key={nwIdx}
-                                className="flex items-center justify-between gap-1.5 bg-white dark:bg-zinc-800 px-2 py-1 rounded-lg border border-amber-200/50 dark:border-amber-800/30 text-xs shadow-2xs"
-                              >
-                                <div className="flex items-baseline gap-1.5 min-w-0">
-                                  <span dir="rtl" className="font-hebrew font-bold text-zinc-900 dark:text-zinc-100">
-                                    {userProfile.showNikkud ? nw.hebrew : stripNikkud(nw.hebrew)}
-                                  </span>
-                                  {!userProfile.ulpanMode && nw.transcription && (
-                                    <span className="text-[10px] text-blue-500">[{nw.transcription}]</span>
-                                  )}
-                                  <span className="text-zinc-600 dark:text-zinc-300 text-[11px] truncate">— {nw.translation}</span>
-                                </div>
-                                <div className="flex items-center gap-1 shrink-0">
-                                  <button
-                                    type="button"
-                                    onClick={() => speakHebrew(nw.hebrew, { rate: userProfile.speechRate || 0.7 })}
-                                    className="p-1 text-zinc-400 hover:text-blue-500 rounded cursor-pointer"
-                                    title="Озвучить"
-                                  >
-                                    <Volume2 className="w-3 h-3" />
-                                  </button>
-                                  <button
-                                    type="button"
-                                    disabled={isAdded}
-                                    onClick={() => handleAddWordDirectly(nw)}
-                                    className={`px-1.5 py-0.5 rounded text-[9px] font-bold transition cursor-pointer flex items-center gap-0.5 ${
-                                      isAdded
-                                        ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400'
-                                        : 'bg-amber-500 hover:bg-amber-600 text-white'
-                                    }`}
-                                  >
-                                    {isAdded ? (
-                                      <>
-                                        <Check className="w-2.5 h-2.5" />
-                                        <span>{userProfile.ulpanMode ? 'בַּמִּילּוֹן' : 'В словаре'}</span>
-                                      </>
-                                    ) : (
-                                      <>
-                                        <BookmarkPlus className="w-2.5 h-2.5" />
-                                        <span>{userProfile.ulpanMode ? 'הוֹסֵף' : '+ В словарик'}</span>
-                                      </>
-                                    )}
-                                  </button>
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Кнопка озвучки и бейдж движка */}
-                    {isAi ? (
-                      <div className="mt-2 pt-1.5 border-t border-zinc-100 dark:border-zinc-700/60 flex items-center justify-between gap-2">
-                        {msg.engine ? (
-                          <div className="flex items-center gap-1 text-[10px] font-medium text-emerald-600 dark:text-emerald-400">
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
-                            <span className="truncate">{msg.engine}</span>
-                          </div>
-                        ) : <div />}
-                        <button
-                          type="button"
-                          onClick={() => speakHebrew(msg.hebrew, { rate: userProfile.speechRate || 0.7 })}
-                          className="text-xs text-zinc-400 hover:text-blue-600 dark:hover:text-blue-400 flex items-center gap-1 transition shrink-0 cursor-pointer"
-                          title="Прослушать фразу"
-                        >
-                          <Volume2 className="w-3.5 h-3.5" />
-                          <span>{userProfile.ulpanMode ? 'שמע' : 'Прослушать'}</span>
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="mt-2 pt-1.5 border-t border-blue-500/40 flex items-center justify-end">
-                        <button
-                          type="button"
-                          onClick={() => speakHebrew(msg.hebrew, { rate: userProfile.speechRate || 0.7 })}
-                          className="text-[11px] text-blue-100 hover:text-white flex items-center gap-1 transition shrink-0 cursor-pointer"
-                          title="Прослушать вашу фразу"
-                        >
-                          <Volume2 className="w-3.5 h-3.5" />
-                          <span>{userProfile.ulpanMode ? 'שמע' : 'Прослушать'}</span>
-                        </button>
-                      </div>
-                    )}
-                  </div>
-
-                  {!isAi && (
-                    <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-indigo-600 text-white flex items-center justify-center shrink-0 mb-1 shadow-sm">
-                      <UserIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                    </div>
-                  )}
-                </div>
-
-                {/* Обратная связь от ИИ по грамматике */}
-                {msg.feedback && (
-                  <div className="ml-8 sm:ml-10 max-w-[85%] bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/60 p-2 sm:p-2.5 rounded-xl text-xs text-amber-800 dark:text-amber-200 flex items-start gap-1.5">
-                    <AlertCircle className="w-3.5 h-3.5 shrink-0 text-amber-600 mt-0.5" />
-                    <div>
-                      <span className="font-bold">{userProfile.ulpanMode ? 'מִשׁוּב / תִּיקּוּן: ' : 'Пояснение: '}</span>
-                      <span>{msg.feedback}</span>
                     </div>
                   </div>
                 )}
-              </div>
+
+                <div
+                  ref={isLastMessage ? lastMessageRef : null}
+                  className={`flex flex-col ${isAi ? 'items-start' : 'items-end'} space-y-1`}
+                >
+                  <div className="flex items-end gap-1.5 sm:gap-2 max-w-[92%] sm:max-w-[85%]">
+                    {isAi && (
+                      <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-blue-600 text-white flex items-center justify-center shrink-0 mb-1 shadow-sm">
+                        <Bot className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                      </div>
+                    )}
+
+                    <div
+                      className={`p-3 sm:p-3.5 rounded-2xl shadow-sm ${
+                        isAi
+                          ? 'bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-zinc-100 rounded-bl-sm'
+                          : 'bg-blue-600 text-white rounded-br-sm'
+                      }`}
+                    >
+                      {/* Текст на иврите с учетом настройки showNikkud */}
+                      <div
+                        dir="rtl"
+                        className={`font-bold leading-relaxed text-right ${
+                          isCursive
+                            ? 'font-cursive text-xl sm:text-2xl text-blue-600 dark:text-blue-400'
+                            : 'font-hebrew text-lg sm:text-xl'
+                        }`}
+                      >
+                        {tokens.map((token) => {
+                          const displayWord = userProfile.showNikkud
+                            ? token.text
+                            : stripNikkud(token.text);
+
+                          if (token.isHebrew) {
+                            return (
+                              <span
+                                key={token.id}
+                                onClick={() => handleWordClick(token, msg.hebrew)}
+                                className={`inline-block px-1 py-0.5 rounded-md transition cursor-pointer select-text ${
+                                  isAi
+                                    ? 'hover:text-blue-600 dark:hover:text-blue-400 hover:underline hover:bg-blue-100/70 dark:hover:bg-blue-900/50 active:scale-95'
+                                    : 'hover:text-yellow-200 hover:underline hover:bg-blue-700/60 active:scale-95'
+                                }`}
+                                title="Нажмите для перевода и словарика"
+                              >
+                                {displayWord}
+                              </span>
+                            );
+                          }
+                          return <span key={token.id}>{token.text}</span>;
+                        })}
+                      </div>
+
+                      {/* Перевод и транскрипция для реплик ИИ (Audio-First: скрыты до клика) */}
+                      {isAi ? (
+                        <div>
+                          {!userProfile.ulpanMode && isTranslationRevealed && (
+                            <div className="mt-2 pt-2 border-t border-zinc-100 dark:border-zinc-700/60 space-y-1 text-xs animate-in fade-in duration-150">
+                              {userProfile.showTranscription && msg.transcription && (
+                                <p className="text-blue-600 dark:text-blue-400 font-medium">
+                                  [{msg.transcription}]
+                                </p>
+                              )}
+                              {msg.translation && (
+                                <p className="text-zinc-600 dark:text-zinc-300 leading-relaxed">
+                                  {msg.translation}
+                                </p>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div>
+                          {!userProfile.ulpanMode && userProfile.showTranscription && msg.transcription && (
+                            <p className="text-xs text-blue-100 font-medium mt-1">
+                              [{msg.transcription}]
+                            </p>
+                          )}
+                          {!userProfile.ulpanMode && msg.translation && (
+                            <p className="text-xs text-blue-100/90 mt-1">
+                              {msg.translation}
+                            </p>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Карточки новых/полезных слов этой реплики */}
+                      {isAi && msg.newWords && msg.newWords.length > 0 && (
+                        <div className="mt-2.5 pt-2 border-t border-amber-200/70 dark:border-amber-900/50 bg-amber-50/60 dark:bg-amber-950/30 rounded-xl p-2 font-hebrew">
+                          <div className="flex items-center gap-1.5 text-[11px] font-bold text-amber-800 dark:text-amber-300 mb-1.5">
+                            <Sparkles className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                            <span>{userProfile.ulpanMode ? 'מִילִּים חֲדָשׁוֹת:' : 'Новые слова в реплике:'}</span>
+                          </div>
+                          <div className="space-y-1">
+                            {msg.newWords.map((nw, nwIdx) => {
+                              const isAdded = addedWords[nw.hebrew] || isWordInPersonalDict(nw.hebrew, userProfile.personalVocabulary);
+                              return (
+                                <div
+                                  key={nwIdx}
+                                  className="flex items-center justify-between gap-1.5 bg-white dark:bg-zinc-800 px-2 py-1 rounded-lg border border-amber-200/50 dark:border-amber-800/30 text-xs shadow-2xs"
+                                >
+                                  <div className="flex items-baseline gap-1.5 min-w-0">
+                                    <span dir="rtl" className="font-hebrew font-bold text-zinc-900 dark:text-zinc-100">
+                                      {userProfile.showNikkud ? nw.hebrew : stripNikkud(nw.hebrew)}
+                                    </span>
+                                    {!userProfile.ulpanMode && nw.transcription && (
+                                      <span className="text-[10px] text-blue-500">[{nw.transcription}]</span>
+                                    )}
+                                    <span className="text-zinc-600 dark:text-zinc-300 text-[11px] truncate">— {nw.translation}</span>
+                                  </div>
+                                  <div className="flex items-center gap-1 shrink-0">
+                                    <button
+                                      type="button"
+                                      onClick={() => speakHebrew(nw.hebrew, { rate: userProfile.speechRate || 0.7 })}
+                                      className="p-1 text-zinc-400 hover:text-blue-500 rounded cursor-pointer"
+                                      title="Озвучить"
+                                    >
+                                      <Volume2 className="w-3 h-3" />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      disabled={isAdded}
+                                      onClick={() => handleAddWordDirectly(nw)}
+                                      className={`px-1.5 py-0.5 rounded text-[9px] font-bold transition cursor-pointer flex items-center gap-0.5 ${
+                                        isAdded
+                                          ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400'
+                                          : 'bg-amber-500 hover:bg-amber-600 text-white'
+                                      }`}
+                                    >
+                                      {isAdded ? (
+                                        <>
+                                          <Check className="w-2.5 h-2.5" />
+                                          <span>{userProfile.ulpanMode ? 'בַּמִּילּוֹן' : 'В словаре'}</span>
+                                        </>
+                                      ) : (
+                                        <>
+                                          <BookmarkPlus className="w-2.5 h-2.5" />
+                                          <span>{userProfile.ulpanMode ? 'הוֹסֵף' : '+ В словарик'}</span>
+                                        </>
+                                      )}
+                                    </button>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Нижняя панель сообщения: бейдж движка, раскрытие перевода и озвучка */}
+                      {isAi ? (
+                        <div className="mt-2 pt-1.5 border-t border-zinc-100 dark:border-zinc-700/60 flex items-center justify-between gap-2">
+                          {msg.engine ? (
+                            <div className="flex items-center gap-1 text-[10px] font-medium text-emerald-600 dark:text-emerald-400">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
+                              <span className="truncate">{msg.engine}</span>
+                            </div>
+                          ) : <div />}
+                          <div className="flex items-center gap-2.5 shrink-0">
+                            {/* Кнопка раскрытия перевода (для тренировки аудирования) */}
+                            {!userProfile.ulpanMode && msg.translation && (
+                              <button
+                                type="button"
+                                onClick={() => toggleTranslation(msg.id)}
+                                className={`text-xs flex items-center gap-1 transition cursor-pointer px-1.5 py-0.5 rounded-md ${
+                                  isTranslationRevealed
+                                    ? 'bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 font-medium'
+                                    : 'text-zinc-400 hover:text-blue-600 dark:hover:text-blue-400'
+                                }`}
+                                title={isTranslationRevealed ? 'Скрыть русский перевод' : 'Показать русский перевод'}
+                              >
+                                {isTranslationRevealed ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                                <span>{isTranslationRevealed ? 'Скрыть' : 'Перевод'}</span>
+                              </button>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => speakHebrew(msg.hebrew, { rate: userProfile.speechRate || 0.7 })}
+                              className="text-xs text-zinc-400 hover:text-blue-600 dark:hover:text-blue-400 flex items-center gap-1 transition shrink-0 cursor-pointer"
+                              title="Прослушать фразу"
+                            >
+                              <Volume2 className="w-3.5 h-3.5" />
+                              <span>{userProfile.ulpanMode ? 'שמע' : 'Прослушать'}</span>
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="mt-2 pt-1.5 border-t border-blue-500/40 flex items-center justify-end">
+                          <button
+                            type="button"
+                            onClick={() => speakHebrew(msg.hebrew, { rate: userProfile.speechRate || 0.7 })}
+                            className="text-[11px] text-blue-100 hover:text-white flex items-center gap-1 transition shrink-0 cursor-pointer"
+                            title="Прослушать вашу фразу"
+                          >
+                            <Volume2 className="w-3.5 h-3.5" />
+                            <span>{userProfile.ulpanMode ? 'שמע' : 'Прослушать'}</span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    {!isAi && (
+                      <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-indigo-600 text-white flex items-center justify-center shrink-0 mb-1 shadow-sm">
+                        <UserIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Обратная связь от ИИ по грамматике */}
+                  {msg.feedback && (
+                    <div className="ml-8 sm:ml-10 max-w-[85%] bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/60 p-2 sm:p-2.5 rounded-xl text-xs text-amber-800 dark:text-amber-200 flex items-start gap-1.5">
+                      <AlertCircle className="w-3.5 h-3.5 shrink-0 text-amber-600 mt-0.5" />
+                      <div>
+                        <span className="font-bold">{userProfile.ulpanMode ? 'מִשׁוּב / תִּיקּוּן: ' : 'Пояснение: '}</span>
+                        <span>{msg.feedback}</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </React.Fragment>
             );
           })}
 
@@ -1766,187 +1761,7 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
         document.body
       )}
 
-      {/* ВСПЛЫВАЮЩИЙ ЭКРАН ПРИ СМЕНЕ ШАГА И В НАЧАЛЕ УРОКА (Step Modal) */}
-      {stepChangeModal && mounted && createPortal(
-        <div
-          role="dialog"
-          aria-modal="true"
-          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200"
-          onClick={handleCloseStepModal}
-        >
-          <div
-            className="bg-white dark:bg-zinc-900 border border-blue-200 dark:border-blue-900/60 rounded-3xl shadow-2xl max-w-lg w-full overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col text-zinc-900 dark:text-zinc-100"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Верхняя шапка модалки */}
-            <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-sky-600 text-white p-4 sm:p-5 flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2.5">
-                <div className="w-10 h-10 rounded-2xl bg-white/20 backdrop-blur flex items-center justify-center shadow-xs shrink-0">
-                  <Sparkles className="w-5 h-5 text-yellow-300" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-white/25 text-white">
-                      {userProfile.ulpanMode
-                        ? (stepChangeModal.stepIndex === 1
-                            ? `שָׁלָב 1 מִתּוֹךְ ${stepsCount}`
-                            : `שָׁלָב ${stepChangeModal.stepIndex} מִתּוֹךְ ${stepsCount}`)
-                        : (stepChangeModal.stepIndex === 1
-                            ? `🏁 Начало • Шаг 1 из ${stepsCount}`
-                            : `Шаг ${stepChangeModal.stepIndex} из ${stepsCount}`)}
-                    </span>
-                  </div>
-                  <h3 className="text-base sm:text-lg font-bold leading-tight mt-0.5">
-                    {userProfile.ulpanMode
-                      ? (stepChangeModal.stepIndex === 1
-                          ? 'מַצָּב הַתְחָלָתִי בַּשִּׂיחָה'
-                          : 'מַצָּב חָדָשׁ בַּשִּׂיחָה!')
-                      : (stepChangeModal.stepIndex === 1
-                          ? 'Вводная ситуация урока'
-                          : 'Ситуация изменилась!')}
-                  </h3>
-                </div>
-              </div>
 
-              <button
-                type="button"
-                onClick={handleCloseStepModal}
-                className="p-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white transition cursor-pointer"
-                title="Закрыть"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Тело модалки */}
-            <div className="p-4 sm:p-5 space-y-4 max-h-[80vh] overflow-y-auto">
-              {/* Реакция собеседника на предыдущий ответ ученика (для шагов 2+) */}
-              {stepReaction && stepChangeModal.stepIndex > 1 && (
-                <div className="bg-emerald-50 dark:bg-emerald-950/40 border-2 border-emerald-200 dark:border-emerald-800/80 rounded-2xl p-4 shadow-sm space-y-2">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-800 dark:text-emerald-300 uppercase tracking-wider">
-                      <span>💬</span>
-                      <span>
-                        {userProfile.ulpanMode
-                          ? 'תְּגוּבַת הַדּוֹבֵר לַתְּשׁוּבָה שֶׁלְּךָ:'
-                          : (lesson.dialogue.aiRole ? `Реакция (${lesson.dialogue.aiRole}) на ваш ответ:` : 'Реакция собеседника на ваш ответ:')}
-                      </span>
-                    </div>
-                    {stepReaction.hebrew && (
-                      <button
-                        type="button"
-                        onClick={async () => {
-                          if (isPlayingReaction) {
-                            stopSpeech();
-                            setIsPlayingReaction(false);
-                            return;
-                          }
-                          setIsPlayingReaction(true);
-                          try {
-                            await speakHebrew(stepReaction.hebrew, { rate: userProfile.speechRate || 0.7 });
-                          } finally {
-                            setIsPlayingReaction(false);
-                          }
-                        }}
-                        className={`p-1.5 rounded-lg text-white shadow-xs transition cursor-pointer shrink-0 ${
-                          isPlayingReaction
-                            ? 'bg-amber-600 hover:bg-amber-700 animate-pulse'
-                            : 'bg-emerald-600 hover:bg-emerald-700'
-                        }`}
-                        title={isPlayingReaction ? 'Остановить воспроизведение' : 'Послушать реакцию собеседника'}
-                      >
-                        {isPlayingReaction ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
-                      </button>
-                    )}
-                  </div>
-                  {stepReaction.hebrew && (
-                    <p dir="rtl" className="text-base sm:text-lg font-bold text-emerald-950 dark:text-emerald-100 font-hebrew text-right leading-relaxed">
-                      {userProfile.showNikkud ? stepReaction.hebrew : stripNikkud(stepReaction.hebrew)}
-                    </p>
-                  )}
-                  {stepReaction.translation && !userProfile.ulpanMode && (
-                    <p className="text-xs text-emerald-900/80 dark:text-emerald-200/80 italic border-t border-emerald-200 dark:border-emerald-800/50 pt-1.5">
-                      {stepReaction.translation}
-                    </p>
-                  )}
-                  {stepReaction.feedback && (
-                    <div className="text-xs bg-white/80 dark:bg-zinc-900/80 p-2.5 rounded-xl border border-emerald-300 dark:border-emerald-700/60 text-emerald-950 dark:text-emerald-200 space-y-0.5">
-                      <span className="font-bold text-emerald-800 dark:text-emerald-300 block">💡 Обратная связь:</span>
-                      <p className="leading-relaxed">{stepReaction.feedback}</p>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Карточка факта ситуации */}
-              <div className="bg-blue-50/90 dark:bg-blue-950/40 border-2 border-blue-200 dark:border-blue-800/80 rounded-2xl p-4 shadow-sm space-y-1.5">
-                <div className="flex items-center gap-1.5 text-xs font-bold text-blue-700 dark:text-blue-300 uppercase tracking-wider">
-                  <Target className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
-                  <span>
-                    {userProfile.ulpanMode
-                      ? (stepChangeModal.stepIndex === 1
-                          ? 'עֻבְדָּה (מַה שֶׁקּוֹרֶה עַכְשָׁו):'
-                          : 'עֻבְדָּה חֲדָשָׁה (מַה שֶׁקּוֹרֶה כָּעֵת):')
-                      : (stepChangeModal.stepIndex === 1
-                          ? 'Что происходит прямо сейчас (факт):'
-                          : 'Что произошло прямо сейчас (новый факт):')}
-                  </span>
-                </div>
-                <p className="text-sm sm:text-base font-bold text-blue-950 dark:text-blue-50 leading-relaxed font-hebrew">
-                  {stepChangeModal.fact}
-                </p>
-              </div>
-
-              {/* Если это шаг 1 и есть общая тема диалога, отличающаяся от факта */}
-              {stepChangeModal.stepIndex === 1 && lesson.dialogue.situation && lesson.dialogue.situation !== stepChangeModal.fact && (
-                <div className="bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700/80 rounded-xl p-3 text-xs text-zinc-600 dark:text-zinc-300 space-y-1">
-                  <span className="font-bold text-zinc-800 dark:text-zinc-200 block">
-                    {userProfile.ulpanMode ? 'מַצָּב כְּלָלִי:' : 'Общая тема диалога:'}
-                  </span>
-                  <p className="leading-relaxed">
-                    {lesson.dialogue.situation}
-                  </p>
-                </div>
-              )}
-
-              {/* Подсказка, что делать дальше */}
-              <div className="bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700/80 rounded-xl p-3 text-xs text-zinc-600 dark:text-zinc-300 space-y-1">
-                <span className="font-bold text-zinc-800 dark:text-zinc-200 block">
-                  {userProfile.ulpanMode ? 'הוֹרָאוֹת:' : 'Ваша задача:'}
-                </span>
-                <p className="leading-relaxed">
-                  {userProfile.ulpanMode
-                    ? (stepChangeModal.stepIndex === 1
-                        ? 'לַחֲצוּ עַל הַכַּפְתּוֹר, הַקְשִׁיבוּ לַשְּׁאֵלָה וַעֲנוּ בְּעִבְרִית!'
-                        : 'הַדּוֹבֵר שָׁאַל אֶתְכֶם שְׁאֵלָה עַל הַמַּצָּב הֶחָדָשׁ. לַחֲצוּ עַל הַכַּפְתּוֹר כְּדֵי לִשְׁמוֹעַ אֶת הַשְּׁאֵלָה וַעֲנוּ בְּעִבְרִית!')
-                    : (stepChangeModal.stepIndex === 1
-                        ? `Сейчас ${lesson.dialogue.aiRole || 'собеседник'} обратится к вам с первой репликой. Нажмите кнопку, внимательно послушайте и ответьте на иврите!`
-                        : `${lesson.dialogue.aiRole || 'Собеседник'} только что отреагировал на ваш ответ и продолжил разговор с учётом этой ситуации. Нажмите кнопку, послушайте и ответьте на иврите!`)}
-                </p>
-              </div>
-
-              {/* Кнопка закрытия/продолжения */}
-              <button
-                type="button"
-                onClick={handleCloseStepModal}
-                className="w-full py-3 px-4 rounded-xl font-bold text-sm bg-blue-600 hover:bg-blue-700 text-white shadow-md transition active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
-              >
-                <span>
-                  {userProfile.ulpanMode
-                    ? (stepChangeModal.stepIndex === 1
-                        ? 'הֵבַנְתִּי, לְהַתְחִיל שִׂיחָה 💬'
-                        : 'הֵבַנְתִּי, לַעֲנוֹת 💬')
-                    : (stepChangeModal.stepIndex === 1
-                        ? 'Понятно, начать диалог 💬 ➡️'
-                        : 'Понятно, ответить 💬 ➡️')}
-                </span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        </div>,
-        document.body
-      )}
 
       {/* Модалка разбора слова */}
       {selectedWord && (

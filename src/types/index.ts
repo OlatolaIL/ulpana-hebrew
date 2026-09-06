@@ -252,6 +252,8 @@ export interface ChatMessage {
     translation: string;
   }>;
   newWords?: DialogueWord[]; // Карточки новых/полезных слов реплики
+  stepFact?: string; // Описание новой ситуации при смене шага
+  stepIndex?: number; // Номер шага (напр. 2 из 3)
   timestamp: number;
 }
 

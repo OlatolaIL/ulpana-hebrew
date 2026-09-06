@@ -33,6 +33,7 @@ import {
   FileText,
   Table,
   Filter,
+  Shuffle,
 } from 'lucide-react';
 import { ThematicDeck, UserProfile, Word, VerbConjugation } from '@/types';
 import {
@@ -48,6 +49,7 @@ import {
   addBatchWordsToPersonalDict,
   addWordToPersonalDict,
   sortWordsBySRSPriority,
+  shuffleWords,
 } from '@/lib/storage';
 import { findOfflineVerbConjugation } from '@/lib/verbConjugations';
 import { VerbConjugationView } from '@/components/VerbConjugationView';
@@ -55,7 +57,7 @@ import { useModalHistory } from '@/lib/useHistoryState';
 
 interface ThematicDecksViewProps {
   userProfile: UserProfile;
-  onStartTraining: (words: Word[], deckTitle: string) => void;
+  onStartTraining: (words: Word[], deckTitle: string, shuffle?: boolean) => void;
   onUpdateVocabulary: (newWords: Word[]) => void;
 }
 
@@ -71,6 +73,24 @@ export const ThematicDecksView: React.FC<ThematicDecksViewProps> = ({
   const [expandedDeckId, setExpandedDeckId] = useState<string | null>(null);
   const [speakingWordId, setSpeakingWordId] = useState<string | null>(null);
   const [addedBatchDeckId, setAddedBatchDeckId] = useState<string | null>(null);
+
+  // Режим перемешивания слов для колод
+  const [shuffleDecks, setShuffleDecks] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('deck_shuffle_mode') === 'true';
+    }
+    return false;
+  });
+
+  const toggleShuffleDecks = () => {
+    setShuffleDecks((prev) => {
+      const next = !prev;
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('deck_shuffle_mode', String(next));
+      }
+      return next;
+    });
+  };
 
   // Состояние модального окна подробного списка колоды
   const [listModalDeck, setListModalDeck] = useState<ThematicDeck | null>(null);
@@ -455,7 +475,31 @@ export const ThematicDecksView: React.FC<ThematicDecksViewProps> = ({
           </button>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+          {/* Тумблер перемешивания слов */}
+          <button
+            type="button"
+            onClick={toggleShuffleDecks}
+            className={`px-2.5 py-2 rounded-xl border text-xs font-bold transition flex items-center gap-1.5 shadow-sm cursor-pointer shrink-0 ${
+              shuffleDecks
+                ? 'bg-purple-50 dark:bg-purple-950/50 border-purple-300 dark:border-purple-700 text-purple-700 dark:text-purple-300'
+                : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/50'
+            }`}
+            title="Перемешивать слова при тренировке колод (случайный порядок)"
+          >
+            <Shuffle className={`w-3.5 h-3.5 ${shuffleDecks ? 'text-purple-600 dark:text-purple-400' : 'text-slate-400'}`} />
+            <span className="hidden sm:inline">Вразброс</span>
+            <span
+              className={`text-[10px] px-1.5 py-0.2 rounded-full font-extrabold ${
+                shuffleDecks
+                  ? 'bg-purple-200 dark:bg-purple-900 text-purple-800 dark:text-purple-200'
+                  : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400'
+              }`}
+            >
+              {shuffleDecks ? 'ВКЛ' : 'ВЫКЛ'}
+            </span>
+          </button>
+
           {/* Поиск слов и тем */}
           <div className="relative flex-1 sm:w-64">
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -597,22 +641,40 @@ export const ThematicDecksView: React.FC<ThematicDecksViewProps> = ({
                     <button
                       onClick={() =>
                         onStartTraining(
-                          sortWordsBySRSPriority(
-                            deck.words,
-                            userProfile.flashcardStats,
-                            userProfile.flashcardProgress
-                          ),
-                          deck.title
+                          shuffleDecks
+                            ? shuffleWords(deck.words)
+                            : sortWordsBySRSPriority(
+                                deck.words,
+                                userProfile.flashcardStats,
+                                userProfile.flashcardProgress
+                              ),
+                          deck.title,
+                          shuffleDecks
                         )
                       }
-                      className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm text-white transition active:scale-98 ${
+                      className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm text-white transition active:scale-98 cursor-pointer ${
                         isAlef
                           ? 'bg-blue-600 hover:bg-blue-700 shadow-blue-500/20'
                           : 'bg-purple-600 hover:bg-purple-700 shadow-purple-500/20'
                       }`}
                     >
                       <Play className="w-3.5 h-3.5 fill-current" />
-                      Тренировать
+                      <span>{shuffleDecks ? 'Тренировать (вразброс)' : 'Тренировать'}</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        onStartTraining(
+                          shuffleWords(deck.words),
+                          deck.title,
+                          true
+                        )
+                      }
+                      className="p-2 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-purple-300 dark:hover:border-purple-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-purple-600 dark:hover:text-purple-400 text-xs font-bold flex items-center justify-center transition cursor-pointer"
+                      title="Тренировать эту колоду со случайным порядком слов (Shuffle)"
+                    >
+                      <Shuffle className="w-3.5 h-3.5" />
                     </button>
 
                     {/* КНОПКА «ВЫВЕСТИ КОЛОДУ СПИСКОМ» */}
@@ -824,26 +886,43 @@ export const ThematicDecksView: React.FC<ThematicDecksViewProps> = ({
                   <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
                     <button
                       onClick={() => handleOpenListModal(deck)}
-                      className="px-3 py-2 rounded-xl bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 hover:bg-blue-100 border border-blue-200 dark:border-blue-800 text-xs font-bold flex items-center gap-1.5 transition"
+                      className="px-3 py-2 rounded-xl bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 hover:bg-blue-100 border border-blue-200 dark:border-blue-800 text-xs font-bold flex items-center gap-1.5 transition cursor-pointer"
                     >
                       <List className="w-3.5 h-3.5" />
                       <span>Вывести список слов</span>
                     </button>
                     <button
+                      type="button"
                       onClick={() =>
                         onStartTraining(
-                          sortWordsBySRSPriority(
-                            deck.words,
-                            userProfile.flashcardStats,
-                            userProfile.flashcardProgress
-                          ),
-                          deck.title
+                          shuffleWords(deck.words),
+                          deck.title,
+                          true
                         )
                       }
-                      className="px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm transition"
+                      className="p-2 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-purple-300 dark:hover:border-purple-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-purple-600 dark:hover:text-purple-400 text-xs font-bold flex items-center justify-center transition cursor-pointer"
+                      title="Тренировать эту колоду со случайным порядком слов (Shuffle)"
+                    >
+                      <Shuffle className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      onClick={() =>
+                        onStartTraining(
+                          shuffleDecks
+                            ? shuffleWords(deck.words)
+                            : sortWordsBySRSPriority(
+                                deck.words,
+                                userProfile.flashcardStats,
+                                userProfile.flashcardProgress
+                              ),
+                          deck.title,
+                          shuffleDecks
+                        )
+                      }
+                      className="px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm transition cursor-pointer active:scale-98"
                     >
                       <Play className="w-3.5 h-3.5 fill-current" />
-                      <span>Тренировать</span>
+                      <span>{shuffleDecks ? 'Вразброс' : 'Тренировать'}</span>
                     </button>
                   </div>
                 </div>
@@ -934,25 +1013,45 @@ export const ThematicDecksView: React.FC<ThematicDecksViewProps> = ({
                 />
               </div>
 
-              <div className="flex items-center justify-between sm:justify-end gap-2 text-xs">
+              <div className="flex items-center justify-between sm:justify-end gap-2 text-xs flex-wrap">
                 <button
+                  type="button"
                   onClick={() => toggleSelectAllModalWords(modalFilteredWords)}
-                  className="text-slate-600 dark:text-slate-400 hover:text-blue-600 flex items-center gap-1 font-semibold"
+                  className="text-slate-600 dark:text-slate-400 hover:text-blue-600 flex items-center gap-1 font-semibold cursor-pointer"
                 >
                   {selectedWordIds.size === modalFilteredWords.length ? (
                     <>
                       <CheckSquare className="w-4 h-4 text-blue-600" />
-                      <span>Снять выделение</span>
+                      <span>Снять</span>
                     </>
                   ) : (
                     <>
                       <Square className="w-4 h-4" />
-                      <span>Выбрать все ({modalFilteredWords.length})</span>
+                      <span>Все ({modalFilteredWords.length})</span>
                     </>
                   )}
                 </button>
 
-                <span className="text-slate-400">|</span>
+                {modalFilteredWords.length > 10 && (
+                  <>
+                    <span className="text-slate-300 dark:text-slate-700">|</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const shuffled = shuffleWords(modalFilteredWords);
+                        const picked = shuffled.slice(0, 10).map((w) => w.id);
+                        setSelectedWordIds(new Set(picked));
+                      }}
+                      className="text-slate-600 dark:text-slate-400 hover:text-purple-600 flex items-center gap-1 font-semibold cursor-pointer"
+                      title="Выбрать 10 случайных слов для быстрой тренировки"
+                    >
+                      <Shuffle className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
+                      <span>10 вразброс</span>
+                    </button>
+                  </>
+                )}
+
+                <span className="text-slate-300 dark:text-slate-700">|</span>
 
                 <span className="text-slate-500 font-medium">
                   Выбрано: <strong className="text-slate-800 dark:text-slate-200">{selectedWordIds.size}</strong>
@@ -1151,21 +1250,45 @@ export const ThematicDecksView: React.FC<ThematicDecksViewProps> = ({
                     const selectedWords = listModalDeck.words.filter((w) => selectedWordIds.has(w.id));
                     if (selectedWords.length > 0) {
                       onStartTraining(
-                        sortWordsBySRSPriority(
-                          selectedWords,
-                          userProfile.flashcardStats,
-                          userProfile.flashcardProgress
-                        ),
-                        listModalDeck.title
+                        shuffleWords(selectedWords),
+                        listModalDeck.title,
+                        true
                       );
                       setListModalDeck(null);
                     }
                   }}
                   disabled={selectedWordIds.size === 0}
-                  className="flex-1 sm:flex-initial px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-lg shadow-blue-500/25 transition active:scale-98"
+                  className="flex-1 sm:flex-initial px-4 py-2.5 rounded-xl border border-purple-200 dark:border-purple-800 bg-purple-50 dark:bg-purple-950/40 hover:bg-purple-100 dark:hover:bg-purple-900/60 disabled:opacity-50 text-purple-700 dark:text-purple-300 text-xs font-bold flex items-center justify-center gap-1.5 transition cursor-pointer"
+                  title="Тренировать выбранные слова в случайном порядке (Shuffle)"
+                >
+                  <Shuffle className="w-4 h-4" />
+                  <span>Вразброс ({selectedWordIds.size})</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    const selectedWords = listModalDeck.words.filter((w) => selectedWordIds.has(w.id));
+                    if (selectedWords.length > 0) {
+                      onStartTraining(
+                        shuffleDecks
+                          ? shuffleWords(selectedWords)
+                          : sortWordsBySRSPriority(
+                              selectedWords,
+                              userProfile.flashcardStats,
+                              userProfile.flashcardProgress
+                            ),
+                        listModalDeck.title,
+                        shuffleDecks
+                      );
+                      setListModalDeck(null);
+                    }
+                  }}
+                  disabled={selectedWordIds.size === 0}
+                  className="flex-1 sm:flex-initial px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-lg shadow-blue-500/25 transition active:scale-98 cursor-pointer"
                 >
                   <Play className="w-4 h-4 fill-current" />
-                  <span>Тренировать ({selectedWordIds.size})</span>
+                  <span>{shuffleDecks ? `Тренировать вразброс (${selectedWordIds.size})` : `Тренировать (${selectedWordIds.size})`}</span>
                 </button>
               </div>
             </div>

@@ -17,11 +17,12 @@ import {
   Delete,
   Space,
   ArrowLeftRight,
+  Shuffle,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { Word, UserProfile, VerbConjugation } from '@/types';
 import { speakHebrew } from '@/lib/speech';
-import { updateCardSRS, calculateWordMastery, addWordToPersonalDict, isWordInPersonalDict, loadUserProfile, saveUserProfile, markLessonTabCompleted, sortWordsBySRSPriority } from '@/lib/storage';
+import { updateCardSRS, calculateWordMastery, addWordToPersonalDict, isWordInPersonalDict, loadUserProfile, saveUserProfile, markLessonTabCompleted, sortWordsBySRSPriority, shuffleWords } from '@/lib/storage';
 import { stripNikkud, getWordTranscription } from '@/lib/transcription';
 import { findOfflineVerbConjugation } from '@/lib/verbConjugations';
 import { VerbConjugationView } from '@/components/VerbConjugationView';
@@ -37,6 +38,7 @@ interface FlashcardTrainerProps {
   customTitle?: string;
   initialMode?: 'flip' | 'builder' | 'listening';
   initialDirection?: 'he-ru' | 'ru-he';
+  initialShuffle?: boolean;
   lessonId?: number;
   onContinueLesson?: (lessonId: number, nextTab: 'theory' | 'vocab' | 'exercises' | 'chat' | 'phone') => void;
 }
@@ -64,22 +66,35 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
   customTitle,
   initialMode,
   initialDirection,
+  initialShuffle,
   lessonId,
   onContinueLesson,
 }) => {
-  const [words, setWords] = useState<Word[]>(() =>
-    lessonId
+  const [words, setWords] = useState<Word[]>(() => {
+    const base = lessonId
       ? initialWords
       : sortWordsBySRSPriority(
           initialWords,
           userProfile.flashcardStats,
           userProfile.flashcardProgress
-        )
-  );
+        );
+    return initialShuffle ? shuffleWords(base) : base;
+  });
+  const [isShuffled, setIsShuffled] = useState(Boolean(initialShuffle));
+  const [shuffleToast, setShuffleToast] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
   const [mode, setMode] = useState<TrainerMode>(initialMode || 'flip');
   const [isCompleted, setIsCompleted] = useState(false);
+
+  const handleShuffleWords = () => {
+    setWords((prev) => shuffleWords(prev));
+    setCurrentIndex(0);
+    setIsFlipped(false);
+    setIsShuffled(true);
+    setShuffleToast(true);
+    setTimeout(() => setShuffleToast(false), 2000);
+  };
 
   // Направление карточек: 'he-ru' (иврит на лицевой) или 'ru-he' (русский на лицевой - обратный режим)
   const [cardDirection, setCardDirection] = useState<'he-ru' | 'ru-he'>(() => {
@@ -533,7 +548,7 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
               </div>
             </>
           ) : (
-            <div className="flex gap-3">
+            <div className="flex flex-col sm:flex-row gap-2.5">
               <button
                 type="button"
                 onClick={() => {
@@ -543,6 +558,17 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
                 className="flex-1 py-3 px-4 rounded-xl border border-zinc-200 dark:border-zinc-700 font-semibold text-sm hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 transition cursor-pointer"
               >
                 {isUlpan ? 'תִּרְגּוּל שׁוּב' : 'Повторить снова'}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  handleShuffleWords();
+                  setIsCompleted(false);
+                }}
+                className="flex-1 py-3 px-4 rounded-xl border border-purple-200 dark:border-purple-800 bg-purple-50 dark:bg-purple-950/40 hover:bg-purple-100 dark:hover:bg-purple-900/60 font-semibold text-sm text-purple-700 dark:text-purple-300 transition flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <Shuffle className="w-4 h-4" />
+                <span>{isUlpan ? 'עַרְבֵּב וְהַתְחֵל' : 'Перемешать и учить'}</span>
               </button>
               {onClose && (
                 <button
@@ -664,6 +690,29 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
             </span>
             <span className="hidden sm:inline text-[10px] text-zinc-500 dark:text-zinc-400 font-normal">
               {cardDirection === 'ru-he' ? (isUlpan ? '(הָפוּךְ)' : '(обратный)') : ''}
+            </span>
+          </button>
+
+          {/* Кнопка перемешивания слов (Shuffle) */}
+          <button
+            type="button"
+            onClick={handleShuffleWords}
+            className={`px-2.5 py-1.5 rounded-xl border text-xs font-semibold flex items-center gap-1.5 shadow-sm transition active:scale-95 cursor-pointer ${
+              shuffleToast
+                ? 'bg-purple-100 dark:bg-purple-950/80 border-purple-400 dark:border-purple-600 text-purple-800 dark:text-purple-200 ring-2 ring-purple-400/50'
+                : isShuffled
+                ? 'bg-purple-50 dark:bg-purple-950/40 border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300 hover:bg-purple-100'
+                : 'border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800'
+            }`}
+            title={
+              isUlpan
+                ? 'עַרְבֵּב מִילִּים (סֵדֶר אַקְרָאִי)'
+                : 'Перемешать слова (случайный порядок)'
+            }
+          >
+            <Shuffle className={`w-3.5 h-3.5 transition-transform duration-300 ${shuffleToast ? 'rotate-180 text-purple-600 dark:text-purple-400' : isShuffled ? 'text-purple-600 dark:text-purple-400' : 'text-zinc-500'}`} />
+            <span className="hidden sm:inline">
+              {shuffleToast ? (isUlpan ? 'עֻרְבַּב!' : 'Перемешано!') : isUlpan ? 'עִרְבּוּב' : 'Вразброс'}
             </span>
           </button>
 

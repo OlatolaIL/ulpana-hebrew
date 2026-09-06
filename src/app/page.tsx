@@ -101,6 +101,7 @@ export default function Home() {
   const [flashcardTitle, setFlashcardTitle] = useState<string>('Тренировка карточек');
   const [flashcardMode, setFlashcardMode] = useState<'flip' | 'builder' | 'listening'>('flip');
   const [flashcardDirection, setFlashcardDirection] = useState<'he-ru' | 'ru-he'>('he-ru');
+  const [flashcardShuffle, setFlashcardShuffle] = useState<boolean>(false);
   const [flashcardSourceLessonId, setFlashcardSourceLessonId] = useState<number | null>(null);
   const [lessonInitialTab, setLessonInitialTab] = useState<'theory' | 'vocab' | 'exercises' | 'chat' | 'phone'>('theory');
   const [isMultiLessonSetupOpen, setIsMultiLessonSetupOpen] = useState(false);
@@ -302,6 +303,7 @@ export default function Home() {
         flashcardTitle?: string;
         flashcardMode?: 'flip' | 'builder' | 'listening';
         flashcardDirection?: 'he-ru' | 'ru-he';
+        flashcardShuffle?: boolean;
         flashcardSourceLessonId?: number | null;
         replace?: boolean;
       }
@@ -313,6 +315,7 @@ export default function Home() {
       if (options?.flashcardTitle) setFlashcardTitle(options.flashcardTitle);
       if (options?.flashcardMode) setFlashcardMode(options.flashcardMode);
       if (options?.flashcardDirection) setFlashcardDirection(options.flashcardDirection);
+      if (options?.flashcardShuffle !== undefined) setFlashcardShuffle(options.flashcardShuffle);
       if (options?.flashcardSourceLessonId !== undefined) {
         setFlashcardSourceLessonId(options.flashcardSourceLessonId);
       }
@@ -462,7 +465,17 @@ export default function Home() {
     } else {
       tg.BackButton.show();
       const handleTgBack = () => {
-        window.history.back();
+        if (isSettingsOpen) { setIsSettingsOpen(false); return; }
+        if (isAuthModalOpen) { setIsAuthModalOpen(false); return; }
+        if (isSubscriptionModalOpen) { setIsSubscriptionModalOpen(false); return; }
+        if (isMultiLessonSetupOpen) { setIsMultiLessonSetupOpen(false); return; }
+        if (currentView === 'flashcards') {
+          handleCloseFlashcards();
+        } else if (currentView !== 'map') {
+          handleCloseLesson();
+        } else {
+          window.history.back();
+        }
       };
       tg.BackButton.onClick(handleTgBack);
       return () => {
@@ -505,7 +518,8 @@ export default function Home() {
     title?: string,
     mode?: 'flip' | 'builder' | 'listening',
     lessonId?: number,
-    direction?: 'he-ru' | 'ru-he'
+    direction?: 'he-ru' | 'ru-he',
+    shuffle?: boolean
   ) => {
     const customTitle =
       title ||
@@ -523,18 +537,15 @@ export default function Home() {
       flashcardMode: mode || 'flip',
       flashcardSourceLessonId: lessonId || null,
       flashcardDirection: direction || flashcardDirection || 'he-ru',
+      flashcardShuffle: shuffle ?? false,
     });
   };
 
   const handleCloseFlashcards = () => {
-    if (typeof window !== 'undefined' && window.history.length > 1) {
-      window.history.back();
+    if (flashcardSourceLessonId) {
+      navigateTo('lesson', { lessonId: flashcardSourceLessonId });
     } else {
-      if (flashcardSourceLessonId) {
-        navigateTo('lesson', { lessonId: flashcardSourceLessonId, replace: true });
-      } else {
-        navigateTo('map', { replace: true });
-      }
+      navigateTo('map');
     }
   };
 
@@ -632,11 +643,7 @@ export default function Home() {
   };
 
   const handleCloseLesson = () => {
-    if (typeof window !== 'undefined' && window.history.length > 1) {
-      window.history.back();
-    } else {
-      navigateTo('map', { replace: true });
-    }
+    navigateTo('map');
   };
 
   return (
@@ -719,11 +726,13 @@ export default function Home() {
               </button>
             </div>
             <FlashcardTrainer
+              key={`${flashcardTitle}-${flashcardWords.length}-${flashcardShuffle ? 'shuffled' : 'ordered'}`}
               initialWords={flashcardWords}
               userProfile={profile}
               customTitle={flashcardTitle}
               initialMode={flashcardMode}
               initialDirection={flashcardDirection}
+              initialShuffle={flashcardShuffle}
               lessonId={flashcardSourceLessonId || undefined}
               onContinueLesson={handleContinueLessonFromFlashcards}
               onClose={handleCloseFlashcards}
@@ -740,7 +749,9 @@ export default function Home() {
           <PersonalDictionary
             userProfile={profile}
             onUpdateProfile={handleUpdateProfile}
-            onStartPractice={(words, title) => handleStartFlashcards(words, title)}
+            onStartPractice={(words, title, mode, shuffle) =>
+              handleStartFlashcards(words, title, mode, undefined, undefined, shuffle)
+            }
             onOpenMultiLessonSetup={() => setIsMultiLessonSetupOpen(true)}
           />
         )}
