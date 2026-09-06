@@ -139,14 +139,20 @@ function sanitizeTranscription(text: string): string {
   return res;
 }
 
-function normalizeResponse(parsed: any, defaultIsCompleted: boolean = false) {
-  const rawTranslation =
+function normalizeResponse(
+  parsed: any,
+  defaultIsCompleted: boolean = false,
+  nextStep?: any,
+  effectiveNextQuestionHebrew?: string,
+  isFemale: boolean = false
+) {
+  let rawTranslation =
     parsed.russian_translation ||
     parsed.translation_ru ||
     parsed.translation ||
     '';
 
-  const rawTranscription =
+  let rawTranscription =
     parsed.cyrillic_transcription ||
     parsed.russian_transcription ||
     parsed.transcription_ru ||
@@ -168,29 +174,57 @@ function normalizeResponse(parsed: any, defaultIsCompleted: boolean = false) {
         .filter((nw: any) => nw.hebrew && nw.translation)
     : undefined;
 
-  const rawTeacherReactionHebrew =
+  let rawTeacherReactionHebrew =
     parsed.teacher_reaction_hebrew ||
     parsed.reaction_hebrew ||
     parsed.teacher_reaction ||
     null;
 
-  const rawTeacherReactionRu =
+  let rawTeacherReactionRu =
     parsed.teacher_reaction_ru ||
     parsed.reaction_ru ||
     null;
 
-  return {
-    hebrew: parsed.hebrew || '',
-    transcription: sanitizeTranscription(rawTranscription),
-    translation: sanitizeRussianTranslation(rawTranslation),
-    feedback: parsed.feedback_ru || parsed.feedback || null,
-    teacherReactionHebrew: rawTeacherReactionHebrew ? rawTeacherReactionHebrew.trim() : null,
-    teacherReactionRu: rawTeacherReactionRu ? sanitizeRussianTranslation(rawTeacherReactionRu) : null,
-    isCompleted,
-    shouldHangUp,
-    newWords,
-    suggestedReplies: Array.isArray(parsed.suggestedReplies)
-      ? parsed.suggestedReplies.map((r: any) => ({
+  let rawHebrew = (parsed.hebrew || '').trim();
+
+  // Привязка сценарного вопроса (Step Question Anchoring) для всех сценарных уроков:
+  if (nextStep && effectiveNextQuestionHebrew && !isCompleted) {
+    const strippedNext = stripNikkud(effectiveNextQuestionHebrew).trim();
+    const strippedHebrew = stripNikkud(rawHebrew).trim();
+
+    // Проверяем, содержит ли сгенерированный ответ канонический вопрос шага
+    const nextWords = strippedNext.split(/\s+/).filter((w: string) => w.length > 2);
+    const matchedWordsCount = nextWords.filter((w: string) => strippedHebrew.includes(w)).length;
+    const hasCoreQuestion = strippedHebrew.includes(strippedNext) ||
+      (nextWords.length > 0 && matchedWordsCount / nextWords.length >= 0.5);
+
+    if (!hasCoreQuestion) {
+      // LLM сбилась со сценария (задала вопрос не по роли, галлюцинировала или спросила цену)
+      // Если в начале была короткая похвала/реакция, сохраняем её в teacherReactionHebrew
+      if (!rawTeacherReactionHebrew && rawHebrew) {
+        const reactionMatch = rawHebrew.match(/^([^\n?]+?[.!])(?:\s+|$)/);
+        if (reactionMatch && reactionMatch[1]) {
+          rawTeacherReactionHebrew = reactionMatch[1].trim();
+        }
+      }
+      // Жестко фиксируем канонический вопрос шага
+      rawHebrew = effectiveNextQuestionHebrew;
+      rawTranslation = nextStep.aiQuestionRu;
+      rawTranscription = '';
+    }
+  }
+
+  // Если teacherReactionHebrew не заполнен при переходе между шагами, даем гарантированную похвалу
+  if (!rawTeacherReactionHebrew && nextStep && !isCompleted) {
+    rawTeacherReactionHebrew = 'יוֹפִי! נָכוֹן מְאוֹד!';
+    if (!rawTeacherReactionRu) {
+      rawTeacherReactionRu = 'Прекрасно! Очень правильно!';
+    }
+  }
+
+  let suggestedReplies = Array.isArray(parsed.suggestedReplies)
+    ? parsed.suggestedReplies
+        .map((r: any) => ({
           hebrew: r.hebrew || '',
           transcription: sanitizeTranscription(
             r.cyrillic_transcription ||
@@ -206,7 +240,29 @@ function normalizeResponse(parsed: any, defaultIsCompleted: boolean = false) {
             ''
           ),
         }))
-      : [],
+        .filter((r: any) => r.hebrew && r.translation)
+    : [];
+
+  // Если suggestedReplies пустой или неполный при наличии сценарных примеров, берем sampleAnswers шага
+  if (suggestedReplies.length < 2 && nextStep?.sampleAnswers && nextStep.sampleAnswers.length > 0) {
+    suggestedReplies = nextStep.sampleAnswers.map((sa: any) => ({
+      hebrew: sa.hebrew,
+      transcription: sanitizeTranscription(sa.transcription || ''),
+      translation: sanitizeRussianTranslation(sa.translation || ''),
+    }));
+  }
+
+  return {
+    hebrew: rawHebrew,
+    transcription: sanitizeTranscription(rawTranscription),
+    translation: sanitizeRussianTranslation(rawTranslation),
+    feedback: parsed.feedback_ru || parsed.feedback || null,
+    teacherReactionHebrew: rawTeacherReactionHebrew ? rawTeacherReactionHebrew.trim() : null,
+    teacherReactionRu: rawTeacherReactionRu ? sanitizeRussianTranslation(rawTeacherReactionRu) : null,
+    isCompleted,
+    shouldHangUp,
+    newWords,
+    suggestedReplies,
   };
 }
 
@@ -369,7 +425,10 @@ ${evaluatingStep.sampleAnswers && evaluatingStep.sampleAnswers.length > 0 ? `- �
 2. В поле "teacher_reaction_hebrew": дай короткую живую реакцию с теплой похвалой за ответ на шаг №${evaluatingStep ? evaluatingStep.stepIndex : nextStep.stepIndex - 1} (например: "יוֹפִי! נָכוֹן מְאוֹד, זֶה עֵט!" или "מְעֻלֶּה, שְׁאֵלָה מְצוּיֶנֶת!").
 3. В поле "teacher_reaction_ru": качественный перевод похвалы на русский язык (например: "Прекрасно! Очень правильно!" или "Отлично! Прекрасный вопрос!").
 4. В поле "feedback_ru":
-   - Если ученик ответил понятно и верно по смыслу на вопрос шага №${evaluatingStep ? evaluatingStep.stepIndex : nextStep.stepIndex - 1} (пусть даже своими словами, коротко, или через омофоны распознавания речи: например, при вопросе о помидорах ответил "כמה עולה קילו עגבניות?", "כמה זה עולה?", "כמה עולה קילו?") — ЭТО ПОЛНОСТЬЮ ПРАВИЛЬНЫЙ ОТВЕТ!
+   - ПРАВИЛО ТОЛЕРАНТНОСТИ К ЕСТЕСТВЕННЫМ ОТВЕТАМ (NATURAL INTENT ACCEPTANCE):
+     Если вопрос шага был открытым (например: «Что ты хочешь купить?», «Что ты хочешь выпить?», «Откуда ты?», «Куда ты идешь?»), и ученик прямо ответил по существу (например, назвал товар: «אני רוצה עגבניות», напиток: «אני רוצה קפה», город: «אני ממוסקבה») — ЭТО 100% ВЕРНЫЙ ОТВЕТ!
+     ДАЖЕ ЕСЛИ в описании ожиданий шага методист упомянул сопутствующий вопрос (например: «спросить цену» или «спросить вес»), ученик НЕ ОБЯЗАН делать всё сразу в одной фразе! Ответ полностью засчитан!
+   - Если ученик ответил понятно и верно по смыслу на вопрос шага №${evaluatingStep ? evaluatingStep.stepIndex : nextStep.stepIndex - 1} (пусть даже своими словами, коротко, или через омофоны распознавания речи: например, при вопросе о помидорах ответил "כמה עולה קילו עגבניות?", "כמה זה עולה?", "כמה עולה קילו?", "אני רוצה עגבניות") — ЭТО ПОЛНОСТЬЮ ПРАВИЛЬНЫЙ ОТВЕТ!
    - В поле "feedback_ru" ОБЯЗАТЕЛЬНО верни null!
    - КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО требовать от ученика ответ на следующий вопрос (шаг №${nextStep.stepIndex})! Ученик ЕЩЁ НЕ ВИДЕЛ И НЕ СЛЫШАЛ следующий вопрос! СТРОГО ЗАПРЕЩЕНО писать в "feedback_ru" замечания о том, что ученик должен был назвать людей или предметы из шага №${nextStep.stepIndex}!
    - Заполняй "feedback_ru" ТОЛЬКО если ученик допустил грубую ошибку именно в шаге №${evaluatingStep ? evaluatingStep.stepIndex : nextStep.stepIndex - 1}.
@@ -385,8 +444,9 @@ ${evaluatingStep.sampleAnswers && evaluatingStep.sampleAnswers.length > 0 ? `- �
    - Ты ОБЯЗАН вести беседу строго в рамках этой новой ситуации в роли ${aiRole}!
 2. ВОПРОС/РЕПЛИКА СОБЕСЕДНИКА В ЭТОМ ШАГЕ:
    "${effectiveNextQuestionHebrew}" (${nextStep.aiQuestionRu}).
-   - В поле "hebrew" ты ОБЯЗАН озвучить этот конкретный вопрос нового шага: "${effectiveNextQuestionHebrew}"!
-   - КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО возвращаться к старым предметам или переспрашивать о пройденном! Задай вопрос строго о новом факте шага!
+   - В поле "hebrew" ты ОБЯЗАН озвучить этот конкретный канонический вопрос нового шага: "${effectiveNextQuestionHebrew}"!
+   - Допускается предварить вопрос короткой связкой-реакцией (например: "מְעֻלֶּה! ${effectiveNextQuestionHebrew}" или "יוֹפִי! ${effectiveNextQuestionHebrew}").
+   - КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО менять смысл вопроса, переспрашивать о пройденном или задавать встречные вопросы о цене/заказе от лица продавца/официанта!
 3. В "suggestedReplies":
    - Предложи ровно 3 простых варианта ответа ученика ИМЕННО НА ЭТОТ НОВЫЙ ВОПРОС шага №${nextStep.stepIndex} («${effectiveNextQuestionHebrew}»).
 ${nextStep.sampleAnswers && nextStep.sampleAnswers.length > 0 ? `   - Примеры правильных ответов для suggestedReplies:
@@ -465,7 +525,17 @@ ${studentKnownWords && studentKnownWords.length > 0 ? `ПЕРСОНАЛЬНЫЙ 
 ${usefulWords && usefulWords.length > 0 ? `ПОЛЕЗНЫЕ СЛОВА ДИАЛОГА (КАРТОЧКИ ДЛЯ УЧЕНИКА):
 ${usefulWords.map((w) => `- ${w.hebrew} (${w.translation})${w.explanation ? ` — ${w.explanation}` : ''}`).join('\n')}
 - Если в реплике уместно ввести/использовать новое слово из этого списка, укажи его в массиве "new_words" с переводом и пояснением!` : ''}
-Цели диалога: ${goals.join('; ')}.
+СТРОГОЕ ПРАВИЛО РОЛЕВОЙ АСИММЕТРИИ ДЛЯ ВСЕХ 100 УРОКОВ (ROLE ASYMMETRY):
+1. ТЫ ИГРАЕШЬ РОЛЬ: ${aiRole}. Ученик играет роль: ${userRole}.
+2. ЕСЛИ ТВОЯ РОЛЬ — ОБСЛУЖИВАЮЩИЙ, ПРОДАЮЩИЙ ИЛИ ПРИНИМАЮЩИЙ (Продавец, Кассир, Официант, Врач, Банкир, Служащий, Чиновник, Арендодатель, Консультант, Учитель):
+   - ТЫ ОБЛАДАЕШЬ ИНФОРМАЦИЕЙ: ты знаешь цены товаров, меню блюд, расписание, правила, диагнозы, условия аренды.
+   - ТЫ НАЗЫВАЕШЬ ЦЕНУ, предлагаешь товар или даешь разъяснение.
+   - КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО спрашивать у покупателя/клиента то, что должен знать ты сам (например: «Сколько это стоит?», «Какая цена?», «Сколько стоят помидоры?», «Что ты мне назначишь?»). Покупатель спрашивает цену — продавец называет цену!
+3. ЕСЛИ ТВОЯ РОЛЬ — ПОКУПАТЕЛЬ / КЛИЕНТ: ты спрашиваешь о товаре или услуге.
+
+УЧЕБНЫЕ ЦЕЛИ ДИАЛОГА (ЭТО ЗАДАЧИ УЧЕНИКА, А НЕ ТВОИ!):
+${goals.map((g, idx) => `${idx + 1}. Ученик должен: ${g}`).join('\n')}
+- ВНИМАНИЕ: это задачи УЧЕНИКА (${userRole}), а не твои! Твоя задача в роли ${aiRole} — органично отвечать ученику и помогать ему достичь этих целей, а НЕ задавать эти вопросы самому вместо ученика!
 
 КРИТИЧЕСКИЕ ПРАВИЛА ВЫВОДА ЯЗЫКОВ:
 В твоём ответе используются ТОЛЬКО ДВА ЯЗЫКА: ИВРИТ И РУССКИЙ.
@@ -567,7 +637,7 @@ ${usefulWords.map((w) => `- ${w.hebrew} (${w.translation})${w.explanation ? ` �
             const data = await groqResponse.json();
             const contentStr = data.choices[0]?.message?.content || '{}';
             const parsed = JSON.parse(contentStr);
-            const normalized = normalizeResponse(parsed, isFinalTurn);
+            const normalized = normalizeResponse(parsed, isFinalTurn, nextStep, effectiveNextQuestionHebrew, isFemale);
             return NextResponse.json({
               ...normalized,
               engine: 'Groq (Живой ИИ)',
@@ -614,7 +684,7 @@ ${usefulWords.map((w) => `- ${w.hebrew} (${w.translation})${w.explanation ? ` �
           const data = await geminiRes.json();
           const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
           const parsed = JSON.parse(text);
-          const normalized = normalizeResponse(parsed, isFinalTurn);
+          const normalized = normalizeResponse(parsed, isFinalTurn, nextStep, effectiveNextQuestionHebrew, isFemale);
           return NextResponse.json({
             ...normalized,
             engine: 'Gemini (Живой ИИ)',
@@ -647,7 +717,7 @@ ${usefulWords.map((w) => `- ${w.hebrew} (${w.translation})${w.explanation ? ` �
       }
 
       return NextResponse.json({
-        hebrew: currentStep.aiQuestionHebrew,
+        hebrew: effectiveNextQuestionHebrew || currentStep.aiQuestionHebrew,
         transcription: '',
         translation: currentStep.aiQuestionRu,
         teacherReactionHebrew: fallbackReactionHebrew,
