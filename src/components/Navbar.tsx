@@ -55,21 +55,21 @@ export const Navbar: React.FC<NavbarProps> = ({
       {currentView !== 'lesson' && (
         <header className="sticky top-0 z-40 w-full bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md border-b border-zinc-200 dark:border-zinc-800">
         <div className="max-w-6xl mx-auto px-2 sm:px-4 h-14 sm:h-16 flex items-center justify-between gap-1 sm:gap-2">
-          {/* Логотип */}
+          {/* Логотип: на мобильных только значок א, на десктопе с названием */}
           <div
             onClick={() => onNavigate('map')}
-            className="flex items-center gap-1.5 sm:gap-2.5 cursor-pointer select-none group shrink-0 min-w-0"
+            className="flex items-center gap-2 cursor-pointer select-none group shrink-0"
           >
-            <div className="w-7 h-7 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-sm group-hover:scale-105 transition shrink-0">
-              <span className="font-bold text-sm sm:text-lg font-hebrew">א</span>
+            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-sm group-hover:scale-105 transition shrink-0">
+              <span className="font-bold text-base sm:text-lg font-hebrew leading-none">א</span>
             </div>
-            <div>
+            <div className="hidden sm:block">
               <div className="flex items-center gap-1">
-                <span className="font-extrabold text-sm sm:text-lg tracking-tight text-zinc-900 dark:text-zinc-50 truncate">
+                <span className="font-extrabold text-base sm:text-lg tracking-tight text-zinc-900 dark:text-zinc-50 truncate">
                   Ульпана
                 </span>
               </div>
-              <span dir="rtl" className="text-[11px] text-zinc-400 font-hebrew font-medium hidden sm:block -mt-0.5">
+              <span dir="rtl" className="text-[11px] text-zinc-400 font-hebrew font-medium block -mt-0.5">
                 עִבְרִית מִן הַהַתְחָלָה
               </span>
             </div>
@@ -131,38 +131,37 @@ export const Navbar: React.FC<NavbarProps> = ({
             </button>
           </nav>
 
-          {/* Правая часть: Админка (только для osa_il), PRO, авторизация и Настройки */}
-          <div className="flex items-center gap-1 sm:gap-1.5 md:gap-2 shrink-0">
+          {/* Правая часть: единый стиль кнопок — чуть крупнее, свободнее и гармоничнее */}
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             {/* Кнопка Админки для osa_il */}
             {isAdmin && (
               <Link
                 href="/admin"
-                className="p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl border border-blue-500/30 bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/50 text-xs font-bold flex items-center gap-1 shadow-sm transition active:scale-95 shrink-0"
+                className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl border border-blue-500/30 bg-blue-50/80 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/50 flex items-center justify-center shadow-xs transition active:scale-95 shrink-0"
                 title="Панель администратора (@osa_il)"
               >
-                <ShieldCheck className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
-                <span className="hidden md:inline">{userProfile.ulpanMode ? 'נִהוּל' : 'Админка'}</span>
+                <ShieldCheck className="w-4.5 h-4.5 text-blue-600 dark:text-blue-400 shrink-0" />
               </Link>
             )}
 
             {/* Кнопка подписки PRO */}
             <button
               onClick={onOpenSubscription}
-              className={`px-2 py-1 sm:px-2.5 sm:py-1.5 rounded-xl border text-[11px] sm:text-xs font-bold flex items-center gap-1 shadow-sm transition active:scale-95 shrink-0 ${
+              className={`h-9 sm:h-10 px-2.5 sm:px-3 rounded-xl border text-xs font-bold flex items-center gap-1.5 shadow-xs transition active:scale-95 shrink-0 ${
                 isPro
                   ? 'border-amber-400/80 bg-gradient-to-r from-amber-500 to-yellow-400 text-white shadow-amber-500/20'
-                  : 'border-amber-300 dark:border-amber-900/60 bg-amber-50 dark:bg-amber-950/30 text-amber-800 dark:text-amber-300 hover:bg-amber-100'
+                  : 'border-amber-300/80 dark:border-amber-900/60 bg-amber-50/80 dark:bg-amber-950/30 text-amber-800 dark:text-amber-300 hover:bg-amber-100'
               }`}
               title="Управление подпиской PRO и промокоды"
             >
-              <span>👑</span>
-              <span>PRO</span>
+              <span className="text-sm leading-none">👑</span>
+              <span className="tracking-wide">PRO</span>
             </button>
 
             {/* Быстрый переключатель шрифта (десктоп) */}
             <button
               onClick={onToggleFontStyle}
-              className="hidden md:inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-zinc-200 dark:border-zinc-800 text-xs font-semibold hover:bg-zinc-50 dark:hover:bg-zinc-800 transition shrink-0"
+              className="hidden md:inline-flex items-center gap-1.5 h-10 px-3 rounded-xl border border-zinc-200 dark:border-zinc-800 text-xs font-semibold hover:bg-zinc-100 dark:hover:bg-zinc-800 transition shrink-0"
               title="Быстрое переключение шрифта иврита: Печатный / Рукописный"
             >
               {userProfile.fontStyle === 'cursive' ? (
@@ -182,15 +181,14 @@ export const Navbar: React.FC<NavbarProps> = ({
               )}
             </button>
 
-            {/* Кнопка интерактивного Гида по разделу */}
+            {/* Кнопка интерактивного Гида */}
             {onOpenGuide && (
               <button
                 onClick={onOpenGuide}
-                className="p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl border border-blue-200/80 dark:border-blue-900/60 bg-blue-50/50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-300 hover:bg-blue-100/70 dark:hover:bg-blue-900/50 text-xs font-bold flex items-center gap-1.5 shadow-xs transition active:scale-95 shrink-0"
+                className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl border border-zinc-200/80 dark:border-zinc-800 bg-zinc-50/80 dark:bg-zinc-800/80 hover:bg-blue-50 dark:hover:bg-blue-950/40 text-blue-600 dark:text-blue-400 flex items-center justify-center shadow-xs transition active:scale-95 shrink-0"
                 title="Инструкция и подсказки по возможностям платформы"
               >
-                <HelpCircle className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
-                <span className="hidden sm:inline">Гид</span>
+                <HelpCircle className="w-4.5 h-4.5 shrink-0" />
               </button>
             )}
 
@@ -198,28 +196,28 @@ export const Navbar: React.FC<NavbarProps> = ({
             {userProfile.isLoggedIn ? (
               <button
                 onClick={onOpenSettings}
-                className="flex items-center gap-1.5 p-1 sm:px-2.5 sm:py-1.5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/80 dark:bg-zinc-800/80 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition shadow-sm shrink-0"
+                className="h-9 sm:h-10 px-1.5 sm:px-2.5 rounded-xl border border-zinc-200/80 dark:border-zinc-800 bg-zinc-50/80 dark:bg-zinc-800/80 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition shadow-xs flex items-center gap-1.5 shrink-0"
                 title={`Профиль: ${userProfile.name} (@${userProfile.username || 'user'})`}
               >
                 {userProfile.avatarUrl ? (
                   <img
                     src={userProfile.avatarUrl}
                     alt={userProfile.name}
-                    className="w-5 h-5 rounded-full object-cover shrink-0"
+                    className="w-6 h-6 rounded-full object-cover shrink-0"
                   />
                 ) : (
-                  <div className="w-5 h-5 rounded-full bg-blue-600 text-white text-[10px] font-bold flex items-center justify-center shrink-0">
+                  <div className="w-6 h-6 rounded-full bg-blue-600 text-white text-xs font-bold flex items-center justify-center shrink-0">
                     {userProfile.name.charAt(0).toUpperCase()}
                   </div>
                 )}
-                <span className="text-xs font-bold text-zinc-900 dark:text-zinc-100 max-w-[50px] sm:max-w-[110px] truncate hidden sm:inline">
+                <span className="text-xs font-bold text-zinc-900 dark:text-zinc-100 max-w-[60px] sm:max-w-[110px] truncate hidden sm:inline">
                   {userProfile.name}
                 </span>
               </button>
             ) : (
               <button
                 onClick={onOpenAuth}
-                className="px-2 py-1 sm:px-3 sm:py-1.5 rounded-xl bg-[#229ED9] hover:bg-[#1E8CC0] text-white text-xs font-semibold flex items-center gap-1 shadow-sm transition active:scale-95 shrink-0"
+                className="h-9 sm:h-10 px-3 rounded-xl bg-[#229ED9] hover:bg-[#1E8CC0] text-white text-xs font-semibold flex items-center gap-1 shadow-xs transition active:scale-95 shrink-0"
                 title="Войти через Telegram для синхронизации прогресса"
               >
                 <span>{userProfile.ulpanMode ? 'כְּנִיסָה' : 'Войти'}</span>
@@ -230,20 +228,20 @@ export const Navbar: React.FC<NavbarProps> = ({
             {onOpenFeedback && (
               <button
                 onClick={onOpenFeedback}
-                className="p-1.5 sm:p-2 rounded-xl border border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition shrink-0"
+                className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl border border-zinc-200/80 dark:border-zinc-800 bg-zinc-50/80 dark:bg-zinc-800/80 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:text-blue-600 dark:hover:text-blue-400 flex items-center justify-center shadow-xs transition active:scale-95 shrink-0"
                 title="Обратная связь и сообщение об ошибках (@Osa_IL)"
               >
-                <MessageSquare className="w-4 h-4 shrink-0" />
+                <MessageSquare className="w-4.5 h-4.5 shrink-0" />
               </button>
             )}
 
             {/* Кнопка настроек */}
             <button
               onClick={onOpenSettings}
-              className="p-1.5 sm:p-2 rounded-xl border border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition shrink-0"
+              className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl border border-zinc-200/80 dark:border-zinc-800 bg-zinc-50/80 dark:bg-zinc-800/80 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 flex items-center justify-center shadow-xs transition active:scale-95 shrink-0"
               title="Настройки обучения"
             >
-              <Settings className="w-4 h-4 shrink-0" />
+              <Settings className="w-4.5 h-4.5 shrink-0" />
             </button>
           </div>
         </div>

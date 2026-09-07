@@ -3,6 +3,7 @@
 import React, { useState, useMemo } from 'react';
 import {
   CheckCircle,
+  CheckCircle2,
   Search,
   RotateCcw,
   ChevronRight,
@@ -196,117 +197,87 @@ export const CourseMap: React.FC<CourseMapProps> = ({
 
   return (
     <div className="space-y-4 sm:space-y-5">
-      {/* 1. Компактный прогресс-блок курса */}
-      <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white rounded-2xl p-4 sm:p-5 shadow-sm">
-        <div className="flex items-center justify-between gap-3 mb-2.5">
-          <div className="flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-yellow-300 shrink-0" />
-            <h1 className="text-base sm:text-lg font-bold tracking-tight">
-              {isUlpan ? 'תוֹכְנִית הַקּוּרְס (100 שִׁיעוּרִים)' : 'Программа курса (100 уроков)'}
-            </h1>
-          </div>
-          <div className="text-xs sm:text-sm font-bold bg-white/15 px-2.5 py-1 rounded-xl backdrop-blur shrink-0">
-            {completedCount} / 100 <span className="font-normal opacity-80">({progressPercent}%)</span>
-          </div>
-        </div>
+      {/* 1. Единый компактный Hero-виджет: Текущий урок и прогресс курса */}
+      <div
+        onClick={() => {
+          if (currentLessonLocked) {
+            if (onRequirePro) onRequirePro(currentLesson.id);
+          } else {
+            onSelectLesson(currentLesson.id);
+          }
+        }}
+        className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-sky-600 text-white p-3.5 sm:p-5 shadow-sm border border-blue-400/20 cursor-pointer active:scale-[0.99] transition group"
+      >
+        <div className="absolute -right-8 -bottom-8 w-36 h-36 bg-white/10 rounded-full blur-xl pointer-events-none" />
 
-        {/* Тонкий прогресс-бар курса */}
-        <div className="w-full bg-white/20 rounded-full h-1.5 overflow-hidden">
-          <div
-            className="bg-emerald-400 h-full rounded-full transition-all duration-500"
-            style={{ width: `${progressPercent}%` }}
-          />
-        </div>
-      </div>
-
-      {/* 2. Hero-карточка: Текущий урок с быстрым переходом в 1 клик */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-600 via-indigo-600 to-sky-600 text-white p-4 sm:p-5 shadow-md border border-blue-400/20">
-        <div className="absolute -right-8 -bottom-8 w-44 h-44 bg-white/10 rounded-full blur-2xl pointer-events-none" />
-
-        <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="space-y-2 min-w-0">
+        <div className="relative z-10 flex items-center justify-between gap-3">
+          <div className="min-w-0 flex-1 space-y-1">
+            {/* Метка урока и этапы */}
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-white/20 backdrop-blur text-white border border-white/20">
-                <Target className="w-3.5 h-3.5 text-yellow-300" />
-                {isUlpan ? 'הַשִּׁיעוּר הַנּוֹכְחִי שֶׁלְּךָ' : 'Ваш текущий урок'}
-              </span>
-              <span className="text-xs font-bold px-2 py-0.5 rounded-lg bg-black/25 text-blue-100">
+              <span className="px-2 py-0.5 rounded-md text-[11px] font-bold bg-white/20 text-white backdrop-blur">
                 {isUlpan ? `שִׁיעוּר ${currentLesson.number}` : `Урок ${currentLesson.number}`}
               </span>
-              {currentLessonLocked ? (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-xs font-bold bg-amber-400 text-amber-950">
-                  🔒 PRO
+              <span className="text-[11px] font-medium text-blue-100">
+                {isUlpan ? 'הַשִּׁיעוּר הַנּוֹכְחִי' : 'Текущий урок'}
+              </span>
+              {currentCompletedTabs > 0 && !isCurrentCompleted && (
+                <span className="text-[10px] font-semibold text-emerald-300 bg-black/20 px-1.5 py-0.5 rounded">
+                  {currentCompletedTabs}/5
                 </span>
-              ) : IS_EARLY_ACCESS_FREE ? (
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg text-xs font-bold bg-emerald-400/90 text-emerald-950 shadow-xs">
-                  ✨ Ранний доступ (все 100 уроков открыты)
-                </span>
-              ) : null}
-            </div>
-
-            <div>
-              <div
-                dir="rtl"
-                className="text-xl sm:text-2xl font-black font-hebrew text-white drop-shadow-sm leading-tight"
-              >
-                {userProfile.showNikkud ? currentLesson.titleHebrew : stripNikkud(currentLesson.titleHebrew)}
-              </div>
-              {!isUlpan && (
-                <h2 className="text-sm sm:text-base font-semibold text-blue-50 line-clamp-1 mt-0.5">
-                  {currentLesson.titleRussian}
-                </h2>
               )}
             </div>
 
-            <div className="flex items-center gap-3 text-xs text-blue-100 pt-0.5">
-              <span className="font-medium">
-                {isCurrentCompleted
-                  ? (isUlpan ? '✓ שִׁיעוּר הוּשְׁלַם' : '✓ Урок успешно пройден')
-                  : currentCompletedTabs > 0
-                  ? (isUlpan ? `בְּתַהֲלִיךְ: ${currentCompletedTabs} מִתּוֹךְ 5 שְׁלַבִּים` : `В процессе: ${currentCompletedTabs} из 5 этапов пройдено`)
-                  : (isUlpan ? 'מוּכָן לִתְחִילָה (0/5 שְׁלַבִּים)' : 'Готов к прохождению (0/5 этапов)')}
-              </span>
-              {/* Точки прогресса этапов урока */}
-              <div className="flex items-center gap-1">
-                {[0, 1, 2, 3, 4].map((stepIdx) => (
-                  <div
-                    key={stepIdx}
-                    className={`w-2 h-2 rounded-full transition-all ${
-                      isCurrentCompleted || stepIdx < currentCompletedTabs
-                        ? 'bg-emerald-300'
-                        : 'bg-white/30'
-                    }`}
-                  />
-                ))}
-              </div>
+            {/* Тема урока */}
+            <div
+              dir="rtl"
+              className="text-lg sm:text-2xl font-black font-hebrew text-white tracking-wide leading-snug truncate"
+            >
+              {userProfile.showNikkud ? currentLesson.titleHebrew : stripNikkud(currentLesson.titleHebrew)}
             </div>
+            {!isUlpan && (
+              <div className="text-xs sm:text-sm font-medium text-blue-100/90 truncate">
+                {currentLesson.titleRussian}
+              </div>
+            )}
           </div>
 
-          {/* Кнопка мгновенного перехода к уроку без скролла */}
-          <div className="shrink-0">
+          {/* Правая часть: кнопка действия и прогресс курса */}
+          <div className="shrink-0 flex flex-col items-end gap-2">
+            <div className="text-[11px] font-bold bg-black/25 px-2.5 py-1 rounded-lg text-blue-100 backdrop-blur">
+              {completedCount} / 100 <span className="opacity-75 font-normal">({progressPercent}%)</span>
+            </div>
+
             <button
-              onClick={() => {
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
                 if (currentLessonLocked) {
                   if (onRequirePro) onRequirePro(currentLesson.id);
                 } else {
                   onSelectLesson(currentLesson.id);
                 }
               }}
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl font-bold text-sm bg-white text-blue-700 hover:bg-blue-50 active:scale-95 shadow-md transition group"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl font-bold text-xs sm:text-sm bg-white text-blue-700 hover:bg-blue-50 active:scale-95 shadow-sm transition"
             >
-              <Play className="w-4 h-4 fill-blue-700 text-blue-700 group-hover:translate-x-0.5 transition" />
+              <Play className="w-3.5 h-3.5 fill-blue-700 text-blue-700" />
               <span>
                 {currentLessonLocked
-                  ? (isUlpan ? 'פְּתַח בְּ-PRO' : 'Открыть в PRO')
+                  ? 'PRO'
                   : isCurrentCompleted
-                  ? (isUlpan ? `חֲזוֹר עַל שִׁיעוּר ${currentLesson.number}` : `Повторить урок ${currentLesson.number}`)
-                  : currentCompletedTabs > 0
-                  ? (isUlpan ? `הַמְשֵׁךְ שִׁיעוּר ${currentLesson.number}` : `Продолжить урок ${currentLesson.number}`)
-                  : (isUlpan ? `הַתְחֵל שִׁיעוּר ${currentLesson.number}` : `Начать урок ${currentLesson.number}`)}
+                  ? (isUlpan ? 'חֲזוֹר' : 'Повторить')
+                  : (isUlpan ? 'הַמְשֵׁךְ' : 'Продолжить')}
               </span>
-              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition" />
+              <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition" />
             </button>
           </div>
+        </div>
+
+        {/* Тонкий общий прогресс курса по низу карточки */}
+        <div className="mt-3 w-full bg-black/20 rounded-full h-1 overflow-hidden">
+          <div
+            className="bg-emerald-400 h-full rounded-full transition-all duration-500"
+            style={{ width: `${progressPercent}%` }}
+          />
         </div>
       </div>
 
@@ -537,117 +508,88 @@ export const CourseMap: React.FC<CourseMapProps> = ({
               <div
                 key={lesson.id}
                 onClick={handleCardClick}
-                className={`group relative border rounded-2xl p-4 shadow-xs transition duration-200 cursor-pointer flex flex-col justify-between ${
+                className={`group relative border rounded-2xl p-3 sm:p-3.5 transition duration-150 cursor-pointer active:scale-[0.99] flex items-center justify-between gap-3 ${
                   isCurrent
-                    ? 'border-blue-500 dark:border-blue-400 ring-2 ring-blue-500/25 dark:ring-blue-400/30 bg-gradient-to-br from-blue-50/50 via-white to-white dark:from-blue-950/20 dark:via-zinc-900 dark:to-zinc-900 shadow-md'
+                    ? 'border-blue-500 dark:border-blue-400 ring-2 ring-blue-500/20 bg-blue-50/30 dark:bg-blue-950/20 shadow-sm'
                     : isLessonLocked
-                    ? 'border-amber-200/80 dark:border-amber-900/40 hover:border-amber-400 dark:hover:border-amber-600 bg-amber-50/20 dark:bg-amber-950/10'
-                    : 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 hover:shadow-md hover:border-blue-500/50 dark:hover:border-blue-500/40'
+                    ? 'border-zinc-200 dark:border-zinc-800 bg-zinc-50/60 dark:bg-zinc-900/40 opacity-85 hover:border-amber-400'
+                    : 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 hover:border-blue-400 dark:hover:border-blue-500/50 shadow-xs hover:shadow-sm'
                 }`}
               >
-                <div className="space-y-2.5">
-                  {/* Номер урока, статус и кнопка сброса */}
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-1.5">
-                      <span className={`px-2 py-0.5 rounded-lg text-xs font-bold ${
+                {/* Номер и тема урока */}
+                <div className="min-w-0 flex-1 space-y-0.5">
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`px-2 py-0.5 rounded-md text-[11px] font-bold ${
                         isCurrent
                           ? 'bg-blue-600 text-white'
-                          : isUlpan
+                          : isCompleted
                           ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300'
-                          : 'bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400'
-                      }`}>
-                        {isUlpan ? `שִׁיעוּר ${lesson.number}` : `Урок ${lesson.number}`}
-                      </span>
-
-                      {isCurrent && (
-                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300 animate-pulse">
-                          <Target className="w-2.5 h-2.5" />
-                          <span>{isUlpan ? 'נוֹכְחִי' : 'ТЕКУЩИЙ'}</span>
-                        </span>
-                      )}
-                    </div>
-
-                    <div className="flex items-center gap-1.5">
-                      {isLessonLocked ? (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[11px] font-bold bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300">
-                          <span>🔒</span>
-                          <span>PRO</span>
-                        </span>
-                      ) : isCompleted ? (
-                        <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
-                          <CheckCircle className="w-3.5 h-3.5" />
-                          <span>{isUlpan ? 'הוּשְׁלַם' : 'Пройден'}</span>
-                        </span>
-                      ) : completedTabsCount > 0 ? (
-                        <span className="text-xs font-medium text-amber-600 dark:text-amber-400">
-                          {isUlpan ? `בְּתַהֲלִיךְ (${completedTabsCount}/5)` : `В процессе (${completedTabsCount}/5)`}
-                        </span>
-                      ) : (
-                        <span className="text-xs text-zinc-400">
-                          {isUlpan ? 'חָדָשׁ' : 'Новый'}
-                        </span>
-                      )}
-
-                      {/* Кнопка сброса прогресса урока */}
-                      {hasProgress && (
-                        <button
-                          type="button"
-                          onClick={handleReset}
-                          className="p-1 rounded-lg text-zinc-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition active:scale-90 ml-0.5"
-                          title={`Сбросить прогресс урока ${lesson.number}`}
-                          aria-label={`Сбросить прогресс урока ${lesson.number}`}
-                        >
-                          <RotateCcw className="w-3.5 h-3.5" />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Название на иврите */}
-                  <div>
-                    <div
-                      dir="rtl"
-                      className={`font-bold font-hebrew group-hover:text-blue-600 dark:group-hover:text-blue-400 transition leading-snug ${
-                        isUlpan
-                          ? 'text-xl text-zinc-900 dark:text-zinc-50'
-                          : 'text-lg text-zinc-900 dark:text-zinc-50'
+                          : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400'
                       }`}
                     >
-                      {userProfile.showNikkud ? lesson.titleHebrew : stripNikkud(lesson.titleHebrew)}
-                    </div>
-                    {!isUlpan && (
-                      <h3 className="text-xs sm:text-sm font-semibold text-zinc-800 dark:text-zinc-200 mt-0.5">
-                        {lesson.titleRussian}
-                      </h3>
+                      {isUlpan ? `שִׁיעוּר ${lesson.number}` : `Урок ${lesson.number}`}
+                    </span>
+
+                    {isCurrent && (
+                      <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400">
+                        {isUlpan ? 'נוֹכְחִי' : 'Текущий'}
+                      </span>
+                    )}
+
+                    {!isCompleted && completedTabsCount > 0 && (
+                      <span className="text-[10px] font-semibold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 px-1.5 py-0.2 rounded">
+                        {completedTabsCount}/5
+                      </span>
                     )}
                   </div>
 
+                  {/* Тема урока на иврите */}
+                  <div
+                    dir="rtl"
+                    className="text-base sm:text-lg font-bold font-hebrew text-zinc-900 dark:text-zinc-50 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition leading-snug truncate"
+                  >
+                    {userProfile.showNikkud ? lesson.titleHebrew : stripNikkud(lesson.titleHebrew)}
+                  </div>
+
+                  {/* Тема урока на русском */}
                   {!isUlpan && (
-                    <p className="text-xs text-zinc-500 line-clamp-2 leading-relaxed">
-                      {lesson.description}
-                    </p>
+                    <div className="text-xs text-zinc-500 dark:text-zinc-400 font-medium truncate">
+                      {lesson.titleRussian}
+                    </div>
                   )}
                 </div>
 
-                {/* Футер карточки урока */}
-                <div className="mt-3.5 pt-2.5 border-t border-zinc-100 dark:border-zinc-800 flex items-center justify-between text-xs text-zinc-400">
-                  <span className="font-medium text-zinc-500 truncate max-w-[150px]">
-                    {isUlpan ? `שִׁיעוּר ${lesson.number}` : lesson.category}
-                  </span>
-                  <span
-                    className={`inline-flex items-center gap-1 font-semibold group-hover:translate-x-0.5 transition shrink-0 ${
-                      isLessonLocked ? 'text-amber-600 dark:text-amber-400' : 'text-blue-600 dark:text-blue-400'
-                    }`}
-                  >
-                    <span>
-                      {isLessonLocked
-                        ? 'В PRO'
-                        : isCompleted
-                        ? (isUlpan ? 'חֲזוֹר' : 'Повторить')
-                        : (isUlpan ? 'הַתְחֵל' : 'Начать')}
+                {/* Статус урока: зеленая галочка / замок / стрелка */}
+                <div className="shrink-0 flex items-center gap-1.5 sm:gap-2">
+                  {/* Кнопка сброса (десктоп, по ховеру, чтобы не захламлять мобильный экран) */}
+                  {hasProgress && onResetLessonProgress && (
+                    <button
+                      type="button"
+                      onClick={handleReset}
+                      className="hidden md:inline-flex opacity-0 group-hover:opacity-100 p-1.5 rounded-lg text-zinc-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition active:scale-90"
+                      title={`Сбросить прогресс урока ${lesson.number}`}
+                      aria-label={`Сбросить прогресс урока ${lesson.number}`}
+                    >
+                      <RotateCcw className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+
+                  {isLessonLocked ? (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[11px] font-bold bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300">
+                      <span>🔒</span>
+                      <span>PRO</span>
                     </span>
-                    <ChevronRight className="w-3.5 h-3.5" />
-                  </span>
+                  ) : isCompleted ? (
+                    <div
+                      className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 shadow-2xs"
+                      title={isUlpan ? 'הוּשְׁלַם' : 'Пройден'}
+                    >
+                      <CheckCircle2 className="w-4.5 h-4.5 sm:w-5 sm:h-5 text-emerald-600 dark:text-emerald-400" />
+                    </div>
+                  ) : (
+                    <ChevronRight className="w-4 h-4 text-zinc-300 dark:text-zinc-600 group-hover:text-blue-500 group-hover:translate-x-0.5 transition" />
+                  )}
                 </div>
               </div>
             );
