@@ -37,7 +37,7 @@ import confetti from 'canvas-confetti';
 import { Lesson, UserProfile, Word, ChatMessage } from '@/types';
 import { getLessonPhoneScenario } from '@/data/phoneScenarios';
 import { phoneAudio } from '@/lib/phoneAudio';
-import { speakHebrew, stopSpeech, HebrewSpeechRecognizer } from '@/lib/speech';
+import { speakHebrew, stopSpeech, HebrewSpeechRecognizer, isWhisperSilenceHallucination } from '@/lib/speech';
 import { stripNikkud } from '@/lib/transcription';
 import {
   isWordInPersonalDict,
@@ -348,10 +348,11 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
 
         // Резервный таймер авто-отправки при паузе в речи (1.5 сек для уроков 1-10, 1.3 сек для остальных)
         if (silenceTimeoutRef.current) clearTimeout(silenceTimeoutRef.current);
-        if (transcript.trim()) {
+        if (transcript.trim() && !isWhisperSilenceHallucination(transcript.trim())) {
           silenceTimeoutRef.current = setTimeout(() => {
             if (
               !isEchoFromAi(transcript) &&
+              !isWhisperSilenceHallucination(transcript) &&
               callActiveRef.current &&
               shouldListenRef.current &&
               !isSendingRef.current &&
@@ -376,7 +377,12 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
           !isSendingRef.current &&
           !isMutedRef.current
         ) {
-          if (lastTranscript && lastTranscript.trim() && !isEchoFromAi(lastTranscript)) {
+          if (
+            lastTranscript &&
+            lastTranscript.trim() &&
+            !isEchoFromAi(lastTranscript) &&
+            !isWhisperSilenceHallucination(lastTranscript)
+          ) {
             handleSendMessage(lastTranscript.trim());
           }
         }
@@ -391,7 +397,7 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
         apiKey: userProfile.groqApiKey || undefined,
         continuous: true,
         silenceDurationMs: silenceDelayMs,
-        speechThreshold: 10,
+        speechThreshold: 18,
         audioContext: phoneAudio.getContext(),
         mediaStream: activeMicStreamRef.current,
         onAudioLevel: (level) => {
@@ -410,12 +416,13 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
             !loadingAiRef.current &&
             !isMutedRef.current
           ) {
-            const textToSubmit = (transcript || liveTranscript).trim();
-            if (textToSubmit && !isEchoFromAi(textToSubmit)) {
+            const textToSubmit = (transcript || '').trim();
+            if (
+              textToSubmit &&
+              !isEchoFromAi(textToSubmit) &&
+              !isWhisperSilenceHallucination(textToSubmit)
+            ) {
               handleSendMessage(textToSubmit);
-            } else if (!textToSubmit) {
-              setSpeechNotice('Не удалось разобрать слова. Повторите громче или нажмите на подсказку ниже 👇');
-              setTimeout(() => setSpeechNotice(null), 4000);
             }
           }
         },
@@ -461,15 +468,15 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
       return;
     }
 
-    // Защита от эхо собственного голоса ИИ
-    if (isEchoFromAi(text) && !textToSend && !textInput) {
-      console.warn('Blocked AI echo loop detected:', text);
+    // Защита от эхо собственного голоса ИИ и галлюцинаций тишины Whisper
+    if ((isEchoFromAi(text) || isWhisperSilenceHallucination(text)) && !textToSend && !textInput) {
+      console.warn('Blocked AI echo or silence hallucination:', text);
       setLiveTranscript('');
       setTimeout(() => {
         if (callActiveRef.current && !isAiSpeakingRef.current && !loadingAiRef.current && !isMutedRef.current) {
           startListening(true);
         }
-      }, 200);
+      }, 300);
       return;
     }
 

@@ -28,7 +28,7 @@ import {
 import confetti from 'canvas-confetti';
 import { Lesson, UserProfile, ChatMessage, Word, DialogueWord, DialogueStep } from '@/types';
 import { tokenizeText, TextToken, stripNikkud, alignTranscriptToVocabulary } from '@/lib/transcription';
-import { speakHebrew, stopSpeech, HebrewSpeechRecognizer, normalizeHebrewSpeechTranscript } from '@/lib/speech';
+import { speakHebrew, stopSpeech, HebrewSpeechRecognizer, normalizeHebrewSpeechTranscript, isWhisperSilenceHallucination } from '@/lib/speech';
 import { getDialogueHelpForLesson } from '@/lib/dialogueHints';
 import { WordLookupModal } from './WordLookupModal';
 import { phoneAudio } from '@/lib/phoneAudio';
@@ -597,7 +597,7 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
         setIsTranscribing(false);
       },
       (lastTranscript) => {
-        if (lastTranscript) {
+        if (lastTranscript && !isWhisperSilenceHallucination(lastTranscript)) {
           setInputText(normalizeUserInput(lastTranscript));
         }
         setIsRecording(false);
@@ -608,14 +608,14 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
         apiKey: userProfile.groqApiKey || undefined,
         continuous: true,
         silenceDurationMs: silenceDelayMs,
-        speechThreshold: 10,
+        speechThreshold: 18,
         audioContext: ctx,
         mediaStream: activeMicStreamRef.current,
         onAudioLevel: (level) => {
           setAudioLevel(level);
         },
         onSilenceDetected: (transcript) => {
-          if (transcript && transcript.trim()) {
+          if (transcript && transcript.trim() && !isWhisperSilenceHallucination(transcript.trim())) {
             setInputText(normalizeUserInput(transcript.trim()));
           }
           setIsRecording(false);

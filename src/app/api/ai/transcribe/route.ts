@@ -11,6 +11,31 @@ function normalizeHebrewHomophones(text: string): string {
   return res;
 }
 
+export function isWhisperSilenceHallucination(text: string): boolean {
+  if (!text) return true;
+  const clean = text
+    .replace(/[.,!?:;״"'\-_/\\]/g, '')
+    .trim()
+    .toLowerCase();
+
+  const hallucinations = new Set([
+    'תודה',
+    'תודה רבה',
+    'תודה רבה לך',
+    'תודה על הצפייה',
+    'תודה שצפיתם',
+    'צפייה מהנה',
+    'thank you',
+    'thanks for watching',
+    'thank you for watching',
+    'спасибо за просмотр',
+    'спасибо',
+    'субтитры',
+  ]);
+
+  return hallucinations.has(clean);
+}
+
 export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData();
@@ -66,6 +91,13 @@ export async function POST(req: NextRequest) {
           const rawGText = gData.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
           if (rawGText) {
             const text = normalizeHebrewHomophones(rawGText);
+            if (isWhisperSilenceHallucination(text)) {
+              return NextResponse.json({
+                text: '',
+                engine: 'Gemini 3.5 Transcribe (silence filtered)',
+                filtered: true,
+              });
+            }
             return NextResponse.json({
               text,
               engine: 'Gemini 3.5 Transcribe',
@@ -86,7 +118,7 @@ export async function POST(req: NextRequest) {
         groqFormData.append('file', file, `audio.${ext}`);
         groqFormData.append('model', 'whisper-large-v3');
         groqFormData.append('language', 'he');
-        groqFormData.append('response_format', 'json');
+        groqFormData.append('response_format', 'verbose_json');
         groqFormData.append('temperature', '0');
         if (prompt) {
           groqFormData.append('prompt', prompt);
@@ -102,7 +134,27 @@ export async function POST(req: NextRequest) {
 
         if (groqRes.ok) {
           const data = await groqRes.json();
-          const text = normalizeHebrewHomophones((data.text || '').trim());
+          const rawText = (data.text || '').trim();
+          const text = normalizeHebrewHomophones(rawText);
+
+          // Проверка на вероятность отсутствия речи (no_speech_prob) и галлюцинации тишины
+          const segments = Array.isArray(data.segments) ? data.segments : [];
+          const avgNoSpeechProb = segments.length > 0
+            ? segments.reduce((acc: number, s: any) => acc + (s.no_speech_prob || 0), 0) / segments.length
+            : 0;
+
+          const isHallucination = isWhisperSilenceHallucination(text);
+
+          // Если Whisper выдал классическую галлюцинацию тишины или вероятность отсутствия речи высокая (> 0.45)
+          if (isHallucination || avgNoSpeechProb > 0.45) {
+            return NextResponse.json({
+              text: '',
+              engine: 'Groq Whisper V3',
+              filtered: true,
+              reason: isHallucination ? 'silence_hallucination' : 'no_speech_prob',
+            });
+          }
+
           return NextResponse.json({
             text,
             engine: 'Groq Whisper V3',

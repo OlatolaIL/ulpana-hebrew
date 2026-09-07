@@ -483,6 +483,34 @@ export function normalizeHebrewSpeechTranscript(text: string): string {
   return res;
 }
 
+/**
+ * Проверка на типичные галлюцинации моделей Whisper при тишине или неразборчивом шуме
+ */
+export function isWhisperSilenceHallucination(text: string): boolean {
+  if (!text) return true;
+  const clean = text
+    .replace(/[.,!?:;״"'\-_/\\]/g, '')
+    .trim()
+    .toLowerCase();
+
+  const hallucinations = new Set([
+    'תודה',
+    'תודה רבה',
+    'תודה רבה לך',
+    'תודה על הצפייה',
+    'תודה שצפיתם',
+    'צפייה מהנה',
+    'thank you',
+    'thanks for watching',
+    'thank you for watching',
+    'спасибо за просмотр',
+    'спасибо',
+    'субтитры',
+  ]);
+
+  return hallucinations.has(clean);
+}
+
 export interface SpeechRecognizerOptions {
   vocabulary?: string[];
   apiKey?: string;
@@ -723,6 +751,8 @@ export class HebrewSpeechRecognizer {
       const bufferLength = this.analyser.frequencyBinCount;
       const dataArray = new Uint8Array(bufferLength);
 
+      let speechFrames = 0;
+      let peakVolume = 0;
       this.hasDetectedSpeech = false;
       this.silenceStartTime = null;
       this.isProcessingSilence = false;
@@ -739,24 +769,40 @@ export class HebrewSpeechRecognizer {
         const normalized = Math.min(1, Math.max(0, (avg - 3) / 45));
         this.currentOptions.onAudioLevel?.(normalized);
 
-        const threshold = this.currentOptions.speechThreshold ?? 10;
+        const threshold = this.currentOptions.speechThreshold ?? 18;
         const isSpeakingNow = avg > threshold;
 
         if (isSpeakingNow) {
-          this.hasDetectedSpeech = true;
-          this.silenceStartTime = null;
-        } else if (this.hasDetectedSpeech && !this.isProcessingSilence) {
-          if (!this.silenceStartTime) {
-            this.silenceStartTime = Date.now();
-          } else {
-            const silenceDuration = this.currentOptions.silenceDurationMs ?? 1300;
-            if (Date.now() - this.silenceStartTime >= silenceDuration) {
-              this.isProcessingSilence = true;
-              this.silenceStartTime = null;
-              this.hasDetectedSpeech = false;
+          speechFrames++;
+          if (avg > peakVolume) peakVolume = avg;
+          // Требуем устойчивый звук речи (хотя бы 3 фрейма подряд, т.е. ~150мс) или четкий пик громкости
+          if (speechFrames >= 3 || avg > threshold + 10) {
+            this.hasDetectedSpeech = true;
+            this.silenceStartTime = null;
+          }
+        } else {
+          speechFrames = Math.max(0, speechFrames - 1);
+          if (this.hasDetectedSpeech && !this.isProcessingSilence) {
+            if (!this.silenceStartTime) {
+              this.silenceStartTime = Date.now();
+            } else {
+              const silenceDuration = this.currentOptions.silenceDurationMs ?? 1300;
+              if (Date.now() - this.silenceStartTime >= silenceDuration) {
+                this.isProcessingSilence = true;
+                this.silenceStartTime = null;
+                const wasRealSpeech = this.hasDetectedSpeech && peakVolume >= (threshold + 5);
+                this.hasDetectedSpeech = false;
+                peakVolume = 0;
+                speechFrames = 0;
 
-              await this.handleSilenceDetected();
-              this.isProcessingSilence = false;
+                if (wasRealSpeech) {
+                  await this.handleSilenceDetected();
+                } else {
+                  // Фоновый шум был слишком тихим или мгновенным - очищаем буфер
+                  this.audioChunks = [];
+                }
+                this.isProcessingSilence = false;
+              }
             }
           }
         }
@@ -778,9 +824,10 @@ export class HebrewSpeechRecognizer {
           const audioBlob = new Blob([...this.audioChunks], { type: blobType });
           this.audioChunks = []; // очищаем буфер
 
-          if (audioBlob.size > 1000) {
+          // Если записано реальное аудио (более 1500 байт), транскрибируем через Groq Whisper V3
+          if (audioBlob.size > 1500) {
             const text = await this.transcribeAudioBlob(audioBlob, blobType);
-            if (text && text.trim()) {
+            if (text && text.trim() && !isWhisperSilenceHallucination(text.trim())) {
               this.lastTranscript = text.trim();
               this.currentOptions.onSilenceDetected?.(this.lastTranscript);
               return;
@@ -794,7 +841,7 @@ export class HebrewSpeechRecognizer {
 
     // 2. Fallback на браузерный Web Speech API
     const recognizedText = this.lastTranscript.trim();
-    if (recognizedText) {
+    if (recognizedText && !isWhisperSilenceHallucination(recognizedText)) {
       this.currentOptions.onSilenceDetected?.(recognizedText);
     }
   }
@@ -820,7 +867,10 @@ export class HebrewSpeechRecognizer {
       if (res.ok) {
         const data = await res.json();
         if (data.text && data.text.trim()) {
-          return normalizeHebrewSpeechTranscript(data.text.trim());
+          const normalized = normalizeHebrewSpeechTranscript(data.text.trim());
+          if (!isWhisperSilenceHallucination(normalized)) {
+            return normalized;
+          }
         }
       }
     } catch (e) {
