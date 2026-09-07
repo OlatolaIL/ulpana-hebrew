@@ -984,18 +984,19 @@ export const ThematicDecksView: React.FC<ThematicDecksViewProps> = ({
       {/* МОДАЛЬНОЕ ОКНО «ВЫВЕСТИ КОЛОДУ СПИСКОМ» */}
       {listModalDeck && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/60 backdrop-blur-sm animate-fade-in"
+          className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/60 backdrop-blur-sm overflow-hidden"
           onClick={handleCloseListModal}
         >
           <div
-            className="bg-white dark:bg-slate-900 w-full max-w-4xl rounded-2xl sm:rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 flex flex-col h-[94vh] sm:h-auto sm:max-h-[90vh] overflow-hidden"
+            className="bg-white dark:bg-slate-900 w-full max-w-4xl min-w-0 rounded-2xl sm:rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 flex flex-col h-[92vh] sm:h-auto sm:max-h-[90vh] overflow-hidden mx-auto"
+            style={{ maxWidth: 'calc(100vw - 16px)' }}
             onClick={(e) => e.stopPropagation()}
           >
             {/* Шапка модалки */}
-            <div className="p-3.5 sm:p-5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between gap-2.5 sm:gap-3 shrink-0 bg-slate-50 dark:bg-slate-800/50">
-              <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+            <div className="p-3 sm:p-5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between gap-2 sm:gap-3 shrink-0 bg-slate-50 dark:bg-slate-800/50">
+              <div className="flex items-center gap-2 sm:gap-3 min-w-0">
                 <div
-                  className={`w-10 h-10 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl flex items-center justify-center shrink-0 ${
+                  className={`w-9 h-9 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl flex items-center justify-center shrink-0 ${
                     listModalDeck.level === 'alef'
                       ? 'bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400'
                       : 'bg-purple-100 dark:bg-purple-900/50 text-purple-600 dark:text-purple-400'
@@ -1009,7 +1010,7 @@ export const ThematicDecksView: React.FC<ThematicDecksViewProps> = ({
                       Уровень {listModalDeck.level === 'alef' ? 'Алеф (א)' : 'Бет (ב)'}
                     </span>
                     <span className="text-[11px] sm:text-xs text-slate-500 font-medium">
-                      {listModalDeck.words.length} слов в наборе
+                      {listModalDeck.words.length} слов
                     </span>
                   </div>
                   <h3 className="font-black text-slate-900 dark:text-white text-sm sm:text-lg line-clamp-2 mt-0.5 leading-snug">
@@ -1053,7 +1054,7 @@ export const ThematicDecksView: React.FC<ThematicDecksViewProps> = ({
 
                 <button
                   onClick={handleCloseListModal}
-                  className="p-1.5 sm:p-2 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+                  className="p-1.5 sm:p-2 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition shrink-0"
                   title="Закрыть"
                 >
                   <X className="w-5 h-5" />
@@ -1062,7 +1063,7 @@ export const ThematicDecksView: React.FC<ThematicDecksViewProps> = ({
             </div>
 
             {/* Фильтр поиска по списку и массовые операции */}
-            <div className="p-2.5 sm:p-4 border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 shrink-0">
+            <div className="p-2.5 sm:p-4 border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 shrink-0">
               <div className="flex items-center gap-2 flex-1 min-w-0">
                 <div className="relative flex-1 min-w-0">
                   <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -1071,7 +1072,7 @@ export const ThematicDecksView: React.FC<ThematicDecksViewProps> = ({
                     value={modalSearch}
                     onChange={(e) => setModalSearch(e.target.value)}
                     placeholder="Поиск по слову или переводу..."
-                    className="w-full pl-9 pr-3 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none dark:text-white"
+                    className="w-full min-w-0 pl-9 pr-3 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none dark:text-white"
                   />
                 </div>
 
@@ -1080,7 +1081,7 @@ export const ThematicDecksView: React.FC<ThematicDecksViewProps> = ({
                   <button
                     type="button"
                     onClick={() => setModalViewMode('cards')}
-                    className={`p-1.5 sm:px-2 sm:py-1 rounded-lg text-xs font-bold transition flex items-center gap-1 ${
+                    className={`p-1.5 sm:px-2.5 sm:py-1 rounded-lg text-xs font-bold transition flex items-center gap-1 ${
                       modalViewMode === 'cards'
                         ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-xs'
                         : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
@@ -1093,7 +1094,7 @@ export const ThematicDecksView: React.FC<ThematicDecksViewProps> = ({
                   <button
                     type="button"
                     onClick={() => setModalViewMode('table')}
-                    className={`p-1.5 sm:px-2 sm:py-1 rounded-lg text-xs font-bold transition flex items-center gap-1 ${
+                    className={`p-1.5 sm:px-2.5 sm:py-1 rounded-lg text-xs font-bold transition flex items-center gap-1 ${
                       modalViewMode === 'table'
                         ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-xs'
                         : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
@@ -1106,49 +1107,52 @@ export const ThematicDecksView: React.FC<ThematicDecksViewProps> = ({
                 </div>
               </div>
 
-              <div className="flex items-center justify-between sm:justify-end gap-1.5 sm:gap-2 text-xs flex-wrap">
-                <button
-                  type="button"
-                  onClick={() => toggleSelectAllModalWords(modalFilteredWords)}
-                  className="text-slate-600 dark:text-slate-400 hover:text-blue-600 flex items-center gap-1 font-semibold cursor-pointer"
-                >
-                  {selectedWordIds.size === modalFilteredWords.length ? (
+              <div className="flex items-center justify-between sm:justify-end gap-1.5 sm:gap-2 text-xs min-w-0">
+                <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+                  <button
+                    type="button"
+                    onClick={() => toggleSelectAllModalWords(modalFilteredWords)}
+                    className="text-slate-600 dark:text-slate-400 hover:text-blue-600 flex items-center gap-1 font-semibold cursor-pointer shrink-0"
+                  >
+                    {selectedWordIds.size === modalFilteredWords.length ? (
+                      <>
+                        <CheckSquare className="w-4 h-4 text-blue-600" />
+                        <span>Снять</span>
+                      </>
+                    ) : (
+                      <>
+                        <Square className="w-4 h-4" />
+                        <span>Все ({modalFilteredWords.length})</span>
+                      </>
+                    )}
+                  </button>
+
+                  {modalFilteredWords.length > 10 && (
                     <>
-                      <CheckSquare className="w-4 h-4 text-blue-600" />
-                      <span>Снять</span>
-                    </>
-                  ) : (
-                    <>
-                      <Square className="w-4 h-4" />
-                      <span>Все ({modalFilteredWords.length})</span>
+                      <span className="text-slate-300 dark:text-slate-700">|</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const shuffled = shuffleWords(modalFilteredWords);
+                          const picked = shuffled.slice(0, 10).map((w) => w.id);
+                          setSelectedWordIds(new Set(picked));
+                        }}
+                        className="text-slate-600 dark:text-slate-400 hover:text-purple-600 flex items-center gap-1 font-semibold cursor-pointer shrink-0"
+                        title="Выбрать 10 случайных слов для быстрой тренировки"
+                      >
+                        <Shuffle className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
+                        <span>10 вразброс</span>
+                      </button>
                     </>
                   )}
-                </button>
+                </div>
 
-                {modalFilteredWords.length > 10 && (
-                  <>
-                    <span className="text-slate-300 dark:text-slate-700">|</span>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const shuffled = shuffleWords(modalFilteredWords);
-                        const picked = shuffled.slice(0, 10).map((w) => w.id);
-                        setSelectedWordIds(new Set(picked));
-                      }}
-                      className="text-slate-600 dark:text-slate-400 hover:text-purple-600 flex items-center gap-1 font-semibold cursor-pointer"
-                      title="Выбрать 10 случайных слов для быстрой тренировки"
-                    >
-                      <Shuffle className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
-                      <span>10 вразброс</span>
-                    </button>
-                  </>
-                )}
-
-                <span className="text-slate-300 dark:text-slate-700">|</span>
-
-                <span className="text-slate-500 font-medium whitespace-nowrap">
-                  Выбрано: <strong className="text-slate-800 dark:text-slate-200 font-bold">{selectedWordIds.size}</strong>
-                </span>
+                <div className="flex items-center gap-1 shrink-0">
+                  <span className="text-slate-300 dark:text-slate-700">|</span>
+                  <span className="text-slate-500 font-medium whitespace-nowrap">
+                    Выбрано: <strong className="text-slate-800 dark:text-slate-200 font-bold">{selectedWordIds.size}</strong>
+                  </span>
+                </div>
               </div>
             </div>
 
@@ -1180,15 +1184,15 @@ export const ThematicDecksView: React.FC<ThematicDecksViewProps> = ({
                       <div
                         key={word.id}
                         onClick={() => toggleSelectWord(word.id)}
-                        className={`p-3 sm:p-3.5 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between gap-2.5 ${
+                        className={`p-3 sm:p-3.5 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between gap-2.5 min-w-0 w-full ${
                           isChecked
                             ? 'bg-blue-50/50 dark:bg-blue-950/25 border-blue-300 dark:border-blue-800 shadow-xs'
                             : 'bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
                         }`}
                       >
                         {/* Верхняя строка карточки */}
-                        <div className="flex items-center justify-between gap-2">
-                          <div className="flex items-center gap-2">
+                        <div className="flex items-center justify-between gap-2 min-w-0">
+                          <div className="flex items-center gap-2 shrink-0">
                             <input
                               type="checkbox"
                               checked={isChecked}
@@ -1201,7 +1205,7 @@ export const ThematicDecksView: React.FC<ThematicDecksViewProps> = ({
                             </span>
                           </div>
 
-                          <div className="flex items-center gap-1.5">
+                          <div className="flex items-center gap-1.5 shrink-0">
                             {word.root && (
                               <span
                                 dir="rtl"
@@ -1220,8 +1224,8 @@ export const ThematicDecksView: React.FC<ThematicDecksViewProps> = ({
                         </div>
 
                         {/* Центральный блок: Иврит, Транскрипция, ПОЛНЫЙ перевод */}
-                        <div className="space-y-1 my-0.5">
-                          <div className="flex items-baseline gap-2.5 flex-wrap">
+                        <div className="space-y-1 my-0.5 min-w-0">
+                          <div className="flex items-baseline gap-2.5 flex-wrap min-w-0">
                             <span
                               dir="rtl"
                               className={`font-bold text-slate-900 dark:text-white ${
@@ -1248,15 +1252,15 @@ export const ThematicDecksView: React.FC<ThematicDecksViewProps> = ({
 
                         {/* Нижняя панель действий */}
                         <div
-                          className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-700/60 gap-2"
+                          className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-700/60 gap-1.5 min-w-0"
                           onClick={(e) => e.stopPropagation()}
                         >
-                          <div>
+                          <div className="shrink-0">
                             {isVerb ? (
                               <button
                                 type="button"
                                 onClick={() => handleOpenPealim(word)}
-                                className="px-2.5 py-1 rounded-lg bg-indigo-50 dark:bg-indigo-950/50 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 text-[11px] font-bold flex items-center gap-1 border border-indigo-200 dark:border-indigo-800 transition"
+                                className="px-2 sm:px-2.5 py-1 rounded-lg bg-indigo-50 dark:bg-indigo-950/50 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 text-[11px] font-bold flex items-center gap-1 border border-indigo-200 dark:border-indigo-800 transition"
                                 title="Таблица спряжений и семья корня (Pealim)"
                               >
                                 <Sparkles className="w-3 h-3 text-indigo-500" />
@@ -1269,7 +1273,7 @@ export const ThematicDecksView: React.FC<ThematicDecksViewProps> = ({
                             )}
                           </div>
 
-                          <div className="flex items-center gap-1.5">
+                          <div className="flex items-center gap-1.5 shrink-0">
                             <button
                               type="button"
                               onClick={() => handleSpeak(word.hebrew, word.id)}
@@ -1287,7 +1291,7 @@ export const ThematicDecksView: React.FC<ThematicDecksViewProps> = ({
                               type="button"
                               onClick={() => !isWordInDict && handleAddSingleWord(word)}
                               disabled={isWordInDict}
-                              className={`p-1.5 px-2.5 rounded-lg text-xs font-semibold flex items-center gap-1 transition ${
+                              className={`p-1.5 px-2 sm:px-2.5 rounded-lg text-xs font-semibold flex items-center gap-1 transition ${
                                 isWordInDict
                                   ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 border border-emerald-200/60 dark:border-emerald-800/60'
                                   : 'bg-slate-100 dark:bg-slate-700/60 hover:bg-blue-50 hover:text-blue-600 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600'
@@ -1472,32 +1476,17 @@ export const ThematicDecksView: React.FC<ThematicDecksViewProps> = ({
             </div>
 
             {/* Футер модалки: Тренировать выбранные / Добавить выбранные */}
-            <div className="p-3 sm:p-5 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/95 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 shrink-0">
-              <div className="text-xs text-slate-500 font-medium">
+            <div className="p-3 sm:p-5 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/95 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 sm:gap-3 shrink-0">
+              <div className="text-xs text-slate-500 font-medium text-center sm:text-left">
                 Слов для тренировки:{' '}
                 <strong className="text-blue-600 dark:text-blue-400 font-bold">
                   {selectedWordIds.size} из {listModalDeck.words.length}
                 </strong>
               </div>
 
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    const selectedWords = listModalDeck.words.filter((w) => selectedWordIds.has(w.id));
-                    if (selectedWords.length > 0) {
-                      const newlyAdded = addBatchWordsToPersonalDict(selectedWords);
-                      onUpdateVocabulary(newlyAdded.updatedProfile.personalVocabulary);
-                    }
-                  }}
-                  disabled={selectedWordIds.size === 0}
-                  className="order-3 sm:order-1 px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-100 text-slate-700 dark:text-slate-200 text-xs font-bold flex items-center justify-center gap-1.5 transition disabled:opacity-50 cursor-pointer"
-                >
-                  <BookmarkPlus className="w-4 h-4 text-slate-500 dark:text-slate-400" />
-                  <span>В словарь ({selectedWordIds.size})</span>
-                </button>
-
-                <div className="flex items-center gap-2 order-1 sm:order-2">
+              {/* На мобильном: Сетка из 2 кнопок (Вразброс / В словарь) + большая главная кнопка Тренировать. На sm+: все 3 кнопки в один ряд */}
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center">
                   <button
                     type="button"
                     onClick={() => {
@@ -1512,10 +1501,10 @@ export const ThematicDecksView: React.FC<ThematicDecksViewProps> = ({
                       }
                     }}
                     disabled={selectedWordIds.size === 0}
-                    className="flex-1 sm:flex-initial px-3.5 py-2.5 rounded-xl border border-purple-200 dark:border-purple-800 bg-purple-50 dark:bg-purple-950/40 hover:bg-purple-100 dark:hover:bg-purple-900/60 disabled:opacity-50 text-purple-700 dark:text-purple-300 text-xs font-bold flex items-center justify-center gap-1.5 transition cursor-pointer"
+                    className="px-2 sm:px-3.5 py-2.5 rounded-xl border border-purple-200 dark:border-purple-800 bg-purple-50 dark:bg-purple-950/40 hover:bg-purple-100 dark:hover:bg-purple-900/60 disabled:opacity-50 text-purple-700 dark:text-purple-300 text-xs font-bold flex items-center justify-center gap-1.5 transition cursor-pointer"
                     title="Тренировать выбранные слова в случайном порядке (Shuffle)"
                   >
-                    <Shuffle className="w-4 h-4" />
+                    <Shuffle className="w-4 h-4 shrink-0" />
                     <span>Вразброс ({selectedWordIds.size})</span>
                   </button>
 
@@ -1524,27 +1513,43 @@ export const ThematicDecksView: React.FC<ThematicDecksViewProps> = ({
                     onClick={() => {
                       const selectedWords = listModalDeck.words.filter((w) => selectedWordIds.has(w.id));
                       if (selectedWords.length > 0) {
-                        onStartTraining(
-                          shuffleDecks
-                            ? shuffleWords(selectedWords)
-                            : sortWordsBySRSPriority(
-                                selectedWords,
-                                userProfile.flashcardStats,
-                                userProfile.flashcardProgress
-                              ),
-                          listModalDeck.title,
-                          shuffleDecks
-                        );
-                        handleCloseListModal();
+                        const newlyAdded = addBatchWordsToPersonalDict(selectedWords);
+                        onUpdateVocabulary(newlyAdded.updatedProfile.personalVocabulary);
                       }
                     }}
                     disabled={selectedWordIds.size === 0}
-                    className="flex-1 sm:flex-initial px-4 sm:px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-lg shadow-blue-500/25 transition active:scale-98 cursor-pointer"
+                    className="px-2 sm:px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-100 text-slate-700 dark:text-slate-200 text-xs font-bold flex items-center justify-center gap-1.5 transition disabled:opacity-50 cursor-pointer"
                   >
-                    <Play className="w-4 h-4 fill-current" />
-                    <span>{shuffleDecks ? 'Вразброс' : 'Тренировать'} ({selectedWordIds.size})</span>
+                    <BookmarkPlus className="w-4 h-4 text-slate-500 dark:text-slate-400 shrink-0" />
+                    <span>В словарь ({selectedWordIds.size})</span>
                   </button>
                 </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    const selectedWords = listModalDeck.words.filter((w) => selectedWordIds.has(w.id));
+                    if (selectedWords.length > 0) {
+                      onStartTraining(
+                        shuffleDecks
+                          ? shuffleWords(selectedWords)
+                          : sortWordsBySRSPriority(
+                              selectedWords,
+                              userProfile.flashcardStats,
+                              userProfile.flashcardProgress
+                            ),
+                        listModalDeck.title,
+                        shuffleDecks
+                      );
+                      handleCloseListModal();
+                    }
+                  }}
+                  disabled={selectedWordIds.size === 0}
+                  className="w-full sm:w-auto px-4 sm:px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-lg shadow-blue-500/25 transition active:scale-98 cursor-pointer"
+                >
+                  <Play className="w-4 h-4 fill-current shrink-0" />
+                  <span>{shuffleDecks ? 'Тренировать вразброс' : 'Тренировать'} ({selectedWordIds.size})</span>
+                </button>
               </div>
             </div>
           </div>
