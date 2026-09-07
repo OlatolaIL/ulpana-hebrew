@@ -159,7 +159,7 @@ export const LessonTheory: React.FC<LessonTheoryProps> = ({
   const isUlpan = Boolean(userProfile.ulpanMode);
 
   return (
-    <div data-font-style={userProfile.fontStyle || 'print'} className="space-y-4 sm:space-y-6 max-w-3xl mx-auto">
+    <div data-font-style={userProfile.fontStyle || 'print'} className="space-y-4 sm:space-y-6 max-w-3xl mx-auto pb-24">
       {/* Баннер режима Ульпан (Визуальное обучение) */}
       {isUlpan && (
         <div className="bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-950/40 dark:to-teal-950/40 border border-emerald-200/80 dark:border-emerald-800/60 rounded-2xl p-4 flex items-center justify-between gap-3 shadow-xs">
@@ -181,7 +181,7 @@ export const LessonTheory: React.FC<LessonTheoryProps> = ({
 
       {/* Краткое описание темы урока (только в стандартном режиме) */}
       {!isUlpan && lesson.description && (
-        <div className="px-1 text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 font-medium leading-relaxed">
+        <div className="px-1 text-sm sm:text-base text-zinc-600 dark:text-zinc-400 font-medium leading-relaxed">
           {renderFormattedText(
             lesson.description,
             handlePlay,
@@ -206,13 +206,13 @@ export const LessonTheory: React.FC<LessonTheoryProps> = ({
               {isUlpan ? `דִּקְדּוּק וּמִבְנֶה (${i + 1}): ${lesson.titleHebrew}` : topic.title}
             </h3>
             {!isUlpan && (
-              <p className="text-xs sm:text-sm text-zinc-500 font-medium">{topic.summary}</p>
+              <p className="text-sm text-zinc-500 dark:text-zinc-400 font-medium">{topic.summary}</p>
             )}
           </div>
 
           {/* Текст объяснения (в обычном режиме) */}
           {!isUlpan && (
-            <div className="text-xs sm:text-sm text-zinc-700 dark:text-zinc-300 leading-relaxed whitespace-pre-line">
+            <div className="text-sm sm:text-base text-zinc-700 dark:text-zinc-200 leading-relaxed whitespace-pre-line">
               {renderFormattedText(
                 topic.explanation,
                 handlePlay,
@@ -373,114 +373,258 @@ export const LessonTheory: React.FC<LessonTheoryProps> = ({
                       })}
                     </div>
                   ) : (
-                    /* СТАНДАРТНЫЙ РЕЖИМ: Таблица с русским переводом, транскрипцией и озвучкой */
-                    <div className="w-full overflow-x-auto rounded-xl sm:rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-xs">
-                      <table className="w-full text-left border-collapse min-w-[340px]">
-                        <thead className="bg-zinc-50 dark:bg-zinc-800/80 text-zinc-600 dark:text-zinc-300 text-[10px] sm:text-xs font-semibold uppercase">
-                          <tr>
-                            {table.headers.map((h, hIdx) => (
-                              <th
-                                key={hIdx}
-                                className="px-2.5 sm:px-4 py-2 sm:py-2.5 border-b border-zinc-200 dark:border-zinc-800"
-                              >
-                                {h}
-                              </th>
-                            ))}
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800/80">
-                          {table.rows.map((row, rIdx) => (
-                            <tr
-                              key={rIdx}
-                              className="hover:bg-zinc-50/70 dark:hover:bg-zinc-800/40 transition"
-                            >
-                              {row.map((cell, cIdx) => {
-                                const isHebrew = /[\u0590-\u05FF]/.test(cell);
-                                const cellKey = `table-${i}-${tIdx}-${rIdx}-${cIdx}`;
-                                const isPlaying = playingKey === cellKey;
-                                const colHeader = table.headers[cIdx] || '';
-                                const isPrimaryHebrewCol =
-                                  cIdx === 0 ||
-                                  colHeader.toLowerCase().includes('иврит') ||
-                                  colHeader.toLowerCase().includes('местоимение') ||
-                                  colHeader.toLowerCase().includes('глагол') ||
-                                  colHeader.toLowerCase().includes('форма') ||
-                                  colHeader.toLowerCase().includes('инфинитив');
+                    /* СТАНДАРТНЫЙ РЕЖИМ: Адаптивные карточки на смартфонах и таблица на десктопе */
+                    <div className="space-y-2.5">
+                      {/* МОБИЛЬНЫЙ ВИД: Карточки без горизонтальной прокрутки */}
+                      <div className="sm:hidden space-y-2">
+                        {table.rows.map((row, rIdx) => {
+                          const hebrewIdx = row.findIndex((c) => /[\u0590-\u05FF]/.test(c));
+                          const transIdx = table.headers.findIndex((h) => /транскрип|произнош/i.test(h));
+                          const translIdx = table.headers.findIndex((h) => /перевод|значен/i.test(h));
+                          const genderIdx =
+                            table.headers.findIndex((h) => /род/i.test(h)) !== -1
+                              ? table.headers.findIndex((h) => /род/i.test(h))
+                              : row.findIndex((c) => /^(Мужской|Женский|Общий)/i.test(c));
+                          const formIdx = table.headers.findIndex((h) => /форма/i.test(h));
 
-                                return (
-                                  <td
-                                    key={cIdx}
-                                    className="px-2.5 sm:px-4 py-2.5 sm:py-3 align-middle"
-                                  >
-                                    {cell === 'Мужской' ? (
-                                      <span className="inline-block px-2 py-0.5 rounded text-[11px] font-bold bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 whitespace-nowrap border border-blue-200/80 dark:border-blue-900/60">
-                                        Муж. ♂
-                                      </span>
-                                    ) : cell === 'Женский' ? (
-                                      <span className="inline-block px-2 py-0.5 rounded text-[11px] font-bold bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 whitespace-nowrap border border-rose-200/80 dark:border-rose-900/60">
-                                        Жен. ♀
-                                      </span>
-                                    ) : cell === 'Общий' ? (
-                                      <span className="inline-block px-2 py-0.5 rounded text-[11px] font-bold bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 whitespace-nowrap border border-zinc-200 dark:border-zinc-700">
-                                        Общ. ⚥
-                                      </span>
-                                    ) : isHebrew ? (
-                                      <div className="flex items-center justify-between gap-2 min-w-0">
-                                        <span
-                                          dir="rtl"
-                                          onClick={() => handlePlay(cell, cellKey)}
-                                          className={`min-w-0 cursor-pointer select-text hover:text-blue-600 dark:hover:text-blue-400 transition leading-snug ${
-                                            isPrimaryHebrewCol
-                                              ? isCursive
-                                                ? 'font-cursive text-xl sm:text-2xl font-bold text-blue-600 dark:text-blue-400'
-                                                : 'font-hebrew text-base sm:text-lg font-bold text-zinc-900 dark:text-zinc-50'
-                                              : isCursive
-                                              ? 'font-cursive text-lg sm:text-xl text-zinc-800 dark:text-zinc-200'
-                                              : 'font-hebrew text-sm sm:text-base text-zinc-800 dark:text-zinc-200'
-                                          }`}
-                                          title="Нажмите на текст, чтобы прослушать произношение"
-                                        >
-                                          {userProfile.showNikkud ? cell : stripNikkud(cell)}
-                                        </span>
-                                        <button
-                                          type="button"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            handlePlay(cell, cellKey);
-                                          }}
-                                          className={`p-1.5 rounded-xl shrink-0 transition-all cursor-pointer ${
-                                            isPlaying
-                                              ? 'bg-blue-600 text-white shadow-xs scale-110'
-                                              : 'text-zinc-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/60 dark:hover:text-blue-300 border border-transparent hover:border-blue-200 dark:hover:border-blue-900/60'
-                                          }`}
-                                          title="Прослушать произношение (как произносится)"
-                                          aria-label="Прослушать произношение"
-                                        >
-                                          <Volume2
-                                            className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${
-                                              isPlaying ? 'animate-pulse text-white' : ''
-                                            }`}
-                                          />
-                                        </button>
-                                      </div>
-                                    ) : (
-                                      <span className="text-xs sm:text-sm text-zinc-600 dark:text-zinc-300 leading-snug break-words font-medium">
-                                        {renderFormattedText(
-                                          cell,
-                                          handlePlay,
-                                          isCursive,
-                                          userProfile.showNikkud,
-                                          playingKey
-                                        )}
+                          const hebrewCell = hebrewIdx !== -1 ? row[hebrewIdx] : null;
+                          const transCell = transIdx !== -1 && transIdx !== hebrewIdx ? row[transIdx] : null;
+                          const translCell = translIdx !== -1 && translIdx !== hebrewIdx ? row[translIdx] : null;
+                          const genderCell = genderIdx !== -1 ? row[genderIdx] : null;
+                          const formCell = formIdx !== -1 && formIdx !== hebrewIdx ? row[formIdx] : null;
+
+                          const cellKey = `card-${i}-${tIdx}-${rIdx}`;
+                          const isPlaying = playingKey === cellKey;
+
+                          if (hebrewCell) {
+                            const badge = genderCell || (formCell && !formCell.includes(hebrewCell) ? formCell : null);
+                            const otherIndices = row.map((_, idx) => idx).filter(
+                              (idx) =>
+                                idx !== hebrewIdx &&
+                                idx !== transIdx &&
+                                idx !== translIdx &&
+                                idx !== genderIdx &&
+                                idx !== formIdx
+                            );
+
+                            return (
+                              <div
+                                key={rIdx}
+                                className="p-3.5 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-xs space-y-2"
+                              >
+                                <div className="flex items-center justify-between gap-2">
+                                  <div className="flex items-center gap-2 min-w-0">
+                                    <span
+                                      dir="rtl"
+                                      onClick={() => handlePlay(hebrewCell, cellKey)}
+                                      className={`cursor-pointer select-text transition leading-tight ${
+                                        isCursive
+                                          ? 'font-cursive text-2xl font-bold text-blue-600 dark:text-blue-400'
+                                          : 'font-hebrew text-xl font-bold text-zinc-900 dark:text-zinc-50 hover:text-blue-600 dark:hover:text-blue-400'
+                                      }`}
+                                      title="Нажмите на текст, чтобы прослушать произношение"
+                                    >
+                                      {userProfile.showNikkud ? hebrewCell : stripNikkud(hebrewCell)}
+                                    </span>
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handlePlay(hebrewCell, cellKey);
+                                      }}
+                                      className={`p-1.5 rounded-xl shrink-0 transition-all cursor-pointer ${
+                                        isPlaying
+                                          ? 'bg-blue-600 text-white shadow-xs scale-110'
+                                          : 'text-zinc-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/60 dark:hover:text-blue-300'
+                                      }`}
+                                      title="Прослушать произношение"
+                                    >
+                                      <Volume2
+                                        className={`w-4 h-4 ${isPlaying ? 'animate-pulse text-white' : ''}`}
+                                      />
+                                    </button>
+                                    {transCell && userProfile.showTranscription && (
+                                      <span className="text-xs font-semibold text-blue-600 dark:text-blue-400">
+                                        [{transCell}]
                                       </span>
                                     )}
-                                  </td>
-                                );
-                              })}
+                                  </div>
+
+                                  {badge && (
+                                    <span
+                                      className={`px-2 py-0.5 rounded-lg text-[11px] font-bold shrink-0 border ${
+                                        badge.includes('Муж')
+                                          ? 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border-blue-200/80 dark:border-blue-900/60'
+                                          : badge.includes('Жен')
+                                          ? 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border-rose-200/80 dark:border-rose-900/60'
+                                          : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 border-zinc-200 dark:border-zinc-700'
+                                      }`}
+                                    >
+                                      {badge === 'Мужской'
+                                        ? 'Муж. ♂'
+                                        : badge === 'Женский'
+                                        ? 'Жен. ♀'
+                                        : badge === 'Общий'
+                                        ? 'Общ. ⚥'
+                                        : badge}
+                                    </span>
+                                  )}
+                                </div>
+
+                                {translCell && (
+                                  <div className="text-sm font-medium text-zinc-700 dark:text-zinc-200">
+                                    {renderFormattedText(
+                                      translCell,
+                                      handlePlay,
+                                      isCursive,
+                                      userProfile.showNikkud,
+                                      playingKey
+                                    )}
+                                  </div>
+                                )}
+
+                                {otherIndices.length > 0 && (
+                                  <div className="pt-1.5 border-t border-zinc-100 dark:border-zinc-800/80 flex flex-wrap gap-x-3 gap-y-1 text-xs text-zinc-500">
+                                    {otherIndices.map((idx) => (
+                                      <span key={idx}>
+                                        <strong className="text-zinc-400">{table.headers[idx]}:</strong>{' '}
+                                        {row[idx]}
+                                      </span>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          }
+
+                          // Карточка для строк без иврита
+                          return (
+                            <div
+                              key={rIdx}
+                              className="p-3 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-xs space-y-1.5"
+                            >
+                              {row.map((cell, cIdx) => (
+                                <div key={cIdx} className="text-xs flex justify-between gap-2">
+                                  <span className="text-zinc-400 font-semibold">{table.headers[cIdx]}:</span>
+                                  <span className="text-zinc-800 dark:text-zinc-200 font-medium text-right">
+                                    {cell}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {/* ДЕСКТОПНЫЙ ВИД: Полноразмерная таблица */}
+                      <div className="hidden sm:block w-full overflow-x-auto rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-xs">
+                        <table className="w-full text-left border-collapse">
+                          <thead className="bg-zinc-50 dark:bg-zinc-800/80 text-zinc-600 dark:text-zinc-300 text-xs font-semibold uppercase">
+                            <tr>
+                              {table.headers.map((h, hIdx) => (
+                                <th
+                                  key={hIdx}
+                                  className="px-4 py-2.5 border-b border-zinc-200 dark:border-zinc-800"
+                                >
+                                  {h}
+                                </th>
+                              ))}
                             </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                          </thead>
+                          <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800/80">
+                            {table.rows.map((row, rIdx) => (
+                              <tr
+                                key={rIdx}
+                                className="hover:bg-zinc-50/70 dark:hover:bg-zinc-800/40 transition"
+                              >
+                                {row.map((cell, cIdx) => {
+                                  const isHebrew = /[\u0590-\u05FF]/.test(cell);
+                                  const cellKey = `table-${i}-${tIdx}-${rIdx}-${cIdx}`;
+                                  const isPlaying = playingKey === cellKey;
+                                  const colHeader = table.headers[cIdx] || '';
+                                  const isPrimaryHebrewCol =
+                                    cIdx === 0 ||
+                                    colHeader.toLowerCase().includes('иврит') ||
+                                    colHeader.toLowerCase().includes('местоимение') ||
+                                    colHeader.toLowerCase().includes('глагол') ||
+                                    colHeader.toLowerCase().includes('форма') ||
+                                    colHeader.toLowerCase().includes('инфинитив');
+
+                                  return (
+                                    <td
+                                      key={cIdx}
+                                      className="px-4 py-3 align-middle"
+                                    >
+                                      {cell === 'Мужской' ? (
+                                        <span className="inline-block px-2 py-0.5 rounded text-[11px] font-bold bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 whitespace-nowrap border border-blue-200/80 dark:border-blue-900/60">
+                                          Муж. ♂
+                                        </span>
+                                      ) : cell === 'Женский' ? (
+                                        <span className="inline-block px-2 py-0.5 rounded text-[11px] font-bold bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 whitespace-nowrap border border-rose-200/80 dark:border-rose-900/60">
+                                          Жен. ♀
+                                        </span>
+                                      ) : cell === 'Общий' ? (
+                                        <span className="inline-block px-2 py-0.5 rounded text-[11px] font-bold bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 whitespace-nowrap border border-zinc-200 dark:border-zinc-700">
+                                          Общ. ⚥
+                                        </span>
+                                      ) : isHebrew ? (
+                                        <div className="flex items-center justify-between gap-2 min-w-0">
+                                          <span
+                                            dir="rtl"
+                                            onClick={() => handlePlay(cell, cellKey)}
+                                            className={`min-w-0 cursor-pointer select-text hover:text-blue-600 dark:hover:text-blue-400 transition leading-snug ${
+                                              isPrimaryHebrewCol
+                                                ? isCursive
+                                                  ? 'font-cursive text-2xl font-bold text-blue-600 dark:text-blue-400'
+                                                  : 'font-hebrew text-lg font-bold text-zinc-900 dark:text-zinc-50'
+                                                : isCursive
+                                                ? 'font-cursive text-xl text-zinc-800 dark:text-zinc-200'
+                                                : 'font-hebrew text-base text-zinc-800 dark:text-zinc-200'
+                                            }`}
+                                            title="Нажмите на текст, чтобы прослушать произношение"
+                                          >
+                                            {userProfile.showNikkud ? cell : stripNikkud(cell)}
+                                          </span>
+                                          <button
+                                            type="button"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              handlePlay(cell, cellKey);
+                                            }}
+                                            className={`p-1.5 rounded-xl shrink-0 transition-all cursor-pointer ${
+                                              isPlaying
+                                                ? 'bg-blue-600 text-white shadow-xs scale-110'
+                                                : 'text-zinc-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/60 dark:hover:text-blue-300 border border-transparent hover:border-blue-200 dark:hover:border-blue-900/60'
+                                            }`}
+                                            title="Прослушать произношение (как произносится)"
+                                            aria-label="Прослушать произношение"
+                                          >
+                                            <Volume2
+                                              className={`w-4 h-4 ${
+                                                isPlaying ? 'animate-pulse text-white' : ''
+                                              }`}
+                                            />
+                                          </button>
+                                        </div>
+                                      ) : (
+                                        <span className="text-sm text-zinc-700 dark:text-zinc-300 leading-snug break-words font-medium">
+                                          {renderFormattedText(
+                                            cell,
+                                            handlePlay,
+                                            isCursive,
+                                            userProfile.showNikkud,
+                                            playingKey
+                                          )}
+                                        </span>
+                                      )}
+                                    </td>
+                                  );
+                                })}
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -555,7 +699,7 @@ export const LessonTheory: React.FC<LessonTheoryProps> = ({
                         className={`font-bold cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition ${
                           isCursive
                             ? 'font-cursive text-2xl md:text-3xl text-blue-600 dark:text-blue-400'
-                            : 'font-hebrew text-lg text-zinc-900 dark:text-zinc-50'
+                            : 'font-hebrew text-xl sm:text-2xl text-zinc-900 dark:text-zinc-50'
                         }`}
                         title="Нажмите на предложение, чтобы прослушать произношение"
                       >
@@ -565,7 +709,7 @@ export const LessonTheory: React.FC<LessonTheoryProps> = ({
 
                     {/* Транскрипция (только вне режима Ульпан) */}
                     {!isUlpan && userProfile.showTranscription && sentence.transcription && (
-                      <p className="text-xs font-semibold text-blue-600 dark:text-blue-400">
+                      <p className="text-xs sm:text-sm font-semibold text-blue-600 dark:text-blue-400">
                         [{sentence.transcription}]
                       </p>
                     )}
@@ -595,7 +739,7 @@ export const LessonTheory: React.FC<LessonTheoryProps> = ({
                       </div>
                     ) : (
                       sentence.translation && (
-                        <p className="text-xs text-zinc-600 dark:text-zinc-300 font-medium">
+                        <p className="text-sm sm:text-base text-zinc-700 dark:text-zinc-200 font-medium">
                           {sentence.translation}
                         </p>
                       )
@@ -636,15 +780,15 @@ export const LessonTheory: React.FC<LessonTheoryProps> = ({
         </button>
       </div>
 
-      {/* БОКОВОЙ ЯРЛЫЧОК ШТОРКИ (Floating Drawer Tab справа) */}
+      {/* ПЛАВАЮЩАЯ КНОПКА ШТОРКИ ЖИВОЙ РЕЧИ (Внизу экрана в удобной зоне большого пальца) */}
       <button
         type="button"
         onClick={() => setIsSpokenDrawerOpen(true)}
-        className="fixed right-0 top-1/2 -translate-y-1/2 z-40 bg-gradient-to-b from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-bold px-2 py-3.5 rounded-l-2xl shadow-xl border-y border-l border-amber-400/80 flex flex-col items-center gap-1.5 transition active:scale-95 cursor-pointer group hover:pr-3"
+        className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-40 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-bold px-4 py-2.5 rounded-full shadow-lg border border-amber-400/80 flex items-center gap-2 transition active:scale-95 cursor-pointer group hover:shadow-amber-500/25"
         title="Открыть шторку живой речи и ударений"
       >
-        <span className="text-base group-hover:scale-125 transition-transform duration-200">🗣️</span>
-        <span className="text-[10px] uppercase tracking-wider [writing-mode:vertical-rl] rotate-180 font-extrabold text-amber-50">
+        <span className="text-lg group-hover:scale-110 transition-transform duration-200">🗣️</span>
+        <span className="text-xs sm:text-sm font-bold text-amber-50">
           {isUlpan ? 'שְׂפַת דִּבּוּר' : 'Живая речь'}
         </span>
       </button>

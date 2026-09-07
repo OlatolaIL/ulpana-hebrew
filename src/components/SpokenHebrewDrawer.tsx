@@ -60,18 +60,21 @@ export const SpokenHebrewDrawer: React.FC<SpokenHebrewDrawerProps> = ({
   };
 
   return createPortal(
-    <div className="fixed inset-0 z-[9999] flex justify-end">
+    <div className="fixed inset-0 z-[9999] flex items-end sm:items-stretch sm:justify-end">
       {/* Затемненный фон (Backdrop) */}
       <div
         className="fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity duration-200 cursor-pointer"
         onClick={onClose}
       />
 
-      {/* Выезжающая панель шторки */}
+      {/* Выезжающая панель шторки (снизу на смартфонах, сбоку на десктопе) */}
       <div
-        className="relative z-10 w-[90vw] max-w-sm sm:max-w-md h-full bg-white dark:bg-zinc-900 shadow-2xl flex flex-col border-l border-zinc-200 dark:border-zinc-800 animate-in slide-in-from-right duration-200"
+        className="relative z-10 w-full sm:w-[90vw] sm:max-w-md max-h-[85vh] sm:max-h-full h-auto sm:h-full bg-white dark:bg-zinc-900 shadow-2xl flex flex-col rounded-t-3xl sm:rounded-none border-t sm:border-t-0 sm:border-l border-zinc-200 dark:border-zinc-800 animate-in slide-in-from-bottom sm:slide-in-from-right duration-200"
         onClick={(e) => e.stopPropagation()}
       >
+        {/* Индикатор смахивания вниз для мобильных (Pull handle) */}
+        <div className="sm:hidden w-12 h-1.5 bg-zinc-300 dark:bg-zinc-700 rounded-full mx-auto mt-3 mb-1 shrink-0" />
+
         {/* Шапка шторки */}
         <div className="p-4 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between bg-white dark:bg-zinc-900 shrink-0">
           <div className="flex items-center gap-3 min-w-0">
