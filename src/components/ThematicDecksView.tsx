@@ -1062,15 +1062,15 @@ export const ThematicDecksView: React.FC<ThematicDecksViewProps> = ({
             </div>
 
             {/* Фильтр поиска по списку и массовые операции */}
-            <div className="p-2.5 sm:p-4 border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2.5 shrink-0">
-              <div className="flex items-center gap-2 flex-1">
-                <div className="relative flex-1 sm:max-w-xs">
+            <div className="p-2.5 sm:p-4 border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 shrink-0">
+              <div className="flex items-center gap-2 flex-1 min-w-0">
+                <div className="relative flex-1 min-w-0">
                   <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                   <input
                     type="text"
                     value={modalSearch}
                     onChange={(e) => setModalSearch(e.target.value)}
-                    placeholder="Фильтр по слову, переводу или корню..."
+                    placeholder="Поиск по слову или переводу..."
                     className="w-full pl-9 pr-3 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none dark:text-white"
                   />
                 </div>
@@ -1080,7 +1080,7 @@ export const ThematicDecksView: React.FC<ThematicDecksViewProps> = ({
                   <button
                     type="button"
                     onClick={() => setModalViewMode('cards')}
-                    className={`px-2 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1 ${
+                    className={`p-1.5 sm:px-2 sm:py-1 rounded-lg text-xs font-bold transition flex items-center gap-1 ${
                       modalViewMode === 'cards'
                         ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-xs'
                         : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
@@ -1093,7 +1093,7 @@ export const ThematicDecksView: React.FC<ThematicDecksViewProps> = ({
                   <button
                     type="button"
                     onClick={() => setModalViewMode('table')}
-                    className={`px-2 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1 ${
+                    className={`p-1.5 sm:px-2 sm:py-1 rounded-lg text-xs font-bold transition flex items-center gap-1 ${
                       modalViewMode === 'table'
                         ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-xs'
                         : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
@@ -1106,7 +1106,7 @@ export const ThematicDecksView: React.FC<ThematicDecksViewProps> = ({
                 </div>
               </div>
 
-              <div className="flex items-center justify-between md:justify-end gap-2 text-xs flex-wrap">
+              <div className="flex items-center justify-between sm:justify-end gap-1.5 sm:gap-2 text-xs flex-wrap">
                 <button
                   type="button"
                   onClick={() => toggleSelectAllModalWords(modalFilteredWords)}
@@ -1146,7 +1146,7 @@ export const ThematicDecksView: React.FC<ThematicDecksViewProps> = ({
 
                 <span className="text-slate-300 dark:text-slate-700">|</span>
 
-                <span className="text-slate-500 font-medium">
+                <span className="text-slate-500 font-medium whitespace-nowrap">
                   Выбрано: <strong className="text-slate-800 dark:text-slate-200 font-bold">{selectedWordIds.size}</strong>
                 </span>
               </div>
@@ -1221,7 +1221,7 @@ export const ThematicDecksView: React.FC<ThematicDecksViewProps> = ({
 
                         {/* Центральный блок: Иврит, Транскрипция, ПОЛНЫЙ перевод */}
                         <div className="space-y-1 my-0.5">
-                          <div className="flex items-baseline justify-between gap-2 flex-wrap">
+                          <div className="flex items-baseline gap-2.5 flex-wrap">
                             <span
                               dir="rtl"
                               className={`font-bold text-slate-900 dark:text-white ${
