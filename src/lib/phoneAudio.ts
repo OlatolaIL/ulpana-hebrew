@@ -3,6 +3,8 @@
  * Работает без внешних mp3 файлов, мгновенная загрузка, совместимо с iOS/Android Safari и Chrome.
  */
 
+import { notifyAudioBlocked } from './audioNotifier';
+
 class PhoneAudioEngine {
   private ctx: AudioContext | null = null;
   private ringingInterval: any = null;
@@ -18,7 +20,11 @@ class PhoneAudioEngine {
       }
     }
     if (this.ctx && this.ctx.state === 'suspended') {
-      this.ctx.resume().catch(() => {});
+      this.ctx.resume().catch((err: any) => {
+        if (err?.name === 'NotAllowedError') {
+          notifyAudioBlocked('audiocontext_suspended');
+        }
+      });
     }
     return this.ctx;
   }

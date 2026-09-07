@@ -32,11 +32,14 @@ import {
   User as UserIcon,
   Lightbulb,
   BookmarkPlus,
+  Smartphone,
+  HelpCircle,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { Lesson, UserProfile, Word, ChatMessage, PhoneDebriefReport } from '@/types';
 import { getLessonPhoneScenario } from '@/data/phoneScenarios';
 import { phoneAudio } from '@/lib/phoneAudio';
+import { unlockAudio } from '@/lib/audioNotifier';
 import { speakHebrew, stopSpeech, HebrewSpeechRecognizer, isWhisperSilenceHallucination } from '@/lib/speech';
 import { stripNikkud } from '@/lib/transcription';
 import {
@@ -88,6 +91,8 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
   const [showDialogueReviewModal, setShowDialogueReviewModal] = useState(false);
   const [debriefReport, setDebriefReport] = useState<PhoneDebriefReport | null>(null);
   const [loadingDebrief, setLoadingDebrief] = useState(false);
+  const [showAudioHelp, setShowAudioHelp] = useState(false);
+  const [audioHelpUnlocked, setAudioHelpUnlocked] = useState(false);
 
   const recognizerRef = useRef<HebrewSpeechRecognizer | null>(null);
   const activeMicStreamRef = useRef<MediaStream | null>(null);
@@ -839,6 +844,21 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
               </button>
             )}
 
+            {/* Совет по звуку для мобильных устройств */}
+            <div className="w-full bg-amber-500/10 border border-amber-500/30 rounded-2xl p-3 mb-4 text-left text-xs text-amber-200/90 flex items-start gap-2.5">
+              <Smartphone className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+              <div className="min-w-0">
+                <span className="font-bold text-amber-300">
+                  {userProfile.ulpanMode ? '💡 שִׂימוּ לֵב לַשֵּׁמַע:' : '💡 Совет перед звонком:'}{' '}
+                </span>
+                <span>
+                  {userProfile.ulpanMode
+                    ? 'אִם אֵין קוֹל, וַדְּאוּ שֶׁמַּצַּב רֶטֶט/הַשְׁתָּקָה (Silent) בַּטֶּלֶפוֹן מְכֻבֶּה וְעָצְמַת הַשֵּׁמַע מוּרֶמֶת.'
+                    : 'На телефоне убедитесь, что выключен беззвучный режим (переключатель Silent сбоку на iPhone) и включена громкость.'}
+                </span>
+              </div>
+            </div>
+
             {/* Кнопка запуска звонка */}
             <button
               onClick={handleStartCall}
@@ -930,8 +950,23 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
               </div>
             </div>
 
-            {/* Быстрые переключатели: Субтитры */}
+            {/* Быстрые переключатели: Субтитры и Помощь по звуку */}
             <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setAudioHelpUnlocked(false);
+                  setShowAudioHelp(true);
+                }}
+                className="px-2.5 py-1.5 rounded-xl border border-zinc-700/80 bg-zinc-800/80 hover:bg-zinc-800 text-zinc-300 hover:text-white hover:border-amber-500/50 text-xs font-medium flex items-center gap-1.5 transition cursor-pointer"
+                title={userProfile.ulpanMode ? 'עֶזְרָה בְּשֵׁמַע' : 'Не слышно собеседника?'}
+              >
+                <Volume2 className="w-3.5 h-3.5 text-amber-400" />
+                <span className="text-[11px] font-hebrew">
+                  {userProfile.ulpanMode ? 'אֵין קוֹל?' : 'Не слышно?'}
+                </span>
+              </button>
+
               <button
                 onClick={() => setShowSubtitles(!showSubtitles)}
                 className={`px-2.5 py-1.5 rounded-xl border text-xs font-medium flex items-center gap-1.5 transition cursor-pointer ${
@@ -1929,6 +1964,111 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
                 className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
               >
                 <span>{userProfile.ulpanMode ? 'סְגִירָה' : 'Закрыть'}</span>
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* 8. МОДАЛЬНОЕ ОКНО ПОМОЩИ: НЕ СЛЫШНО СОБЕСЕДНИКА */}
+      {mounted && showAudioHelp && typeof document !== 'undefined' && createPortal(
+        <div
+          className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-5 bg-black/75 backdrop-blur-sm animate-in fade-in duration-200 font-sans"
+          onClick={() => setShowAudioHelp(false)}
+        >
+          <div
+            className="relative w-full max-w-md bg-zinc-900 border border-zinc-700/80 text-white rounded-3xl shadow-2xl flex flex-col overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Заголовок */}
+            <div className="px-5 py-4 border-b border-zinc-800 flex items-center justify-between bg-zinc-900/90">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center justify-center">
+                  <Volume2 className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm sm:text-base text-zinc-100 font-hebrew">
+                    {userProfile.ulpanMode ? 'אֵין קוֹל בַּשִּׂיחָה? מַה לַּעֲשׂוֹת' : 'Не слышно собеседника?'}
+                  </h3>
+                  <p className="text-[11px] text-zinc-400">
+                    {userProfile.ulpanMode ? 'בְּדִיקַת שֵׁמַע וְהַגְדָּרוֹת' : 'Быстрая проверка звука на устройстве'}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowAudioHelp(false)}
+                className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 transition"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Пункты проверки */}
+            <div className="p-5 space-y-3.5 text-xs text-zinc-300">
+              <div className="flex items-start gap-3 p-3 rounded-2xl bg-zinc-800/60 border border-zinc-700/50">
+                <Smartphone className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                <div>
+                  <span className="font-bold text-zinc-100 block mb-0.5">
+                    1. Переключатель Silent Mode (iPhone)
+                  </span>
+                  <span>
+                    На левой грани iPhone переведите тумблер в обычный режим (оранжевая полоска не должна быть видна). В бесшумном режиме iOS полностью глушит голос бота.
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3 p-3 rounded-2xl bg-zinc-800/60 border border-zinc-700/50">
+                <Volume2 className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
+                <div>
+                  <span className="font-bold text-zinc-100 block mb-0.5">
+                    2. Громкость мультимедиа
+                  </span>
+                  <span>
+                    Нажмите физическую кнопку громкости «+» на корпусе устройства прямо сейчас.
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3 p-3 rounded-2xl bg-zinc-800/60 border border-zinc-700/50">
+                <Headphones className="w-4 h-4 text-purple-400 shrink-0 mt-0.5" />
+                <div>
+                  <span className="font-bold text-zinc-100 block mb-0.5">
+                    3. Наушники и Bluetooth
+                  </span>
+                  <span>
+                    Проверьте, не подключен ли телефон к беспроводным наушникам в чехле или колонке в другой комнате.
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Действие: принудительная разблокировка звука в браузере */}
+            <div className="p-4 border-t border-zinc-800 bg-zinc-950/50 flex flex-col gap-2">
+              <button
+                type="button"
+                onClick={async () => {
+                  await unlockAudio();
+                  await phoneAudio.playPickupSound();
+                  setAudioHelpUnlocked(true);
+                }}
+                className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 active:scale-[0.98] text-white font-bold text-xs flex items-center justify-center gap-2 shadow-md shadow-amber-500/20 transition cursor-pointer"
+              >
+                <Volume2 className="w-4 h-4" />
+                <span>
+                  {audioHelpUnlocked
+                    ? '✓ Звук активирован! Проверьте громкость'
+                    : 'Включить и проверить звук в браузере 🔊'}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setShowAudioHelp(false)}
+                className="w-full py-2 px-3 rounded-xl border border-zinc-700 text-xs font-semibold text-zinc-400 hover:text-white hover:bg-zinc-800 transition text-center"
+              >
+                Понятно, вернуться к звонку
               </button>
             </div>
           </div>

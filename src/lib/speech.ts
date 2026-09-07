@@ -3,6 +3,7 @@
  */
 
 import { stripNikkud } from './transcription';
+import { notifyAudioBlocked } from './audioNotifier';
 
 let preferredHebrewVoice: SpeechSynthesisVoice | null = null;
 let activeUtterance: SpeechSynthesisUtterance | null = null;
@@ -157,7 +158,12 @@ export function playFallbackAudio(text: string, rate: number = 0.75): Promise<vo
 
       const playPromise = audio.play();
       if (playPromise !== undefined) {
-        playPromise.catch(() => finish());
+        playPromise.catch((err: any) => {
+          if (err?.name === 'NotAllowedError') {
+            notifyAudioBlocked('audio_play_not_allowed');
+          }
+          finish();
+        });
       }
 
       fallbackTimeout = setTimeout(finish, 6000);
@@ -279,6 +285,9 @@ export function speakHebrew(
           finish();
           return;
         }
+        if (e.error === 'not-allowed') {
+          notifyAudioBlocked('tts_not_allowed');
+        }
         console.warn('Browser TTS error, using audio fallback:', e);
         playFallbackAudio(speechText, rate).then(() => finish());
       };
@@ -308,7 +317,10 @@ export function speakHebrew(
           if (window.speechSynthesis.paused) {
             window.speechSynthesis.resume();
           }
-        } catch (err) {
+        } catch (err: any) {
+          if (err?.name === 'NotAllowedError') {
+            notifyAudioBlocked('tts_not_allowed');
+          }
           if (speechSafetyTimer) {
             clearTimeout(speechSafetyTimer);
             speechSafetyTimer = null;
@@ -316,7 +328,10 @@ export function speakHebrew(
           playFallbackAudio(speechText, rate).then(() => finish());
         }
       }, 15);
-    } catch {
+    } catch (err: any) {
+      if (err?.name === 'NotAllowedError') {
+        notifyAudioBlocked('tts_not_allowed');
+      }
       if (speechSafetyTimer) {
         clearTimeout(speechSafetyTimer);
         speechSafetyTimer = null;

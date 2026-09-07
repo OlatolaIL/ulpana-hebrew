@@ -593,7 +593,7 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
 
         {/* Для типа listening: кнопка прослушивания аудио */}
         {currentEx.type === 'listening' && (
-          <div className="flex justify-center py-2">
+          <div className="flex flex-col items-center justify-center py-2 gap-2">
             <button
               type="button"
               onClick={() => {
@@ -611,6 +611,11 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
               <Volume2 className="w-5 h-5" />
               <span>{isUlpan ? '🔊 לַחֲצוּ לַהַשְׁמָעַת שְׁמִיעָה' : '🔊 Нажмите, чтобы прослушать аудио'}</span>
             </button>
+            <p className="text-[11px] text-zinc-400 dark:text-zinc-500 text-center font-hebrew">
+              {isUlpan
+                ? '💡 אִם אֵין קוֹל: בִּדְקוּ שֶׁהַטֶּלֶפוֹן אֵינוֹ בְּמַצַּב הַשְׁתָּקָה (Silent) וְעָצְמַת הַשֵּׁמַע פְּעִילָה'
+                : '💡 Не слышно? Проверьте громкость и Silent Switch (беззвучный режим) на телефоне'}
+            </p>
           </div>
         )}
 
