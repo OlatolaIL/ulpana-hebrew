@@ -2,22 +2,17 @@
 
 import React, { useState, useMemo } from 'react';
 import {
-  CheckCircle,
   CheckCircle2,
-  Search,
   RotateCcw,
   ChevronRight,
-  Sparkles,
   Target,
-  Layers,
   ArrowRight,
   Play,
-  Filter,
 } from 'lucide-react';
 import { LESSONS_CATALOG } from '@/data/lessonsData';
 import { Level, UserProfile } from '@/types';
 import { stripNikkud } from '@/lib/transcription';
-import { isLessonLockedForUser, IS_EARLY_ACCESS_FREE } from '@/lib/config';
+import { isLessonLockedForUser } from '@/lib/config';
 
 interface CourseMapProps {
   userProfile: UserProfile;
@@ -113,15 +108,29 @@ export const CourseMap: React.FC<CourseMapProps> = ({
     return getInitialDecadeForLevel(currentLesson.level);
   });
 
-  // Фильтр по статусу прохождения
-  const [statusFilter, setStatusFilter] = useState<'all' | 'uncompleted' | 'completed'>('all');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
-
   // Переключение уровня с авто-фокусом на актуальный блок
   const handleLevelChange = (lvl: Level) => {
     setSelectedLevel(lvl);
     setSelectedDecade(getInitialDecadeForLevel(lvl));
+  };
+
+  // Мгновенный переход к текущему уроку («Где я»)
+  const handleScrollToCurrentLesson = () => {
+    if (selectedLevel !== currentLesson.level) {
+      setSelectedLevel(currentLesson.level);
+    }
+    const d = DECADES_BY_LEVEL[currentLesson.level].find(
+      (dec) => currentLesson.id >= dec.range[0] && currentLesson.id <= dec.range[1]
+    );
+    if (d) {
+      setSelectedDecade(d.id);
+    }
+    setTimeout(() => {
+      const el = document.getElementById(`lesson-card-${currentLesson.id}`);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }, 60);
   };
 
   // Статистика прохождения по блокам (десятилетиям)
@@ -138,14 +147,12 @@ export const CourseMap: React.FC<CourseMapProps> = ({
     return stats;
   }, [userProfile.completedLessons]);
 
-  // Фильтрация каталога
+  // Фильтрация каталога: только уровень и выбранный блок
   const filteredCatalog = useMemo(() => {
     return LESSONS_CATALOG.filter((lesson) => {
-      // Уровень
       if (lesson.level !== selectedLevel) return false;
 
-      // Десятилетие (если не выбрано 'all' и пользователь не ищет через строку поиска)
-      if (!searchQuery.trim() && selectedDecade !== 'all') {
+      if (selectedDecade !== 'all') {
         const activeDecadeObj = DECADES_BY_LEVEL[selectedLevel].find((d) => d.id === selectedDecade);
         if (activeDecadeObj) {
           if (lesson.id < activeDecadeObj.range[0] || lesson.id > activeDecadeObj.range[1]) {
@@ -154,36 +161,9 @@ export const CourseMap: React.FC<CourseMapProps> = ({
         }
       }
 
-      // Фильтр статуса
-      const isCompleted = userProfile.completedLessons.includes(lesson.id);
-      if (statusFilter === 'uncompleted' && isCompleted) return false;
-      if (statusFilter === 'completed' && !isCompleted) return false;
-
-      // Поиск
-      if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase().trim();
-        const matchesSearch =
-          lesson.titleRussian.toLowerCase().includes(q) ||
-          lesson.titleHebrew.includes(q) ||
-          lesson.description.toLowerCase().includes(q) ||
-          lesson.number.toString() === q;
-        if (!matchesSearch) return false;
-      }
-
-      // Категория
-      if (selectedCategory !== 'all' && lesson.category !== selectedCategory) {
-        return false;
-      }
-
       return true;
     });
-  }, [selectedLevel, selectedDecade, statusFilter, searchQuery, selectedCategory, userProfile.completedLessons]);
-
-  const categories = useMemo(() => {
-    return Array.from(
-      new Set(LESSONS_CATALOG.filter((l) => l.level === selectedLevel).map((l) => l.category))
-    );
-  }, [selectedLevel]);
+  }, [selectedLevel, selectedDecade]);
 
   const completedCount = userProfile.completedLessons.length;
   const alefCompleted = userProfile.completedLessons.filter((id) => id <= 50).length;
@@ -281,65 +261,59 @@ export const CourseMap: React.FC<CourseMapProps> = ({
         </div>
       </div>
 
-      {/* 3. Переключатель уровней Алеф / Бет */}
-      <div className="grid grid-cols-2 gap-2 p-1 bg-zinc-200/70 dark:bg-zinc-800/70 rounded-2xl">
-        <button
-          onClick={() => handleLevelChange('alef')}
-          className={`py-2.5 px-3 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition ${
-            selectedLevel === 'alef'
-              ? 'bg-white dark:bg-zinc-900 text-blue-600 dark:text-blue-400 shadow-sm'
-              : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100'
-          }`}
-        >
-          <span>{isUlpan ? 'רָמָה א׳ (1–50)' : 'Алеф (1–50)'}</span>
-          <span
-            className={`px-1.5 py-0.5 rounded-md text-[10px] font-bold ${
-              selectedLevel === 'alef'
-                ? 'bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300'
-                : 'bg-zinc-300/60 dark:bg-zinc-700/60 text-zinc-600 dark:text-zinc-400'
-            }`}
-          >
-            {alefCompleted}/50
-          </span>
-        </button>
+      {/* 2. Единая компактная панель навигации: Уровни (א / ב), Десятки и кнопка «Где я» */}
+      <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-2 sm:p-2.5 shadow-sm space-y-2">
+        <div className="flex items-center justify-between gap-2">
+          {/* Переключатель уровней: Алеф (א) и Бет (ב) */}
+          <div className="flex items-center p-0.5 bg-zinc-100 dark:bg-zinc-800 rounded-xl shrink-0">
+            <button
+              onClick={() => handleLevelChange('alef')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition ${
+                selectedLevel === 'alef'
+                  ? 'bg-white dark:bg-zinc-900 text-blue-600 dark:text-blue-400 shadow-xs'
+                  : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200'
+              }`}
+            >
+              <span className="font-hebrew text-base font-black leading-none">א</span>
+              <span>{isUlpan ? 'רָמָה א׳' : 'Алеф'}</span>
+              <span className={`text-[10px] px-1 py-0.2 rounded-md font-semibold ${
+                selectedLevel === 'alef' ? 'bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300' : 'text-zinc-400'
+              }`}>
+                {alefCompleted}/50
+              </span>
+            </button>
 
-        <button
-          onClick={() => handleLevelChange('bet')}
-          className={`py-2.5 px-3 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition ${
-            selectedLevel === 'bet'
-              ? 'bg-white dark:bg-zinc-900 text-purple-600 dark:text-purple-400 shadow-sm'
-              : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100'
-          }`}
-        >
-          <span>{isUlpan ? 'רָמָה ב׳ (51–100)' : 'Бет (51–100)'}</span>
-          <span
-            className={`px-1.5 py-0.5 rounded-md text-[10px] font-bold ${
-              selectedLevel === 'bet'
-                ? 'bg-purple-100 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300'
-                : 'bg-zinc-300/60 dark:bg-zinc-700/60 text-zinc-600 dark:text-zinc-400'
-            }`}
-          >
-            {betCompleted}/50
-          </span>
-        </button>
-      </div>
-
-      {/* 4. Модульная навигация по блокам (по 10 уроков) */}
-      <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-3 shadow-sm space-y-2.5">
-        <div className="flex items-center justify-between text-xs text-zinc-500 dark:text-zinc-400 px-0.5">
-          <div className="flex items-center gap-1.5 font-bold">
-            <Layers className="w-3.5 h-3.5 text-blue-500" />
-            <span>{isUlpan ? 'בְּחִירַת יְחִידַת לִמּוּד (10 שִׁיעוּרִים):' : 'Блоки курса (по 10 уроков):'}</span>
+            <button
+              onClick={() => handleLevelChange('bet')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition ${
+                selectedLevel === 'bet'
+                  ? 'bg-white dark:bg-zinc-900 text-purple-600 dark:text-purple-400 shadow-xs'
+                  : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200'
+              }`}
+            >
+              <span className="font-hebrew text-base font-black leading-none">ב</span>
+              <span>{isUlpan ? 'רָמָה ב׳' : 'Бет'}</span>
+              <span className={`text-[10px] px-1 py-0.2 rounded-md font-semibold ${
+                selectedLevel === 'bet' ? 'bg-purple-100 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300' : 'text-zinc-400'
+              }`}>
+                {betCompleted}/50
+              </span>
+            </button>
           </div>
-          {activeDecadeObj && (
-            <span className="font-semibold text-blue-600 dark:text-blue-400">
-              {isUlpan ? activeDecadeObj.titleHe : activeDecadeObj.titleRu}
-            </span>
-          )}
+
+          {/* Кнопка «Где я» для мгновенного перехода к текущему уроку */}
+          <button
+            onClick={handleScrollToCurrentLesson}
+            className="shrink-0 px-2.5 sm:px-3 py-1.5 rounded-xl border border-blue-200 dark:border-blue-900/60 bg-blue-50/70 dark:bg-blue-950/30 text-blue-700 dark:text-blue-300 text-xs font-bold flex items-center gap-1.5 hover:bg-blue-100/70 transition active:scale-95 shadow-2xs"
+            title="Перейти к текущему уроку на карте"
+          >
+            <Target className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+            <span>Где я</span>
+          </button>
         </div>
 
-        {/* Чипы 10-урочных блоков */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+        {/* Лента 10-урочных блоков для выбранного уровня */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 scrollbar-none">
           {currentLevelDecades.map((dec) => {
             const isSelected = selectedDecade === dec.id;
             const hasCurrentLesson = currentLesson.id >= dec.range[0] && currentLesson.id <= dec.range[1];
@@ -350,9 +324,9 @@ export const CourseMap: React.FC<CourseMapProps> = ({
               <button
                 key={dec.id}
                 onClick={() => setSelectedDecade(dec.id)}
-                className={`group relative shrink-0 px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition whitespace-nowrap border ${
+                className={`group relative shrink-0 px-2.5 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition whitespace-nowrap border ${
                   isSelected
-                    ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
+                    ? 'bg-blue-600 text-white border-blue-600 shadow-2xs'
                     : 'bg-zinc-50 dark:bg-zinc-800/80 text-zinc-700 dark:text-zinc-300 border-zinc-200 dark:border-zinc-700/80 hover:bg-zinc-100 dark:hover:bg-zinc-750'
                 }`}
               >
@@ -361,7 +335,7 @@ export const CourseMap: React.FC<CourseMapProps> = ({
                 )}
                 <span>{isUlpan ? dec.shortHe : dec.shortRu}</span>
                 <span
-                  className={`text-[10px] px-1.5 py-0.2 rounded-md font-bold ${
+                  className={`text-[10px] px-1 py-0.2 rounded-md font-bold ${
                     isSelected
                       ? 'bg-white/20 text-white'
                       : isAllCompleted
@@ -378,107 +352,36 @@ export const CourseMap: React.FC<CourseMapProps> = ({
           {/* Кнопка просмотра всех 50 уроков */}
           <button
             onClick={() => setSelectedDecade('all')}
-            className={`shrink-0 px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-1 transition whitespace-nowrap border ${
+            className={`shrink-0 px-2.5 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1 transition whitespace-nowrap border ${
               selectedDecade === 'all'
-                ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
+                ? 'bg-blue-600 text-white border-blue-600 shadow-2xs'
                 : 'bg-zinc-50 dark:bg-zinc-800/80 text-zinc-600 dark:text-zinc-400 border-zinc-200 dark:border-zinc-700/80 hover:bg-zinc-100 dark:hover:bg-zinc-750'
             }`}
           >
-            <span>{isUlpan ? 'כָּל 50 הַשִּׁיעוּרִים' : 'Все 50 уроков'}</span>
+            <span>{isUlpan ? 'כָּל 50' : 'Все 50'}</span>
           </button>
         </div>
       </div>
 
-      {/* 5. Панель поиска и фильтров статуса */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 bg-white dark:bg-zinc-900 p-2.5 sm:p-3 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm">
-        {/* Фильтры статуса: Все / К прохождению / Пройденные */}
-        <div className="flex items-center gap-1 p-1 bg-zinc-100 dark:bg-zinc-800 rounded-xl shrink-0">
-          <button
-            onClick={() => setStatusFilter('all')}
-            className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold transition ${
-              statusFilter === 'all'
-                ? 'bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 shadow-xs'
-                : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200'
-            }`}
-          >
-            {isUlpan ? 'הַכֹּל' : 'Все'}
-          </button>
-          <button
-            onClick={() => setStatusFilter('uncompleted')}
-            className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition ${
-              statusFilter === 'uncompleted'
-                ? 'bg-white dark:bg-zinc-900 text-blue-600 dark:text-blue-400 shadow-xs'
-                : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200'
-            }`}
-            title="Скрыть пройденные уроки и оставить только те, что нужно пройти"
-          >
-            <Target className="w-3 h-3 text-blue-500" />
-            <span>{isUlpan ? 'לְלִמּוּד' : 'К прохождению'}</span>
-          </button>
-          <button
-            onClick={() => setStatusFilter('completed')}
-            className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition ${
-              statusFilter === 'completed'
-                ? 'bg-white dark:bg-zinc-900 text-emerald-600 dark:text-emerald-400 shadow-xs'
-                : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200'
-            }`}
-          >
-            <CheckCircle className="w-3 h-3 text-emerald-500" />
-            <span>{isUlpan ? 'הוּשְׁלְמוּ' : 'Пройденные'}</span>
-          </button>
-        </div>
-
-        {/* Поиск и категории */}
-        <div className="flex items-center gap-2 flex-1 w-full">
-          <div className="relative flex-1">
-            <Search className="w-3.5 h-3.5 text-zinc-400 absolute left-3 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={
-                isUlpan
-                  ? `חִפּוּשׂ בְּרָמָה ${selectedLevel === 'alef' ? 'א׳' : 'ב׳'}...`
-                  : `Поиск по уровню ${selectedLevel === 'alef' ? 'Алеф' : 'Бет'}...`
-              }
-              className="w-full pl-8 pr-3 py-1.5 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-xs focus:outline-none focus:ring-2 focus:ring-blue-600"
-            />
-          </div>
-
-          <select
-            value={selectedCategory}
-            onChange={(e) => setSelectedCategory(e.target.value)}
-            className="px-2.5 py-1.5 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-xs focus:outline-none focus:ring-2 focus:ring-blue-600 max-w-[130px] sm:max-w-[170px] truncate"
-          >
-            <option value="all">{isUlpan ? 'כָּל הַקָּטֵגוֹרְיוֹת' : 'Все темы'}</option>
-            {categories.map((c, i) => (
-              <option key={i} value={c}>
-                {c}
-              </option>
-            ))}
-          </select>
-        </div>
+      {/* Заголовок активного блока уроков */}
+      <div className="flex items-center justify-between px-1 text-xs text-zinc-500 dark:text-zinc-400">
+        <span className="font-bold text-zinc-800 dark:text-zinc-200 text-sm">
+          {activeDecadeObj ? (isUlpan ? activeDecadeObj.titleHe : activeDecadeObj.titleRu) : (isUlpan ? 'כָּל הַשִּׁיעוּרִים' : 'Все уроки уровня')}
+        </span>
+        <span className="text-zinc-400 font-medium">
+          {filteredCatalog.length} {isUlpan ? 'שִׁיעוּרִים' : 'уроков'}
+        </span>
       </div>
 
-      {/* 6. Сетка карточек уроков */}
+      {/* 3. Сетка карточек уроков */}
       {filteredCatalog.length === 0 ? (
         <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-8 text-center space-y-3">
           <p className="text-zinc-500 text-sm">
-            {isUlpan ? 'לֹא נִמְצְאוּ שִׁיעוּרִים מַתְאִימִים' : 'По вашему запросу уроки не найдены.'}
+            {isUlpan ? 'לֹא נִמְצְאוּ שִׁיעוּרִים מַתְאִימִים' : 'В этом блоке пока нет доступных уроков.'}
           </p>
-          <button
-            onClick={() => {
-              setSearchQuery('');
-              setSelectedCategory('all');
-              setStatusFilter('all');
-            }}
-            className="px-4 py-2 rounded-xl text-xs font-semibold bg-blue-50 text-blue-600 hover:bg-blue-100 transition"
-          >
-            {isUlpan ? 'אִפּוּס מַסְנְנִים' : 'Сбросить фильтры'}
-          </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
           {filteredCatalog.map((lesson) => {
             const isCompleted = userProfile.completedLessons.includes(lesson.id);
             const progress = userProfile.lessonProgress[lesson.id];
@@ -507,6 +410,7 @@ export const CourseMap: React.FC<CourseMapProps> = ({
             return (
               <div
                 key={lesson.id}
+                id={`lesson-card-${lesson.id}`}
                 onClick={handleCardClick}
                 className={`group relative border rounded-2xl p-3 sm:p-3.5 transition duration-150 cursor-pointer active:scale-[0.99] flex items-center justify-between gap-3 ${
                   isCurrent
