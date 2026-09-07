@@ -34,7 +34,7 @@ import {
   BookmarkPlus,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
-import { Lesson, UserProfile, Word, ChatMessage } from '@/types';
+import { Lesson, UserProfile, Word, ChatMessage, PhoneDebriefReport } from '@/types';
 import { getLessonPhoneScenario } from '@/data/phoneScenarios';
 import { phoneAudio } from '@/lib/phoneAudio';
 import { speakHebrew, stopSpeech, HebrewSpeechRecognizer, isWhisperSilenceHallucination } from '@/lib/speech';
@@ -86,6 +86,8 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
   const [mounted, setMounted] = useState(false);
   const [isWordsDrawerOpen, setIsWordsDrawerOpen] = useState(false);
   const [showDialogueReviewModal, setShowDialogueReviewModal] = useState(false);
+  const [debriefReport, setDebriefReport] = useState<PhoneDebriefReport | null>(null);
+  const [loadingDebrief, setLoadingDebrief] = useState(false);
 
   const recognizerRef = useRef<HebrewSpeechRecognizer | null>(null);
   const activeMicStreamRef = useRef<MediaStream | null>(null);
@@ -504,7 +506,7 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
         content: m.hebrew,
       }));
 
-      const res = await fetch('/api/ai/chat', {
+      const res = await fetch('/api/ai/phone', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -512,24 +514,22 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
           lessonNumber: lesson.number,
           level: lesson.level,
           userGender: userProfile.gender,
-          scenarioTitle: `Телефонный разговор: ${scenario.callerRole}`,
-          situation: scenario.situationSummary,
-          aiRole: scenario.callerNameRu,
-          userRole: 'Ученик (звонит или принимает звонок)',
+          callType: scenario.callType || 'incoming',
+          callerName: scenario.callerName,
+          callerNameRu: scenario.callerNameRu,
+          callerRole: scenario.callerRole,
+          situationSummary: scenario.situationSummary,
+          callerObjective: scenario.callerObjective,
+          studentObjective: scenario.studentObjective,
+          completionCondition: scenario.completionCondition,
           goals: scenario.goals,
-          topic: lesson.titleRussian,
-          vocabulary: (lesson.vocabulary || []).map((w) => `${w.hebrew} (${w.translation})`),
-          grammarTopic: lesson.grammar?.[0]?.title || lesson.titleRussian,
+          systemPromptAddition: scenario.systemPromptAddition,
+          targetTurns: scenario.targetTurns || 2,
           provider: userProfile.aiProvider,
           apiKey:
             userProfile.aiProvider === 'groq'
               ? userProfile.groqApiKey
               : userProfile.geminiApiKey,
-          isPhoneCall: true,
-          targetTurns: scenario.targetTurns || 2,
-          studentKnownWords: knownWords,
-          ulpanMode: Boolean(userProfile.ulpanMode),
-          systemPromptAddition: scenario.systemPromptAddition,
         }),
       });
 
@@ -541,31 +541,15 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
         isAiHangingUpRef.current = true;
       }
 
-      const teacherReactionRu = data.teacherReactionRu || data.teacher_reaction_ru || null;
-      const teacherReactionHebrew = data.teacherReactionHebrew || data.teacher_reaction_hebrew || null;
-      const effectiveFeedback = data.feedback || null;
-
-      // Привязываем комментарий учителя к реплике ученика
-      userMsg.feedback = effectiveFeedback || undefined;
-      userMsg.teacherReactionRu = teacherReactionRu;
-      userMsg.teacherReactionHebrew = teacherReactionHebrew;
-
       const aiMsg: ChatMessage = {
         id: `ai-${Date.now()}`,
         role: 'assistant',
         hebrew: data.hebrew || 'בְּסֵדֶר גָּמוּר!',
         transcription: data.transcription,
         translation: data.translation,
-        feedback: effectiveFeedback,
-        teacherReactionRu,
-        teacherReactionHebrew,
         suggestedReplies: willHangUp ? [] : (data.suggestedReplies || []),
         timestamp: Date.now(),
       };
-
-      if (effectiveFeedback) {
-        setLastFeedback(effectiveFeedback);
-      }
 
       const updatedHistory = [...messagesRef.current, aiMsg];
       setBothMessages(updatedHistory);
@@ -616,7 +600,10 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
       transcription: m.transcription,
     }));
 
-    // 1. Сохраняем в локальное хранилище (доступно мгновенно на любом устройстве)
+    const userMessages = currentMessages.filter((m) => m.role === 'user');
+    const isSuccessCall = userMessages.length >= 1;
+
+    // 1. Сохраняем в локальное хранилище
     try {
       saveLocalCallLog({
         id: `call_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
@@ -628,35 +615,69 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
         duration_seconds: callDuration,
         messages_count: currentMessages.length,
         transcript: formattedTranscript,
-        feedback: lastFeedback || undefined,
         created_at: new Date().toISOString(),
       });
     } catch (e) {
       console.warn('Local call log error:', e);
     }
 
-    // 2. Логируем звонок в базу данных сервера
-    try {
-      fetch('/api/calls/log', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          lessonId: lesson.id,
-          callerName: scenario.callerNameRu || scenario.callerName,
-          callerRole: scenario.callerRole,
-          durationSeconds: callDuration,
-          transcript: formattedTranscript,
-          feedback: lastFeedback,
-          userName: userProfile.name || 'Ученик',
-        }),
-      }).catch(() => {});
-    } catch {}
-
-    const userMessages = currentMessages.filter((m) => m.role === 'user');
-    const isSuccessCall = userMessages.length >= 2;
+    // 2. Запрашиваем педагогический разбор звонка (Debriefing)
+    if (userMessages.length > 0) {
+      setLoadingDebrief(true);
+      try {
+        fetch('/api/ai/phone/debrief', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            lessonNumber: lesson.id,
+            level: lesson.level,
+            userGender: userProfile.gender,
+            callerRole: scenario.callerRole,
+            callerNameRu: scenario.callerNameRu,
+            callType: scenario.callType || 'incoming',
+            situationSummary: scenario.situationSummary,
+            studentObjective: scenario.studentObjective,
+            transcript: formattedTranscript,
+            durationSeconds: callDuration,
+            provider: userProfile.aiProvider,
+            apiKey:
+              userProfile.aiProvider === 'groq'
+                ? userProfile.groqApiKey
+                : userProfile.geminiApiKey,
+          }),
+        })
+          .then((r) => r.json())
+          .then((debrief: PhoneDebriefReport) => {
+            setDebriefReport(debrief);
+            // Сохраняем отзыв в БД
+            fetch('/api/calls/log', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                lessonId: lesson.id,
+                callerName: scenario.callerNameRu || scenario.callerName,
+                callerRole: scenario.callerRole,
+                durationSeconds: callDuration,
+                transcript: formattedTranscript,
+                feedback: debrief.summaryRu || 'Звонок успешно завершен',
+                userName: userProfile.name || 'Ученик',
+              }),
+            }).catch(() => {});
+          })
+          .catch((err) => {
+            console.warn('Debrief fetch error:', err);
+          })
+          .finally(() => {
+            setLoadingDebrief(false);
+          });
+      } catch (err) {
+        console.warn('Debrief error:', err);
+        setLoadingDebrief(false);
+      }
+    }
 
     if (isSuccessCall) {
-      // Начисление прогресса в уроке только при реальном диалоге (от 2 реплик)
+      // Начисление прогресса в уроке
       const updated = markLessonTabCompleted(lesson.id, 'phone');
       if (onUpdateProfile) {
         onUpdateProfile(updated);
@@ -877,17 +898,34 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
                 {scenario.avatarEmoji}
               </div>
               <div>
-                <h4 className="font-bold text-sm text-white font-hebrew">
-                  {scenario.callerName}
-                </h4>
+                <div className="flex items-center gap-2">
+                  <h4 className="font-bold text-sm text-white font-hebrew">
+                    {scenario.callerName}
+                  </h4>
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                    scenario.callType === 'outgoing'
+                      ? 'bg-emerald-950/70 text-emerald-300 border-emerald-700/60'
+                      : 'bg-blue-950/70 text-blue-300 border-blue-700/60'
+                  }`}>
+                    {scenario.callType === 'outgoing'
+                      ? (userProfile.ulpanMode ? '📲 שִׂיחָה יוֹצֵאת' : '📲 Исходящий')
+                      : (userProfile.ulpanMode ? '📞 שִׂיחָה נִכְנֶסֶת' : '📞 Входящий')}
+                  </span>
+                </div>
                 <div className="flex items-center gap-2">
                   <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                   <span className="text-xs font-mono text-emerald-400 font-bold">
                     {formatTimer(callDuration)}
                   </span>
-                  <span className="text-[10px] text-zinc-400 hidden sm:inline font-hebrew">
-                    • {userProfile.ulpanMode ? 'שִׂיחָה קוֹלִית' : 'Голосовой звонок'}
-                  </span>
+                  {scenario.studentObjective ? (
+                    <span className="text-[10px] text-zinc-300 hidden sm:inline font-hebrew truncate max-w-xs">
+                      • {scenario.studentObjective}
+                    </span>
+                  ) : (
+                    <span className="text-[10px] text-zinc-400 hidden sm:inline font-hebrew">
+                      • {userProfile.ulpanMode ? 'שִׂיחָה קוֹלִית' : 'Голосовой звонок'}
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
@@ -1087,14 +1125,6 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
               <div className="w-full max-w-lg mt-2 bg-blue-950/60 border border-blue-800/60 rounded-xl p-2.5 text-xs text-blue-200 flex items-center gap-2 text-left animate-fade-in">
                 <Info className="w-4 h-4 text-blue-400 shrink-0" />
                 <span>{speechNotice}</span>
-              </div>
-            )}
-
-            {/* Подсказка об ошибке (Feedback) */}
-            {lastFeedback && (
-              <div className="w-full max-w-lg mt-2 bg-amber-950/50 border border-amber-800/50 rounded-xl p-2.5 text-xs text-amber-300 flex items-center gap-2 text-left">
-                <AlertCircle className="w-4 h-4 text-amber-400 shrink-0" />
-                <span>{lastFeedback}</span>
               </div>
             )}
           </div>
@@ -1569,7 +1599,7 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
                     <h3 className="font-bold text-base sm:text-lg text-zinc-900 dark:text-zinc-50 truncate">
-                      {userProfile.ulpanMode ? 'סִיכּוּם וּפֵירוּט הַשִּׂיחָה' : 'Полный диалог и разбор ответов'}
+                      {userProfile.ulpanMode ? 'סִיכּוּם וּפֵירוּט הַשִּׂיחָה' : 'Разбор телефонного звонка'}
                     </h3>
                   </div>
                   <p className="text-xs text-zinc-500 dark:text-zinc-400 truncate">
@@ -1578,49 +1608,116 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
                 </div>
               </div>
 
-              <button
-                type="button"
-                onClick={() => setShowDialogueReviewModal(false)}
-                className="p-2 rounded-xl text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 hover:bg-zinc-200 dark:hover:bg-zinc-800 transition cursor-pointer"
-                title="Закрыть"
-              >
-                <X className="w-5 h-5" />
-              </button>
+              <div className="flex items-center gap-2">
+                {debriefReport && (
+                  <div className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800/60 text-emerald-700 dark:text-emerald-300 font-bold text-xs sm:text-sm shadow-2xs">
+                    <Award className="w-4 h-4 text-emerald-500 shrink-0" />
+                    <span>{debriefReport.overallScore}/100</span>
+                  </div>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setShowDialogueReviewModal(false)}
+                  className="p-2 rounded-xl text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 hover:bg-zinc-200 dark:hover:bg-zinc-800 transition cursor-pointer"
+                  title="Закрыть"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
             </div>
 
             {/* Скроллируемое тело с диалогом и комментариями */}
             <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4">
+              {/* Загрузка разбора */}
+              {loadingDebrief && (
+                <div className="bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900/60 rounded-2xl p-4 flex items-center gap-3">
+                  <Sparkles className="w-5 h-5 text-blue-500 animate-spin shrink-0" />
+                  <span className="text-xs sm:text-sm text-blue-900 dark:text-blue-200 font-medium">
+                    {userProfile.ulpanMode
+                      ? '...הַמּוֹרֶה מֵכִין מַשּׁוֹב מְפֹרָט לְשִׂיחַת הַטֶּלֶפוֹן'
+                      : 'ИИ-учитель готовит разбор звонка, оценку и живые израильские фразы...'}
+                  </span>
+                </div>
+              )}
+
               {/* Верхняя плашка от ИИ-учителя */}
-              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/40 dark:to-indigo-950/40 border border-blue-200 dark:border-blue-900/60 rounded-2xl p-3.5 sm:p-4 shadow-2xs">
-                <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-xs">
-                    <Bot className="w-4 h-4" />
-                  </div>
-                  <div className="flex-1 min-w-0 text-xs sm:text-sm">
-                    <div className="font-bold text-blue-950 dark:text-blue-200 mb-0.5">
-                      {userProfile.ulpanMode ? 'מַשּׁוֹב הַמּוֹרֶה עַל שִׂיחַת הַטֶּלֶפוֹן' : 'Комментарий ИИ-учителя к телефонному звонку:'}
+              {debriefReport ? (
+                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/40 dark:to-indigo-950/40 border border-blue-200 dark:border-blue-900/60 rounded-2xl p-4 shadow-2xs space-y-2">
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                      <Bot className="w-4 h-4" />
                     </div>
-                    <p className="text-zinc-700 dark:text-zinc-300 leading-relaxed">
-                      {messages.filter((m) => m.role === 'user').length >= 2
-                        ? (userProfile.ulpanMode
-                            ? 'כָּל הַכָּבוֹד! שׂוֹחַחְתֶּם בְּהַצְלָחָה בְּעִבְרִית. לְמַטָּה מוֹפִיעַ הַדִּיאָלוֹג הַמָּלֵא עִם מַשּׁוֹב מְפֹרָט לְכָל אַחַת מֵהַתְּשׁוּבוֹת שֶׁלָּכֶם.'
-                            : 'Отличная работа! Вы провели живой телефонный диалог на иврите. Ниже представлен полный текст разговора с подробным разбором каждой вашей реплики.')
-                        : (userProfile.ulpanMode
-                            ? 'הַשִּׂיחָה הָיְתָה קְצָרָה מִדַּי. נַסּוּ שׁוּב וַעֲנוּ עַל כָּל שְׁאֵלוֹת הַנָּצִיג.'
-                            : 'Разговор получился слишком коротким. Попробуйте еще раз и ответьте на вопросы собеседника.')}
-                    </p>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="font-bold text-xs sm:text-sm text-blue-950 dark:text-blue-200">
+                          {userProfile.ulpanMode ? 'סִיכּוּם הַשִּׂיחָה' : 'Итог звонка:'}
+                        </span>
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                          debriefReport.isSuccess
+                            ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300'
+                            : 'bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300'
+                        }`}>
+                          {debriefReport.isSuccess
+                            ? (userProfile.ulpanMode ? 'הַמַּטָּרָה הוּשְׂגָה ✔️' : 'Цель достигнута ✔️')
+                            : (userProfile.ulpanMode ? 'שִׂיחָה קְצָרָה' : 'Стоит повторить')}
+                        </span>
+                      </div>
+                      <p className="text-xs sm:text-sm text-zinc-700 dark:text-zinc-300 leading-relaxed">
+                        {debriefReport.summaryRu}
+                      </p>
+                    </div>
                   </div>
                 </div>
-              </div>
+              ) : !loadingDebrief ? (
+                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/40 dark:to-indigo-950/40 border border-blue-200 dark:border-blue-900/60 rounded-2xl p-3.5 sm:p-4 shadow-2xs">
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                      <Bot className="w-4 h-4" />
+                    </div>
+                    <div className="flex-1 min-w-0 text-xs sm:text-sm">
+                      <div className="font-bold text-blue-950 dark:text-blue-200 mb-0.5">
+                        {userProfile.ulpanMode ? 'מַשּׁוֹב הַמּוֹרֶה' : 'Комментарий ИИ-учителя:'}
+                      </div>
+                      <p className="text-zinc-700 dark:text-zinc-300 leading-relaxed">
+                        {messages.filter((m) => m.role === 'user').length >= 1
+                          ? (userProfile.ulpanMode
+                              ? 'כָּל הַכָּבוֹד! שׂוֹחַחְתֶּם בְּהַצְלָחָה בְּעִבְרִית. לְמַטָּה מוֹפִיעַ הַדִּיאָלוֹג הַמָּלֵא עִם מַשּׁוֹב לְכָל אַחַת מֵהַתְּשׁוּבוֹת שֶׁלָּכֶם.'
+                              : 'Отличная работа! Вы провели живой телефонный диалог на иврите. Ниже представлен полный текст разговора с подробным разбором.')
+                          : (userProfile.ulpanMode
+                              ? 'הַשִּׂיחָה הָיְתָה קְצָרָה מִדַּי. נַסּוּ שׁוּב וַעֲנוּ לַבֶּן-שִׂיחַ.'
+                              : 'Разговор получился слишком коротким. Попробуйте еще раз и ответьте собеседнику.')}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+
+              {/* Лайфхак израильской разговорной речи */}
+              {debriefReport?.spokenTip && (
+                <div className="bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/60 rounded-2xl p-3.5 flex items-start gap-2.5">
+                  <Lightbulb className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+                  <div className="text-xs sm:text-sm text-amber-900 dark:text-amber-200 leading-relaxed">
+                    <span className="font-bold block mb-0.5">
+                      {userProfile.ulpanMode ? 'טִיפּ לִשְׂפַת הַדִּיבּוּר בְּיִשְׂרָאֵל:' : 'Лайфхак разговорного этикета в Израиле:'}
+                    </span>
+                    {debriefReport.spokenTip}
+                  </div>
+                </div>
+              )}
 
               {/* Список реплик с комментариями к ответам ученика */}
               <div className="space-y-3.5">
                 {messages.map((msg, idx) => {
                   const isUser = msg.role === 'user';
                   const isCursive = userProfile.fontStyle === 'cursive';
-                  const nextAiMsg = !isUser ? null : messages.slice(idx + 1).find((m) => m.role === 'assistant');
-                  const teacherFeedback = isUser ? (nextAiMsg?.feedback || msg.feedback || null) : null;
-                  const teacherReaction = isUser ? (nextAiMsg?.teacherReactionRu || msg.teacherReactionRu || null) : null;
+
+                  // Поиск рецензии на реплику ученика в debriefReport
+                  const userMsgIndex = isUser
+                    ? messages.filter((m, i) => m.role === 'user' && i <= idx).length - 1
+                    : -1;
+                  const turnReview = (isUser && debriefReport?.turnReviews && debriefReport.turnReviews[userMsgIndex])
+                    ? debriefReport.turnReviews[userMsgIndex]
+                    : null;
 
                   return (
                     <div
@@ -1684,29 +1781,57 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
 
                       {/* БЛОК РАЗБОРА И КОММЕНТАРИЕВ ИИ-УЧИТЕЛЯ К ОТВЕТУ УЧЕНИКА */}
                       {isUser && (
-                        <div className="mt-3 pt-2.5 border-t border-blue-200/60 dark:border-blue-900/50 space-y-1.5">
-                          <div className="flex items-center gap-1.5 text-xs font-bold text-indigo-900 dark:text-indigo-300">
-                            <Bot className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
-                            <span>{userProfile.ulpanMode ? 'מַשּׁוֹב הַמּוֹרֶה לַתְּשׁוּבָה:' : 'Комментарий учителя к вашему ответу:'}</span>
+                        <div className="mt-3 pt-2.5 border-t border-blue-200/60 dark:border-blue-900/50 space-y-2">
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-1.5 text-xs font-bold text-indigo-900 dark:text-indigo-300">
+                              <Bot className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+                              <span>{userProfile.ulpanMode ? 'מַשּׁוֹב הַמּוֹרֶה:' : 'Разбор ответа:'}</span>
+                            </div>
+
+                            {turnReview && (
+                              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                                turnReview.assessment === 'perfect'
+                                  ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border-emerald-500/30'
+                                  : turnReview.assessment === 'good'
+                                  ? 'bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border-blue-500/30'
+                                  : 'bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border-amber-500/30'
+                              }`}>
+                                {turnReview.assessment === 'perfect' ? 'Идеально ✔️' : turnReview.assessment === 'good' ? 'Хорошо 👍' : 'Можно улучшить 💡'}
+                              </span>
+                            )}
                           </div>
 
-                          {teacherFeedback ? (
-                            /* Если есть конкретная подсказка об ошибке */
-                            <div className="p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/80 text-xs text-amber-900 dark:text-amber-200 flex items-start gap-2">
-                              <Lightbulb className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
-                              <span className="leading-relaxed">{teacherFeedback}</span>
-                            </div>
-                          ) : teacherReaction ? (
-                            /* Если учитель похвалил или прокомментировал */
-                            <div className="p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/80 text-xs text-emerald-900 dark:text-emerald-200 flex items-start gap-2">
-                              <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
-                              <span className="leading-relaxed">{teacherReaction}</span>
-                            </div>
+                          {turnReview?.commentRu ? (
+                            <p className="text-xs text-zinc-700 dark:text-zinc-300 leading-relaxed">
+                              {turnReview.commentRu}
+                            </p>
                           ) : (
-                            /* Если ответ правильный и органичный */
                             <div className="p-2 rounded-xl bg-emerald-50/80 dark:bg-emerald-950/30 border border-emerald-200/60 dark:border-emerald-900/40 text-xs text-emerald-800 dark:text-emerald-300 flex items-center gap-2">
                               <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                              <span>{userProfile.ulpanMode ? 'תְּשׁוּבָה נְכוֹנָה וּבְרוּרָה בַּהֶקְשֵׁר הַשִּׂיחָה! ✔️' : 'Точный и грамматически верный ответ по контексту звонка! ✔️'}</span>
+                              <span>{userProfile.ulpanMode ? 'תְּשׁוּבָה נְכוֹנָה וּבְרוּרָה בַּהֶקְשֵׁר הַשִּׂיחָה! ✔️' : 'Точный и естественный ответ по контексту звонка! ✔️'}</span>
+                            </div>
+                          )}
+
+                          {/* Альтернатива носителя иврита (как сказать естественнее) */}
+                          {turnReview?.betterAlternative && (
+                            <div className="p-2.5 rounded-xl bg-purple-50/90 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800/60 text-xs flex items-start justify-between gap-2">
+                              <div className="min-w-0">
+                                <div className="font-bold text-[11px] text-purple-800 dark:text-purple-300 mb-0.5 flex items-center gap-1">
+                                  <Sparkles className="w-3 h-3 text-purple-600 dark:text-purple-400" />
+                                  <span>{userProfile.ulpanMode ? 'אֵיךְ אוֹמְרִים בְּיִשְׂרָאֵל:' : 'Как это звучит в живой речи израильтян:'}</span>
+                                </div>
+                                <div dir="rtl" className="text-sm font-hebrew font-bold text-purple-950 dark:text-purple-100 leading-snug">
+                                  {turnReview.betterAlternative}
+                                </div>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => speakHebrew(turnReview.betterAlternative || '', { rate: userProfile.speechRate || 0.7 })}
+                                className="p-1 rounded-lg text-purple-600 hover:text-purple-800 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900/60 transition cursor-pointer shrink-0 mt-0.5"
+                                title="Озвучить"
+                              >
+                                <Volume2 className="w-4 h-4" />
+                              </button>
                             </div>
                           )}
                         </div>
@@ -1715,6 +1840,73 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
                   );
                 })}
               </div>
+
+              {/* Рекомендованные слова из разбора */}
+              {debriefReport?.recommendedWords && debriefReport.recommendedWords.length > 0 && (
+                <div className="pt-3 border-t border-zinc-200 dark:border-zinc-800 space-y-2">
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-zinc-900 dark:text-zinc-100">
+                    <BookOpen className="w-3.5 h-3.5 text-blue-600" />
+                    <span>{userProfile.ulpanMode ? 'מִילִּים מוּמְלָצוֹת מֵהַשִּׂיחָה:' : 'Рекомендованные фразы для звонка:'}</span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {debriefReport.recommendedWords.map((rw, rIdx) => {
+                      const isAdded = addedWords[rw.hebrew] || isWordInPersonalDict(rw.hebrew, userProfile.personalVocabulary);
+                      return (
+                        <div
+                          key={rIdx}
+                          className="bg-zinc-50 dark:bg-zinc-800/80 border border-zinc-200 dark:border-zinc-700 rounded-xl p-2.5 flex items-center justify-between gap-2"
+                        >
+                          <div className="min-w-0">
+                            <span dir="rtl" className="font-hebrew font-bold text-sm text-zinc-900 dark:text-zinc-50 block">
+                              {rw.hebrew}
+                            </span>
+                            <span className="text-[11px] text-zinc-500 dark:text-zinc-400 block truncate">
+                              {rw.translation}
+                            </span>
+                          </div>
+
+                          <div className="flex items-center gap-1 shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => speakHebrew(rw.hebrew, { rate: userProfile.speechRate || 0.7 })}
+                              className="p-1 rounded-lg text-zinc-400 hover:text-blue-600 transition cursor-pointer"
+                              title="Озвучить"
+                            >
+                              <Volume2 className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              disabled={isAdded}
+                              onClick={() =>
+                                handleAddWord({
+                                  id: `debrief-w-${rIdx}-${Date.now()}`,
+                                  hebrew: rw.hebrew,
+                                  hebrewPlain: stripNikkud(rw.hebrew),
+                                  transcription: rw.transcription,
+                                  translation: rw.translation,
+                                  partOfSpeech: 'expression',
+                                  lessonId: lesson.id,
+                                  isUserAdded: true,
+                                  dateAdded: Date.now(),
+                                })
+                              }
+                              className={`p-1.5 rounded-lg text-[10px] font-bold transition cursor-pointer ${
+                                isAdded
+                                  ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400'
+                                  : 'bg-zinc-200 hover:bg-amber-500 hover:text-white dark:bg-zinc-700 text-zinc-700 dark:text-zinc-200'
+                              }`}
+                              title={isAdded ? 'В словаре' : 'Добавить в словарь'}
+                            >
+                              {isAdded ? <Check className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Футер модального окна с кнопками действий */}

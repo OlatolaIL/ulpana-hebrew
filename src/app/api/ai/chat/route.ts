@@ -319,22 +319,7 @@ export async function POST(req: NextRequest) {
       lastUserHebrew.includes('נשתמע') ||
       lastUserHebrew.includes('שלום ולהתראות');
 
-    // Для телефонных звонков: звонок логически завершается, если ученик ответил по сути (спускается, просит подождать, благодарит или прощается)
-    const isPhoneCallGoalAchieved = isPhoneCall && (
-      currentTurn >= maxTurns ||
-      isUserSayingGoodbye ||
-      lastUserHebrew.includes('יורד') ||
-      lastUserHebrew.includes('יורדת') ||
-      lastUserHebrew.includes('דקות') ||
-      lastUserHebrew.includes('דקה') ||
-      lastUserHebrew.includes('רגע') ||
-      lastUserHebrew.includes('בדרך') ||
-      lastUserHebrew.includes('שם')
-    );
-
-    const isFinalTurn = isPhoneCall
-      ? isPhoneCallGoalAchieved
-      : currentTurn >= maxTurns;
+    const isFinalTurn = currentTurn >= maxTurns;
 
     const evaluatingStep = previousStep || (currentTurn > 1 && allSteps ? allSteps[currentTurn - 2] : currentStep);
     const nextStep = currentStep;
@@ -357,26 +342,7 @@ export async function POST(req: NextRequest) {
               .replace(/שָׁלוֹם אֲחִי/g, 'שָׁלוֹם אֲחוֹתִי')
           : nextStep?.aiQuestionHebrew);
 
-    const dialogueTurnInstruction = isPhoneCall
-      ? isFinalTurn
-        ? `ЭТО ЗАКЛЮЧИТЕЛЬНАЯ РЕПЛИКА ТЕЛЕФОННОГО ЗВОНКА (СОБЕСЕДНИК САМ ВЕШАЕТ ТРУБКУ):
-- Разговор подошел к логическому завершению, ученик ответил по существу ситуации или попрощался.
-- Собеседник тепло и коротко благодарит, подтверждает («בְּסֵדֶר גָּמוּר, אֲנִי מְחַכֶּה לְךָ לְמַטָּה בְּטוֹיוֹטָה לְבָנָה! נִתְרָאֶה, בַּיי!»), прощается и САМ ВЕШАЕТ ТРУБКУ!
-- СТРОГО ЗАПРЕЩЕНО задавать новые вопросы! Телефонный разговор завершается прямо сейчас.
-- В JSON-ответе ОБЯЗАТЕЛЬНО установи: "isCompleted": true и "shouldHangUp": true.
-- В поле "feedback_ru": ОБЯЗАТЕЛЬНО верни null!
-- В "suggestedReplies" верни пустой массив [] или 1 простой вариант прощания ('תּוֹדָה רַבָּה, בַּיי!').`
-        : `ЭТАП ТЕЛЕФОННОГО ЗВОНКА: ШАГ ${currentTurn} ИЗ ${maxTurns}.
-- Кратко отреагируй на слова ученика в соответствии со своей ролью (${aiRole}).
-- ПРАВИЛО ЛОГИЧЕСКОГО ЗАВЕРШЕНИЯ ЗВОНКА:
-  * Если ученик уже ответил на вопрос звонка (сообщил, что спускается, попросил подождать пару минут или спросил марку авто) — НЕ ЗАДАВАЙ НИКАКИХ НОВЫХ ВОПРОСОВ!
-  * Собеседник просто подтверждает («יוֹפִי, אֲנִי מְחַכֶּה לְךָ לְמַטָּה בְּטוֹיוֹטָה לְבָנָה! נִתְרָאֶה, בַּיי!»), прощается и ВЕШАЕТ ТРУБКУ! Установи "isCompleted": true, "shouldHangUp": true!
-- СТРОЖАЙШИЙ ЗАПРЕТ ПЕРЕПУТЫВАНИЯ РОЛЕЙ:
-  * Водитель такси НИКОГДА не спрашивает пассажира «Подождёте 2 минуты?» (תִּקְחֶה שְׁנֵי דַקּוֹת? / תמתין שתי דקות?). Пассажир просит водителя подождать, а не водитель пассажира!
-  * Водитель такси НИКОГДА не спрашивает пассажира «Какая у тебя машина?» или «Какой цвет машины?»!
-- В поле "feedback_ru": если ученик ответил понятно («רגע, אני יורד», «עוד שתי דקות», «איזה רכב יש לך?»), в "feedback_ru" ОБЯЗАТЕЛЬНО верни null!
-- В JSON-ответе укажи: "isCompleted": false, "shouldHangUp": false.`
-      : isFinalTurn
+    const dialogueTurnInstruction = isFinalTurn
       ? `ЭТО ЗАКЛЮЧИТЕЛЬНАЯ РЕПЛИКА ДИАЛОГА (ШАГ ${currentTurn} ИЗ ${maxTurns}):
 ${evaluatingStep ? `
 ============================================================

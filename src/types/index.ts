@@ -188,6 +188,8 @@ export interface Exercise {
   explanation?: string;
 }
 
+export type PhoneCallType = 'incoming' | 'outgoing';
+
 export interface PhoneScenarioWord {
   hebrew: string;
   transcription: string;
@@ -196,12 +198,32 @@ export interface PhoneScenarioWord {
   explanation?: string;
 }
 
+export interface PhoneDebriefTurnReview {
+  userHebrew: string;
+  assessment: 'perfect' | 'good' | 'needs_improvement';
+  commentRu: string;
+  betterAlternative?: string;
+}
+
+export interface PhoneDebriefReport {
+  overallScore: number; // 0 - 100
+  summaryRu: string;
+  isSuccess: boolean;
+  turnReviews: PhoneDebriefTurnReview[];
+  spokenTip?: string;
+  recommendedWords?: PhoneScenarioWord[];
+}
+
 export interface PhoneScenario {
+  callType?: PhoneCallType; // 'incoming' = собеседник звонит ученику; 'outgoing' = ученик звонит собеседнику
   callerName: string; // 'דני - שליח וולט'
   callerNameRu: string; // 'Дани (курьер Wolt)'
   callerRole: string; // 'Курьер доставки'
   avatarEmoji: string; // '🛵'
   situationSummary: string; // Краткое описание ситуации перед звонком
+  callerObjective?: string; // Что нужно собеседнику (для incoming) или что он готов предложить/уточнить (для outgoing)
+  studentObjective?: string; // Главная задача ученика в этом звонке
+  completionCondition?: string; // Критерий логического завершения звонка
   initialGreeting: {
     hebrew: string;
     transcription: string;

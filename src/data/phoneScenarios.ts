@@ -1,4 +1,4 @@
-import { Lesson, PhoneScenario, PhoneScenarioWord, UserGender } from '@/types';
+import { Lesson, PhoneScenario, PhoneScenarioWord, UserGender, PhoneCallType } from '@/types';
 
 /**
  * Кастомные сценарии телефонных звонков для ключевых жизненных ситуаций в Израиле.
@@ -6,11 +6,16 @@ import { Lesson, PhoneScenario, PhoneScenarioWord, UserGender } from '@/types';
 export const BESPOKE_PHONE_SCENARIOS: Record<number, PhoneScenario> = {
   // Урок 1: Знакомство и первые фразы
   1: {
+    callType: 'incoming',
     callerName: 'נוֹעַם',
     callerNameRu: 'Ноам (сосед по дому)',
     callerRole: 'Новый сосед из квартиры напротив',
     avatarEmoji: '👋',
     situationSummary: 'Вам звонит новый сосед из квартиры напротив, чтобы познакомиться.',
+    callerObjective: 'Познакомиться с новым соседом, узнать как дела и как его зовут.',
+    studentObjective: 'Поздороваться, сказать что всё отлично, и назвать своё имя.',
+    completionCondition: 'Ученик ответил на приветствие и назвал имя.',
+    targetTurns: 2,
     initialGreeting: {
       hebrew: 'הַלּוֹ? שָׁלוֹם! זֶה נוֹעַם מִדִּירָה 4. מָה נִשְׁמַע?',
       transcription: 'hалó? шалóм! зэ Нóам ми-дирá 4. ма нишмá?',
@@ -77,16 +82,21 @@ export const BESPOKE_PHONE_SCENARIOS: Record<number, PhoneScenario> = {
         translation: 'до свидания',
       },
     ],
-    systemPromptAddition: 'Ты Ноам, дружелюбный сосед. Говори короткими фразами (1-2 предложения). Спроси как дела и как зовут собеседника.',
+    systemPromptAddition: 'Ты Ноам, сосед по дому. Твоя цель — быстро познакомиться. Когда сосед назовет имя, тепло ответь: «נעים מאוד! להתראות!» и повесь трубку.',
   },
 
   // Урок 2: В кафе
   2: {
+    callType: 'outgoing',
     callerName: 'בֵּית קָפֶה «אֲרוֹמָה»',
     callerNameRu: 'Арома (бариста Йоси)',
     callerRole: 'Бариста в кофейне',
     avatarEmoji: '☕',
-    situationSummary: 'Вы звоните сделать предзаказ кофе и выпечки на вынос (Take Away).',
+    situationSummary: 'Вы звоните сделать предзаказ кофе и выпечки навынос (Take Away).',
+    callerObjective: 'Принять заказ кофе/выпечки навынос, быстро уточнить детали (размер, сахар) и подтвердить.',
+    studentObjective: 'Заказать напиток на вынос и узнать стоимость.',
+    completionCondition: 'Ученик сделал заказ кофе и узнал стоимость.',
+    targetTurns: 2,
     initialGreeting: {
       hebrew: 'שָׁלוֹם, קָפֶה אֲרוֹמָה! מָה תִּרְצֶה לְהַזְמִין?',
       transcription: 'шалóм, кафэ́ арóма! ма тирцé лэhазмӣн?',
@@ -179,11 +189,16 @@ export const BESPOKE_PHONE_SCENARIOS: Record<number, PhoneScenario> = {
 
   // Урок 4: Страны, города и языки
   4: {
+    callType: 'incoming',
     callerName: 'שָׂרָה',
     callerNameRu: 'Сара (студентка из ульпана)',
     callerRole: 'Студентка из ульпана',
     avatarEmoji: '🇫🇷',
     situationSummary: 'Вам звонит новая однокурсница Сара из ульпана, чтобы познакомиться.',
+    callerObjective: 'Узнать у однокурсника, из какой он страны, где живёт и на каких языках говорит.',
+    studentObjective: 'Сказать, откуда вы родом, в каком городе живете и на каких языках говорите.',
+    completionCondition: 'Ученик назвал страну/город или языки.',
+    targetTurns: 2,
     initialGreeting: {
       hebrew: 'הַלּוֹ? שָׁלוֹם! זֹאת שָׂרָה מֵהַאוּלְפָּן. מָה נִשְׁמַע?',
       transcription: 'hалó? шалóм! зот Сáра мэ-hа-ульпáн. ма нишмá?',
@@ -239,16 +254,21 @@ export const BESPOKE_PHONE_SCENARIOS: Record<number, PhoneScenario> = {
         isNew: true,
       },
     ],
-    systemPromptAddition: 'Ты Сара, студентка ульпана из Франции. Говори короткими фразами (1-2 предложения). Спроси собеседника, откуда он (מֵאֵיפֹה אַתָּה?), где он живет (אֵיפֹה אַתָּה גָּר?) и на каких языках говорит (בְּאֵיזוֹ שָׂפָה אַתָּה מְדַבֵּר?). В русском переводе СТРОГО используй чистый русский литературный язык: "На каком языке ты говоришь?" и "Где ты живешь?". Никаких дословных калек!',
+    systemPromptAddition: 'Ты Сара, студентка ульпана из Франции. Говори короткими фразами (1-2 предложения). Узнав ответ, вежливо скажи: «יוֹפִי, נִתְרָאֶה בַּאוּלְפָּן! בַּיי!» и заверши разговор.',
   },
 
   // Урок 5: Поездки и Такси
   5: {
+    callType: 'incoming',
     callerName: 'נַהָג גֶּט (Gett)',
     callerNameRu: 'Водитель Gett (Эли)',
     callerRole: 'Водитель такси',
     avatarEmoji: '🚕',
-    situationSummary: 'Вам звонит водитель такси, который подъехал к дому.',
+    situationSummary: 'Вам звонит водитель такси, который подъехал к дому на белой Тойоте.',
+    callerObjective: 'Сообщить пассажиру, что такси уже внизу на улице, и узнать, где пассажир.',
+    studentObjective: 'Сказать водителю, что вы спускаетесь («אֲנִי יוֹרֵד עַכְשָׁו») или попросить подождать пару минут («רֶגַע, עוֹד שְׁתֵּי דַּקּוֹת»).',
+    completionCondition: 'Пассажир сообщил, что спускается («אני יורד»), попросил подождать («עוד שתי דקות», «רגע») или спросил машину.',
+    targetTurns: 1,
     initialGreeting: {
       hebrew: 'הַלּוֹ? שָׁלוֹם! אֲנִי הַנַּהָג שֶׁל גֶּט, אֲנִי לְמַטָּה בָּרְחוֹב. אֵיפֹה אַתָּה?',
       transcription: 'hалó? шалóм! анӣ hа-наháг шэль гет, анӣ лэмáта ба-рэхóв. э́йфо атá?',
@@ -258,7 +278,6 @@ export const BESPOKE_PHONE_SCENARIOS: Record<number, PhoneScenario> = {
       'Сказать водителю, что вы спускаетесь (אֲנִי יוֹרֵד עַכְשָׁו / אֲנִי יוֹרֶדֶת עַכְשָׁו) или попросить подождать 2 минуты (עוֹד שְׁתֵּי דַּקּוֹת)',
       'При желании спросить цвет или марку машины (אֵיזֶה רֶכֶב יֵשׁ לְךָ?)',
     ],
-    targetTurns: 2,
     suggestedReplies: [
       {
         hebrew: 'שָׁלוֹם! אֲנִי יוֹרֵד עַכְשָׁו, עוֹד שְׁתֵּי דַּקּוֹת אֲנִי שָׁם.',
@@ -311,24 +330,21 @@ export const BESPOKE_PHONE_SCENARIOS: Record<number, PhoneScenario> = {
       },
     ],
     systemPromptAddition: `Ты израильский водитель такси Эли на белой Тойоте (טוֹיוֹטָה לְבָנָה). Ты приехал по заказу и ждёшь пассажира внизу на улице.
-СТРОЖАЙШАЯ РОЛЕВАЯ ЛОГИКА:
-- ТЫ — ВОДИТЕЛЬ ТАКСИ! Машина у ТЕБЯ, а не у пассажира!
-- КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО водителю такси спрашивать у пассажира: «Подождёте две минуты?» (תִּקְחֶה שְׁנֵי דַקּוֹת? / תמתין שתי דקות?). Водитель УЖЕ приехал и ждёт пассажира внизу! Это пассажир просит подождать («רגע, עוד שתי דקות»), а водитель отвечает: «אֵין בְּעָיָה, אֲנִי מְחַכֶּה לְךָ לְמַטָּה בְּטוֹיוֹטָה לְבָנָה. בַּיי!» и вешает трубку!
-- КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО спрашивать у пассажира «какой цвет машины?» или «какая у тебя машина?».
-- Если пассажир говорит «רגע, אני יורד» или «עוד שתי דקות» или «אני יורד עכשיו»: скажи «מְעֻלֶּה! אֲנִי מְחַכֶּה לְךָ לְמַטָּה בְּטוֹיוֹטָה לְבָנָה. לְהִתְרָאוֹת!», заверши звонок и повесь трубку (isCompleted: true, shouldHangUp: true)!
-- Если пассажир спрашивает «איזה רכב יש לך?», отвечай: «אֲנִי בְּטוֹיוֹטָה לְבָנָה» («Я на белой Тойоте»).
-- Глагол «ждать» на иврите в настоящем времени: מְחַכֶּה (мэхакэ́), СТРОГО ЗАПРЕЩЕНО писать «מחכים» или «תיקחה».
-- Слово «цвет» на иврите: צֶבַע (цэ́ва), СТРОГО ЗАПРЕЩЕНО писать «צבת».
-- В "feedback_ru": если ученик сказал «רגע, אני יורד» или «עוד שתי דקות», это 100% верный ответ, верни null!`,
+Как только пассажир ответил (сказал «רגע, אני יורד» / «עוד שתי דקות» / спросил машину) — сразу скажи: «מְעֻלֶּה! אֲנִי מְחַכֶּה לְךָ לְמַטָּה בְּטוֹיוֹטָה לְבָנָה. בַּיי!», установи shouldHangUp: true и повесь трубку!`,
   },
 
   // Урок 15: Аренда квартиры
   15: {
+    callType: 'outgoing',
     callerName: 'בַּעַל הַדִּירָה',
     callerNameRu: 'Хозяин квартиры (Ави)',
     callerRole: 'Арендодатель в Тель-Авиве',
     avatarEmoji: '🔑',
     situationSummary: 'Вы звоните по объявлению об аренде 2-комнатной квартиры.',
+    callerObjective: 'Ответить на звонок по аренде, сообщить цену (5500 шекелей) и договориться о встрече.',
+    studentObjective: 'Спросить свободна ли квартира, сколько стоит аренда и когда можно посмотреть.',
+    completionCondition: 'Ученик спросил о квартире и договорился о времени просмотра.',
+    targetTurns: 2,
     initialGreeting: {
       hebrew: 'הַלּוֹ? כֵּן, בְּקֶשֶׁר לַדִּירָה בְּרְחוֹב דִּיזֶנְגּוֹף?',
       transcription: 'hалó? кен, бэ-кéшер ла-дирá бэ-рэхóв Ди́зенгоф?',
@@ -384,16 +400,21 @@ export const BESPOKE_PHONE_SCENARIOS: Record<number, PhoneScenario> = {
         isNew: true,
       },
     ],
-    systemPromptAddition: 'Ты хозяин квартиры Ави. Скажи, что аренда 5500 шекелей, есть мазган и балкон. Предложи встретиться сегодня вечером.',
+    systemPromptAddition: 'Ты хозяин квартиры Ави. Скажи, что аренда 5500 шекелей, есть мазган и балкон. Предложи встретиться сегодня вечером, согласуй время и вежливо попрощайся.',
   },
 
   // Урок 25: Курьер Wolt
   25: {
+    callType: 'incoming',
     callerName: 'שָׁלִיחַ וְוֹלְט (Wolt)',
     callerNameRu: 'Курьер Wolt (Рон)',
     callerRole: 'Курьер с доставкой еды',
     avatarEmoji: '🛵',
     situationSummary: 'Вам звонит курьер Wolt, который привез ваш заказ, но не может войти в подъезд.',
+    callerObjective: 'Узнать код от домофона или номер квартиры/этаж, чтобы передать заказ.',
+    studentObjective: 'Назвать код домофона или попросить оставить пакет у двери.',
+    completionCondition: 'Ученик назвал код от двери («הַקּוֹד הוּא...») или попросил оставить у двери.',
+    targetTurns: 1,
     initialGreeting: {
       hebrew: 'הַלּוֹ? שָׁלוֹם, אֲנִי שְׁלִיחַ שֶׁל וְוֹלְט, אֲנִי לְמַטָּה בַּכְּנִיסָה. מָה הַקּוֹד?',
       transcription: 'hалó? шалóм, анӣ шлӣах шэль вольт, анӣ лэмáта ба-книсá. ма hа-код?',
@@ -449,16 +470,21 @@ export const BESPOKE_PHONE_SCENARIOS: Record<number, PhoneScenario> = {
         isNew: true,
       },
     ],
-    systemPromptAddition: 'Ты спешащий, но вежливый курьер Wolt Рон. Уточни этаж и скажи, что поднимаешься на лифте.',
+    systemPromptAddition: 'Ты курьер Wolt Рон. Как только ученик назовет код домофона или попросит оставить у двери, скажи: «מְעֻלֶּה, תּוֹדָה רַבָּה! בְּתֵאָבוֹן וּלְהִתְרָאוֹת!», заверши звонок и повесь трубку.',
   },
 
   // Урок 40: Запись к врачу (Купат Холим)
   40: {
+    callType: 'outgoing',
     callerName: 'מוֹקֵד קֻפַּת חוֹלִים',
     callerNameRu: 'Поликлиника (Макаби / Клалит)',
     callerRole: 'Секретарь в регистратуре',
     avatarEmoji: '🏥',
     situationSummary: 'Вы звоните в медицинскую кассу, чтобы записаться на прием к семейному врачу.',
+    callerObjective: 'Принять звонок в регистратуру, предложить свободное время и подтвердить запись к врачу.',
+    studentObjective: 'Записаться на прием к семейному врачу на удобный день.',
+    completionCondition: 'Ученик согласовал очередь к врачу.',
+    targetTurns: 2,
     initialGreeting: {
       hebrew: 'שָׁלוֹם, מֵרְכָּז רְפוּאִי. אֵיךְ אֶפְשָׁר לַעֲזֹר לְךָ הַיּוֹם?',
       transcription: 'шалóм, меркáз рэфуӣ. эйх эфшáр лаазóр лэхá hайóм?',
@@ -519,7 +545,7 @@ export const BESPOKE_PHONE_SCENARIOS: Record<number, PhoneScenario> = {
 };
 
 /**
- * Получить или динамически сгенерировать телефонный сценарий для любого урока
+ * Получить или динамически сгенерировать телефонный сценарий для любого урока (1-100)
  */
 export function getLessonPhoneScenario(lesson: Lesson, gender: UserGender): PhoneScenario {
   const isFemale = gender === 'female';
@@ -534,15 +560,69 @@ export function getLessonPhoneScenario(lesson: Lesson, gender: UserGender): Phon
     return adaptGenderInScenario(BESPOKE_PHONE_SCENARIOS[lesson.number], isFemale);
   }
 
-  // 3. Автоматический генератор на основе темы урока и диалога
+  // 3. Системный автоматический генератор для ВСЕХ остальных уроков (1-100)
   const dial = lesson.dialogue;
-  const initialHeb = isFemale
-    ? dial.initialMessage.hebrew.replace(/לְךָ/g, 'לָךְ').replace(/תִּרְצֶה/g, 'תִּרְצִי')
-    : dial.initialMessage.hebrew.replace(/לָךְ/g, 'לְךָ').replace(/תִּרְצִי/g, 'תִּרְצֶה');
+  const aiRole = dial.aiRole || 'Собеседник';
+  const aiRoleLower = aiRole.toLowerCase();
+  const situationLower = (dial.situation || '').toLowerCase();
+  const titleLower = (lesson.titleRussian || '').toLowerCase();
+  const catLower = (lesson.category || '').toLowerCase();
 
-  const initialTr = isFemale
-    ? dial.initialMessage.transcription.replace(/лэхá/g, 'лах').replace(/тирцé/g, 'тирцӣ')
-    : dial.initialMessage.transcription.replace(/лах/g, 'лэхá').replace(/тирцӣ/g, 'тирцé');
+  // Определяем тип звонка: входящий (звонят ученику) или исходящий (ученик звонит в службу/организацию)
+  const isIncoming =
+    aiRoleLower.includes('נהג') ||
+    aiRoleLower.includes('שליח') ||
+    aiRoleLower.includes('חבר') ||
+    aiRoleLower.includes('שכן') ||
+    aiRoleLower.includes('водитель') ||
+    aiRoleLower.includes('курьер') ||
+    aiRoleLower.includes('сосед') ||
+    aiRoleLower.includes('друг') ||
+    aiRoleLower.includes('знакомый') ||
+    aiRoleLower.includes('коллега') ||
+    situationLower.includes('вам звонит') ||
+    situationLower.includes('звонит вам');
+
+  const callType: PhoneCallType = isIncoming ? 'incoming' : 'outgoing';
+
+  let callerObjective = '';
+  let studentObjective = '';
+  let initialGreetingHeb = '';
+  let initialGreetingTr = '';
+  let initialGreetingRu = '';
+
+  if (isIncoming) {
+    callerObjective = `Кратко выяснить у ученика нужную информацию по теме «${lesson.titleRussian}» и завершить звонок.`;
+    studentObjective = `Ответить на вопрос собеседника и подтвердить информацию.`;
+    if (dial.initialMessage?.hebrew) {
+      initialGreetingHeb = `הַלּוֹ? שָׁלוֹם! ${dial.initialMessage.hebrew}`;
+      initialGreetingTr = `hалó? шалóм! ${dial.initialMessage.transcription || ''}`;
+      initialGreetingRu = `Алло? Привет! ${dial.initialMessage.translation || ''}`;
+    } else {
+      initialGreetingHeb = `הַלּוֹ? שָׁלוֹם! זֶה ${aiRole}. מָה נִשְׁמַע?`;
+      initialGreetingTr = `hалó? шалóм! зэ ${aiRole}. ма нишмá?`;
+      initialGreetingRu = `Алло? Привет! Это ${aiRole}. Как дела?`;
+    }
+  } else {
+    // Outgoing call: ученик звонит в организацию / сервис
+    callerObjective = `Принять звонок в роли «${aiRole}», ответить на просьбу ученика и вежливо подтвердить договоренность.`;
+    studentObjective = `Поздороваться, изложить свой запрос по теме «${lesson.titleRussian}» и договориться.`;
+    if (dial.initialMessage?.hebrew && !dial.initialMessage.hebrew.includes('?')) {
+      initialGreetingHeb = `שָׁלוֹם, ${aiRole}! ${dial.initialMessage.hebrew}`;
+      initialGreetingTr = `шалóм, ${aiRole}! ${dial.initialMessage.transcription || ''}`;
+      initialGreetingRu = `Здравствуйте, ${aiRole}! ${dial.initialMessage.translation || ''}`;
+    } else {
+      initialGreetingHeb = `שָׁלוֹם, ${aiRole}! אֵיךְ אֶפְשָׁר לַעֲזֹר?`;
+      initialGreetingTr = `шалóм, ${aiRole}! эйх эфшáр лаазóр?`;
+      initialGreetingRu = `Здравствуйте, ${aiRole}! Чем могу помочь?`;
+    }
+  }
+
+  // Адаптация рода в приветствии
+  if (isFemale) {
+    initialGreetingHeb = initialGreetingHeb.replace(/לְךָ/g, 'לָךְ').replace(/תִּרְצֶה/g, 'תִּרְצִי').replace(/אַתָּה/g, 'אַתְּ');
+    initialGreetingTr = initialGreetingTr.replace(/лэхá/g, 'лах').replace(/тирцé/g, 'тирцӣ').replace(/атá/g, 'ат');
+  }
 
   const dynamicUsefulWords: PhoneScenarioWord[] = (lesson.vocabulary || []).slice(0, 7).map((w) => ({
     hebrew: w.hebrew,
@@ -550,7 +630,6 @@ export function getLessonPhoneScenario(lesson: Lesson, gender: UserGender): Phon
     translation: w.translation,
   }));
 
-  // Добавляем стандартные разговорные формулы для звонка, если их нет
   if (!dynamicUsefulWords.some((w) => w.hebrew.includes('הַלּוֹ') || w.hebrew.includes('שָׁלוֹם'))) {
     dynamicUsefulWords.unshift({
       hebrew: 'הַלּוֹ, שָׁלוֹם!',
@@ -566,16 +645,27 @@ export function getLessonPhoneScenario(lesson: Lesson, gender: UserGender): Phon
     });
   }
 
+  const firstVocabWord = lesson.vocabulary?.[0]?.hebrew || '';
+
   return {
-    callerName: dial.aiRole || `חָבֵר (Урок ${lesson.number})`,
-    callerNameRu: dial.aiRole || `Собеседник (Урок ${lesson.number})`,
-    callerRole: dial.aiRole || 'Израильский знакомый / Собеседник',
+    callType,
+    callerName: aiRole,
+    callerNameRu: aiRole,
+    callerRole: aiRole,
     avatarEmoji: getEmojiForCategory(lesson.category),
-    situationSummary: `Телефонный разговор по теме урока: «${lesson.titleRussian}». ${dial.situation}`,
+    situationSummary: isIncoming
+      ? `Вам звонит ${aiRole} по теме урока: «${lesson.titleRussian}».`
+      : `Вы звоните (${aiRole}) по теме урока: «${lesson.titleRussian}».`,
+    callerObjective,
+    studentObjective,
+    completionCondition: isIncoming
+      ? 'Ученик ответил на вопрос собеседника и согласовал детали.'
+      : 'Ученик высказал свою просьбу и получил подтверждение.',
+    targetTurns: 2,
     initialGreeting: {
-      hebrew: `הַלּוֹ? שָׁלוֹם! ${initialHeb}`,
-      transcription: `hалó? шалóм! ${initialTr}`,
-      translation: `Алло? Привет! ${dial.initialMessage.translation}`,
+      hebrew: initialGreetingHeb,
+      transcription: initialGreetingTr,
+      translation: initialGreetingRu,
     },
     goals: dial.goals && dial.goals.length > 0
       ? dial.goals
@@ -586,19 +676,25 @@ export function getLessonPhoneScenario(lesson: Lesson, gender: UserGender): Phon
         ],
     suggestedReplies: [
       {
-        hebrew: isFemale ? 'הַלּוֹ, שָׁלוֹם! אֲנִי שׁוֹמַעַת אוֹתְךָ מְצוּיָן.' : 'הַלּוֹ, שָׁלוֹם! אֲנִי שׁוֹמֵעַ אוֹתְךָ מְצוּיָן.',
-        transcription: isFemale ? 'hалó, шалóм! анӣ шомáат отхá мэцуйáн.' : 'hалó, шалóм! анӣ шомéа отхá мэцуйáн.',
-        translation: isFemale ? 'Алло, привет! Я отлично тебя слышу (ж.р.).' : 'Алло, привет! Я отлично тебя слышу (м.р.).',
+        hebrew: isIncoming
+          ? (isFemale ? 'שָׁלוֹם! הַכֹּל בְּסֵדֶר, מָה אִתָּךְ?' : 'שָׁלוֹם! הַכֹּל בְּסֵדֶר, מָה אִתְּךָ?')
+          : (firstVocabWord ? `שָׁלוֹם, אֲנִי רוֹצֶה ${firstVocabWord}, בְּבַקָּשָׁה.` : 'שָׁלוֹם, אֶפְשָׁר עֶזְרָה בְּבַקָּשָׁה?'),
+        transcription: isIncoming
+          ? (isFemale ? 'шалóм! hакóль бэсэ́дер, ма итáх?' : 'шалóм! hакóль бэсэ́дер, ма итхá?')
+          : 'шалóм, эфшáр эзрá бэвакашá?',
+        translation: isIncoming
+          ? 'Привет! Все хорошо, как ты?'
+          : 'Здравствуйте, можно помощь пожалуйста?',
       },
       {
-        hebrew: 'הַכֹּל בְּסֵדֶר, תּוֹדָה! מָה אִתְּךָ?',
-        transcription: 'hакóль бэсэ́дер, тодá! ма итхá?',
-        translation: 'Все в порядке, спасибо! Как ты?',
+        hebrew: 'תּוֹדָה רַבָּה, יוֹם טוֹב וּלְהִתְרָאוֹת!',
+        transcription: 'тодá рабá, йом тов у-лэhитраóт!',
+        translation: 'Большое спасибо, хорошего дня и до свидания!',
       },
     ],
-    vocabularyHints: dial.vocabularyHints || (lesson.vocabulary || []).slice(0, 5).map(w => w.hebrew),
+    vocabularyHints: dial.vocabularyHints || (lesson.vocabulary || []).slice(0, 5).map((w) => w.hebrew),
     usefulWords: dynamicUsefulWords,
-    systemPromptAddition: `Это реалистичный телефонный звонок в Израиле. Ты ${dial.aiRole || 'израильский собеседник'}. Говори короткими телефонными репликами (1-2 предложения). Поддерживай живой диалог. В русском переводе строго используй естественный грамотный русский язык без дословных калек с иврита (никаких «на какой язык ты говоришь», «откуда ты живешь» и т.п.).`,
+    systemPromptAddition: `Ты ${aiRole}. Это короткий жизненный телефонный звонок в Израиле. Говори короткими репликами (1-2 предложения). Как только вопрос решен — тепло попрощайся и повесь трубку.`,
   };
 }
 
