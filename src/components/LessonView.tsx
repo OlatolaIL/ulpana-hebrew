@@ -102,13 +102,14 @@ export const LessonView: React.FC<LessonViewProps> = ({
 
           <div className="flex items-center gap-1.5 min-w-0">
             <span
-              className={`px-2 py-1 rounded-lg text-xs font-bold shrink-0 font-hebrew ${
+              className={`px-2 py-1 rounded-xl text-xs font-extrabold shrink-0 font-hebrew tracking-wide ${
                 userProfile.ulpanMode
                   ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300'
                   : 'bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400'
               }`}
+              title={userProfile.ulpanMode ? `שִׁיעוּר ${lesson.number}` : `Урок ${lesson.number}`}
             >
-              {userProfile.ulpanMode ? `שִׁיעוּר ${lesson.number}` : `Урок ${lesson.number}`}
+              {lesson.level === 'bet' ? 'ב' : 'א'}{lesson.number}
             </span>
           </div>
         </div>

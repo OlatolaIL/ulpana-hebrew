@@ -105,17 +105,17 @@ function renderFormattedText(
             e.stopPropagation();
             onPlay(part, itemKey);
           }}
-          className={`inline-flex items-center gap-1 font-semibold px-1 py-0.5 rounded transition cursor-pointer select-text align-baseline mx-0.5 ${
+          className={`inline-flex items-center gap-1 font-bold px-2 py-0.5 my-0.5 rounded-lg border transition cursor-pointer select-text align-baseline mx-0.5 ${
             isPlaying
-              ? 'bg-blue-600 text-white shadow-xs scale-105'
-              : 'text-blue-800 dark:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-950/40 underline decoration-blue-300/70 dark:decoration-blue-700 underline-offset-2'
+              ? 'bg-blue-600 text-white border-blue-600 shadow-xs scale-105'
+              : 'text-blue-700 dark:text-blue-300 bg-blue-50/80 dark:bg-blue-950/50 border-blue-200/80 dark:border-blue-800/60 hover:bg-blue-100 dark:hover:bg-blue-900/60'
           }`}
           title="Прослушать произношение (как произносится)"
         >
-          <span dir="rtl" className={isCursive ? 'font-cursive text-base' : 'font-hebrew font-medium'}>
+          <span dir="rtl" className={isCursive ? 'font-cursive text-xl' : 'font-hebrew text-base sm:text-lg font-bold'}>
             {showNikkud ? part : stripNikkud(part)}
           </span>
-          <Volume2 className={`w-2.5 h-2.5 shrink-0 ${isPlaying ? 'animate-pulse text-white' : 'text-blue-500 opacity-60'}`} />
+          <Volume2 className={`w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0 ${isPlaying ? 'animate-pulse text-white' : 'text-blue-500 opacity-75'}`} />
         </button>
       );
     }
@@ -159,7 +159,7 @@ export const LessonTheory: React.FC<LessonTheoryProps> = ({
   const isUlpan = Boolean(userProfile.ulpanMode);
 
   return (
-    <div data-font-style={userProfile.fontStyle || 'print'} className="space-y-4 sm:space-y-6 max-w-3xl mx-auto pb-24">
+    <div data-font-style={userProfile.fontStyle || 'print'} className="space-y-4 sm:space-y-6 max-w-3xl mx-auto pb-10">
       {/* Баннер режима Ульпан (Визуальное обучение) */}
       {isUlpan && (
         <div className="bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-950/40 dark:to-teal-950/40 border border-emerald-200/80 dark:border-emerald-800/60 rounded-2xl p-4 flex items-center justify-between gap-3 shadow-xs">
@@ -633,40 +633,77 @@ export const LessonTheory: React.FC<LessonTheoryProps> = ({
 
           {/* Правила и памятки (только в обычном режиме) */}
           {!isUlpan && topic.rules && topic.rules.length > 0 && (
-            <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/50 rounded-2xl p-3 sm:p-4 space-y-1.5">
-              <div className="flex items-center gap-2 text-amber-800 dark:text-amber-300 font-bold text-xs">
-                <Lightbulb className="w-4 h-4" />
-                <span>Важные правила ульпана</span>
-              </div>
-              <ul className="list-disc list-inside space-y-1.5 text-xs text-amber-900 dark:text-amber-200">
-                {topic.rules.map((rule, rIdx) => (
-                  <li key={rIdx} className="leading-relaxed">
-                    {renderFormattedText(
-                      rule,
-                      handlePlay,
-                      isCursive,
-                      userProfile.showNikkud,
-                      playingKey
-                    )}
-                  </li>
-                ))}
-              </ul>
-
-              <div className="pt-2 border-t border-amber-200/80 dark:border-amber-900/40 flex items-center justify-between">
+            <div className="bg-gradient-to-br from-amber-50/90 to-amber-100/50 dark:from-amber-950/40 dark:to-amber-900/20 border border-amber-200/90 dark:border-amber-900/60 rounded-2xl sm:rounded-3xl p-4 sm:p-5 space-y-3.5 shadow-xs">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5 text-amber-950 dark:text-amber-100 font-bold text-sm sm:text-base">
+                  <div className="p-1.5 rounded-xl bg-amber-200/80 dark:bg-amber-900/60 text-amber-800 dark:text-amber-200">
+                    <Lightbulb className="w-4 h-4" />
+                  </div>
+                  <span>Важные правила ульпана</span>
+                </div>
                 <button
                   type="button"
                   onClick={() => setIsSpokenDrawerOpen(true)}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-100/90 hover:bg-amber-200 dark:bg-amber-900/60 dark:hover:bg-amber-800/70 text-amber-900 dark:text-amber-100 font-bold text-xs transition cursor-pointer border border-amber-300 dark:border-amber-700 shadow-xs active:scale-98"
-                  title="Открыть шторку живой разговорной речи и ударений"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs sm:text-sm transition cursor-pointer shadow-xs active:scale-95 shrink-0"
+                  title="Открыть шторку живой речи и ударений"
                 >
-                  <span>🗣️ Шторка: Живая речь и секреты ударения</span>
-                  <span className="text-[10px] opacity-75">→</span>
+                  <span>🗣️ Живая речь</span>
+                  <span className="text-xs">→</span>
                 </button>
+              </div>
+
+              <div className="space-y-2.5">
+                {topic.rules.map((rule, rIdx) => (
+                  <div
+                    key={rIdx}
+                    className="p-3.5 rounded-xl bg-white/95 dark:bg-zinc-900/95 border border-amber-200/70 dark:border-amber-900/50 flex items-start gap-3 shadow-2xs"
+                  >
+                    <div className="w-6 h-6 rounded-full bg-amber-100 dark:bg-amber-900/60 text-amber-800 dark:text-amber-200 font-bold text-xs flex items-center justify-center shrink-0 mt-0.5">
+                      {rIdx + 1}
+                    </div>
+                    <div className="text-sm sm:text-base text-zinc-800 dark:text-zinc-200 leading-relaxed font-normal flex-1">
+                      {renderFormattedText(
+                        rule,
+                        handlePlay,
+                        isCursive,
+                        userProfile.showNikkud,
+                        playingKey
+                      )}
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           )}
         </div>
       ))}
+
+      {/* Разговорная речь (шторка) — для уроков без отдельного блока правил */}
+      {!isUlpan && !lesson.grammar.some((t) => t.rules && t.rules.length > 0) && (
+        <div className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30 border border-amber-200 dark:border-amber-900/50 rounded-2xl sm:rounded-3xl p-4 flex items-center justify-between gap-3 shadow-xs">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-xl bg-amber-100 dark:bg-amber-900/60 text-amber-700 dark:text-amber-300 text-xl shrink-0">
+              🗣️
+            </div>
+            <div>
+              <h4 className="text-sm sm:text-base font-bold text-amber-950 dark:text-amber-100">
+                Живая речь и секреты ударения
+              </h4>
+              <p className="text-xs sm:text-sm text-amber-800/80 dark:text-amber-300/80">
+                Сленг, разговорные сокращения и правила ударения
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setIsSpokenDrawerOpen(true)}
+            className="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs sm:text-sm transition cursor-pointer shadow-xs active:scale-95 shrink-0 flex items-center gap-1.5"
+          >
+            <span>Открыть</span>
+            <span>→</span>
+          </button>
+        </div>
+      )}
 
       {/* Базовые примеры предложений с озвучкой */}
       {lesson.basicSentences.length > 0 && (
@@ -779,19 +816,6 @@ export const LessonTheory: React.FC<LessonTheoryProps> = ({
           </span>
         </button>
       </div>
-
-      {/* ПЛАВАЮЩАЯ КНОПКА ШТОРКИ ЖИВОЙ РЕЧИ (Внизу экрана в удобной зоне большого пальца) */}
-      <button
-        type="button"
-        onClick={() => setIsSpokenDrawerOpen(true)}
-        className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-40 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-bold px-4 py-2.5 rounded-full shadow-lg border border-amber-400/80 flex items-center gap-2 transition active:scale-95 cursor-pointer group hover:shadow-amber-500/25"
-        title="Открыть шторку живой речи и ударений"
-      >
-        <span className="text-lg group-hover:scale-110 transition-transform duration-200">🗣️</span>
-        <span className="text-xs sm:text-sm font-bold text-amber-50">
-          {isUlpan ? 'שְׂפַת דִּבּוּר' : 'Живая речь'}
-        </span>
-      </button>
 
       {/* ВЫЕЗЖАЮЩАЯ ШТОРКА ЖИВОЙ РЕЧИ */}
       <SpokenHebrewDrawer
