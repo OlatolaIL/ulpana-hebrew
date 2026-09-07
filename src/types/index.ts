@@ -216,6 +216,7 @@ export interface PhoneScenario {
   vocabularyHints?: string[];
   usefulWords?: PhoneScenarioWord[]; // Карточки полезных слов и выражений перед звонком
   systemPromptAddition?: string; // Дополнительные инструкции для LLM
+  targetTurns?: number; // Максимальное количество раундов звонка до логического финала (по умолчанию 2)
 }
 
 export interface Lesson {

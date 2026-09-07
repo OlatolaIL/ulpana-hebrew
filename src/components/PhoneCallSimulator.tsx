@@ -526,7 +526,7 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
               ? userProfile.groqApiKey
               : userProfile.geminiApiKey,
           isPhoneCall: true,
-          targetTurns: scenario.goals && scenario.goals.length > 0 ? Math.max(3, scenario.goals.length) : 3,
+          targetTurns: scenario.targetTurns || 2,
           studentKnownWords: knownWords,
           ulpanMode: Boolean(userProfile.ulpanMode),
           systemPromptAddition: scenario.systemPromptAddition,
