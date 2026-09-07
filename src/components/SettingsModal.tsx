@@ -2,11 +2,13 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { X, Key, User, Volume2, Eye, HelpCircle, CheckCircle2, ShieldCheck, GraduationCap, Sparkles, MessageSquare } from 'lucide-react';
+import { X, Key, User, Volume2, Eye, HelpCircle, CheckCircle2, ShieldCheck, GraduationCap, Sparkles, MessageSquare, Download, Smartphone } from 'lucide-react';
 import { UserProfile, UserGender, AiProvider } from '@/types';
 import { isVipUser } from '@/lib/vipUsers';
 import { saveUserProfile } from '@/lib/storage';
 import { speakHebrew } from '@/lib/speech';
+import { usePwaInstall } from '@/lib/usePwaInstall';
+import { PwaInstallGuideModal } from '@/components/PwaInstallGuideModal';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -36,6 +38,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   if (!isOpen) return null;
 
   const isPro = profile.subscriptionTier === 'pro' || profile.subscriptionTier === 'admin';
+  const { isStandalone, isIOS, showGuide, setShowGuide, installApp } = usePwaInstall();
   const [autoShowGuides, setAutoShowGuides] = useState(() => {
     if (typeof window !== 'undefined') {
       return localStorage.getItem('ulpana_auto_show_guides') !== 'false';
@@ -158,6 +161,50 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 </button>
               )}
             </div>
+          </div>
+
+          {/* Секция: Установка приложения (PWA) */}
+          <div className="bg-gradient-to-br from-blue-50/60 to-indigo-50/40 dark:from-blue-950/20 dark:to-indigo-950/20 rounded-2xl p-4 border border-blue-200/70 dark:border-blue-900/40 space-y-3">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-xl bg-blue-600 text-white shadow-sm shrink-0">
+                  <Smartphone className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+                    <span>Установить как приложение</span>
+                    {isStandalone && (
+                      <span className="text-[10px] bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 px-2 py-0.5 rounded-full font-bold">
+                        Установлено
+                      </span>
+                    )}
+                  </h3>
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5 leading-relaxed">
+                    {isStandalone
+                      ? 'Ульпана работает в автономном полноэкранном режиме как отдельное приложение.'
+                      : 'Полноэкранный режим без рамок браузера, быстрый запуск с рабочего стола и офлайн-кэш.'}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {isStandalone ? (
+              <div className="flex items-center gap-2 p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200/80 dark:border-emerald-800/60 text-emerald-800 dark:text-emerald-300 text-xs font-semibold">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                <span>Приложение уже установлено на этом устройстве</span>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={async () => {
+                  await installApp();
+                }}
+                className="w-full py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 active:scale-[0.99] text-white text-xs font-bold transition flex items-center justify-center gap-2 shadow-sm shadow-blue-600/30 cursor-pointer"
+              >
+                <Download className="w-4 h-4" />
+                <span>{isIOS ? 'Инструкция по установке' : 'Установить на это устройство'}</span>
+              </button>
+            )}
           </div>
 
           <hr className="border-zinc-200 dark:border-zinc-800" />
@@ -596,6 +643,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           </button>
         </div>
       </div>
+
+      {/* Модальное окно с подробной инструкцией установки PWA */}
+      <PwaInstallGuideModal
+        isOpen={showGuide}
+        onClose={() => setShowGuide(false)}
+        isIOS={isIOS}
+      />
     </div>
   );
 };
