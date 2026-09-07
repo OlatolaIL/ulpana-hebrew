@@ -311,7 +311,7 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
     });
   };
 
-  // Горячие клавиши для режима карточек (Стрелка влево / вправо / пробел)
+  // Горячие клавиши для режима карточек (Стрелка влево / вправо / пробел / цифры 1-3)
   useEffect(() => {
     if (mode !== 'flip' || !currentWord) return;
 
@@ -323,32 +323,35 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
         handlePrevWord();
       } else if (e.key === 'ArrowRight') {
         e.preventDefault();
-        handleAdvanceNext();
+        if (!isFlipped) {
+          handleFlipCard();
+        } else {
+          handleNextWord(5);
+        }
       } else if (e.key === ' ' || e.key === 'Enter') {
         e.preventDefault();
-        handleFlipCard();
+        if (!isFlipped) {
+          handleFlipCard();
+        } else {
+          handleNextWord(5);
+        }
+      } else if (isFlipped) {
+        if (e.key === '1') {
+          e.preventDefault();
+          handleNextWord(1);
+        } else if (e.key === '2' || e.key === '3') {
+          e.preventDefault();
+          handleNextWord(3);
+        } else if (e.key === '4' || e.key === '5') {
+          e.preventDefault();
+          handleNextWord(5);
+        }
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [mode, currentWord, currentIndex, cardDirection]);
-
-  const handleForgotFlip = () => {
-    handleRecordSRS(1);
-    setIsFlipped(true);
-    if (cardDirection === 'ru-he' && currentWord) {
-      speakHebrew(currentWord.hebrew);
-    }
-  };
-
-  const handleStruggleFlip = () => {
-    handleRecordSRS(3);
-    setIsFlipped(true);
-    if (cardDirection === 'ru-he' && currentWord) {
-      speakHebrew(currentWord.hebrew);
-    }
-  };
+  }, [mode, currentWord, currentIndex, cardDirection, isFlipped]);
 
   const handleSelectTile = (tile: Tile) => {
     if (builderSuccess) return;
@@ -1079,7 +1082,7 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
                   type="button"
                   disabled={currentIndex === 0}
                   onClick={handlePrevWord}
-                  className="py-3 px-3.5 rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 disabled:opacity-25 disabled:cursor-not-allowed hover:bg-zinc-50 dark:hover:bg-zinc-800 font-bold text-xs sm:text-sm shadow-xs flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer shrink-0"
+                  className="py-3.5 px-4 rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 disabled:opacity-25 disabled:cursor-not-allowed hover:bg-zinc-50 dark:hover:bg-zinc-800 font-bold text-xs sm:text-sm shadow-xs flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer shrink-0"
                   title={isUlpan ? 'חֲזֹר לַמִּילָּה הַקּוֹדֶמֶת' : 'Предыдущее слово'}
                 >
                   <ArrowLeft className="w-4 h-4" />
@@ -1089,51 +1092,11 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
                 <button
                   type="button"
                   onClick={handleFlipCard}
-                  className="flex-1 py-3 px-4 rounded-2xl bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-100 dark:hover:bg-blue-900/60 text-blue-600 dark:text-blue-400 font-bold text-xs sm:text-sm border border-blue-200 dark:border-blue-800 shadow-xs flex items-center justify-center gap-2 transition active:scale-98 cursor-pointer"
+                  className="flex-1 py-3.5 px-4 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-sm shadow-md flex items-center justify-center gap-2 transition active:scale-98 cursor-pointer"
                 >
                   <RotateCw className="w-4 h-4" />
                   <span>
-                    {cardDirection === 'ru-he'
-                      ? (isUlpan ? 'הַצֵּג עִבְרִית וּפְרָטִים' : 'Показать иврит и детали')
-                      : (isUlpan ? 'הַצֵּג תַּרְגּוּם וּפְרָטִים' : 'Показать перевод и детали')}
-                  </span>
-                </button>
-              </div>
-
-              <div className="grid grid-cols-3 gap-2 sm:gap-3">
-                <button
-                  type="button"
-                  onClick={handleForgotFlip}
-                  className="py-2.5 sm:py-3 px-2 rounded-2xl bg-rose-500/15 hover:bg-rose-500/25 dark:bg-rose-950/70 text-rose-700 dark:text-rose-300 border-2 border-rose-400/80 dark:border-rose-700 font-extrabold text-xs sm:text-sm shadow-sm transition active:scale-95 flex flex-col items-center justify-center cursor-pointer"
-                  title="Открыть карточку и зафиксировать повторение"
-                >
-                  <span>{isUlpan ? 'שָׁכַחְתִּי ↩' : 'Снова / Забыл ↩'}</span>
-                  <span className="text-[10px] text-rose-500/80 dark:text-rose-400 font-normal hidden sm:inline">
                     {isUlpan ? 'הַצֵּג תְּשׁוּבָה' : 'Показать ответ'}
-                  </span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handleStruggleFlip}
-                  className="py-2.5 sm:py-3 px-2 rounded-2xl bg-amber-500/15 hover:bg-amber-500/25 dark:bg-amber-950/70 text-amber-700 dark:text-amber-300 border-2 border-amber-400/80 dark:border-amber-700 font-extrabold text-xs sm:text-sm shadow-sm transition active:scale-95 flex flex-col items-center justify-center cursor-pointer"
-                  title="Проверить себя (3 балла)"
-                >
-                  <span>{isUlpan ? 'בְּקֹשִׁי 🔍' : 'С трудом 🔍'}</span>
-                  <span className="text-[10px] text-amber-500/80 dark:text-amber-400 font-normal hidden sm:inline">
-                    {isUlpan ? '3 נְקֻדּוֹת' : '3 балла'}
-                  </span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => handleNextWord(5)}
-                  className="py-2.5 sm:py-3 px-2 rounded-2xl bg-emerald-500/15 hover:bg-emerald-500/25 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-300 border-2 border-emerald-400/80 dark:border-emerald-700 font-extrabold text-xs sm:text-sm shadow-sm transition active:scale-95 flex flex-col items-center justify-center cursor-pointer"
-                  title="Знаю сразу (5 баллов)"
-                >
-                  <span>{isUlpan ? 'יוֹדֵעַ ✓' : 'Легко / Знаю ✓'}</span>
-                  <span className="text-[10px] text-emerald-500/80 dark:text-emerald-400 font-normal hidden sm:inline">
-                    {isUlpan ? '5 נְקֻדּוֹת' : '5 баллов'}
                   </span>
                 </button>
               </div>
@@ -1141,53 +1104,47 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
           ) : (
             /* Действия для открытой карточки (isFlipped) */
             <div className="space-y-2.5 animate-in fade-in">
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  disabled={currentIndex === 0}
-                  onClick={handlePrevWord}
-                  className="py-3.5 px-3.5 rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 disabled:opacity-25 disabled:cursor-not-allowed hover:bg-zinc-50 dark:hover:bg-zinc-800 font-bold text-xs sm:text-sm shadow-xs flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer shrink-0"
-                  title={isUlpan ? 'חֲזֹר לַמִּילָּה הַקּוֹדֶמֶת' : 'Предыдущее слово'}
-                >
-                  <ArrowLeft className="w-4 h-4" />
-                  <span className="hidden sm:inline">{isUlpan ? 'קוֹדֶמֶת' : 'Назад'}</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handleAdvanceNext}
-                  className="flex-1 py-3.5 px-4 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-sm shadow-md flex items-center justify-center gap-2 transition active:scale-98 cursor-pointer"
-                >
-                  <span>{isUlpan ? 'הַמִּילָּה הַבָּאָה' : 'Следующее слово'}</span>
-                  <ArrowRight className="w-4 h-4" />
-                </button>
-              </div>
-
               <div className="grid grid-cols-3 gap-2 sm:gap-3">
                 <button
                   type="button"
                   onClick={() => handleNextWord(1)}
-                  className="py-2 sm:py-2.5 px-2 rounded-xl bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 text-rose-700 dark:text-rose-300 border border-rose-300 dark:border-rose-800 font-bold text-xs shadow-xs transition active:scale-95 flex items-center justify-center cursor-pointer"
+                  className="py-3 sm:py-3.5 px-2 rounded-2xl bg-rose-500/15 hover:bg-rose-500/25 dark:bg-rose-950/70 text-rose-700 dark:text-rose-300 border-2 border-rose-400/80 dark:border-rose-700 font-extrabold text-sm sm:text-base shadow-sm transition active:scale-95 flex flex-col items-center justify-center cursor-pointer"
+                  title={isUlpan ? 'שָׁכַחְתִּי' : 'Забыл (повторить скоро)'}
                 >
-                  <span>{isUlpan ? 'שָׁכַחְתִּי (1)' : 'Забыл (1)'}</span>
+                  <span>{isUlpan ? 'שָׁכַחְתִּי' : 'Забыл'}</span>
                 </button>
+
                 <button
                   type="button"
                   onClick={() => handleNextWord(3)}
-                  className="py-2 sm:py-2.5 px-2 rounded-xl bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-800 font-bold text-xs shadow-xs transition active:scale-95 flex items-center justify-center cursor-pointer"
+                  className="py-3 sm:py-3.5 px-2 rounded-2xl bg-amber-500/15 hover:bg-amber-500/25 dark:bg-amber-950/70 text-amber-700 dark:text-amber-300 border-2 border-amber-400/80 dark:border-amber-700 font-extrabold text-sm sm:text-base shadow-sm transition active:scale-95 flex flex-col items-center justify-center cursor-pointer"
+                  title={isUlpan ? 'בְּקֹשִׁי' : 'С трудом'}
                 >
-                  <span>{isUlpan ? 'בְּקֹשִׁי (3)' : 'С трудом (3)'}</span>
+                  <span>{isUlpan ? 'בְּקֹשִׁי' : 'С трудом'}</span>
                 </button>
+
                 <button
                   type="button"
                   onClick={() => handleNextWord(5)}
-                  className="py-2 sm:py-2.5 px-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 font-bold text-xs shadow-xs transition active:scale-95 flex items-center justify-center cursor-pointer"
+                  className="py-3 sm:py-3.5 px-2 rounded-2xl bg-emerald-500/15 hover:bg-emerald-500/25 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-300 border-2 border-emerald-400/80 dark:border-emerald-700 font-extrabold text-sm sm:text-base shadow-sm transition active:scale-95 flex flex-col items-center justify-center cursor-pointer"
+                  title={isUlpan ? 'קַל' : 'Легко'}
                 >
-                  <span>{isUlpan ? 'קַל (5)' : 'Легко (5)'}</span>
+                  <span>{isUlpan ? 'קַל' : 'Легко'}</span>
                 </button>
               </div>
 
-              <div className="text-center pt-0.5">
+              <div className="flex items-center justify-between pt-1 px-1">
+                <button
+                  type="button"
+                  disabled={currentIndex === 0}
+                  onClick={handlePrevWord}
+                  className="text-xs font-semibold text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition inline-flex items-center gap-1 disabled:opacity-25 disabled:cursor-not-allowed cursor-pointer"
+                  title={isUlpan ? 'חֲזֹר לַמִּילָּה הַקּוֹדֶמֶת' : 'Предыдущее слово'}
+                >
+                  <ArrowLeft className="w-3.5 h-3.5" />
+                  <span>{isUlpan ? 'קוֹדֶמֶת' : 'Назад'}</span>
+                </button>
+
                 <button
                   type="button"
                   onClick={() => setIsFlipped(false)}
