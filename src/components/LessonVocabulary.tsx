@@ -1,23 +1,26 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Volume2,
   Plus,
   Check,
   Search,
-  Sparkles,
-  Play,
   Layers,
-  Filter,
+  List,
   Eye,
   EyeOff,
   CheckCircle2,
   ArrowRight,
+  ArrowLeft,
   GraduationCap,
+  RotateCw,
+  RefreshCw,
+  ThumbsUp,
 } from 'lucide-react';
+import confetti from 'canvas-confetti';
 import { Word, UserProfile, PartOfSpeech } from '@/types';
 import { speakHebrew } from '@/lib/speech';
 import { stripNikkud, getWordTranscription } from '@/lib/transcription';
-import { saveUserProfile, markLessonTabCompleted } from '@/lib/storage';
+import { saveUserProfile, markLessonTabCompleted, updateCardSRS } from '@/lib/storage';
 import { getHebrewPictogram } from '@/lib/pictograms';
 import { WordVisual } from '@/components/WordVisual';
 
@@ -35,12 +38,28 @@ export const LessonVocabulary: React.FC<LessonVocabularyProps> = ({
   words,
   userProfile,
   onCompleted,
-  onStartPractice,
   onUpdateProfile,
 }) => {
+  // Режим просмотра: 'card' (интерактивные флип-карточки по умолчанию) или 'list' (полный словарь)
+  const [viewMode, setViewMode] = useState<'card' | 'list'>('card');
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [isFlipped, setIsFlipped] = useState(false);
+  const [knownWordIds, setKnownWordIds] = useState<Set<string>>(new Set());
+  const [reviewWordIds, setReviewWordIds] = useState<Set<string>>(new Set());
+  const [isSessionCompleted, setIsSessionCompleted] = useState(false);
+
+  // Для режима списка
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedPos, setSelectedPos] = useState<string>('all');
   const [revealedRoots, setRevealedRoots] = useState<Record<string, boolean>>({});
+  const [revealedTranslations, setRevealedTranslations] = useState<Record<string, boolean>>({});
+
+  const isUlpan = Boolean(userProfile.ulpanMode);
+  const isCursive = userProfile.fontStyle === 'cursive';
+
+  useEffect(() => {
+    setIsFlipped(false);
+  }, [currentIndex]);
 
   const handleMarkDone = () => {
     if (lessonId) {
@@ -50,13 +69,82 @@ export const LessonVocabulary: React.FC<LessonVocabularyProps> = ({
     if (onCompleted) onCompleted();
   };
 
-  const handleStartPracticeWithMark = (wordsToTrain: Word[]) => {
-    if (lessonId) {
-      const updated = markLessonTabCompleted(lessonId, 'vocab');
-      if (onUpdateProfile) onUpdateProfile(updated);
+  const handleNext = () => {
+    if (currentIndex < words.length - 1) {
+      setCurrentIndex((prev) => prev + 1);
+      setIsFlipped(false);
+    } else {
+      setIsSessionCompleted(true);
+      try {
+        confetti({ particleCount: 50, spread: 60, origin: { y: 0.6 } });
+      } catch {}
     }
-    if (onStartPractice) onStartPractice(wordsToTrain);
   };
+
+  const handlePrev = () => {
+    if (currentIndex > 0) {
+      setCurrentIndex((prev) => prev - 1);
+      setIsFlipped(false);
+    }
+  };
+
+  const handleMarkKnown = () => {
+    const word = words[currentIndex];
+    if (word) {
+      try {
+        updateCardSRS(word.id, 5, word.hebrewPlain || word.hebrew);
+      } catch {}
+      setKnownWordIds((prev) => new Set(prev).add(word.id));
+      setReviewWordIds((prev) => {
+        const next = new Set(prev);
+        next.delete(word.id);
+        return next;
+      });
+    }
+    handleNext();
+  };
+
+  const handleMarkRepeat = () => {
+    const word = words[currentIndex];
+    if (word) {
+      try {
+        updateCardSRS(word.id, 1, word.hebrewPlain || word.hebrew);
+      } catch {}
+      setReviewWordIds((prev) => new Set(prev).add(word.id));
+      setKnownWordIds((prev) => {
+        const next = new Set(prev);
+        next.delete(word.id);
+        return next;
+      });
+    }
+    handleNext();
+  };
+
+  const handleRestartCards = () => {
+    setCurrentIndex(0);
+    setIsFlipped(false);
+    setIsSessionCompleted(false);
+    setKnownWordIds(new Set());
+    setReviewWordIds(new Set());
+  };
+
+  // Горячие клавиши на десктопе: Пробел — перевернуть, Стрелка вправо — Знаю, Стрелка влево — Повторить
+  useEffect(() => {
+    if (viewMode !== 'card' || isSessionCompleted) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      if (e.code === 'Space') {
+        e.preventDefault();
+        setIsFlipped((prev) => !prev);
+      } else if (e.code === 'ArrowRight' || e.code === 'KeyD') {
+        handleMarkKnown();
+      } else if (e.code === 'ArrowLeft' || e.code === 'KeyA') {
+        handleMarkRepeat();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [viewMode, currentIndex, isSessionCompleted, words]);
 
   const filteredWords = words.filter((w) => {
     const q = searchQuery.toLowerCase().trim();
@@ -119,22 +207,45 @@ export const LessonVocabulary: React.FC<LessonVocabularyProps> = ({
     }
   };
 
-  const [revealedTranslations, setRevealedTranslations] = useState<Record<string, boolean>>({});
-  const isUlpan = Boolean(userProfile.ulpanMode);
+  const isWordInDict = (word: Word) => {
+    return (userProfile.personalVocabulary || []).some(
+      (pw) => stripNikkud(pw.hebrew) === stripNikkud(word.hebrew)
+    );
+  };
 
   const getPosBadge = (pos: PartOfSpeech) => {
     if (isUlpan) {
       switch (pos) {
         case 'noun':
-          return <span dir="rtl" className="px-2 py-0.5 rounded text-[11px] font-hebrew font-bold bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-200">שֵׁם עֶצֶם</span>;
+          return (
+            <span dir="rtl" className="px-2 py-0.5 rounded text-[11px] font-hebrew font-bold bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-200">
+              שֵׁם עֶצֶם
+            </span>
+          );
         case 'verb':
-          return <span dir="rtl" className="px-2 py-0.5 rounded text-[11px] font-hebrew font-bold bg-emerald-100 dark:bg-emerald-900/50 text-emerald-800 dark:text-emerald-200">פֹּעַל</span>;
+          return (
+            <span dir="rtl" className="px-2 py-0.5 rounded text-[11px] font-hebrew font-bold bg-emerald-100 dark:bg-emerald-900/50 text-emerald-800 dark:text-emerald-200">
+              פֹּעַל
+            </span>
+          );
         case 'adjective':
-          return <span dir="rtl" className="px-2 py-0.5 rounded text-[11px] font-hebrew font-bold bg-purple-100 dark:bg-purple-900/50 text-purple-800 dark:text-purple-200">שֵׁם תֹּאַר</span>;
+          return (
+            <span dir="rtl" className="px-2 py-0.5 rounded text-[11px] font-hebrew font-bold bg-purple-100 dark:bg-purple-900/50 text-purple-800 dark:text-purple-200">
+              שֵׁם תֹּאַר
+            </span>
+          );
         case 'expression':
-          return <span dir="rtl" className="px-2 py-0.5 rounded text-[11px] font-hebrew font-bold bg-amber-100 dark:bg-amber-900/50 text-amber-800 dark:text-amber-200">בִּיטּוּי</span>;
+          return (
+            <span dir="rtl" className="px-2 py-0.5 rounded text-[11px] font-hebrew font-bold bg-amber-100 dark:bg-amber-900/50 text-amber-800 dark:text-amber-200">
+              בִּיטּוּי
+            </span>
+          );
         default:
-          return <span dir="rtl" className="px-2 py-0.5 rounded text-[11px] font-hebrew font-bold bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300">מִילָּה</span>;
+          return (
+            <span dir="rtl" className="px-2 py-0.5 rounded text-[11px] font-hebrew font-bold bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300">
+              מִילָּה
+            </span>
+          );
       }
     }
 
@@ -187,13 +298,13 @@ export const LessonVocabulary: React.FC<LessonVocabularyProps> = ({
     return null;
   };
 
-  const isCursive = userProfile.fontStyle === 'cursive';
+  const currentWord = words[currentIndex] || words[0];
 
   return (
-    <div data-font-style={userProfile.fontStyle || 'print'} className="space-y-6">
-      {/* Информационный баннер Режима Ульпан */}
+    <div data-font-style={userProfile.fontStyle || 'print'} className="space-y-4 sm:space-y-6 max-w-3xl mx-auto pb-10">
+      {/* Баннер Режима Ульпан */}
       {isUlpan && (
-        <div className="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900/50 rounded-2xl p-3.5 sm:p-4 flex items-center justify-between gap-3 text-xs text-emerald-800 dark:text-emerald-200 shadow-xs">
+        <div className="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900/50 rounded-2xl p-3.5 flex items-center justify-between gap-3 text-xs text-emerald-800 dark:text-emerald-200 shadow-xs">
           <div className="flex items-center gap-2.5">
             <div className="p-2 rounded-xl bg-emerald-100 dark:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 shrink-0">
               <GraduationCap className="w-5 h-5" />
@@ -203,314 +314,620 @@ export const LessonVocabulary: React.FC<LessonVocabularyProps> = ({
                 עִבְרִית בְּעִבְרִית — אוּלְפָּן
               </p>
               <p className="text-[11px] sm:text-xs text-emerald-700 dark:text-emerald-300 mt-0.5" dir="rtl">
-                הַתַּרְגּוּמִים מֻסְתָּרִים. לַחֲצוּ עַל &quot;תַּרְגּוּם&quot; לְבִדּוּק.
+                הַתַּרְגּוּמִים מֻסְתָּרִים. לַחֲצוּ עַל הַכַּרְטִיסִיָּה לְבִדּוּק.
               </p>
             </div>
           </div>
         </div>
       )}
 
-      {/* Верхняя панель управления */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-zinc-900 p-4 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm">
-        <div className="flex-1 flex items-center gap-3">
-          <div className="relative flex-1 max-w-sm">
-            <Search className="w-4 h-4 text-zinc-400 absolute left-3 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={isUlpan ? 'חיפוש...' : 'Поиск по ивриту, транскрипции или переводу...'}
-              className="w-full pl-9 pr-4 py-2 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600"
-            />
-          </div>
-
-          <select
-            value={selectedPos}
-            onChange={(e) => setSelectedPos(e.target.value)}
-            className="px-3 py-2 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600"
+      {/* Верхняя строка управления: Переключатель режимов (Карточки / Списком) */}
+      <div className="flex items-center justify-between gap-2 bg-white dark:bg-zinc-900 p-2 sm:p-2.5 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-xs">
+        {/* Переключатель Карточки / Списком */}
+        <div className="flex items-center gap-1 bg-zinc-100 dark:bg-zinc-800 p-1 rounded-xl">
+          <button
+            type="button"
+            onClick={() => {
+              setViewMode('card');
+              setIsSessionCompleted(false);
+            }}
+            className={`px-3 py-1.5 rounded-lg text-xs sm:text-sm font-bold transition flex items-center gap-1.5 cursor-pointer ${
+              viewMode === 'card'
+                ? 'bg-white dark:bg-zinc-900 text-blue-600 dark:text-blue-400 shadow-xs'
+                : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100'
+            }`}
           >
-            <option value="all">{isUlpan ? 'כָּל חֶלְקֵי הַדִּיבּוּר' : 'Все части речи'}</option>
-            <option value="noun">{isUlpan ? 'שֵׁם עֶצֶם' : 'Существительные'}</option>
-            <option value="verb">{isUlpan ? 'פֹּעַל' : 'Глаголы'}</option>
-            <option value="adjective">{isUlpan ? 'שֵׁם תֹּאַר' : 'Прилагательные'}</option>
-            <option value="expression">{isUlpan ? 'בִּטּוּי' : 'Фразы и выражения'}</option>
-          </select>
+            <Layers className="w-3.5 h-3.5" />
+            <span>{isUlpan ? 'כַּרְטִיסִיּוֹת' : 'Карточки'}</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setViewMode('list')}
+            className={`px-3 py-1.5 rounded-lg text-xs sm:text-sm font-bold transition flex items-center gap-1.5 cursor-pointer ${
+              viewMode === 'list'
+                ? 'bg-white dark:bg-zinc-900 text-blue-600 dark:text-blue-400 shadow-xs'
+                : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100'
+            }`}
+          >
+            <List className="w-3.5 h-3.5" />
+            <span>{isUlpan ? 'רְשִׁימָה' : 'Списком'}</span>
+          </button>
         </div>
 
-        <div className="flex items-center gap-2">
-          {wordsWithRoots.length > 0 && (
-            <button
-              type="button"
-              onClick={handleToggleAllRoots}
-              className={`px-3 py-2 rounded-xl border text-xs sm:text-sm font-medium flex items-center justify-center gap-1.5 transition ${
-                allRevealed
-                  ? 'border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300'
-                  : 'border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700'
-              }`}
-              title={allRevealed ? 'Скрыть все корни (включить блюр)' : 'Показать все корни'}
-            >
-              {allRevealed ? (
-                <EyeOff className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-              ) : (
-                <Eye className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-              )}
-              <span className="hidden sm:inline">{allRevealed ? 'Скрыть корни' : 'Показать корни'}</span>
-            </button>
-          )}
+        {/* Счётчик и прогресс для режима карточек */}
+        {viewMode === 'card' && !isSessionCompleted && words.length > 0 && (
+          <div className="flex items-center gap-2 pr-1">
+            <span className="text-xs font-bold text-zinc-500 dark:text-zinc-400 font-mono">
+              {currentIndex + 1} / {words.length}
+            </span>
+            <div className="w-16 sm:w-24 h-2 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-blue-600 transition-all duration-300"
+                style={{ width: `${((currentIndex + 1) / words.length) * 100}%` }}
+              />
+            </div>
+          </div>
+        )}
 
-          {onStartPractice && (
-            <button
-              onClick={() => handleStartPracticeWithMark(filteredWords)}
-              className="w-full sm:w-auto px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm font-semibold flex items-center justify-center gap-2 shadow-sm transition active:scale-95 shrink-0 cursor-pointer"
-            >
-              <Layers className="w-4 h-4" />
-              <span>Тренировать карточками ({filteredWords.length})</span>
-            </button>
-          )}
-        </div>
+        {/* Индикатор общего количества слов в режиме списка */}
+        {viewMode === 'list' && (
+          <span className="text-xs font-bold text-zinc-500 dark:text-zinc-400 px-2">
+            {words.length} {isUlpan ? 'מִילִּים' : 'слов'}
+          </span>
+        )}
       </div>
 
-      {/* Список слов карточками / таблицей */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filteredWords.map((word) => {
-          const inDict = (userProfile.personalVocabulary || []).some(
-            (pw) => stripNikkud(pw.hebrew) === stripNikkud(word.hebrew)
-          );
-          const isRootRevealed = Boolean(revealedRoots[word.id]);
-          const pictogram = getHebrewPictogram(word.hebrew);
-
-          return (
-            <div
-              key={word.id}
-              className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-4 shadow-sm hover:shadow-md transition flex flex-col justify-between"
-            >
-              <div>
-                <div className="flex items-center justify-between gap-2 mb-2">
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    {getPosBadge(word.partOfSpeech)}
-                    {getGenderBadge(word.gender)}
-                  </div>
-
-                  <div className="flex items-center gap-1.5">
-                    <button
-                      onClick={() => speakHebrew(word.hebrew)}
-                      className="p-1.5 rounded-lg text-zinc-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-zinc-800 transition"
-                      title={isUlpan ? 'הַשְׁמַע' : 'Прослушать произношение'}
-                    >
-                      <Volume2 className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => handleToggleDict(word)}
-                      className={`p-1.5 rounded-lg transition ${
-                        inDict
-                          ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400'
-                          : 'text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800'
-                      }`}
-                      title={inDict
-                        ? (isUlpan ? 'הָסֵר מֵהַמִּלּוֹן' : 'Удалить из словарика')
-                        : (isUlpan ? 'הוֹסֵף לַמִּלּוֹן' : 'Добавить в мой словарик')}
-                    >
-                      {inDict ? <Check className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
-                    </button>
-                  </div>
-                </div>
-
-                {/* Visual: medium image in ulpan mode, small emoji badge otherwise */}
-                <div className="flex items-center justify-between gap-2 mt-1">
-                  <div
-                    dir="rtl"
-                    className={`font-bold ${
-                      isCursive
-                        ? 'font-cursive text-3xl md:text-4xl text-blue-600 dark:text-blue-400'
-                        : 'font-hebrew text-2xl text-zinc-900 dark:text-zinc-50'
-                    }`}
-                  >
-                    {userProfile.showNikkud ? word.hebrew : word.hebrewPlain}
-                  </div>
-
-                  {isUlpan ? (
-                    <WordVisual
-                      hebrew={word.hebrew}
-                      hebrewPlain={word.hebrewPlain}
-                      size="md"
-                      ulpanMode={true}
-                    />
-                  ) : (
-                    pictogram && (
-                      <div
-                        className={`text-base sm:text-lg select-none px-2.5 py-1 rounded-xl border font-bold shrink-0 ${
-                          pictogram.includes('♂')
-                            ? 'bg-sky-50 dark:bg-sky-950/50 text-sky-700 dark:text-sky-300 border-sky-200 dark:border-sky-800/60'
-                            : pictogram.includes('♀')
-                            ? 'bg-rose-50 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800/60'
-                            : 'bg-zinc-100 dark:bg-zinc-800/80 text-zinc-700 dark:text-zinc-200 border-zinc-200 dark:border-zinc-700'
-                        }`}
-                      >
-                        {pictogram}
+      {/* ========================================================================= */}
+      {/* 1. РЕЖИМ КАРТОЧЕК (АКТИВНОЕ ИНТЕРАКТИВНОЕ ОБУЧЕНИЕ 1-В-1) */}
+      {/* ========================================================================= */}
+      {viewMode === 'card' && (
+        <div className="space-y-4 max-w-md mx-auto">
+          {!isSessionCompleted && currentWord ? (
+            <>
+              {/* Интерактивная карточка (нажатие переворачивает) */}
+              <div
+                onClick={() => setIsFlipped((prev) => !prev)}
+                className="w-full min-h-[360px] sm:min-h-[400px] rounded-3xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-md hover:shadow-lg transition-all p-6 sm:p-7 flex flex-col justify-between cursor-pointer select-none group relative overflow-hidden"
+              >
+                {/* ЛИЦЕВАЯ СТОРОНА: Слово на иврите с огласовками + звук */}
+                {!isFlipped ? (
+                  <>
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        {getPosBadge(currentWord.partOfSpeech)}
+                        {getGenderBadge(currentWord.gender)}
                       </div>
-                    )
-                  )}
-                </div>
 
-                {/* Транскрипция с 'h' для ה (только вне режима Ульпан) */}
-                {!isUlpan && userProfile.showTranscription && getWordTranscription(word) && (
-                  <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 mt-1">
-                    [{getWordTranscription(word)}]
-                  </p>
-                )}
-
-                {/* Перевод слова (с поддержкой скрытия в режиме Ульпан) */}
-                {isUlpan ? (
-                  <div className="mt-2 min-h-[28px] flex items-center">
-                    {revealedTranslations[word.id] ? (
                       <button
                         type="button"
-                        onClick={() =>
-                          setRevealedTranslations((prev) => ({
-                            ...prev,
-                            [word.id]: false,
-                          }))
-                        }
-                        className="text-left text-sm font-medium text-emerald-800 dark:text-emerald-300 bg-emerald-50/70 dark:bg-emerald-950/40 px-2 py-0.5 rounded-lg border border-emerald-200/60 dark:border-emerald-900/40 hover:bg-emerald-100 transition cursor-pointer"
-                        title="Нажмите, чтобы скрыть перевод"
-                      >
-                        <span>{word.translation}</span>
-                        <EyeOff className="inline-block w-3 h-3 ml-1.5 opacity-60" />
-                      </button>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setRevealedTranslations((prev) => ({
-                            ...prev,
-                            [word.id]: true,
-                          }))
-                        }
-                        className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs font-semibold text-zinc-500 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition cursor-pointer"
-                        title="Нажмите для проверки перевода (רמז)"
-                      >
-                        <Eye className="w-3 h-3 text-zinc-400" />
-                        <span>תַּרְגּוּם (רֶמֶז)</span>
-                      </button>
-                    )}
-                  </div>
-                ) : (
-                  <p className="text-sm font-medium text-zinc-700 dark:text-zinc-200 mt-2">
-                    {word.translation}
-                  </p>
-                )}
-              </div>
-
-              {/* Нижняя часть (корень / пример) */}
-              {(word.root || word.exampleSentence) && (
-                <div className="mt-4 pt-3 border-t border-zinc-100 dark:border-zinc-800/80 space-y-1.5">
-                  {word.root && (
-                    <div className="flex items-center gap-1.5 text-xs text-amber-700 dark:text-amber-400">
-                      <span className="text-[11px] text-zinc-400">
-                        {isUlpan ? 'שׁוֹרֶשׁ:' : 'Шореш:'}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setRevealedRoots((prev) => ({
-                            ...prev,
-                            [word.id]: !prev[word.id],
-                          }))
-                        }
-                        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg border transition-all duration-200 cursor-pointer group text-left ${
-                          isRootRevealed
-                            ? 'bg-amber-50 dark:bg-amber-950/50 border-amber-200/80 dark:border-amber-900/50 text-amber-800 dark:text-amber-200'
-                            : 'bg-zinc-100/80 dark:bg-zinc-800/80 border-dashed border-zinc-300 dark:border-zinc-700 hover:border-amber-300 dark:hover:border-amber-700 text-zinc-600 dark:text-zinc-300'
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleToggleDict(currentWord);
+                        }}
+                        className={`p-2 rounded-xl transition cursor-pointer ${
+                          isWordInDict(currentWord)
+                            ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400'
+                            : 'text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800'
                         }`}
                         title={
-                          isRootRevealed
-                            ? 'Нажмите, чтобы скрыть корень (блюр)'
-                            : 'Нажмите, чтобы показать корень'
+                          isWordInDict(currentWord)
+                            ? 'В вашем личном словаре'
+                            : 'Добавить в личный словарь'
                         }
                       >
-                        <span
-                          dir="rtl"
-                          className={`font-bold transition-all duration-300 select-none ${
-                            isRootRevealed
-                              ? 'blur-none'
-                              : 'blur-[5px] group-hover:blur-[3px]'
-                          } ${isCursive ? 'font-cursive text-xl' : ''}`}
-                        >
-                          {word.root}
-                        </span>
-                        {isRootRevealed ? (
-                          <EyeOff className="w-3 h-3 text-zinc-400 opacity-60 group-hover:opacity-100 transition-opacity ml-0.5" />
+                        {isWordInDict(currentWord) ? (
+                          <Check className="w-4 h-4" />
                         ) : (
-                          <Eye className="w-3 h-3 text-amber-600 dark:text-amber-400 opacity-70 group-hover:opacity-100 transition-opacity ml-0.5" />
+                          <Plus className="w-4 h-4" />
                         )}
                       </button>
                     </div>
-                  )}
 
-                  {word.exampleSentence && (
-                    <div className="text-xs text-zinc-500 bg-zinc-50 dark:bg-zinc-800/40 p-2.5 rounded-xl border border-zinc-100 dark:border-zinc-800/60 space-y-1">
-                      <div className="flex items-center justify-between gap-1">
-                        <p
-                          dir="rtl"
-                          className={`font-medium ${
-                            isCursive
-                              ? 'font-cursive text-xl text-blue-600 dark:text-blue-400'
-                              : 'font-hebrew text-zinc-800 dark:text-zinc-200'
-                          }`}
-                        >
-                          {word.exampleSentence.hebrew}
-                        </p>
+                    <div className="my-auto py-6 text-center space-y-4">
+                      {/* Пиктограмма / визуализация (если есть) */}
+                      {isUlpan ? (
+                        <div className="flex justify-center">
+                          <WordVisual
+                            hebrew={currentWord.hebrew}
+                            hebrewPlain={currentWord.hebrewPlain}
+                            size="md"
+                            ulpanMode={true}
+                          />
+                        </div>
+                      ) : (
+                        getHebrewPictogram(currentWord.hebrew) && (
+                          <div className="text-3xl select-none">
+                            {getHebrewPictogram(currentWord.hebrew)}
+                          </div>
+                        )
+                      )}
+
+                      {/* Крупное слово на иврите */}
+                      <div
+                        dir="rtl"
+                        className={`font-black tracking-tight leading-tight select-text ${
+                          isCursive
+                            ? 'font-cursive text-4xl sm:text-5xl md:text-6xl text-blue-600 dark:text-blue-400'
+                            : 'font-hebrew text-4xl sm:text-5xl md:text-6xl text-zinc-900 dark:text-zinc-50'
+                        }`}
+                      >
+                        {userProfile.showNikkud ? currentWord.hebrew : currentWord.hebrewPlain}
+                      </div>
+
+                      {/* Большая удобная кнопка озвучки */}
+                      <div>
                         <button
                           type="button"
-                          onClick={() => speakHebrew(word.exampleSentence!.hebrew)}
-                          className="p-1 rounded-md text-zinc-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-zinc-800 transition"
-                          title="Озвучить предложение"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            speakHebrew(currentWord.hebrew, {
+                              rate: userProfile.speechRate || 0.7,
+                            });
+                          }}
+                          className="p-3.5 rounded-full bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/60 dark:hover:bg-blue-900/60 text-blue-600 dark:text-blue-400 transition cursor-pointer hover:scale-110 active:scale-95 shadow-xs inline-flex items-center justify-center"
+                          title="Прослушать произношение"
                         >
-                          <Volume2 className="w-3.5 h-3.5" />
+                          <Volume2 className="w-6 h-6" />
                         </button>
                       </div>
-                      {!isUlpan && (
-                        <p className="text-[11px] text-zinc-500 mt-0.5">
-                          {word.exampleSentence.translation}
+                    </div>
+
+                    {/* Подсказка для переворота */}
+                    <div className="flex items-center justify-center gap-1.5 text-xs text-zinc-400 dark:text-zinc-500 font-medium pt-2 border-t border-zinc-100 dark:border-zinc-800/60">
+                      <RotateCw className="w-3.5 h-3.5 opacity-70" />
+                      <span>
+                        {isUlpan
+                          ? 'לַחֲצוּ לְהַצָּגַת הַתַּרְגּוּם'
+                          : 'Нажмите, чтобы проверить перевод'}
+                      </span>
+                    </div>
+                  </>
+                ) : (
+                  /* ОБРАТНАЯ СТОРОНА: Перевод, транскрипция, корень, пример */
+                  <>
+                    <div className="flex items-center justify-between gap-2 border-b border-zinc-100 dark:border-zinc-800/80 pb-2">
+                      <div className="flex items-center gap-2">
+                        <span
+                          dir="rtl"
+                          className="font-hebrew text-lg font-bold text-blue-600 dark:text-blue-400"
+                        >
+                          {userProfile.showNikkud
+                            ? currentWord.hebrew
+                            : currentWord.hebrewPlain}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            speakHebrew(currentWord.hebrew, {
+                              rate: userProfile.speechRate || 0.7,
+                            });
+                          }}
+                          className="p-1 rounded-lg text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/60 transition"
+                          title="Озвучить"
+                        >
+                          <Volume2 className="w-4 h-4" />
+                        </button>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleToggleDict(currentWord);
+                        }}
+                        className={`p-1.5 rounded-xl transition cursor-pointer ${
+                          isWordInDict(currentWord)
+                            ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400'
+                            : 'text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200'
+                        }`}
+                      >
+                        {isWordInDict(currentWord) ? (
+                          <Check className="w-4 h-4" />
+                        ) : (
+                          <Plus className="w-4 h-4" />
+                        )}
+                      </button>
+                    </div>
+
+                    <div className="my-auto py-4 text-center space-y-2">
+                      {/* Перевод */}
+                      <div className="text-2xl sm:text-3xl font-black text-zinc-900 dark:text-zinc-50 leading-snug">
+                        {currentWord.translation}
+                      </div>
+
+                      {/* Транскрипция */}
+                      {!isUlpan &&
+                        userProfile.showTranscription &&
+                        getWordTranscription(currentWord) && (
+                          <div className="text-sm sm:text-base font-semibold text-blue-600 dark:text-blue-400 font-mono">
+                            [{getWordTranscription(currentWord)}]
+                          </div>
+                        )}
+
+                      {/* Корень (Шореш) */}
+                      {currentWord.root && (
+                        <div className="pt-2 flex items-center justify-center gap-1.5 text-xs text-amber-700 dark:text-amber-400">
+                          <span className="text-zinc-400">
+                            {isUlpan ? 'שׁוֹרֶשׁ:' : 'Корень:'}
+                          </span>
+                          <span
+                            dir="rtl"
+                            className="font-bold font-hebrew text-sm px-2 py-0.5 rounded-lg bg-amber-50 dark:bg-amber-950/50 border border-amber-200/70 dark:border-amber-900/50"
+                          >
+                            {currentWord.root}
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Пример предложения */}
+                      {currentWord.exampleSentence && (
+                        <div
+                          onClick={(e) => e.stopPropagation()}
+                          className="mt-3 p-3 rounded-2xl bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-100 dark:border-zinc-800/80 text-left space-y-1"
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <p
+                              dir="rtl"
+                              className={`font-medium ${
+                                isCursive
+                                  ? 'font-cursive text-xl text-blue-600 dark:text-blue-400'
+                                  : 'font-hebrew text-sm sm:text-base text-zinc-800 dark:text-zinc-200'
+                              }`}
+                            >
+                              {currentWord.exampleSentence.hebrew}
+                            </p>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                speakHebrew(currentWord.exampleSentence!.hebrew)
+                              }
+                              className="p-1 rounded-lg text-zinc-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-zinc-800 transition shrink-0"
+                              title="Озвучить пример"
+                            >
+                              <Volume2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                          {!isUlpan && (
+                            <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                              {currentWord.exampleSentence.translation}
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex items-center justify-center gap-1.5 text-xs text-zinc-400 dark:text-zinc-500 font-medium pt-2 border-t border-zinc-100 dark:border-zinc-800/60">
+                      <span>
+                        {isUlpan ? 'חֲזָרָה לְעִבְרִית 🔄' : 'Нажмите, чтобы скрыть перевод'}
+                      </span>
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {/* Панель кнопок под карточкой: Предыдущее / Повторить / Знаю / Следующее */}
+              <div className="flex items-center justify-center gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={handlePrev}
+                  disabled={currentIndex === 0}
+                  className="p-3 rounded-2xl border border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-30 disabled:cursor-not-allowed transition active:scale-95 cursor-pointer shrink-0"
+                  title="Предыдущее слово"
+                >
+                  <ArrowLeft className="w-5 h-5" />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleMarkRepeat}
+                  className="flex-1 py-3 px-3 rounded-2xl bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/40 dark:hover:bg-amber-900/60 text-amber-800 dark:text-amber-200 border border-amber-200/80 dark:border-amber-900/60 font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer shadow-xs"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                  <span>{isUlpan ? 'לַחֲזֹר' : 'Повторить'}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleMarkKnown}
+                  className="flex-1 py-3 px-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer shadow-sm shadow-emerald-600/20"
+                >
+                  <ThumbsUp className="w-4 h-4" />
+                  <span>{isUlpan ? 'יוֹדֵעַ' : 'Знаю'}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleNext}
+                  className="p-3 rounded-2xl border border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition active:scale-95 cursor-pointer shrink-0"
+                  title="Следующее слово"
+                >
+                  <ArrowRight className="w-5 h-5" />
+                </button>
+              </div>
+            </>
+          ) : (
+            /* ЭКРАН ЗАВЕРШЕНИЯ КАРТОЧЕК */
+            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-6 sm:p-8 text-center space-y-5 shadow-sm animate-in zoom-in-95 duration-200">
+              <div className="w-16 h-16 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto text-3xl shadow-xs">
+                🌟
+              </div>
+              <div className="space-y-1">
+                <h3 className="text-xl sm:text-2xl font-black text-zinc-900 dark:text-zinc-50">
+                  {isUlpan ? '!כָּל הַמִּילִּים נִלְמְדוּ' : 'Все слова урока пройдены!'}
+                </h3>
+                <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400">
+                  {isUlpan
+                    ? 'עֲבַרְתֶּם עַל כָּל הַכַּרְטִיסִיּוֹת שֶׁל הַשִּׁיעוּר'
+                    : `Вы успешно завершили этап карточек (${words.length} слов)`}
+                </p>
+              </div>
+
+              {/* Метрики */}
+              <div className="grid grid-cols-2 gap-3 p-3.5 rounded-2xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200/80 dark:border-zinc-700/60">
+                <div className="text-center">
+                  <div className="text-2xl font-black text-emerald-600 dark:text-emerald-400">
+                    {knownWordIds.size}
+                  </div>
+                  <div className="text-xs text-zinc-500 font-medium">
+                    {isUlpan ? 'יוֹדֵעַ' : 'Усвоено'}
+                  </div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-black text-amber-600 dark:text-amber-400">
+                    {reviewWordIds.size}
+                  </div>
+                  <div className="text-xs text-zinc-500 font-medium">
+                    {isUlpan ? 'לַחֲזָרָה' : 'На повторение'}
+                  </div>
+                </div>
+              </div>
+
+              {/* Кнопка перехода к этапу 3 */}
+              <div className="space-y-2.5 pt-2">
+                <button
+                  type="button"
+                  onClick={handleMarkDone}
+                  className="w-full py-3.5 px-6 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm shadow-md transition active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <CheckCircle2 className="w-5 h-5 text-emerald-300" />
+                  <span>
+                    {isUlpan
+                      ? 'מַעֲבָר לְתַרְגִּילִים (שָׁלָב 3/5) ➡️'
+                      : 'Перейти к упражнениям (этап 3/5) ➡️'}
+                  </span>
+                </button>
+
+                <div className="flex items-center justify-center gap-3">
+                  <button
+                    type="button"
+                    onClick={handleRestartCards}
+                    className="text-xs text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-200 transition font-semibold flex items-center gap-1.5 py-1.5 px-3 rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer"
+                  >
+                    <RotateCw className="w-3.5 h-3.5" />
+                    <span>{isUlpan ? 'סִבּוּב נוֹסָף' : 'Пройти карточки заново'}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setViewMode('list')}
+                    className="text-xs text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-200 transition font-semibold flex items-center gap-1.5 py-1.5 px-3 rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer"
+                  >
+                    <List className="w-3.5 h-3.5" />
+                    <span>{isUlpan ? 'רְשִׁימַת מִילִּים' : 'Посмотреть списком'}</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* 2. РЕЖИМ СПИСКА (ПОЛНЫЙ СЛОВАРЬ ТЕМЫ ДЛЯ СПРАВКИ И ПОИСКА) */}
+      {/* ========================================================================= */}
+      {viewMode === 'list' && (
+        <div className="space-y-4">
+          {/* Поиск и фильтры по частям речи */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 bg-white dark:bg-zinc-900 p-3 sm:p-4 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-xs">
+            <div className="flex-1 flex items-center gap-2">
+              <div className="relative flex-1">
+                <Search className="w-4 h-4 text-zinc-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder={isUlpan ? 'חיפוש...' : 'Поиск слова...'}
+                  className="w-full pl-9 pr-4 py-2 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-600"
+                />
+              </div>
+
+              <select
+                value={selectedPos}
+                onChange={(e) => setSelectedPos(e.target.value)}
+                className="px-2.5 py-2 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-600"
+              >
+                <option value="all">{isUlpan ? 'הַכֹּל' : 'Все части речи'}</option>
+                <option value="noun">{isUlpan ? 'שֵׁם עֶצֶם' : 'Сущ.'}</option>
+                <option value="verb">{isUlpan ? 'פֹּעַל' : 'Глаголы'}</option>
+                <option value="adjective">{isUlpan ? 'שֵׁם תֹּאַר' : 'Прил.'}</option>
+                <option value="expression">{isUlpan ? 'בִּטּוּי' : 'Фразы'}</option>
+              </select>
+            </div>
+
+            {wordsWithRoots.length > 0 && (
+              <button
+                type="button"
+                onClick={handleToggleAllRoots}
+                className={`px-3 py-2 rounded-xl border text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer shrink-0 ${
+                  allRevealed
+                    ? 'border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300'
+                    : 'border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300'
+                }`}
+              >
+                {allRevealed ? (
+                  <EyeOff className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+                ) : (
+                  <Eye className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+                )}
+                <span>{allRevealed ? 'Скрыть корни' : 'Показать корни'}</span>
+              </button>
+            )}
+          </div>
+
+          {/* Список слов в виде аккуратных карточек */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {filteredWords.map((word) => {
+              const inDict = isWordInDict(word);
+              const isRootRevealed = Boolean(revealedRoots[word.id]);
+              const pictogram = getHebrewPictogram(word.hebrew);
+
+              return (
+                <div
+                  key={word.id}
+                  className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-4 shadow-2xs hover:shadow-xs transition flex flex-col justify-between"
+                >
+                  <div>
+                    <div className="flex items-center justify-between gap-2 mb-2">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        {getPosBadge(word.partOfSpeech)}
+                        {getGenderBadge(word.gender)}
+                      </div>
+
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            speakHebrew(word.hebrew, {
+                              rate: userProfile.speechRate || 0.7,
+                            })
+                          }
+                          className="p-1.5 rounded-lg text-zinc-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-zinc-800 transition cursor-pointer"
+                          title="Прослушать произношение"
+                        >
+                          <Volume2 className="w-4 h-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleToggleDict(word)}
+                          className={`p-1.5 rounded-lg transition cursor-pointer ${
+                            inDict
+                              ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400'
+                              : 'text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800'
+                          }`}
+                          title={
+                            inDict
+                              ? 'В личном словаре'
+                              : 'Добавить в личный словарь'
+                          }
+                        >
+                          {inDict ? (
+                            <Check className="w-4 h-4" />
+                          ) : (
+                            <Plus className="w-4 h-4" />
+                          )}
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between gap-2">
+                      <div
+                        dir="rtl"
+                        className={`font-black ${
+                          isCursive
+                            ? 'font-cursive text-2xl md:text-3xl text-blue-600 dark:text-blue-400'
+                            : 'font-hebrew text-xl sm:text-2xl text-zinc-900 dark:text-zinc-50'
+                        }`}
+                      >
+                        {userProfile.showNikkud ? word.hebrew : word.hebrewPlain}
+                      </div>
+
+                      {pictogram && (
+                        <span className="text-xl select-none">{pictogram}</span>
+                      )}
+                    </div>
+
+                    {/* Транскрипция */}
+                    {!isUlpan &&
+                      userProfile.showTranscription &&
+                      getWordTranscription(word) && (
+                        <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 mt-0.5">
+                          [{getWordTranscription(word)}]
                         </p>
+                      )}
+
+                    {/* Перевод */}
+                    <p className="text-sm font-semibold text-zinc-800 dark:text-zinc-200 mt-1.5">
+                      {word.translation}
+                    </p>
+                  </div>
+
+                  {/* Шореш / пример */}
+                  {(word.root || word.exampleSentence) && (
+                    <div className="mt-3 pt-2.5 border-t border-zinc-100 dark:border-zinc-800/80 space-y-1.5">
+                      {word.root && (
+                        <div className="flex items-center gap-1.5 text-xs text-amber-700 dark:text-amber-400">
+                          <span className="text-[11px] text-zinc-400">
+                            {isUlpan ? 'שׁוֹרֶשׁ:' : 'Шореш:'}
+                          </span>
+                          <span
+                            dir="rtl"
+                            className="font-bold font-hebrew text-xs px-1.5 py-0.5 rounded bg-amber-50 dark:bg-amber-950/50 border border-amber-200/70 dark:border-amber-900/50"
+                          >
+                            {word.root}
+                          </span>
+                        </div>
+                      )}
+
+                      {word.exampleSentence && (
+                        <div className="text-xs bg-zinc-50 dark:bg-zinc-800/40 p-2 rounded-xl border border-zinc-100 dark:border-zinc-800/60 space-y-0.5">
+                          <div className="flex items-center justify-between gap-1">
+                            <p
+                              dir="rtl"
+                              className="font-medium font-hebrew text-zinc-800 dark:text-zinc-200"
+                            >
+                              {word.exampleSentence.hebrew}
+                            </p>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                speakHebrew(word.exampleSentence!.hebrew)
+                              }
+                              className="p-1 text-zinc-400 hover:text-blue-600 transition"
+                            >
+                              <Volume2 className="w-3 h-3" />
+                            </button>
+                          </div>
+                          {!isUlpan && (
+                            <p className="text-[11px] text-zinc-500">
+                              {word.exampleSentence.translation}
+                            </p>
+                          )}
+                        </div>
                       )}
                     </div>
                   )}
                 </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
+              );
+            })}
+          </div>
 
-      {/* Завершение этапа словаря */}
-      <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-6 pb-8 border-t border-zinc-200 dark:border-zinc-800">
-        {onStartPractice && (
-          <button
-            onClick={() => handleStartPracticeWithMark(filteredWords)}
-            className="w-full sm:w-auto py-3.5 px-6 rounded-2xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-semibold text-sm shadow-md transition active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
-          >
-            <Sparkles className="w-4 h-4 text-yellow-300" />
-            <span>
-              {isUlpan
-                ? `תִּרְגּוּל בְּכַרְטִיסִיּוֹת (${filteredWords.length})`
-                : `Тренировать в карточках (${filteredWords.length})`}
-            </span>
-          </button>
-        )}
-
-        <button
-          onClick={handleMarkDone}
-          className="w-full sm:w-auto py-3.5 px-8 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm shadow-md transition active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
-        >
-          <CheckCircle2 className="w-5 h-5 text-emerald-300" />
-          <span>
-            {isUlpan
-              ? 'לָמַדְתִּי אֶת הַמִּילִּים • מַעֲבָר לְתַרְגִּילִים (שָׁלָב 3/5) ➡️'
-              : 'Я выучил слова • Перейти к упражнениям (этап 3/5) ➡️'}
-          </span>
-        </button>
-      </div>
+          {/* Завершение этапа словаря в режиме списка */}
+          <div className="text-center pt-4 pb-6">
+            <button
+              type="button"
+              onClick={handleMarkDone}
+              className="py-3.5 px-8 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm shadow-md transition active:scale-95 inline-flex items-center gap-2 cursor-pointer"
+            >
+              <CheckCircle2 className="w-5 h-5 text-emerald-300" />
+              <span>
+                {isUlpan
+                  ? 'לָמַדְתִּי אֶת הַמִּילִּים • מַעֲבָר לְתַרְגִּילִים (שָׁלָב 3/5) ➡️'
+                  : 'Я выучил слова • Перейти к упражнениям (этап 3/5) ➡️'}
+              </span>
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
