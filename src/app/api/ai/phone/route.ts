@@ -4,6 +4,7 @@ import { checkRateLimit } from '@/lib/rateLimit';
 import { stripNikkud } from '@/lib/transcription';
 import { IS_EARLY_ACCESS_FREE, FREE_LESSONS_LIMIT } from '@/lib/config';
 import { sanitizeRussianTranslation } from '@/app/api/ai/chat/route';
+import { cleanGrammarJargon } from '@/data/phoneScenarios';
 
 interface PhoneRequestBody {
   messages: Array<{ role: 'user' | 'assistant'; content: string; hebrew?: string }>;
@@ -30,21 +31,6 @@ function sanitizeTranscription(text: string): string {
   let res = text.trim();
   res = res.replace(/(^|[\\s"«(—])у-([а-яёА-ЯЁa-zA-Z])/gi, '$1вэ-$2');
   return res;
-}
-
-function cleanGrammarJargon(text: string): string {
-  if (!text) return '';
-  return text
-    .replace(/притяжательн[а-яё]+\s+местоимени[а-яё]*/gi, 'семья и близкие')
-    .replace(/принадлежност[а-яё]*\s*(שֶׁל|של)?/gi, 'семья и близкие')
-    .replace(/биньян[а-яё]*\s*[а-яё]*/gi, 'дела и планы')
-    .replace(/множественн[а-яё]+\s+числ[а-яё]*/gi, 'люди и вещи')
-    .replace(/артикл[а-яё]*/gi, 'покупки')
-    .replace(/предлог[а-яё]*/gi, 'местонахождение')
-    .replace(/склонени[а-яё]*/gi, 'разговор')
-    .replace(/инфинитив[а-яё]*/gi, 'действия')
-    .replace(/грамматик[а-яё]*/gi, 'тема')
-    .replace(/שֶׁל|של/g, '');
 }
 
 export async function POST(req: NextRequest) {

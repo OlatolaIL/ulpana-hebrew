@@ -1,5 +1,31 @@
 import { Lesson, PhoneScenario, PhoneScenarioWord, UserGender, PhoneCallType } from '@/types';
 
+export function cleanGrammarJargon(text: string): string {
+  if (!text) return '';
+  return text
+    .replace(/притяжательн[а-яё]+\s+местоимени[а-яё]*/gi, 'семья и близкие')
+    .replace(/принадлежност[а-яё]*\s*(שֶׁל|של)?/gi, 'семья и близкие')
+    .replace(/биньян[а-яё]*\s*[а-яё]*/gi, 'дела и планы')
+    .replace(/множественн[а-яё]+\s+числ[а-яё]*/gi, 'люди и вещи')
+    .replace(/артикл[а-яё]*/gi, 'покупки')
+    .replace(/предлог[а-яё]*(\s+прямого\s+дополнения)?(\s*אֶת)?/gi, 'нужные вещи')
+    .replace(/склонени[а-яё]*/gi, 'разговор')
+    .replace(/инфинитив[а-яё]*/gi, 'действия')
+    .replace(/прошедш[а-яё]*\s+врем[а-яё]*/gi, 'прошлые события')
+    .replace(/будущ[а-яё]*\s+врем[а-яё]*/gi, 'планы')
+    .replace(/повелительн[а-яё]*\s+наклонени[а-яё]*/gi, 'просьбы')
+    .replace(/страдательн[а-яё]*\s+(залог|биньян)[а-яё]*/gi, 'события')
+    .replace(/слитн[а-яё]*\s+местоимени[а-яё]*/gi, 'отношения')
+    .replace(/союз[а-яё]*/gi, 'причины и условия')
+    .replace(/степен[а-яё]*\s+сравнени[а-яё]*/gi, 'сравнение')
+    .replace(/масдар|имя\s+действи[а-яё]*/gi, 'дела')
+    .replace(/вопросительн[а-яё]*\s+слов[а-яё]*/gi, 'вопросы')
+    .replace(/числительн[а-яё]*/gi, 'числа и даты')
+    .replace(/грамматик[а-яё]*/gi, 'тема')
+    .replace(/правил[а-яё]*/gi, 'тема')
+    .replace(/שֶׁל|של|אֶת|את/g, '');
+}
+
 /**
  * Кастомные сценарии телефонных звонков для ключевых жизненных ситуаций в Израиле.
  */
@@ -695,52 +721,81 @@ export function getLessonPhoneScenario(lesson: Lesson, gender: UserGender): Phon
     aiRoleLower.includes('водитель') ||
     aiRoleLower.includes('курьер') ||
     aiRoleLower.includes('сосед') ||
+    aiRoleLower.includes('соседк') ||
     aiRoleLower.includes('друг') ||
-    aiRoleLower.includes('знакомый') ||
-    aiRoleLower.includes('коллега') ||
+    aiRoleLower.includes('подруг') ||
+    aiRoleLower.includes('знаком') ||
+    aiRoleLower.includes('коллег') ||
+    aiRoleLower.includes('одногрупп') ||
+    aiRoleLower.includes('однокурс') ||
+    aiRoleLower.includes('приятел') ||
+    aiRoleLower.includes('мама') ||
+    aiRoleLower.includes('папа') ||
+    aiRoleLower.includes('брат') ||
+    aiRoleLower.includes('сестр') ||
+    aiRoleLower.includes('сын') ||
+    aiRoleLower.includes('дочь') ||
+    aiRoleLower.includes('родствен') ||
     situationLower.includes('вам звонит') ||
     situationLower.includes('звонит вам');
 
   const callType: PhoneCallType = isIncoming ? 'incoming' : 'outgoing';
 
-  let callerObjective = '';
-  let studentObjective = '';
+  const cleanTopic = cleanGrammarJargon(dial.title || lesson.category || 'Повседневное общение');
+  const rawSituation = dial.situation || '';
+  const cleanSituationDesc = cleanGrammarJargon(
+    rawSituation
+      .replace(/К вам подходит /gi, 'С вами говорит ')
+      .replace(/Вы пришли в /gi, 'Вы звоните в ')
+      .replace(/Вы пришли на /gi, 'Вы звоните на ')
+      .replace(/Вы стоите на /gi, 'Вы звоните на ')
+      .replace(/Вы сидите за столиком в /gi, 'Вы звоните в ')
+  );
+
+  const situationSummary = isIncoming
+    ? `Вам звонит ${aiRole}. ${cleanSituationDesc || cleanTopic}`
+    : `Вы звоните (${aiRole}). ${cleanSituationDesc || cleanTopic}`;
+
+  const callerObjective = isIncoming
+    ? `Кратко обсудить с учеником бытовой вопрос («${cleanTopic}») и тепло завершить звонок.`
+    : `Принять звонок в роли «${aiRole}», помочь ученику по вопросу «${cleanTopic}» и вежливо завершить разговор.`;
+
+  const studentObjective = isIncoming
+    ? `Ответить на вопрос собеседника и завершить звонок.`
+    : `Поздороваться, изложить свой запрос («${cleanTopic}») и договориться.`;
+
   let initialGreetingHeb = '';
   let initialGreetingTr = '';
   let initialGreetingRu = '';
 
-  if (isIncoming) {
-    callerObjective = `Кратко выяснить у ученика нужную информацию по теме «${lesson.titleRussian}» и завершить звонок.`;
-    studentObjective = `Ответить на вопрос собеседника и подтвердить информацию.`;
-    const initHeb = dial.initialMessage?.hebrew || '';
-    const isVisualInPerson =
-      initHeb.includes('תְּמוּנָה') ||
-      initHeb.includes('תמונה') ||
-      initHeb.includes('מִסְתַּכֵּל') ||
-      initHeb.includes('רוֹאֶה') ||
-      initHeb.includes('תִּסְתַּכֵּל');
+  const initHeb = dial.initialMessage?.hebrew || '';
+  const isVisualInPerson =
+    initHeb.includes('תְּמוּנָה') ||
+    initHeb.includes('תמונה') ||
+    initHeb.includes('מִסְתַּכֵּל') ||
+    initHeb.includes('רוֹאֶה') ||
+    initHeb.includes('תִּסְתַּכֵּל');
 
+  if (isIncoming) {
     if (initHeb && !isVisualInPerson) {
       initialGreetingHeb = `הַלּוֹ? שָׁלוֹם! ${dial.initialMessage!.hebrew}`;
       initialGreetingTr = `hалó? шалóм! ${dial.initialMessage!.transcription || ''}`;
       initialGreetingRu = `Алло? Привет! ${dial.initialMessage!.translation || ''}`;
     } else {
-      initialGreetingHeb = `הַלּוֹ? שָׁלוֹם! זֶה ${aiRole}. מָה נִשְׁמַע?`;
-      initialGreetingTr = `hалó? шалóм! зэ ${aiRole}. ма нишмá?`;
-      initialGreetingRu = `Алло? Привет! Это ${aiRole}. Как дела?`;
+      initialGreetingHeb = `הַלּוֹ? שָׁלוֹם! מָה נִשְׁמַע?`;
+      initialGreetingTr = `hалó? шалóм! ма нишмá?`;
+      initialGreetingRu = `Алло? Привет! Как дела?`;
     }
   } else {
     // Outgoing call: ученик звонит в организацию / сервис
-    callerObjective = `Принять звонок в роли «${aiRole}», ответить на просьбу ученика и вежливо подтвердить договоренность.`;
-    studentObjective = `Поздороваться, изложить свой запрос по теме «${lesson.titleRussian}» и договориться.`;
-    if (dial.initialMessage?.hebrew && !dial.initialMessage.hebrew.includes('?')) {
-      initialGreetingHeb = `שָׁלוֹם, ${aiRole}! ${dial.initialMessage.hebrew}`;
-      initialGreetingTr = `шалóм, ${aiRole}! ${dial.initialMessage.transcription || ''}`;
-      initialGreetingRu = `Здравствуйте, ${aiRole}! ${dial.initialMessage.translation || ''}`;
+    if (initHeb && !initHeb.includes('?') && !isVisualInPerson) {
+      initialGreetingHeb = `שָׁלוֹם! ${initHeb}`;
+      initialGreetingTr = `шалóм! ${dial.initialMessage!.transcription || ''}`;
+      initialGreetingRu = `Здравствуйте! ${dial.initialMessage!.translation || ''}`;
     } else {
-      initialGreetingHeb = `שָׁלוֹם, ${aiRole}! אֵיךְ אֶפְשָׁר לַעֲזֹר?`;
-      initialGreetingTr = `шалóм, ${aiRole}! эйх эфшáр лаазóр?`;
-      initialGreetingRu = `Здравствуйте, ${aiRole}! Чем могу помочь?`;
+      initialGreetingHeb = `שָׁלוֹם! כֵּן, אֵיךְ אֶפְשָׁר לַעֲזֹר?`;
+      initialGreetingTr = `шалóм! кен, эйх эфшáр лаазóр?`;
+      initialGreetingRu = `Здравствуйте! Да, чем могу помочь?`;
     }
   }
 
@@ -788,9 +843,7 @@ export function getLessonPhoneScenario(lesson: Lesson, gender: UserGender): Phon
     callerNameRu: aiRole,
     callerRole: aiRole,
     avatarEmoji: getEmojiForCategory(lesson.category),
-    situationSummary: isIncoming
-      ? `Вам звонит ${aiRole} по теме урока: «${lesson.titleRussian}».`
-      : `Вы звоните (${aiRole}) по теме урока: «${lesson.titleRussian}».`,
+    situationSummary,
     callerObjective,
     studentObjective,
     completionCondition: isIncoming
@@ -829,7 +882,12 @@ export function getLessonPhoneScenario(lesson: Lesson, gender: UserGender): Phon
     ],
     vocabularyHints: dial.vocabularyHints || (lesson.vocabulary || []).slice(0, 5).map((w) => w.hebrew),
     usefulWords: dynamicUsefulWords,
-    systemPromptAddition: `Ты ${aiRole}. Это короткий жизненный телефонный звонок в Израиле. Говори короткими репликами (1-2 предложения). Как только вопрос решен — тепло попрощайся и повесь трубку.`,
+    systemPromptAddition: `Ты ${aiRole}. Это короткий телефонный звонок в Израиле по вопросу «${cleanTopic}».
+ТЫ — ОБЫЧНЫЙ ЧЕЛОВЕК, А НЕ ПРЕПОДАВАТЕЛЬ И НЕ БОТ!
+КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО:
+- Задавать экзаменационные вопросы, спрашивать перевод («Как сказать...?», «איך אומרים...?») или проверять грамматику!
+- Затягивать разговор. Говори короткими естественными репликами (1-2 предложения).
+- Как только собеседник ответил по существу — тепло подтверди, попрощайся («מְעֻלֶּה! תּוֹדָה רַבָּה, בַּיי!»), установи isCompleted: true и shouldHangUp: true, и повесь трубку!`,
   };
 }
 
