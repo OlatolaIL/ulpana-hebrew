@@ -177,6 +177,61 @@ export interface DialogueScenario {
   usefulWords?: DialogueWord[]; // Слова и фразы к диалогу с карточками
 }
 
+export interface GenderVariant {
+  hebrew: string;
+  transcription: string;
+  translation: string;
+}
+
+export interface ScriptedDialogueTurn {
+  id: string;
+  speaker: 'a' | 'b';
+  intentRu: string; // Коммуникативная цель (напр. "Поздороваться и заказать капучино")
+  acceptableKeywords?: string[]; // Ключевые слова для быстрой валидации
+  sampleVariations?: string[]; // Допустимые синонимичные фразы
+  variants: {
+    mm: GenderVariant; // говорящий м.р., слушающий м.р.
+    mf: GenderVariant; // говорящий м.р., слушающий ж.р.
+    fm: GenderVariant; // говорящий ж.р., слушающий м.р.
+    ff: GenderVariant; // говорящий ж.р., слушающий ж.р.
+  };
+}
+
+export interface DialogueParticipant {
+  nameRu: string;
+  nameHe: string;
+  roleRu: string;
+  roleHe: string;
+  avatarEmoji: string;
+  gender: 'male' | 'female';
+}
+
+export interface ScriptedDialogue {
+  id: string;
+  lessonId: number;
+  titleRu: string;
+  titleHe: string;
+  situationRu: string;
+  speakerA: {
+    male: DialogueParticipant;
+    female: DialogueParticipant;
+  };
+  speakerB: {
+    male: DialogueParticipant;
+    female: DialogueParticipant;
+  };
+  turns: ScriptedDialogueTurn[];
+}
+
+export interface DialogueEvaluationResult {
+  isCorrect: boolean;
+  score: number;
+  assessment: 'perfect' | 'good' | 'incorrect';
+  feedbackRu: string;
+  betterAlternative?: string;
+  userSpokenHebrew: string;
+}
+
 export interface Exercise {
   id: string;
   type: 'word_match' | 'build_sentence' | 'fill_blank' | 'listening';

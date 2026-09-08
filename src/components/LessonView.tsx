@@ -19,6 +19,7 @@ import { LessonTheory } from './LessonTheory';
 import { LessonVocabulary } from './LessonVocabulary';
 import { LessonExercises } from './LessonExercises';
 import { LessonAiChat } from './LessonAiChat';
+import { ScriptedDialogueTrainer } from './ScriptedDialogueTrainer';
 import { PhoneCallSimulator } from './PhoneCallSimulator';
 import { getLessonById, LESSONS_CATALOG } from '@/data/lessonsData';
 import { loadUserProfile } from '@/lib/storage';
@@ -47,6 +48,7 @@ export const LessonView: React.FC<LessonViewProps> = ({
   onOpenFeedback,
 }) => {
   const [activeTab, setActiveTab] = useState<LessonTab>(initialTab);
+  const [dialogueSubTab, setDialogueSubTab] = useState<'scripted' | 'free_ai'>('scripted');
 
   useEffect(() => {
     if (initialTab) {
@@ -251,13 +253,56 @@ export const LessonView: React.FC<LessonViewProps> = ({
         )}
 
         {activeTab === 'chat' && (
-          <LessonAiChat
-            lesson={lesson}
-            userProfile={userProfile}
-            onUpdateProfile={onUpdateProfile}
-            onWordAdded={() => onUpdateProfile(loadUserProfile())}
-            onGoToPhone={() => setActiveTab('phone')}
-          />
+          <div className="flex flex-col h-full min-h-0 overflow-hidden space-y-1.5">
+            {/* Подвкладки этапа: Диалог по ролям (Скрипт) vs Свободный чат с ИИ */}
+            <div className="shrink-0 flex items-center justify-between px-1 pt-0.5">
+              <div className="flex items-center p-0.5 bg-zinc-100 dark:bg-zinc-800 rounded-xl text-xs font-semibold">
+                <button
+                  type="button"
+                  onClick={() => setDialogueSubTab('scripted')}
+                  className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition ${
+                    dialogueSubTab === 'scripted'
+                      ? 'bg-white dark:bg-zinc-900 text-blue-600 dark:text-blue-400 shadow-2xs font-bold'
+                      : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
+                  }`}
+                >
+                  <span>🎭</span>
+                  <span>Диалог по ролям (Слушать и говорить)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDialogueSubTab('free_ai')}
+                  className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition ${
+                    dialogueSubTab === 'free_ai'
+                      ? 'bg-white dark:bg-zinc-900 text-blue-600 dark:text-blue-400 shadow-2xs font-bold'
+                      : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
+                  }`}
+                >
+                  <span>🤖</span>
+                  <span>Свободный чат с ИИ</span>
+                </button>
+              </div>
+            </div>
+
+            <div className="flex-1 min-h-0 overflow-hidden">
+              {dialogueSubTab === 'scripted' ? (
+                <ScriptedDialogueTrainer
+                  lesson={lesson}
+                  userProfile={userProfile}
+                  onUpdateProfile={onUpdateProfile}
+                  onGoToNextTab={() => setActiveTab('phone')}
+                />
+              ) : (
+                <LessonAiChat
+                  lesson={lesson}
+                  userProfile={userProfile}
+                  onUpdateProfile={onUpdateProfile}
+                  onWordAdded={() => onUpdateProfile(loadUserProfile())}
+                  onGoToPhone={() => setActiveTab('phone')}
+                />
+              )}
+            </div>
+          </div>
         )}
 
         {activeTab === 'phone' && (

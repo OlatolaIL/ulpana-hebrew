@@ -113,6 +113,43 @@ class PhoneAudioEngine {
   }
 
   /**
+   * Мягкий гармоничный аккорд успеха (C5 -> E5 -> G5)
+   */
+  public playSuccessChime(): Promise<void> {
+    return new Promise((resolve) => {
+      const ctx = this.getContext();
+      if (!ctx) {
+        resolve();
+        return;
+      }
+      try {
+        const notes = [523.25, 659.25, 783.99]; // C5, E5, G5
+        notes.forEach((freq, idx) => {
+          if (!this.ctx) return;
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          const startTime = this.ctx.currentTime + idx * 0.08;
+
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(freq, startTime);
+
+          gain.gain.setValueAtTime(0.08, startTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.35);
+
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+
+          osc.start(startTime);
+          osc.stop(startTime + 0.35);
+        });
+        setTimeout(() => resolve(), 500);
+      } catch {
+        resolve();
+      }
+    });
+  }
+
+  /**
    * Короткие гудки отбоя (Busy / Hangup tone: 425Hz, 0.3s on, 0.3s off)
    */
   public playHangupTone(bursts: number = 3): Promise<void> {
