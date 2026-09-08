@@ -27,6 +27,7 @@ export const PwaInstallPrompt: React.FC = () => {
           .register('/sw.js')
           .then((reg) => {
             console.log('PWA ServiceWorker registered with scope:', reg.scope);
+            reg.update().catch(() => {});
           })
           .catch((err) => {
             console.log('PWA ServiceWorker registration failed:', err);
