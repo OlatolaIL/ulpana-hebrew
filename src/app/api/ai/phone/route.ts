@@ -127,28 +127,32 @@ export async function POST(req: NextRequest) {
     const roleGuidance = isIncoming
       ? `ТЕЛЕФОННЫЙ ЗВОНОК: ВХОДЯЩИЙ ДЛЯ УЧЕНИКА (ТЫ ЗВОНИШЬ УЧЕНИКУ)
 - ТЫ — ${callerNameRu} (${callerRole}).
-- ТВОЯ ЦЕЛЬ ЗВОНКА: "${cleanCallerObj || 'Уточнить нужную информацию'}".
-- ЗАДАЧА УЧЕНИКА: "${cleanStudentObj || 'Ответить на вопрос'}".
-- КРИТИЧЕСКИЕ ПРАВИЛА ПОВЕДЕНИЯ:
-  1. ТЫ — НАСТОЯЩИЙ ЖИВОЙ ЧЕЛОВЕК (ДРУГ, ВОДИТЕЛЬ, КУРЬЕР, СОСЕД), А НЕ УЧИТЕЛЬ И НЕ БОТ-РЕПЕТИТОР!
-  2. СТРОЖАЙШЕ ЗАПРЕЩЕНО СПРАШИВАТЬ: «Как сказать...?», «איך אומרים...?», «Что значит...?» ИЛИ ПРОВОДИТЬ ОПРОСЫ ПО ГРАММАТИКЕ!
-  3. ТЫ позвонил ученику с конкретной бытовой целью.
-     Как только ученик ответил по существу (например, подтвердил семью, сказал «я спускаюсь», назвал имя или адрес):
-     ТЫ ПОЛУЧИЛ ВСЁ, ЧТО НУЖНО!
-     Тепло подтверди («אֵיזֶה יֹפִי! מְעֻלֶּה, תּוֹדָה רַבָּה! שֶׁיִּהְיֶה יוֹם מַקְסִים, בַּיי!» / «אֵין בְּעָיָה, נִתְרָאֶה!»),
-     ОБЯЗАТЕЛЬНО установи "isCompleted": true и "shouldHangUp": true,
-     и ПОВЕСЬ ТРУБКУ!
-  4. Если ученик ответил, но разговор еще продолжается: спроси 1 короткую ЖИЗНЕННУЮ деталь (например: «אֵיפֹה הֵם גָּרִים?» / «מָה שְׁלוֹמָם?»), НО НИ В КОЕМ СЛУЧАЕ НЕ ПРАВИЛА ЯЗЫКА!`
+- ТВОЯ ЦЕЛЬ ЗВОНКА: "${cleanCallerObj || 'Обсудить тему с учеником'}".
+- ЗАДАЧА УЧЕНИКА: "${cleanStudentObj || 'Поддержать беседу и ответить на вопросы'}".
+- ГЛАВНАЯ ЦЕЛЬ: ВЕСТИ ПОЛНОЦЕННЫЙ, ЖИВОЙ ТЕЛЕФОННЫЙ ДИАЛОГ (${targetTurns} РАУНДА)! ЭТО НЕ МОНОЛОГ И НЕ СБРОС ТРУБКИ!
+- ПРАВИЛА ВЕДЕНИЯ ДИАЛОГА:
+  1. ТЫ — НАСТОЯЩИЙ ЖИВОЙ ЧЕЛОВЕК (ДРУГ, СОСЕД, КОЛЛЕГА, ВОДИТЕЛЬ, КУРЬЕР), А НЕ УЧИТЕЛЬ!
+  2. СТРОЖАЙШЕ ЗАПРЕЩЕНО СПРАШИВАТЬ: «Как сказать...?», «איך אומרים...?», «Что значит...?» ИЛИ ПРОВОДИТЬ ОПРОСЫ ПО ГРАММАТИКЕ! ТЫ НЕ ЭКЗАМЕНАТОР!
+  3. В ХОДЕ ДИАЛОГА (раунды до ${targetTurns}):
+     * Коротко и тепло отреагируй на реплику ученика (например: «אֵיזֶה יֹפִי!», «מְעֻלֶּה!», «יוֹפִי!», «הַבַּנְתִּי!»).
+     * ЗАДАЙ СЛЕДУЮЩИЙ ДРУЖЕСКИЙ НАВОДЯЩИЙ ВОПРОС по ситуации и задачам диалога! Помогай ученику раскрыть тему и сказать новую фразу на иврите.
+     * НЕ ВЕШАЙ ТРУБКУ РАНЬШЕ ВРЕМЕНИ! Обязательно установи "isCompleted": false, "shouldHangUp": false.
+  4. ФИНАЛЬНЫЙ РАУНД (когда раунд >= ${targetTurns} или если ученик САМ явно прощается «ביי / להתראות»):
+     * Тепло поблагодари, передай привет или пожелай хорошего дня («אֵיזֶה כֵּיף! תּוֹדָה רַבָּה! נִתְרָאֶה בְּקָרוֹב, בַּיי!»).
+     * ОБЯЗАТЕЛЬНО установи "isCompleted": true, "shouldHangUp": true и повесь трубку!`
       : `ТЕЛЕФОННЫЙ ЗВОНОК: ИСХОДЯЩИЙ ДЛЯ УЧЕНИКА (УЧЕНИК ЗВОНИТ ТЕБЕ)
 - ТЫ — ${callerNameRu} (${callerRole}), принимающий звонок организации/сервиса.
 - ТВОЯ РОЛЬ: "${cleanCallerObj || 'Принять звонок и помочь ученику'}".
 - ЗАДАЧА УЧЕНИКА: "${cleanStudentObj || 'Сделать заказ или задать вопрос'}".
-- КРИТИЧЕСКИЕ ПРАВИЛА ПОВЕДЕНИЯ:
-  1. ТЫ — НАСТОЯЩИЙ ЖИВОЙ ЧЕЛОВЕК (БАРИСТА, АДМИНИСТРАТОР, ВРАЧ).
+- ГЛАВНАЯ ЦЕЛЬ: ВЕСТИ ПОЛНОЦЕННЫЙ ЖИВОЙ ДИАЛОГ (${targetTurns} РАУНДА)!
+- ПРАВИЛА ВЕДЕНИЯ ДИАЛОГА:
+  1. ТЫ — НАСТОЯЩИЙ ЖИВОЙ ЧЕЛОВЕК (БАРИСТА, АДМИНИСТРАТОР, ВРАЧ, СОТРУДНИК).
   2. СТРОЖАЙШЕ ЗАПРЕЩЕНО СПРАШИВАТЬ «איך אומרים» ИЛИ ТЕСТИРОВАТЬ УЧЕНИКА!
-  3. Ученик звонит тебе, чтобы что-то заказать или узнать.
-  4. Ты вежливо принимаешь запрос, при необходимости быстро уточняешь 1 деталь (размер, день), подтверждаешь и завершаешь разговор («בְּסֵדֶר גָּמוּר, הַהַזְמָנָה מוּכָנָה! נִתְרָאֶה, בַּיי!»).
-  5. Когда вопрос решен или ученик поблагодарил — установи "isCompleted": true и "shouldHangUp": true!`;
+  3. В ХОДЕ ДИАЛОГА (раунды до ${targetTurns}):
+     * Вежливо прими запрос ученика, подтверди и задай следующий логичный уточняющий наводящий вопрос (про размер, сахар/молоко, дату, время, детали).
+     * НЕ ВЕШАЙ ТРУБКУ РАНЬШЕ ВРЕМЕНИ! Обязательно установи "isCompleted": false, "shouldHangUp": false.
+  4. ФИНАЛЬНЫЙ РАУНД (когда раунд >= ${targetTurns} или если ученик прощается):
+     * Подтверди договоренность («בְּסֵדֶר גָּמוּר, הַהַזְמָנָה מוּכָנָה! נִתְרָאֶה, בַּיי!»), установи "isCompleted": true, "shouldHangUp": true и заверши звонок!`;
 
     const systemPrompt = `ТЫ — ЖИВОЙ ПЕРСОНАЖ ТЕЛЕФОННОГО ЗВОНКА В ИЗРАИЛЕ.
 ИМЯ: ${callerName} (${callerNameRu}).
@@ -159,7 +163,9 @@ export async function POST(req: NextRequest) {
 
 ${roleGuidance}
 
-${cleanCondition ? `УСЛОВИЕ УСПЕШНОГО ЗАВЕРШЕНИЯ ЗВОНКА: "${cleanCondition}". Если это условие выполнено — немедленно завершай звонок ("isCompleted": true, "shouldHangUp": true).` : ''}
+${goals && goals.length > 0 ? `ЗАДАЧИ РАЗГОВОРА ДЛЯ УЧЕНИКА (помогай ученику ответить на эти пункты в ходе диалога своими наводящими вопросами):\n${goals.map((g, i) => `${i + 1}. ${g}`).join('\n')}` : ''}
+
+${cleanCondition ? `УСЛОВИЕ УСПЕШНОГО ЗАВЕРШЕНИЯ ЗВОНКА: "${cleanCondition}".` : ''}
 
 ${systemPromptAddition ? `ДОПОЛНИТЕЛЬНЫЕ ИНСТРУКЦИИ ДЛЯ СЦЕНАРИЯ:\n${systemPromptAddition}` : ''}
 
@@ -167,11 +173,15 @@ ${levelGuidance}
 
 ${shouldForceFinalTurn ? `
 ВНИМАНИЕ: ЭТО ФИНАЛЬНАЯ РЕПЛИКА ЗВОНКА!
-- Ученик ответил на вопрос или попрощался, либо достигнут лимит раундов (${targetTurns}).
-- Твоя реплика должна быть короткой подтверждающей фразой прощания (1 предложение).
+- Достигнут лимит раундов (${targetTurns}) или ученик попрощался.
+- Твоя реплика должна быть короткой теплой фразой прощания (1 предложение).
 - ЗАПРЕЩЕНО задавать какие-либо вопросы!
 - В JSON ОБЯЗАТЕЛЬНО установи: "isCompleted": true, "shouldHangUp": true!
-` : ''}
+` : `
+ВНИМАНИЕ: ДИАЛОГ ПРОДОЛЖАЕТСЯ (раунд ${userTurnsCount} из ${targetTurns})!
+- Коротко отреагируй на ответ ученика и ОБЯЗАТЕЛЬНО задай следующий простой наводящий вопрос по ситуации!
+- В JSON ОБЯЗАТЕЛЬНО установи: "isCompleted": false, "shouldHangUp": false!
+`}
 
 СТРОЖАЙШИЕ ПРАВИЛА ЯЗЫКА И ОФОРМЛЕНИЯ:
 1. "hebrew": Реплика на иврите с ТОЧНЫМИ И ПОЛНЫМИ ОГЛАСОВКАМИ (никуд).
@@ -180,11 +190,11 @@ ${shouldForceFinalTurn ? `
 4. "suggestedReplies":
    ${shouldForceFinalTurn
      ? 'Верни пустой массив [] или 1 простой вариант прощания (\'תּוֹדָה רַבָּה, בַּיי!\').'
-     : 'Предложи ровно 2-3 ультра-простых разговорных варианта ответа ученика на твою реплику (с полными огласовками, русской транскрипцией и переводом).'}
+     : 'Предложи ровно 2-3 ультра-простых разговорных варианта ответа ученика на твой наводящий вопрос (с полными огласовками, русской транскрипцией и переводом).'}
 5. "isCompleted" и "shouldHangUp":
    ${shouldForceFinalTurn
      ? 'ОБЯЗАТЕЛЬНО установи true в обоих полях (финал звонка)!'
-     : 'Если ученик ответил на твой вопрос и цель звонка достигнута — смело ставь "isCompleted": true и "shouldHangUp": true, чтобы завершить звонок и не тянуть время! Иначе ставь false.'}
+     : 'ОБЯЗАТЕЛЬНО установи false в обоих полях ("isCompleted": false, "shouldHangUp": false), потому что диалог продолжается!'}
 6. КАТЕГОРИЧЕСКИЙ ЗАПРЕТ:
    - НИКАКИХ "איך אומרים", проверок грамматики, вопросов про перевод или экзаменов! ТЫ ОБЫЧНЫЙ ЧЕЛОВЕК, А НЕ УЧИТЕЛЬ!
    - НИКАКОГО вмешательства учителя, никаких "teacher_reaction" или замечаний во время звонка!
@@ -241,7 +251,27 @@ ${shouldForceFinalTurn ? `
             const contentStr = data.choices[0]?.message?.content || '{}';
             const parsed = JSON.parse(contentStr);
 
-            const isDone = Boolean(parsed.isCompleted || parsed.shouldHangUp || shouldForceFinalTurn);
+            const isDone = shouldForceFinalTurn;
+
+            const parsedReplies = Array.isArray(parsed.suggestedReplies) ? parsed.suggestedReplies : [];
+            const safeReplies = parsedReplies.length > 0
+              ? parsedReplies.map((r: any) => ({
+                  hebrew: r.hebrew || '',
+                  transcription: sanitizeTranscription(r.transcription || r.cyrillic_transcription || ''),
+                  translation: sanitizeRussianTranslation(r.translation || r.russian_translation || ''),
+                }))
+              : [
+                  {
+                    hebrew: 'כֵּן, נָכוֹן.',
+                    transcription: 'кен, нахóн.',
+                    translation: 'Да, верно.',
+                  },
+                  {
+                    hebrew: 'תּוֹדָה רַבָּה!',
+                    transcription: 'тодá рабá!',
+                    translation: 'Большое спасибо!',
+                  },
+                ];
 
             return NextResponse.json({
               hebrew: (parsed.hebrew || '').trim(),
@@ -249,15 +279,7 @@ ${shouldForceFinalTurn ? `
               translation: sanitizeRussianTranslation(parsed.translation || parsed.russian_translation || ''),
               isCompleted: isDone,
               shouldHangUp: isDone,
-              suggestedReplies: isDone
-                ? []
-                : Array.isArray(parsed.suggestedReplies)
-                ? parsed.suggestedReplies.map((r: any) => ({
-                    hebrew: r.hebrew || '',
-                    transcription: sanitizeTranscription(r.transcription || r.cyrillic_transcription || ''),
-                    translation: sanitizeRussianTranslation(r.translation || r.russian_translation || ''),
-                  }))
-                : [],
+              suggestedReplies: isDone ? [] : safeReplies,
               engine: 'Groq (Живой звонок)',
             });
           }
@@ -299,7 +321,27 @@ ${shouldForceFinalTurn ? `
           const data = await geminiRes.json();
           const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
           const parsed = JSON.parse(text);
-          const isDone = Boolean(parsed.isCompleted || parsed.shouldHangUp || shouldForceFinalTurn);
+          const isDone = shouldForceFinalTurn;
+
+          const parsedReplies = Array.isArray(parsed.suggestedReplies) ? parsed.suggestedReplies : [];
+          const safeReplies = parsedReplies.length > 0
+            ? parsedReplies.map((r: any) => ({
+                hebrew: r.hebrew || '',
+                transcription: sanitizeTranscription(r.transcription || r.cyrillic_transcription || ''),
+                translation: sanitizeRussianTranslation(r.translation || r.russian_translation || ''),
+              }))
+            : [
+                {
+                  hebrew: 'כֵּן, נָכוֹן.',
+                  transcription: 'кен, нахóн.',
+                  translation: 'Да, верно.',
+                },
+                {
+                  hebrew: 'תּוֹדָה רַבָּה!',
+                  transcription: 'тодá рабá!',
+                  translation: 'Большое спасибо!',
+                },
+              ];
 
           return NextResponse.json({
             hebrew: (parsed.hebrew || '').trim(),
@@ -307,15 +349,7 @@ ${shouldForceFinalTurn ? `
             translation: sanitizeRussianTranslation(parsed.translation || parsed.russian_translation || ''),
             isCompleted: isDone,
             shouldHangUp: isDone,
-            suggestedReplies: isDone
-              ? []
-              : Array.isArray(parsed.suggestedReplies)
-              ? parsed.suggestedReplies.map((r: any) => ({
-                  hebrew: r.hebrew || '',
-                  transcription: sanitizeTranscription(r.transcription || r.cyrillic_transcription || ''),
-                  translation: sanitizeRussianTranslation(r.translation || r.russian_translation || ''),
-                }))
-              : [],
+            suggestedReplies: isDone ? [] : safeReplies,
             engine: 'Gemini (Живой звонок)',
           });
         }
