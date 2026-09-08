@@ -128,23 +128,36 @@ export const LessonVocabulary: React.FC<LessonVocabularyProps> = ({
     setReviewWordIds(new Set());
   };
 
-  // Горячие клавиши на десктопе: Пробел — перевернуть, Стрелка вправо — Знаю, Стрелка влево — Повторить
+  // Горячие клавиши на десктопе:
+  // До переворота: Пробел / Enter / Стрелка вправо — перевернуть, Стрелка влево — назад
+  // После переворота: Стрелка вправо / D — Знаю, Стрелка влево / A — Повторить, Пробел — скрыть обратно
   useEffect(() => {
     if (viewMode !== 'card' || isSessionCompleted) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
-      if (e.code === 'Space') {
+
+      if (e.code === 'Space' || e.code === 'Enter') {
         e.preventDefault();
         setIsFlipped((prev) => !prev);
       } else if (e.code === 'ArrowRight' || e.code === 'KeyD') {
-        handleMarkKnown();
+        e.preventDefault();
+        if (!isFlipped) {
+          setIsFlipped(true);
+        } else {
+          handleMarkKnown();
+        }
       } else if (e.code === 'ArrowLeft' || e.code === 'KeyA') {
-        handleMarkRepeat();
+        e.preventDefault();
+        if (!isFlipped) {
+          handlePrev();
+        } else {
+          handleMarkRepeat();
+        }
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [viewMode, currentIndex, isSessionCompleted, words]);
+  }, [viewMode, currentIndex, isSessionCompleted, isFlipped, words]);
 
   const filteredWords = words.filter((w) => {
     const q = searchQuery.toLowerCase().trim();
@@ -599,52 +612,90 @@ export const LessonVocabulary: React.FC<LessonVocabularyProps> = ({
 
                     <div className="flex items-center justify-center gap-1.5 text-xs text-zinc-400 dark:text-zinc-500 font-medium pt-2 border-t border-zinc-100 dark:border-zinc-800/60">
                       <span>
-                        {isUlpan ? 'חֲזָרָה לְעִבְרִית 🔄' : 'Нажмите, чтобы скрыть перевод'}
+                        {isUlpan
+                          ? 'הַעֲרִיכוּ אֶת הַתְּשׁוּבָה שֶׁלָּכֶם לְמַטָּה'
+                          : 'Оцените свой ответ кнопками ниже'}
                       </span>
                     </div>
                   </>
                 )}
               </div>
 
-              {/* Панель кнопок под карточкой: Предыдущее / Повторить / Знаю / Следующее */}
-              <div className="flex items-center justify-center gap-2 pt-1">
-                <button
-                  type="button"
-                  onClick={handlePrev}
-                  disabled={currentIndex === 0}
-                  className="p-3 rounded-2xl border border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-30 disabled:cursor-not-allowed transition active:scale-95 cursor-pointer shrink-0"
-                  title="Предыдущее слово"
-                >
-                  <ArrowLeft className="w-5 h-5" />
-                </button>
+              {/* Панель действий под карточкой: честный двухшаговый процесс (Active Recall) */}
+              {!isFlipped ? (
+                /* ШАГ 1 (Карточка закрыта): Ученик вспоминает ответ -> Кнопка "Показать перевод" */
+                <div className="flex items-center justify-center gap-2 pt-1 animate-in fade-in duration-150">
+                  <button
+                    type="button"
+                    onClick={handlePrev}
+                    disabled={currentIndex === 0}
+                    className="p-3.5 rounded-2xl border border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-30 disabled:cursor-not-allowed transition active:scale-95 cursor-pointer shrink-0"
+                    title={isUlpan ? 'מִילָּה קוֹדֶמֶת' : 'Предыдущее слово'}
+                  >
+                    <ArrowLeft className="w-5 h-5" />
+                  </button>
 
-                <button
-                  type="button"
-                  onClick={handleMarkRepeat}
-                  className="flex-1 py-3 px-3 rounded-2xl bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/40 dark:hover:bg-amber-900/60 text-amber-800 dark:text-amber-200 border border-amber-200/80 dark:border-amber-900/60 font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer shadow-xs"
-                >
-                  <RefreshCw className="w-4 h-4" />
-                  <span>{isUlpan ? 'לַחֲזֹר' : 'Повторить'}</span>
-                </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsFlipped(true)}
+                    className="flex-1 py-3.5 px-4 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm sm:text-base flex items-center justify-center gap-2 transition active:scale-95 cursor-pointer shadow-sm shadow-blue-600/25"
+                  >
+                    <RotateCw className="w-4 h-4" />
+                    <span>{isUlpan ? 'הַצֵּג תַּרְגּוּם' : 'Показать перевод'}</span>
+                  </button>
 
-                <button
-                  type="button"
-                  onClick={handleMarkKnown}
-                  className="flex-1 py-3 px-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer shadow-sm shadow-emerald-600/20"
-                >
-                  <ThumbsUp className="w-4 h-4" />
-                  <span>{isUlpan ? 'יוֹדֵעַ' : 'Знаю'}</span>
-                </button>
+                  <button
+                    type="button"
+                    onClick={handleNext}
+                    className="p-3.5 rounded-2xl border border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition active:scale-95 cursor-pointer shrink-0"
+                    title={isUlpan ? 'מִילָּה הַבָּאָה' : 'Следующее слово'}
+                  >
+                    <ArrowRight className="w-5 h-5" />
+                  </button>
+                </div>
+              ) : (
+                /* ШАГ 2 (Карточка открыта): Ученик сверяет ответ -> Кнопки оценки "Повторить" и "Знаю" */
+                <div className="flex items-center justify-center gap-2 pt-1 animate-in fade-in duration-150">
+                  <button
+                    type="button"
+                    onClick={handlePrev}
+                    disabled={currentIndex === 0}
+                    className="p-3.5 rounded-2xl border border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-30 disabled:cursor-not-allowed transition active:scale-95 cursor-pointer shrink-0"
+                    title={isUlpan ? 'מִילָּה קוֹדֶמֶת' : 'Предыдущее слово'}
+                  >
+                    <ArrowLeft className="w-5 h-5" />
+                  </button>
 
-                <button
-                  type="button"
-                  onClick={handleNext}
-                  className="p-3 rounded-2xl border border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition active:scale-95 cursor-pointer shrink-0"
-                  title="Следующее слово"
-                >
-                  <ArrowRight className="w-5 h-5" />
-                </button>
-              </div>
+                  <button
+                    type="button"
+                    onClick={handleMarkRepeat}
+                    className="flex-1 py-3.5 px-3 rounded-2xl bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/40 dark:hover:bg-amber-900/60 text-amber-800 dark:text-amber-200 border-2 border-amber-200/90 dark:border-amber-900/70 font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer shadow-xs"
+                    title={isUlpan ? 'שָׁכַחְתִּי / חֲזָרָה' : 'Забыл / Повторить скоро'}
+                  >
+                    <RefreshCw className="w-4 h-4" />
+                    <span>{isUlpan ? 'לַחֲזֹר' : 'Повторить'}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleMarkKnown}
+                    className="flex-1 py-3.5 px-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer shadow-sm shadow-emerald-600/25"
+                    title={isUlpan ? 'יוֹדֵעַ הֵיטֵב' : 'Знаю хорошо'}
+                  >
+                    <ThumbsUp className="w-4 h-4" />
+                    <span>{isUlpan ? 'יוֹדֵעַ' : 'Знаю'}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleNext}
+                    className="p-3.5 rounded-2xl border border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition active:scale-95 cursor-pointer shrink-0"
+                    title={isUlpan ? 'מִילָּה הַבָּאָה' : 'Следующее слово'}
+                  >
+                    <ArrowRight className="w-5 h-5" />
+                  </button>
+                </div>
+              )}
             </>
           ) : (
             /* ЭКРАН ЗАВЕРШЕНИЯ КАРТОЧЕК */
