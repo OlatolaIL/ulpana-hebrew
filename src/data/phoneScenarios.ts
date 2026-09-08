@@ -187,6 +187,50 @@ export const BESPOKE_PHONE_SCENARIOS: Record<number, PhoneScenario> = {
     systemPromptAddition: 'Ты бариста Йоси. Уточни про сахар, размер (катан или гадоль) и молоко (обычное или овсяное). Отвечай быстро и дружелюбно.',
   },
 
+  // Урок 3: Откуда ты и где живёшь?
+  3: {
+    callType: 'incoming',
+    callerName: 'דָּנִי',
+    callerNameRu: 'Дани (сосед по дому)',
+    callerRole: 'Сосед по лестничной площадке',
+    avatarEmoji: '🏢',
+    situationSummary: 'Вам звонит новый сосед Дани по дому, чтобы познакомиться.',
+    callerObjective: 'Познакомиться с новым жильцом, спросить откуда он приехал в Израиль и в какой квартире живёт.',
+    studentObjective: 'Поздороваться, сказать откуда вы приехали (אֲנִי מִ...) и в какой квартире живёте (אֲנִי גָּר בְּ...).',
+    completionCondition: 'Ученик назвал страну, город или квартиру.',
+    targetTurns: 2,
+    initialGreeting: {
+      hebrew: 'הַלּוֹ? שָׁלוֹם! זֶה דָּנִי, הַשָּׁכֵן שֶׁלְּךָ מִקּוֹמָה 3. מָה נִשְׁמַע? מֵאֵיפֹה אַתָּה בָּעוֹלָם?',
+      transcription: 'hалó? шалóм! зэ Дáни, hа-шахéн шельхá ми-комá шалóш. ма нишмá? мэ-э́йфо атá ба-олáм?',
+      translation: 'Алло? Привет! Это Дани, твой сосед с 3 этажа. Как дела? Откуда ты родом?',
+    },
+    goals: [
+      'Поздороваться и ответить, как дела (שָׁלוֹם, הַכֹּל בְּסֵדֶר)',
+      'Сказать, откуда вы приехали (אֲנִי מֵרוּסְיָה / אֲנִי מִ...)',
+      'Сказать, где вы живете (אֲנִי גָּר בְּדִירָה 5 / בְּתֵל אָבִיב)',
+    ],
+    suggestedReplies: [
+      {
+        hebrew: 'הַלּוֹ דָּנִי! נָעִים מְאוֹד. אֲנִי מֵרוּסְיָה.',
+        transcription: 'hалó Дáни! наӣм мэóд. анӣ мэ-Рýсья.',
+        translation: 'Алло Дани! Очень приятно. Я из России.',
+      },
+      {
+        hebrew: 'שָׁלוֹם דָּנִי! הַכֹּל טוֹב. אֲנִי גָּר בְּדִירָה 4.',
+        transcription: 'шалóм Дáни! hакóль тов. анӣ гар бэ-дирá áрба.',
+        translation: 'Привет Дани! Всё хорошо. Я живу в 4 квартире.',
+      },
+    ],
+    vocabularyHints: ['מֵאֵיפֹה אַתָּה?', 'גָּר בְּ...', 'דִּירָה', 'נָעִים מְאוֹד'],
+    usefulWords: [
+      { hebrew: 'נָעִים מְאוֹד', transcription: 'наӣм мэóд', translation: 'очень приятно', isNew: true },
+      { hebrew: 'מֵאֵיפֹה אַתָּה?', transcription: 'мэ-э́йфо атá?', translation: 'откуда ты?', isNew: true },
+      { hebrew: 'אֲנִי גָּר בְּ...', transcription: 'анӣ гар бэ...', translation: 'я живу в...', isNew: true },
+      { hebrew: 'שָׁכֵן', transcription: 'шахéн', translation: 'сосед', isNew: true },
+    ],
+    systemPromptAddition: `Ты сосед Дани. Ты доброжелательный израильтянин. Как только ученик ответил откуда он или где живет — поприветствуй его в доме («בָּרוּךְ הַבָּא לַבִּנְיָן! נִתְרָאֶה, בַּיי!»), установи isCompleted: true, shouldHangUp: true и повесь трубку. СТРОГО ЗАПРЕЩЕНО задавать экзаменационные вопросы!`,
+  },
+
   // Урок 4: Страны, города и языки
   4: {
     callType: 'incoming',
@@ -331,6 +375,80 @@ export const BESPOKE_PHONE_SCENARIOS: Record<number, PhoneScenario> = {
     ],
     systemPromptAddition: `Ты израильский водитель такси Эли на белой Тойоте (טוֹיוֹטָה לְבָנָה). Ты приехал по заказу и ждёшь пассажира внизу на улице.
 Как только пассажир ответил (сказал «רגע, אני יורד» / «עוד שתי דקות» / спросил машину) — сразу скажи: «מְעֻלֶּה! אֲנִי מְחַכֶּה לְךָ לְמַטָּה בְּטוֹיוֹטָה לְבָנָה. בַּיי!», установи shouldHangUp: true и повесь трубку!`,
+  },
+
+  // Урок 6: Моя семья и притяжательные формы (שֶׁל)
+  6: {
+    callType: 'incoming',
+    callerName: 'רוֹנִי',
+    callerNameRu: 'Друг Рони',
+    callerRole: 'Израильский друг Рони',
+    avatarEmoji: '👨‍👩‍👧‍👦',
+    situationSummary: 'Вам звонит израильский друг Рони после того, как вы прислали ему в WhatsApp красивую фотографию своей семьи.',
+    callerObjective: 'Восхититься фотографией вашей семьи в WhatsApp, спросить твоя ли это семья, и передать всем тёплый привет.',
+    studentObjective: 'Подтвердить, что на фото ваша семья (זֹאת הַמִּשְׁפָּחָה שֶׁלִּי), назвать кого-то из родных или поблагодарить друга.',
+    completionCondition: 'Ученик подтвердил семью (זֹאת הַמִּשְׁפָּחָה שֶׁלִּי / כֵּן) или назвал родственников.',
+    targetTurns: 1,
+    initialGreeting: {
+      hebrew: 'הַלּוֹ? שָׁלוֹם! רָאִיתִי אֶת הַתְּמוּנָה שֶׁשָּׁלַחְתָּ בְּווֹטְסְאַפּ. אֵיזֶה יֹפִי! זֹאת הַמִּשְׁפָּחָה שֶׁלְּךָ?',
+      transcription: 'hалó? шалóм! раӣти эт hа-тмунá ше-шалáхта бэ-вóтсап. э́йзе йóфи! зот hа-мишпахá шельхá?',
+      translation: 'Алло? Привет! Я увидел фотографию, которую ты прислал в WhatsApp. Какая красота! Это твоя семья?',
+    },
+    goals: [
+      'Поздороваться с другом Рони (שָׁלוֹם רוֹנִי)',
+      'Подтвердить: «Да, это моя семья» (כֵּן, זֹאת הַמִּשְׁפָּחָה שֶׁלִּי)',
+      'При желании назвать папу, маму или брата (זֶה אַבָּא שֶׁלִּי / אִמָּא שֶׁלִּי)',
+      'Поблагодарить и попрощаться (תּוֹדָה רַבָּה, בַּיי)',
+    ],
+    suggestedReplies: [
+      {
+        hebrew: 'שָׁלוֹם רוֹנִי! כֵּן, זֹאת הַמִּשְׁפָּחָה שֶׁלִּי.',
+        transcription: 'шалóм Рóни! кен, зот hа-мишпахá шелӣ.',
+        translation: 'Привет Рони! Да, это моя семья.',
+      },
+      {
+        hebrew: 'כֵּן, זֶה אַבָּא שֶׁלִּי וְזֹאת אִמָּא שֶׁלִּי. תּוֹדָה רַבָּה!',
+        transcription: 'кен, зэ áба шелӣ вэ-зот ӣма шелӣ. тодá рабá!',
+        translation: 'Да, это мой папа и это моя мама. Большое спасибо!',
+      },
+    ],
+    vocabularyHints: ['זֹאת הַמִּשְׁפָּחָה שֶׁלִּי', 'אַבָּא שֶׁלִּי', 'אִמָּא שֶׁלִּי', 'אָח / אָחוֹת', 'תּוֹדָה רַבָּה'],
+    usefulWords: [
+      {
+        hebrew: 'זֹאת הַמִּשְׁפָּחָה שֶׁלִּי',
+        transcription: 'зот hа-мишпахá шелӣ',
+        translation: 'это моя семья',
+        isNew: true,
+      },
+      {
+        hebrew: 'אַבָּא שֶׁלִּי',
+        transcription: 'áба шелӣ',
+        translation: 'мой папа',
+        isNew: true,
+      },
+      {
+        hebrew: 'אִמָּא שֶׁלִּי',
+        transcription: 'ӣма шелӣ',
+        translation: 'моя мама',
+        isNew: true,
+      },
+      {
+        hebrew: 'אָח שֶׁלִּי',
+        transcription: 'ах шелӣ',
+        translation: 'мой брат',
+        isNew: true,
+      },
+      {
+        hebrew: 'אָחוֹת שֶׁלִּי',
+        transcription: 'ахóт шелӣ',
+        translation: 'моя сестра',
+        isNew: true,
+      },
+    ],
+    systemPromptAddition: `Ты израильский друг Рони. Ты звонишь тепло и по-человечески, потому что увидел красивое семейное фото в WhatsApp.
+КАТЕГОРИЧЕСКОЕ ПРАВИЛО:
+Как только ученик подтвердил, что на фото его семья (сказал «כן, זאת המשפחה שלי» или назвал кого-то из родных) — сразу искренне похвали («אֵיזֶה יֹפִי! מִשְׁפָּחָה מַקְסִימָה! דְּרִישַׁת שָׁלוֹם לְכֻלָּם. נִתְרָאֶה בְּקָרוֹב, בַּיי!»), установи isCompleted: true и shouldHangUp: true, и ПОВЕСЬ ТРУБКУ!
+СТРОЖАЙШЕ ЗАПРЕЩЕНО задавать экзаменационные вопросы, спрашивать правила языка или «איך אומרים»!`,
   },
 
   // Урок 15: Аренда квартиры
@@ -594,10 +712,18 @@ export function getLessonPhoneScenario(lesson: Lesson, gender: UserGender): Phon
   if (isIncoming) {
     callerObjective = `Кратко выяснить у ученика нужную информацию по теме «${lesson.titleRussian}» и завершить звонок.`;
     studentObjective = `Ответить на вопрос собеседника и подтвердить информацию.`;
-    if (dial.initialMessage?.hebrew) {
-      initialGreetingHeb = `הַלּוֹ? שָׁלוֹם! ${dial.initialMessage.hebrew}`;
-      initialGreetingTr = `hалó? шалóм! ${dial.initialMessage.transcription || ''}`;
-      initialGreetingRu = `Алло? Привет! ${dial.initialMessage.translation || ''}`;
+    const initHeb = dial.initialMessage?.hebrew || '';
+    const isVisualInPerson =
+      initHeb.includes('תְּמוּנָה') ||
+      initHeb.includes('תמונה') ||
+      initHeb.includes('מִסְתַּכֵּל') ||
+      initHeb.includes('רוֹאֶה') ||
+      initHeb.includes('תִּסְתַּכֵּל');
+
+    if (initHeb && !isVisualInPerson) {
+      initialGreetingHeb = `הַלּוֹ? שָׁלוֹם! ${dial.initialMessage!.hebrew}`;
+      initialGreetingTr = `hалó? шалóм! ${dial.initialMessage!.transcription || ''}`;
+      initialGreetingRu = `Алло? Привет! ${dial.initialMessage!.translation || ''}`;
     } else {
       initialGreetingHeb = `הַלּוֹ? שָׁלוֹם! זֶה ${aiRole}. מָה נִשְׁמַע?`;
       initialGreetingTr = `hалó? шалóм! зэ ${aiRole}. ма нишмá?`;
@@ -620,8 +746,17 @@ export function getLessonPhoneScenario(lesson: Lesson, gender: UserGender): Phon
 
   // Адаптация рода в приветствии
   if (isFemale) {
-    initialGreetingHeb = initialGreetingHeb.replace(/לְךָ/g, 'לָךְ').replace(/תִּרְצֶה/g, 'תִּרְצִי').replace(/אַתָּה/g, 'אַתְּ');
-    initialGreetingTr = initialGreetingTr.replace(/лэхá/g, 'лах').replace(/тирцé/g, 'тирцӣ').replace(/атá/g, 'ат');
+    initialGreetingHeb = initialGreetingHeb
+      .replace(/לְךָ/g, 'לָךְ')
+      .replace(/שֶׁלְּךָ/g, 'שֶׁלָּךְ')
+      .replace(/שֶׁלְךָ/g, 'שֶׁלָּךְ')
+      .replace(/תִּרְצֶה/g, 'תִּרְצִי')
+      .replace(/אַתָּה/g, 'אַתְּ');
+    initialGreetingTr = initialGreetingTr
+      .replace(/лэхá/g, 'лах')
+      .replace(/шельхá/g, 'шелáх')
+      .replace(/тирцé/g, 'тирцӣ')
+      .replace(/атá/g, 'ат');
   }
 
   const dynamicUsefulWords: PhoneScenarioWord[] = (lesson.vocabulary || []).slice(0, 7).map((w) => ({
@@ -703,12 +838,23 @@ function adaptGenderInScenario(scenario: PhoneScenario, isFemale: boolean): Phon
   if (isFemale) {
     copy.initialGreeting.hebrew = copy.initialGreeting.hebrew
       .replace(/לְךָ/g, 'לָךְ')
+      .replace(/שֶׁלְּךָ/g, 'שֶׁלָּךְ')
+      .replace(/שֶׁלְךָ/g, 'שֶׁלָּךְ')
       .replace(/תִּרְצֶה/g, 'תִּרְצִי')
-      .replace(/אַתָּה/g, 'אַתְּ');
+      .replace(/אַתָּה/g, 'אַתְּ')
+      .replace(/שֶׁשָּׁלַחְתָּ/g, 'שֶׁשָּׁלַחַתְּ')
+      .replace(/שָׁלַחְתָּ/g, 'שָׁלַחַתְּ');
     copy.initialGreeting.transcription = copy.initialGreeting.transcription
       .replace(/лэхá/g, 'лах')
+      .replace(/шельхá/g, 'шелáх')
       .replace(/тирцé/g, 'тирцӣ')
-      .replace(/атá/g, 'ат');
+      .replace(/атá/g, 'ат')
+      .replace(/ше-шалáхта/g, 'ше-шалáхат')
+      .replace(/шалáхта/g, 'шалáхат');
+    if (copy.initialGreeting.translation) {
+      copy.initialGreeting.translation = copy.initialGreeting.translation
+        .replace(/ты прислал/g, 'ты прислала');
+    }
   }
   return copy;
 }
