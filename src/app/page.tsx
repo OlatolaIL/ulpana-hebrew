@@ -13,9 +13,8 @@ import { AuthModal } from '@/components/AuthModal';
 import { SubscriptionModal } from '@/components/SubscriptionModal';
 import { SectionGuideDrawer } from '@/components/SectionGuideDrawer';
 import { FeedbackDrawer } from '@/components/FeedbackDrawer';
-import { FeedbackButton } from '@/components/FeedbackButton';
 import { UserProfile, Word, UserSession } from '@/types';
-import { loadUserProfile, saveUserProfile, resetLessonProgress } from '@/lib/storage';
+import { loadUserProfile, saveUserProfile, resetLessonProgress, getFirstIncompleteLessonTab } from '@/lib/storage';
 import { initHebrewVoices } from '@/lib/speech';
 import { DETAILED_LESSONS, getLessonById } from '@/data/lessonsData';
 import { isVipUser, VIP_EXPIRES_AT, applyVipProfileEnhancements } from '@/lib/vipUsers';
@@ -397,7 +396,10 @@ export default function Home() {
     if (initialHash.startsWith('#lesson-')) {
       initialView = 'lesson';
       const num = parseInt(initialHash.replace('#lesson-', ''), 10);
-      if (!isNaN(num) && num >= 1 && num <= 100) initialLessonId = num;
+      if (!isNaN(num) && num >= 1 && num <= 100) {
+        initialLessonId = num;
+        initialTab = getFirstIncompleteLessonTab(num, loadUserProfile());
+      }
     } else if (initialHash === '#flashcards') {
       initialView = 'flashcards';
     } else if (initialHash === '#dictionary') {
@@ -548,7 +550,8 @@ export default function Home() {
       setIsSubscriptionModalOpen(true);
       return;
     }
-    navigateTo('lesson', { lessonId: id, tab: tab || 'theory' });
+    const resolvedTab = tab || getFirstIncompleteLessonTab(id, profile);
+    navigateTo('lesson', { lessonId: id, tab: resolvedTab });
   };
 
   const handleResetLessonProgress = (lessonId: number) => {

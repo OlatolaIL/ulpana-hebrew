@@ -223,6 +223,32 @@ export function markLessonTabCompleted(lessonId: number, tab: string): UserProfi
   return profile;
 }
 
+export type LessonStageTab = 'theory' | 'vocab' | 'exercises' | 'chat' | 'phone';
+
+export const LESSON_STAGES_ORDER: LessonStageTab[] = [
+  'theory',
+  'vocab',
+  'exercises',
+  'chat',
+  'phone',
+];
+
+/**
+ * Получить первый непройденный этап урока для автоматического открытия при входе.
+ * Если все 5 пройдены или ничего не пройдено — открывает первый этап ('theory').
+ */
+export function getFirstIncompleteLessonTab(
+  lessonId: number,
+  profile?: UserProfile | null
+): LessonStageTab {
+  const currentProfile = profile || loadUserProfile();
+  const progress = currentProfile?.lessonProgress?.[lessonId];
+  const completed = progress?.completedTabs || [];
+
+  const incomplete = LESSON_STAGES_ORDER.find((tab) => !completed.includes(tab));
+  return incomplete || 'theory';
+}
+
 /**
  * Сброс зачёта конкретной вкладки (этапа) урока
  */

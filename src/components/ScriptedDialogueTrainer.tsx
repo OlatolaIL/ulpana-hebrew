@@ -268,9 +268,9 @@ export const ScriptedDialogueTrainer: React.FC<ScriptedDialogueTrainerProps> = (
     if (practiceTurnIndex >= dialogue.turns.length) {
       // Завершение диалога!
       confetti({ particleCount: 75, spread: 70, origin: { y: 0.6 } });
-      markLessonTabCompleted(lesson.id, 'chat');
+      const updated = markLessonTabCompleted(lesson.id, 'chat');
       if (onUpdateProfile) {
-        onUpdateProfile({ ...userProfile });
+        onUpdateProfile(updated);
       }
       setMode('completed');
       return;
@@ -464,6 +464,29 @@ export const ScriptedDialogueTrainer: React.FC<ScriptedDialogueTrainerProps> = (
     setLastEvaluation(null);
     setSpokenText('');
     setPracticeTurnIndex((prev) => prev + 1);
+  };
+
+  const isFinalTurn = practiceTurnIndex >= dialogue.turns.length - 1;
+  const isLastUserTurn = useMemo(() => {
+    for (let i = practiceTurnIndex + 1; i < dialogue.turns.length; i++) {
+      if (dialogue.turns[i].speaker === userRoleSide) return false;
+    }
+    return true;
+  }, [practiceTurnIndex, dialogue.turns, userRoleSide]);
+
+  const handleCompleteListenStage = () => {
+    stopSpeech();
+    setIsPlayingAll(false);
+    confetti({ particleCount: 75, spread: 70, origin: { y: 0.6 } });
+    const updated = markLessonTabCompleted(lesson.id, 'chat');
+    if (onUpdateProfile) {
+      onUpdateProfile(updated);
+    }
+    if (onGoToNextTab) {
+      onGoToNextTab();
+    } else {
+      setMode('completed');
+    }
   };
 
   // Рендер карточки слова в шторке подсказок
@@ -864,18 +887,31 @@ export const ScriptedDialogueTrainer: React.FC<ScriptedDialogueTrainerProps> = (
               )}
             </div>
 
-            <button
-              type="button"
-              onClick={() => {
-                stopSpeech();
-                setIsPlayingAll(false);
-                setMode('select_role');
-              }}
-              className="px-4 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-xs sm:text-sm flex items-center gap-2 shadow-sm transition cursor-pointer"
-            >
-              <span>Выбрать роль и ответить голосом</span>
-              <ArrowRight className="w-4 h-4" />
-            </button>
+            <div className="flex items-center gap-2 flex-wrap">
+              <button
+                type="button"
+                onClick={handleCompleteListenStage}
+                className="px-3 py-2 rounded-xl border border-emerald-300 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/50 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 font-bold text-xs flex items-center gap-1.5 transition cursor-pointer shadow-2xs"
+                title="Отметить диалог пройденным и перейти к следующему этапу (Звонок)"
+              >
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                <span className="hidden sm:inline">Зачесть этап и</span>
+                <span>к Звонку →</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  stopSpeech();
+                  setIsPlayingAll(false);
+                  setMode('select_role');
+                }}
+                className="px-4 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-xs sm:text-sm flex items-center gap-2 shadow-sm transition cursor-pointer"
+              >
+                <span>Ответить по ролям (голос)</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -1254,7 +1290,13 @@ export const ScriptedDialogueTrainer: React.FC<ScriptedDialogueTrainerProps> = (
                     onClick={handleProceedToNextTurn}
                     className="w-full sm:flex-1 py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition active:scale-95 cursor-pointer"
                   >
-                    <span>Следующая реплика</span>
+                    <span>
+                      {isFinalTurn
+                        ? '🎉 Завершить диалог и зачесть этап'
+                        : isLastUserTurn
+                        ? 'Финальная реплика собеседника и завершение →'
+                        : 'Следующая реплика'}
+                    </span>
                     <ArrowRight className="w-4 h-4" />
                   </button>
                   <button
@@ -1349,6 +1391,11 @@ export const ScriptedDialogueTrainer: React.FC<ScriptedDialogueTrainerProps> = (
           </div>
 
           <div className="max-w-md space-y-2">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 text-xs font-black uppercase tracking-wider mb-1">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+              <span>Этап 4/5 (Диалог) успешно зачтён!</span>
+            </div>
+
             <h3 className="text-xl sm:text-2xl font-black text-zinc-900 dark:text-zinc-100">
               Диалог успешно пройден!
             </h3>
@@ -1372,17 +1419,30 @@ export const ScriptedDialogueTrainer: React.FC<ScriptedDialogueTrainerProps> = (
             })()}
           </div>
 
-          {/* Кнопка смены роли (Сыграть за другую сторону) */}
-          <div className="max-w-sm w-full space-y-2 pt-2">
+          {/* Главные кнопки действий */}
+          <div className="max-w-sm w-full space-y-2.5 pt-2">
+            {/* ГЛАВНАЯ КНОПКА: Переход к 5 этапу (Звонок) */}
+            {onGoToNextTab && (
+              <button
+                type="button"
+                onClick={onGoToNextTab}
+                className="w-full py-3.5 px-6 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold text-sm sm:text-base flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/25 transition active:scale-95 cursor-pointer"
+              >
+                <CheckCircle2 className="w-5 h-5 text-emerald-200" />
+                <span>Перейти к этапу 5: Звонок →</span>
+              </button>
+            )}
+
+            {/* Дополнительные действия */}
             <button
               type="button"
               onClick={() => {
                 const otherSide = userRoleSide === 'a' ? 'b' : 'a';
                 startRoleplay(otherSide);
               }}
-              className="w-full py-3 px-4 rounded-2xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold text-sm flex items-center justify-center gap-2 shadow-md transition active:scale-95 cursor-pointer"
+              className="w-full py-2.5 px-4 rounded-xl border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-200 font-semibold text-xs flex items-center justify-center gap-2 transition active:scale-95 cursor-pointer"
             >
-              <RefreshCw className="w-4 h-4" />
+              <RefreshCw className="w-3.5 h-3.5" />
               <span>
                 Сыграть за другую сторону ({userRoleSide === 'a' ? characterB.nameRu : characterA.nameRu})
               </span>
@@ -1391,20 +1451,10 @@ export const ScriptedDialogueTrainer: React.FC<ScriptedDialogueTrainerProps> = (
             <button
               type="button"
               onClick={() => setMode('listen')}
-              className="w-full py-2.5 px-4 rounded-2xl border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 font-semibold text-xs transition cursor-pointer"
+              className="w-full py-2 px-4 rounded-xl text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 text-xs font-medium transition cursor-pointer"
             >
-              Вернуться к прослушиванию диалога
+              Вернуться к тексту диалога
             </button>
-
-            {onGoToNextTab && (
-              <button
-                type="button"
-                onClick={onGoToNextTab}
-                className="w-full py-2.5 px-4 rounded-2xl bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 font-semibold text-xs hover:bg-blue-100 transition cursor-pointer"
-              >
-                Перейти к следующему этапу (Звонок) →
-              </button>
-            )}
           </div>
         </div>
       )}

@@ -529,6 +529,14 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
       }
       logChatSession(updatedHistory, data.feedback);
 
+      if (aiMsg.isCompleted || updatedHistory.filter((m) => m.role === 'user').length >= TARGET_TURNS) {
+        const updated = markLessonTabCompleted(lesson.id, 'chat');
+        if (onUpdateProfile) onUpdateProfile(updated);
+        try {
+          confetti({ particleCount: 75, spread: 70, origin: { y: 0.6 } });
+        } catch {}
+      }
+
       // Audio-First: голос собеседника звучит СРАЗУ, без блокировки экрана!
       speakHebrew(aiMsg.hebrew, { rate: userProfile.speechRate || 0.7 });
     } catch (err) {
@@ -1069,7 +1077,11 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
                 {onGoToPhone && (
                   <button
                     type="button"
-                    onClick={onGoToPhone}
+                    onClick={() => {
+                      const updated = markLessonTabCompleted(lesson.id, 'chat');
+                      if (onUpdateProfile) onUpdateProfile(updated);
+                      onGoToPhone();
+                    }}
                     className="flex-1 sm:flex-initial px-3.5 py-2 rounded-xl font-bold text-xs bg-purple-600 hover:bg-purple-700 text-white shadow-xs transition active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer"
                   >
                     <span>{userProfile.ulpanMode ? 'לְשִׂיחַת טֶלֶפוֹן 📞' : 'Звонок (этап 5/5) 📞 ➡️'}</span>

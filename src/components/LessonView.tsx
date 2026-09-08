@@ -22,7 +22,7 @@ import { LessonAiChat } from './LessonAiChat';
 import { ScriptedDialogueTrainer } from './ScriptedDialogueTrainer';
 import { PhoneCallSimulator } from './PhoneCallSimulator';
 import { getLessonById, LESSONS_CATALOG } from '@/data/lessonsData';
-import { loadUserProfile } from '@/lib/storage';
+import { loadUserProfile, getFirstIncompleteLessonTab } from '@/lib/storage';
 
 export type LessonTab = 'theory' | 'vocab' | 'exercises' | 'chat' | 'phone';
 
@@ -39,7 +39,7 @@ interface LessonViewProps {
 
 export const LessonView: React.FC<LessonViewProps> = ({
   lessonId,
-  initialTab = 'theory',
+  initialTab,
   userProfile,
   onBack,
   onSelectLesson,
@@ -47,14 +47,18 @@ export const LessonView: React.FC<LessonViewProps> = ({
   onUpdateProfile,
   onOpenFeedback,
 }) => {
-  const [activeTab, setActiveTab] = useState<LessonTab>(initialTab);
+  const [activeTab, setActiveTab] = useState<LessonTab>(() => {
+    return initialTab || getFirstIncompleteLessonTab(lessonId, userProfile);
+  });
   const [dialogueSubTab, setDialogueSubTab] = useState<'scripted' | 'free_ai'>('scripted');
 
   useEffect(() => {
     if (initialTab) {
       setActiveTab(initialTab);
+    } else {
+      setActiveTab(getFirstIncompleteLessonTab(lessonId, userProfile));
     }
-  }, [initialTab]);
+  }, [initialTab, lessonId]);
 
   const lesson = getLessonById(lessonId);
 

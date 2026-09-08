@@ -21,10 +21,16 @@ interface DialogueEvaluateRequestBody {
 }
 
 export interface DetectedGrammarError {
-  type: 'gender_masculine_on_feminine' | 'gender_feminine_on_masculine' | 'singular_on_plural';
+  type:
+    | 'gender_masculine_on_feminine'
+    | 'gender_feminine_on_masculine'
+    | 'singular_on_plural'
+    | 'word_order_adjective_before_noun'
+    | 'word_order_negation_after_verb'
+    | 'word_order_question_word_at_end';
   wrongPhrase: string;
   correctPhrase: string;
-  noun: string;
+  noun?: string;
   explanationRu: string;
 }
 
@@ -152,6 +158,102 @@ export function detectHebrewGrammarErrors(userText: string): DetectedGrammarErro
   return errors;
 }
 
+const COMMON_ADJECTIVES = [
+  'גדול', 'גדולה', 'גדולים', 'גדולות',
+  'קטן', 'קטנה', 'קטנים', 'קטנות',
+  'טוב', 'טובה', 'טובים', 'טובות',
+  'רע', 'רעה', 'רעים', 'רעות',
+  'יפה', 'יפים', 'יפות',
+  'חדש', 'חדשה', 'חדשים', 'חדשות',
+  'ישן', 'ישנה', 'ישנים', 'ישנות',
+  'חם', 'חמה', 'חמים', 'חמות',
+  'קר', 'קרה', 'קרים', 'קרות',
+  'טעים', 'טעימה', 'טעימים', 'טעימות',
+  'נעים', 'נעימה', 'נעימים', 'נעימות',
+  'נחמד', 'נחמדה', 'נחמדים', 'נחמדות',
+  'מעניין', 'מעניינת', 'מעניינים', 'מעניינות',
+  'מצוין', 'מצוינת', 'מצוינים', 'מצוינות',
+  'חכם', 'חכמה', 'חכמים', 'חכמות',
+];
+
+const COMMON_NOUNS_LIST = [
+  'בית', 'ספר', 'ילד', 'ילדה', 'איש', 'אישה', 'משפחה', 'תמונה', 'יום', 'שיעור',
+  'קפה', 'תה', 'דירה', 'עיר', 'שפה', 'כיתה', 'עבודה', 'חבר', 'חברה', 'עוגה',
+  'מכונית', 'שאלה', 'חנות', 'אבא', 'אמא', 'אח', 'אחות', 'בן', 'בת', 'סבא',
+  'סבתא', 'הורים', 'ילדים', 'אנשים', 'מים', 'אוכל', 'בוקר', 'ערב', 'לילה',
+];
+
+const COMMON_VERBS_LIST = [
+  'רוצה', 'רוצים', 'רוצות',
+  'מדבר', 'מדברת', 'מדברים', 'מדברות',
+  'אוהב', 'אוהבת', 'אוהבים', 'אוהבות',
+  'לומד', 'לומדת', 'לומדים', 'לומדות',
+  'גר', 'גרה', 'גרים', 'גרות',
+  'עובד', 'עובדת', 'עובדים', 'עובדות',
+  'מבין', 'מבינה', 'מבינים', 'מבינות',
+  'יודע', 'יודעת', 'יודעים', 'יודעות',
+  'שותה', 'שותים', 'שותות',
+  'אוכל', 'אוכלת', 'אוכלים', 'אוכלות',
+  'קורא', 'קוראת', 'קוראים', 'קוראות',
+];
+
+const QUESTION_WORDS_LIST = [
+  'איפה', 'איפוא', 'מה', 'מי', 'מתי', 'למה', 'מדוע', 'כמה', 'איך',
+];
+
+/**
+ * Проверка ошибок порядка слов (סֵדֶר הַמִּילִּים):
+ * 1. Прилагательное перед существительным (калька с русского/английского: "טוב ילד", "גדולה משפחה")
+ * 2. Отрицание "לא" после глагола ("רוצה לא")
+ * 3. Вопросительное слово в конце фразы ("גר איפה")
+ */
+export function detectHebrewWordOrderErrors(userText: string): DetectedGrammarError[] {
+  const errors: DetectedGrammarError[] = [];
+  const clean = stripNikkud(userText).toLowerCase().replace(/[.,!?;:"'״׳]/g, ' ').replace(/\s+/g, ' ').trim();
+  if (!clean) return errors;
+
+  // 1. Прилагательное перед существительным: "גדול בית", "יפה תמונה", "טוב ילד"
+  const adjRegex = new RegExp(`(?:^|\\s)(${COMMON_ADJECTIVES.join('|')})\\s+(?:הַ?)?(${COMMON_NOUNS_LIST.join('|')})(?=$|[\\s,.:;?!])`, 'gi');
+  let match: RegExpExecArray | null;
+  while ((match = adjRegex.exec(clean)) !== null) {
+    const rawAdj = match[1];
+    const rawNoun = match[2];
+    errors.push({
+      type: 'word_order_adjective_before_noun',
+      wrongPhrase: `${rawAdj} ${rawNoun}`,
+      correctPhrase: `${rawNoun} ${rawAdj}`,
+      explanationRu: `В иврите прилагательное ВСЕГДА ставится ПОСЛЕ существительного (сначала предмет, потом его признак): правильно «${rawNoun} ${rawAdj}», а не «${rawAdj} ${rawNoun}».`,
+    });
+  }
+
+  // 2. Отрицание לא после глагола: например "רוצה לא", "מבין לא", "גר לא"
+  const negRegex = new RegExp(`(?:^|\\s)(${COMMON_VERBS_LIST.join('|')})\\s+לא(?=$|[\\s,.:;?!])`, 'gi');
+  while ((match = negRegex.exec(clean)) !== null) {
+    const rawVerb = match[1];
+    errors.push({
+      type: 'word_order_negation_after_verb',
+      wrongPhrase: `${rawVerb} לא`,
+      correctPhrase: `לא ${rawVerb}`,
+      explanationRu: `Частица отрицания «לֹא» в иврите ВСЕГДА ставится ПЕРЕД глаголом: правильно «לא ${rawVerb}», а не «${rawVerb} לא».`,
+    });
+  }
+
+  // 3. Вопросительное слово в конце фразы: например "גר איפה", "רוצה מה"
+  const questRegex = new RegExp(`(?:^|\\s)(${COMMON_VERBS_LIST.join('|')})\\s+(${QUESTION_WORDS_LIST.join('|')})(?=$|[\\s,.:;?!])`, 'gi');
+  while ((match = questRegex.exec(clean)) !== null) {
+    const rawVerb = match[1];
+    const rawQ = match[2];
+    errors.push({
+      type: 'word_order_question_word_at_end',
+      wrongPhrase: `${rawVerb} ${rawQ}`,
+      correctPhrase: `${rawQ} ${rawVerb}`,
+      explanationRu: `Вопросительное слово «${rawQ}» в иврите ВСЕГДА ставится в НАЧАЛЕ предложения: «${rawQ} ...?», а не в конце.`,
+    });
+  }
+
+  return errors;
+}
+
 /**
  * Локальная эвристическая оценка семантического соответствия
  * используется как быстрый фолбэк при недоступности внешнего LLM API
@@ -165,17 +267,20 @@ function evaluateHeuristic(
   const cleanUser = stripNikkud(userText).toLowerCase().replace(/[.,!?;:"'״׳]/g, ' ').trim();
   const cleanRef = stripNikkud(referenceHebrew).toLowerCase().replace(/[.,!?;:"'״׳]/g, ' ').trim();
 
-  // 0. Строгая проверка базовой грамматики (согласование рода זֶה / זֹאת / אֵלֶּה)
+  // 0. Строгая проверка базовой грамматики и порядка слов
   const grammarErrors = detectHebrewGrammarErrors(userText);
-  if (grammarErrors.length > 0) {
-    const errorExplanations = grammarErrors.map((e) => e.explanationRu).join(' ');
+  const wordOrderErrors = detectHebrewWordOrderErrors(userText);
+  const allDetectedErrors = [...grammarErrors, ...wordOrderErrors];
+
+  if (allDetectedErrors.length > 0) {
+    const errorExplanations = allDetectedErrors.map((e) => e.explanationRu).join(' ');
     return {
       isCorrect: true,
-      score: Math.min(70, Math.max(55, 75 - grammarErrors.length * 5)),
+      score: Math.min(70, Math.max(55, 75 - allDetectedErrors.length * 5)),
       assessment: 'good',
-      feedbackRu: `Смысл ответа понятен, но допущена грамматическая ошибка в согласовании рода! ${errorExplanations}`,
+      feedbackRu: `Смысл ответа понятен, но есть ошибка в согласовании или порядке слов! ${errorExplanations}`,
       pronunciationScore: 82,
-      pronunciationFeedbackRu: 'Следите за правильными формами זֶה (м.р.), זֹאת (ж.р.) и אֵלֶּה (мн.ч.).',
+      pronunciationFeedbackRu: 'Обратите внимание на правильный порядок слов и согласование рода.',
       betterAlternative: referenceHebrew,
       userSpokenHebrew: userText,
     };
@@ -307,10 +412,13 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 3. Предварительный анализ грамматических ошибок согласования (זֶה / זֹאת / אֵלֶּה)
-    const detectedGrammarErrors = detectHebrewGrammarErrors(trimmedUser);
+    // 3. Предварительный анализ грамматических ошибок согласования (זֶה / זֹאת / אֵלֶּה) и порядка слов
+    const detectedGrammarErrors = [
+      ...detectHebrewGrammarErrors(trimmedUser),
+      ...detectHebrewWordOrderErrors(trimmedUser),
+    ];
     const grammarWarningText = detectedGrammarErrors.length > 0
-      ? `\n\nВНИМАНИЕ! В ответе ученика обнаружена ошибка согласования рода/числа:\n${detectedGrammarErrors.map((e) => `- ${e.explanationRu}`).join('\n')}\nТЫ ОБЯЗАН: снизить оценку (score НЕ ВЫШЕ 70, assessment = "good", НИ В КОЕМ СЛУЧАЕ НЕ "perfect") и обязательно подробно объяснить ученику это правило в feedbackRu!`
+      ? `\n\nВНИМАНИЕ! В ответе ученика обнаружена ошибка (согласование рода/числа или порядок слов):\n${detectedGrammarErrors.map((e) => `- ${e.explanationRu}`).join('\n')}\nТЫ ОБЯЗАН: снизить оценку (score НЕ ВЫШЕ 70, assessment = "good", НИ В КОЕМ СЛУЧАЕ НЕ "perfect") и обязательно подробно объяснить ученику это правило в feedbackRu!`
       : '';
 
     // 4. Быстрая проверка: если совпадение очевидное и нет грамматических ошибок, не тратим квоту LLM
@@ -328,8 +436,9 @@ export async function POST(req: NextRequest) {
 Ученик выполняет задание в ролевом диалоге и отвечает ГОЛОСОМ.
 ТВОЯ ЗАДАЧА:
 1. Оценить ответ ученика ПО СМЫСЛУ, а НЕ ПО БУКВАЛЬНОМУ СОВПАДЕНИЮ СЛОВ.
-2. СТРОГО ПРОВЕРИТЬ ГРАММАТИЧЕСКИЙ РОД И СОГЛАСОВАНИЕ СЛОВ (особенно указательные местоимения זֶה / זֹאת / אֵלֶּה).
-3. Оценить ЧЁТКОСТЬ ПРОИЗНОШЕНИЯ И ФОНЕТИКУ (особенно окончания слов, буквы софиты, выдох ה).
+2. СТРОГО СЛЕДИТЬ ЗА ПРАВИЛЬНЫМ ПОРЯДКОМ СЛОВ (סֵדֶר מִילִּים) В ИВРИТЕ (особенно: прилагательное ПОСЛЕ существительного!).
+3. СТРОГО ПРОВЕРИТЬ ГРАММАТИЧЕСКИЙ РОД И СОГЛАСОВАНИЕ СЛОВ (особенно указательные местоимения זֶה / זֹאת / אֵלֶּה).
+4. Оценить ЧЁТКОСТЬ ПРОИЗНОШЕНИЯ И ФОНЕТИКУ (особенно окончания слов, буквы софиты, выдох ה).
 
 КОНТЕКСТ РЕПЛИКИ:
 - Урок: №${lessonNumber} (Уровень ${level.toUpperCase()})
@@ -342,7 +451,22 @@ export async function POST(req: NextRequest) {
 - ЧТО СКАЗАЛ УЧЕНИК: "${trimmedUser}"${grammarWarningText}
 
 ГЛАВНЫЕ ПРАВИЛА ПРОВЕРКИ:
-1. ГРАММАТИКА РОДА И ЧИСЛА (КРИТИЧЕСКИ ВАЖНО):
+1. ПОРЯДОК СЛОВ (סֵדֶר הַמִּילִּים) В ИВРИТЕ (КРИТИЧЕСКИ ВАЖНО):
+- В иврите прилагательное ВСЕГДА следует ПОСЛЕ существительного (сначала предмет, а потом его описание):
+  * ПРАВИЛЬНО: סֵפֶר טוֹב (книга хорошая), מִשְׁפָּחָה גְּדוֹלָה (семья большая), יֶלֶד טוֹב, דִּירָה יָפָה, קָפֶה חַם, יוֹם נָעִים.
+  * ГРУБАЯ ОШИБКА: טוֹב סֵפֶר, גְּדוֹלָה מִשְׁפָּחָה, חַם קָפֶה, יָפָה דִּירָה (прямой перенос русского/английского порядка слов).
+- Отрицание «לֹא» ВСЕГДА ставится ПЕРЕД глаголом или отрицаемым словом:
+  * ПРАВИЛЬНО: אֲנִי לֹא רוֹצֶה, הוּא לֹא גָּר כָּאן.
+  * ГРУБАЯ ОШИБКА: אֲנִי רוֹצֶה לֹא.
+- Вопросительные слова (אֵיפֹה, מָה, מִי, מָתַי, לָמָּה, כַּמָּה) ВСЕГДА ставятся в НАЧАЛЕ предложения/вопроса:
+  * ПРАВИЛЬНО: אֵיפֹה אַתָּה גָּר?
+  * ГРУБАЯ ОШИБКА: אַתָּה גָּר אֵיפֹה?
+- ЕСЛИ УЧЕНИК НАРУШИЛ ПОРЯДОК СЛОВ:
+  * Оценка score НЕ МОЖЕТ быть выше 70!
+  * Поле "assessment" НЕ МОЖЕТ быть "perfect" (только "good" если смысл понятен, или "incorrect").
+  * В "feedbackRu" ОБЯЗАТЕЛЬНО детально объясни правило порядка слов на иврите!
+
+2. ГРАММАТИКА РОДА И ЧИСЛА (КРИТИЧЕСКИ ВАЖНО):
 - Указательное местоимение «זֶה» (зэ) используется ТОЛЬКО со словами мужского рода (זכר): זֶה אַבָּא, זֶה אָח, זֶה בַּיִת, זֶה סֵפֶר, זֶה בֵּית סֵפֶר.
 - Указательное местоимение «זֹאת» (зот) или «זוֹ» (зо) используется ТОЛЬКО со словами женского рода (נקבה): זֹאת אִמָּא, זֹאת מִשְׁפָּחָה, זֹאת תְּמוּנָה, זֹאת אָחוֹת, זֹאת דִּירָה.
 - Для множественного числа («это / эти») используется ТОЛЬКО «אֵלֶּה» (э́ле): אֵלֶּה הוֹרִים, אֵלֶּה יְלָדִים, אֵלֶּה אַחִים.
@@ -352,13 +476,13 @@ export async function POST(req: NextRequest) {
   * Поле "assessment" НЕ МОЖЕТ быть "perfect" (только "good" если общий смысл понятен, или "incorrect").
   * В "feedbackRu" ОБЯЗАТЕЛЬНО объясни ошибку рода простыми словами: какое слово какого рода и какое местоимение нужно использовать.
 
-2. СМЫСЛ:
-Ученик НЕ ОБЯЗАН повторять эталон слово в слово! Если ученик передал нужный смысл своими словами и правильно согласовал род — ответ ПРАВИЛЬНЫЙ (isCorrect = true, assessment = "perfect").
+3. СМЫСЛ:
+Ученик НЕ ОБЯЗАН повторять эталон слово в слово! Если ученик передал нужный смысл своими словами и правильно согласовал род и порядок слов — ответ ПРАВИЛЬНЫЙ (isCorrect = true, assessment = "perfect").
 Например:
 - Вместо "אֲנִי רוֹצֶה קָפֶה" ученик сказал "אֶפְשָׁר קָפֶה בְּבַקָּשָׁה" -> ПРАВИЛЬНО (isCorrect: true, assessment: "perfect").
 - Если смысл совсем другой или бред — isCorrect = false, assessment = "incorrect".
 
-3. ФОНЕТИКА И ОКОНЧАНИЯ СЛОВ:
+4. ФОНЕТИКА И ОКОНЧАНИЯ СЛОВ:
 - "pronunciationScore": число от 0 до 100.
 - "pronunciationFeedbackRu": Конкретная практическая рекомендация на русском языке по произношению:
   * Проверь окончания слов: буквы софиты (ם, ך), выдох на букве ה на конце, окончание ת женского рода.
@@ -369,7 +493,7 @@ export async function POST(req: NextRequest) {
   "isCorrect": true,
   "score": 90,
   "assessment": "perfect",
-  "feedbackRu": "Краткий комментарий по смыслу и грамматике ответа.",
+  "feedbackRu": "Краткий комментарий по смыслу, грамматике и порядку слов ответа.",
   "pronunciationScore": 88,
   "pronunciationFeedbackRu": "Конкретная рекомендация по фонетике и концовкам букв/звуков.",
   "betterAlternative": "Естественная альтернатива с огласовками (если уместно)"
@@ -377,7 +501,7 @@ export async function POST(req: NextRequest) {
 
     const applyGrammarSafetyEnforcement = (resData: DialogueEvaluationResult): DialogueEvaluationResult => {
       if (detectedGrammarErrors.length > 0) {
-        // Принудительно ограничиваем оценку и статус при наличии грамматических ошибок
+        // Принудительно ограничиваем оценку и статус при наличии грамматических ошибок или нарушений порядка слов
         if (resData.score > 70) {
           resData.score = 70;
         }
@@ -386,7 +510,11 @@ export async function POST(req: NextRequest) {
         }
         const errorSummary = detectedGrammarErrors.map((e) => e.explanationRu).join(' ');
         const feedbackLower = resData.feedbackRu.toLowerCase();
-        const hasGrammarMention =
+        const hasRuleMention =
+          feedbackLower.includes('порядок') ||
+          feedbackLower.includes('после') ||
+          feedbackLower.includes('прилагательн') ||
+          feedbackLower.includes('отрицани') ||
           feedbackLower.includes('род') ||
           feedbackLower.includes('זֶה') ||
           feedbackLower.includes('זֹאת') ||
@@ -395,8 +523,8 @@ export async function POST(req: NextRequest) {
           feedbackLower.includes('אלה') ||
           feedbackLower.includes('местоимен');
 
-        if (!hasGrammarMention) {
-          resData.feedbackRu = `Смысл понятен, но обратите внимание на грамматику рода: ${errorSummary} ${resData.feedbackRu}`.trim();
+        if (!hasRuleMention) {
+          resData.feedbackRu = `Смысл понятен, но обратите внимание на ошибки в речи: ${errorSummary} ${resData.feedbackRu}`.trim();
         }
       }
       return resData;
