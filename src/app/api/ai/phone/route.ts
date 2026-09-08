@@ -4,7 +4,8 @@ import { checkRateLimit } from '@/lib/rateLimit';
 import { stripNikkud } from '@/lib/transcription';
 import { IS_EARLY_ACCESS_FREE, FREE_LESSONS_LIMIT } from '@/lib/config';
 import { sanitizeRussianTranslation } from '@/app/api/ai/chat/route';
-import { cleanGrammarJargon } from '@/data/phoneScenarios';
+import { cleanGrammarJargon, BESPOKE_PHONE_SCENARIOS, getLessonPhoneScenario } from '@/data/phoneScenarios';
+import { DETAILED_LESSONS } from '@/data/lessonsData';
 
 interface PhoneRequestBody {
   messages: Array<{ role: 'user' | 'assistant'; content: string; hebrew?: string }>;
@@ -12,16 +13,18 @@ interface PhoneRequestBody {
   level: 'alef' | 'bet';
   userGender: 'male' | 'female';
   callType: 'incoming' | 'outgoing';
-  callerName: string;
-  callerNameRu: string;
-  callerRole: string;
-  situationSummary: string;
+  callerName?: string;
+  callerNameRu?: string;
+  callerRole?: string;
+  situationSummary?: string;
   callerObjective?: string;
   studentObjective?: string;
   completionCondition?: string;
   goals?: string[];
   systemPromptAddition?: string;
   targetTurns?: number;
+  vocabularyHints?: string[];
+  knownWords?: string[];
   provider?: 'groq' | 'gemini';
   apiKey?: string;
 }
@@ -31,6 +34,25 @@ function sanitizeTranscription(text: string): string {
   let res = text.trim();
   res = res.replace(/(^|[\\s"«(—])у-([а-яёА-ЯЁa-zA-Z])/gi, '$1вэ-$2');
   return res;
+}
+
+/**
+ * Единая прогрессивная шкала грамматических рамок для всех 100 уроков ульпана
+ */
+function getGrammarBoundary(lessonNumber: number): string {
+  if (lessonNumber <= 35) {
+    return `СТРОЖАЙШИЙ ГРАММАТИЧЕСКИЙ ЗАПРЕТ (Урок ${lessonNumber} начального уровня Алеф):
+- КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО использовать прошедшее время (זְמַן עָבָר: «רָאִיתִי», «הָיָה», «שָׁלַחְתָּ», «עָשִׂיתָ» и любые другие глаголы в прошедшем времени)! Ученик ещё НЕ изучал прошедшее время!
+- КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО будущее время (זְמַן עָתִיד)!
+- РАЗРЕШЕНО ТОЛЬКО: настоящее время (הוֹוֶה: «רוֹצֶה», «גָּר», «מְדַבֵּר», «יוֹרֵד» и т.п.) и простые номинативные фразы («זֶה / זֹאת», «יֵשׁ / אֵין», «שֶׁל», «אֵיפֹה», «מָה», «מִי»).`;
+  }
+  if (lessonNumber <= 50) {
+    return `ГРАММАТИЧЕСКИЕ РАМКИ (Урок ${lessonNumber} уровня Алеф):
+- Разрешены: настоящее время (הוֹוֶה) и прошедшее время (זְמַן עָבָר).
+- КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО будущее время (זְמַן עָתִיד)! Будущее время изучается только на уровне Бет.`;
+  }
+  return `ГРАММАТИЧЕСКИЕ РАМКИ (Урок ${lessonNumber} уровня Бет):
+- Свободное владение разговорным ивритом: настоящее, прошедшее и будущее время.`;
 }
 
 export async function POST(req: NextRequest) {
@@ -51,7 +73,7 @@ export async function POST(req: NextRequest) {
       completionCondition = '',
       goals = [],
       systemPromptAddition = '',
-      targetTurns = 2,
+      targetTurns = 3,
       provider = 'groq',
       apiKey,
     } = body;
@@ -82,9 +104,26 @@ export async function POST(req: NextRequest) {
     const geminiKey = (apiKey || process.env.GEMINI_API_KEY || '').trim();
 
     const isFemale = userGender === 'female';
-    const isIncoming = callType === 'incoming';
 
-    // Очистка сообщений и подсчет раундов пользователя
+    // 3. Серверный источник истины для сценария (защита от устаревшего кэша браузера)
+    const serverLesson = DETAILED_LESSONS[lessonNumber];
+    const serverScenario = serverLesson
+      ? getLessonPhoneScenario(serverLesson, userGender)
+      : BESPOKE_PHONE_SCENARIOS[lessonNumber];
+
+    const finalTargetTurns = serverScenario?.targetTurns || targetTurns || 3;
+    const finalGoals = (serverScenario?.goals && serverScenario.goals.length > 0) ? serverScenario.goals : goals;
+    const finalSystemPromptAddition = serverScenario?.systemPromptAddition || systemPromptAddition || '';
+    const finalCallerName = serverScenario?.callerName || callerName;
+    const finalCallerNameRu = serverScenario?.callerNameRu || callerNameRu;
+    const finalCallerRole = serverScenario?.callerRole || callerRole;
+    const finalSituationSummary = serverScenario?.situationSummary || situationSummary;
+    const finalCallerObj = serverScenario?.callerObjective || callerObjective;
+    const finalStudentObj = serverScenario?.studentObjective || studentObjective;
+    const finalCondition = serverScenario?.completionCondition || completionCondition;
+    const isIncoming = (serverScenario?.callType || callType) === 'incoming';
+
+    // 4. Очистка сообщений и подсчет раундов пользователя
     const sanitizedMessages = (messages || []).map((m) => {
       let content = m.content || m.hebrew || '';
       return { role: m.role, content: content.trim() };
@@ -95,7 +134,7 @@ export async function POST(req: NextRequest) {
     const lastUserText = (lastUserMsg?.content || '').toLowerCase();
     const strippedLastUser = stripNikkud(lastUserText).toLowerCase();
 
-    // Проверка прощания или благодарности
+    // Проверка явного прощания от самого ученика
     const isUserSayingGoodbye =
       strippedLastUser.includes('להתראות') ||
       strippedLastUser.includes('ביי') ||
@@ -105,13 +144,23 @@ export async function POST(req: NextRequest) {
       strippedLastUser.includes('שלום ולהתראות');
 
     // Определение финального раунда
-    const isTurnLimitReached = userTurnsCount >= targetTurns;
+    const isTurnLimitReached = userTurnsCount >= finalTargetTurns;
     const shouldForceFinalTurn = isUserSayingGoodbye || isTurnLimitReached;
 
-    const cleanSituation = cleanGrammarJargon(situationSummary);
-    const cleanCallerObj = cleanGrammarJargon(callerObjective);
-    const cleanStudentObj = cleanGrammarJargon(studentObjective);
-    const cleanCondition = cleanGrammarJargon(completionCondition);
+    const cleanSituation = cleanGrammarJargon(finalSituationSummary);
+    const cleanCallerObjective = cleanGrammarJargon(finalCallerObj);
+    const cleanStudentObjective = cleanGrammarJargon(finalStudentObj);
+    const cleanCompletionCondition = cleanGrammarJargon(finalCondition);
+
+    // Грамматические рамки для урока (1-100)
+    const grammarGuidance = getGrammarBoundary(lessonNumber);
+
+    // Компактный опорный словарь (до 15 ключевых слов/фраз, не перегружает контекст)
+    const situationHints = (serverScenario?.vocabularyHints || body.vocabularyHints || (serverLesson?.vocabulary || []).slice(0, 8).map((w) => w.hebrew)).slice(0, 10);
+    const knownWordsSlice = (Array.isArray(body.knownWords) ? body.knownWords : []).slice(0, 10);
+    const vocabGuidance = `ОПОРНЫЙ СЛОВАРЬ (используй эти слова и помогай ученику их применить):
+- Ключевые слова ситуации: ${situationHints.join(', ')}
+${knownWordsSlice.length > 0 ? `- Знакомые слова ученика из пройденных уроков: ${knownWordsSlice.join(', ')}` : ''}`;
 
     const levelGuidance = level === 'alef'
       ? `ОГРАНИЧЕНИЕ УРОВНЯ АЛЕФ (Alef):
@@ -126,60 +175,65 @@ export async function POST(req: NextRequest) {
 
     const roleGuidance = isIncoming
       ? `ТЕЛЕФОННЫЙ ЗВОНОК: ВХОДЯЩИЙ ДЛЯ УЧЕНИКА (ТЫ ЗВОНИШЬ УЧЕНИКУ)
-- ТЫ — ${callerNameRu} (${callerRole}).
-- ТВОЯ ЦЕЛЬ ЗВОНКА: "${cleanCallerObj || 'Обсудить тему с учеником'}".
-- ЗАДАЧА УЧЕНИКА: "${cleanStudentObj || 'Поддержать беседу и ответить на вопросы'}".
-- ГЛАВНАЯ ЦЕЛЬ: ВЕСТИ ПОЛНОЦЕННЫЙ, ЖИВОЙ ТЕЛЕФОННЫЙ ДИАЛОГ (${targetTurns} РАУНДА)! ЭТО НЕ МОНОЛОГ И НЕ СБРОС ТРУБКИ!
+- ТЫ — ${finalCallerNameRu} (${finalCallerRole}).
+- ТВОЯ ЦЕЛЬ ЗВОНКА: "${cleanCallerObjective || 'Обсудить тему с учеником'}".
+- ЗАДАЧА УЧЕНИКА: "${cleanStudentObjective || 'Поддержать беседу и ответить на вопросы'}".
+- ГЛАВНАЯ ЦЕЛЬ: ВЕСТИ ПОЛНОЦЕННЫЙ, ЖИВОЙ ТЕЛЕФОННЫЙ ДИАЛОГ (${finalTargetTurns} РАУНДА)! ЭТО НЕ МОНОЛОГ И НЕ СБРОС ТРУБКИ!
 - ПРАВИЛА ВЕДЕНИЯ ДИАЛОГА:
   1. ТЫ — НАСТОЯЩИЙ ЖИВОЙ ЧЕЛОВЕК (ДРУГ, СОСЕД, КОЛЛЕГА, ВОДИТЕЛЬ, КУРЬЕР), А НЕ УЧИТЕЛЬ!
   2. СТРОЖАЙШЕ ЗАПРЕЩЕНО СПРАШИВАТЬ: «Как сказать...?», «איך אומרים...?», «Что значит...?» ИЛИ ПРОВОДИТЬ ОПРОСЫ ПО ГРАММАТИКЕ! ТЫ НЕ ЭКЗАМЕНАТОР!
-  3. В ХОДЕ ДИАЛОГА (раунды до ${targetTurns}):
+  3. В ХОДЕ ДИАЛОГА (раунды до ${finalTargetTurns}):
      * Коротко и тепло отреагируй на реплику ученика (например: «אֵיזֶה יֹפִי!», «מְעֻלֶּה!», «יוֹפִי!», «הַבַּנְתִּי!»).
      * ЗАДАЙ СЛЕДУЮЩИЙ ДРУЖЕСКИЙ НАВОДЯЩИЙ ВОПРОС по ситуации и задачам диалога! Помогай ученику раскрыть тему и сказать новую фразу на иврите.
      * НЕ ВЕШАЙ ТРУБКУ РАНЬШЕ ВРЕМЕНИ! Обязательно установи "isCompleted": false, "shouldHangUp": false.
-  4. ФИНАЛЬНЫЙ РАУНД (когда раунд >= ${targetTurns} или если ученик САМ явно прощается «ביי / להתראות»):
+  4. ФИНАЛЬНЫЙ РАУНД (когда раунд >= ${finalTargetTurns} или если ученик САМ явно прощается «ביי / להתראות»):
      * Тепло поблагодари, передай привет или пожелай хорошего дня («אֵיזֶה כֵּיף! תּוֹדָה רַבָּה! נִתְרָאֶה בְּקָרוֹב, בַּיי!»).
      * ОБЯЗАТЕЛЬНО установи "isCompleted": true, "shouldHangUp": true и повесь трубку!`
       : `ТЕЛЕФОННЫЙ ЗВОНОК: ИСХОДЯЩИЙ ДЛЯ УЧЕНИКА (УЧЕНИК ЗВОНИТ ТЕБЕ)
-- ТЫ — ${callerNameRu} (${callerRole}), принимающий звонок организации/сервиса.
-- ТВОЯ РОЛЬ: "${cleanCallerObj || 'Принять звонок и помочь ученику'}".
-- ЗАДАЧА УЧЕНИКА: "${cleanStudentObj || 'Сделать заказ или задать вопрос'}".
-- ГЛАВНАЯ ЦЕЛЬ: ВЕСТИ ПОЛНОЦЕННЫЙ ЖИВОЙ ДИАЛОГ (${targetTurns} РАУНДА)!
+- ТЫ — ${finalCallerNameRu} (${finalCallerRole}), принимающий звонок организации/сервиса.
+- ТВОЯ РОЛЬ: "${cleanCallerObjective || 'Принять звонок и помочь ученику'}".
+- ЗАДАЧА УЧЕНИКА: "${cleanStudentObjective || 'Сделать заказ или задать вопрос'}".
+- ГЛАВНАЯ ЦЕЛЬ: ВЕСТИ ПОЛНОЦЕННЫЙ ЖИВОЙ ДИАЛОГ (${finalTargetTurns} РАУНДА)!
 - ПРАВИЛА ВЕДЕНИЯ ДИАЛОГА:
   1. ТЫ — НАСТОЯЩИЙ ЖИВОЙ ЧЕЛОВЕК (БАРИСТА, АДМИНИСТРАТОР, ВРАЧ, СОТРУДНИК).
   2. СТРОЖАЙШЕ ЗАПРЕЩЕНО СПРАШИВАТЬ «איך אומרים» ИЛИ ТЕСТИРОВАТЬ УЧЕНИКА!
-  3. В ХОДЕ ДИАЛОГА (раунды до ${targetTurns}):
+  3. В ХОДЕ ДИАЛОГА (раунды до ${finalTargetTurns}):
      * Вежливо прими запрос ученика, подтверди и задай следующий логичный уточняющий наводящий вопрос (про размер, сахар/молоко, дату, время, детали).
      * НЕ ВЕШАЙ ТРУБКУ РАНЬШЕ ВРЕМЕНИ! Обязательно установи "isCompleted": false, "shouldHangUp": false.
-  4. ФИНАЛЬНЫЙ РАУНД (когда раунд >= ${targetTurns} или если ученик прощается):
+  4. ФИНАЛЬНЫЙ РАУНД (когда раунд >= ${finalTargetTurns} или если ученик прощается):
      * Подтверди договоренность («בְּסֵדֶר גָּמוּר, הַהַזְמָנָה מוּכָנָה! נִתְרָאֶה, בַּיי!»), установи "isCompleted": true, "shouldHangUp": true и заверши звонок!`;
 
     const systemPrompt = `ТЫ — ЖИВОЙ ПЕРСОНАЖ ТЕЛЕФОННОГО ЗВОНКА В ИЗРАИЛЕ.
-ИМЯ: ${callerName} (${callerNameRu}).
-РОЛЬ: ${callerRole}.
+ИМЯ: ${finalCallerName} (${finalCallerNameRu}).
+РОЛЬ: ${finalCallerRole}.
 СИТУАЦИЯ ЗВОНКА: ${cleanSituation}.
 ПОЛ СОБЕСЕДНИКА (УЧЕНИКА): ${isFemale ? 'Женский (נקבה)' : 'Мужской (זכר)'}. Обращайся к ученику строго в ${isFemale ? 'женском' : 'мужском'} роде!
-ТЕКУЩИЙ РАУНД: ${userTurnsCount} из ${targetTurns}.
+ТЕКУЩИЙ РАУНД: ${userTurnsCount} из ${finalTargetTurns}.
+
+${grammarGuidance}
+
+${vocabGuidance}
 
 ${roleGuidance}
 
-${goals && goals.length > 0 ? `ЗАДАЧИ РАЗГОВОРА ДЛЯ УЧЕНИКА (помогай ученику ответить на эти пункты в ходе диалога своими наводящими вопросами):\n${goals.map((g, i) => `${i + 1}. ${g}`).join('\n')}` : ''}
+${finalGoals && finalGoals.length > 0 ? `ЗАДАЧИ РАЗГОВОРА ДЛЯ УЧЕНИКА (помогай ученику ответить на эти пункты в ходе диалога своими наводящими вопросами):\n${finalGoals.map((g: string, i: number) => `${i + 1}. ${g}`).join('\n')}` : ''}
 
-${cleanCondition ? `УСЛОВИЕ УСПЕШНОГО ЗАВЕРШЕНИЯ ЗВОНКА: "${cleanCondition}".` : ''}
+${cleanCompletionCondition ? `УСЛОВИЕ УСПЕШНОГО ЗАВЕРШЕНИЯ ЗВОНКА: "${cleanCompletionCondition}".` : ''}
 
-${systemPromptAddition ? `ДОПОЛНИТЕЛЬНЫЕ ИНСТРУКЦИИ ДЛЯ СЦЕНАРИЯ:\n${systemPromptAddition}` : ''}
+${finalSystemPromptAddition ? `ДОПОЛНИТЕЛЬНЫЕ ИНСТРУКЦИИ ДЛЯ СЦЕНАРИЯ:\n${finalSystemPromptAddition}` : ''}
 
 ${levelGuidance}
 
 ${shouldForceFinalTurn ? `
 ВНИМАНИЕ: ЭТО ФИНАЛЬНАЯ РЕПЛИКА ЗВОНКА!
-- Достигнут лимит раундов (${targetTurns}) или ученик попрощался.
+- Достигнут лимит раундов (${finalTargetTurns}) или ученик попрощался.
 - Твоя реплика должна быть короткой теплой фразой прощания (1 предложение).
 - ЗАПРЕЩЕНО задавать какие-либо вопросы!
 - В JSON ОБЯЗАТЕЛЬНО установи: "isCompleted": true, "shouldHangUp": true!
 ` : `
-ВНИМАНИЕ: ДИАЛОГ ПРОДОЛЖАЕТСЯ (раунд ${userTurnsCount} из ${targetTurns})!
+ВНИМАНИЕ: ДИАЛОГ ПРОДОЛЖАЕТСЯ (раунд ${userTurnsCount} из ${finalTargetTurns})!
 - Коротко отреагируй на ответ ученика и ОБЯЗАТЕЛЬНО задай следующий простой наводящий вопрос по ситуации!
+- КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО прощаться или говорить «ביי»! Трубку вешать НЕЛЬЗЯ!
 - В JSON ОБЯЗАТЕЛЬНО установи: "isCompleted": false, "shouldHangUp": false!
 `}
 
@@ -218,13 +272,11 @@ ${shouldForceFinalTurn ? `
     if (groqKey) {
       const groqModels = [
         process.env.GROQ_MODEL,
-        'openai/gpt-oss-120b',
         'qwen/qwen3.8-27b',
-        'openai/gpt-oss-20b',
+        'openai/gpt-oss-120b',
         'qwen/qwen3.6-27b',
+        'openai/gpt-oss-20b',
         'groq/compound',
-        'llama-3.3-70b-versatile',
-        'llama-3.1-8b-instant',
       ].filter(Boolean) as string[];
       for (const groqModel of groqModels) {
         try {
@@ -359,17 +411,35 @@ ${shouldForceFinalTurn ? `
     }
 
     // 3. Fallback ответ, если внешние AI недоступны
-    const fallbackHebrew = isIncoming
-      ? 'מְעֻלֶּה, תּוֹדָה רַבָּה! לְהִתְרָאוֹת!'
-      : 'בְּסֵדֶר גָּמוּר, תּוֹדָה רַבָּה וְיוֹם טוֹב!';
+    const isDone = shouldForceFinalTurn;
+    const fallbackHebrew = isDone
+      ? (isIncoming ? 'מְעֻלֶּה, תּוֹדָה רַבָּה! לְהִתְרָאוֹת!' : 'בְּסֵדֶר גָּמוּר, תּוֹדָה רַבָּה וְיוֹם טוֹב!')
+      : (isIncoming ? 'אֵיזֶה יֹפִי! וּמָה עוֹד?' : 'בְּסֵדֶר גָּמוּר! וּמָה תִּרְצֶה עוֹד?');
 
     return NextResponse.json({
       hebrew: fallbackHebrew,
-      transcription: isIncoming ? 'мэцуйáн, тодá рабá! лэhитраóт!' : 'бэсэ́дер гамӯр, тодá рабá вэ-йом тов!',
-      translation: isIncoming ? 'Отлично, большое спасибо! До свидания!' : 'Все в порядке, большое спасибо и хорошего дня!',
-      isCompleted: true,
-      shouldHangUp: true,
-      suggestedReplies: [],
+      transcription: isDone
+        ? (isIncoming ? 'мэцуйáн, тодá рабá! лэhитраóт!' : 'бэсэ́дер гамӯр, тодá рабá вэ-йом тов!')
+        : (isIncoming ? 'э́йзе йóфи! у-ма од?' : 'бэсэ́дер гамӯр! у-ма тирцé од?'),
+      translation: isDone
+        ? (isIncoming ? 'Отлично, большое спасибо! До свидания!' : 'Все в порядке, большое спасибо и хорошего дня!')
+        : (isIncoming ? 'Как здорово! А что ещё?' : 'Все в порядке! А что вы хотите ещё?'),
+      isCompleted: isDone,
+      shouldHangUp: isDone,
+      suggestedReplies: isDone
+        ? []
+        : [
+            {
+              hebrew: 'הַכֹּל בְּסֵדֶר, תּוֹדָה.',
+              transcription: 'hакóль бэсэ́дер, тодá.',
+              translation: 'Всё в порядке, спасибо.',
+            },
+            {
+              hebrew: 'תּוֹדָה רַבָּה!',
+              transcription: 'тодá рабá!',
+              translation: 'Большое спасибо!',
+            },
+          ],
       engine: 'Автоответчик (Звонок)',
     });
   } catch (error: any) {

@@ -529,7 +529,9 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
           completionCondition: scenario.completionCondition,
           goals: scenario.goals,
           systemPromptAddition: scenario.systemPromptAddition,
-          targetTurns: scenario.targetTurns || 2,
+          targetTurns: scenario.targetTurns || 3,
+          vocabularyHints: scenario.vocabularyHints || [],
+          knownWords: knownWords.slice(0, 10),
           provider: userProfile.aiProvider,
           apiKey:
             userProfile.aiProvider === 'groq'
