@@ -476,9 +476,14 @@ export default function Home() {
 
   // Интеграция с Telegram WebApp BackButton
   useEffect(() => {
-    if (typeof window === 'undefined') return;
     const tg = (window as any).Telegram?.WebApp;
-    if (!tg?.BackButton) return;
+    const isBackButtonSupported = Boolean(
+      tg &&
+      typeof tg.isVersionAtLeast === 'function' &&
+      tg.isVersionAtLeast('6.1') &&
+      tg.BackButton
+    );
+    if (!isBackButtonSupported) return;
 
     const isModalOpen =
       isSettingsOpen ||

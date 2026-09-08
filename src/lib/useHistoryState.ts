@@ -42,7 +42,14 @@ export function useModalHistory(
       // Telegram WebApp BackButton
       const tg = (window as any).Telegram?.WebApp;
       let tgBackHandler: (() => void) | null = null;
-      if (tg?.BackButton) {
+      const isBackButtonSupported = Boolean(
+        tg &&
+        typeof tg.isVersionAtLeast === 'function' &&
+        tg.isVersionAtLeast('6.1') &&
+        tg.BackButton
+      );
+
+      if (isBackButtonSupported) {
         tg.BackButton.show();
         tgBackHandler = () => {
           window.history.back();
@@ -52,7 +59,7 @@ export function useModalHistory(
 
       return () => {
         window.removeEventListener('popstate', handlePopState);
-        if (tg?.BackButton && tgBackHandler) {
+        if (isBackButtonSupported && tgBackHandler) {
           tg.BackButton.offClick(tgBackHandler);
         }
       };

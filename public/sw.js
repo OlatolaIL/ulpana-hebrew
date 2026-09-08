@@ -1,5 +1,5 @@
 // Ulpana Hebrew - PWA Service Worker
-const CACHE_NAME = 'ulpana-hebrew-v1';
+const CACHE_NAME = 'ulpana-hebrew-v2';
 const STATIC_ASSETS = [
   '/',
   '/manifest.json',
@@ -33,10 +33,25 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   const { request } = event;
-  const url = new URL(request.url);
+  if (!request || request.method !== 'GET') {
+    return;
+  }
 
-  // Не кэшируем API запросы (POST запросы, /api/*)
-  if (request.method !== 'GET' || url.pathname.startsWith('/api/')) {
+  let url;
+  try {
+    url = new URL(request.url);
+  } catch {
+    return;
+  }
+
+  // КРИТИЧЕСКИ ВАЖНО: игнорируем любые схемы кроме http: и https:
+  // (chrome-extension://, moz-extension://, safari-extension://, data:, blob: и др.)
+  if (!url.protocol.startsWith('http')) {
+    return;
+  }
+
+  // Не кэшируем API-запросы (/api/*)
+  if (url.pathname.startsWith('/api/')) {
     return;
   }
 
@@ -45,11 +60,11 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
       fetch(request)
         .then((response) => {
-          if (response && response.status === 200) {
+          if (response && response.status === 200 && request.url.startsWith('http')) {
             const responseClone = response.clone();
             caches.open(CACHE_NAME).then((cache) => {
-              cache.put(request, responseClone);
-            });
+              cache.put(request, responseClone).catch(() => {});
+            }).catch(() => {});
           }
           return response;
         })
@@ -71,11 +86,11 @@ self.addEventListener('fetch', (event) => {
       caches.match(request).then((cached) => {
         if (cached) return cached;
         return fetch(request).then((response) => {
-          if (response && response.status === 200) {
+          if (response && response.status === 200 && request.url.startsWith('http')) {
             const responseClone = response.clone();
             caches.open(CACHE_NAME).then((cache) => {
-              cache.put(request, responseClone);
-            });
+              cache.put(request, responseClone).catch(() => {});
+            }).catch(() => {});
           }
           return response;
         });
