@@ -27,6 +27,7 @@ import {
   BookOpen,
   Plus,
   Check,
+  Square,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import {
@@ -343,14 +344,12 @@ export const ScriptedDialogueTrainer: React.FC<ScriptedDialogueTrainerProps> = (
     recognizerRef.current = recognizer;
 
     recognizer.start(
-      (transcript, isFinal) => {
+      (transcript) => {
         if (transcript) {
           setSpokenText(transcript);
           spokenTextRef.current = transcript;
         }
-        if (isFinal && transcript && transcript.trim()) {
-          handleFinalSpeechResult(transcript);
-        }
+        // Запись контролируется учеником: отправка происходит по клику на кнопку «Готово, проверить ответ»
       },
       (error) => {
         console.warn('Speech recognition error:', error);
@@ -358,7 +357,7 @@ export const ScriptedDialogueTrainer: React.FC<ScriptedDialogueTrainerProps> = (
         setIsEvaluating(false);
       },
       (finalTranscript) => {
-        // Вызывается после остановки рекогнайзера и полной расшифровки Whisper
+        // Вызывается после нажатия кнопки стоп учеником и расшифровки полной дорожки через Whisper
         const text = (finalTranscript && finalTranscript.trim()) || spokenTextRef.current.trim();
         if (text) {
           handleFinalSpeechResult(text);
@@ -368,17 +367,8 @@ export const ScriptedDialogueTrainer: React.FC<ScriptedDialogueTrainerProps> = (
         }
       },
       {
-        continuous: true, // КРИТИЧЕСКИ ВАЖНО: не обрывать прослушивание на паузах ученика
-        silenceDurationMs: 2800, // 2.8 секунды тишины для комфортной паузы в устной речи
-        onSilenceDetected: (transcript) => {
-          const text = (transcript && transcript.trim()) || spokenTextRef.current.trim();
-          if (text) {
-            if (recognizerRef.current) {
-              recognizerRef.current.stop();
-            }
-            handleFinalSpeechResult(text);
-          }
-        },
+        continuous: true, // Постоянный режим прослушивания: паузы ученика не обрывают речь
+        silenceDurationMs: 30000, // Страховочный таймаут (30 сек) только если ученик вообще забыл выключить микрофон
       }
     );
   };
@@ -1288,8 +1278,8 @@ export const ScriptedDialogueTrainer: React.FC<ScriptedDialogueTrainerProps> = (
                   >
                     {isRecording ? (
                       <>
-                        <MicOff className="w-4 h-4 animate-pulse" />
-                        <span>Слушаю... Нажмите для проверки</span>
+                        <Square className="w-4 h-4 fill-white animate-pulse" />
+                        <span>Готово, проверить ответ</span>
                       </>
                     ) : isEvaluating ? (
                       <>
@@ -1313,7 +1303,7 @@ export const ScriptedDialogueTrainer: React.FC<ScriptedDialogueTrainerProps> = (
                     disabled={isEvaluating}
                     className={`relative w-full sm:w-auto px-6 py-3.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2.5 transition-all cursor-pointer shadow-md active:scale-95 ${
                       isRecording
-                        ? 'bg-red-600 text-white animate-pulse ring-4 ring-red-300 dark:ring-red-900'
+                        ? 'bg-red-600 hover:bg-red-700 text-white animate-pulse ring-4 ring-red-300 dark:ring-red-900'
                         : isEvaluating
                         ? 'bg-zinc-400 text-white cursor-wait'
                         : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white'
@@ -1321,8 +1311,8 @@ export const ScriptedDialogueTrainer: React.FC<ScriptedDialogueTrainerProps> = (
                   >
                     {isRecording ? (
                       <>
-                        <MicOff className="w-5 h-5" />
-                        <span>Слушаю... Нажмите, когда закончите</span>
+                        <Square className="w-5 h-5 fill-white animate-pulse" />
+                        <span>Готово, проверить ответ</span>
                       </>
                     ) : isEvaluating ? (
                       <>
