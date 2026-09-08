@@ -782,30 +782,9 @@ export const ScriptedDialogueTrainer: React.FC<ScriptedDialogueTrainerProps> = (
             })}
           </div>
 
-          {/* Нижняя панель действий: воспроизведение, переключатели отображения и кнопка перехода к роли */}
+          {/* Нижняя панель действий: переключатели отображения, словарь и кнопка перехода к роли */}
           <div className="p-3 bg-white dark:bg-zinc-900 border-t border-zinc-200 dark:border-zinc-800 flex flex-wrap items-center justify-between gap-2 shrink-0">
             <div className="flex items-center gap-1.5 flex-wrap text-xs text-zinc-500">
-              <button
-                type="button"
-                onClick={handleTogglePlayAll}
-                className={`px-3 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1.5 shadow-2xs transition cursor-pointer ${
-                  isPlayingAll
-                    ? 'bg-amber-600 hover:bg-amber-700 text-white animate-pulse'
-                    : 'bg-blue-600 hover:bg-blue-700 text-white'
-                }`}
-              >
-                {isPlayingAll ? (
-                  <>
-                    <Pause className="w-3.5 h-3.5 fill-white" />
-                    <span>Пауза</span>
-                  </>
-                ) : (
-                  <>
-                    <Play className="w-3.5 h-3.5 fill-white" />
-                    <span>Слушать весь диалог</span>
-                  </>
-                )}
-              </button>
 
               <button
                 type="button"
