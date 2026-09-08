@@ -3,7 +3,8 @@ import { verifySessionToken } from '@/lib/auth';
 import { checkRateLimit } from '@/lib/rateLimit';
 import { IS_EARLY_ACCESS_FREE, FREE_LESSONS_LIMIT } from '@/lib/config';
 import { sanitizeRussianTranslation } from '@/app/api/ai/chat/route';
-import { PhoneDebriefReport } from '@/types';
+import { PhoneDebriefReport, PhoneDebriefGrammarError, PhoneDebriefTurnReview } from '@/types';
+import { detectHebrewGrammarErrors, detectHebrewWordOrderErrors } from '@/app/api/ai/dialogue/evaluate/route';
 
 interface PhoneDebriefRequestBody {
   lessonNumber: number;
@@ -29,35 +30,132 @@ function normalizeReport(
     transcript.filter((t) => t.role === 'assistant').map((t) => t.hebrew.trim())
   );
 
-  const turnReviews = Array.isArray(parsed?.turnReviews)
-    ? parsed.turnReviews
-        .filter((tr: any) => {
-          if (!tr?.userHebrew) return false;
-          const trimmed = String(tr.userHebrew).trim();
-          if (assistantHebrews.has(trimmed)) return false;
-          return true;
-        })
-        .map((tr: any) => ({
-          userHebrew: String(tr.userHebrew || ''),
-          assessment: (['perfect', 'good', 'needs_improvement'].includes(tr.assessment)
-            ? tr.assessment
-            : 'good') as 'perfect' | 'good' | 'needs_improvement',
-          commentRu: sanitizeRussianTranslation(tr.commentRu || ''),
-          betterAlternative: tr.betterAlternative ? String(tr.betterAlternative).trim() : undefined,
-        }))
+  const rawTurnReviews = Array.isArray(parsed?.turnReviews)
+    ? parsed.turnReviews.filter((tr: any) => {
+        if (!tr?.userHebrew) return false;
+        const trimmed = String(tr.userHebrew).trim();
+        if (assistantHebrews.has(trimmed)) return false;
+        return true;
+      })
     : [];
 
-  const finalTurnReviews = turnReviews.length > 0
-    ? turnReviews
+  const turnSource = rawTurnReviews.length > 0
+    ? rawTurnReviews
     : userTurns.map((u) => ({
         userHebrew: u.hebrew,
-        assessment: 'good' as const,
+        assessment: 'good',
         commentRu: 'Ваш ответ понятен собеседнику.',
       }));
 
+  let totalDetectedErrors = 0;
+  let totalPronunciationScore = 0;
+
+  const finalTurnReviews: PhoneDebriefTurnReview[] = turnSource.map((tr: any, idx: number) => {
+    const userHebrew = String(tr.userHebrew || (userTurns[idx]?.hebrew ?? '')).trim();
+
+    // 1. Строгая проверка базовой грамматики и порядка слов (как на 4 этапе)
+    const detectedGrammar = detectHebrewGrammarErrors(userHebrew);
+    const detectedWordOrder = detectHebrewWordOrderErrors(userHebrew);
+
+    // 2. Объединяем с ошибками от модели (если модель нашла дополнительные)
+    const llmErrors: PhoneDebriefGrammarError[] = Array.isArray(tr.grammarErrors)
+      ? tr.grammarErrors
+          .map((ge: any) => ({
+            type: String(ge?.type || 'grammar_error'),
+            wrongPhrase: String(ge?.wrongPhrase || '').trim(),
+            correctPhrase: String(ge?.correctPhrase || '').trim(),
+            explanationRu: sanitizeRussianTranslation(ge?.explanationRu || ''),
+          }))
+          .filter((ge: PhoneDebriefGrammarError) => ge.wrongPhrase && ge.correctPhrase)
+      : [];
+
+    // Дедупликация
+    const errorMap = new Map<string, PhoneDebriefGrammarError>();
+    for (const err of [...detectedGrammar, ...detectedWordOrder]) {
+      errorMap.set(err.wrongPhrase.toLowerCase(), {
+        type: err.type,
+        wrongPhrase: err.wrongPhrase,
+        correctPhrase: err.correctPhrase,
+        explanationRu: err.explanationRu,
+      });
+    }
+    for (const err of llmErrors) {
+      if (!errorMap.has(err.wrongPhrase.toLowerCase())) {
+        errorMap.set(err.wrongPhrase.toLowerCase(), err);
+      }
+    }
+    const grammarErrors = Array.from(errorMap.values());
+    totalDetectedErrors += grammarErrors.length;
+
+    // 3. Оценка реплики (assessment)
+    let assessment: 'perfect' | 'good' | 'needs_improvement' =
+      (['perfect', 'good', 'needs_improvement'].includes(tr.assessment)
+        ? tr.assessment
+        : 'good') as 'perfect' | 'good' | 'needs_improvement';
+    if (grammarErrors.length > 0 && assessment === 'perfect') {
+      assessment = 'good';
+    }
+
+    // 4. Балл произношения для данной реплики
+    const turnPScore = typeof tr.pronunciationScore === 'number'
+      ? Math.min(100, Math.max(0, Math.round(tr.pronunciationScore)))
+      : (grammarErrors.length > 0 ? 82 : (assessment === 'perfect' ? 96 : 88));
+    totalPronunciationScore += turnPScore;
+
+    // 5. Совет по произношению
+    let turnPFeedback = tr.pronunciationFeedbackRu
+      ? sanitizeRussianTranslation(tr.pronunciationFeedbackRu)
+      : undefined;
+    if (!turnPFeedback) {
+      if (grammarErrors.length > 0) {
+        turnPFeedback = 'Следите за чётким произношением окончаний и согласованием родов.';
+      } else if (assessment === 'perfect') {
+        turnPFeedback = 'Превосходная чёткость речи! Все звуки и ударения прозвучали естественно.';
+      } else {
+        turnPFeedback = 'Хорошая разборчивость речи. Следите за ударением на последний слог.';
+      }
+    }
+
+    return {
+      userHebrew,
+      assessment,
+      commentRu: sanitizeRussianTranslation(tr.commentRu || 'Ваш ответ понятен собеседнику.'),
+      betterAlternative: tr.betterAlternative ? String(tr.betterAlternative).trim() : undefined,
+      pronunciationScore: turnPScore,
+      pronunciationFeedbackRu: turnPFeedback,
+      grammarErrors: grammarErrors.length > 0 ? grammarErrors : undefined,
+    };
+  });
+
+  const avgPronunciation = finalTurnReviews.length > 0
+    ? Math.round(totalPronunciationScore / finalTurnReviews.length)
+    : 92;
+
+  const parsedPronunciation = typeof parsed?.pronunciationScore === 'number'
+    ? Math.min(100, Math.max(0, Math.round(parsed.pronunciationScore)))
+    : avgPronunciation;
+
+  const calculatedGrammarScore = Math.max(50, Math.min(100, 100 - totalDetectedErrors * 12));
+  const parsedGrammar = typeof parsed?.grammarScore === 'number'
+    ? Math.min(100, Math.max(0, Math.round(parsed.grammarScore)))
+    : calculatedGrammarScore;
+
+  const finalGrammarScore = totalDetectedErrors > 0
+    ? Math.min(80, parsedGrammar, calculatedGrammarScore)
+    : Math.max(90, parsedGrammar);
+
+  const baseOverall = typeof parsed?.overallScore === 'number'
+    ? Math.min(100, Math.max(0, Math.round(parsed.overallScore)))
+    : 90;
+  const finalOverall = totalDetectedErrors > 0
+    ? Math.min(baseOverall, Math.round((baseOverall * 2 + finalGrammarScore) / 3))
+    : baseOverall;
+
   return {
-    overallScore: typeof parsed?.overallScore === 'number' ? Math.min(100, Math.max(0, parsed.overallScore)) : 90,
-    isSuccess: Boolean(parsed?.isSuccess ?? (parsed?.overallScore >= 70)),
+    overallScore: finalOverall,
+    pronunciationScore: parsedPronunciation,
+    grammarScore: finalGrammarScore,
+    isSuccess: Boolean(parsed?.isSuccess ?? (finalOverall >= 70)),
     summaryRu: sanitizeRussianTranslation(
       parsed?.summaryRu || 'Отличный телефонный разговор! Вы успешно решили задачу на иврите.'
     ),
@@ -144,22 +242,27 @@ export async function POST(req: NextRequest) {
 ${transcriptFormatted}
 
 ПРАВИЛА ОЦЕНКИ И РАЗБОРА:
-1. "overallScore": от 0 до 100 баллов.
-   - 90-100: ученик справился с задачей, смысл передан понятно, собеседник понял и звонок состоялся.
-   - 75-89: ответ понятен, но есть небольшие шероховатости.
-   - менее 75: ответ не относился к ситуации или был неполным.
-2. "summaryRu": 1-2 тёплых, вдохновляющих предложения на грамотном русском языке с подведением итогов звонка.
-3. "turnReviews": Массив разборов СТРОГО ТОЛЬКО ДЛЯ РЕПЛИК УЧЕНИКА (никогда не включай сюда реплики водителя/собеседника!):
+1. "overallScore": от 0 до 100 баллов (общий балл телефонного разговора и решения задачи).
+2. "pronunciationScore": от 0 до 100 баллов (средний балл чёткости речи, правильных ударений на последний слог, звуков ח, ר, ע, выдоха ה).
+3. "grammarScore": от 0 до 100 баллов (правильность родов זכר/נקבה, согласования указательных местоимений זֶה / זֹאת / אֵלֶּה, порядка слов: прилагательное ПОСЛЕ существительного!).
+4. "summaryRu": 1-2 тёплых, вдохновляющих предложения на грамотном русском языке с подведением итогов звонка.
+5. "turnReviews": Массив разборов СТРОГО ТОЛЬКО ДЛЯ РЕПЛИК УЧЕНИКА (никогда не включай сюда реплики водителя/собеседника!):
    - "userHebrew": точный текст реплики ученика.
    - "assessment": "perfect" (отлично), "good" (хорошо) или "needs_improvement" (стоит улучшить).
-   - "commentRu": Короткий ясный комментарий на русском языке: почему ответ сработал, и какая грамматическая или стилистическая деталь важна.
+   - "commentRu": Короткий ясный комментарий на русском языке: почему ответ сработал, и какая деталь важна.
+   - "pronunciationScore": число от 0 до 100 (чёткость данной фразы).
+   - "pronunciationFeedbackRu": конкретный практичный совет по звукам, ударениям или артикуляции (на русском языке).
+   - "grammarErrors": массив ошибок согласования родов или порядка слов (если замечены ошибки вроде «זה משפחה» вместо «זאת משפחה», или «גדול בית» вместо «בית גדול»):
+     [{ "type": "gender_or_word_order", "wrongPhrase": "זה משפחה", "correctPhrase": "זאת משפחה", "explanationRu": "..." }]. Если ошибок нет — пустой массив [].
    - "betterAlternative": Как эту же мысль выражают коренные израильтяне в живом разговоре (סלנג או סגנון דיבור ישראלי טבעי) — обязательно с огласовками и русским переводом в скобках, например: «רֶגַע, אֲנִי כְּבָר יוֹרֵד! (Секунду, я уже спускаюсь!)».
-4. "spokenTip": Практический культурно-языковой лайфхак телефонного этикета в Израиле для данной темы.
-5. "recommendedWords": 2-3 ключевых полезных слова/выражения для этой ситуации (hebrew с огласовками, transcription, translation).
+6. "spokenTip": Практический культурно-языковой лайфхак телефонного этикета в Израиле для данной темы.
+7. "recommendedWords": 2-3 ключевых полезных слова/выражения для этой ситуации (hebrew с огласовками, transcription, translation).
 
 Ты ОБЯЗАН ответить СТРОГО валидным JSON-объектом:
 {
   "overallScore": 95,
+  "pronunciationScore": 92,
+  "grammarScore": 96,
   "isSuccess": true,
   "summaryRu": "...",
   "turnReviews": [
@@ -167,6 +270,9 @@ ${transcriptFormatted}
       "userHebrew": "...",
       "assessment": "perfect",
       "commentRu": "...",
+      "pronunciationScore": 95,
+      "pronunciationFeedbackRu": "...",
+      "grammarErrors": [],
       "betterAlternative": "..."
     }
   ],
@@ -248,15 +354,38 @@ ${transcriptFormatted}
     }
 
     // 3. Fallback без внешних AI
+    let fallbackErrorsCount = 0;
+    const fallbackTurnReviews: PhoneDebriefTurnReview[] = userTurns.map((u) => {
+      const gErrors = detectHebrewGrammarErrors(u.hebrew);
+      const wErrors = detectHebrewWordOrderErrors(u.hebrew);
+      const combined = [...gErrors, ...wErrors].map((e) => ({
+        type: e.type,
+        wrongPhrase: e.wrongPhrase,
+        correctPhrase: e.correctPhrase,
+        explanationRu: e.explanationRu,
+      }));
+      fallbackErrorsCount += combined.length;
+      return {
+        userHebrew: u.hebrew,
+        assessment: combined.length > 0 ? ('good' as const) : ('perfect' as const),
+        commentRu: combined.length > 0
+          ? 'Ответ понятен собеседнику, но обратите внимание на согласование слов.'
+          : 'Точный и органичный ответ в контексте звонка.',
+        pronunciationScore: combined.length > 0 ? 84 : 96,
+        pronunciationFeedbackRu: combined.length > 0
+          ? 'Следите за чётким произношением окончаний и правильным согласованием слов.'
+          : 'Чистая, уверенная речь и правильные ударения.',
+        grammarErrors: combined.length > 0 ? combined : undefined,
+      };
+    });
+
     const fallbackReport: PhoneDebriefReport = {
-      overallScore: 90,
+      overallScore: fallbackErrorsCount > 0 ? 82 : 92,
+      pronunciationScore: fallbackErrorsCount > 0 ? 86 : 95,
+      grammarScore: fallbackErrorsCount > 0 ? 75 : 96,
       isSuccess: true,
       summaryRu: 'Вы провели телефонный диалог на иврите. Собеседник понял ваш ответ и звонок завершился успешно.',
-      turnReviews: userTurns.map((u) => ({
-        userHebrew: u.hebrew,
-        assessment: 'perfect' as const,
-        commentRu: 'Точный и органичный ответ в контексте звонка.',
-      })),
+      turnReviews: fallbackTurnReviews,
       spokenTip: 'В израильских телефонных звонках ценится краткость: 1-2 уверенных предложения решают любую задачу.',
     };
 

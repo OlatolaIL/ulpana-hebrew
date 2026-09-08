@@ -256,15 +256,27 @@ export interface PhoneScenarioWord {
   explanation?: string;
 }
 
+export interface PhoneDebriefGrammarError {
+  type: string;
+  wrongPhrase: string;
+  correctPhrase: string;
+  explanationRu: string;
+}
+
 export interface PhoneDebriefTurnReview {
   userHebrew: string;
   assessment: 'perfect' | 'good' | 'needs_improvement';
   commentRu: string;
   betterAlternative?: string;
+  pronunciationScore?: number; // Чёткость произношения 0 - 100%
+  pronunciationFeedbackRu?: string; // Замечания по произношению
+  grammarErrors?: PhoneDebriefGrammarError[]; // Ошибки согласования родов или порядка слов
 }
 
 export interface PhoneDebriefReport {
   overallScore: number; // 0 - 100
+  pronunciationScore?: number; // Средний балл произношения 0 - 100
+  grammarScore?: number; // Балл грамматики и согласования родов 0 - 100
   summaryRu: string;
   isSuccess: boolean;
   turnReviews: PhoneDebriefTurnReview[];

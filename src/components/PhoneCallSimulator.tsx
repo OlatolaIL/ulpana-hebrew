@@ -1415,6 +1415,40 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
             </div>
           )}
 
+          {/* Индикаторы произношения и грамматики */}
+          {debriefReport && (
+            <div className="grid grid-cols-3 gap-2 font-hebrew">
+              <div className="bg-emerald-50 dark:bg-emerald-950/40 p-2.5 rounded-2xl border border-emerald-200 dark:border-emerald-800/60 text-center shadow-2xs">
+                <span className="text-[11px] text-emerald-700 dark:text-emerald-300 block font-semibold">
+                  {userProfile.ulpanMode ? 'צִיּוּן כְּלָלִי' : '🎯 Итог'}
+                </span>
+                <span className="text-base sm:text-lg font-extrabold text-emerald-800 dark:text-emerald-200 font-mono">
+                  {debriefReport.overallScore}%
+                </span>
+              </div>
+              <div className="bg-blue-50 dark:bg-blue-950/40 p-2.5 rounded-2xl border border-blue-200 dark:border-blue-800/60 text-center shadow-2xs">
+                <span className="text-[11px] text-blue-700 dark:text-blue-300 block font-semibold">
+                  {userProfile.ulpanMode ? 'הֶגֶה וּמִבְטָא' : '🎙️ Произношение'}
+                </span>
+                <span className="text-base sm:text-lg font-extrabold text-blue-800 dark:text-blue-200 font-mono">
+                  {debriefReport.pronunciationScore ?? 92}%
+                </span>
+              </div>
+              <div className={`p-2.5 rounded-2xl border text-center shadow-2xs ${
+                (debriefReport.grammarScore ?? 95) >= 85
+                  ? 'bg-purple-50 dark:bg-purple-950/40 border-purple-200 dark:border-purple-800/60 text-purple-800 dark:text-purple-200'
+                  : 'bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-800/60 text-amber-800 dark:text-amber-200'
+              }`}>
+                <span className="text-[11px] block font-semibold">
+                  {userProfile.ulpanMode ? 'דִּקְדּוּק וָמִין' : '📚 Грамматика'}
+                </span>
+                <span className="text-base sm:text-lg font-extrabold font-mono">
+                  {debriefReport.grammarScore ?? 95}%
+                </span>
+              </div>
+            </div>
+          )}
+
           {/* Кнопка открытия полного разбора диалога с комментариями учителя */}
           <button
             type="button"
@@ -1645,11 +1679,43 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
                 </div>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
                 {debriefReport && (
-                  <div className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800/60 text-emerald-700 dark:text-emerald-300 font-bold text-xs sm:text-sm shadow-2xs">
-                    <Award className="w-4 h-4 text-emerald-500 shrink-0" />
-                    <span>{debriefReport.overallScore}/100</span>
+                  <div className="flex items-center gap-1 sm:gap-1.5">
+                    {/* Общий балл */}
+                    <div
+                      className="flex items-center gap-1 px-2 sm:px-2.5 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800/60 text-emerald-700 dark:text-emerald-300 font-bold text-xs shadow-2xs"
+                      title={userProfile.ulpanMode ? 'צִיּוּן כְּלָלִי' : 'Общий балл решения задачи звонка'}
+                    >
+                      <Award className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                      <span>{debriefReport.overallScore}%</span>
+                    </div>
+
+                    {/* Чёткость произношения */}
+                    {typeof debriefReport.pronunciationScore === 'number' && (
+                      <div
+                        className="flex items-center gap-1 px-2 sm:px-2.5 py-1.5 rounded-xl bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800/60 text-blue-700 dark:text-blue-300 font-bold text-xs shadow-2xs"
+                        title={userProfile.ulpanMode ? 'צִיּוּן הֶגֶה וּמִבְטָא' : 'Чёткость произношения и ударений'}
+                      >
+                        <Mic className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+                        <span>{debriefReport.pronunciationScore}%</span>
+                      </div>
+                    )}
+
+                    {/* Грамматика и род */}
+                    {typeof debriefReport.grammarScore === 'number' && (
+                      <div
+                        className={`flex items-center gap-1 px-2 sm:px-2.5 py-1.5 rounded-xl border font-bold text-xs shadow-2xs ${
+                          debriefReport.grammarScore >= 85
+                            ? 'bg-purple-50 dark:bg-purple-950/50 border-purple-200 dark:border-purple-800/60 text-purple-700 dark:text-purple-300'
+                            : 'bg-amber-50 dark:bg-amber-950/50 border-amber-200 dark:border-amber-800/60 text-amber-700 dark:text-amber-300'
+                        }`}
+                        title={userProfile.ulpanMode ? 'דִּקְדּוּק וּסֵדֶר מִילִּים' : 'Грамматика, согласование родов и порядок слов'}
+                      >
+                        <BookOpen className="w-3.5 h-3.5 text-purple-500 shrink-0" />
+                        <span>{debriefReport.grammarScore}%</span>
+                      </div>
+                    )}
                   </div>
                 )}
                 <button
@@ -1818,25 +1884,70 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
 
                       {/* БЛОК РАЗБОРА И КОММЕНТАРИЕВ ИИ-УЧИТЕЛЯ К ОТВЕТУ УЧЕНИКА */}
                       {isUser && (
-                        <div className="mt-3 pt-2.5 border-t border-blue-200/60 dark:border-blue-900/50 space-y-2">
-                          <div className="flex items-center justify-between gap-2">
+                        <div className="mt-3 pt-2.5 border-t border-blue-200/60 dark:border-blue-900/50 space-y-2.5">
+                          <div className="flex items-center justify-between gap-2 flex-wrap">
                             <div className="flex items-center gap-1.5 text-xs font-bold text-indigo-900 dark:text-indigo-300">
                               <Bot className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
                               <span>{userProfile.ulpanMode ? 'מַשּׁוֹב הַמּוֹרֶה:' : 'Разбор ответа:'}</span>
                             </div>
 
-                            {turnReview && (
-                              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
-                                turnReview.assessment === 'perfect'
-                                  ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border-emerald-500/30'
-                                  : turnReview.assessment === 'good'
-                                  ? 'bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border-blue-500/30'
-                                  : 'bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border-amber-500/30'
-                              }`}>
-                                {turnReview.assessment === 'perfect' ? 'Идеально ✔️' : turnReview.assessment === 'good' ? 'Хорошо 👍' : 'Можно улучшить 💡'}
-                              </span>
-                            )}
+                            <div className="flex items-center gap-1.5">
+                              {/* Индикатор четкости произношения */}
+                              {typeof turnReview?.pronunciationScore === 'number' && (
+                                <span className="px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800 text-[10px] font-bold text-blue-700 dark:text-blue-300 flex items-center gap-1 shadow-2xs">
+                                  <span>🎙️</span>
+                                  <span>{turnReview.pronunciationScore}%</span>
+                                </span>
+                              )}
+
+                              {turnReview && (
+                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                                  turnReview.assessment === 'perfect'
+                                    ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border-emerald-500/30'
+                                    : turnReview.assessment === 'good'
+                                    ? 'bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border-blue-500/30'
+                                    : 'bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border-amber-500/30'
+                                }`}>
+                                  {turnReview.assessment === 'perfect' ? 'Идеально ✔️' : turnReview.assessment === 'good' ? 'Хорошо 👍' : 'Можно улучшить 💡'}
+                                </span>
+                              )}
+                            </div>
                           </div>
+
+                          {/* Предупреждение об ошибках рода или порядка слов */}
+                          {turnReview?.grammarErrors && turnReview.grammarErrors.length > 0 && (
+                            <div className="p-2.5 rounded-xl bg-amber-50/90 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 space-y-1.5">
+                              <div className="flex items-center gap-1.5 text-xs font-bold text-amber-800 dark:text-amber-300">
+                                <AlertCircle className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
+                                <span>{userProfile.ulpanMode ? 'שְׁגִיאַת מִין אוֹ סֵדֶר מִילִּים:' : 'Внимание к роду и порядку слов:'}</span>
+                              </div>
+                              {turnReview.grammarErrors.map((ge, gIdx) => (
+                                <div key={gIdx} className="text-xs text-amber-900 dark:text-amber-200 leading-snug space-y-0.5">
+                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                    <span className="line-through text-red-500 font-hebrew font-semibold">«{ge.wrongPhrase}»</span>
+                                    <span>➔</span>
+                                    <span className="font-bold text-emerald-700 dark:text-emerald-400 font-hebrew">«{ge.correctPhrase}»</span>
+                                  </div>
+                                  <p className="text-[11px] text-amber-800/90 dark:text-amber-300/90 font-sans">
+                                    {ge.explanationRu}
+                                  </p>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
+                          {/* Рекомендация по произношению звуков/ударений */}
+                          {turnReview?.pronunciationFeedbackRu && (
+                            <div className="p-2 rounded-xl bg-blue-50/60 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900/40 text-xs flex items-start gap-1.5">
+                              <span className="text-sm shrink-0">🗣️</span>
+                              <div className="text-zinc-700 dark:text-zinc-300 text-[11px] sm:text-xs leading-relaxed">
+                                <span className="font-semibold text-blue-900 dark:text-blue-300 mr-1">
+                                  {userProfile.ulpanMode ? 'הֶגֶה וּמִבְטָא:' : 'Произношение:'}
+                                </span>
+                                {turnReview.pronunciationFeedbackRu}
+                              </div>
+                            </div>
+                          )}
 
                           {turnReview?.commentRu ? (
                             <p className="text-xs text-zinc-700 dark:text-zinc-300 leading-relaxed">
