@@ -221,6 +221,7 @@ export interface ScriptedDialogue {
     female: DialogueParticipant;
   };
   turns: ScriptedDialogueTurn[];
+  usefulWords?: Word[]; // Полезные слова и выражения к диалогу для боковой шторки
 }
 
 export interface DialogueEvaluationResult {

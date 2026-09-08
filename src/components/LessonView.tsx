@@ -290,6 +290,7 @@ export const LessonView: React.FC<LessonViewProps> = ({
                   lesson={lesson}
                   userProfile={userProfile}
                   onUpdateProfile={onUpdateProfile}
+                  onWordAdded={() => onUpdateProfile(loadUserProfile())}
                   onGoToNextTab={() => setActiveTab('phone')}
                 />
               ) : (

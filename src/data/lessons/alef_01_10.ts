@@ -2486,6 +2486,52 @@ export const ALEF_LESSONS_01_10: Record<number, Lesson> = {
         "partOfSpeech": "adjective",
         "root": "ג-ד-ל / ק-ט-ן",
         "lessonId": 6
+      },
+      {
+        "id": "w6-13",
+        "hebrew": "הוֹרִים",
+        "hebrewPlain": "הורים",
+        "transcription": "hорӣм",
+        "translation": "родители (ед.ч. הוֹרֶה hорэ)",
+        "partOfSpeech": "noun",
+        "root": "ה-ר-ה",
+        "gender": "m",
+        "plural": "הוֹרִים (hорӣм)",
+        "lessonId": 6
+      },
+      {
+        "id": "w6-14",
+        "hebrew": "נֶחְמָד",
+        "hebrewPlain": "נחמד",
+        "transcription": "нехмáд",
+        "translation": "симпатичный, милый, приятный (נֶחְמָד מְאוֹד — очень приятно/мило)",
+        "partOfSpeech": "adjective",
+        "root": "נ-ח-מ-ד",
+        "gender": "m",
+        "lessonId": 6
+      },
+      {
+        "id": "w6-15",
+        "hebrew": "תְּמוּנָה",
+        "hebrewPlain": "תמונה",
+        "transcription": "тмунá",
+        "translation": "фотография, снимок, картина",
+        "partOfSpeech": "noun",
+        "root": "מ-ו-ן",
+        "gender": "f",
+        "plural": "תְּמוּנוֹת (тмунóт)",
+        "lessonId": 6
+      },
+      {
+        "id": "w6-16",
+        "hebrew": "בֵּית סֵפֶר",
+        "hebrewPlain": "בית ספר",
+        "transcription": "бэ́йт сэ́фер",
+        "translation": "школа",
+        "partOfSpeech": "noun",
+        "gender": "m",
+        "plural": "בָּתֵּי סֵפֶר (батэ́й сэ́фер)",
+        "lessonId": 6
       }
     ],
     "basicSentences": [
