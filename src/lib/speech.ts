@@ -90,12 +90,16 @@ export function cleanHebrewForSpeech(text: string): string {
     // Удаляем любые комментарии и переводы в круглых скобках, например "(одна выпечка)", "(кáма зэ олé? — м.р.)"
     .replace(/\([^)]*\)/g, ' ')
     // Удаляем кавычки, скобки и стрелки
-    .replace(/["'«»[\]{}()<>→-]/g, ' ')
-    // Удаляем всё, кроме символов иврита (\u0590-\u05FF), дефиса и пробелов
-    .replace(/[^\u0590-\u05FF\s-]/g, ' ')
+    .replace(/["'«»[\]{}()<>→]/g, ' ')
+    // Сохраняем символы иврита (\u0590-\u05FF), дефис, пробелы и ЗНАКИ ПРЕПИНАНИЯ (.,!?:;)
+    // чтобы голосовой движок выдерживал паузы между предложениями и делал вопросительную интонацию
+    .replace(/[^\u0590-\u05FF\s.,!?:;-]/g, ' ')
     // Удаляем лишние разделители
     .replace(/[—–_\\|•]/g, ' ')
     .replace(/\s+/g, ' ')
+    // Нормализуем пробелы перед и после знаков препинания
+    .replace(/\s+([.,!?:;])/g, '$1')
+    .replace(/([.,!?:;])(?=[\u0590-\u05FF])/g, '$1 ')
     .trim();
 
   return fixHebrewPhonetics(res);
@@ -122,8 +126,13 @@ export function playFallbackAudio(text: string, rate: number = 0.75): Promise<vo
         activeFallbackAudio = null;
       }
 
-      // Сохраняем огласовки (ניקוד) для корректного чтения гласных и союза движком Google TTS
-      const cleanText = text.replace(/[.,!?;:"'״׳()[\]{}—\-]/g, ' ').trim();
+      // Сохраняем огласовки (ניקוד) и знаки препинания (. , ! ? : ;) для пауз и вопросительной интонации Google TTS
+      const cleanText = text
+        .replace(/["'״׳()[\]{}—<>«»]/g, ' ')
+        .replace(/\s+([.,!?:;])/g, '$1')
+        .replace(/([.,!?:;])(?=[\u0590-\u05FF])/g, '$1 ')
+        .replace(/\s+/g, ' ')
+        .trim();
       if (!cleanText) {
         resolve();
         return;
@@ -484,16 +493,13 @@ export function normalizeHebrewSpeechTranscript(text: string): string {
   if (!text) return '';
   let res = text.trim();
 
-  // 1. Указательное слово (זה / הנה / כן זה) + омофон ручки (את / עת / אט / טת)
-  res = res.replace(/(^|[\s.,!?:;])(זֶ?ה|הִ?נֵּ?ה|כֵּ?ן\s+זֶ?ה)\s+(?:אֶ?ת|עֵ?ת|אֵ?ט|טֵ?ת|טת)(?=[\s.,!?:;]|$)/gi, '$1$2 עֵט');
-  res = res.replace(/(^|[\s.,!?:;])(זה|הנה|כן\s+זה)\s+(?:את|עת|אט|טת)(?=[\s.,!?:;]|$)/gi, '$1$2 עט');
+  // 1. Указательное слово (זה / הנה / כן זה) + омофон ручки (עת / אט / טת)
+  res = res.replace(/(^|[\s.,!?:;])(זֶ?ה|הִ?נֵּ?ה|כֵּ?ן\s+זֶ?ה)\s+(?:עֵ?ת|אֵ?ט|טֵ?ת|טת)(?=[\s.,!?:;]|$)/gi, '$1$2 עֵט');
+  res = res.replace(/(^|[\s.,!?:;])(זה|הנה|כן\s+זה)\s+(?:עת|אט|טת)(?=[\s.,!?:;]|$)/gi, '$1$2 עט');
 
-  // 2. Одиночное слово [эт] (את / עת / אט / טת) при коротком устном ответе
-  res = res.replace(/^(?:את|עת|אט|טת)[.!?]?$/gi, 'עט');
-  res = res.replace(/^(?:אֶת|עֵת|אֵט|טֵת)[.!?]?$/gi, 'עֵט');
-
-  // 3. Омофоническое слияние "זה-эт" -> "זה זאת"
-  res = res.replace(/^(?:זה\s+זאת)[.!?]?$/gi, 'זה עט');
+  // 2. Одиночное слово [эт] (עת / אט / טת) при коротком устном ответе
+  res = res.replace(/^(?:עת|אט|טת)[.!?]?$/gi, 'עט');
+  res = res.replace(/^(?:עֵת|אֵט|טֵת)[.!?]?$/gi, 'עֵט');
 
   return res;
 }
@@ -828,6 +834,10 @@ export class HebrewSpeechRecognizer {
   }
 
   private async handleSilenceDetected(): Promise<void> {
+    if (!this.currentOptions.onSilenceDetected) {
+      return;
+    }
+
     // 1. Пробуем транскрибировать накопленное аудио через Groq Whisper V3 для максимальной полноты фразы
     if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
       try {
@@ -837,12 +847,12 @@ export class HebrewSpeechRecognizer {
         if (this.audioChunks.length > 0) {
           const blobType = this.mediaRecorder.mimeType || 'audio/webm';
           const audioBlob = new Blob([...this.audioChunks], { type: blobType });
-          this.audioChunks = []; // очищаем буфер
 
           // Если записано реальное аудио (более 1500 байт), транскрибируем через Groq Whisper V3
           if (audioBlob.size > 1500) {
             const text = await this.transcribeAudioBlob(audioBlob, blobType);
             if (text && text.trim() && !isWhisperSilenceHallucination(text.trim())) {
+              this.audioChunks = []; // очищаем буфер только при успешном распознавании
               this.lastTranscript = text.trim();
               this.currentOptions.onSilenceDetected?.(this.lastTranscript);
               return;

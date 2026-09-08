@@ -3,11 +3,10 @@ import { NextRequest, NextResponse } from 'next/server';
 function normalizeHebrewHomophones(text: string): string {
   if (!text) return '';
   let res = text.trim();
-  res = res.replace(/(^|[\s.,!?:;])(זֶ?ה|הִ?נֵּ?ה|כֵּ?ן\s+זֶ?ה)\s+(?:אֶ?ת|עֵ?ת|אֵ?ט|טֵ?ת|טת)(?=[\s.,!?:;]|$)/gi, '$1$2 עֵט');
-  res = res.replace(/(^|[\s.,!?:;])(זה|הנה|כן\s+זה)\s+(?:את|עת|אט|טת)(?=[\s.,!?:;]|$)/gi, '$1$2 עט');
-  res = res.replace(/^(?:את|עת|אט|טת)[.!?]?$/gi, 'עט');
-  res = res.replace(/^(?:אֶת|עֵת|אֵט|טֵת)[.!?]?$/gi, 'עֵט');
-  res = res.replace(/^(?:זה\s+זאת)[.!?]?$/gi, 'זה עט');
+  res = res.replace(/(^|[\s.,!?:;])(זֶ?ה|הִ?נֵּ?ה|כֵּ?ן\s+זֶ?ה)\s+(?:עֵ?ת|אֵ?ט|טֵ?ת|טת)(?=[\s.,!?:;]|$)/gi, '$1$2 עֵט');
+  res = res.replace(/(^|[\s.,!?:;])(זה|הנה|כן\s+זה)\s+(?:עת|אט|טת)(?=[\s.,!?:;]|$)/gi, '$1$2 עט');
+  res = res.replace(/^(?:עת|אט|טת)[.!?]?$/gi, 'עט');
+  res = res.replace(/^(?:עֵת|אֵט|טֵת)[.!?]?$/gi, 'עֵט');
   return res;
 }
 

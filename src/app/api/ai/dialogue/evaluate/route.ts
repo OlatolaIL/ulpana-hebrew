@@ -20,6 +20,138 @@ interface DialogueEvaluateRequestBody {
   apiKey?: string;
 }
 
+export interface DetectedGrammarError {
+  type: 'gender_masculine_on_feminine' | 'gender_feminine_on_masculine' | 'singular_on_plural';
+  wrongPhrase: string;
+  correctPhrase: string;
+  noun: string;
+  explanationRu: string;
+}
+
+const NOUN_NIKKUD_MAP: Record<string, { nikkud: string; gender: 'm' | 'f' | 'pl'; correctDemonstrative: string }> = {
+  // Женский род (требуют זֹאת / זוֹ)
+  משפחה: { nikkud: 'מִשְׁפָּחָה', gender: 'f', correctDemonstrative: 'זֹאת' },
+  אמא: { nikkud: 'אִמָּא', gender: 'f', correctDemonstrative: 'זֹאת' },
+  תמונה: { nikkud: 'תְּמוּנָה', gender: 'f', correctDemonstrative: 'זֹאת' },
+  אחות: { nikkud: 'אָחוֹת', gender: 'f', correctDemonstrative: 'זֹאת' },
+  בת: { nikkud: 'בַּת', gender: 'f', correctDemonstrative: 'זֹאת' },
+  סבתא: { nikkud: 'סָבְתָא', gender: 'f', correctDemonstrative: 'זֹאת' },
+  ילדה: { nikkud: 'יַלְדָּה', gender: 'f', correctDemonstrative: 'זֹאת' },
+  אישה: { nikkud: 'אִשָּׁה', gender: 'f', correctDemonstrative: 'זֹאת' },
+  עיר: { nikkud: 'עִיר', gender: 'f', correctDemonstrative: 'זֹאת' },
+  דירה: { nikkud: 'דִּירָה', gender: 'f', correctDemonstrative: 'זֹאת' },
+  מחברת: { nikkud: 'מַחְבֶּרֶת', gender: 'f', correctDemonstrative: 'זֹאת' },
+  שפה: { nikkud: 'שָׂפָה', gender: 'f', correctDemonstrative: 'זֹאת' },
+  כיתה: { nikkud: 'כִּיתָּה', gender: 'f', correctDemonstrative: 'זֹאת' },
+  עבודה: { nikkud: 'עֲבוֹדָה', gender: 'f', correctDemonstrative: 'זֹאת' },
+  חברה: { nikkud: 'חֲבֵרָה', gender: 'f', correctDemonstrative: 'זֹאת' },
+  עוגה: { nikkud: 'עוּגָה', gender: 'f', correctDemonstrative: 'זֹאת' },
+  פיצה: { nikkud: 'פִּיצָּה', gender: 'f', correctDemonstrative: 'זֹאת' },
+  מכונית: { nikkud: 'מְכוֹנִית', gender: 'f', correctDemonstrative: 'זֹאת' },
+  שאלה: { nikkud: 'שְׁאֵלָה', gender: 'f', correctDemonstrative: 'זֹאת' },
+  חנות: { nikkud: 'חֲנוּת', gender: 'f', correctDemonstrative: 'זֹאת' },
+
+  // Мужской род (требуют זֶה)
+  אבא: { nikkud: 'אַבָּא', gender: 'm', correctDemonstrative: 'זֶה' },
+  אח: { nikkud: 'אָח', gender: 'm', correctDemonstrative: 'זֶה' },
+  בן: { nikkud: 'בֵּן', gender: 'm', correctDemonstrative: 'זֶה' },
+  סבא: { nikkud: 'סַבָּא', gender: 'm', correctDemonstrative: 'זֶה' },
+  ילד: { nikkud: 'יֶלֶד', gender: 'm', correctDemonstrative: 'זֶה' },
+  איש: { nikkud: 'אִישׁ', gender: 'm', correctDemonstrative: 'זֶה' },
+  ספר: { nikkud: 'סֵפֶר', gender: 'm', correctDemonstrative: 'זֶה' },
+  בית: { nikkud: 'בַּיִת', gender: 'm', correctDemonstrative: 'זֶה' },
+  'בית ספר': { nikkud: 'בֵּית סֵפֶר', gender: 'm', correctDemonstrative: 'זֶה' },
+  עט: { nikkud: 'עֵט', gender: 'm', correctDemonstrative: 'זֶה' },
+  קפה: { nikkud: 'קָפֶה', gender: 'm', correctDemonstrative: 'זֶה' },
+  תה: { nikkud: 'תֵּה', gender: 'm', correctDemonstrative: 'זֶה' },
+  יום: { nikkud: 'יוֹם', gender: 'm', correctDemonstrative: 'זֶה' },
+  שולחן: { nikkud: 'שֻׁלְחָן', gender: 'm', correctDemonstrative: 'זֶה' },
+  חבר: { nikkud: 'חָבֵר', gender: 'm', correctDemonstrative: 'זֶה' },
+  רחוב: { nikkud: 'רְחוֹב', gender: 'm', correctDemonstrative: 'זֶה' },
+  שיעור: { nikkud: 'שִׁיעוּר', gender: 'm', correctDemonstrative: 'זֶה' },
+  חשבון: { nikkud: 'חֶשְׁבּוֹן', gender: 'm', correctDemonstrative: 'זֶה' },
+  סוכר: { nikkud: 'סוּכָּר', gender: 'm', correctDemonstrative: 'זֶה' },
+
+  // Множественное число (требуют אֵלֶּה / אֵלּוּ)
+  הורים: { nikkud: 'הוֹרִים', gender: 'pl', correctDemonstrative: 'אֵלֶּה' },
+  ילדים: { nikkud: 'יְלָדִים', gender: 'pl', correctDemonstrative: 'אֵלֶּה' },
+  בנים: { nikkud: 'בָּנִים', gender: 'pl', correctDemonstrative: 'אֵלֶּה' },
+  בנות: { nikkud: 'בָּנוֹת', gender: 'pl', correctDemonstrative: 'אֵלֶּה' },
+  אחים: { nikkud: 'אַחִים', gender: 'pl', correctDemonstrative: 'אֵלֶּה' },
+  אחיות: { nikkud: 'אֲחָיוֹת', gender: 'pl', correctDemonstrative: 'אֵלֶּה' },
+  אנשים: { nikkud: 'אֲנָשִׁים', gender: 'pl', correctDemonstrative: 'אֵלֶּה' },
+  תמונות: { nikkud: 'תְּמוּנוֹת', gender: 'pl', correctDemonstrative: 'אֵלֶּה' },
+  ספרים: { nikkud: 'סְפָרִים', gender: 'pl', correctDemonstrative: 'אֵלֶּה' },
+  בתים: { nikkud: 'בָּתִּים', gender: 'pl', correctDemonstrative: 'אֵלֶּה' },
+  חברים: { nikkud: 'חֲבֵרִים', gender: 'pl', correctDemonstrative: 'אֵלֶּה' },
+  חברות: { nikkud: 'חֲבֵרוֹת', gender: 'pl', correctDemonstrative: 'אֵלֶּה' },
+  שקלים: { nikkud: 'שְׁקָלִים', gender: 'pl', correctDemonstrative: 'אֵלֶּה' },
+};
+
+/**
+ * Проверка базовых грамматических ошибок в согласовании рода и числа
+ * указательных местоимений (זֶה vs זֹאת / זוֹ vs אֵלֶּה)
+ */
+export function detectHebrewGrammarErrors(userText: string): DetectedGrammarError[] {
+  const errors: DetectedGrammarError[] = [];
+  const clean = stripNikkud(userText).toLowerCase().replace(/[.,!?;:"'״׳]/g, ' ').replace(/\s+/g, ' ').trim();
+  if (!clean) return errors;
+
+  // 1. Ошибка: זה + существительное женского рода (например "זה אמא", "זה משפחה", "זה תמונה")
+  const femNouns = ['משפחה', 'אמא', 'תמונה', 'אחות', 'בת', 'סבתא', 'ילדה', 'אישה', 'עיר', 'דירה', 'מחברת', 'שפה', 'כיתה', 'עבודה', 'חברה', 'עוגה', 'פיצה', 'מכונית', 'שאלה', 'חנות'];
+  const femRegex = new RegExp(`(?:^|\\s)(?:וְ?|שֶׁ?|כִּ?י\\s+)?זֶ?ה\\s+(?:הַ?)?(${femNouns.join('|')})(?=$|[\\s,.:;?!])`, 'gi');
+  let match: RegExpExecArray | null;
+
+  while ((match = femRegex.exec(clean)) !== null) {
+    const rawNoun = match[1].toLowerCase();
+    const info = NOUN_NIKKUD_MAP[rawNoun];
+    const nikkudNoun = info?.nikkud || rawNoun;
+    errors.push({
+      type: 'gender_masculine_on_feminine',
+      wrongPhrase: `זה ${rawNoun}`,
+      correctPhrase: `זֹאת ${nikkudNoun}`,
+      noun: nikkudNoun,
+      explanationRu: `Слово «${nikkudNoun}» женского рода (נקבה). С ним нужно использовать указательное местоимение «זֹאת» (или «זוֹ»), а не «זֶה». Правильно говорить: «זֹאת ${nikkudNoun}».`,
+    });
+  }
+
+  // 2. Ошибка: זאת / זו + существительное мужского рода (например "זאת אבא", "זאת אח", "זאת בית")
+  const mascNouns = ['אבא', 'אח', 'בן', 'סבא', 'ילד', 'איש', 'ספר', 'בית ספר', 'בית', 'עט', 'קפה', 'תה', 'יום', 'שולחן', 'חבר', 'רחוב', 'שיעור', 'חשבון', 'סוכר'];
+  const mascRegex = new RegExp(`(?:^|\\s)(?:וְ?|שֶׁ?|כִּ?י\\s+)?(?:זֹ?את|זוֹ?)\\s+(?:הַ?)?(${mascNouns.join('|')})(?=$|[\\s,.:;?!])`, 'gi');
+
+  while ((match = mascRegex.exec(clean)) !== null) {
+    const rawNoun = match[1].toLowerCase();
+    const info = NOUN_NIKKUD_MAP[rawNoun];
+    const nikkudNoun = info?.nikkud || rawNoun;
+    errors.push({
+      type: 'gender_feminine_on_masculine',
+      wrongPhrase: `זאת ${rawNoun}`,
+      correctPhrase: `זֶה ${nikkudNoun}`,
+      noun: nikkudNoun,
+      explanationRu: `Слово «${nikkudNoun}» мужского рода (זכר). С ним нужно использовать указательное местоимение «זֶה», а не «זֹאת». Правильно говорить: «זֶה ${nikkudNoun}».`,
+    });
+  }
+
+  // 3. Ошибка: זה / זאת / זו + существительное во множественном числе (например "זה הורים", "זה ילדים")
+  const plNouns = ['הורים', 'ילדים', 'בנים', 'בנות', 'אחים', 'אחיות', 'אנשים', 'תמונות', 'ספרים', 'בתים', 'חברים', 'חברות', 'שקלים'];
+  const plRegex = new RegExp(`(?:^|\\s)(?:וְ?|שֶׁ?|כִּ?י\\s+)?(?:זֶ?ה|זֹ?את|זוֹ?)\\s+(?:הַ?)?(${plNouns.join('|')})(?=$|[\\s,.:;?!])`, 'gi');
+
+  while ((match = plRegex.exec(clean)) !== null) {
+    const rawNoun = match[1].toLowerCase();
+    const info = NOUN_NIKKUD_MAP[rawNoun];
+    const nikkudNoun = info?.nikkud || rawNoun;
+    errors.push({
+      type: 'singular_on_plural',
+      wrongPhrase: `זה ${rawNoun}`,
+      correctPhrase: `אֵלֶּה ${nikkudNoun}`,
+      noun: nikkudNoun,
+      explanationRu: `Слово «${nikkudNoun}» во множественном числе (רבים). Для множественного числа («это / эти») на иврите используется «אֵלֶּה» (э́ле), а не «זֶה» или «זֹאת». Правильно говорить: «אֵלֶּה ${nikkudNoun}».`,
+    });
+  }
+
+  return errors;
+}
+
 /**
  * Локальная эвристическая оценка семантического соответствия
  * используется как быстрый фолбэк при недоступности внешнего LLM API
@@ -32,6 +164,22 @@ function evaluateHeuristic(
 ): DialogueEvaluationResult {
   const cleanUser = stripNikkud(userText).toLowerCase().replace(/[.,!?;:"'״׳]/g, ' ').trim();
   const cleanRef = stripNikkud(referenceHebrew).toLowerCase().replace(/[.,!?;:"'״׳]/g, ' ').trim();
+
+  // 0. Строгая проверка базовой грамматики (согласование рода זֶה / זֹאת / אֵלֶּה)
+  const grammarErrors = detectHebrewGrammarErrors(userText);
+  if (grammarErrors.length > 0) {
+    const errorExplanations = grammarErrors.map((e) => e.explanationRu).join(' ');
+    return {
+      isCorrect: true,
+      score: Math.min(70, Math.max(55, 75 - grammarErrors.length * 5)),
+      assessment: 'good',
+      feedbackRu: `Смысл ответа понятен, но допущена грамматическая ошибка в согласовании рода! ${errorExplanations}`,
+      pronunciationScore: 82,
+      pronunciationFeedbackRu: 'Следите за правильными формами זֶה (м.р.), זֹאת (ж.р.) и אֵלֶּה (мн.ч.).',
+      betterAlternative: referenceHebrew,
+      userSpokenHebrew: userText,
+    };
+  }
 
   // 1. Точное или близкое совпадение с эталоном
   if (cleanUser === cleanRef || cleanRef.includes(cleanUser) || cleanUser.includes(cleanRef)) {
@@ -159,22 +307,29 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 3. Быстрая проверка: если совпадение очевидное, не тратим квоту LLM
+    // 3. Предварительный анализ грамматических ошибок согласования (זֶה / זֹאת / אֵלֶּה)
+    const detectedGrammarErrors = detectHebrewGrammarErrors(trimmedUser);
+    const grammarWarningText = detectedGrammarErrors.length > 0
+      ? `\n\nВНИМАНИЕ! В ответе ученика обнаружена ошибка согласования рода/числа:\n${detectedGrammarErrors.map((e) => `- ${e.explanationRu}`).join('\n')}\nТЫ ОБЯЗАН: снизить оценку (score НЕ ВЫШЕ 70, assessment = "good", НИ В КОЕМ СЛУЧАЕ НЕ "perfect") и обязательно подробно объяснить ученику это правило в feedbackRu!`
+      : '';
+
+    // 4. Быстрая проверка: если совпадение очевидное и нет грамматических ошибок, не тратим квоту LLM
     const quickHeuristic = evaluateHeuristic(trimmedUser, referenceHebrew, acceptableKeywords, sampleVariations);
-    if (quickHeuristic.isCorrect && quickHeuristic.score >= 95) {
+    if (quickHeuristic.isCorrect && quickHeuristic.score >= 95 && detectedGrammarErrors.length === 0) {
       return NextResponse.json(quickHeuristic);
     }
 
-    // 4. Запрос к LLM для глубокой семантической оценки
+    // 5. Запрос к LLM для глубокой семантической и грамматической оценки
     const defaultKey = ['gsk_', '0fWO7WvRuW3BosCcz81n', 'WGdyb3FY1G6aD7IaBjhD', '22BG3YEGMokO'].join('');
     const groqKey = (apiKey || process.env.GROQ_API_KEY || defaultKey).trim();
     const geminiKey = (apiKey || process.env.GEMINI_API_KEY || '').trim();
 
-    const systemPrompt = `ТЫ — ОПЫТНЫЙ ПРЕПОДАВАТЕЛЬ ИВРИТА В УЛЬПАНЕ.
-Ученик выполняет задание в ролевом диалоге. Ученик отвечает ГОЛОСОМ.
+    const systemPrompt = `ТЫ — СТРОГИЙ, НО ДОБРОЖЕЛАТЕЛЬНЫЙ ПРЕПОДАВАТЕЛЬ ИВРИТА В УЛЬПАНЕ.
+Ученик выполняет задание в ролевом диалоге и отвечает ГОЛОСОМ.
 ТВОЯ ЗАДАЧА:
 1. Оценить ответ ученика ПО СМЫСЛУ, а НЕ ПО БУКВАЛЬНОМУ СОВПАДЕНИЮ СЛОВ.
-2. Оценить ЧЁТКОСТЬ ПРОИЗНОШЕНИЯ И ФОНЕТИКУ (особенно окончания слов, буквы софиты, грамматический род).
+2. СТРОГО ПРОВЕРИТЬ ГРАММАТИЧЕСКИЙ РОД И СОГЛАСОВАНИЕ СЛОВ (особенно указательные местоимения זֶה / זֹאת / אֵלֶּה).
+3. Оценить ЧЁТКОСТЬ ПРОИЗНОШЕНИЯ И ФОНЕТИКУ (особенно окончания слов, буквы софиты, выдох ה).
 
 КОНТЕКСТ РЕПЛИКИ:
 - Урок: №${lessonNumber} (Уровень ${level.toUpperCase()})
@@ -184,22 +339,29 @@ export async function POST(req: NextRequest) {
 - Ключевые понятия: ${JSON.stringify(acceptableKeywords)}
 - Пол ученика: ${userGender === 'female' ? 'Женский (נקבה)' : 'Мужской (זכר)'}
 - Пол собеседника: ${opponentGender === 'female' ? 'Женский (נקבה)' : 'Мужской (זכר)'}
-- ЧТО СКАЗАЛ УЧЕНИК: "${trimmedUser}"
+- ЧТО СКАЗАЛ УЧЕНИК: "${trimmedUser}"${grammarWarningText}
 
 ГЛАВНЫЕ ПРАВИЛА ПРОВЕРКИ:
-1. СМЫСЛ:
-Ученик НЕ ОБЯЗАН повторять эталон слово в слово! Если ученик передал нужный смысл своими словами, правильно употребил род и смысл фразы понятен собеседнику — засчитай ответ как ПРАВИЛЬНЫЙ (isCorrect = true, assessment = "perfect" или "good").
+1. ГРАММАТИКА РОДА И ЧИСЛА (КРИТИЧЕСКИ ВАЖНО):
+- Указательное местоимение «זֶה» (зэ) используется ТОЛЬКО со словами мужского рода (זכר): זֶה אַבָּא, זֶה אָח, זֶה בַּיִת, זֶה סֵפֶר, זֶה בֵּית סֵפֶר.
+- Указательное местоимение «זֹאת» (зот) или «זוֹ» (зо) используется ТОЛЬКО со словами женского рода (נקבה): זֹאת אִמָּא, זֹאת מִשְׁפָּחָה, זֹאת תְּמוּנָה, זֹאת אָחוֹת, זֹאת דִּירָה.
+- Для множественного числа («это / эти») используется ТОЛЬКО «אֵלֶּה» (э́ле): אֵלֶּה הוֹרִים, אֵלֶּה יְלָדִים, אֵלֶּה אַחִים.
+- ЕСЛИ УЧЕНИК НАРУШИЛ РОД (например сказал "זה אמא", "זה משפחה", "זאת אבא", "זה הורים"):
+  * Это ГРУБАЯ грамматическая ошибка ульпана!
+  * Оценка score НЕ МОЖЕТ быть выше 70!
+  * Поле "assessment" НЕ МОЖЕТ быть "perfect" (только "good" если общий смысл понятен, или "incorrect").
+  * В "feedbackRu" ОБЯЗАТЕЛЬНО объясни ошибку рода простыми словами: какое слово какого рода и какое местоимение нужно использовать.
+
+2. СМЫСЛ:
+Ученик НЕ ОБЯЗАН повторять эталон слово в слово! Если ученик передал нужный смысл своими словами и правильно согласовал род — ответ ПРАВИЛЬНЫЙ (isCorrect = true, assessment = "perfect").
 Например:
 - Вместо "אֲנִי רוֹצֶה קָפֶה" ученик сказал "אֶפְשָׁר קָפֶה בְּבַקָּשָׁה" -> ПРАВИЛЬНО (isCorrect: true, assessment: "perfect").
-- Вместо "הַכֹּל טוֹב" ученик сказал "בְּסֵדֶר גָּמוּר, תּוֹדָה" -> ПРАВИЛЬНО (isCorrect: true, assessment: "perfect").
 - Если смысл совсем другой или бред — isCorrect = false, assessment = "incorrect".
 
-2. ФОНЕТИКА И ОКОНЧАНИЯ СЛОВ:
-- "pronunciationScore": число от 0 до 100 (оценка чистоты произношения, договаривания окончаний и правильности звуков).
+3. ФОНЕТИКА И ОКОНЧАНИЯ СЛОВ:
+- "pronunciationScore": число от 0 до 100.
 - "pronunciationFeedbackRu": Конкретная практическая рекомендация на русском языке по произношению:
   * Проверь окончания слов: буквы софиты (ם, ך), выдох на букве ה на конце, окончание ת женского рода.
-  * Напомни, если есть опасность оглушения звонких согласных в конце слова.
-  * Предупреди о типичных ошибках: редукция безударных гласных (например, [а] звучит как [э]), проглатывание слогов.
   * Если всё произнесено чётко — похвали артикуляцию!
 
 Ответь СТРОГО в формате JSON без разметки:
@@ -207,11 +369,38 @@ export async function POST(req: NextRequest) {
   "isCorrect": true,
   "score": 90,
   "assessment": "perfect",
-  "feedbackRu": "Краткий (1-2 предложения) комментарий по смыслу ответа.",
+  "feedbackRu": "Краткий комментарий по смыслу и грамматике ответа.",
   "pronunciationScore": 88,
   "pronunciationFeedbackRu": "Конкретная рекомендация по фонетике и концовкам букв/звуков.",
   "betterAlternative": "Естественная альтернатива с огласовками (если уместно)"
 }`;
+
+    const applyGrammarSafetyEnforcement = (resData: DialogueEvaluationResult): DialogueEvaluationResult => {
+      if (detectedGrammarErrors.length > 0) {
+        // Принудительно ограничиваем оценку и статус при наличии грамматических ошибок
+        if (resData.score > 70) {
+          resData.score = 70;
+        }
+        if (resData.assessment === 'perfect') {
+          resData.assessment = 'good';
+        }
+        const errorSummary = detectedGrammarErrors.map((e) => e.explanationRu).join(' ');
+        const feedbackLower = resData.feedbackRu.toLowerCase();
+        const hasGrammarMention =
+          feedbackLower.includes('род') ||
+          feedbackLower.includes('זֶה') ||
+          feedbackLower.includes('זֹאת') ||
+          feedbackLower.includes('זה') ||
+          feedbackLower.includes('זאת') ||
+          feedbackLower.includes('אלה') ||
+          feedbackLower.includes('местоимен');
+
+        if (!hasGrammarMention) {
+          resData.feedbackRu = `Смысл понятен, но обратите внимание на грамматику рода: ${errorSummary} ${resData.feedbackRu}`.trim();
+        }
+      }
+      return resData;
+    };
 
     if (groqKey) {
       const groqModels = [
@@ -241,7 +430,7 @@ export async function POST(req: NextRequest) {
             const rawContent = data.choices?.[0]?.message?.content?.trim();
             if (rawContent) {
               const parsed = JSON.parse(rawContent);
-              return NextResponse.json({
+              const evalResult: DialogueEvaluationResult = {
                 isCorrect: Boolean(parsed.isCorrect),
                 score: typeof parsed.score === 'number' ? Math.min(100, Math.max(0, parsed.score)) : (parsed.isCorrect ? 90 : 40),
                 assessment: (['perfect', 'good', 'incorrect'].includes(parsed.assessment) ? parsed.assessment : (parsed.isCorrect ? 'good' : 'incorrect')) as any,
@@ -250,7 +439,9 @@ export async function POST(req: NextRequest) {
                 pronunciationFeedbackRu: sanitizeRussianTranslation(parsed.pronunciationFeedbackRu || 'Следите за четкостью произношения окончаний.'),
                 betterAlternative: parsed.betterAlternative ? String(parsed.betterAlternative).trim() : referenceHebrew,
                 userSpokenHebrew: trimmedUser,
-              } satisfies DialogueEvaluationResult);
+              };
+
+              return NextResponse.json(applyGrammarSafetyEnforcement(evalResult));
             }
           }
         } catch {}
@@ -274,7 +465,7 @@ export async function POST(req: NextRequest) {
           const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
           if (text) {
             const parsed = JSON.parse(text);
-            return NextResponse.json({
+            const evalResult: DialogueEvaluationResult = {
               isCorrect: Boolean(parsed.isCorrect),
               score: typeof parsed.score === 'number' ? parsed.score : (parsed.isCorrect ? 90 : 40),
               assessment: parsed.assessment || (parsed.isCorrect ? 'good' : 'incorrect'),
@@ -283,7 +474,9 @@ export async function POST(req: NextRequest) {
               pronunciationFeedbackRu: sanitizeRussianTranslation(parsed.pronunciationFeedbackRu || 'Следите за четкостью произношения окончаний.'),
               betterAlternative: parsed.betterAlternative || referenceHebrew,
               userSpokenHebrew: trimmedUser,
-            } satisfies DialogueEvaluationResult);
+            };
+
+            return NextResponse.json(applyGrammarSafetyEnforcement(evalResult));
           }
         }
       } catch {}

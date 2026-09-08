@@ -142,6 +142,8 @@ export const ScriptedDialogueTrainer: React.FC<ScriptedDialogueTrainerProps> = (
 
   // Рекогнайзер речи для микрофона и рефы для скролла
   const recognizerRef = useRef<HebrewSpeechRecognizer | null>(null);
+  const spokenTextRef = useRef<string>('');
+  const evaluatingTurnRef = useRef<number | null>(null);
   const turnsScrollRef = useRef<HTMLDivElement>(null);
   const practiceScrollRef = useRef<HTMLDivElement>(null);
   const evaluationRef = useRef<HTMLDivElement>(null);
@@ -303,6 +305,26 @@ export const ScriptedDialogueTrainer: React.FC<ScriptedDialogueTrainerProps> = (
   // -------------------------------------------------------------
   // Голосовой ввод ученика (Только микрофон)
   // -------------------------------------------------------------
+  const handleFinalSpeechResult = (recognizedHebrew: string) => {
+    const text = recognizedHebrew.trim();
+    if (!text) {
+      setIsRecording(false);
+      setIsEvaluating(false);
+      return;
+    }
+
+    // Защита от повторной или конкурирующей отправки одной и той же реплики
+    if (evaluatingTurnRef.current === practiceTurnIndex && isEvaluating) {
+      return;
+    }
+
+    evaluatingTurnRef.current = practiceTurnIndex;
+    setIsRecording(false);
+    setSpokenText(text);
+    spokenTextRef.current = text;
+    evaluateStudentResponse(text);
+  };
+
   const startVoiceRecording = () => {
     if (isRecording) {
       stopVoiceRecording();
@@ -311,45 +333,75 @@ export const ScriptedDialogueTrainer: React.FC<ScriptedDialogueTrainerProps> = (
 
     stopSpeech();
     setSpokenText('');
+    spokenTextRef.current = '';
     setLastEvaluation(null);
+    evaluatingTurnRef.current = null;
     setIsRecording(true);
+    setIsEvaluating(false);
 
     const recognizer = new HebrewSpeechRecognizer();
     recognizerRef.current = recognizer;
 
     recognizer.start(
       (transcript, isFinal) => {
-        setSpokenText(transcript);
-        if (isFinal) {
-          setIsRecording(false);
-          evaluateStudentResponse(transcript);
+        if (transcript) {
+          setSpokenText(transcript);
+          spokenTextRef.current = transcript;
+        }
+        if (isFinal && transcript && transcript.trim()) {
+          handleFinalSpeechResult(transcript);
         }
       },
       (error) => {
         console.warn('Speech recognition error:', error);
         setIsRecording(false);
+        setIsEvaluating(false);
       },
       (finalTranscript) => {
-        setIsRecording(false);
-        if (finalTranscript && finalTranscript.trim()) {
-          evaluateStudentResponse(finalTranscript);
+        // Вызывается после остановки рекогнайзера и полной расшифровки Whisper
+        const text = (finalTranscript && finalTranscript.trim()) || spokenTextRef.current.trim();
+        if (text) {
+          handleFinalSpeechResult(text);
+        } else {
+          setIsRecording(false);
+          setIsEvaluating(false);
         }
       },
       {
-        continuous: false,
-        silenceDurationMs: 1400,
+        continuous: true, // КРИТИЧЕСКИ ВАЖНО: не обрывать прослушивание на паузах ученика
+        silenceDurationMs: 2800, // 2.8 секунды тишины для комфортной паузы в устной речи
+        onSilenceDetected: (transcript) => {
+          const text = (transcript && transcript.trim()) || spokenTextRef.current.trim();
+          if (text) {
+            if (recognizerRef.current) {
+              recognizerRef.current.stop();
+            }
+            handleFinalSpeechResult(text);
+          }
+        },
       }
     );
   };
 
   const stopVoiceRecording = () => {
+    setIsRecording(false);
+    setIsEvaluating(true);
+
     if (recognizerRef.current) {
       recognizerRef.current.stop();
     }
-    setIsRecording(false);
-    if (spokenText && spokenText.trim()) {
-      evaluateStudentResponse(spokenText);
-    }
+
+    // Страховочный таймаут: если рекогнайзер/Whisper не вызвал onEnd в течение 1.5 сек
+    setTimeout(() => {
+      if (evaluatingTurnRef.current !== practiceTurnIndex) {
+        const text = spokenTextRef.current.trim();
+        if (text) {
+          handleFinalSpeechResult(text);
+        } else {
+          setIsEvaluating(false);
+        }
+      }
+    }, 1500);
   };
 
   // -------------------------------------------------------------
@@ -1082,13 +1134,17 @@ export const ScriptedDialogueTrainer: React.FC<ScriptedDialogueTrainerProps> = (
 
               {/* Поле того, что произнес ученик (показывается во время распознавания) */}
               {spokenText && !lastEvaluation && (
-                <div className="p-3 rounded-2xl bg-blue-50/90 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-900/60 space-y-1 animate-fadeIn shadow-2xs">
+                <div className="p-3 rounded-2xl bg-blue-50/90 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-900/60 space-y-1.5 animate-fadeIn shadow-2xs overflow-hidden">
                   <span className="text-xs font-bold text-blue-700 dark:text-blue-300 uppercase tracking-wider flex items-center gap-1.5">
                     <span>🎙️</span>
                     <span>Распознанная речь:</span>
                   </span>
-                  <div dir="rtl" className="text-lg sm:text-xl font-extrabold font-hebrew text-zinc-900 dark:text-zinc-50 leading-relaxed">
-                    «{spokenText}»
+                  <div className="flex items-start gap-1 text-lg sm:text-xl font-extrabold font-hebrew text-zinc-900 dark:text-zinc-50 leading-relaxed min-w-0">
+                    <span className="text-blue-400 select-none shrink-0">«</span>
+                    <bdi dir="rtl" className="break-words whitespace-pre-wrap text-right flex-1 min-w-0">
+                      {spokenText}
+                    </bdi>
+                    <span className="text-blue-400 select-none shrink-0">»</span>
                   </div>
                 </div>
               )}
@@ -1132,7 +1188,7 @@ export const ScriptedDialogueTrainer: React.FC<ScriptedDialogueTrainerProps> = (
 
                   {/* 1. Как ИИ распознал сказанную фразу */}
                   {(lastEvaluation.userSpokenHebrew || spokenText) && (
-                    <div className="p-3 sm:p-3.5 rounded-xl bg-white/95 dark:bg-black/40 border border-black/10 dark:border-white/10 shadow-2xs space-y-1">
+                    <div className="p-3 sm:p-3.5 rounded-xl bg-white/95 dark:bg-black/40 border border-black/10 dark:border-white/10 shadow-2xs space-y-1.5 overflow-hidden">
                       <div className="flex items-center justify-between">
                         <span className="text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider flex items-center gap-1.5">
                           <span>🎯</span>
@@ -1141,14 +1197,18 @@ export const ScriptedDialogueTrainer: React.FC<ScriptedDialogueTrainerProps> = (
                         <button
                           type="button"
                           onClick={() => speakHebrew(lastEvaluation.userSpokenHebrew || spokenText, { rate: speechRate })}
-                          className="p-1.5 rounded-lg text-zinc-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+                          className="p-1.5 rounded-lg text-zinc-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition shrink-0"
                           title="Прослушать как это прозвучало"
                         >
                           <Volume2 className="w-4 h-4" />
                         </button>
                       </div>
-                      <div dir="rtl" className="text-lg sm:text-xl font-black font-hebrew text-zinc-900 dark:text-zinc-50 leading-relaxed">
-                        «{lastEvaluation.userSpokenHebrew || spokenText}»
+                      <div className="flex items-start gap-1 text-lg sm:text-xl font-black font-hebrew text-zinc-900 dark:text-zinc-50 leading-relaxed min-w-0">
+                        <span className="text-zinc-400 select-none shrink-0">«</span>
+                        <bdi dir="rtl" className="break-words whitespace-pre-wrap text-right flex-1 min-w-0">
+                          {lastEvaluation.userSpokenHebrew || spokenText}
+                        </bdi>
+                        <span className="text-zinc-400 select-none shrink-0">»</span>
                       </div>
                     </div>
                   )}
