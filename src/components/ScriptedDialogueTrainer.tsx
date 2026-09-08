@@ -21,6 +21,8 @@ import {
   Award,
   RefreshCw,
   FastForward,
+  Info,
+  X,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import {
@@ -96,10 +98,32 @@ export const ScriptedDialogueTrainer: React.FC<ScriptedDialogueTrainerProps> = (
   const [showHint, setShowHint] = useState<boolean>(false);
   const [lastEvaluation, setLastEvaluation] = useState<DialogueEvaluationResult | null>(null);
   const [turnHistory, setTurnHistory] = useState<Record<number, DialogueEvaluationResult>>({});
+  const [showSituationModal, setShowSituationModal] = useState<boolean>(false);
 
-  // Рекогнайзер речи для микрофона
+  // Рекогнайзер речи для микрофона и рефы для скролла
   const recognizerRef = useRef<HebrewSpeechRecognizer | null>(null);
   const turnsScrollRef = useRef<HTMLDivElement>(null);
+  const practiceScrollRef = useRef<HTMLDivElement>(null);
+  const evaluationRef = useRef<HTMLDivElement>(null);
+  const bottomConsoleRef = useRef<HTMLDivElement>(null);
+
+  // Автоматическая прокрутка к блоку оценки при ее получении
+  useEffect(() => {
+    if (lastEvaluation) {
+      setShowHint(false);
+      const timer = setTimeout(() => {
+        evaluationRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }, 60);
+      return () => clearTimeout(timer);
+    }
+  }, [lastEvaluation]);
+
+  // Автоматическая прокрутка истории реплик вниз при обновлении хода в практике
+  useEffect(() => {
+    if (mode === 'practice' && practiceScrollRef.current) {
+      practiceScrollRef.current.scrollTop = practiceScrollRef.current.scrollHeight;
+    }
+  }, [practiceTurnIndex, mode]);
 
   // Остановка звука при размонтировании
   useEffect(() => {
@@ -365,25 +389,65 @@ export const ScriptedDialogueTrainer: React.FC<ScriptedDialogueTrainerProps> = (
   // -------------------------------------------------------------
   return (
     <div className="flex flex-col h-full min-h-0 w-full bg-zinc-50/50 dark:bg-zinc-950/40 rounded-2xl overflow-hidden border border-zinc-200/80 dark:border-zinc-800">
-      {/* 1. Верхняя панель управления: выбор полов, скорость и переключатели */}
+      {/* 1. Верхняя панель управления: заголовок, ситуация, полы, скорость */}
       <div className="shrink-0 p-2.5 sm:p-3 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 flex flex-wrap items-center justify-between gap-2 shadow-2xs">
-        {/* Заголовок диалога и переключатель режимов */}
+        {/* Заголовок диалога и кнопка информации о ситуации */}
         <div className="flex items-center gap-2 min-w-0">
           <div className="w-8 h-8 rounded-xl bg-blue-100 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold shrink-0">
             💬
           </div>
           <div className="min-w-0">
-            <h3 className="font-bold text-sm sm:text-base text-zinc-900 dark:text-zinc-100 truncate">
-              {dialogue.titleRu}
-            </h3>
+            <div className="flex items-center gap-1.5">
+              <h3 className="font-bold text-sm sm:text-base text-zinc-900 dark:text-zinc-100 truncate">
+                {dialogue.titleRu}
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowSituationModal(!showSituationModal)}
+                className={`p-1 rounded-lg transition shrink-0 ${
+                  showSituationModal
+                    ? 'bg-blue-100 dark:bg-blue-950 text-blue-600 dark:text-blue-400'
+                    : 'text-zinc-400 hover:text-blue-600 dark:hover:text-blue-400'
+                }`}
+                title={showSituationModal ? 'Скрыть контекст ситуации' : 'Показать контекст ситуации'}
+              >
+                <Info className="w-4 h-4" />
+              </button>
+            </div>
             <p className="text-xs text-zinc-400 truncate font-hebrew" dir="rtl">
               {dialogue.titleHe}
             </p>
           </div>
         </div>
 
-        {/* Переключатели полов (Ученик и Оппонент) */}
+        {/* Управление и переключатели */}
         <div className="flex items-center gap-1.5 flex-wrap">
+          {/* Быстрый запуск прослушивания в шапке */}
+          {mode === 'listen' && (
+            <button
+              type="button"
+              onClick={handleTogglePlayAll}
+              className={`px-2.5 py-1 rounded-xl font-bold text-xs flex items-center gap-1.5 shadow-2xs transition ${
+                isPlayingAll
+                  ? 'bg-amber-600 hover:bg-amber-700 text-white animate-pulse'
+                  : 'bg-blue-600 hover:bg-blue-700 text-white'
+              }`}
+              title={isPlayingAll ? 'Приостановить' : 'Слушать все реплики'}
+            >
+              {isPlayingAll ? (
+                <>
+                  <Pause className="w-3.5 h-3.5 fill-white" />
+                  <span>Пауза</span>
+                </>
+              ) : (
+                <>
+                  <Play className="w-3.5 h-3.5 fill-white" />
+                  <span>Слушать всё</span>
+                </>
+              )}
+            </button>
+          )}
+
           {/* Пол собеседника */}
           <div className="flex items-center bg-zinc-100 dark:bg-zinc-800 p-0.5 rounded-xl text-xs">
             <span className="text-[11px] text-zinc-400 px-1.5 hidden sm:inline">Собеседник:</span>
@@ -465,42 +529,30 @@ export const ScriptedDialogueTrainer: React.FC<ScriptedDialogueTrainerProps> = (
         </div>
       </div>
 
+      {/* Баннер ситуации (показывается только по нажатию на ℹ️ и не занимает место постоянно) */}
+      {showSituationModal && (
+        <div className="p-2.5 px-3 bg-blue-50/90 dark:bg-blue-950/60 border-b border-blue-200 dark:border-blue-800/70 flex items-center justify-between gap-2 text-xs text-blue-900 dark:text-blue-200 shrink-0">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="font-bold shrink-0">Ситуация:</span>
+            <span className="truncate sm:whitespace-normal">{dialogue.situationRu}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowSituationModal(false)}
+            className="text-blue-500 hover:text-blue-700 dark:hover:text-blue-300 p-0.5 rounded shrink-0 cursor-pointer"
+            title="Скрыть"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
       {/* 2. Основное тело: переключение между режимами */}
 
       {/* РЕЖИМ 1: ПРОСЛУШИВАНИЕ ДИАЛОГА (LISTEN) */}
       {mode === 'listen' && (
         <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-          {/* Панель подсказки ситуации и запуска авто-чтения */}
-          <div className="p-3 bg-blue-50/60 dark:bg-blue-950/30 border-b border-blue-100 dark:border-blue-900/50 flex items-center justify-between gap-3 shrink-0">
-            <div className="text-xs text-blue-800 dark:text-blue-300 leading-relaxed min-w-0">
-              <span className="font-bold">Ситуация: </span>
-              {dialogue.situationRu}
-            </div>
-
-            <div className="flex items-center gap-2 shrink-0">
-              <button
-                type="button"
-                onClick={handleTogglePlayAll}
-                className={`px-3 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1.5 shadow-2xs transition ${
-                  isPlayingAll
-                    ? 'bg-amber-600 hover:bg-amber-700 text-white animate-pulse'
-                    : 'bg-blue-600 hover:bg-blue-700 text-white'
-                }`}
-              >
-                {isPlayingAll ? (
-                  <>
-                    <Pause className="w-3.5 h-3.5 fill-white" />
-                    <span>Пауза</span>
-                  </>
-                ) : (
-                  <>
-                    <Play className="w-3.5 h-3.5 fill-white" />
-                    <span>Слушать весь диалог</span>
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
+          {/* Список реплик диалога в стиле чата — занимает 100% высоты без лишних баннеров */}
 
           {/* Список реплик диалога в стиле чата */}
           <div
@@ -589,13 +641,35 @@ export const ScriptedDialogueTrainer: React.FC<ScriptedDialogueTrainerProps> = (
             })}
           </div>
 
-          {/* Нижняя панель действий: переключатели отображения и кнопка перехода к роли */}
+          {/* Нижняя панель действий: воспроизведение, переключатели отображения и кнопка перехода к роли */}
           <div className="p-3 bg-white dark:bg-zinc-900 border-t border-zinc-200 dark:border-zinc-800 flex flex-wrap items-center justify-between gap-2 shrink-0">
-            <div className="flex items-center gap-1.5 text-xs text-zinc-500">
+            <div className="flex items-center gap-1.5 flex-wrap text-xs text-zinc-500">
+              <button
+                type="button"
+                onClick={handleTogglePlayAll}
+                className={`px-3 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1.5 shadow-2xs transition cursor-pointer ${
+                  isPlayingAll
+                    ? 'bg-amber-600 hover:bg-amber-700 text-white animate-pulse'
+                    : 'bg-blue-600 hover:bg-blue-700 text-white'
+                }`}
+              >
+                {isPlayingAll ? (
+                  <>
+                    <Pause className="w-3.5 h-3.5 fill-white" />
+                    <span>Пауза</span>
+                  </>
+                ) : (
+                  <>
+                    <Play className="w-3.5 h-3.5 fill-white" />
+                    <span>Слушать весь диалог</span>
+                  </>
+                )}
+              </button>
+
               <button
                 type="button"
                 onClick={() => setShowTranscription(!showTranscription)}
-                className={`px-2 py-1 rounded-lg border transition ${
+                className={`px-2 py-1 rounded-lg border transition cursor-pointer ${
                   showTranscription
                     ? 'border-blue-300 bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 dark:border-blue-800'
                     : 'border-zinc-200 dark:border-zinc-800 text-zinc-400'
@@ -606,7 +680,7 @@ export const ScriptedDialogueTrainer: React.FC<ScriptedDialogueTrainerProps> = (
               <button
                 type="button"
                 onClick={() => setShowTranslation(!showTranslation)}
-                className={`px-2 py-1 rounded-lg border transition ${
+                className={`px-2 py-1 rounded-lg border transition cursor-pointer ${
                   showTranslation
                     ? 'border-blue-300 bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 dark:border-blue-800'
                     : 'border-zinc-200 dark:border-zinc-800 text-zinc-400'
@@ -623,7 +697,7 @@ export const ScriptedDialogueTrainer: React.FC<ScriptedDialogueTrainerProps> = (
                 setIsPlayingAll(false);
                 setMode('select_role');
               }}
-              className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs sm:text-sm flex items-center gap-2 shadow-sm transition"
+              className="px-4 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-xs sm:text-sm flex items-center gap-2 shadow-sm transition cursor-pointer"
             >
               <span>Выбрать роль и ответить голосом</span>
               <ArrowRight className="w-4 h-4" />
@@ -731,7 +805,10 @@ export const ScriptedDialogueTrainer: React.FC<ScriptedDialogueTrainerProps> = (
           </div>
 
           {/* История реплик до текущего момента */}
-          <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3">
+          <div
+            ref={practiceScrollRef}
+            className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3"
+          >
             {dialogue.turns.slice(0, practiceTurnIndex + 1).map((turn, idx) => {
               const isSpeakerUser = turn.speaker === userRoleSide;
               const variant = getTurnText(turn);
@@ -812,18 +889,23 @@ export const ScriptedDialogueTrainer: React.FC<ScriptedDialogueTrainerProps> = (
 
           {/* Интерактивная нижняя консоль для ответа ученика ГОЛОСОМ */}
           {dialogue.turns[practiceTurnIndex] && dialogue.turns[practiceTurnIndex].speaker === userRoleSide && (
-            <div className="p-3 sm:p-4 bg-white dark:bg-zinc-900 border-t border-zinc-200 dark:border-zinc-800 space-y-3 shrink-0">
+            <div
+              ref={bottomConsoleRef}
+              className="p-3 sm:p-4 bg-white dark:bg-zinc-900 border-t border-zinc-200 dark:border-zinc-800 space-y-2.5 max-h-[50vh] sm:max-h-[55vh] overflow-y-auto shrink-0 shadow-lg"
+            >
               {/* Коммуникативная подсказка */}
               <div className="flex items-center justify-between gap-2">
-                <div className="text-xs font-medium text-zinc-600 dark:text-zinc-300 flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
-                  <span>Ваша задача: <strong>{dialogue.turns[practiceTurnIndex].intentRu}</strong></span>
+                <div className="text-xs font-medium text-zinc-600 dark:text-zinc-300 flex items-center gap-1.5 min-w-0">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping shrink-0" />
+                  <span className="truncate sm:whitespace-normal">
+                    Ваша задача: <strong>{dialogue.turns[practiceTurnIndex].intentRu}</strong>
+                  </span>
                 </div>
 
                 <button
                   type="button"
                   onClick={() => setShowHint(!showHint)}
-                  className="text-xs text-blue-600 dark:text-blue-400 font-semibold flex items-center gap-1 hover:underline cursor-pointer"
+                  className="text-xs text-blue-600 dark:text-blue-400 font-semibold flex items-center gap-1 hover:underline cursor-pointer shrink-0"
                 >
                   <Lightbulb className="w-3.5 h-3.5" />
                   <span>{showHint ? 'Скрыть подсказку' : 'Подсказка'}</span>
@@ -855,9 +937,9 @@ export const ScriptedDialogueTrainer: React.FC<ScriptedDialogueTrainerProps> = (
 
               {/* Поле того, что произнес ученик */}
               {spokenText && (
-                <div className="p-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-800/80 border border-zinc-200 dark:border-zinc-700 text-xs space-y-1">
-                  <span className="text-[11px] font-bold text-zinc-400">Распознано:</span>
-                  <div dir="rtl" className="text-base font-bold font-hebrew text-zinc-900 dark:text-zinc-100">
+                <div className="p-2 rounded-xl bg-zinc-50 dark:bg-zinc-800/80 border border-zinc-200 dark:border-zinc-700 text-xs space-y-0.5">
+                  <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Распознано:</span>
+                  <div dir="rtl" className="text-sm sm:text-base font-bold font-hebrew text-zinc-900 dark:text-zinc-100">
                     {spokenText}
                   </div>
                 </div>
@@ -866,23 +948,24 @@ export const ScriptedDialogueTrainer: React.FC<ScriptedDialogueTrainerProps> = (
               {/* Результат семантической и фонетической проверки ИИ */}
               {lastEvaluation && (
                 <div
-                  className={`p-3 sm:p-3.5 rounded-xl text-xs space-y-2 transition-all animate-fadeIn ${
+                  ref={evaluationRef}
+                  className={`p-3 rounded-xl text-xs space-y-2 transition-all animate-fadeIn ${
                     lastEvaluation.isCorrect
-                      ? 'bg-emerald-50/90 dark:bg-emerald-950/50 border border-emerald-300 dark:border-emerald-800 text-emerald-950 dark:text-emerald-100'
-                      : 'bg-amber-50/90 dark:bg-amber-950/50 border border-amber-300 dark:border-amber-800 text-amber-950 dark:text-amber-100'
+                      ? 'bg-emerald-50/95 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-800 text-emerald-950 dark:text-emerald-100'
+                      : 'bg-amber-50/95 dark:bg-amber-950/60 border border-amber-300 dark:border-amber-800 text-amber-950 dark:text-amber-100'
                   }`}
                 >
                   <div className="flex items-center justify-between gap-2 flex-wrap">
                     <div className="flex items-center gap-2">
-                      <span className="font-extrabold flex items-center gap-1.5 text-sm">
+                      <span className="font-extrabold flex items-center gap-1.5 text-xs sm:text-sm">
                         {lastEvaluation.isCorrect ? (
                           <>
-                            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
                             <span>{lastEvaluation.assessment === 'perfect' ? '🎉 Отлично!' : '👍 Хорошо, вас поняли!'}</span>
                           </>
                         ) : (
                           <>
-                            <AlertCircle className="w-4 h-4 text-amber-600" />
+                            <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
                             <span>Попробуйте еще раз</span>
                           </>
                         )}
@@ -890,22 +973,12 @@ export const ScriptedDialogueTrainer: React.FC<ScriptedDialogueTrainerProps> = (
 
                       {/* Индикатор четкости произношения в % */}
                       {typeof lastEvaluation.pronunciationScore === 'number' && (
-                        <span className="px-2 py-0.5 rounded-md bg-white/80 dark:bg-black/30 border border-black/5 dark:border-white/10 text-[11px] font-bold text-blue-700 dark:text-blue-300 flex items-center gap-1">
+                        <span className="px-2 py-0.5 rounded-md bg-white/80 dark:bg-black/30 border border-black/5 dark:border-white/10 text-[11px] font-bold text-blue-700 dark:text-blue-300 flex items-center gap-1 shrink-0">
                           <span>🎙️ Произношение:</span>
                           <span>{lastEvaluation.pronunciationScore}%</span>
                         </span>
                       )}
                     </div>
-
-                    {lastEvaluation.isCorrect && (
-                      <button
-                        type="button"
-                        onClick={handleProceedToNextTurn}
-                        className="px-3 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition"
-                      >
-                        Дальше →
-                      </button>
-                    )}
                   </div>
 
                   {/* Оценка смысла */}
@@ -915,7 +988,7 @@ export const ScriptedDialogueTrainer: React.FC<ScriptedDialogueTrainerProps> = (
 
                   {/* Рекомендация по произношению, окончаниям и звукам */}
                   {lastEvaluation.pronunciationFeedbackRu && (
-                    <div className="p-2.5 rounded-lg bg-white/70 dark:bg-black/25 border border-black/5 dark:border-white/5 space-y-1">
+                    <div className="p-2 sm:p-2.5 rounded-lg bg-white/70 dark:bg-black/25 border border-black/5 dark:border-white/5 space-y-1">
                       <div className="font-bold flex items-center gap-1.5 text-[11px] text-zinc-800 dark:text-zinc-200">
                         <span>🗣️</span>
                         <span>Рекомендация по произношению:</span>
@@ -934,38 +1007,89 @@ export const ScriptedDialogueTrainer: React.FC<ScriptedDialogueTrainerProps> = (
                 </div>
               )}
 
-              {/* Главная кнопка микрофона («Только голос») */}
-              <div className="flex items-center justify-center pt-1">
-                <button
-                  type="button"
-                  onClick={startVoiceRecording}
-                  disabled={isEvaluating}
-                  className={`relative px-6 py-3.5 rounded-2xl font-bold text-sm flex items-center gap-3 transition-all cursor-pointer shadow-md active:scale-95 ${
-                    isRecording
-                      ? 'bg-red-600 text-white animate-pulse ring-4 ring-red-300 dark:ring-red-900'
-                      : isEvaluating
-                      ? 'bg-zinc-400 text-white cursor-wait'
-                      : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white'
-                  }`}
-                >
-                  {isRecording ? (
-                    <>
-                      <MicOff className="w-5 h-5" />
-                      <span>Слушаю... Нажмите, когда закончите</span>
-                    </>
-                  ) : isEvaluating ? (
-                    <>
-                      <Sparkles className="w-5 h-5 animate-spin" />
-                      <span>ИИ проверяет смысл ответа...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Mic className="w-5 h-5" />
-                      <span>Нажмите и говорите на иврите</span>
-                    </>
-                  )}
-                </button>
-              </div>
+              {/* Кнопки управления ответом */}
+              {lastEvaluation?.isCorrect ? (
+                /* Если ответ верный — заметная зеленая кнопка перехода к следующей реплике + кнопка повторить */
+                <div className="pt-1 flex flex-col sm:flex-row items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handleProceedToNextTurn}
+                    className="w-full sm:flex-1 py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition active:scale-95 cursor-pointer"
+                  >
+                    <span>Следующая реплика</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={startVoiceRecording}
+                    disabled={isEvaluating}
+                    className="w-full sm:w-auto py-2.5 px-3.5 rounded-xl border border-zinc-300 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-300 text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer"
+                  >
+                    <Mic className="w-3.5 h-3.5" />
+                    <span>Сказать ещё раз</span>
+                  </button>
+                </div>
+              ) : lastEvaluation && !lastEvaluation.isCorrect ? (
+                /* Если ответ не подошел — кнопка повторить попытку */
+                <div className="pt-1 flex items-center justify-center">
+                  <button
+                    type="button"
+                    onClick={startVoiceRecording}
+                    disabled={isEvaluating}
+                    className="w-full sm:w-auto px-6 py-3 rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white font-bold text-sm flex items-center justify-center gap-2 shadow-md transition active:scale-95 cursor-pointer"
+                  >
+                    {isRecording ? (
+                      <>
+                        <MicOff className="w-4 h-4 animate-pulse" />
+                        <span>Слушаю... Нажмите для проверки</span>
+                      </>
+                    ) : isEvaluating ? (
+                      <>
+                        <Sparkles className="w-4 h-4 animate-spin" />
+                        <span>ИИ проверяет смысл...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Mic className="w-4 h-4" />
+                        <span>Попробовать снова (голос)</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              ) : (
+                /* Первоначальное состояние — кнопка записи голоса */
+                <div className="pt-1 flex items-center justify-center">
+                  <button
+                    type="button"
+                    onClick={startVoiceRecording}
+                    disabled={isEvaluating}
+                    className={`relative w-full sm:w-auto px-6 py-3.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2.5 transition-all cursor-pointer shadow-md active:scale-95 ${
+                      isRecording
+                        ? 'bg-red-600 text-white animate-pulse ring-4 ring-red-300 dark:ring-red-900'
+                        : isEvaluating
+                        ? 'bg-zinc-400 text-white cursor-wait'
+                        : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white'
+                    }`}
+                  >
+                    {isRecording ? (
+                      <>
+                        <MicOff className="w-5 h-5" />
+                        <span>Слушаю... Нажмите, когда закончите</span>
+                      </>
+                    ) : isEvaluating ? (
+                      <>
+                        <Sparkles className="w-5 h-5 animate-spin" />
+                        <span>ИИ проверяет смысл ответа...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Mic className="w-5 h-5" />
+                        <span>Нажмите и говорите на иврите</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              )}
             </div>
           )}
 
