@@ -515,18 +515,14 @@ export function isWhisperSilenceHallucination(text: string): boolean {
     .toLowerCase();
 
   const hallucinations = new Set([
-    'תודה',
-    'תודה רבה',
-    'תודה רבה לך',
     'תודה על הצפייה',
     'תודה שצפיתם',
     'צפייה מהנה',
-    'thank you',
     'thanks for watching',
     'thank you for watching',
     'спасибо за просмотр',
-    'спасибо',
     'субтитры',
+    'редактор субтитров',
   ]);
 
   return hallucinations.has(clean);
@@ -556,6 +552,7 @@ export class HebrewSpeechRecognizer {
   private mediaStream: MediaStream | null = null;
   private audioContext: AudioContext | null = null;
   private analyser: AnalyserNode | null = null;
+  private mediaSourceNode: MediaStreamAudioSourceNode | null = null;
   private vadInterval: any = null;
   private isListening = false;
   private lastTranscript = '';
@@ -699,7 +696,13 @@ export class HebrewSpeechRecognizer {
       if (!SpeechRecognition) return;
 
       if (this.recognition) {
-        return;
+        try {
+          this.recognition.onresult = null;
+          this.recognition.onerror = null;
+          this.recognition.onend = null;
+          this.recognition.abort();
+        } catch {}
+        this.recognition = null;
       }
 
       const rec = new SpeechRecognition();
@@ -725,7 +728,7 @@ export class HebrewSpeechRecognizer {
       };
 
       rec.onerror = (e: any) => {
-        if (e.error === 'no-speech' || e.error === 'network') {
+        if (e.error === 'no-speech' || e.error === 'network' || e.error === 'aborted') {
           return;
         }
         console.warn('Browser SpeechRecognition error:', e.error);
@@ -745,6 +748,7 @@ export class HebrewSpeechRecognizer {
       this.recognition = rec;
       rec.start();
     } catch (e) {
+      this.recognition = null;
       console.warn('SpeechRecognition start failed:', e);
     }
   }
@@ -763,7 +767,15 @@ export class HebrewSpeechRecognizer {
       }
       this.audioContext = ctx;
 
+      if (this.mediaSourceNode) {
+        try {
+          this.mediaSourceNode.disconnect();
+        } catch {}
+        this.mediaSourceNode = null;
+      }
+
       const source = ctx.createMediaStreamSource(stream);
+      this.mediaSourceNode = source;
       this.analyser = ctx.createAnalyser();
       this.analyser.fftSize = 256;
       this.analyser.smoothingTimeConstant = 0.3;
@@ -773,7 +785,6 @@ export class HebrewSpeechRecognizer {
       const dataArray = new Uint8Array(bufferLength);
 
       let speechFrames = 0;
-      let peakVolume = 0;
       this.hasDetectedSpeech = false;
       this.silenceStartTime = null;
       this.isProcessingSilence = false;
@@ -787,17 +798,16 @@ export class HebrewSpeechRecognizer {
           sum += dataArray[i];
         }
         const avg = sum / bufferLength;
-        const normalized = Math.min(1, Math.max(0, (avg - 3) / 45));
+        const normalized = Math.min(1, Math.max(0, (avg - 3) / 40));
         this.currentOptions.onAudioLevel?.(normalized);
 
-        const threshold = this.currentOptions.speechThreshold ?? 18;
+        const threshold = this.currentOptions.speechThreshold ?? 10;
         const isSpeakingNow = avg > threshold;
 
         if (isSpeakingNow) {
           speechFrames++;
-          if (avg > peakVolume) peakVolume = avg;
-          // Требуем устойчивый звук речи (хотя бы 3 фрейма подряд, т.е. ~150мс) или четкий пик громкости
-          if (speechFrames >= 3 || avg > threshold + 10) {
+          // 2 фрейма подряд (~100мс) выше порога или четкий пик громкости
+          if (speechFrames >= 2 || avg > threshold + 5) {
             this.hasDetectedSpeech = true;
             this.silenceStartTime = null;
           }
@@ -811,17 +821,10 @@ export class HebrewSpeechRecognizer {
               if (Date.now() - this.silenceStartTime >= silenceDuration) {
                 this.isProcessingSilence = true;
                 this.silenceStartTime = null;
-                const wasRealSpeech = this.hasDetectedSpeech && peakVolume >= (threshold + 5);
                 this.hasDetectedSpeech = false;
-                peakVolume = 0;
                 speechFrames = 0;
 
-                if (wasRealSpeech) {
-                  await this.handleSilenceDetected();
-                } else {
-                  // Фоновый шум был слишком тихим или мгновенным - очищаем буфер
-                  this.audioChunks = [];
-                }
+                await this.handleSilenceDetected();
                 this.isProcessingSilence = false;
               }
             }
@@ -842,14 +845,14 @@ export class HebrewSpeechRecognizer {
     if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
       try {
         this.mediaRecorder.requestData();
-        await new Promise((r) => setTimeout(r, 80));
+        await new Promise((r) => setTimeout(r, 100));
 
         if (this.audioChunks.length > 0) {
           const blobType = this.mediaRecorder.mimeType || 'audio/webm';
           const audioBlob = new Blob([...this.audioChunks], { type: blobType });
 
-          // Если записано реальное аудио (более 1500 байт), транскрибируем через Groq Whisper V3
-          if (audioBlob.size > 1500) {
+          // Если записано реальное аудио (более 800 байт), транскрибируем через Groq Whisper V3
+          if (audioBlob.size > 800) {
             const text = await this.transcribeAudioBlob(audioBlob, blobType);
             if (text && text.trim() && !isWhisperSilenceHallucination(text.trim())) {
               this.audioChunks = []; // очищаем буфер только при успешном распознавании
@@ -919,6 +922,13 @@ export class HebrewSpeechRecognizer {
       this.vadInterval = null;
     }
 
+    if (this.mediaSourceNode) {
+      try {
+        this.mediaSourceNode.disconnect();
+      } catch {}
+      this.mediaSourceNode = null;
+    }
+
     this.analyser = null;
 
     if (this.recognition) {
@@ -926,7 +936,7 @@ export class HebrewSpeechRecognizer {
         this.recognition.onresult = null;
         this.recognition.onerror = null;
         this.recognition.onend = null;
-        this.recognition.stop();
+        this.recognition.abort();
       } catch {}
       this.recognition = null;
     }
@@ -967,6 +977,13 @@ export class HebrewSpeechRecognizer {
       this.vadInterval = null;
     }
 
+    if (this.mediaSourceNode) {
+      try {
+        this.mediaSourceNode.disconnect();
+      } catch {}
+      this.mediaSourceNode = null;
+    }
+
     this.analyser = null;
 
     if (this.recognition) {
@@ -974,7 +991,7 @@ export class HebrewSpeechRecognizer {
         this.recognition.onresult = null;
         this.recognition.onerror = null;
         this.recognition.onend = null;
-        this.recognition.stop();
+        this.recognition.abort();
       } catch {}
       this.recognition = null;
     }

@@ -13,6 +13,7 @@ import { AuthModal } from '@/components/AuthModal';
 import { SubscriptionModal } from '@/components/SubscriptionModal';
 import { SectionGuideDrawer } from '@/components/SectionGuideDrawer';
 import { FeedbackDrawer } from '@/components/FeedbackDrawer';
+import { FeedbackButton } from '@/components/FeedbackButton';
 import { UserProfile, Word, UserSession } from '@/types';
 import { loadUserProfile, saveUserProfile, resetLessonProgress, getFirstIncompleteLessonTab } from '@/lib/storage';
 import { initHebrewVoices } from '@/lib/speech';

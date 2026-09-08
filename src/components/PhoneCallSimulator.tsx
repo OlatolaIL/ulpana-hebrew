@@ -289,7 +289,7 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
             !isMutedRef.current &&
             !isAiHangingUpRef.current
           ) {
-            startListening();
+            startListening(true);
           }
         }, 500);
       }
@@ -404,7 +404,7 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
         apiKey: userProfile.groqApiKey || undefined,
         continuous: true,
         silenceDurationMs: silenceDelayMs,
-        speechThreshold: 18,
+        speechThreshold: 10,
         audioContext: phoneAudio.getContext(),
         mediaStream: activeMicStreamRef.current,
         onAudioLevel: (level) => {

@@ -18,6 +18,7 @@ import {
   Space,
   ArrowLeftRight,
   Shuffle,
+  Columns2,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { Word, UserProfile, VerbConjugation } from '@/types';
@@ -50,6 +51,28 @@ interface Tile {
   char: string;
 }
 
+/**
+ * Равномерно разбивает массив слов на части оптимального размера (7–10 слов).
+ * Если слов <= 12, деление не требуется и возвращается исходный массив одной частью.
+ */
+export function splitWordsIntoParts(wordsList: Word[]): Word[][] {
+  const total = wordsList.length;
+  if (total <= 12) {
+    return [wordsList];
+  }
+  const numParts = Math.max(2, Math.ceil(total / 10));
+  const partsList: Word[][] = [];
+  const baseSize = Math.floor(total / numParts);
+  const remainder = total % numParts;
+  let offset = 0;
+  for (let i = 0; i < numParts; i++) {
+    const size = baseSize + (i < remainder ? 1 : 0);
+    partsList.push(wordsList.slice(offset, offset + size));
+    offset += size;
+  }
+  return partsList;
+}
+
 export function getCleanHebrewTarget(word: Word): string {
   const raw = word.hebrewPlain || word.hebrew || '';
   return stripNikkud(raw)
@@ -70,7 +93,7 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
   lessonId,
   onContinueLesson,
 }) => {
-  const [words, setWords] = useState<Word[]>(() => {
+  const [masterWords, setMasterWords] = useState<Word[]>(() => {
     const base = lessonId
       ? initialWords
       : sortWordsBySRSPriority(
@@ -80,6 +103,19 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
         );
     return initialShuffle ? shuffleWords(base) : base;
   });
+
+  const canSplit = masterWords.length > 12;
+  const [isSplitMode, setIsSplitMode] = useState(false);
+  const [parts, setParts] = useState<Word[][]>(() => splitWordsIntoParts(masterWords));
+  const [activePartIndex, setActivePartIndex] = useState<number>(0);
+  const [completedPartIndices, setCompletedPartIndices] = useState<number[]>([]);
+  const [partCompletionStatus, setPartCompletionStatus] = useState<'idle' | 'part_completed' | 'all_parts_completed'>('idle');
+
+  // Активный набор слов: выбранная часть либо все слова колоды
+  const words = isSplitMode && canSplit && activePartIndex >= 0 && parts[activePartIndex]
+    ? parts[activePartIndex]
+    : masterWords;
+
   const [isShuffled, setIsShuffled] = useState(Boolean(initialShuffle));
   const [shuffleToast, setShuffleToast] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -88,12 +124,50 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
   const [isCompleted, setIsCompleted] = useState(false);
 
   const handleShuffleWords = () => {
-    setWords((prev) => shuffleWords(prev));
+    if (isSplitMode && canSplit && activePartIndex >= 0 && parts[activePartIndex]) {
+      setParts((prev) => {
+        const next = [...prev];
+        next[activePartIndex] = shuffleWords(next[activePartIndex]);
+        return next;
+      });
+    } else {
+      const shuffled = shuffleWords(masterWords);
+      setMasterWords(shuffled);
+      setParts(splitWordsIntoParts(shuffled));
+    }
     setCurrentIndex(0);
     setIsFlipped(false);
     setIsShuffled(true);
     setShuffleToast(true);
     setTimeout(() => setShuffleToast(false), 2000);
+  };
+
+  const handleToggleSplitMode = () => {
+    if (!isSplitMode) {
+      const freshParts = splitWordsIntoParts(masterWords);
+      setParts(freshParts);
+      setIsSplitMode(true);
+      setActivePartIndex(0);
+      setCurrentIndex(0);
+      setIsFlipped(false);
+      setPartCompletionStatus('idle');
+      setIsCompleted(false);
+    } else {
+      setIsSplitMode(false);
+      setActivePartIndex(-1);
+      setCurrentIndex(0);
+      setIsFlipped(false);
+      setPartCompletionStatus('idle');
+      setIsCompleted(false);
+    }
+  };
+
+  const handleSelectPart = (idx: number) => {
+    setActivePartIndex(idx);
+    setCurrentIndex(0);
+    setIsFlipped(false);
+    setPartCompletionStatus('idle');
+    setIsCompleted(false);
   };
 
   // Направление карточек: 'he-ru' (иврит на лицевой) или 'ru-he' (русский на лицевой - обратный режим)
@@ -221,7 +295,8 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
 
     // Подготовка вариантов для аудирования
     const isUlpanMode = Boolean(userProfile.ulpanMode);
-    const otherOptions = words
+    const pool = words.length >= 4 ? words : masterWords;
+    const otherOptions = pool
       .filter((w) => w.id !== currentWord.id)
       .map((w) =>
         isUlpanMode
@@ -239,7 +314,7 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
     const shuffledOthers = otherOptions.sort(() => Math.random() - 0.5).slice(0, 3);
     const allOpts = [...shuffledOthers, currentOpt].sort(() => Math.random() - 0.5);
     setQuizOptions(allOpts);
-  }, [currentIndex, mode, currentWord, words, userProfile.ulpanMode, userProfile.showNikkud]);
+  }, [currentIndex, mode, currentWord, words, masterWords, userProfile.ulpanMode, userProfile.showNikkud]);
 
   const triggerCelebration = () => {
     confetti({
@@ -267,11 +342,25 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
     }
   };
 
-  const handleNextWord = (quality = 4) => {
-    handleRecordSRS(quality);
+  const handleFinishSet = () => {
+    if (isSplitMode && canSplit && activePartIndex >= 0) {
+      const nextCompleted = completedPartIndices.includes(activePartIndex)
+        ? completedPartIndices
+        : [...completedPartIndices, activePartIndex];
+      setCompletedPartIndices(nextCompleted);
 
-    if (currentIndex + 1 < words.length) {
-      setCurrentIndex((prev) => prev + 1);
+      triggerCelebration();
+
+      const allDone = parts.every((_, idx) => nextCompleted.includes(idx));
+      if (allDone || activePartIndex >= parts.length - 1) {
+        if (lessonId) {
+          const updated = markLessonTabCompleted(lessonId, 'vocab');
+          if (onUpdateProfile) onUpdateProfile(updated);
+        }
+        setPartCompletionStatus('all_parts_completed');
+      } else {
+        setPartCompletionStatus('part_completed');
+      }
     } else {
       setIsCompleted(true);
       if (lessonId) {
@@ -285,19 +374,21 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
     }
   };
 
+  const handleNextWord = (quality = 4) => {
+    handleRecordSRS(quality);
+
+    if (currentIndex + 1 < words.length) {
+      setCurrentIndex((prev) => prev + 1);
+    } else {
+      handleFinishSet();
+    }
+  };
+
   const handleAdvanceNext = () => {
     if (currentIndex + 1 < words.length) {
       setCurrentIndex((prev) => prev + 1);
     } else {
-      setIsCompleted(true);
-      if (lessonId) {
-        const updated = markLessonTabCompleted(lessonId, 'vocab');
-        if (onUpdateProfile) onUpdateProfile(updated);
-      } else {
-        const updated = loadUserProfile();
-        if (onUpdateProfile) onUpdateProfile(updated);
-      }
-      triggerCelebration();
+      handleFinishSet();
     }
   };
 
@@ -480,6 +571,206 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
 
   const isUlpan = Boolean(userProfile.ulpanMode);
 
+  // ЭКРАН 1: Завершена отдельная часть (не последняя)
+  if (partCompletionStatus === 'part_completed') {
+    const nextPartIdx = activePartIndex + 1;
+    const nextPartWordsCount = parts[nextPartIdx]?.length || 0;
+    return (
+      <div className="bg-white dark:bg-zinc-900 rounded-3xl p-6 sm:p-8 border border-zinc-200 dark:border-zinc-800 shadow-xl max-w-lg mx-auto text-center space-y-6 animate-in zoom-in-95">
+        <div className="w-20 h-20 mx-auto rounded-full bg-blue-100 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center shadow-inner">
+          <CheckCircle2 className="w-10 h-10" />
+        </div>
+        <div className="space-y-2">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 text-xs font-bold border border-blue-200 dark:border-blue-800">
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>
+              {isUlpan
+                ? `חֵלֶק ${activePartIndex + 1} מִתּוֹךְ ${parts.length} הוּשְׁלַם!`
+                : `Часть ${activePartIndex + 1} из ${parts.length} пройдена!`}
+            </span>
+          </div>
+          <h2 className="text-2xl sm:text-3xl font-bold text-zinc-900 dark:text-zinc-50 font-hebrew">
+            !כָּל הַכָּבוֹד
+          </h2>
+          <p className="text-base font-bold text-blue-600 dark:text-blue-400">
+            {isUlpan
+              ? `עֲבוֹדָה מְצוּיֶנֶת! שְׁלַטְתֶּם בְּ-${words.length} מִילִּים.`
+              : `Отлично! Вы повторили ${words.length} слов(а).`}
+          </p>
+          <p className="text-xs text-zinc-500 dark:text-zinc-400">
+            {isUlpan
+              ? `מוּכָנִים לַעֲבוֹר לַחֵלֶק הַבָּא אוֹ לַחֲזוֹר עַל חֵלֶק זֶה?`
+              : `Готовы перейти к следующей части или хотите повторить эту ещё раз?`}
+          </p>
+        </div>
+
+        {/* Индикатор всех частей */}
+        <div className="flex items-center justify-center gap-2 pt-1 pb-1 flex-wrap">
+          {parts.map((p, idx) => {
+            const isFinished = completedPartIndices.includes(idx);
+            const isCurrent = activePartIndex === idx;
+            return (
+              <div
+                key={idx}
+                className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold transition ${
+                  isCurrent
+                    ? 'bg-blue-600 text-white shadow-sm'
+                    : isFinished
+                    ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300'
+                    : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-400'
+                }`}
+              >
+                {isFinished && <CheckCircle2 className="w-3 h-3 text-emerald-500 shrink-0" />}
+                <span>{isUlpan ? `חלק ${idx + 1}` : `Ч. ${idx + 1}`}</span>
+                <span className="text-[10px] opacity-75">({p.length})</span>
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="space-y-2.5 pt-2">
+          {nextPartIdx < parts.length && (
+            <button
+              type="button"
+              onClick={() => {
+                setActivePartIndex(nextPartIdx);
+                setCurrentIndex(0);
+                setIsFlipped(false);
+                setPartCompletionStatus('idle');
+              }}
+              className="w-full py-3.5 px-6 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-sm shadow-md transition active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <span>
+                {isUlpan
+                  ? `הַמְשֵׁךְ לְחֵלֶק ${nextPartIdx + 1} (${nextPartWordsCount} מִילִּים) ➡️`
+                  : `Перейти к части ${nextPartIdx + 1} (${nextPartWordsCount} слов) ➡️`}
+              </span>
+            </button>
+          )}
+
+          <div className="flex gap-2.5">
+            <button
+              type="button"
+              onClick={() => {
+                setCurrentIndex(0);
+                setIsFlipped(false);
+                setPartCompletionStatus('idle');
+              }}
+              className="flex-1 py-3 px-4 rounded-xl border border-zinc-200 dark:border-zinc-700 font-semibold text-xs sm:text-sm hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 transition cursor-pointer"
+            >
+              {isUlpan ? 'חֲזֹר עַל חֵלֶק זֶה' : 'Повторить эту часть'}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setActivePartIndex(-1);
+                setCurrentIndex(0);
+                setIsFlipped(false);
+                setPartCompletionStatus('idle');
+              }}
+              className="flex-1 py-3 px-4 rounded-xl border border-indigo-200 dark:border-indigo-800 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 font-semibold text-xs sm:text-sm hover:bg-indigo-100 dark:hover:bg-indigo-900/60 transition cursor-pointer"
+            >
+              {isUlpan ? 'הַכֹּל יַחַד עַכְשָׁו' : 'Все слова сразу'}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ЭКРАН 2: Завершены все части — объединить и закрепить всё вместе
+  if (partCompletionStatus === 'all_parts_completed') {
+    return (
+      <div className="bg-white dark:bg-zinc-900 rounded-3xl p-6 sm:p-8 border border-zinc-200 dark:border-zinc-800 shadow-xl max-w-lg mx-auto text-center space-y-6 animate-in zoom-in-95">
+        <div className="w-20 h-20 mx-auto rounded-full bg-gradient-to-tr from-amber-100 to-indigo-100 dark:from-amber-950/60 dark:to-indigo-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center shadow-inner">
+          <Award className="w-10 h-10" />
+        </div>
+        <div className="space-y-2">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 text-xs font-bold border border-emerald-200 dark:border-emerald-800">
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>
+              {isUlpan ? '!כָּל הַחֲלָקִים הוּשְׁלְמוּ' : 'Все части успешно пройдены!'}
+            </span>
+          </div>
+          <h2 className="text-2xl sm:text-3xl font-bold text-zinc-900 dark:text-zinc-50 font-hebrew">
+            !כָּל הַכָּבוֹד
+          </h2>
+          <p className="text-base font-bold text-zinc-800 dark:text-zinc-200">
+            {isUlpan
+              ? `עֲבַרְתֶּם עַל כָּל ${parts.length} הַחֲלָקִים (${masterWords.length} מִילִּים)!`
+              : `Вы последовательно выучили все ${parts.length} частей (${masterWords.length} слов)!`}
+          </p>
+          <p className="text-xs text-zinc-500 dark:text-zinc-400">
+            {isUlpan
+              ? 'עַכְשָׁו מֻמְלָץ לְאַחֵד אֶת כָּל הַמִּילִּים וּלְחַזֵּק אֶת הַזִּכָּרוֹן יַחַד.'
+              : 'Теперь закрепим результат: объедините все слова колоды для финального повторения!'}
+          </p>
+        </div>
+
+        {/* Главная кнопка объединения */}
+        <div className="space-y-2.5 pt-2">
+          <button
+            type="button"
+            onClick={() => {
+              setActivePartIndex(-1);
+              setCurrentIndex(0);
+              setIsFlipped(false);
+              setPartCompletionStatus('idle');
+            }}
+            className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:via-indigo-700 hover:to-purple-700 text-white font-bold text-sm sm:text-base shadow-lg hover:shadow-xl transition active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
+          >
+            <Sparkles className="w-5 h-5" />
+            <span>
+              {isUlpan
+                ? `🚀 אֲחֵד וְתַרְגֵּל אֶת כָּל ${masterWords.length} הַמִּילִּים`
+                : `🚀 Объединить и повторить всё вместе (${masterWords.length} слов)`}
+            </span>
+          </button>
+
+          <div className="flex gap-2.5">
+            <button
+              type="button"
+              onClick={() => {
+                setCurrentIndex(0);
+                setIsFlipped(false);
+                setPartCompletionStatus('idle');
+              }}
+              className="flex-1 py-3 px-4 rounded-xl border border-zinc-200 dark:border-zinc-700 font-semibold text-xs sm:text-sm hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 transition cursor-pointer"
+            >
+              {isUlpan ? 'חֲזֹר עַל חֵלֶק אַחֲרוֹן' : 'Повторить последнюю часть'}
+            </button>
+
+            {lessonId ? (
+              <button
+                type="button"
+                onClick={() => {
+                  if (onContinueLesson) {
+                    onContinueLesson(lessonId, 'exercises');
+                  } else if (onClose) {
+                    onClose();
+                  }
+                }}
+                className="flex-1 py-3 px-4 rounded-xl bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 font-semibold text-xs sm:text-sm text-zinc-700 dark:text-zinc-300 transition cursor-pointer"
+              >
+                {isUlpan ? 'מַעֲבָר לְתַרְגִּילִים ➡️' : 'К упражнениям ➡️'}
+              </button>
+            ) : onClose ? (
+              <button
+                type="button"
+                onClick={onClose}
+                className="flex-1 py-3 px-4 rounded-xl border border-zinc-200 dark:border-zinc-700 font-semibold text-xs sm:text-sm hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 transition cursor-pointer"
+              >
+                {isUlpan ? 'סְגוֹר' : 'Завершить'}
+              </button>
+            ) : null}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ЭКРАН 3: Завершение полной колоды («Все вместе» или без деления)
   if (!currentWord || isCompleted) {
     return (
       <div className="bg-white dark:bg-zinc-900 rounded-3xl p-6 sm:p-8 border border-zinc-200 dark:border-zinc-800 shadow-xl max-w-lg mx-auto text-center space-y-6 animate-in zoom-in-95">
@@ -499,10 +790,10 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
           </p>
           <p className="text-xs text-zinc-500 dark:text-zinc-400">
             {isUlpan
-              ? (lessonId ? `חֲזַרְתֶּם עַל כָּל ${words.length} הַמִּילִּים. שָׁלָב 2/5 הוּשְׁלַם.` : `חֲזַרְתֶּם עַל ${words.length} מִילִּים.`)
+              ? (lessonId ? `חֲזַרְתֶּם עַל כָּל ${masterWords.length} הַמִּילִּים. שָׁלָב 2/5 הוּשְׁלַם.` : `חֲזַרְתֶּם עַל ${masterWords.length} מִילִּים.`)
               : (lessonId
-                  ? `Вы повторили все ${words.length} слов(а). Раздел «Словарь» зачтен (этап 2/5).`
-                  : `Вы повторили ${words.length} слов(а). Прогресс сохранен в интервальной памяти.`)}
+                  ? `Вы повторили все ${masterWords.length} слов(а). Раздел «Словарь» зачтен (этап 2/5).`
+                  : `Вы повторили ${masterWords.length} слов(а). Прогресс сохранен в интервальной памяти.`)}
           </p>
         </div>
 
@@ -523,7 +814,7 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
                 <span>{isUlpan ? 'מַעֲבָר לְתַרְגִּילִים (שָׁלָב 3/5) ➡️' : 'Перейти к упражнениям (этап 3/5) ➡️'}</span>
               </button>
 
-              <div className="flex gap-2.5">
+              <div className="flex gap-2.5 flex-wrap">
                 <button
                   type="button"
                   onClick={() => {
@@ -533,7 +824,7 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
                       onClose();
                     }
                   }}
-                  className="flex-1 py-3 px-4 rounded-xl border border-zinc-200 dark:border-zinc-700 font-semibold text-xs sm:text-sm hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 transition cursor-pointer"
+                  className="flex-1 min-w-[110px] py-3 px-4 rounded-xl border border-zinc-200 dark:border-zinc-700 font-semibold text-xs sm:text-sm hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 transition cursor-pointer"
                 >
                   {isUlpan ? 'חֲזָרָה לַשִּׁיעוּר' : 'Вернуться в урок'}
                 </button>
@@ -543,11 +834,30 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
                   onClick={() => {
                     setCurrentIndex(0);
                     setIsCompleted(false);
+                    setPartCompletionStatus('idle');
                   }}
-                  className="flex-1 py-3 px-4 rounded-xl border border-zinc-200 dark:border-zinc-700 font-semibold text-xs sm:text-sm hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 transition cursor-pointer"
+                  className="flex-1 min-w-[110px] py-3 px-4 rounded-xl border border-zinc-200 dark:border-zinc-700 font-semibold text-xs sm:text-sm hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 transition cursor-pointer"
                 >
-                  {isUlpan ? 'תִּרְגּוּל נוֹסָף' : 'Повторить карточки'}
+                  {isUlpan ? 'תִּרְגּוּל נוֹסָף' : 'Повторить'}
                 </button>
+
+                {canSplit && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsSplitMode(true);
+                      setActivePartIndex(0);
+                      setCompletedPartIndices([]);
+                      setCurrentIndex(0);
+                      setIsCompleted(false);
+                      setPartCompletionStatus('idle');
+                    }}
+                    className="flex-1 min-w-[110px] py-3 px-4 rounded-xl border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 font-semibold text-xs sm:text-sm hover:bg-blue-100 dark:hover:bg-blue-900/60 transition flex items-center justify-center gap-1.5 cursor-pointer"
+                  >
+                    <Columns2 className="w-4 h-4" />
+                    <span>{isUlpan ? 'בַּחֲלָקִים' : 'По частям'}</span>
+                  </button>
+                )}
               </div>
             </>
           ) : (
@@ -557,16 +867,35 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
                 onClick={() => {
                   setCurrentIndex(0);
                   setIsCompleted(false);
+                  setPartCompletionStatus('idle');
                 }}
                 className="flex-1 py-3 px-4 rounded-xl border border-zinc-200 dark:border-zinc-700 font-semibold text-sm hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 transition cursor-pointer"
               >
                 {isUlpan ? 'תִּרְגּוּל שׁוּב' : 'Повторить снова'}
               </button>
+              {canSplit && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsSplitMode(true);
+                    setActivePartIndex(0);
+                    setCompletedPartIndices([]);
+                    setCurrentIndex(0);
+                    setIsCompleted(false);
+                    setPartCompletionStatus('idle');
+                  }}
+                  className="flex-1 py-3 px-4 rounded-xl border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/40 hover:bg-blue-100 font-semibold text-sm text-blue-700 dark:text-blue-300 transition flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <Columns2 className="w-4 h-4" />
+                  <span>{isUlpan ? 'בַּחֲלָקִים' : 'По частям'}</span>
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => {
                   handleShuffleWords();
                   setIsCompleted(false);
+                  setPartCompletionStatus('idle');
                 }}
                 className="flex-1 py-3 px-4 rounded-xl border border-purple-200 dark:border-purple-800 bg-purple-50 dark:bg-purple-950/40 hover:bg-purple-100 dark:hover:bg-purple-900/60 font-semibold text-sm text-purple-700 dark:text-purple-300 transition flex items-center justify-center gap-2 cursor-pointer"
               >
@@ -601,9 +930,16 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
       {/* Заголовок тренировки (если есть customTitle) */}
       {displayTitle && (
         <div className="flex items-center justify-between px-1">
-          <div className="text-xs font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400 flex items-center gap-1.5 font-hebrew">
-            <Layers className="w-3.5 h-3.5" />
+          <div className="text-xs font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400 flex items-center gap-1.5 font-hebrew flex-wrap">
+            <Layers className="w-3.5 h-3.5 shrink-0" />
             <span>{displayTitle}</span>
+            {isSplitMode && canSplit && activePartIndex >= 0 && (
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 normal-case">
+                {isUlpan
+                  ? `· חֵלֶק ${activePartIndex + 1} מִתּוֹךְ ${parts.length}`
+                  : `· Часть ${activePartIndex + 1} из ${parts.length}`}
+              </span>
+            )}
           </div>
           {currentWord && (() => {
             const stats =
@@ -660,6 +996,35 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
         </div>
 
         <div className="flex items-center justify-between sm:justify-end gap-2 sm:gap-3 w-full sm:w-auto flex-wrap sm:flex-nowrap">
+          {/* Кнопка деления на части (По частям), если в колоде > 12 слов */}
+          {canSplit && (
+            <button
+              type="button"
+              onClick={handleToggleSplitMode}
+              className={`px-2.5 py-1.5 rounded-xl border text-xs font-semibold flex items-center gap-1.5 shadow-sm transition active:scale-95 cursor-pointer ${
+                isSplitMode
+                  ? 'bg-blue-50 dark:bg-blue-950/60 border-blue-400 dark:border-blue-600 text-blue-700 dark:text-blue-300 ring-2 ring-blue-400/30'
+                  : 'border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800'
+              }`}
+              title={
+                isUlpan
+                  ? (isSplitMode ? 'בַּטֵּל חֲלוּקָה לַחֲלָקִים' : 'חַלֵּק אֶת הַכַּרְטִיסִיּוֹת לַחֲלָקִים (7–10 מִילִּים)')
+                  : (isSplitMode ? 'Отключить режим частей' : 'Разбить колоду на части по 7–10 слов')
+              }
+            >
+              <Columns2 className={`w-3.5 h-3.5 ${isSplitMode ? 'text-blue-600 dark:text-blue-400' : 'text-zinc-500 dark:text-zinc-400'}`} />
+              <span className="hidden sm:inline">
+                {isUlpan ? (isSplitMode ? 'בְּחֲלָקִים' : 'חַלֵּק') : (isSplitMode ? 'По частям' : 'Поделить')}
+              </span>
+              <span className="sm:hidden">
+                {isUlpan ? 'חַלֵּק' : 'Части'}
+              </span>
+              <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${isSplitMode ? 'bg-blue-200 dark:bg-blue-800 text-blue-800 dark:text-blue-200' : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500'}`}>
+                {parts.length}
+              </span>
+            </button>
+          )}
+
           {/* Переключатель направления карточек (Иврит ↔ Русский) */}
           <button
             type="button"
@@ -752,10 +1117,19 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
             >
               <ArrowLeft className="w-3.5 h-3.5" />
             </button>
-            <div className="text-xs font-bold text-zinc-700 dark:text-zinc-300 px-1.5 min-w-[65px] text-center select-none font-hebrew">
-              {isUlpan
-                ? `${currentIndex + 1} / ${words.length}`
-                : `${currentIndex + 1} из ${words.length}`}
+            <div className="text-xs font-bold text-zinc-700 dark:text-zinc-300 px-1.5 min-w-[65px] text-center select-none font-hebrew flex flex-col items-center justify-center leading-tight">
+              <span>
+                {isUlpan
+                  ? `${currentIndex + 1} / ${words.length}`
+                  : `${currentIndex + 1} из ${words.length}`}
+              </span>
+              {isSplitMode && canSplit && activePartIndex >= 0 && (
+                <span className="text-[9px] font-semibold text-blue-600 dark:text-blue-400">
+                  {isUlpan
+                    ? `חֵלֶק ${activePartIndex + 1}/${parts.length}`
+                    : `Ч. ${activePartIndex + 1}/${parts.length}`}
+                </span>
+              )}
             </div>
             <button
               type="button"
@@ -770,10 +1144,74 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
         </div>
       </div>
 
+      {/* Навигация по частям (если включен режим частей) */}
+      {isSplitMode && canSplit && (
+        <div className="bg-white/70 dark:bg-zinc-900/70 backdrop-blur-sm p-2 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 flex items-center gap-1.5 overflow-x-auto scrollbar-none animate-in fade-in slide-in-from-top-1 duration-200">
+          <span className="text-[11px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider pl-1.5 shrink-0">
+            {isUlpan ? 'חֲלָקִים:' : 'Части:'}
+          </span>
+          {parts.map((part, idx) => {
+            const isActive = activePartIndex === idx;
+            const isDone = completedPartIndices.includes(idx);
+            return (
+              <button
+                key={idx}
+                type="button"
+                onClick={() => handleSelectPart(idx)}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer ${
+                  isActive
+                    ? 'bg-blue-600 text-white shadow-sm ring-2 ring-blue-500/20'
+                    : isDone
+                    ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100 dark:hover:bg-emerald-900/40'
+                    : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700'
+                }`}
+              >
+                {isDone && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />}
+                <span>{isUlpan ? `חֵלֶק ${idx + 1}` : `Часть ${idx + 1}`}</span>
+                <span
+                  className={`text-[10px] px-1.5 py-0.5 rounded-full font-semibold ${
+                    isActive
+                      ? 'bg-blue-700 text-white'
+                      : isDone
+                      ? 'bg-emerald-200/60 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-200'
+                      : 'bg-zinc-200/70 dark:bg-zinc-700/70 text-zinc-500 dark:text-zinc-400'
+                  }`}
+                >
+                  {part.length}
+                </span>
+              </button>
+            );
+          })}
+          <button
+            type="button"
+            onClick={() => handleSelectPart(-1)}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer ${
+              activePartIndex === -1
+                ? 'bg-indigo-600 text-white shadow-sm ring-2 ring-indigo-500/20'
+                : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700'
+            }`}
+          >
+            <Sparkles className="w-3.5 h-3.5 shrink-0" />
+            <span>{isUlpan ? 'הַכֹּל יַחַד' : 'Все вместе'}</span>
+            <span
+              className={`text-[10px] px-1.5 py-0.5 rounded-full font-semibold ${
+                activePartIndex === -1
+                  ? 'bg-indigo-700 text-white'
+                  : 'bg-zinc-200/70 dark:bg-zinc-700/70 text-zinc-500 dark:text-zinc-400'
+              }`}
+            >
+              {masterWords.length}
+            </span>
+          </button>
+        </div>
+      )}
+
       {/* Прогресс-бар */}
       <div className="w-full bg-zinc-200 dark:bg-zinc-800 h-2 rounded-full overflow-hidden">
         <div
-          className="bg-blue-600 h-full transition-all duration-300"
+          className={`h-full transition-all duration-300 ${
+            isSplitMode && canSplit && activePartIndex >= 0 ? 'bg-blue-600' : 'bg-indigo-600'
+          }`}
           style={{ width: `${((currentIndex + 1) / words.length) * 100}%` }}
         />
       </div>

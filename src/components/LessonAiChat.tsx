@@ -616,7 +616,7 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
         apiKey: userProfile.groqApiKey || undefined,
         continuous: true,
         silenceDurationMs: silenceDelayMs,
-        speechThreshold: 18,
+        speechThreshold: 10,
         audioContext: ctx,
         mediaStream: activeMicStreamRef.current,
         onAudioLevel: (level) => {
