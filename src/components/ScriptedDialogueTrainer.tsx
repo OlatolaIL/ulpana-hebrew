@@ -863,29 +863,39 @@ export const ScriptedDialogueTrainer: React.FC<ScriptedDialogueTrainerProps> = (
                 </div>
               )}
 
-              {/* Результат семантической проверки ИИ */}
+              {/* Результат семантической и фонетической проверки ИИ */}
               {lastEvaluation && (
                 <div
-                  className={`p-3 rounded-xl text-xs space-y-1.5 transition-all animate-fadeIn ${
+                  className={`p-3 sm:p-3.5 rounded-xl text-xs space-y-2 transition-all animate-fadeIn ${
                     lastEvaluation.isCorrect
-                      ? 'bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-300 dark:border-emerald-800 text-emerald-900 dark:text-emerald-200'
-                      : 'bg-amber-50 dark:bg-amber-950/50 border border-amber-300 dark:border-amber-800 text-amber-900 dark:text-amber-200'
+                      ? 'bg-emerald-50/90 dark:bg-emerald-950/50 border border-emerald-300 dark:border-emerald-800 text-emerald-950 dark:text-emerald-100'
+                      : 'bg-amber-50/90 dark:bg-amber-950/50 border border-amber-300 dark:border-amber-800 text-amber-950 dark:text-amber-100'
                   }`}
                 >
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold flex items-center gap-1.5">
-                      {lastEvaluation.isCorrect ? (
-                        <>
-                          <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                          <span>{lastEvaluation.assessment === 'perfect' ? '🎉 Отлично!' : '👍 Хорошо, вас поняли!'}</span>
-                        </>
-                      ) : (
-                        <>
-                          <AlertCircle className="w-4 h-4 text-amber-600" />
-                          <span>Попробуйте еще раз</span>
-                        </>
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <div className="flex items-center gap-2">
+                      <span className="font-extrabold flex items-center gap-1.5 text-sm">
+                        {lastEvaluation.isCorrect ? (
+                          <>
+                            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                            <span>{lastEvaluation.assessment === 'perfect' ? '🎉 Отлично!' : '👍 Хорошо, вас поняли!'}</span>
+                          </>
+                        ) : (
+                          <>
+                            <AlertCircle className="w-4 h-4 text-amber-600" />
+                            <span>Попробуйте еще раз</span>
+                          </>
+                        )}
+                      </span>
+
+                      {/* Индикатор четкости произношения в % */}
+                      {typeof lastEvaluation.pronunciationScore === 'number' && (
+                        <span className="px-2 py-0.5 rounded-md bg-white/80 dark:bg-black/30 border border-black/5 dark:border-white/10 text-[11px] font-bold text-blue-700 dark:text-blue-300 flex items-center gap-1">
+                          <span>🎙️ Произношение:</span>
+                          <span>{lastEvaluation.pronunciationScore}%</span>
+                        </span>
                       )}
-                    </span>
+                    </div>
 
                     {lastEvaluation.isCorrect && (
                       <button
@@ -898,7 +908,23 @@ export const ScriptedDialogueTrainer: React.FC<ScriptedDialogueTrainerProps> = (
                     )}
                   </div>
 
-                  <p className="text-xs leading-relaxed">{lastEvaluation.feedbackRu}</p>
+                  {/* Оценка смысла */}
+                  <p className="text-xs leading-relaxed opacity-95">
+                    {lastEvaluation.feedbackRu}
+                  </p>
+
+                  {/* Рекомендация по произношению, окончаниям и звукам */}
+                  {lastEvaluation.pronunciationFeedbackRu && (
+                    <div className="p-2.5 rounded-lg bg-white/70 dark:bg-black/25 border border-black/5 dark:border-white/5 space-y-1">
+                      <div className="font-bold flex items-center gap-1.5 text-[11px] text-zinc-800 dark:text-zinc-200">
+                        <span>🗣️</span>
+                        <span>Рекомендация по произношению:</span>
+                      </div>
+                      <p className="text-[11px] leading-relaxed text-zinc-700 dark:text-zinc-300">
+                        {lastEvaluation.pronunciationFeedbackRu}
+                      </p>
+                    </div>
+                  )}
 
                   {lastEvaluation.betterAlternative && (
                     <div className="text-[11px] opacity-90 pt-1 border-t border-black/10 dark:border-white/10">
@@ -960,7 +986,7 @@ export const ScriptedDialogueTrainer: React.FC<ScriptedDialogueTrainerProps> = (
             🏆
           </div>
 
-          <div className="max-w-md space-y-1">
+          <div className="max-w-md space-y-2">
             <h3 className="text-xl sm:text-2xl font-black text-zinc-900 dark:text-zinc-100">
               Диалог успешно пройден!
             </h3>
@@ -968,6 +994,20 @@ export const ScriptedDialogueTrainer: React.FC<ScriptedDialogueTrainerProps> = (
               Вы успешно провели разговор на иврите за роль{' '}
               <strong>{userRoleSide === 'a' ? characterA.nameRu : characterB.nameRu}</strong>.
             </p>
+
+            {(() => {
+              const scores = Object.values(turnHistory)
+                .map((t) => t.pronunciationScore)
+                .filter((s): s is number => typeof s === 'number');
+              if (scores.length === 0) return null;
+              const avg = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
+              return (
+                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-900 text-xs font-bold text-blue-700 dark:text-blue-300 shadow-2xs">
+                  <span>🎙️ Чёткость произношения в диалоге:</span>
+                  <span className="text-sm">{avg}%</span>
+                </div>
+              );
+            })()}
           </div>
 
           {/* Кнопка смены роли (Сыграть за другую сторону) */}

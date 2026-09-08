@@ -40,6 +40,8 @@ function evaluateHeuristic(
       score: 100,
       assessment: 'perfect',
       feedbackRu: 'Отлично! Смысл передан абсолютно точно.',
+      pronunciationScore: 98,
+      pronunciationFeedbackRu: 'Превосходная чёткость речи! Все звуки и окончания прозвучали внятно и чисто.',
       userSpokenHebrew: userText,
     };
   }
@@ -53,6 +55,8 @@ function evaluateHeuristic(
         score: 95,
         assessment: 'perfect',
         feedbackRu: 'Замечательно! Ваша фраза звучит естественно и точно передает мысль.',
+        pronunciationScore: 92,
+        pronunciationFeedbackRu: 'Хорошее произношение. Следите за полным договариванием конечных букв.',
         userSpokenHebrew: userText,
       };
     }
@@ -72,6 +76,8 @@ function evaluateHeuristic(
       score: 85,
       assessment: 'good',
       feedbackRu: 'Хорошо! Смысл передан понятно, собеседник вас понял.',
+      pronunciationScore: 84,
+      pronunciationFeedbackRu: 'Смысл понятен. Обратите внимание на четкое договаривание окончаний слов.',
       betterAlternative: referenceHebrew,
       userSpokenHebrew: userText,
     };
@@ -83,6 +89,8 @@ function evaluateHeuristic(
       score: 75,
       assessment: 'good',
       feedbackRu: 'Понятно! Основная мысль передана.',
+      pronunciationScore: 78,
+      pronunciationFeedbackRu: 'Слова распознаны, но старайтесь не проглатывать окончания букв на выдохе.',
       betterAlternative: referenceHebrew,
       userSpokenHebrew: userText,
     };
@@ -94,6 +102,8 @@ function evaluateHeuristic(
     score: 40,
     assessment: 'incorrect',
     feedbackRu: 'Не совсем то. Попробуйте сказать иначе или используйте эталонную фразу.',
+    pronunciationScore: 50,
+    pronunciationFeedbackRu: 'Речь прозвучала неразборчиво. Попробуйте произнести слова медленнее и четче.',
     betterAlternative: referenceHebrew,
     userSpokenHebrew: userText,
   };
@@ -162,7 +172,9 @@ export async function POST(req: NextRequest) {
 
     const systemPrompt = `ТЫ — ОПЫТНЫЙ ПРЕПОДАВАТЕЛЬ ИВРИТА В УЛЬПАНЕ.
 Ученик выполняет задание в ролевом диалоге. Ученик отвечает ГОЛОСОМ.
-ТВОЯ ЗАДАЧА: Оценить ответ ученика ПО СМЫСЛУ, а НЕ ПО БУКВАЛЬНОМУ СОВПАДЕНИЮ СЛОВ.
+ТВОЯ ЗАДАЧА:
+1. Оценить ответ ученика ПО СМЫСЛУ, а НЕ ПО БУКВАЛЬНОМУ СОВПАДЕНИЮ СЛОВ.
+2. Оценить ЧЁТКОСТЬ ПРОИЗНОШЕНИЯ И ФОНЕТИКУ (особенно окончания слов, буквы софиты, грамматический род).
 
 КОНТЕКСТ РЕПЛИКИ:
 - Урок: №${lessonNumber} (Уровень ${level.toUpperCase()})
@@ -174,20 +186,30 @@ export async function POST(req: NextRequest) {
 - Пол собеседника: ${opponentGender === 'female' ? 'Женский (נקבה)' : 'Мужской (זכר)'}
 - ЧТО СКАЗАЛ УЧЕНИК: "${trimmedUser}"
 
-ГЛАВНОЕ ПРАВИЛО ПРОВЕРКИ:
-Ученик НЕ ОБЯЗАН повторять эталон слово в слово!
-Если ученик передал нужный смысл своими словами, правильно употребил род и смысл фразы понятен собеседнику — засчитай ответ как ПРАВИЛЬНЫЙ (isCorrect = true, assessment = "perfect" или "good").
+ГЛАВНЫЕ ПРАВИЛА ПРОВЕРКИ:
+1. СМЫСЛ:
+Ученик НЕ ОБЯЗАН повторять эталон слово в слово! Если ученик передал нужный смысл своими словами, правильно употребил род и смысл фразы понятен собеседнику — засчитай ответ как ПРАВИЛЬНЫЙ (isCorrect = true, assessment = "perfect" или "good").
 Например:
 - Вместо "אֲנִי רוֹצֶה קָפֶה" ученик сказал "אֶפְשָׁר קָפֶה בְּבַקָּשָׁה" -> ПРАВИЛЬНО (isCorrect: true, assessment: "perfect").
 - Вместо "הַכֹּל טוֹב" ученик сказал "בְּסֵדֶר גָּמוּר, תּוֹדָה" -> ПРАВИЛЬНО (isCorrect: true, assessment: "perfect").
 - Если смысл совсем другой или бред — isCorrect = false, assessment = "incorrect".
+
+2. ФОНЕТИКА И ОКОНЧАНИЯ СЛОВ:
+- "pronunciationScore": число от 0 до 100 (оценка чистоты произношения, договаривания окончаний и правильности звуков).
+- "pronunciationFeedbackRu": Конкретная практическая рекомендация на русском языке по произношению:
+  * Проверь окончания слов: буквы софиты (ם, ך), выдох на букве ה на конце, окончание ת женского рода.
+  * Напомни, если есть опасность оглушения звонких согласных в конце слова.
+  * Предупреди о типичных ошибках: редукция безударных гласных (например, [а] звучит как [э]), проглатывание слогов.
+  * Если всё произнесено чётко — похвали артикуляцию!
 
 Ответь СТРОГО в формате JSON без разметки:
 {
   "isCorrect": true,
   "score": 90,
   "assessment": "perfect",
-  "feedbackRu": "Краткий (1-2 предложения) комментарий на русском языке: почему ответ подходит и похвала.",
+  "feedbackRu": "Краткий (1-2 предложения) комментарий по смыслу ответа.",
+  "pronunciationScore": 88,
+  "pronunciationFeedbackRu": "Конкретная рекомендация по фонетике и концовкам букв/звуков.",
   "betterAlternative": "Естественная альтернатива с огласовками (если уместно)"
 }`;
 
@@ -224,6 +246,8 @@ export async function POST(req: NextRequest) {
                 score: typeof parsed.score === 'number' ? Math.min(100, Math.max(0, parsed.score)) : (parsed.isCorrect ? 90 : 40),
                 assessment: (['perfect', 'good', 'incorrect'].includes(parsed.assessment) ? parsed.assessment : (parsed.isCorrect ? 'good' : 'incorrect')) as any,
                 feedbackRu: sanitizeRussianTranslation(parsed.feedbackRu || (parsed.isCorrect ? 'Отлично! Вас поняли.' : 'Попробуйте повторить фразу.')),
+                pronunciationScore: typeof parsed.pronunciationScore === 'number' ? Math.min(100, Math.max(0, parsed.pronunciationScore)) : (parsed.isCorrect ? 90 : 50),
+                pronunciationFeedbackRu: sanitizeRussianTranslation(parsed.pronunciationFeedbackRu || 'Следите за четкостью произношения окончаний.'),
                 betterAlternative: parsed.betterAlternative ? String(parsed.betterAlternative).trim() : referenceHebrew,
                 userSpokenHebrew: trimmedUser,
               } satisfies DialogueEvaluationResult);
@@ -255,6 +279,8 @@ export async function POST(req: NextRequest) {
               score: typeof parsed.score === 'number' ? parsed.score : (parsed.isCorrect ? 90 : 40),
               assessment: parsed.assessment || (parsed.isCorrect ? 'good' : 'incorrect'),
               feedbackRu: sanitizeRussianTranslation(parsed.feedbackRu || 'Хороший ответ!'),
+              pronunciationScore: typeof parsed.pronunciationScore === 'number' ? Math.min(100, Math.max(0, parsed.pronunciationScore)) : (parsed.isCorrect ? 90 : 50),
+              pronunciationFeedbackRu: sanitizeRussianTranslation(parsed.pronunciationFeedbackRu || 'Следите за четкостью произношения окончаний.'),
               betterAlternative: parsed.betterAlternative || referenceHebrew,
               userSpokenHebrew: trimmedUser,
             } satisfies DialogueEvaluationResult);
