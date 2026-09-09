@@ -11,9 +11,12 @@ export function getDbPool(): Pool | null {
   if (!pool) {
     pool = new Pool({
       connectionString,
-      ssl: process.env.NODE_ENV === 'production' && !connectionString.includes('localhost')
-        ? { rejectUnauthorized: false }
-        : undefined,
+      ssl:
+        connectionString.includes('neon.tech') ||
+        connectionString.includes('sslmode=require') ||
+        (process.env.NODE_ENV === 'production' && !connectionString.includes('localhost'))
+          ? { rejectUnauthorized: false }
+          : undefined,
       max: 10,
       idleTimeoutMillis: 30000,
     });

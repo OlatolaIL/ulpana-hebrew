@@ -1,5 +1,5 @@
-﻿import { NextRequest, NextResponse } from 'next/server';
-import { verifyGoogleIdToken, createSessionToken } from '@/lib/auth';
+import { NextRequest, NextResponse } from 'next/server';
+import { verifyGoogleIdToken, fetchGoogleUserInfo, createSessionToken } from '@/lib/auth';
 import { getDbPool, initDatabase } from '@/lib/db';
 import { isVipUser, VIP_EXPIRES_AT } from '@/lib/vipUsers';
 import { UserSession } from '@/types';
@@ -7,17 +7,26 @@ import { UserSession } from '@/types';
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { credential } = body;
+    const { credential, accessToken } = body;
 
-    if (!credential || typeof credential !== 'string') {
+    if (
+      (!credential || typeof credential !== 'string') &&
+      (!accessToken || typeof accessToken !== 'string')
+    ) {
       return NextResponse.json(
-        { error: 'Missing or invalid Google credential token' },
+        { error: 'Missing or invalid Google credential or accessToken' },
         { status: 400 }
       );
     }
 
-    // 1. Валидация криптографического токена Google через JWKS
-    const googleUser = await verifyGoogleIdToken(credential);
+    // 1. Валидация токена Google (ID token через JWKS или Access Token через Google UserInfo)
+    let googleUser = null;
+    if (credential) {
+      googleUser = await verifyGoogleIdToken(credential);
+    } else if (accessToken) {
+      googleUser = await fetchGoogleUserInfo(accessToken);
+    }
+
     if (!googleUser || !googleUser.email || !googleUser.sub) {
       return NextResponse.json(
         { error: 'Invalid Google authentication token' },

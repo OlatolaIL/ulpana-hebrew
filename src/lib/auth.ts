@@ -188,8 +188,12 @@ export async function verifyGoogleIdToken(
   expectedClientId?: string
 ): Promise<GoogleTokenPayload | null> {
   try {
-    const clientId = expectedClientId || process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || process.env.GOOGLE_CLIENT_ID;
-    
+    const rawClientId =
+      expectedClientId ||
+      process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ||
+      process.env.GOOGLE_CLIENT_ID;
+    const clientId = rawClientId?.trim();
+
     const { payload } = await jwtVerify(idToken, GOOGLE_JWKS, {
       issuer: ['https://accounts.google.com', 'accounts.google.com'],
       audience: clientId || undefined,
@@ -210,6 +214,42 @@ export async function verifyGoogleIdToken(
     };
   } catch (error) {
     console.error('[verifyGoogleIdToken] Error verifying Google token:', error);
+    return null;
+  }
+}
+
+/**
+ * Получение профиля пользователя Google по Access Token (OAuth2 Popup Flow)
+ */
+export async function fetchGoogleUserInfo(accessToken: string): Promise<GoogleTokenPayload | null> {
+  try {
+    const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+
+    if (!res.ok) {
+      console.error('[fetchGoogleUserInfo] Failed to fetch Google userinfo:', res.status, await res.text());
+      return null;
+    }
+
+    const data = await res.json();
+    if (!data.sub || !data.email) {
+      return null;
+    }
+
+    return {
+      sub: data.sub,
+      email: data.email,
+      email_verified: Boolean(data.email_verified),
+      name: data.name || (data.email as string).split('@')[0],
+      picture: data.picture,
+      given_name: data.given_name,
+      family_name: data.family_name,
+    };
+  } catch (error) {
+    console.error('[fetchGoogleUserInfo] Error fetching user info:', error);
     return null;
   }
 }

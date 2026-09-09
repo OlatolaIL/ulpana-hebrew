@@ -44,6 +44,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [pollToken, setPollToken] = useState<string | null>(null);
   const [botUrl, setBotUrl] = useState<string | null>(null);
   const [isGoogleReady, setIsGoogleReady] = useState(false);
+  const [isGoogleButtonRendered, setIsGoogleButtonRendered] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const googleButtonRef = useRef<HTMLDivElement>(null);
   const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
@@ -180,13 +181,71 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     }
   };
 
+  const handleGoogleAccessToken = async (accessToken: string) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch('/api/auth/google', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ accessToken }),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        onLoginSuccess(data.user, data.gender, data.fontStyle);
+        onClose();
+      } else {
+        setError(data.error || 'Ошибка входа через Google');
+      }
+    } catch {
+      setError('Не удалось связаться с сервером для входа через Google');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleGoogleButtonClick = () => {
     if (!googleClientId) {
       setError('Google Client ID еще не настроен. Укажите NEXT_PUBLIC_GOOGLE_CLIENT_ID в .env.local');
       return;
     }
     const google = (window as any).google;
-    if (google?.accounts?.id) {
+    if (!google) {
+      setError('Библиотека Google еще загружается, пожалуйста подождите секунду...');
+      return;
+    }
+
+    // Способ 1: Прямой запуск OAuth2 Popup через initTokenClient (не зависит от One Tap)
+    if (google.accounts?.oauth2) {
+      try {
+        const client = google.accounts.oauth2.initTokenClient({
+          client_id: googleClientId,
+          scope: 'email profile openid',
+          callback: (tokenResponse: any) => {
+            if (tokenResponse?.access_token) {
+              handleGoogleAccessToken(tokenResponse.access_token);
+            } else if (tokenResponse?.error && tokenResponse.error !== 'popup_closed_by_user') {
+              console.warn('[Google OAuth2] error:', tokenResponse.error);
+              setError(`Ошибка авторизации Google: ${tokenResponse.error}`);
+            }
+          },
+          error_callback: (nonOAuthError: any) => {
+            console.warn('[Google OAuth2] nonOAuthError:', nonOAuthError);
+            if (nonOAuthError?.type !== 'popup_closed') {
+              setError('Не удалось открыть окно авторизации Google. Разрешите всплывающие окна в браузере.');
+            }
+          },
+        });
+        client.requestAccessToken({ prompt: 'select_account' });
+        return;
+      } catch (err) {
+        console.warn('[Google OAuth2] init error, fallback to prompt:', err);
+      }
+    }
+
+    // Способ 2: Fallback на Google One Tap
+    if (google.accounts?.id) {
       google.accounts.id.prompt();
     }
   };
@@ -195,53 +254,78 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   useEffect(() => {
     if (!isOpen) return;
 
+    let isMounted = true;
+
     const initGoogle = () => {
+      if (!isMounted) return;
       const google = (window as any).google;
-      if (google?.accounts?.id) {
-        setIsGoogleReady(true);
-        if (googleClientId) {
-          try {
-            google.accounts.id.initialize({
-              client_id: googleClientId,
-              callback: handleGoogleResponse,
-              auto_select: false,
+      if (!google?.accounts) return;
+
+      setIsGoogleReady(true);
+      if (!googleClientId) return;
+
+      try {
+        if (google.accounts.id) {
+          google.accounts.id.initialize({
+            client_id: googleClientId,
+            callback: handleGoogleResponse,
+            auto_select: false,
+          });
+
+          if (googleButtonRef.current) {
+            googleButtonRef.current.innerHTML = '';
+            google.accounts.id.renderButton(googleButtonRef.current, {
+              type: 'standard',
+              theme: 'outline',
+              size: 'large',
+              text: 'continue_with',
+              shape: 'pill',
+              logo_alignment: 'left',
+              width: 320,
             });
 
-            if (googleButtonRef.current) {
-              googleButtonRef.current.innerHTML = '';
-              google.accounts.id.renderButton(googleButtonRef.current, {
-                type: 'standard',
-                theme: 'outline',
-                size: 'large',
-                text: 'continue_with',
-                shape: 'pill',
-                logo_alignment: 'left',
-                width: 320,
-              });
-            }
-          } catch (e) {
-            console.warn('[Google Identity] init error:', e);
+            // Проверяем, отрисовала ли Google iframe
+            setTimeout(() => {
+              if (isMounted && googleButtonRef.current && googleButtonRef.current.children.length > 0) {
+                setIsGoogleButtonRendered(true);
+              }
+            }, 100);
           }
         }
+      } catch (e) {
+        console.warn('[Google Identity] init error:', e);
       }
     };
 
-    if ((window as any).google?.accounts?.id) {
+    if ((window as any).google?.accounts) {
       initGoogle();
     } else {
-      const existingScript = document.getElementById('google-jssdk');
+      const existingScript = document.getElementById('google-jssdk') as HTMLScriptElement | null;
       if (!existingScript) {
         const script = document.createElement('script');
         script.id = 'google-jssdk';
         script.src = 'https://accounts.google.com/gsi/client';
         script.async = true;
         script.defer = true;
-        script.onload = initGoogle;
+        script.onload = () => initGoogle();
         document.body.appendChild(script);
       } else {
-        existingScript.addEventListener('load', initGoogle);
+        existingScript.addEventListener('load', () => initGoogle());
+        const timer = setTimeout(() => {
+          if ((window as any).google?.accounts) {
+            initGoogle();
+          }
+        }, 400);
+        return () => {
+          isMounted = false;
+          clearTimeout(timer);
+        };
       }
     }
+
+    return () => {
+      isMounted = false;
+    };
   }, [isOpen, googleClientId]);
 
   if (!isOpen) return null;
@@ -328,12 +412,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
         {/* Google Sign In */}
         <div className="w-full space-y-2">
+          {/* Контейнер для официальной кнопки Google */}
           <div
             ref={googleButtonRef}
-            className={`w-full flex justify-center ${!isGoogleReady || !googleClientId ? 'hidden' : ''}`}
+            className={`w-full flex justify-center ${!isGoogleButtonRendered ? 'h-0 overflow-hidden' : 'min-h-[44px]'}`}
           />
 
-          {(!googleClientId || !isGoogleReady) && (
+          {/* Запасная кнопка с гарантированным OAuth2 Popup */}
+          {!isGoogleButtonRendered && (
             <button
               type="button"
               onClick={handleGoogleButtonClick}
@@ -341,7 +427,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               className="w-full py-3.5 px-5 rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-750 active:scale-98 font-semibold text-sm flex items-center justify-center gap-3 text-zinc-700 dark:text-zinc-200 shadow-sm transition disabled:opacity-50"
             >
               <GoogleIcon className="w-5 h-5" />
-              <span>{isGoogleReady && !googleClientId ? 'Войти через Google' : 'Продолжить с Google'}</span>
+              <span>{loading ? 'Авторизация...' : 'Продолжить с Google'}</span>
             </button>
           )}
 
