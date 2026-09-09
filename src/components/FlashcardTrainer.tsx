@@ -19,10 +19,14 @@ import {
   ArrowLeftRight,
   Shuffle,
   Columns2,
+  Play,
+  Pause,
+  Repeat,
+  Timer,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { Word, UserProfile, VerbConjugation } from '@/types';
-import { speakHebrew } from '@/lib/speech';
+import { speakHebrew, speakRussian, stopSpeech } from '@/lib/speech';
 import { updateCardSRS, calculateWordMastery, addWordToPersonalDict, isWordInPersonalDict, loadUserProfile, saveUserProfile, markLessonTabCompleted, sortWordsBySRSPriority, shuffleWords } from '@/lib/storage';
 import { stripNikkud, getWordTranscription } from '@/lib/transcription';
 import { findOfflineVerbConjugation } from '@/lib/verbConjugations';
@@ -37,14 +41,14 @@ interface FlashcardTrainerProps {
   onClose?: () => void;
   onUpdateProfile?: (profile: UserProfile) => void;
   customTitle?: string;
-  initialMode?: 'flip' | 'builder' | 'listening';
-  initialDirection?: 'he-ru' | 'ru-he';
+  initialMode?: 'flip' | 'builder' | 'listening' | 'auto_audio';
+  initialDirection?: 'he-ru' | 'ru-he' | 'carousel';
   initialShuffle?: boolean;
   lessonId?: number;
   onContinueLesson?: (lessonId: number, nextTab: 'theory' | 'vocab' | 'exercises' | 'chat' | 'phone') => void;
 }
 
-type TrainerMode = 'flip' | 'builder' | 'listening';
+type TrainerMode = 'flip' | 'builder' | 'listening' | 'auto_audio';
 
 interface Tile {
   id: string;
@@ -104,9 +108,11 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
     return initialShuffle ? shuffleWords(base) : base;
   });
 
-  const canSplit = masterWords.length > 12;
+  const canSplit = initialWords.length > 12;
   const [isSplitMode, setIsSplitMode] = useState(false);
-  const [parts, setParts] = useState<Word[][]>(() => splitWordsIntoParts(masterWords));
+  // Стабильное деление на части: фиксируется строго по исходному списку initialWords
+  const stableCanonicalParts = React.useMemo(() => splitWordsIntoParts(initialWords), [initialWords]);
+  const [parts, setParts] = useState<Word[][]>(() => stableCanonicalParts);
   const [activePartIndex, setActivePartIndex] = useState<number>(0);
   const [completedPartIndices, setCompletedPartIndices] = useState<number[]>([]);
   const [partCompletionStatus, setPartCompletionStatus] = useState<'idle' | 'part_completed' | 'all_parts_completed'>('idle');
@@ -123,8 +129,15 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
   const [mode, setMode] = useState<TrainerMode>(initialMode || 'flip');
   const [isCompleted, setIsCompleted] = useState(false);
 
+  // Для режима "Авто на слух"
+  const [isAutoPlaying, setIsAutoPlaying] = useState(false);
+  const [autoPauseSec, setAutoPauseSec] = useState(3);
+  const [autoPhase, setAutoPhase] = useState<'idle' | 'prompt' | 'pause' | 'reveal'>('idle');
+  const [autoCountdown, setAutoCountdown] = useState(0);
+
   const handleShuffleWords = () => {
     if (isSplitMode && canSplit && activePartIndex >= 0 && parts[activePartIndex]) {
+      // Перемешиваем только ВНУТРИ текущей части, границы частей остаются стабильными
       setParts((prev) => {
         const next = [...prev];
         next[activePartIndex] = shuffleWords(next[activePartIndex]);
@@ -133,7 +146,6 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
     } else {
       const shuffled = shuffleWords(masterWords);
       setMasterWords(shuffled);
-      setParts(splitWordsIntoParts(shuffled));
     }
     setCurrentIndex(0);
     setIsFlipped(false);
@@ -144,8 +156,7 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
 
   const handleToggleSplitMode = () => {
     if (!isSplitMode) {
-      const freshParts = splitWordsIntoParts(masterWords);
-      setParts(freshParts);
+      setParts(stableCanonicalParts);
       setIsSplitMode(true);
       setActivePartIndex(0);
       setCurrentIndex(0);
@@ -170,26 +181,31 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
     setIsCompleted(false);
   };
 
-  // Направление карточек: 'he-ru' (иврит на лицевой) или 'ru-he' (русский на лицевой - обратный режим)
-  const [cardDirection, setCardDirection] = useState<'he-ru' | 'ru-he'>(() => {
+  // Направление карточек: 'he-ru' (иврит на лицевой), 'ru-he' (русский на лицевой) или 'carousel' (карусель / микс)
+  const [cardDirection, setCardDirection] = useState<'he-ru' | 'ru-he' | 'carousel'>(() => {
     if (initialDirection) return initialDirection;
-    if (userProfile.flashcardDirection) return userProfile.flashcardDirection;
+    if (userProfile.flashcardDirection) return userProfile.flashcardDirection as any;
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('flashcard_direction');
-      if (saved === 'ru-he' || saved === 'he-ru') return saved;
+      if (saved === 'ru-he' || saved === 'he-ru' || saved === 'carousel') return saved;
     }
     return 'he-ru';
   });
 
   const handleToggleDirection = () => {
-    const nextDir = cardDirection === 'he-ru' ? 'ru-he' : 'he-ru';
+    const nextDir: 'he-ru' | 'ru-he' | 'carousel' =
+      cardDirection === 'he-ru'
+        ? 'ru-he'
+        : cardDirection === 'ru-he'
+        ? 'carousel'
+        : 'he-ru';
     setCardDirection(nextDir);
     setIsFlipped(false);
     if (typeof window !== 'undefined') {
       localStorage.setItem('flashcard_direction', nextDir);
     }
     if (onUpdateProfile) {
-      const updated: UserProfile = { ...userProfile, flashcardDirection: nextDir };
+      const updated: UserProfile = { ...userProfile, flashcardDirection: nextDir as any };
       saveUserProfile(updated);
       onUpdateProfile(updated);
     }
@@ -268,6 +284,10 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
   };
 
   const currentWord = words[currentIndex];
+  // В режиме "карусель" направление чередуется на каждой карточке (то иврит, то русский)
+  const isCurrentCardFrontRussian =
+    cardDirection === 'ru-he' ||
+    (cardDirection === 'carousel' && currentIndex % 2 === 1);
 
   useEffect(() => {
     if (!currentWord) return;
@@ -315,6 +335,87 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
     const allOpts = [...shuffledOthers, currentOpt].sort(() => Math.random() - 0.5);
     setQuizOptions(allOpts);
   }, [currentIndex, mode, currentWord, words, masterWords, userProfile.ulpanMode, userProfile.showNikkud]);
+
+  // Эффект для режима "Авто на слух" (Hands-Free):
+  // Озвучка первого языка → Пауза 2-3 сек (чтобы ученик вспомнил сам) → Озвучка второго языка → переход к следующему слову
+  useEffect(() => {
+    if (mode !== 'auto_audio' || !isAutoPlaying || isCompleted) {
+      return;
+    }
+
+    let isCancelled = false;
+    let timer: any = null;
+    let countdownInterval: any = null;
+
+    const runCycle = async () => {
+      if (isCancelled) return;
+      const targetWord = words[currentIndex];
+      if (!targetWord) return;
+
+      const promptIsRussian =
+        cardDirection === 'ru-he' ||
+        (cardDirection === 'carousel' && currentIndex % 2 === 1);
+
+      // Шаг 1: Озвучка первого языка (вопрос)
+      setAutoPhase('prompt');
+      if (promptIsRussian) {
+        await speakRussian(targetWord.translation);
+      } else {
+        await speakHebrew(targetWord.hebrew);
+      }
+      if (isCancelled) return;
+
+      // Шаг 2: Пауза (2-4 секунды) для размышления
+      setAutoPhase('pause');
+      setAutoCountdown(autoPauseSec);
+      let count = autoPauseSec;
+      await new Promise<void>((resolve) => {
+        countdownInterval = setInterval(() => {
+          count -= 1;
+          if (count <= 0) {
+            if (countdownInterval) clearInterval(countdownInterval);
+            resolve();
+          } else {
+            setAutoCountdown(count);
+          }
+        }, 1000);
+      });
+      if (isCancelled) return;
+
+      // Шаг 3: Озвучка второго языка (ответ)
+      setAutoPhase('reveal');
+      if (promptIsRussian) {
+        await speakHebrew(targetWord.hebrew);
+      } else {
+        await speakRussian(targetWord.translation);
+      }
+      if (isCancelled) return;
+
+      // Шаг 4: Короткая пауза (1.5 сек) перед следующим словом
+      await new Promise((resolve) => {
+        timer = setTimeout(resolve, 1500);
+      });
+      if (isCancelled) return;
+
+      // Шаг 5: Переход к следующему слову или завершение
+      if (currentIndex + 1 < words.length) {
+        setCurrentIndex((prev) => prev + 1);
+      } else {
+        setIsAutoPlaying(false);
+        setAutoPhase('idle');
+        handleFinishSet();
+      }
+    };
+
+    runCycle();
+
+    return () => {
+      isCancelled = true;
+      if (timer) clearTimeout(timer);
+      if (countdownInterval) clearInterval(countdownInterval);
+      stopSpeech();
+    };
+  }, [mode, isAutoPlaying, currentIndex, autoPauseSec, cardDirection, isCompleted, words]);
 
   const triggerCelebration = () => {
     confetti({
@@ -395,7 +496,7 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
   const handleFlipCard = () => {
     setIsFlipped((prev) => {
       const next = !prev;
-      if (next && cardDirection === 'ru-he' && currentWord) {
+      if (next && isCurrentCardFrontRussian && currentWord) {
         speakHebrew(currentWord.hebrew);
       }
       return next;
@@ -993,6 +1094,21 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
           >
             {isUlpan ? 'שְׁמִיעָה' : 'На слух'}
           </button>
+          <button
+            onClick={() => {
+              setMode('auto_audio');
+              setIsAutoPlaying(true);
+            }}
+            className={`flex-1 sm:flex-initial px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer flex items-center justify-center gap-1.5 ${
+              mode === 'auto_audio'
+                ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-sm'
+                : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400'
+            }`}
+            title="Автоматическое прослушивание всех слов с паузой для размышления"
+          >
+            <Play className="w-3.5 h-3.5 fill-current" />
+            <span>{isUlpan ? 'אוֹטוֹ' : 'Авто на слух'}</span>
+          </button>
         </div>
 
         <div className="flex items-center justify-between sm:justify-end gap-2 sm:gap-3 w-full sm:w-auto flex-wrap sm:flex-nowrap">
@@ -1025,28 +1141,43 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
             </button>
           )}
 
-          {/* Переключатель направления карточек (Иврит ↔ Русский) */}
+          {/* Переключатель направления карточек (Иврит ↔ Русский ↔ Карусель) */}
           <button
             type="button"
             onClick={handleToggleDirection}
             className={`px-2.5 py-1.5 rounded-xl border text-xs font-semibold flex items-center gap-1.5 shadow-sm transition active:scale-95 cursor-pointer ${
               cardDirection === 'ru-he'
                 ? 'bg-amber-50 dark:bg-amber-950/60 border-amber-300 dark:border-amber-700 text-amber-900 dark:text-amber-200'
+                : cardDirection === 'carousel'
+                ? 'bg-purple-50 dark:bg-purple-950/60 border-purple-300 dark:border-purple-700 text-purple-900 dark:text-purple-200'
                 : 'border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800'
             }`}
             title={
               cardDirection === 'ru-he'
-                ? (isUlpan ? 'מַצָּב הָפוּךְ: רוּסִית ← עִבְרִית. לַחֲצוּ לְמַעֲבָר לְעִבְרִית ← רוּסִית' : 'Обратный режим: Русский → Иврит. Нажмите для режима Иврит → Русский')
-                : (isUlpan ? 'מַצָּב רָגִיל: עִבְרִית ← רוּסִית. לַחֲצוּ לְמַעֲבָר לְרוּסִית ← עִבְרִית' : 'Прямой режим: Иврит → Русский. Нажмите для режима Русский → Иврит')
+                ? 'Обратный: Русский → Иврит. Нажмите для режима Карусель'
+                : cardDirection === 'carousel'
+                ? 'Карусель: случайный/чередующийся порядок (то иврит, то русский). Нажмите для Иврит → Русский'
+                : 'Прямой: Иврит → Русский. Нажмите для режима Русский → Иврит'
             }
           >
-            <ArrowLeftRight className={`w-3.5 h-3.5 ${cardDirection === 'ru-he' ? 'text-amber-600 dark:text-amber-400' : 'text-blue-600 dark:text-blue-400'}`} />
+            <ArrowLeftRight className={`w-3.5 h-3.5 ${
+              cardDirection === 'ru-he'
+                ? 'text-amber-600 dark:text-amber-400'
+                : cardDirection === 'carousel'
+                ? 'text-purple-600 dark:text-purple-400'
+                : 'text-blue-600 dark:text-blue-400'
+            }`} />
             <span className="font-bold flex items-center gap-1">
               {cardDirection === 'ru-he' ? (
                 <>
                   <span className="text-amber-700 dark:text-amber-300 font-extrabold">{isUlpan ? 'רוּ' : 'Рус'}</span>
                   <span className="text-zinc-400">→</span>
                   <span>{isUlpan ? 'עִבְ' : 'Ивр'}</span>
+                </>
+              ) : cardDirection === 'carousel' ? (
+                <>
+                  <span className="text-purple-600 dark:text-purple-400 font-extrabold">🔀</span>
+                  <span className="text-purple-700 dark:text-purple-300">{isUlpan ? 'מִיקְס' : 'Карусель'}</span>
                 </>
               ) : (
                 <>
@@ -1057,7 +1188,7 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
               )}
             </span>
             <span className="hidden sm:inline text-[10px] text-zinc-500 dark:text-zinc-400 font-normal">
-              {cardDirection === 'ru-he' ? (isUlpan ? '(הָפוּךְ)' : '(обратный)') : ''}
+              {cardDirection === 'ru-he' ? '(обратный)' : cardDirection === 'carousel' ? '(микс)' : ''}
             </span>
           </button>
 
@@ -1232,7 +1363,7 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
                 }}
                 className="p-2 rounded-full bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 hover:bg-blue-100 transition shadow-sm"
                 title={
-                  cardDirection === 'ru-he' && !isFlipped
+                  isCurrentCardFrontRussian && !isFlipped
                     ? (isUlpan ? 'רֶמֶז קוֹלִי (הַשְׁמַע עִבְרִית)' : 'Подсказка: прослушать на иврите')
                     : (isUlpan ? 'הַשְׁמַע' : 'Озвучить')
                 }
@@ -1242,7 +1373,7 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
             </div>
 
             {!isFlipped ? (
-              cardDirection === 'ru-he' ? (
+              isCurrentCardFrontRussian ? (
                 /* Лицевая сторона: Русский → Иврит (обратный режим) */
                 <div className="space-y-3 sm:space-y-4">
                   <div className="flex items-center justify-center gap-2">
@@ -1347,7 +1478,7 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
                 </div>
               )
             ) : (
-              cardDirection === 'ru-he' ? (
+              isCurrentCardFrontRussian ? (
                 /* Оборотная сторона: Иврит и детали (обратный режим) */
                 <div className="space-y-2.5 sm:space-y-3 animate-in fade-in">
                   <span className="text-[11px] uppercase tracking-wider font-semibold text-zinc-400">
@@ -1950,6 +2081,160 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
               <span>{isUlpan ? 'דַּלֵּג (הַבָּא)' : 'Пропустить (далее)'}</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* РЕЖИМ: АВТО НА СЛУХ (Hands-Free Listening) */}
+      {mode === 'auto_audio' && currentWord && (
+        <div className="space-y-4">
+          <div className="min-h-[260px] sm:min-h-[300px] bg-gradient-to-b from-white to-blue-50/30 dark:from-zinc-900 dark:to-blue-950/20 border-2 border-blue-200 dark:border-blue-900/60 rounded-3xl p-5 sm:p-6 flex flex-col items-center justify-between text-center relative select-none shadow-xl">
+            {/* Верхний статус-бейдж фазы */}
+            <div className="w-full flex items-center justify-between gap-2 flex-wrap">
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-extrabold uppercase tracking-wider px-2.5 py-1 rounded-full bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 flex items-center gap-1.5">
+                  <Volume2 className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 animate-pulse" />
+                  <span>{isUlpan ? 'מַצָּב אוֹטוֹמָטִי' : 'Авто на слух'}</span>
+                </span>
+                {cardDirection === 'carousel' && (
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300">
+                    🔀 Карусель
+                  </span>
+                )}
+              </div>
+
+              <div className="flex items-center gap-1">
+                <span className="text-[10px] font-bold text-zinc-400 mr-1 hidden sm:inline">Пауза:</span>
+                {[2, 3, 4].map((sec) => (
+                  <button
+                    key={sec}
+                    type="button"
+                    onClick={() => setAutoPauseSec(sec)}
+                    className={`px-2 py-0.5 rounded-lg text-xs font-bold transition cursor-pointer ${
+                      autoPauseSec === sec
+                        ? 'bg-blue-600 text-white shadow-xs'
+                        : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200'
+                    }`}
+                    title={`Пауза ${sec} секунды для размышления`}
+                  >
+                    {sec}с
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Центральная часть: Слово и индикатор паузы */}
+            <div className="my-auto py-4 space-y-3 max-w-lg w-full">
+              {/* Статус текущего шага */}
+              <div className="flex items-center justify-center">
+                {autoPhase === 'prompt' && (
+                  <span className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/60 px-3 py-1 rounded-full border border-blue-200 dark:border-blue-800 animate-pulse">
+                    <Volume2 className="w-3.5 h-3.5" />
+                    <span>
+                      {isCurrentCardFrontRussian ? 'Слушайте русский...' : 'Слушайте иврит...'}
+                    </span>
+                  </span>
+                )}
+                {autoPhase === 'pause' && (
+                  <span className="inline-flex items-center gap-1.5 text-xs font-extrabold text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/60 px-3.5 py-1 rounded-full border border-amber-300 dark:border-amber-700">
+                    <Timer className="w-3.5 h-3.5 animate-spin" />
+                    <span>Вспомните и произнесите! ({autoCountdown}с)</span>
+                  </span>
+                )}
+                {autoPhase === 'reveal' && (
+                  <span className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-3 py-1 rounded-full border border-emerald-200 dark:border-emerald-800">
+                    <Sparkles className="w-3.5 h-3.5" />
+                    <span>Правильный перевод</span>
+                  </span>
+                )}
+                {autoPhase === 'idle' && (
+                  <span className="text-xs font-medium text-zinc-400">
+                    Нажмите «Старт», чтобы запустить автоматическое воспроизведение
+                  </span>
+                )}
+              </div>
+
+              {/* Отображение слова */}
+              <div className="space-y-2">
+                <div
+                  dir="rtl"
+                  className={`text-3xl sm:text-5xl font-bold transition-all duration-300 ${
+                    autoPhase === 'pause' && isCurrentCardFrontRussian
+                      ? 'text-zinc-300 dark:text-zinc-700 opacity-40'
+                      : 'text-zinc-900 dark:text-zinc-50'
+                  } ${userProfile.fontStyle === 'cursive' ? 'font-cursive text-blue-600 dark:text-blue-400' : 'font-hebrew'}`}
+                >
+                  {userProfile.showNikkud ? currentWord.hebrew : currentWord.hebrewPlain}
+                </div>
+
+                {getWordTranscription(currentWord) && (
+                  <p className="text-sm sm:text-base font-semibold text-blue-600 dark:text-blue-400">
+                    [{getWordTranscription(currentWord)}]
+                  </p>
+                )}
+
+                <div className="text-xl sm:text-2xl font-bold text-zinc-700 dark:text-zinc-200">
+                  {currentWord.translation}
+                </div>
+              </div>
+            </div>
+
+            {/* Нижняя панель управления плеером (Play/Pause, Навигация) */}
+            <div className="w-full flex items-center justify-between gap-3 pt-4 border-t border-zinc-200/60 dark:border-zinc-800">
+              <button
+                type="button"
+                disabled={currentIndex === 0}
+                onClick={handlePrevWord}
+                className="py-2 px-3 rounded-xl border border-zinc-200 dark:border-zinc-700 text-xs font-semibold text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-25 transition flex items-center gap-1 cursor-pointer"
+                title="Предыдущее слово"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                <span className="hidden sm:inline">Назад</span>
+              </button>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsAutoPlaying((prev) => !prev)}
+                  className={`py-3 px-6 rounded-2xl font-bold text-sm flex items-center gap-2 shadow-md transition active:scale-95 cursor-pointer ${
+                    isAutoPlaying
+                      ? 'bg-amber-500 hover:bg-amber-600 text-white'
+                      : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white'
+                  }`}
+                >
+                  {isAutoPlaying ? (
+                    <>
+                      <Pause className="w-4 h-4" />
+                      <span>Пауза</span>
+                    </>
+                  ) : (
+                    <>
+                      <Play className="w-4 h-4 fill-white" />
+                      <span>{autoPhase === 'idle' ? 'Старт' : 'Продолжить'}</span>
+                    </>
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => speakHebrew(currentWord.hebrew)}
+                  className="p-3 rounded-2xl border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition cursor-pointer"
+                  title="Повторить произношение"
+                >
+                  <Volume2 className="w-4 h-4" />
+                </button>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleAdvanceNext}
+                className="py-2 px-3 rounded-xl border border-zinc-200 dark:border-zinc-700 text-xs font-semibold text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition flex items-center gap-1 cursor-pointer"
+                title="Следующее слово"
+              >
+                <span className="hidden sm:inline">Далее</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            </div>
           </div>
         </div>
       )}

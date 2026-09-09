@@ -414,6 +414,28 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
     if (onUpdateProfile) onUpdateProfile(updated);
   };
 
+  const getExerciseHebrewToSpeak = (ex: Exercise): string => {
+    if (ex.hebrewSnippet && /[\u0590-\u05FF]/.test(ex.hebrewSnippet)) {
+      return ex.hebrewSnippet;
+    }
+    if (ex.correctAnswer && typeof ex.correctAnswer === 'string' && /[\u0590-\u05FF]/.test(ex.correctAnswer)) {
+      return ex.correctAnswer;
+    }
+    const quoteMatch = ex.question?.match(/«([^»]+)»/);
+    if (quoteMatch && /[\u0590-\u05FF]/.test(quoteMatch[1])) {
+      return quoteMatch[1];
+    }
+    const expQuoteMatch = ex.explanation?.match(/«([^»]+)»/);
+    if (expQuoteMatch && /[\u0590-\u05FF]/.test(expQuoteMatch[1])) {
+      return expQuoteMatch[1];
+    }
+    const anyHeb = ex.question?.match(/[\u0590-\u05FF\s,!?.-]{2,}/);
+    if (anyHeb && anyHeb[0].trim().length > 1) {
+      return anyHeb[0].trim();
+    }
+    return '';
+  };
+
   const renderFormattedQuestion = (questionText: string, cursive: boolean) => {
     const parts = questionText.split(/(«[^»]+»)/g);
     return parts.map((part, idx) => {
@@ -851,15 +873,11 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
                 </p>
                 {!isUlpan && currentEx.explanation && <p>{currentEx.explanation}</p>}
               </div>
-              {currentEx.type !== 'build_sentence' && currentEx.type !== 'listening' && (
+              {currentEx.type !== 'build_sentence' && currentEx.type !== 'listening' && Boolean(getExerciseHebrewToSpeak(currentEx)) && (
                 <button
                   type="button"
                   onClick={() => {
-                    const textToSpeak =
-                      currentEx.hebrewSnippet ||
-                      (currentEx.correctAnswer && typeof currentEx.correctAnswer === 'string' && /[\u0590-\u05FF]/.test(currentEx.correctAnswer)
-                        ? currentEx.correctAnswer
-                        : '');
+                    const textToSpeak = getExerciseHebrewToSpeak(currentEx);
                     if (textToSpeak) speakHebrew(textToSpeak);
                   }}
                   className="p-2 rounded-xl bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 hover:text-blue-600 shadow-xs transition active:scale-95 shrink-0 cursor-pointer"

@@ -13,6 +13,8 @@ import {
   GitBranch,
   Table,
   LayoutGrid,
+  X,
+  Maximize2,
 } from 'lucide-react';
 import { VerbConjugation, UserProfile, Word, RootRelatedWord, ConjugationForm } from '@/types';
 import { speakHebrew } from '@/lib/speech';
@@ -39,6 +41,13 @@ export const VerbConjugationView: React.FC<VerbConjugationViewProps> = ({
   const [activeTab, setActiveTab] = useState<TenseTab>('all');
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
   const [speakingForm, setSpeakingForm] = useState<string | null>(null);
+  const [expandedForm, setExpandedForm] = useState<{
+    form: ConjugationForm;
+    cellKey: string;
+    pronounLabel: string;
+    hebrewPronoun?: string;
+    tenseName?: string;
+  } | null>(null);
 
   // Локальный трекинг добавленных слов
   const [addedMap, setAddedMap] = useState<Record<string, boolean>>(() => {
@@ -162,7 +171,8 @@ export const VerbConjugationView: React.FC<VerbConjugationViewProps> = ({
     form: ConjugationForm | undefined,
     cellKey: string,
     pronounLabel: string,
-    hebrewPronoun?: string
+    hebrewPronoun?: string,
+    tenseName?: string
   ) => {
     if (!form) {
       return (
@@ -192,8 +202,12 @@ export const VerbConjugationView: React.FC<VerbConjugationViewProps> = ({
 
     return (
       <div
-        onClick={() => handleSpeak(form.hebrew, cellKey)}
+        onClick={() => {
+          handleSpeak(form.hebrew, cellKey);
+          setExpandedForm({ form, cellKey, pronounLabel, hebrewPronoun, tenseName });
+        }}
         className="group relative flex flex-col justify-between p-3 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/80 hover:border-blue-500 dark:hover:border-blue-400 hover:shadow-md transition-all cursor-pointer select-text active:scale-[0.98] shadow-sm"
+        title="Нажмите, чтобы увеличить форму"
       >
         {/* Верхняя строка: Местоимение/Лицо и кнопки действий */}
         <div className="flex items-center justify-between gap-1 mb-1">
@@ -472,10 +486,10 @@ export const VerbConjugationView: React.FC<VerbConjugationViewProps> = ({
                 </span>
               </div>
               <div className="grid grid-cols-2 gap-2 sm:gap-3">
-                {renderPealimCell(presMs, 'pres_ms', 'Ед.ч. Мужской', 'זָכָר יָחִיד')}
-                {renderPealimCell(presFs, 'pres_fs', 'Ед.ч. Женский', 'נְקֵבָה יְחִידָה')}
-                {renderPealimCell(presMp, 'pres_mp', 'Мн.ч. Мужской', 'זָכָר רַבִּים')}
-                {renderPealimCell(presFp, 'pres_fp', 'Мн.ч. Женский', 'נְקֵבָה רַבּוֹת')}
+                {renderPealimCell(presMs, 'pres_ms', 'Ед.ч. Мужской', 'זָכָר יָחִיד', 'Настоящее время')}
+                {renderPealimCell(presFs, 'pres_fs', 'Ед.ч. Женский', 'נְקֵבָה יְחִידָה', 'Настоящее время')}
+                {renderPealimCell(presMp, 'pres_mp', 'Мн.ч. Мужской', 'זָכָר רַבִּים', 'Настоящее время')}
+                {renderPealimCell(presFp, 'pres_fp', 'Мн.ч. Женский', 'נְקֵבָה רַבּוֹת', 'Настоящее время')}
               </div>
             </div>
           )}
@@ -489,20 +503,28 @@ export const VerbConjugationView: React.FC<VerbConjugationViewProps> = ({
                   <span>Прошедшее время (עָבָר)</span>
                 </div>
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950/80 text-amber-700 dark:text-amber-300">
-                  8 форм
+                  {past2mp && past2fp && past2mp.hebrew === past2fp.hebrew ? '7 форм' : '8 форм'}
                 </span>
               </div>
               <div className="grid grid-cols-2 gap-2 sm:gap-3">
-                {renderPealimCell(past1s, 'past_1s', '1-е: Я', 'אֲנִי')}
-                {renderPealimCell(past1p, 'past_1p', '1-е: Мы', 'אֲנַחְנוּ')}
-                {renderPealimCell(past2ms, 'past_2ms', '2-е: Ты м.р.', 'אַתָּה')}
-                {renderPealimCell(past2fs, 'past_2fs', '2-е: Ты ж.р.', 'אַתְּ')}
-                {renderPealimCell(past2mp, 'past_2mp', '2-е: Вы м.р.', 'אַתֶּם')}
-                {renderPealimCell(past2fp, 'past_2fp', '2-е: Вы ж.р.', 'אַתֶּן')}
-                {renderPealimCell(past3ms, 'past_3ms', '3-е: Он', 'הוּא')}
-                {renderPealimCell(past3fs, 'past_3fs', '3-е: Она', 'הִיא')}
+                {renderPealimCell(past1s, 'past_1s', '1-е: Я', 'אֲנִי', 'Прошедшее время')}
+                {renderPealimCell(past1p, 'past_1p', '1-е: Мы', 'אֲנַחְנוּ', 'Прошедшее время')}
+                {renderPealimCell(past2ms, 'past_2ms', '2-е: Ты м.р.', 'אַתָּה', 'Прошедшее время')}
+                {renderPealimCell(past2fs, 'past_2fs', '2-е: Ты ж.р.', 'אַתְּ', 'Прошедшее время')}
+                {past2mp && past2fp && past2mp.hebrew === past2fp.hebrew ? (
+                  <div className="col-span-2">
+                    {renderPealimCell(past2mp, 'past_2p', '2-е: Вы (м./ж.)', 'אַתֶּם / אַתֶּן', 'Прошедшее время')}
+                  </div>
+                ) : (
+                  <>
+                    {renderPealimCell(past2mp, 'past_2mp', '2-е: Вы м.р.', 'אַתֶּם', 'Прошедшее время')}
+                    {renderPealimCell(past2fp, 'past_2fp', '2-е: Вы ж.р.', 'אַתֶּן', 'Прошедшее время')}
+                  </>
+                )}
+                {renderPealimCell(past3ms, 'past_3ms', '3-е: Он', 'הוּא', 'Прошедшее время')}
+                {renderPealimCell(past3fs, 'past_3fs', '3-е: Она', 'הִיא', 'Прошедшее время')}
                 <div className="col-span-2">
-                  {renderPealimCell(past3p, 'past_3p', '3-е: Они (м./ж.)', 'הֵם / הֵן')}
+                  {renderPealimCell(past3p, 'past_3p', '3-е: Они (м./ж.)', 'הֵם / הֵן', 'Прошедшее время')}
                 </div>
               </div>
             </div>
@@ -521,16 +543,32 @@ export const VerbConjugationView: React.FC<VerbConjugationViewProps> = ({
                 </span>
               </div>
               <div className="grid grid-cols-2 gap-2 sm:gap-3">
-                {renderPealimCell(fut1s, 'fut_1s', '1-е: Я', 'אֲנִי')}
-                {renderPealimCell(fut1p, 'fut_1p', '1-е: Мы', 'אֲנַחְנוּ')}
-                {renderPealimCell(fut2ms, 'fut_2ms', '2-е: Ты м.р.', 'אַתָּה')}
-                {renderPealimCell(fut2fs, 'fut_2fs', '2-е: Ты ж.р.', 'אַתְּ')}
-                {renderPealimCell(fut2mp, 'fut_2mp', '2-е: Вы м.р.', 'אַתֶּם')}
-                {renderPealimCell(fut2fp, 'fut_2fp', '2-е: Вы ж.р.', 'אַתֶּן')}
-                {renderPealimCell(fut3ms, 'fut_3ms', '3-е: Он', 'הוּא')}
-                {renderPealimCell(fut3fs, 'fut_3fs', '3-е: Она', 'הִיא')}
-                {renderPealimCell(fut3mp, 'fut_3mp', '3-е: Они м.р.', 'הֵם')}
-                {renderPealimCell(fut3fp, 'fut_3fp', '3-е: Они ж.р.', 'הֵן')}
+                {renderPealimCell(fut1s, 'fut_1s', '1-е: Я', 'אֲנִי', 'Будущее время')}
+                {renderPealimCell(fut1p, 'fut_1p', '1-е: Мы', 'אֲנַחְנוּ', 'Будущее время')}
+                {renderPealimCell(fut2ms, 'fut_2ms', '2-е: Ты м.р.', 'אַתָּה', 'Будущее время')}
+                {renderPealimCell(fut2fs, 'fut_2fs', '2-е: Ты ж.р.', 'אַתְּ', 'Будущее время')}
+                {fut2mp && fut2fp && fut2mp.hebrew === fut2fp.hebrew ? (
+                  <div className="col-span-2">
+                    {renderPealimCell(fut2mp, 'fut_2p', '2-е: Вы (м./ж.)', 'אַתֶּם / אַתֶּן', 'Будущее время')}
+                  </div>
+                ) : (
+                  <>
+                    {renderPealimCell(fut2mp, 'fut_2mp', '2-е: Вы м.р.', 'אַתֶּם', 'Будущее время')}
+                    {renderPealimCell(fut2fp, 'fut_2fp', '2-е: Вы ж.р.', 'אַתֶּן', 'Будущее время')}
+                  </>
+                )}
+                {renderPealimCell(fut3ms, 'fut_3ms', '3-е: Он', 'הוּא', 'Будущее время')}
+                {renderPealimCell(fut3fs, 'fut_3fs', '3-е: Она', 'הִיא', 'Будущее время')}
+                {fut3mp && fut3fp && fut3mp.hebrew === fut3fp.hebrew ? (
+                  <div className="col-span-2">
+                    {renderPealimCell(fut3mp, 'fut_3p', '3-е: Они (м./ж.)', 'הֵם / הֵן', 'Будущее время')}
+                  </div>
+                ) : (
+                  <>
+                    {renderPealimCell(fut3mp, 'fut_3mp', '3-е: Они м.р.', 'הֵם', 'Будущее время')}
+                    {renderPealimCell(fut3fp, 'fut_3fp', '3-е: Они ж.р.', 'הֵן', 'Будущее время')}
+                  </>
+                )}
               </div>
             </div>
           )}
@@ -543,10 +581,10 @@ export const VerbConjugationView: React.FC<VerbConjugationViewProps> = ({
                 <span>Повелительное наклонение (צִוּוּי)</span>
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3">
-                {renderPealimCell(impMs, 'imp_ms', '2-е: Ты м.р.', 'אַתָּה')}
-                {renderPealimCell(impFs, 'imp_fs', '2-е: Ты ж.р.', 'אַתְּ')}
+                {renderPealimCell(impMs, 'imp_ms', '2-е: Ты м.р.', 'אַתָּה', 'Повелительное наклонение')}
+                {renderPealimCell(impFs, 'imp_fs', '2-е: Ты ж.р.', 'אַתְּ', 'Повелительное наклонение')}
                 <div className="col-span-2 sm:col-span-1">
-                  {renderPealimCell(impP, 'imp_p', '2-е: Вы (мн.ч.)', 'אַתֶּם / אַתֶּן')}
+                  {renderPealimCell(impP, 'imp_p', '2-е: Вы (мн.ч.)', 'אַתֶּם / אַתֶּן', 'Повелительное наклонение')}
                 </div>
               </div>
             </div>
@@ -579,12 +617,33 @@ export const VerbConjugationView: React.FC<VerbConjugationViewProps> = ({
                       className="flex items-center justify-between p-3 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/80 hover:border-purple-400 transition cursor-pointer shadow-sm"
                     >
                       <div className="flex flex-col min-w-0 pr-2">
-                        <div className="flex items-center gap-1.5">
+                        <div className="flex items-center gap-1.5 flex-wrap">
                           <span className="text-xs font-bold text-slate-900 dark:text-white">
                             {rw.translation}
                           </span>
+                          {rw.partOfSpeech && (
+                            <span className={`text-[10px] px-1.5 py-0.5 rounded font-semibold ${
+                              rw.partOfSpeech === 'noun'
+                                ? 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300'
+                                : rw.partOfSpeech === 'adjective'
+                                ? 'bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300'
+                                : rw.partOfSpeech === 'expression'
+                                ? 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300'
+                                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'
+                            }`}>
+                              {rw.partOfSpeech === 'noun'
+                                ? 'сущ.'
+                                : rw.partOfSpeech === 'adjective'
+                                ? 'прил.'
+                                : rw.partOfSpeech === 'expression'
+                                ? 'выраж.'
+                                : rw.partOfSpeech === 'verb'
+                                ? 'гл.'
+                                : rw.partOfSpeech}
+                            </span>
+                          )}
                           {rw.binyan && (
-                            <span className="text-[10px] bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 px-1.5 py-0.2 rounded font-semibold">
+                            <span className="text-[10px] bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 px-1.5 py-0.5 rounded font-semibold">
                               {rw.binyan}
                             </span>
                           )}
@@ -650,6 +709,131 @@ export const VerbConjugationView: React.FC<VerbConjugationViewProps> = ({
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Модальное окно увеличенной карточки спряжения (Zoom / Full Card View) */}
+      {expandedForm && (
+        <div
+          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in"
+          onClick={() => setExpandedForm(null)}
+        >
+          <div
+            className="bg-white dark:bg-slate-900 rounded-3xl p-6 max-w-sm sm:max-w-md w-full border border-slate-200 dark:border-slate-800 shadow-2xl space-y-5 animate-in zoom-in-95 relative"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Кнопка закрытия */}
+            <button
+              type="button"
+              onClick={() => setExpandedForm(null)}
+              className="absolute top-4 right-4 p-2 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
+              title="Закрыть"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            {/* Заголовок: Время и Местоимение */}
+            <div className="pr-8">
+              {expandedForm.tenseName && (
+                <span className="text-[11px] font-extrabold uppercase tracking-wider text-blue-600 dark:text-blue-400 block mb-0.5">
+                  {expandedForm.tenseName}
+                </span>
+              )}
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-sm font-bold text-slate-800 dark:text-slate-200">
+                  {expandedForm.pronounLabel}
+                </span>
+                {expandedForm.hebrewPronoun && (
+                  <span dir="rtl" className="text-sm font-hebrew font-bold text-slate-400">
+                    ({expandedForm.hebrewPronoun})
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Иврит крупно с огласовками */}
+            <div className="text-center py-5 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800">
+              <span
+                dir="rtl"
+                className={`font-bold block text-4xl sm:text-5xl text-blue-600 dark:text-blue-400 leading-normal ${
+                  isCursive ? 'font-cursive' : 'font-hebrew'
+                }`}
+              >
+                {userProfile.showNikkud
+                  ? expandedForm.form.hebrew
+                  : stripNikkud(expandedForm.form.hebrew)}
+              </span>
+            </div>
+
+            {/* Транскрипция с ударением и перевод */}
+            <div className="text-center space-y-1">
+              <div className="text-lg sm:text-xl font-bold text-slate-800 dark:text-slate-100">
+                {expandedForm.form.transcription.split(/([áéóíúӣӯА́Е́И́О́У́Э́Ю́Я́а́е́и́о́у́э́ю́я́])/g).map((part, i) =>
+                  /[áéóíúӣӯА́Е́И́О́У́Э́Ю́Я́а́е́и́о́у́э́ю́я́]/.test(part) ? (
+                    <span key={i} className="text-red-500 dark:text-red-400 font-bold">
+                      {part}
+                    </span>
+                  ) : (
+                    <span key={i}>{part}</span>
+                  )
+                )}
+              </div>
+              <div className="text-sm sm:text-base font-medium text-slate-600 dark:text-slate-300">
+                {expandedForm.form.translation}
+              </div>
+            </div>
+
+            {/* Кнопки действий */}
+            <div className="flex items-center gap-2.5 pt-2">
+              <button
+                type="button"
+                onClick={() => handleSpeak(expandedForm.form.hebrew, expandedForm.cellKey)}
+                className="flex-1 py-3.5 px-4 rounded-2xl bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-bold text-sm flex items-center justify-center gap-2 shadow-md transition cursor-pointer"
+              >
+                <Volume2 className="w-4 h-4" />
+                <span>Озвучить</span>
+              </button>
+
+              {(() => {
+                const isAdded =
+                  addedMap[stripNikkud(expandedForm.form.hebrew)] ||
+                  isWordInPersonalDict(expandedForm.form.hebrew, userProfile.personalVocabulary);
+                return (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!isAdded) {
+                        handleAddWord({
+                          hebrew: expandedForm.form.hebrew,
+                          transcription: expandedForm.form.transcription,
+                          translation: expandedForm.form.translation,
+                          partOfSpeech: 'verb',
+                        });
+                      }
+                    }}
+                    disabled={isAdded}
+                    className={`py-3.5 px-4 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 transition cursor-pointer border ${
+                      isAdded
+                        ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border-emerald-300 dark:border-emerald-800'
+                        : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 active:scale-95'
+                    }`}
+                  >
+                    {isAdded ? (
+                      <>
+                        <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                        <span>В словаре</span>
+                      </>
+                    ) : (
+                      <>
+                        <Plus className="w-4 h-4" />
+                        <span>В словарь</span>
+                      </>
+                    )}
+                  </button>
+                );
+              })()}
+            </div>
+          </div>
         </div>
       )}
     </div>

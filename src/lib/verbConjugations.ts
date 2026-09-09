@@ -19963,6 +19963,7 @@ export const VERB_CONJUGATIONS_DATABASE: Record<string, VerbConjugation> = {
 
 import { RootRelatedWord } from '@/types';
 import { findWordsByRoot } from './ulpanDictionary';
+import { COMPREHENSIVE_ROOT_FAMILIES } from './rootFamiliesData';
 
 // Предустановленные богатые семьи корней (משפחת מילים в стиле Pealim)
 export const ROOT_FAMILIES_PRESETS: Record<string, RootRelatedWord[]> = {
@@ -20517,16 +20518,46 @@ export const ROOT_FAMILIES_PRESETS: Record<string, RootRelatedWord[]> = {
 /**
  * Получение всех однокоренных слов (Семья корня / Pealim Root Family)
  */
-export function getRootFamilyWords(root?: string, explicitList?: RootRelatedWord[]): RootRelatedWord[] {
+export function getRootFamilyWords(
+  root?: string,
+  explicitList?: RootRelatedWord[],
+  currentVerb?: VerbConjugation
+): RootRelatedWord[] {
   if (!root) return explicitList || [];
   const cleanRootKey = root.replace(/[^א-ת]/g, '');
 
   const results: RootRelatedWord[] = [];
   const seen = new Set<string>();
 
+  // Формы текущего глагола (инфинитив, настоящее, прошедшее, будущее, повелительное),
+  // чтобы исключить спряжения самого глагола из списка семьи корня!
+  const currentVerbForms = new Set<string>();
+  if (currentVerb) {
+    if (currentVerb.infinitive?.hebrew) {
+      currentVerbForms.add(stripNikkud(currentVerb.infinitive.hebrew));
+    }
+    const categories: Array<'present' | 'past' | 'future' | 'imperative'> = ['present', 'past', 'future', 'imperative'];
+    for (const cat of categories) {
+      const forms = currentVerb[cat];
+      if (Array.isArray(forms)) {
+        for (const f of forms) {
+          if (f?.hebrew) {
+            f.hebrew.split(' / ').forEach((sub: string) => {
+              currentVerbForms.add(stripNikkud(sub).trim());
+            });
+          }
+        }
+      }
+    }
+  }
+
   const addWord = (w: RootRelatedWord) => {
     const plain = stripNikkud(w.hebrewPlain || w.hebrew);
     if (!plain || seen.has(plain)) return;
+    // Исключаем формы спряжения самого глагола!
+    if (currentVerbForms.has(plain)) return;
+    // Если это глагол того же биньяна, исключаем его
+    if (w.partOfSpeech === 'verb' && currentVerb && w.binyan && w.binyan === currentVerb.binyan) return;
     seen.add(plain);
     results.push(w);
   };
@@ -20536,22 +20567,46 @@ export function getRootFamilyWords(root?: string, explicitList?: RootRelatedWord
     explicitList.forEach(addWord);
   }
 
-  // 2. Пресеты
+  // 2. Всеобъемлющая база семей корней (богатый набор существительных, прилагательных, выражений)
+  if (COMPREHENSIVE_ROOT_FAMILIES[cleanRootKey]) {
+    COMPREHENSIVE_ROOT_FAMILIES[cleanRootKey].forEach(addWord);
+  }
+
+  // 3. Старые пресеты
   if (ROOT_FAMILIES_PRESETS[cleanRootKey]) {
     ROOT_FAMILIES_PRESETS[cleanRootKey].forEach(addWord);
   }
 
-  // 3. Поиск по словарю и урокам
+  // 4. Поиск по словарю и урокам (в первую очередь существительные, прилагательные и выражения)
   const dictMatches = findWordsByRoot(root);
   for (const m of dictMatches) {
-    addWord({
-      hebrew: m.hebrew,
-      hebrewPlain: m.hebrewPlain || stripNikkud(m.hebrew),
-      transcription: m.transcription,
-      translation: m.translation,
-      partOfSpeech: (m.partOfSpeech as any) || 'other',
-      root: m.root || root,
-    });
+    const pos = m.partOfSpeech || 'other';
+    if (pos !== 'verb') {
+      addWord({
+        hebrew: m.hebrew,
+        hebrewPlain: m.hebrewPlain || stripNikkud(m.hebrew),
+        transcription: m.transcription,
+        translation: m.translation,
+        partOfSpeech: pos as any,
+        root: m.root || root,
+      });
+    }
+  }
+
+  // 5. В самом конце (если слов мало) можно добавить инфинитивы других биньянов
+  for (const m of dictMatches) {
+    const pos = m.partOfSpeech || 'other';
+    if (pos === 'verb') {
+      addWord({
+        hebrew: m.hebrew,
+        hebrewPlain: m.hebrewPlain || stripNikkud(m.hebrew),
+        transcription: m.transcription,
+        translation: m.translation,
+        partOfSpeech: 'verb',
+        binyan: (m as any).binyan,
+        root: m.root || root,
+      });
+    }
   }
 
   return results;
@@ -20611,7 +20666,7 @@ export function findOfflineVerbConjugation(query: string): VerbConjugation | nul
   }
 
   if (matchedVerb) {
-    const rootFamily = getRootFamilyWords(matchedVerb.root, matchedVerb.rootFamily);
+    const rootFamily = getRootFamilyWords(matchedVerb.root, matchedVerb.rootFamily, matchedVerb);
     return {
       ...matchedVerb,
       rootFamily: rootFamily.length > 0 ? rootFamily : undefined,

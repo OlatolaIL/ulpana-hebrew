@@ -383,6 +383,66 @@ export function stopSpeech(): void {
 }
 
 /**
+ * Озвучка русского текста через Web Speech API (для режима карточек "Авто на слух")
+ */
+export function speakRussian(text: string, options: { rate?: number } = {}): Promise<void> {
+  return new Promise((resolve) => {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
+      resolve();
+      return;
+    }
+
+    try {
+      if (window.speechSynthesis.speaking || window.speechSynthesis.pending) {
+        window.speechSynthesis.cancel();
+      }
+    } catch {}
+
+    const clean = text
+      .replace(/[()[\]{}«»—"']/g, ' ')
+      .replace(/;+/g, ',')
+      .replace(/\s+/g, ' ')
+      .trim();
+    if (!clean) {
+      resolve();
+      return;
+    }
+
+    // Берём первую часть перевода для лаконичной озвучки
+    const primary = clean.split(',')[0].trim();
+
+    try {
+      const utterance = new SpeechSynthesisUtterance(primary || clean);
+      utterance.lang = 'ru-RU';
+      utterance.rate = options.rate ?? 0.95;
+
+      const voices = window.speechSynthesis.getVoices();
+      const ruVoice = voices.find(
+        (v) => v.lang === 'ru-RU' || v.lang === 'ru' || (v.lang && v.lang.toLowerCase().startsWith('ru'))
+      );
+      if (ruVoice) utterance.voice = ruVoice;
+
+      let isDone = false;
+      const done = () => {
+        if (!isDone) {
+          isDone = true;
+          resolve();
+        }
+      };
+
+      utterance.onend = done;
+      utterance.onerror = done;
+      // Страховочный таймер от зависания SpeechSynthesis
+      setTimeout(done, 4000);
+
+      window.speechSynthesis.speak(utterance);
+    } catch {
+      resolve();
+    }
+  });
+}
+
+/**
  * Очистка текста от дублирующихся смежных фраз и слов
  */
 export function cleanDuplicatePhrases(text: string): string {
