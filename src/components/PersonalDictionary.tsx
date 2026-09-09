@@ -234,55 +234,49 @@ export const PersonalDictionary: React.FC<PersonalDictionaryProps> = ({
 
   return (
     <div data-font-style={userProfile.fontStyle || 'print'} className="max-w-5xl mx-auto space-y-4 sm:space-y-6">
-      {/* Главные вкладки раздела: Личный словарь / Тематические колоды / Слова по урокам */}
-      <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 p-1.5 bg-slate-200/90 dark:bg-slate-800 rounded-2xl border border-slate-300/80 dark:border-slate-700 shadow-inner">
+      {/* Главные вкладки раздела: Личный словарь / Тематические колоды */}
+      <div className="flex items-center gap-1.5 p-1 bg-slate-200/80 dark:bg-slate-800 rounded-2xl border border-slate-300/70 dark:border-slate-700">
         <button
           onClick={() => setActiveTab('personal')}
-          className={`py-2.5 px-3 rounded-xl text-xs sm:text-sm font-extrabold flex items-center justify-center gap-2 transition-all cursor-pointer ${
+          className={`flex-1 py-2 px-3 rounded-xl text-xs sm:text-sm font-extrabold flex items-center justify-center gap-2 transition-all cursor-pointer ${
             activeTab === 'personal'
-              ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
-              : 'text-slate-700 dark:text-slate-200 hover:bg-white/40 dark:hover:bg-slate-700/60'
+              ? 'bg-blue-600 text-white shadow-sm shadow-blue-600/20'
+              : 'text-slate-700 dark:text-slate-300 hover:bg-white/40 dark:hover:bg-slate-700/60'
           }`}
         >
           <BookOpen className="w-4 h-4 shrink-0" />
-          <span>Мой словарик</span>
-          <span className={`text-[11px] px-2 py-0.5 rounded-full font-black ${
-            activeTab === 'personal'
-              ? 'bg-white/20 text-white'
-              : 'bg-slate-300 dark:bg-slate-700 text-slate-800 dark:text-slate-200'
-          }`}>
+          <span>{userProfile.ulpanMode ? 'הַמִּילוֹן שֶׁלִּי' : 'Мой словарик'}</span>
+          <span
+            className={`text-[11px] px-2 py-0.5 rounded-full font-black ${
+              activeTab === 'personal'
+                ? 'bg-white/20 text-white'
+                : 'bg-slate-300 dark:bg-slate-700 text-slate-800 dark:text-slate-200'
+            }`}
+          >
             {words.length}
           </span>
         </button>
 
         <button
           onClick={() => setActiveTab('thematic')}
-          className={`py-2.5 px-3 rounded-xl text-xs sm:text-sm font-extrabold flex items-center justify-center gap-2 transition-all cursor-pointer ${
+          className={`flex-1 py-2 px-3 rounded-xl text-xs sm:text-sm font-extrabold flex items-center justify-center gap-2 transition-all cursor-pointer ${
             activeTab === 'thematic'
-              ? 'bg-purple-600 text-white shadow-md shadow-purple-600/30'
-              : 'text-slate-700 dark:text-slate-200 hover:bg-white/40 dark:hover:bg-slate-700/60'
+              ? 'bg-purple-600 text-white shadow-sm shadow-purple-600/20'
+              : 'text-slate-700 dark:text-slate-300 hover:bg-white/40 dark:hover:bg-slate-700/60'
           }`}
         >
           <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
-          <span>Тематические колоды</span>
-          <span className={`text-[11px] px-2 py-0.5 rounded-full font-black ${
-            activeTab === 'thematic'
-              ? 'bg-white/20 text-white'
-              : 'bg-purple-100 dark:bg-purple-950/80 text-purple-700 dark:text-purple-300 border border-purple-300/50 dark:border-purple-800'
-          }`}>
+          <span>{userProfile.ulpanMode ? 'עֶרְכּוֹת נוֹשְׂאִיּוֹת' : 'Тематические колоды'}</span>
+          <span
+            className={`text-[11px] px-2 py-0.5 rounded-full font-black ${
+              activeTab === 'thematic'
+                ? 'bg-white/20 text-white'
+                : 'bg-purple-100 dark:bg-purple-950/80 text-purple-700 dark:text-purple-300 border border-purple-300/50 dark:border-purple-800'
+            }`}
+          >
             {THEMATIC_DECKS.length}
           </span>
         </button>
-
-        {onOpenMultiLessonSetup && (
-          <button
-            onClick={onOpenMultiLessonSetup}
-            className="col-span-2 sm:col-auto sm:ml-auto py-2.5 px-3 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-sm hover:opacity-95 transition"
-          >
-            <Layers className="w-4 h-4" />
-            <span>Тренировать уроки (1–100)</span>
-          </button>
-        )}
       </div>
 
       {/* РЕНДЕР ВКЛАДКИ «ТЕМАТИЧЕСКИЕ КОЛОДЫ» */}
@@ -302,208 +296,10 @@ export const PersonalDictionary: React.FC<PersonalDictionaryProps> = ({
 
       {/* РЕНДЕР ВКЛАДКИ «МОЙ ЛИЧНЫЙ СЛОВАРЬ» */}
       {activeTab === 'personal' && (
-        <div className="space-y-4 sm:space-y-6">
-          {/* Быстрый доступ к популярным тематическим колодам прямо из словаря */}
-          <div className="bg-slate-100/90 dark:bg-slate-800/80 border border-slate-200/90 dark:border-slate-700/80 rounded-2xl p-3 sm:p-3.5 shadow-sm space-y-2">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-1.5">
-                <Sparkles className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-                <span className="text-xs font-extrabold text-slate-900 dark:text-white uppercase tracking-wider">
-                  Готовые тематические наборы ({THEMATIC_DECKS.length})
-                </span>
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setSelectedThematicDeckId(null);
-                  setActiveTab('thematic');
-                }}
-                className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1 cursor-pointer"
-              >
-                <span>Все колоды</span>
-                <span className="text-[10px]">➔</span>
-              </button>
-            </div>
-
-            {/* Горизонтальный скролл тематических колод */}
-            <div className="flex items-center gap-2 overflow-x-auto pb-1 pt-0.5 no-scrollbar">
-              {THEMATIC_DECKS.map((deck) => (
-                <button
-                  key={deck.id}
-                  type="button"
-                  onClick={() => handleOpenThematicDeck(deck.id)}
-                  className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-700/80 hover:border-purple-400 dark:hover:border-purple-500 hover:bg-purple-50/40 dark:hover:bg-purple-950/20 text-left shrink-0 transition-all hover:shadow-sm group active:scale-98 cursor-pointer"
-                  title={`Открыть колоду «${deck.title}» (${deck.words.length} слов)`}
-                >
-                  <span className="text-sm">
-                    {deck.id.includes('verb') ? '⚡' : deck.id.includes('food') ? '🥐' : deck.id.includes('cafe') ? '☕' : deck.id.includes('body') ? '🏥' : deck.id.includes('slang') ? '🗣️' : '🏙️'}
-                  </span>
-                  <div className="min-w-0">
-                    <div className="text-xs font-bold text-slate-800 dark:text-slate-200 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition truncate max-w-[140px]">
-                      {deck.title}
-                    </div>
-                    <div className="text-[10px] text-slate-400 font-medium">
-                      {deck.words.length} слов • {deck.level === 'alef' ? 'Алеф (א)' : 'Бет (ב)'}
-                    </div>
-                  </div>
-                </button>
-              ))}
-
-              <button
-                type="button"
-                onClick={() => {
-                  setSelectedThematicDeckId(null);
-                  setActiveTab('thematic');
-                }}
-                className="px-3.5 py-2 rounded-xl bg-purple-50 dark:bg-purple-950/60 border border-purple-200 dark:border-purple-800/80 text-purple-700 dark:text-purple-300 text-xs font-bold shrink-0 hover:bg-purple-100 transition whitespace-nowrap cursor-pointer flex items-center gap-1.5"
-              >
-                <span>Все {THEMATIC_DECKS.length} колод</span>
-                <span className="text-xs">➔</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Компактная, мобильная шапка Личного словаря */}
-          <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white rounded-2xl sm:rounded-3xl p-4 sm:p-5 shadow-lg relative overflow-hidden">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 relative z-10">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center text-yellow-300 font-bold shrink-0 shadow-inner">
-                  <BookOpen className="w-5 h-5" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h1 className="text-lg sm:text-xl font-black font-hebrew">
-                      {userProfile.ulpanMode ? 'הַמִּילוֹן שֶׁלִּי' : 'Личный словарь'}
-                    </h1>
-                    <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-white/20 font-hebrew">
-                      {userProfile.ulpanMode ? `${words.length} מִילִּים` : `${words.length} слов`}
-                    </span>
-                  </div>
-                  {/* Микро-метрики в 1 строчку */}
-                  <div className="flex items-center gap-2 text-xs text-blue-100 mt-0.5 font-hebrew">
-                    <span>{userProfile.ulpanMode ? 'רָמַת יְדִיעָה:' : 'Освоение:'} <strong>{dictStats.avgScore}%</strong></span>
-                    <span>•</span>
-                    <span>{userProfile.ulpanMode ? 'נִלְמַד:' : 'Выучено:'} <strong>{dictStats.masteredCount}</strong></span>
-                    {dictStats.dueCount > 0 && (
-                      <>
-                        <span>•</span>
-                        <span className="text-yellow-300 font-bold">
-                          {userProfile.ulpanMode ? `⚡ ${dictStats.dueCount} לַחֲזָרָה` : `⚡ ${dictStats.dueCount} к повторению`}
-                        </span>
-                      </>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Панель быстрых действий */}
-              <div className="flex items-center gap-2 shrink-0 self-stretch sm:self-auto pt-2 sm:pt-0 border-t sm:border-t-0 border-white/15">
-                <button
-                  type="button"
-                  onClick={handleToggleFont}
-                  className="p-2 sm:px-3 sm:py-2 rounded-xl bg-white/15 hover:bg-white/25 text-white text-xs font-semibold flex items-center justify-center gap-1 backdrop-blur transition shrink-0 cursor-pointer"
-                  title={userProfile.ulpanMode ? 'החלף גופן' : 'Переключить шрифт: Печатный / Рукописный'}
-                >
-                  <span className={isCursive ? 'font-cursive text-sm font-bold' : 'font-hebrew text-xs font-bold'}>
-                    {isCursive ? 'כתב' : 'דפוס'}
-                  </span>
-                </button>
-
-                <button
-                  onClick={() => setIsAddingCustom(true)}
-                  className="p-2 sm:px-3 sm:py-2 rounded-xl bg-white/15 hover:bg-white/25 text-white text-xs font-semibold flex items-center justify-center gap-1 backdrop-blur transition shrink-0 cursor-pointer font-hebrew"
-                >
-                  <Plus className="w-4 h-4" />
-                  <span className="hidden sm:inline">
-                    {userProfile.ulpanMode ? 'הוֹסֵף מִילָּה' : 'Добавить слово'}
-                  </span>
-                </button>
-
-                {words.length > 0 && (
-                  <button
-                    onClick={() => {
-                      const pool = filteredWords.length > 0 ? filteredWords : words;
-                      const sorted = sortWordsBySRSPriority(
-                        pool,
-                        userProfile.flashcardStats,
-                        userProfile.flashcardProgress
-                      );
-                      onStartPractice(
-                        sorted,
-                        userProfile.ulpanMode ? 'הַמִּילוֹן שֶׁלִּי' : 'Мой словарик'
-                      );
-                    }}
-                    className="flex-1 sm:flex-initial px-4 py-2 rounded-xl bg-white text-blue-600 hover:bg-blue-50 text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 shadow-md transition active:scale-95 cursor-pointer font-hebrew"
-                  >
-                    <Layers className="w-4 h-4" />
-                    <span>
-                      {userProfile.ulpanMode
-                        ? `תִּרְגּוּל כַּרְטִיסִיּוֹת (${filteredWords.length})`
-                        : `Тренировать (${filteredWords.length})`}
-                    </span>
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Панель поиска и фильтров по уровню знания */}
-          <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
-            {/* Фильтры мастерства */}
-            <div className="flex items-center gap-1 p-1 bg-slate-100 dark:bg-slate-800/80 rounded-2xl border border-slate-200 dark:border-slate-700/80 overflow-x-auto font-hebrew">
-              <button
-                onClick={() => setMasteryFilter('all')}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
-                  masteryFilter === 'all'
-                    ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm'
-                    : 'text-slate-600 dark:text-slate-400'
-                }`}
-              >
-                {userProfile.ulpanMode ? `הַכֹּל (${words.length})` : `Все (${words.length})`}
-              </button>
-              <button
-                onClick={() => setMasteryFilter('due')}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1 cursor-pointer ${
-                  masteryFilter === 'due'
-                    ? 'bg-amber-500 text-white shadow-sm'
-                    : 'text-amber-600 dark:text-amber-400'
-                }`}
-              >
-                <Clock className="w-3 h-3" />
-                <span>
-                  {userProfile.ulpanMode
-                    ? `לַחֲזָרָה (${dictStats.dueCount})`
-                    : `К повторению (${dictStats.dueCount})`}
-                </span>
-              </button>
-              <button
-                onClick={() => setMasteryFilter('learning')}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
-                  masteryFilter === 'learning'
-                    ? 'bg-blue-600 text-white shadow-sm'
-                    : 'text-slate-600 dark:text-slate-400'
-                }`}
-              >
-                {userProfile.ulpanMode
-                  ? `בְּלְמִידָה (${dictStats.learningCount})`
-                  : `Изучаю (${dictStats.learningCount})`}
-              </button>
-              <button
-                onClick={() => setMasteryFilter('mastered')}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
-                  masteryFilter === 'mastered'
-                    ? 'bg-emerald-600 text-white shadow-sm'
-                    : 'text-slate-600 dark:text-slate-400'
-                }`}
-              >
-                {userProfile.ulpanMode
-                  ? `הוּשְׁלַם (${dictStats.masteredCount})`
-                  : `Выучено (${dictStats.masteredCount})`}
-              </button>
-            </div>
-
-            {/* Поиск */}
-            <div className="relative flex-1 sm:max-w-xs">
+        <div className="space-y-3 sm:space-y-4">
+          {/* Компактная панель поиска и действий */}
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1">
               <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
@@ -514,9 +310,119 @@ export const PersonalDictionary: React.FC<PersonalDictionaryProps> = ({
                     ? 'חִפּוּשׂ מִילָּה בַּמִּילוֹן...'
                     : 'Поиск по ивриту, транскрипции или переводу...'
                 }
-                className="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs focus:outline-none focus:ring-2 focus:ring-blue-600 shadow-sm dark:text-white"
+                className="w-full pl-9 pr-3 py-2 sm:py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-600 shadow-xs dark:text-white"
               />
             </div>
+
+            <button
+              type="button"
+              onClick={handleToggleFont}
+              className="h-9 sm:h-10 px-2.5 sm:px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50 text-xs font-semibold flex items-center justify-center gap-1 shadow-xs transition shrink-0 cursor-pointer"
+              title={userProfile.ulpanMode ? 'החלף גופן' : 'Переключить шрифт: Печатный / Рукописный'}
+            >
+              <span className={isCursive ? 'font-cursive text-base font-bold text-blue-600 dark:text-blue-400 leading-none' : 'font-hebrew text-xs font-bold leading-none'}>
+                {isCursive ? 'כתב' : 'דפוס'}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setIsAddingCustom(true)}
+              className="h-9 sm:h-10 px-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 shadow-xs transition shrink-0 cursor-pointer"
+              title={userProfile.ulpanMode ? 'הוֹסֵף מִילָּה' : 'Добавить слово'}
+            >
+              <Plus className="w-4 h-4" />
+              <span className="hidden sm:inline font-hebrew">
+                {userProfile.ulpanMode ? 'הוֹסֵף' : 'Добавить'}
+              </span>
+            </button>
+          </div>
+
+          {/* Панель фильтров и кнопка тренировки карточек */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 bg-white dark:bg-slate-800/90 p-2.5 sm:p-3 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 shadow-xs">
+            {/* Фильтры по знанию */}
+            <div className="flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5 font-hebrew">
+              <button
+                onClick={() => setMasteryFilter('all')}
+                className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition whitespace-nowrap cursor-pointer ${
+                  masteryFilter === 'all'
+                    ? 'bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800'
+                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'
+                }`}
+              >
+                {userProfile.ulpanMode ? `הַכֹּל (${words.length})` : `Все (${words.length})`}
+              </button>
+
+              <button
+                onClick={() => setMasteryFilter('due')}
+                className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition whitespace-nowrap flex items-center gap-1 cursor-pointer ${
+                  masteryFilter === 'due'
+                    ? 'bg-amber-500 text-white shadow-xs'
+                    : dictStats.dueCount > 0
+                    ? 'text-amber-600 dark:text-amber-400 font-extrabold bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800'
+                    : 'text-slate-400 dark:text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700'
+                }`}
+              >
+                <span>⚡</span>
+                <span>
+                  {userProfile.ulpanMode
+                    ? `לַחֲזָרָה (${dictStats.dueCount})`
+                    : `К повторению (${dictStats.dueCount})`}
+                </span>
+              </button>
+
+              <button
+                onClick={() => setMasteryFilter('learning')}
+                className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition whitespace-nowrap cursor-pointer ${
+                  masteryFilter === 'learning'
+                    ? 'bg-blue-600 text-white shadow-xs'
+                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'
+                }`}
+              >
+                {userProfile.ulpanMode
+                  ? `בְּלְמִידָה (${dictStats.learningCount})`
+                  : `Изучаю (${dictStats.learningCount})`}
+              </button>
+
+              <button
+                onClick={() => setMasteryFilter('mastered')}
+                className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition whitespace-nowrap cursor-pointer ${
+                  masteryFilter === 'mastered'
+                    ? 'bg-emerald-600 text-white shadow-xs'
+                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'
+                }`}
+              >
+                {userProfile.ulpanMode
+                  ? `הוּשְׁלַם (${dictStats.masteredCount})`
+                  : `Выучено (${dictStats.masteredCount})`}
+              </button>
+            </div>
+
+            {/* Главная кнопка тренировки карточек */}
+            {words.length > 0 && (
+              <button
+                onClick={() => {
+                  const pool = filteredWords.length > 0 ? filteredWords : words;
+                  const sorted = sortWordsBySRSPriority(
+                    pool,
+                    userProfile.flashcardStats,
+                    userProfile.flashcardProgress
+                  );
+                  onStartPractice(
+                    sorted,
+                    userProfile.ulpanMode ? 'הַמִּילוֹן שֶׁלִּי' : 'Мой словарик'
+                  );
+                }}
+                className="w-full sm:w-auto px-4 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 shadow-sm transition active:scale-98 cursor-pointer shrink-0 font-hebrew"
+              >
+                <Layers className="w-4 h-4" />
+                <span>
+                  {dictStats.dueCount > 0 && masteryFilter === 'all'
+                    ? (userProfile.ulpanMode ? `חֲזָרָה עַל מִילִּים (${dictStats.dueCount})` : `Повторить карточки (⚡ ${dictStats.dueCount})`)
+                    : (userProfile.ulpanMode ? `תִּרְגּוּל (${filteredWords.length})` : `Тренировать карточки (${filteredWords.length})`)}
+                </span>
+              </button>
+            )}
           </div>
 
           {/* Список слов */}
