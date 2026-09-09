@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Конфигурация платформы и доступа к контенту
  */
 
@@ -7,11 +7,11 @@
 // false: действует стандартная монетизация (только первые FREE_LESSONS_LIMIT уроков бесплатны)
 export const IS_EARLY_ACCESS_FREE = true;
 
-// Количество бесплатных уроков при выключенном режиме раннего доступа
-export const FREE_LESSONS_LIMIT = 3;
+// Количество базовых бесплатных уроков Алеф при выключенном режиме раннего доступа
+export const FREE_LESSONS_LIMIT = 30;
 
 /**
- * Проверка, заблокирован ли урок для пользователя
+ * Проверка, заблокирован ли урок для пользователя (при выключенном раннем доступе)
  */
 export function isLessonLockedForUser(lessonId: number, isPro: boolean): boolean {
   if (IS_EARLY_ACCESS_FREE) {

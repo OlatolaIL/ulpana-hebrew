@@ -8,11 +8,13 @@ import {
   Target,
   ArrowRight,
   Play,
+  Sparkles,
 } from 'lucide-react';
 import { LESSONS_CATALOG } from '@/data/lessonsData';
 import { Level, UserProfile } from '@/types';
 import { stripNikkud } from '@/lib/transcription';
 import { isLessonLockedForUser } from '@/lib/config';
+import { TierBadge } from './TierBadge';
 
 interface CourseMapProps {
   userProfile: UserProfile;
@@ -205,6 +207,11 @@ export const CourseMap: React.FC<CourseMapProps> = ({
                   {currentCompletedTabs}/5
                 </span>
               )}
+              {currentLesson.id > 30 ? (
+                <TierBadge tier="pro-beta" size="xs" isUlpan={isUlpan} />
+              ) : (
+                <TierBadge tier="always-free" size="xs" isUlpan={isUlpan} customLabel={isUlpan ? 'חִנָּם' : 'Бесплатно'} />
+              )}
             </div>
 
             {/* Тема урока */}
@@ -258,6 +265,28 @@ export const CourseMap: React.FC<CourseMapProps> = ({
             className="bg-emerald-400 h-full rounded-full transition-all duration-500"
             style={{ width: `${progressPercent}%` }}
           />
+        </div>
+      </div>
+
+      {/* Информационный баннер открытого бета-тестирования */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 p-3 rounded-2xl bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-orange-500/10 border border-amber-500/30 text-amber-900 dark:text-amber-200">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <span className="p-1.5 rounded-xl bg-amber-500/20 text-amber-700 dark:text-amber-300 shrink-0">
+            <Sparkles className="w-4 h-4" />
+          </span>
+          <div className="text-xs leading-tight">
+            <span className="font-bold">
+              {isUlpan ? 'בֵּטָא פְּתוּחָה:' : 'Открытое бета-тестирование:'}
+            </span>{' '}
+            <span className="opacity-90">
+              {isUlpan
+                ? 'שִׁיעוּרִים 1–30 חִנָּמִיִּים תָּמִיד. כָּל שְׁאָר הַשִּׁיעוּרִים (31–100) וְשִׂיחוֹת הַ-AI פְּתוּחִים לְלֹא הַגְבָּלָה בְּמַצַּב PRO בֵּטָא.'
+                : 'Уроки 1–30 всегда бесплатны (этапы 1–3). Продвинутые уроки 31–100 и симуляторы звонков с ИИ сейчас открыты в режиме PRO БЕТА.'}
+            </span>
+          </div>
+        </div>
+        <div className="shrink-0 self-end sm:self-auto">
+          <TierBadge tier="pro-beta" size="sm" isUlpan={isUlpan} />
         </div>
       </div>
 
@@ -445,6 +474,12 @@ export const CourseMap: React.FC<CourseMapProps> = ({
                       <span className="text-[10px] font-semibold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 px-1.5 py-0.2 rounded">
                         {completedTabsCount}/5
                       </span>
+                    )}
+
+                    {lesson.id > 30 ? (
+                      <TierBadge tier="pro-beta" size="xs" isUlpan={isUlpan} />
+                    ) : (
+                      <TierBadge tier="always-free" size="xs" isUlpan={isUlpan} customLabel={isUlpan ? 'חִנָּם' : 'Бесплатно'} />
                     )}
                   </div>
 

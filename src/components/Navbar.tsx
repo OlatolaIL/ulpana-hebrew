@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { UserProfile } from '@/types';
 import { isVipUser } from '@/lib/vipUsers';
+import { TierBadge } from './TierBadge';
 
 interface NavbarProps {
   currentView: 'map' | 'lesson' | 'flashcards' | 'dictionary' | 'alphabet';
@@ -64,10 +65,11 @@ export const Navbar: React.FC<NavbarProps> = ({
               <span className="font-bold text-base sm:text-lg font-hebrew leading-none">א</span>
             </div>
             <div className="hidden sm:block">
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1.5">
                 <span className="font-extrabold text-base sm:text-lg tracking-tight text-zinc-900 dark:text-zinc-50 truncate">
                   Ульпана
                 </span>
+                <TierBadge tier="pro-beta" size="xs" isUlpan={userProfile.ulpanMode} customLabel={userProfile.ulpanMode ? 'בֵּטָא' : 'БЕТА'} />
               </div>
               <span dir="rtl" className="text-[11px] text-zinc-400 font-hebrew font-medium block -mt-0.5">
                 עִבְרִית מִן הַהַתְחָלָה
@@ -144,7 +146,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               </Link>
             )}
 
-            {/* Кнопка подписки PRO */}
+            {/* Кнопка подписки PRO / Бета */}
             <button
               onClick={onOpenSubscription}
               className={`h-9 sm:h-10 px-2.5 sm:px-3 rounded-xl border text-xs font-bold flex items-center gap-1.5 shadow-xs transition active:scale-95 shrink-0 ${
@@ -152,10 +154,10 @@ export const Navbar: React.FC<NavbarProps> = ({
                   ? 'border-amber-400/80 bg-gradient-to-r from-amber-500 to-yellow-400 text-white shadow-amber-500/20'
                   : 'border-amber-300/80 dark:border-amber-900/60 bg-amber-50/80 dark:bg-amber-950/30 text-amber-800 dark:text-amber-300 hover:bg-amber-100'
               }`}
-              title="Управление подпиской PRO и промокоды"
+              title="Статус открытого бета-тестирования и доступ PRO"
             >
               <span className="text-sm leading-none">👑</span>
-              <span className="tracking-wide">PRO</span>
+              <span className="tracking-wide">{isPro ? 'PRO' : 'PRO БЕТА'}</span>
             </button>
 
             {/* Быстрый переключатель шрифта (десктоп) */}

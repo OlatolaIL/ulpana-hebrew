@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useState } from 'react';
 import { X, Crown, CheckCircle2, Sparkles, KeyRound, AlertCircle, ArrowRight, MessageSquare, Send } from 'lucide-react';
@@ -95,61 +95,66 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
           </p>
         </div>
 
-        {/* Текущий статус подписки */}
-        <div
-          className={`p-4 rounded-2xl border ${
-            isPro
-              ? 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-900/50 text-emerald-800 dark:text-emerald-200'
-              : 'bg-zinc-50 dark:bg-zinc-800/50 border-zinc-200 dark:border-zinc-700/60 text-zinc-700 dark:text-zinc-300'
-          } flex items-center justify-between gap-3`}
-        >
-          <div className="flex items-center gap-3">
-            <Sparkles className={`w-5 h-5 ${isPro ? 'text-emerald-600' : 'text-amber-500'} shrink-0`} />
-            <div>
-              <p className="text-xs font-bold uppercase tracking-wider">
-                {isPro ? 'Ваш статус: PRO активирован' : 'Ваш статус: Бесплатный тариф'}
-              </p>
-              <p className="text-xs mt-0.5 opacity-90">
-                {isPro
-                  ? `Доступ открыт до ${expiresDate || 'бессрочно'}`
-                  : 'Доступны алфавит и первые 3 урока каталога'}
-              </p>
+        {/* Текущий статус: Открытое бета-тестирование */}
+        <div className="p-4 rounded-2xl border bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-orange-500/10 border-amber-500/30 text-amber-900 dark:text-amber-200 space-y-2">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <Sparkles className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0" />
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wider">
+                  Открытое бета-тестирование
+                </p>
+                <p className="text-xs mt-0.5 opacity-90">
+                  {isPro
+                    ? `У вас активирован статус PRO (${expiresDate || 'бессрочно'})`
+                    : 'Вам открыт полный доступ ко всем функциям PRO на время тестирования'}
+                </p>
+              </div>
             </div>
+            <span className="px-2 py-0.5 rounded-md text-[10px] font-extrabold bg-amber-500 text-white shrink-0">
+              PRO БЕТА
+            </span>
           </div>
         </div>
 
-        {/* Преимущества тарифа PRO */}
+        {/* Прозрачное разграничение: Бесплатно vs PRO */}
         <div className="space-y-3">
           <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-400">
-            Что входит в подписку PRO:
+            Структура курса и тарифов:
           </h3>
-          <div className="grid grid-cols-1 gap-2.5 text-xs text-zinc-700 dark:text-zinc-200">
-            <div className="flex items-start gap-2.5 p-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-800/40 border border-zinc-200/60 dark:border-zinc-700/40">
-              <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
-              <div>
-                <span className="font-bold">Все 100 уроков ульпана</span> — полные курсы уровней Алеф (A1-A2) и Бет (B1-B2).
+
+          <div className="grid grid-cols-1 gap-2 text-xs">
+            {/* Всегда бесплатно */}
+            <div className="p-3 rounded-xl bg-emerald-50/60 dark:bg-emerald-950/30 border border-emerald-200/60 dark:border-emerald-900/40 text-emerald-900 dark:text-emerald-200 space-y-1">
+              <div className="flex items-center gap-2 font-bold text-emerald-700 dark:text-emerald-300">
+                <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                <span>Всегда бесплатно (для всех зарегистрированных):</span>
               </div>
+              <ul className="text-[11px] space-y-0.5 pl-6 list-disc opacity-90">
+                <li>Уроки 1–30 уровня Алеф: этапы 1–3 (Теория, Словарь, Тесты)</li>
+                <li>Алфавит и прописи (печатный и рукописный шрифт)</li>
+                <li>Личный словарик и умный поиск слов</li>
+                <li>3 базовые колоды (Глаголы Пааль ч.1, Шук/Еда, Кафе/Ресторан)</li>
+              </ul>
             </div>
 
-            <div className="flex items-start gap-2.5 p-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-800/40 border border-zinc-200/60 dark:border-zinc-700/40">
-              <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
-              <div>
-                <span className="font-bold">Безлимитный живой диалог с ИИ</span> — общение голосом и текстом на актуальные бытовые темы Израиля.
+            {/* Входит в PRO */}
+            <div className="p-3 rounded-xl bg-amber-50/60 dark:bg-amber-950/30 border border-amber-200/60 dark:border-amber-900/40 text-amber-900 dark:text-amber-200 space-y-1">
+              <div className="flex items-center justify-between gap-2 font-bold text-amber-800 dark:text-amber-300">
+                <div className="flex items-center gap-2">
+                  <Crown className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                  <span>Входит в PRO (сейчас открыто в бете):</span>
+                </div>
+                <span className="text-[10px] px-1.5 py-0.2 rounded bg-amber-200/60 dark:bg-amber-900/60 text-amber-800 dark:text-amber-300 font-extrabold">
+                  БЕТА
+                </span>
               </div>
-            </div>
-
-            <div className="flex items-start gap-2.5 p-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-800/40 border border-zinc-200/60 dark:border-zinc-700/40">
-              <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
-              <div>
-                <span className="font-bold">Рукописный шрифт и прописи</span> — навык чтения реальных записей и вывесок в Израиле.
-              </div>
-            </div>
-
-            <div className="flex items-start gap-2.5 p-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-800/40 border border-zinc-200/60 dark:border-zinc-700/40">
-              <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
-              <div>
-                <span className="font-bold">Умные интервальные повторения (SRS)</span> — слова навсегда остаются в долговременной памяти.
-              </div>
+              <ul className="text-[11px] space-y-0.5 pl-6 list-disc opacity-90">
+                <li>Симулятор телефонных звонков и живые диалоги с ИИ (уроки 3–100)</li>
+                <li>Продвинутые уроки 31–100 (завершение Алеф и полный курс Бет)</li>
+                <li>Все специализированные колоды (биньяны глаголов, сленг, банк, медицина)</li>
+                <li>Интервальное повторение (SRS) без ограничений</li>
+              </ul>
             </div>
           </div>
         </div>

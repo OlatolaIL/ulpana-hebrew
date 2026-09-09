@@ -55,6 +55,8 @@ import {
 import { findOfflineVerbConjugation } from '@/lib/verbConjugations';
 import { VerbConjugationView } from '@/components/VerbConjugationView';
 import { useModalHistory } from '@/lib/useHistoryState';
+import { isDeckAlwaysFree } from '@/lib/permissions';
+import { TierBadge } from './TierBadge';
 
 interface ThematicDecksViewProps {
   userProfile: UserProfile;
@@ -357,6 +359,24 @@ export const ThematicDecksView: React.FC<ThematicDecksViewProps> = ({
 
   return (
     <div className="space-y-4 sm:space-y-6">
+      {/* Баннер режима бета-доступа к колодам */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 p-3 rounded-2xl bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-orange-500/10 border border-amber-500/30 text-amber-900 dark:text-amber-200 text-xs">
+        <div className="flex items-center gap-2 min-w-0">
+          <Sparkles className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+          <span>
+            <strong className="font-bold">
+              {userProfile.ulpanMode ? 'עֶרְכּוֹת בֵּטָא:' : 'Тематические колоды в Бете:'}
+            </strong>{' '}
+            {userProfile.ulpanMode
+              ? '3 עֶרְכּוֹת בְּסִיסִיּוֹת חִנָּמִיּוֹת תָּמִיד. כָּל שְׁאָר הָעֶרְכּוֹת פְּתוּחוֹת בִּתְקוּפַת הַבֵּטָא (בְּגִרְסָה סוֹפִית — PRO).'
+              : '3 базовые колоды всегда бесплатны. Все остальные тематические колоды сейчас открыты в режиме PRO БЕТА.'}
+          </span>
+        </div>
+        <div className="shrink-0 self-end sm:self-auto">
+          <TierBadge tier="pro-beta" size="xs" isUlpan={userProfile.ulpanMode} />
+        </div>
+      </div>
+
       {/* Быстрые фильтры по темам и уровням в одну компактную строку */}
       <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar font-hebrew">
         <button
@@ -477,9 +497,16 @@ export const ThematicDecksView: React.FC<ThematicDecksViewProps> = ({
 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-2">
-                    <h3 className="font-bold text-slate-900 dark:text-white text-sm sm:text-base truncate group-hover:text-blue-600 dark:group-hover:text-blue-400 transition">
-                      {deck.title}
-                    </h3>
+                    <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                      <h3 className="font-bold text-slate-900 dark:text-white text-sm sm:text-base truncate group-hover:text-blue-600 dark:group-hover:text-blue-400 transition">
+                        {deck.title}
+                      </h3>
+                      {isDeckAlwaysFree(deck.id) ? (
+                        <TierBadge tier="always-free" size="xs" isUlpan={userProfile.ulpanMode} customLabel={userProfile.ulpanMode ? 'חִנָּם' : 'Бесплатно'} />
+                      ) : (
+                        <TierBadge tier="pro-beta" size="xs" isUlpan={userProfile.ulpanMode} />
+                      )}
+                    </div>
                     {stats.avgScore > 0 && (
                       <span className="text-[11px] font-extrabold text-slate-700 dark:text-slate-300 shrink-0">
                         {stats.avgScore}%

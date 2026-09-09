@@ -394,6 +394,7 @@ export interface UserProfile {
   id?: string;
   telegramId?: number;
   username?: string;
+  email?: string;
   avatarUrl?: string;
   isLoggedIn?: boolean;
   subscriptionTier?: SubscriptionTier;

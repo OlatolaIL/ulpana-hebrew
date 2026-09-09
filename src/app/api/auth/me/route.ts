@@ -48,6 +48,8 @@ export async function GET(req: NextRequest) {
           name: row.name || session.name,
           username: row.username || session.username,
           avatarUrl: row.avatar_url || session.avatarUrl,
+          telegramId: row.telegram_id ? Number(row.telegram_id) : session.telegramId,
+          email: row.email || session.email,
           subscriptionTier: tier,
           subscriptionExpiresAt: expiresAt,
         };

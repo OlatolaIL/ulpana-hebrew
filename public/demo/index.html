@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ульпана • Полный видео-гид с озвучкой и музыкой</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800;900&family=Heebo:wght@500;700;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #090d16;
+      --card-bg: rgba(22, 30, 46, 0.85);
+      --accent-blue: #3b82f6;
+      --accent-emerald: #10b981;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: radial-gradient(circle at 50% 0%, #1e293b 0%, var(--bg-dark) 80%);
+      color: var(--text-main);
+      font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
+      min-height: 100vh;
+      padding: 24px 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .container {
+      max-width: 1040px;
+      width: 100%;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+    header { text-align: center; }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 14px;
+      border-radius: 999px;
+      background: rgba(59, 130, 246, 0.15);
+      border: 1px solid rgba(59, 130, 246, 0.35);
+      color: #60a5fa;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    h1 {
+      font-size: 26px;
+      font-weight: 900;
+      letter-spacing: -0.02em;
+      background: linear-gradient(135deg, #ffffff 40%, #94a3b8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 6px;
+    }
+    p.subtitle {
+      font-size: 14px;
+      color: var(--text-muted);
+      max-width: 640px;
+      margin: 0 auto;
+      line-height: 1.45;
+    }
+    .main-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 24px;
+      align-items: start;
+    }
+    @media (min-width: 820px) {
+      .main-grid { grid-template-columns: 390px 1fr; }
+    }
+    .phone-mockup {
+      width: 100%;
+      max-width: 390px;
+      margin: 0 auto;
+      background: #000;
+      border-radius: 46px;
+      padding: 10px;
+      box-shadow: 0 25px 60px -15px rgba(0,0,0,0.8), 0 0 0 2px rgba(255,255,255,0.14), 0 0 40px rgba(59,130,246,0.2);
+    }
+    .phone-screen {
+      border-radius: 38px;
+      overflow: hidden;
+      background: #090d16;
+      aspect-ratio: 390 / 844;
+    }
+    video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    .controls-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .card {
+      background: var(--card-bg);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 20px;
+      padding: 18px 20px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+    }
+    .card-title {
+      font-size: 15px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+      color: #e2e8f0;
+    }
+    .chapters-list {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+      max-height: 380px;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+    .chapter-btn {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 8px 12px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      color: #e2e8f0;
+      font-size: 12.5px;
+      font-weight: 600;
+      text-align: left;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .chapter-btn:hover {
+      background: rgba(59, 130, 246, 0.15);
+      border-color: rgba(59, 130, 246, 0.4);
+      transform: translateX(4px);
+    }
+    .chapter-tag {
+      font-size: 10.5px;
+      font-weight: 800;
+      padding: 2px 7px;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.1);
+      color: #94a3b8;
+      font-family: monospace;
+      shrink-0;
+    }
+    .btn-group {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .download-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 13px 16px;
+      border-radius: 14px;
+      color: white;
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 800;
+      transition: all 0.2s ease;
+      text-align: center;
+    }
+    .download-btn.mp4 {
+      background: linear-gradient(135deg, #2563eb, #1d4ed8);
+      box-shadow: 0 8px 20px rgba(37, 99, 235, 0.35);
+    }
+    .download-btn.mp4:hover {
+      background: linear-gradient(135deg, #3b82f6, #2563eb);
+      transform: translateY(-2px);
+    }
+    .download-btn.webm {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      color: #e2e8f0;
+    }
+    .download-btn.webm:hover {
+      background: rgba(255, 255, 255, 0.15);
+      transform: translateY(-2px);
+    }
+    .info-box {
+      font-size: 12px;
+      color: #94a3b8;
+      line-height: 1.55;
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px dashed rgba(255, 255, 255, 0.15);
+      border-radius: 14px;
+      padding: 14px;
+    }
+    .info-box code {
+      background: rgba(255, 255, 255, 0.1);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: monospace;
+      color: #38bdf8;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="badge">🎙️ Озвучено диктором • С фоновой музыкой</div>
+      <h1>Ульпана • Полный видео-гид</h1>
+      <p class="subtitle">100 уроков, 5 обязательных этапов, рукописные прописи, тематические колоды, встроенный справочник Пеалим и звонки с ИИ</p>
+    </header>
+
+    <div class="main-grid">
+      <!-- Мобильный экран с видео -->
+      <div class="phone-mockup">
+        <div class="phone-screen">
+          <video id="demoVideo" controls autoplay loop playsinline>
+            <source src="/demo/ulpana_full_guide.mp4" type="video/mp4">
+            <source src="/demo/ulpana_mobile_guide.webm" type="video/webm">
+            Ваш браузер не поддерживает видео.
+          </video>
+        </div>
+      </div>
+
+      <!-- Боковая панель -->
+      <div class="controls-panel">
+        <div class="card">
+          <div class="card-title">
+            <span>⏱️ Быстрый переход по разделам</span>
+          </div>
+          <div class="chapters-list">
+            <button class="chapter-btn" onclick="seek(1)">
+              <span>1. Интро: 100 уроков Алеф и Бет</span>
+              <span class="chapter-tag">0:01</span>
+            </button>
+            <button class="chapter-btn" onclick="seek(12)">
+              <span>2. Инфографика: 5 обязательных этапов урока</span>
+              <span class="chapter-tag">0:12</span>
+            </button>
+            <button class="chapter-btn" onclick="seek(27)">
+              <span>3. Этап 1: Теория, шрифты (דפוס/כתב), никуд и озвучка фраз</span>
+              <span class="chapter-tag">0:27</span>
+            </button>
+            <button class="chapter-btn" onclick="seek(45)">
+              <span>4. Раздел «Прописи»: рукописный алфавит и рисование на холсте</span>
+              <span class="chapter-tag">0:45</span>
+            </button>
+            <button class="chapter-btn" onclick="seek(58)">
+              <span>5. Карточки и встроенный Пеалим: спряжения во всех временах</span>
+              <span class="chapter-tag">0:58</span>
+            </button>
+            <button class="chapter-btn" onclick="seek(80)">
+              <span>6. Этап 3: Интерактивный тренажер предложений</span>
+              <span class="chapter-tag">1:20</span>
+            </button>
+            <button class="chapter-btn" onclick="seek(90)">
+              <span>7. Этап 4: Диалог с проверкой произношения (96%)</span>
+              <span class="chapter-tag">1:30</span>
+            </button>
+            <button class="chapter-btn" onclick="seek(109)">
+              <span>8. Этап 5: Звонок в бытовых ситуациях (такси, друг, курьер)</span>
+              <span class="chapter-tag">1:49</span>
+            </button>
+            <button class="chapter-btn" onclick="seek(132)">
+              <span>9. Финал: все 5 этапов освоены (Отчет и поздравление)</span>
+              <span class="chapter-tag">2:12</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">
+            <span>📥 Скачать готовый видеоролик</span>
+          </div>
+          <div class="btn-group">
+            <a href="/demo/ulpana_full_guide.mp4" download="ulpana_full_guide.mp4" class="download-btn mp4">
+              <span>Скачать .MP4 (3.1 MB)</span>
+            </a>
+            <a href="/demo/ulpana_mobile_guide.webm" download="ulpana_mobile_guide.webm" class="download-btn webm">
+              <span>Скачать .WebM</span>
+            </a>
+          </div>
+          <p style="font-size: 11px; color: var(--text-muted); margin-top: 8px; text-align: center;">
+            Формат MP4 готов к публикации в Telegram, Shorts, Reels или отправке ученикам.
+          </p>
+        </div>
+
+        <div class="info-box">
+          <b>💡 Управление и перезапись:</b><br>
+          Для повторной генерации видео с голосом и музыкой выполните:<br>
+          <code>npm run demo:record-audio</code>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const v = document.getElementById('demoVideo');
+    function seek(sec) {
+      if (v) {
+        v.currentTime = sec;
+        v.play();
+      }
+    }
+  </script>
+</body>
+</html>

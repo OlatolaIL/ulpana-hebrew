@@ -35,3 +35,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# demo heavy media
+public/demo/*.mp4
+public/demo/*.webm
+public/demo/*.wav
+public/demo/audio_cache/
+*.mp3

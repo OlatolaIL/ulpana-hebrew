@@ -13,6 +13,7 @@ import {
   ListTodo,
   Phone,
   MessageSquare,
+  Crown,
 } from 'lucide-react';
 import { Lesson, UserProfile, Word } from '@/types';
 import { LessonTheory } from './LessonTheory';
@@ -23,6 +24,8 @@ import { ScriptedDialogueTrainer } from './ScriptedDialogueTrainer';
 import { PhoneCallSimulator } from './PhoneCallSimulator';
 import { getLessonById, LESSONS_CATALOG } from '@/data/lessonsData';
 import { loadUserProfile, getFirstIncompleteLessonTab } from '@/lib/storage';
+import { isStageAlwaysFree } from '@/lib/permissions';
+import { TierBadge } from './TierBadge';
 
 export type LessonTab = 'theory' | 'vocab' | 'exercises' | 'chat' | 'phone';
 
@@ -169,6 +172,10 @@ export const LessonView: React.FC<LessonViewProps> = ({
                   <span className={`${isActive ? 'inline' : 'hidden sm:inline'} truncate text-[11px] sm:text-xs font-hebrew`}>
                     {userProfile.ulpanMode ? stage.labelHe : stage.labelRu}
                   </span>
+
+                  {!isStageAlwaysFree(lessonId, stage.id) && (
+                    <Crown className="w-2.5 h-2.5 text-amber-500 shrink-0" />
+                  )}
                 </div>
               </button>
             );
@@ -180,13 +187,17 @@ export const LessonView: React.FC<LessonViewProps> = ({
           <button
             type="button"
             onClick={handleToggleFont}
-            className="px-2 py-1 rounded-xl border border-zinc-200 dark:border-zinc-700 text-xs font-semibold hover:bg-zinc-100 dark:hover:bg-zinc-800 transition flex items-center gap-1 shrink-0 cursor-pointer"
-            title={userProfile.ulpanMode ? 'הַחְלֵף גּוֹפָן: דְּפוּס / כְּתָב' : 'Переключить шрифт: Печатный / Рукописный'}
+            className={`px-2 py-1 rounded-xl border text-xs font-hebrew font-bold transition cursor-pointer select-none shrink-0 ${
+              userProfile.fontStyle === 'cursive'
+                ? 'bg-amber-100 dark:bg-amber-950/60 border-amber-300 dark:border-amber-800 text-amber-900 dark:text-amber-200'
+                : 'border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800'
+            }`}
+            title={userProfile.ulpanMode ? 'הַחְלֵף גּוֹפָן (דְּפוּס / כְּתָב יָד)' : 'Переключить шрифт (Печатный / Пропись)'}
           >
             {userProfile.fontStyle === 'cursive' ? (
-              <span className="font-cursive font-bold text-sm text-blue-600 dark:text-blue-400 leading-none">כתב</span>
+              <span className="font-cursive text-sm">כתב</span>
             ) : (
-              <span className="font-hebrew font-bold text-xs text-zinc-700 dark:text-zinc-300 leading-none">דפוס</span>
+              <span>דפוס</span>
             )}
           </button>
 
@@ -224,6 +235,21 @@ export const LessonView: React.FC<LessonViewProps> = ({
           )}
         </div>
       </div>
+
+      {/* Индикатор этапа PRO в режиме Бета */}
+      {!isStageAlwaysFree(lessonId, activeTab) && (
+        <div className="mb-2 px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500/10 via-orange-500/5 to-amber-500/10 border border-amber-500/25 flex items-center justify-between gap-2 text-xs text-amber-900 dark:text-amber-200 shrink-0">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <Crown className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
+            <span className="font-semibold truncate">
+              {userProfile.ulpanMode
+                ? 'שָׁלָב זֶה הוּא חֵלֶק מִתָּכְנִית PRO — פָּתוּחַ לְלֹא הַגְבָּלָה בִּתְקוּפַת הַבֵּטָא'
+                : 'Этот этап входит в тариф PRO • Доступ открыт бесплатно на период бета-тестирования'}
+            </span>
+          </div>
+          <TierBadge tier="pro-beta" size="xs" isUlpan={userProfile.ulpanMode} />
+        </div>
+      )}
 
       {/* 2. Рабочая область выбранного этапа */}
       <div className={`flex-1 min-h-0 ${activeTab === 'chat' ? 'flex flex-col min-h-0 h-full overflow-hidden' : 'overflow-y-auto pr-1'}`}>
