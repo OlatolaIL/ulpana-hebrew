@@ -18,6 +18,45 @@ export interface DictionaryEntry {
 
 export const ULPAN_OFFLINE_DICTIONARY: DictionaryEntry[] = [
   {
+    hebrew: 'רִיהוּט',
+    hebrewPlain: 'ריהוט',
+    transcription: 'риhӯт',
+    translation: 'мебель, обстановка',
+    root: 'ר-ה-ט',
+    partOfSpeech: 'noun',
+    exampleSentence: {
+      hebrew: 'אֵיזֶה רִיהוּט אַתָּה צָרִיךְ בַּדִּירָה?',
+      transcription: 'э́йзэ риhӯт атá царӣх ба-дирá?',
+      translation: 'Какая мебель вам нужна в квартире?',
+    },
+  },
+  {
+    hebrew: 'רִהוּט',
+    hebrewPlain: 'רהוט',
+    transcription: 'риhӯт',
+    translation: 'мебель, обстановка',
+    root: 'ר-ה-ט',
+    partOfSpeech: 'noun',
+    exampleSentence: {
+      hebrew: 'אֵיזֶה רִיהוּט אַתָּה צָרִיךְ בַּדִּירָה?',
+      transcription: 'э́йзэ риhӯт атá царӣх ба-дирá?',
+      translation: 'Какая мебель вам нужна в квартире?',
+    },
+  },
+  {
+    hebrew: 'מְרוֹהֶטֶת',
+    hebrewPlain: 'מרוהטת',
+    transcription: 'мэруhэ́тет',
+    translation: 'меблированная (о квартире / комнате)',
+    root: 'ר-ה-ט',
+    partOfSpeech: 'adjective',
+    exampleSentence: {
+      hebrew: 'הַדִּירָה מְרוֹהֶטֶת לְגַמְרֵי.',
+      transcription: 'hа-дирá мэруhэ́тет лэгамрэ́й.',
+      translation: 'Квартира полностью меблирована.',
+    },
+  },
+  {
     hebrew: 'שָׁלוֹם',
     hebrewPlain: 'שלום',
     transcription: 'шалóм',

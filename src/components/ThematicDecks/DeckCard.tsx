@@ -100,11 +100,10 @@ export const DeckCard: React.FC<DeckCardProps> = ({
                 <TierBadge
                   tier="always-free"
                   size="xs"
-                  isUlpan={userProfile.ulpanMode}
-                  customLabel={userProfile.ulpanMode ? 'חִנָּם' : 'Бесплатно'}
+                  customLabel="Бесплатно"
                 />
               ) : (
-                <TierBadge tier="pro-beta" size="xs" isUlpan={userProfile.ulpanMode} />
+                <TierBadge tier="pro-beta" size="xs" />
               )}
             </div>
             {stats.avgScore > 0 && (

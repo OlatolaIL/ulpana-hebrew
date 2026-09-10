@@ -14,6 +14,7 @@ interface DialogueWordsDrawerProps {
   lessonNumber: number;
   dialogueUsefulWords: Word[];
   lessonVocabularyWords: Word[];
+  customLessonWords?: Word[];
   totalAvailableWordsCount: number;
   addedWords: Record<string, boolean>;
   onAddWordToDict: (w: Word) => void;
@@ -31,6 +32,7 @@ export const DialogueWordsDrawer: React.FC<DialogueWordsDrawerProps> = ({
   lessonNumber,
   dialogueUsefulWords,
   lessonVocabularyWords,
+  customLessonWords = [],
   totalAvailableWordsCount,
   addedWords,
   onAddWordToDict,
@@ -70,7 +72,7 @@ export const DialogueWordsDrawer: React.FC<DialogueWordsDrawerProps> = ({
             )}
             {word.partOfSpeech === 'expression' && (
               <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-md bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/25 shrink-0">
-                {userProfile.ulpanMode ? 'בִּטּוּי' : 'Разговорное'}
+                Разговорное
               </span>
             )}
             {word.gender && (
@@ -136,11 +138,11 @@ export const DialogueWordsDrawer: React.FC<DialogueWordsDrawerProps> = ({
           type="button"
           onClick={onOpen}
           className="fixed right-0 top-1/2 -translate-y-1/2 z-30 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white shadow-xl rounded-l-2xl py-3 px-1.5 sm:px-2 flex flex-col items-center gap-1.5 cursor-pointer border-y border-l border-blue-400/60 transition-all group font-hebrew"
-          title={userProfile.ulpanMode ? 'מִילִּים שֶׁיַּעַזְרוּ בַּשִּׂיחָה' : 'Полезные слова и подсказки к диалогу'}
+          title="Полезные слова и подсказки к диалогу"
         >
           <BookOpen className="w-4 h-4 text-white group-hover:scale-110 transition-transform" />
           <span className="text-[10px] font-bold uppercase [writing-mode:vertical-rl] tracking-widest text-blue-100">
-            {userProfile.ulpanMode ? 'מִילִּים' : 'СЛОВА'}
+            СЛОВА
           </span>
           <span className="w-5 h-5 rounded-full bg-white text-blue-700 text-[10px] font-black flex items-center justify-center shadow-xs">
             {totalAvailableWordsCount}
@@ -168,12 +170,10 @@ export const DialogueWordsDrawer: React.FC<DialogueWordsDrawerProps> = ({
                 <span className="text-xl">📖</span>
                 <div className="min-w-0">
                   <h3 className="font-bold text-sm sm:text-base text-zinc-900 dark:text-zinc-50 truncate">
-                    {userProfile.ulpanMode ? 'מִילִּים לַשִּׂיחָה' : 'Словарь к диалогу'}
+                    Словарь к диалогу
                   </h3>
                   <p className="text-[11px] sm:text-xs text-zinc-500 dark:text-zinc-400 truncate">
-                    {userProfile.ulpanMode
-                      ? 'מִילִּים וּבִיטּוּיִים שֶׁיַּעַזְרוּ בַּדִּיאָלוֹג'
-                      : `Полезные выражения и слова урока ${lessonNumber}`}
+                    Полезные выражения и слова урока {lessonNumber}
                   </p>
                 </div>
               </div>
@@ -209,7 +209,28 @@ export const DialogueWordsDrawer: React.FC<DialogueWordsDrawerProps> = ({
                 </div>
               )}
 
-              {/* Секция 2: Слова урока */}
+              {/* Секция 2: Добавленные пользователем слова в словарь этого урока */}
+              {customLessonWords.length > 0 && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between px-0.5 pt-2 border-t border-zinc-100 dark:border-zinc-800">
+                    <p className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
+                      <span>👑</span>
+                      <span>Добавлено вами в словарь:</span>
+                    </p>
+                    <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-1.5 py-0.5 rounded-full">
+                      {customLessonWords.length} шт.
+                    </span>
+                  </div>
+
+                  <div className="space-y-2">
+                    {customLessonWords.map((word, idx) =>
+                      renderWordItem(word, `custom-w-${idx}`, false)
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Секция 3: Слова урока */}
               {lessonVocabularyWords.length > 0 && (
                 <div className="space-y-2">
                   <div className="flex items-center justify-between px-0.5 pt-2 border-t border-zinc-100 dark:border-zinc-800">

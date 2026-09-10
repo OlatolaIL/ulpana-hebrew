@@ -8,7 +8,6 @@ export type TierType = 'pro-beta' | 'always-free' | 'pro';
 interface TierBadgeProps {
   tier: TierType;
   size?: 'xs' | 'sm' | 'md';
-  isUlpan?: boolean;
   className?: string;
   showIcon?: boolean;
   customLabel?: string;
@@ -17,7 +16,6 @@ interface TierBadgeProps {
 export const TierBadge: React.FC<TierBadgeProps> = ({
   tier,
   size = 'sm',
-  isUlpan = false,
   className = '',
   showIcon = true,
   customLabel,
@@ -32,14 +30,10 @@ export const TierBadge: React.FC<TierBadgeProps> = ({
     return (
       <span
         className={`inline-flex items-center font-bold tracking-tight rounded-md select-none border bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-amber-500/20 text-amber-800 dark:text-amber-300 border-amber-400/40 dark:border-amber-500/40 shadow-2xs ${sizeClasses} ${className}`}
-        title={
-          isUlpan
-            ? 'פָּתוּחַ בִּתְקוּפַת הַבֵּטָא • בְּגִרְסָה סוֹפִית יִהְיֶה בְּתָכְנִית PRO'
-            : 'Открыто в рамках открытого бета-тестирования • В релизе станет частью PRO'
-        }
+        title="Открыто в рамках открытого бета-тестирования • В релизе станет частью PRO"
       >
         {showIcon && <Crown className="w-3 h-3 text-amber-600 dark:text-amber-400 shrink-0" />}
-        <span>{customLabel || (isUlpan ? 'PRO בֵּטָא' : 'PRO БЕТА')}</span>
+        <span>{customLabel || 'PRO БЕТА'}</span>
       </span>
     );
   }
@@ -48,14 +42,10 @@ export const TierBadge: React.FC<TierBadgeProps> = ({
     return (
       <span
         className={`inline-flex items-center font-semibold rounded-md select-none border bg-emerald-50/80 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200/70 dark:border-emerald-800/50 ${sizeClasses} ${className}`}
-        title={
-          isUlpan
-            ? 'גִּישָׁה בְּסִיסִית חִנָּמִית תָּמִיד'
-            : 'Базовый доступ навсегда бесплатно'
-        }
+        title="Базовый доступ навсегда бесплатно"
       >
         {showIcon && <CheckCircle2 className="w-3 h-3 text-emerald-500 shrink-0" />}
-        <span>{customLabel || (isUlpan ? 'חִנָּם' : 'Бесплатно')}</span>
+        <span>{customLabel || 'Бесплатно'}</span>
       </span>
     );
   }
@@ -64,7 +54,7 @@ export const TierBadge: React.FC<TierBadgeProps> = ({
   return (
     <span
       className={`inline-flex items-center font-bold rounded-md select-none bg-amber-500 text-white shadow-2xs ${sizeClasses} ${className}`}
-      title={isUlpan ? 'מִנּוּי PRO' : 'Тариф PRO'}
+      title="Тариф PRO"
     >
       {showIcon && <Crown className="w-3 h-3 shrink-0" />}
       <span>{customLabel || 'PRO'}</span>

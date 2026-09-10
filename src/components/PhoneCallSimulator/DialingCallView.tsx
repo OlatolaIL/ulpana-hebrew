@@ -26,20 +26,18 @@ export const DialingCallView: React.FC<DialingCallViewProps> = ({
       <h3 className="text-2xl font-bold text-white font-hebrew">
         {scenario.callerName}
       </h3>
-      {!userProfile.ulpanMode && (
-        <p className="text-sm text-zinc-400 mt-1">{scenario.callerNameRu}</p>
-      )}
+      <p className="text-sm text-zinc-400 mt-1">{scenario.callerNameRu}</p>
 
       <div className="flex items-center gap-2 text-emerald-400 font-semibold text-sm mt-4 bg-emerald-950/40 px-3 py-1.5 rounded-full border border-emerald-800/40 font-hebrew">
         <Radio className="w-4 h-4 animate-spin text-emerald-400" />
-        <span>{userProfile.ulpanMode ? '...מְחַיֵּג' : 'מְחַיֵּג... (Идут гудки)'}</span>
+        <span>מְחַיֵּג... (Идут гудки)</span>
       </div>
 
       {/* Кнопка отмены */}
       <button
         onClick={onCancelCall}
         className="mt-10 p-4 rounded-full bg-rose-600 hover:bg-rose-700 text-white shadow-lg transition active:scale-95 cursor-pointer"
-        title={userProfile.ulpanMode ? 'בטל שיחה' : 'Отменить вызов'}
+        title="Отменить вызов"
       >
         <PhoneOff className="w-7 h-7" />
       </button>

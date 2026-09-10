@@ -90,11 +90,7 @@ export const ActiveCallView: React.FC<ActiveCallViewProps> = ({
                 }`}
               >
                 {scenario.callType === 'outgoing'
-                  ? userProfile.ulpanMode
-                    ? '📲 שִׂיחָה יוֹצֵאת'
-                    : '📲 Исходящий'
-                  : userProfile.ulpanMode
-                  ? '📞 שִׂיחָה נִכְנֶסֶת'
+                  ? '📲 Исходящий'
                   : '📞 Входящий'}
               </span>
             </div>
@@ -109,7 +105,7 @@ export const ActiveCallView: React.FC<ActiveCallViewProps> = ({
                 </span>
               ) : (
                 <span className="text-[10px] text-zinc-400 hidden sm:inline font-hebrew">
-                  • {userProfile.ulpanMode ? 'שִׂיחָה קוֹלִית' : 'Голосовой звонок'}
+                  • Голосовой звонок
                 </span>
               )}
             </div>
@@ -122,11 +118,11 @@ export const ActiveCallView: React.FC<ActiveCallViewProps> = ({
             type="button"
             onClick={onOpenAudioHelp}
             className="px-2.5 py-1.5 rounded-xl border border-zinc-700/80 bg-zinc-800/80 hover:bg-zinc-800 text-zinc-300 hover:text-white hover:border-amber-500/50 text-xs font-medium flex items-center gap-1.5 transition cursor-pointer"
-            title={userProfile.ulpanMode ? 'עֶזְרָה בְּשֵׁמַע' : 'Не слышно собеседника?'}
+            title="Не слышно собеседника?"
           >
             <Volume2 className="w-3.5 h-3.5 text-amber-400" />
             <span className="text-[11px] font-hebrew">
-              {userProfile.ulpanMode ? 'אֵין קוֹל?' : 'Не слышно?'}
+              Не слышно?
             </span>
           </button>
 
@@ -139,17 +135,13 @@ export const ActiveCallView: React.FC<ActiveCallViewProps> = ({
             }`}
             title={
               showSubtitles
-                ? userProfile.ulpanMode
-                  ? 'הסתר כתוביות'
-                  : 'Скрыть субтитры (на слух)'
-                : userProfile.ulpanMode
-                ? 'הצג כתוביות'
+                ? 'Скрыть субтитры (на слух)'
                 : 'Показать субтитры'
             }
           >
             {showSubtitles ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
             <span className="text-[11px] font-hebrew">
-              {userProfile.ulpanMode ? 'כְּתוּבִיּוֹת' : 'Субтитры'}
+              Субтитры
             </span>
           </button>
         </div>
@@ -208,9 +200,7 @@ export const ActiveCallView: React.FC<ActiveCallViewProps> = ({
               <div className="flex items-center gap-2 text-xs font-bold text-rose-300 bg-rose-950/70 px-4 py-1.5 rounded-full border border-rose-800/60 font-hebrew shadow-md animate-pulse">
                 <PhoneOff className="w-3.5 h-3.5 text-rose-400" />
                 <span>
-                  {userProfile.ulpanMode
-                    ? 'הַבֶּן-שִׂיחַ נִפְרָד וּמְנַתֵּק אֶת הַשִּׂיחָה...'
-                    : 'Собеседник прощается и вешает трубку...'}
+                  Собеседник прощается и вешает трубку...
                 </span>
               </div>
             )}
@@ -219,9 +209,7 @@ export const ActiveCallView: React.FC<ActiveCallViewProps> = ({
               <div className="flex items-center gap-2 text-xs font-bold text-blue-400 bg-blue-950/60 px-3.5 py-1.5 rounded-full border border-blue-800/50 animate-pulse font-hebrew shadow-sm">
                 <Volume2 className="w-3.5 h-3.5" />
                 <span>
-                  {userProfile.ulpanMode
-                    ? `...${scenario.callerName} מְדַבֵּר`
-                    : `${scenario.callerNameRu} говорит...`}
+                  {`${scenario.callerNameRu} говорит...`}
                 </span>
               </div>
             )}
@@ -229,7 +217,7 @@ export const ActiveCallView: React.FC<ActiveCallViewProps> = ({
             {!isAiHangingUp && loadingAi && (
               <div className="flex items-center gap-2 text-xs font-bold text-purple-400 bg-purple-950/60 px-3.5 py-1.5 rounded-full border border-purple-800/50 font-hebrew shadow-sm">
                 <Sparkles className="w-3.5 h-3.5 animate-spin" />
-                <span>{userProfile.ulpanMode ? '...חוֹשֵׁב' : 'Собеседник думает...'}</span>
+                <span>Собеседник думает...</span>
               </div>
             )}
 
@@ -238,9 +226,7 @@ export const ActiveCallView: React.FC<ActiveCallViewProps> = ({
                 <div className="flex items-center gap-2 text-xs font-bold text-emerald-400 bg-emerald-950/60 px-3.5 py-1.5 rounded-full border border-emerald-800/50 font-hebrew shadow-sm">
                   <Mic className="w-3.5 h-3.5 animate-pulse" />
                   <span>
-                    {userProfile.ulpanMode
-                      ? '...מַאֲזִין לָכֶם, דַּבְּרוּ בְּעִבְרִית'
-                      : 'Слушаю вас... Говорите на иврите'}
+                    Слушаю вас... Говорите на иврите
                   </span>
                 </div>
 
@@ -263,7 +249,7 @@ export const ActiveCallView: React.FC<ActiveCallViewProps> = ({
             {isMuted && !isAiSpeaking && !loadingAi && (
               <div className="flex items-center gap-2 text-xs font-bold text-amber-400 bg-amber-950/60 px-3.5 py-1.5 rounded-full border border-amber-800/50 font-hebrew shadow-sm">
                 <MicOff className="w-3.5 h-3.5" />
-                <span>{userProfile.ulpanMode ? 'הַמִּיקְרוֹפוֹן מֻשְׁתָּק' : 'Микрофон выключен'}</span>
+                <span>Микрофон выключен</span>
               </div>
             )}
           </div>
@@ -283,17 +269,17 @@ export const ActiveCallView: React.FC<ActiveCallViewProps> = ({
               <button
                 onClick={() => speakHebrew(latestAiMessage.hebrew)}
                 className="p-1 rounded-lg hover:bg-zinc-700 text-blue-400 transition cursor-pointer"
-                title={userProfile.ulpanMode ? 'השמע שוב' : 'Повторить фразу'}
+                title="Повторить фразу"
               >
                 <Volume2 className="w-4 h-4" />
               </button>
             </div>
-            {!userProfile.ulpanMode && userProfile.showTranscription && latestAiMessage.transcription && (
+            {userProfile.showTranscription && latestAiMessage.transcription && (
               <p className="text-xs sm:text-sm text-yellow-400/90 font-mono">
                 {latestAiMessage.transcription}
               </p>
             )}
-            {!userProfile.ulpanMode && latestAiMessage.translation && (
+            {latestAiMessage.translation && (
               <p className="text-xs text-zinc-300 mt-1">
                 {latestAiMessage.translation}
               </p>
@@ -310,18 +296,16 @@ export const ActiveCallView: React.FC<ActiveCallViewProps> = ({
               }
             }}
             className="w-full max-w-lg mt-3 bg-emerald-950/70 border border-emerald-700/70 hover:border-emerald-500 rounded-2xl p-3 text-xs text-emerald-200 font-hebrew shadow-md animate-fade-in cursor-pointer transition group"
-            title={userProfile.ulpanMode ? 'שְׁלִיחָה עַכְשָׁו' : 'Нажмите, чтобы отправить сейчас'}
+            title="Нажмите, чтобы отправить сейчас"
           >
             <div className="flex items-center justify-between gap-2 mb-1 text-[11px] text-emerald-400 font-semibold">
               <div className="flex items-center gap-1.5">
                 <Mic className="w-3.5 h-3.5 animate-pulse" />
-                <span>{userProfile.ulpanMode ? 'אַתֶּם אוֹמְרִים:' : 'Вы говорите:'}</span>
+                <span>Вы говорите:</span>
               </div>
               <div className="flex items-center gap-1 text-[10px] text-emerald-400/80 group-hover:text-emerald-300">
                 <span>
-                  {userProfile.ulpanMode
-                    ? 'שְׁלִיחָה אוֹטוֹמָטִית בְּפַאוּזָה (אוֹ לְחִיצָה)'
-                    : 'Отправится само (или нажмите)'}
+                  Отправится само (или нажмите)
                 </span>
                 <Send className="w-3 h-3 ml-0.5" />
               </div>
@@ -350,13 +334,11 @@ export const ActiveCallView: React.FC<ActiveCallViewProps> = ({
               <span className="font-bold text-zinc-400 flex items-center gap-1.5">
                 <Sparkles className="w-3 h-3 text-purple-400" />
                 <span>
-                  {userProfile.ulpanMode
-                    ? 'רַעְיוֹנוֹת לִתְשׁוּבָה (אִמְרוּ בְּקוֹל אוֹ לַחֲצוּ):'
-                    : 'Подсказка — скажите вслух или нажмите:'}
+                  Подсказка — скажите вслух или нажмите:
                 </span>
               </span>
               <span className="text-[10px] text-zinc-500">
-                {userProfile.ulpanMode ? 'דַּבְּרוּ בַּמִּיקְרוֹפוֹן 🎙️' : 'Говорите в микрофон 🎙️'}
+                Говорите в микрофон 🎙️
               </span>
             </div>
             <div className="flex flex-wrap gap-1.5">
@@ -378,7 +360,7 @@ export const ActiveCallView: React.FC<ActiveCallViewProps> = ({
                   <span className="font-bold font-hebrew text-white group-hover:text-blue-200">
                     {reply.hebrew}
                   </span>
-                  {!userProfile.ulpanMode && reply.translation && (
+                  {reply.translation && (
                     <span className="text-[10px] text-zinc-400">{reply.translation}</span>
                   )}
                 </button>
@@ -395,9 +377,7 @@ export const ActiveCallView: React.FC<ActiveCallViewProps> = ({
             value={textInput}
             onChange={(e) => setTextInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && onSendMessage()}
-            placeholder={
-              userProfile.ulpanMode ? 'כִּתְבוּ תְּשׁוּבָה בְּעִבְרִית...' : 'Напишите ответ на иврите...'
-            }
+            placeholder="Напишите ответ на иврите..."
             className="flex-1 bg-zinc-800 border border-zinc-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500 font-hebrew"
           />
           <button
@@ -421,11 +401,7 @@ export const ActiveCallView: React.FC<ActiveCallViewProps> = ({
           }`}
           title={
             isMuted
-              ? userProfile.ulpanMode
-                ? 'הפעל מיקרופון'
-                : 'Включить микрофон'
-              : userProfile.ulpanMode
-              ? 'השתק מיקרופון'
+              ? 'Включить микрофон'
               : 'Выключить микрофон'
           }
         >
@@ -441,16 +417,12 @@ export const ActiveCallView: React.FC<ActiveCallViewProps> = ({
               ? 'bg-rose-950/80 border border-rose-800/60 text-rose-300 opacity-90 cursor-wait animate-pulse'
               : 'bg-rose-600 hover:bg-rose-700 active:scale-95 text-white shadow-rose-600/30 cursor-pointer'
           }`}
-          title={userProfile.ulpanMode ? 'סיום שיחה' : 'Положить трубку'}
+          title="Положить трубку"
         >
           <PhoneOff className={`w-5 h-5 ${isAiHangingUp ? 'animate-bounce' : ''}`} />
           <span className="text-sm">
             {isAiHangingUp
-              ? userProfile.ulpanMode
-                ? 'מְנַתֵּק...'
-                : 'Завершение...'
-              : userProfile.ulpanMode
-              ? 'לְנַתֵּק'
+              ? 'Завершение...'
               : 'Положить трубку'}
           </span>
         </button>
@@ -463,7 +435,7 @@ export const ActiveCallView: React.FC<ActiveCallViewProps> = ({
               ? 'bg-blue-600 border-blue-500 text-white'
               : 'bg-zinc-800/90 border-zinc-700 text-zinc-400 hover:text-white hover:bg-zinc-700'
           }`}
-          title={userProfile.ulpanMode ? 'מקלדת' : 'Резервная клавиатура'}
+          title="Резервная клавиатура"
         >
           <Send className="w-4 h-4" />
         </button>

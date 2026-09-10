@@ -50,10 +50,10 @@ export const CallDebriefView: React.FC<CallDebriefViewProps> = ({
             🎉
           </div>
           <h2 className="text-xl sm:text-2xl font-bold text-zinc-900 dark:text-zinc-50 font-hebrew">
-            {userProfile.ulpanMode ? '!הַשִּׂיחָה הִסְתַּיְּמָה • כָּל הַכָּבוֹד' : 'Разговор завершен!'}
+            Разговор завершен!
           </h2>
           <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-0.5 font-hebrew">
-            {userProfile.ulpanMode ? 'אִמּוּן מְצוּיָן שֶׁל עִבְרִית בַּטֶּלֶפוֹן' : 'Отличная тренировка телефонного иврита'}
+            Отличная тренировка телефонного иврита
           </p>
         </div>
       ) : (
@@ -62,12 +62,10 @@ export const CallDebriefView: React.FC<CallDebriefViewProps> = ({
             📞
           </div>
           <h2 className="text-xl sm:text-2xl font-bold text-zinc-900 dark:text-zinc-50 font-hebrew">
-            {userProfile.ulpanMode ? 'הַשִּׂיחָה הָיְתָה קְצָרָה מִדַּי' : 'Разговор был слишком коротким'}
+            Разговор был слишком коротким
           </h2>
           <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1 max-w-md mx-auto font-hebrew">
-            {userProfile.ulpanMode
-              ? 'לֹא נִקְלְטוּ תְּשׁוּבוֹת מֵהַמִּיקְרוֹפוֹן. כְּדֵי לְהַשְׁלִים אֶת הַשִּׁיעוּר, יֵשׁ לְשׂוֹחֵחַ עִם הַבֶּן-שִׂיחַ (לְפָחוֹת 2 מִשְׁפָּטִים).'
-              : 'Собеседник не услышал ваших реплик (0 ответов). Чтобы урок был засчитан, произнесите ответ вслух или нажмите на подсказку.'}
+            Собеседник не услышал ваших реплик (0 ответов). Чтобы урок был засчитан, произнесите ответ вслух или нажмите на подсказку.
           </p>
         </div>
       )}
@@ -76,7 +74,7 @@ export const CallDebriefView: React.FC<CallDebriefViewProps> = ({
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 font-hebrew">
         <div className="bg-zinc-50 dark:bg-zinc-800/60 p-3.5 rounded-2xl border border-zinc-200 dark:border-zinc-700/60 text-center">
           <span className="text-xs text-zinc-400 block font-medium">
-            {userProfile.ulpanMode ? 'מֶשֶׁךְ הַשִּׂיחָה' : 'Длительность'}
+            Длительность
           </span>
           <span className="text-lg font-bold text-zinc-900 dark:text-zinc-100 font-mono">
             {formatTimer(callDuration)}
@@ -85,7 +83,7 @@ export const CallDebriefView: React.FC<CallDebriefViewProps> = ({
 
         <div className="bg-zinc-50 dark:bg-zinc-800/60 p-3.5 rounded-2xl border border-zinc-200 dark:border-zinc-700/60 text-center">
           <span className="text-xs text-zinc-400 block font-medium">
-            {userProfile.ulpanMode ? 'מִשְׁפָּטִים שֶׁנֶּאֶמְרוּ' : 'Реплик сказано'}
+            Реплик сказано
           </span>
           <span className={`text-lg font-bold ${userTurnsCount > 0 ? 'text-blue-600 dark:text-blue-400' : 'text-amber-500'}`}>
             {userTurnsCount}
@@ -94,7 +92,7 @@ export const CallDebriefView: React.FC<CallDebriefViewProps> = ({
 
         <div className="bg-zinc-50 dark:bg-zinc-800/60 p-3.5 rounded-2xl border border-zinc-200 dark:border-zinc-700/60 text-center col-span-2 sm:col-span-1">
           <span className="text-xs text-zinc-400 block font-medium">
-            {userProfile.ulpanMode ? 'הֲבָנָה' : 'Результат'}
+            Результат
           </span>
           <span className={`text-lg font-bold ${isCallSuccessful ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-500'}`}>
             {isCallSuccessful ? '100% 🏆' : 'Требуется диалог'}
@@ -106,7 +104,7 @@ export const CallDebriefView: React.FC<CallDebriefViewProps> = ({
       <div className="bg-zinc-50 dark:bg-zinc-800/40 p-4 rounded-2xl border border-zinc-200 dark:border-zinc-700/60 font-hebrew">
         <h4 className="text-xs font-bold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
           <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-          <span>{userProfile.ulpanMode ? 'מַטְּרוֹת הַתַּרְחִישׁ:' : 'Цели сценария:'}</span>
+          <span>Цели сценария:</span>
         </h4>
         <ul className="space-y-2">
           {scenario.goals.map((goal, idx) => (
@@ -124,7 +122,7 @@ export const CallDebriefView: React.FC<CallDebriefViewProps> = ({
       {relevantWords.length > 0 && (
         <div className="space-y-2 font-hebrew">
           <h4 className="text-xs font-bold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider">
-            {userProfile.ulpanMode ? 'מִילִּים שֶׁנִּלְמְדוּ בַּשִּׂיחָה:' : 'Полезные слова из этого звонка:'}
+            Полезные слова из этого звонка:
           </h4>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             {relevantWords.map((word) => {
@@ -140,11 +138,9 @@ export const CallDebriefView: React.FC<CallDebriefViewProps> = ({
                     <div className="font-bold text-zinc-900 dark:text-zinc-100 font-hebrew truncate text-sm">
                       {word.hebrew}
                     </div>
-                    {!userProfile.ulpanMode && (
-                      <div className="text-xs text-zinc-500 dark:text-zinc-400 truncate">
-                        {word.translation}
-                      </div>
-                    )}
+                    <div className="text-xs text-zinc-500 dark:text-zinc-400 truncate">
+                      {word.translation}
+                    </div>
                   </div>
 
                   <button
@@ -157,11 +153,7 @@ export const CallDebriefView: React.FC<CallDebriefViewProps> = ({
                     }`}
                     title={
                       isAdded
-                        ? userProfile.ulpanMode
-                          ? 'במילון'
-                          : 'Слово уже в словаре'
-                        : userProfile.ulpanMode
-                        ? 'הוסף למילון'
+                        ? 'Слово уже в словаре'
                         : 'Добавить в словарь'
                     }
                   >
@@ -170,7 +162,7 @@ export const CallDebriefView: React.FC<CallDebriefViewProps> = ({
                     ) : (
                       <>
                         <Plus className="w-3.5 h-3.5" />
-                        <span className="text-[11px]">{userProfile.ulpanMode ? 'לַמִּילוֹן' : 'В словарь'}</span>
+                        <span className="text-[11px]">В словарь</span>
                       </>
                     )}
                   </button>
@@ -186,7 +178,7 @@ export const CallDebriefView: React.FC<CallDebriefViewProps> = ({
         <div className="grid grid-cols-3 gap-2 font-hebrew">
           <div className="bg-emerald-50 dark:bg-emerald-950/40 p-2.5 rounded-2xl border border-emerald-200 dark:border-emerald-800/60 text-center shadow-2xs">
             <span className="text-[11px] text-emerald-700 dark:text-emerald-300 block font-semibold">
-              {userProfile.ulpanMode ? 'צִיּוּן כְּלָלִי' : '🎯 Итог'}
+              🎯 Итог
             </span>
             <span className="text-base sm:text-lg font-extrabold text-emerald-800 dark:text-emerald-200 font-mono">
               {debriefReport.overallScore}%
@@ -194,7 +186,7 @@ export const CallDebriefView: React.FC<CallDebriefViewProps> = ({
           </div>
           <div className="bg-blue-50 dark:bg-blue-950/40 p-2.5 rounded-2xl border border-blue-200 dark:border-blue-800/60 text-center shadow-2xs">
             <span className="text-[11px] text-blue-700 dark:text-blue-300 block font-semibold">
-              {userProfile.ulpanMode ? 'הֶגֶה וּמִבְטָא' : '🎙️ Произношение'}
+              🎙️ Произношение
             </span>
             <span className="text-base sm:text-lg font-extrabold text-blue-800 dark:text-blue-200 font-mono">
               {debriefReport.pronunciationScore ?? 92}%
@@ -208,7 +200,7 @@ export const CallDebriefView: React.FC<CallDebriefViewProps> = ({
             }`}
           >
             <span className="text-[11px] block font-semibold">
-              {userProfile.ulpanMode ? 'דִּקְדּוּק וָמִין' : '📚 Грамматика'}
+              📚 Грамматика
             </span>
             <span className="text-base sm:text-lg font-extrabold font-mono">
               {debriefReport.grammarScore ?? 95}%
@@ -225,9 +217,7 @@ export const CallDebriefView: React.FC<CallDebriefViewProps> = ({
       >
         <MessageSquare className="w-5 h-5 text-blue-100" />
         <span>
-          {userProfile.ulpanMode
-            ? 'צְפִיָּה בַּשִּׂיחָה הַמְּלֵאָה וּבְמַשּׁוֹב הַמּוֹרֶה 💬'
-            : 'Посмотреть полный диалог и комментарии учителя 💬'}
+          Посмотреть полный диалог и комментарии учителя 💬
         </span>
       </button>
 
@@ -238,7 +228,7 @@ export const CallDebriefView: React.FC<CallDebriefViewProps> = ({
           className="flex-1 py-3 px-4 rounded-xl border border-zinc-300 dark:border-zinc-700 font-semibold text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition flex items-center justify-center gap-2 text-sm cursor-pointer"
         >
           <RotateCcw className="w-4 h-4" />
-          <span>{userProfile.ulpanMode ? 'שִׂיחָה חוֹזֶרֶת 🔄' : 'Позвонить еще раз'}</span>
+          <span>Позвонить еще раз</span>
         </button>
 
         {onBackToLesson && (
@@ -246,7 +236,7 @@ export const CallDebriefView: React.FC<CallDebriefViewProps> = ({
             onClick={onBackToLesson}
             className="flex-1 py-3 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold transition flex items-center justify-center gap-2 text-sm shadow-sm cursor-pointer"
           >
-            <span>{userProfile.ulpanMode ? 'חֲזָרָה לַשִּׁיעוּרִים ➡️' : 'Вернуться к уроку'}</span>
+            <span>Вернуться к уроку</span>
           </button>
         )}
       </div>

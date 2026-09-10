@@ -47,13 +47,13 @@ export const ChatInputBar: React.FC<ChatInputBarProps> = ({
               title="Показать готовые варианты ответа в шторке"
             >
               <Lightbulb className="w-3.5 h-3.5 text-amber-500" />
-              <span>{userProfile.ulpanMode ? 'דֻּגְמָאוֹת לַתְּשׁוּבָה' : 'Готовые варианты ответа'}</span>
+              <span>Готовые варианты ответа</span>
               <span className="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-indigo-100 dark:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300">
                 {lastAiMessage.suggestedReplies.length}
               </span>
             </button>
             <span className="text-[11px] text-zinc-400 dark:text-zinc-500 hidden sm:inline">
-              {userProfile.ulpanMode ? 'לַחֲצוּ לִצְפִיָּה בַּשְּׁטוֹרְקָה' : 'нажмите для просмотра'}
+              нажмите для просмотра
             </span>
           </div>
         )}
@@ -64,7 +64,7 @@ export const ChatInputBar: React.FC<ChatInputBarProps> = ({
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-rose-600 animate-ping shrink-0" />
             <span className="font-bold">
-              {userProfile.ulpanMode ? '🎙️ מַאֲזִין... דַּבְּרוּ בְּעִבְרִית' : '🎙️ Запись голоса (говорите на иврите):'}
+              🎙️ Запись голоса (говорите на иврите):
             </span>
           </div>
           <div className="flex items-center gap-1 h-3 shrink-0">
@@ -86,9 +86,7 @@ export const ChatInputBar: React.FC<ChatInputBarProps> = ({
         <div className="px-3 py-1.5 bg-indigo-50 dark:bg-indigo-950/40 border-b border-indigo-200 dark:border-indigo-900/60 flex items-center gap-2 text-xs text-indigo-700 dark:text-indigo-300 animate-in fade-in duration-150">
           <Sparkles className="w-4 h-4 animate-spin text-indigo-600 shrink-0" />
           <span className="font-bold">
-            {userProfile.ulpanMode
-              ? 'מְעַבֵּד אֶת הַדִּבּוּר בְּבִינָה מְלָאכוּתִית...'
-              : 'Распознавание речи через ИИ (Whisper V3)...'}
+            Распознавание речи через ИИ (Whisper V3)...
           </span>
         </div>
       )}
@@ -131,15 +129,9 @@ export const ChatInputBar: React.FC<ChatInputBarProps> = ({
               onChange={(e) => setInputText(e.target.value)}
               placeholder={
                 isTranscribing
-                  ? userProfile.ulpanMode
-                    ? '✨ מְעַבֵּד אֶת הַדִּבּוּר...'
-                    : '✨ Обработка речи через ИИ...'
+                  ? '✨ Обработка речи через ИИ...'
                   : isRecording
-                  ? userProfile.ulpanMode
-                    ? '🎙️ מַאֲזִין... דַּבְּרוּ בְּעִבְרִית'
-                    : '🎙️ Слушаю... говорите на иврите'
-                  : userProfile.ulpanMode
-                  ? 'הַקְלִידוּ אוֹ דַּבְּרוּ בְּעִבְרִית...'
+                  ? '🎙️ Слушаю... говорите на иврите'
                   : 'Напишите или продиктуйте ответ на иврите...'
               }
               className={`w-full py-2.5 pl-3.5 pr-8 rounded-xl border text-base sm:text-sm transition focus:outline-none ${

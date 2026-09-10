@@ -73,7 +73,7 @@ export const DialogueReviewModal: React.FC<DialogueReviewModalProps> = ({
             <div className="min-w-0">
               <div className="flex items-center gap-2">
                 <h3 className="font-bold text-base sm:text-lg text-zinc-900 dark:text-zinc-50 truncate">
-                  {userProfile.ulpanMode ? 'סִיכּוּם וּפֵירוּט הַשִּׂיחָה' : 'Разбор телефонного звонка'}
+                  Разбор телефонного звонка
                 </h3>
               </div>
               <p className="text-xs text-zinc-500 dark:text-zinc-400 truncate">
@@ -88,7 +88,7 @@ export const DialogueReviewModal: React.FC<DialogueReviewModalProps> = ({
                 {/* Общий балл */}
                 <div
                   className="flex items-center gap-1 px-2 sm:px-2.5 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800/60 text-emerald-700 dark:text-emerald-300 font-bold text-xs shadow-2xs"
-                  title={userProfile.ulpanMode ? 'צִיּוּן כְּלָלִי' : 'Общий балл решения задачи звонка'}
+                  title="Общий балл решения задачи звонка"
                 >
                   <Award className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
                   <span>{debriefReport.overallScore}%</span>
@@ -98,7 +98,7 @@ export const DialogueReviewModal: React.FC<DialogueReviewModalProps> = ({
                 {typeof debriefReport.pronunciationScore === 'number' && (
                   <div
                     className="flex items-center gap-1 px-2 sm:px-2.5 py-1.5 rounded-xl bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800/60 text-blue-700 dark:text-blue-300 font-bold text-xs shadow-2xs"
-                    title={userProfile.ulpanMode ? 'צִיּוּן הֶגֶה וּמִבְטָא' : 'Чёткость произношения и ударений'}
+                    title="Чёткость произношения и ударений"
                   >
                     <Mic className="w-3.5 h-3.5 text-blue-500 shrink-0" />
                     <span>{debriefReport.pronunciationScore}%</span>
@@ -113,7 +113,7 @@ export const DialogueReviewModal: React.FC<DialogueReviewModalProps> = ({
                         ? 'bg-purple-50 dark:bg-purple-950/50 border-purple-200 dark:border-purple-800/60 text-purple-700 dark:text-purple-300'
                         : 'bg-amber-50 dark:bg-amber-950/50 border-amber-200 dark:border-amber-800/60 text-amber-700 dark:text-amber-300'
                     }`}
-                    title={userProfile.ulpanMode ? 'דִּקְדּוּק וּסֵדֶר מִילִּים' : 'Грамматика, согласование родов и порядок слов'}
+                    title="Грамматика, согласование родов и порядок слов"
                   >
                     <BookOpen className="w-3.5 h-3.5 text-purple-500 shrink-0" />
                     <span>{debriefReport.grammarScore}%</span>
@@ -139,9 +139,7 @@ export const DialogueReviewModal: React.FC<DialogueReviewModalProps> = ({
             <div className="bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900/60 rounded-2xl p-4 flex items-center gap-3">
               <Sparkles className="w-5 h-5 text-blue-500 animate-spin shrink-0" />
               <span className="text-xs sm:text-sm text-blue-900 dark:text-blue-200 font-medium">
-                {userProfile.ulpanMode
-                  ? '...הַמּוֹרֶה מֵכִין מַשּׁוֹב מְפֹרָט לְשִׂיחַת הַטֶּלֶפוֹן'
-                  : 'ИИ-учитель готовит разбор звонка, оценку и живые израильские фразы...'}
+                ИИ-учитель готовит разбор звонка, оценку и живые израильские фразы...
               </span>
             </div>
           )}
@@ -156,7 +154,7 @@ export const DialogueReviewModal: React.FC<DialogueReviewModalProps> = ({
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
                     <span className="font-bold text-xs sm:text-sm text-blue-950 dark:text-blue-200">
-                      {userProfile.ulpanMode ? 'סִיכּוּם הַשִּׂיחָה' : 'Итог звонка:'}
+                      Итог звонка:
                     </span>
                     <span
                       className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
@@ -166,11 +164,7 @@ export const DialogueReviewModal: React.FC<DialogueReviewModalProps> = ({
                       }`}
                     >
                       {debriefReport.isSuccess
-                        ? userProfile.ulpanMode
-                          ? 'הַמַּטָּרָה הוּשְׂגָה ✔️'
-                          : 'Цель достигнута ✔️'
-                        : userProfile.ulpanMode
-                        ? 'שִׂיחָה קְצָרָה'
+                        ? 'Цель достигнута ✔️'
                         : 'Стоит повторить'}
                     </span>
                   </div>
@@ -188,15 +182,11 @@ export const DialogueReviewModal: React.FC<DialogueReviewModalProps> = ({
                 </div>
                 <div className="flex-1 min-w-0 text-xs sm:text-sm">
                   <div className="font-bold text-blue-950 dark:text-blue-200 mb-0.5">
-                    {userProfile.ulpanMode ? 'מַשּׁוֹב הַמּוֹרֶה' : 'Комментарий ИИ-учителя:'}
+                    Комментарий ИИ-учителя:
                   </div>
                   <p className="text-zinc-700 dark:text-zinc-300 leading-relaxed">
                     {messages.filter((m) => m.role === 'user').length >= 1
-                      ? userProfile.ulpanMode
-                        ? 'כָּל הַכָּבוֹד! שׂוֹחַחְתֶּם בְּהַצְלָחָה בְּעִבְרִית. לְמַטָּה מוֹפִיעַ הַדִּיאָלוֹג הַמָּלֵא עִם מַשּׁוֹב לְכָל אַחַת מֵהַתְּשׁוּבוֹת שֶׁלָּכֶם.'
-                        : 'Отличная работа! Вы провели живой телефонный диалог на иврите. Ниже представлен полный текст разговора с подробным разбором.'
-                      : userProfile.ulpanMode
-                      ? 'הַשִּׂיחָה הָיְתָה קְצָרָה מִדַּי. נַסּוּ שׁוּב וַעֲנוּ לַבֶּן-שִׂיחַ.'
+                      ? 'Отличная работа! Вы провели живой телефонный диалог на иврите. Ниже представлен полный текст разговора с подробным разбором.'
                       : 'Разговор получился слишком коротким. Попробуйте еще раз и ответьте собеседнику.'}
                   </p>
                 </div>
@@ -210,9 +200,7 @@ export const DialogueReviewModal: React.FC<DialogueReviewModalProps> = ({
               <Lightbulb className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
               <div className="text-xs sm:text-sm text-amber-900 dark:text-amber-200 leading-relaxed">
                 <span className="font-bold block mb-0.5">
-                  {userProfile.ulpanMode
-                    ? 'טִיפּ לִשְׂפַת הַדִּיבּוּר בְּיִשְׂרָאֵל:'
-                    : 'Лайфхак разговорного этикета в Израиле:'}
+                  Лайфхак разговорного этикета в Израиле:
                 </span>
                 {debriefReport.spokenTip}
               </div>
@@ -257,9 +245,7 @@ export const DialogueReviewModal: React.FC<DialogueReviewModalProps> = ({
                       </span>
                       <span className="font-bold text-xs text-zinc-900 dark:text-zinc-200 truncate">
                         {isUser
-                          ? userProfile.ulpanMode
-                            ? 'אַתֶּם (תַּלְמִיד)'
-                            : 'Вы (ученик)'
+                          ? 'Вы (ученик)'
                           : `${scenario.callerName} (${scenario.callerRole})`}
                       </span>
                     </div>
@@ -287,14 +273,14 @@ export const DialogueReviewModal: React.FC<DialogueReviewModalProps> = ({
                   </div>
 
                   {/* Транскрипция кириллицей */}
-                  {!userProfile.ulpanMode && userProfile.showTranscription && msg.transcription && (
+                  {userProfile.showTranscription && msg.transcription && (
                     <div className="text-xs text-blue-600 dark:text-blue-400 font-mono mt-1">
                       [{msg.transcription}]
                     </div>
                   )}
 
                   {/* Перевод на русский язык */}
-                  {!userProfile.ulpanMode && msg.translation && (
+                  {msg.translation && (
                     <div className="text-xs sm:text-sm text-zinc-600 dark:text-zinc-300 mt-1 leading-snug">
                       {msg.translation}
                     </div>
@@ -306,7 +292,7 @@ export const DialogueReviewModal: React.FC<DialogueReviewModalProps> = ({
                       <div className="flex items-center justify-between gap-2 flex-wrap">
                         <div className="flex items-center gap-1.5 text-xs font-bold text-indigo-900 dark:text-indigo-300">
                           <Bot className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
-                          <span>{userProfile.ulpanMode ? 'מַשּׁוֹב הַמּוֹרֶה:' : 'Разбор ответа:'}</span>
+                          <span>Разбор ответа:</span>
                         </div>
 
                         <div className="flex items-center gap-1.5">
@@ -344,9 +330,7 @@ export const DialogueReviewModal: React.FC<DialogueReviewModalProps> = ({
                           <div className="flex items-center gap-1.5 text-xs font-bold text-amber-800 dark:text-amber-300">
                             <AlertCircle className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
                             <span>
-                              {userProfile.ulpanMode
-                                ? 'שְׁגִיאַת מִין אוֹ סֵדֶר מִילִּים:'
-                                : 'Внимание к роду и порядку слов:'}
+                              Внимание к роду и порядку слов:
                             </span>
                           </div>
                           {turnReview.grammarErrors.map((ge, gIdx) => (
@@ -377,7 +361,7 @@ export const DialogueReviewModal: React.FC<DialogueReviewModalProps> = ({
                           <span className="text-sm shrink-0">🗣️</span>
                           <div className="text-zinc-700 dark:text-zinc-300 text-[11px] sm:text-xs leading-relaxed">
                             <span className="font-semibold text-blue-900 dark:text-blue-300 mr-1">
-                              {userProfile.ulpanMode ? 'הֶגֶה וּמִבְטָא:' : 'Произношение:'}
+                              Произношение:
                             </span>
                             {turnReview.pronunciationFeedbackRu}
                           </div>
@@ -392,9 +376,7 @@ export const DialogueReviewModal: React.FC<DialogueReviewModalProps> = ({
                         <div className="p-2 rounded-xl bg-emerald-50/80 dark:bg-emerald-950/30 border border-emerald-200/60 dark:border-emerald-900/40 text-xs text-emerald-800 dark:text-emerald-300 flex items-center gap-2">
                           <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
                           <span>
-                            {userProfile.ulpanMode
-                              ? 'תְּשׁוּבָה נְכוֹנָה וּבְרוּרָה בַּהֶקְשֵׁר הַשִּׂיחָה! ✔️'
-                              : 'Точный и естественный ответ по контексту звонка! ✔️'}
+                            Точный и естественный ответ по контексту звонка! ✔️
                           </span>
                         </div>
                       )}
@@ -406,9 +388,7 @@ export const DialogueReviewModal: React.FC<DialogueReviewModalProps> = ({
                             <div className="font-bold text-[11px] text-purple-800 dark:text-purple-300 mb-0.5 flex items-center gap-1">
                               <Sparkles className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
                               <span>
-                                {userProfile.ulpanMode
-                                  ? 'אֵיךְ אוֹמְרִים בְּיִשְׂרָאֵל:'
-                                  : 'Как это звучит в живой речи израильтян:'}
+                                Как это звучит в живой речи израильтян:
                               </span>
                             </div>
                             <div
@@ -445,9 +425,7 @@ export const DialogueReviewModal: React.FC<DialogueReviewModalProps> = ({
               <div className="flex items-center gap-1.5 text-xs font-bold text-zinc-900 dark:text-zinc-100">
                 <BookOpen className="w-3.5 h-3.5 text-blue-600" />
                 <span>
-                  {userProfile.ulpanMode
-                    ? 'מִילִּים מוּמְלָצוֹת מֵהַשִּׂיחָה:'
-                    : 'Рекомендованные фразы для звонка:'}
+                  Рекомендованные фразы для звонка:
                 </span>
               </div>
 
@@ -533,7 +511,7 @@ export const DialogueReviewModal: React.FC<DialogueReviewModalProps> = ({
             className="w-full sm:w-auto px-4 py-2.5 rounded-xl border border-zinc-300 dark:border-zinc-700 text-xs font-semibold text-zinc-700 dark:text-zinc-200 hover:bg-zinc-200 dark:hover:bg-zinc-800 transition flex items-center justify-center gap-1.5 cursor-pointer"
           >
             <RotateCcw className="w-3.5 h-3.5" />
-            <span>{userProfile.ulpanMode ? 'שִׂיחָה חוֹזֶרֶת 🔄' : 'Позвонить еще раз'}</span>
+            <span>Позвонить еще раз</span>
           </button>
 
           <button
@@ -541,7 +519,7 @@ export const DialogueReviewModal: React.FC<DialogueReviewModalProps> = ({
             onClick={onClose}
             className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
           >
-            <span>{userProfile.ulpanMode ? 'סְגִירָה' : 'Закрыть'}</span>
+            <span>Закрыть</span>
           </button>
         </div>
       </div>

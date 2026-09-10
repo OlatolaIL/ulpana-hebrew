@@ -39,7 +39,6 @@ export const AlphabetTrainer: React.FC<AlphabetTrainerProps> = ({ userProfile })
   const [displayMode, setDisplayMode] = useState<ViewDisplay>('both');
   const [selectedCategory, setSelectedCategory] = useState<'all' | 'regular' | 'sofit'>('all');
   const [selectedLetter, setSelectedLetter] = useState<HebrewLetter>(HEBREW_ALPHABET[0]);
-  const isUlpan = Boolean(userProfile?.ulpanMode);
 
   // Холст для рисования
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -311,10 +310,10 @@ export const AlphabetTrainer: React.FC<AlphabetTrainerProps> = ({ userProfile })
           </div>
           <div>
             <h1 className="text-sm sm:text-base font-bold tracking-tight">
-              {isUlpan ? 'אָלֶף־בֵּית וּכְתָב יָד' : 'Алфавит и прописи (Ктав Яд)'}
+              Алфавит и прописи (Ктав Яд)
             </h1>
             <p className="text-[11px] sm:text-xs text-blue-100 opacity-90">
-              {isUlpan ? '27 אוֹתִיּוֹת • דְּפוּס וּכְתָב יָד' : '27 букв • Печатный и рукописный шрифт'}
+              27 букв • Печатный и рукописный шрифт
             </p>
           </div>
         </div>
@@ -331,7 +330,7 @@ export const AlphabetTrainer: React.FC<AlphabetTrainerProps> = ({ userProfile })
           }`}
         >
           <BookOpen className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
-          <span>{isUlpan ? 'אָלֶף־בֵּית' : 'Алфавит'}</span>
+          <span>Алфавит</span>
         </button>
 
         <button
@@ -343,7 +342,7 @@ export const AlphabetTrainer: React.FC<AlphabetTrainerProps> = ({ userProfile })
           }`}
         >
           <PenTool className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
-          <span>{isUlpan ? 'אִמּוּן כְּתִיבָה' : 'Тренажёр'}</span>
+          <span>Тренажёр</span>
         </button>
 
         <button
@@ -358,7 +357,7 @@ export const AlphabetTrainer: React.FC<AlphabetTrainerProps> = ({ userProfile })
           }`}
         >
           <Award className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
-          <span>{isUlpan ? 'מִבְחָן' : 'Тест'}</span>
+          <span>Тест</span>
         </button>
       </div>
 
@@ -376,7 +375,7 @@ export const AlphabetTrainer: React.FC<AlphabetTrainerProps> = ({ userProfile })
                     : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300'
                 }`}
               >
-                {isUlpan ? 'הַכֹּל (27)' : 'Все (27)'}
+                Все (27)
               </button>
               <button
                 onClick={() => setSelectedCategory('regular')}
@@ -386,7 +385,7 @@ export const AlphabetTrainer: React.FC<AlphabetTrainerProps> = ({ userProfile })
                     : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300'
                 }`}
               >
-                {isUlpan ? 'רְגִילוֹת (22)' : 'Обычные (22)'}
+                Обычные (22)
               </button>
               <button
                 onClick={() => setSelectedCategory('sofit')}
@@ -396,7 +395,7 @@ export const AlphabetTrainer: React.FC<AlphabetTrainerProps> = ({ userProfile })
                     : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300'
                 }`}
               >
-                {isUlpan ? 'סוֹפִיּוֹת (5)' : 'Софит (5)'}
+                Софит (5)
               </button>
             </div>
 
@@ -409,7 +408,7 @@ export const AlphabetTrainer: React.FC<AlphabetTrainerProps> = ({ userProfile })
                     : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900'
                 }`}
               >
-                {isUlpan ? 'דְּפוּס וּכְתָב' : 'Оба вида'}
+                Оба вида
               </button>
               <button
                 onClick={() => setDisplayMode('print')}
@@ -419,7 +418,7 @@ export const AlphabetTrainer: React.FC<AlphabetTrainerProps> = ({ userProfile })
                     : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900'
                 }`}
               >
-                {isUlpan ? 'דְּפוּס' : 'Печатный'}
+                Печатный
               </button>
               <button
                 onClick={() => setDisplayMode('cursive')}
@@ -429,7 +428,7 @@ export const AlphabetTrainer: React.FC<AlphabetTrainerProps> = ({ userProfile })
                     : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900'
                 }`}
               >
-                {isUlpan ? 'כְּתָב יָד' : 'Рукописный'}
+                Рукописный
               </button>
             </div>
           </div>
@@ -453,14 +452,12 @@ export const AlphabetTrainer: React.FC<AlphabetTrainerProps> = ({ userProfile })
                     <div className="flex items-center gap-1">
                       {rule && (
                         <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-300 font-hebrew">
-                          {isUlpan
-                            ? `${rule.strokesCount} קַוִּים`
-                            : (rule.strokesCount === 1 ? '1 штрих' : '2 штриха')}
+                          {rule.strokesCount === 1 ? '1 штрих' : '2 штриха'}
                         </span>
                       )}
                       {item.isSofit && (
                         <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-purple-100 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 font-hebrew">
-                          {isUlpan ? 'סוֹפִית' : 'софит'}
+                          софит
                         </span>
                       )}
                     </div>
@@ -488,10 +485,10 @@ export const AlphabetTrainer: React.FC<AlphabetTrainerProps> = ({ userProfile })
                   {/* Название и пример */}
                   <div>
                     <h3 className="text-xs font-bold text-zinc-800 dark:text-zinc-200 font-hebrew">
-                      {isUlpan ? item.nameHebrew : item.nameRussian}
+                      {item.nameRussian}
                     </h3>
                     <p dir="rtl" className="text-[11px] font-hebrew text-zinc-400 mt-0.5">
-                      {isUlpan ? `צְלִיל: [${item.transcription}]` : item.nameHebrew}
+                      {item.nameHebrew}
                     </p>
                   </div>
 
@@ -503,13 +500,13 @@ export const AlphabetTrainer: React.FC<AlphabetTrainerProps> = ({ userProfile })
                         speakHebrew(item.exampleWord.hebrew);
                       }}
                       className="p-1.5 rounded-lg text-zinc-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/50 transition cursor-pointer"
-                      title={isUlpan ? 'השמע מילה' : 'Прослушать пример слова'}
+                      title="Прослушать пример слова"
                     >
                       <Volume2 className="w-3.5 h-3.5" />
                     </button>
 
                     <span className="text-[10px] font-semibold text-blue-600 dark:text-blue-400 group-hover:underline flex items-center gap-0.5">
-                      <span>{isUlpan ? 'אִמּוּן' : 'Практика'}</span>
+                      <span>Практика</span>
                       <ChevronRight className="w-3 h-3" />
                     </span>
                   </div>
@@ -529,7 +526,7 @@ export const AlphabetTrainer: React.FC<AlphabetTrainerProps> = ({ userProfile })
               <button
                 onClick={handlePrevLetter}
                 className="p-2.5 rounded-2xl border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition cursor-pointer"
-                title={isUlpan ? 'אות קודמת' : 'Предыдущая буква'}
+                title="Предыдущая буква"
               >
                 <ChevronLeft className="w-5 h-5" />
               </button>
@@ -537,37 +534,26 @@ export const AlphabetTrainer: React.FC<AlphabetTrainerProps> = ({ userProfile })
               <div className="text-center sm:text-left">
                 <div className="flex items-center gap-2">
                   <h2 className="text-xl font-bold text-zinc-900 dark:text-zinc-50 font-hebrew">
-                    {isUlpan
-                      ? `אוֹת ${selectedLetter.nameHebrew}`
-                      : `Буква ${selectedLetter.nameRussian} (${selectedLetter.nameHebrew})`}
+                    {`Буква ${selectedLetter.nameRussian} (${selectedLetter.nameHebrew})`}
                   </h2>
                   <button
                     onClick={() => speakHebrew(selectedLetter.exampleWord.hebrew)}
                     className="p-1.5 rounded-full bg-blue-50 dark:bg-blue-950/60 text-blue-600 hover:bg-blue-100 transition cursor-pointer"
-                    title={isUlpan ? 'השמע מילה' : 'Озвучить пример слова'}
+                    title="Озвучить пример слова"
                   >
                     <Volume2 className="w-4 h-4" />
                   </button>
                 </div>
                 <p className="text-xs text-zinc-500 mt-0.5 font-hebrew">
-                  {isUlpan ? (
-                    <>
-                      צְלִיל: <span className="font-semibold text-blue-600">[{selectedLetter.transcription}]</span> • גִּימַטְרִיָּה: {selectedLetter.gematria}
-                      {selectedLetter.isSofit && ' • אוֹת סוֹפִית'}
-                    </>
-                  ) : (
-                    <>
-                      Звук: <span className="font-semibold text-blue-600">[{selectedLetter.transcription}]</span> • Гематрия: {selectedLetter.gematria}
-                      {selectedLetter.isSofit && ' • Конечная форма (Софит)'}
-                    </>
-                  )}
+                  Звук: <span className="font-semibold text-blue-600">[{selectedLetter.transcription}]</span> • Гематрия: {selectedLetter.gematria}
+                  {selectedLetter.isSofit && ' • Конечная форма (Софит)'}
                 </p>
               </div>
 
               <button
                 onClick={handleNextLetter}
                 className="p-2.5 rounded-2xl border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition cursor-pointer"
-                title={isUlpan ? 'אות הבאה' : 'Следующая буква'}
+                title="Следующая буква"
               >
                 <ChevronRight className="w-5 h-5" />
               </button>
@@ -587,7 +573,7 @@ export const AlphabetTrainer: React.FC<AlphabetTrainerProps> = ({ userProfile })
             >
               {HEBREW_ALPHABET.map((item) => (
                 <option key={item.id} value={item.id}>
-                  {item.letter} / {item.cursiveLetter} — {isUlpan ? item.nameHebrew : item.nameRussian}
+                  {item.letter} / {item.cursiveLetter} — {item.nameRussian}
                 </option>
               ))}
             </select>
@@ -601,25 +587,25 @@ export const AlphabetTrainer: React.FC<AlphabetTrainerProps> = ({ userProfile })
               <div className="grid grid-cols-2 gap-3 font-hebrew">
                 <div className="bg-zinc-50 dark:bg-zinc-800/60 p-3.5 rounded-2xl border border-zinc-200 dark:border-zinc-700 text-center">
                   <span className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider font-hebrew">
-                    {isUlpan ? 'דְּפוּס' : 'Печатная (דפוס)'}
+                    Печатная (דפוס)
                   </span>
                   <div className="text-5xl font-bold font-hebrew text-zinc-900 dark:text-zinc-50 py-1">
                     {selectedLetter.letter}
                   </div>
                   <p className="text-[11px] text-zinc-500 font-hebrew">
-                    {isUlpan ? 'סְפָרִים וַאֲתָרִים' : 'Книги и сайты'}
+                    Книги и сайты
                   </p>
                 </div>
 
                 <div className="bg-blue-50 dark:bg-blue-950/40 p-3.5 rounded-2xl border border-blue-200 dark:border-blue-900/60 text-center">
                   <span className="text-[10px] font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wider font-hebrew">
-                    {isUlpan ? 'כְּתָב יָד' : 'Рукописная (כתב)'}
+                    Рукописная (כתב)
                   </span>
                   <div className="text-6xl font-cursive text-blue-600 dark:text-blue-400 font-bold py-0.5">
                     {selectedLetter.cursiveLetter}
                   </div>
                   <p className="text-[11px] text-blue-700 dark:text-blue-300 font-medium font-hebrew">
-                    {isUlpan ? 'כְּתִיבָה תַּמָּה מַעֲשִׂית' : 'Живое письмо от руки'}
+                    Живое письмо от руки
                   </p>
                 </div>
               </div>
@@ -630,13 +616,11 @@ export const AlphabetTrainer: React.FC<AlphabetTrainerProps> = ({ userProfile })
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-1.5 text-xs font-bold text-amber-800 dark:text-amber-300">
                       <HelpCircle className="w-4 h-4 text-amber-600" />
-                      <span>{isUlpan ? 'כְּלָלֵי כְּתִיבַת הָאוֹת:' : 'Правила написания буквы:'}</span>
+                      <span>Правила написания буквы:</span>
                     </div>
 
                     <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-200/80 dark:bg-amber-900/80 text-amber-900 dark:text-amber-200">
-                      {isUlpan
-                        ? (currentRule.strokesCount === 1 ? 'קַו אֶחָד רָצִיף' : '2 קַוִּים נִפְרָדִים')
-                        : (currentRule.strokesCount === 1 ? '1 слитный штрих' : '2 штриха с отрывом руки')}
+                      {currentRule.strokesCount === 1 ? '1 слитный штрих' : '2 штриха с отрывом руки'}
                     </span>
                   </div>
 
@@ -680,17 +664,17 @@ export const AlphabetTrainer: React.FC<AlphabetTrainerProps> = ({ userProfile })
                   <div className="flex flex-wrap gap-1.5 pt-1 text-[10px] font-semibold">
                     {currentRule.proportions.ascender && (
                       <span className="px-2 py-0.5 rounded-md bg-purple-100 dark:purple-950/70 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800">
-                        {isUlpan ? '▲ יוֹצֵא מֵעַל הַשּׁוּרָה (ל)' : '▲ Выходит над строкой (высокий флажок)'}
+                        ▲ Выходит над строкой (высокий флажок)
                       </span>
                     )}
                     {currentRule.proportions.descender && (
                       <span className="px-2 py-0.5 rounded-md bg-rose-100 dark:bg-rose-950/70 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800">
-                        {isUlpan ? '▼ יוֹרֵד מִתַּחַת לַשּׁוּרָה (סוֹפִיּוֹת)' : '▼ Уходит глубоко под строку (хвостик)'}
+                        ▼ Уходит глубоко под строку (хвостик)
                       </span>
                     )}
                     {currentRule.proportions.baseline && !currentRule.proportions.descender && (
                       <span className="px-2 py-0.5 rounded-md bg-emerald-100 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
-                        {isUlpan ? '✓ עוֹמֵד עַל שׁוּרַת הַבָּסִיס' : '✓ Опирается на базовую строку'}
+                        ✓ Опирается на базовую строку
                       </span>
                     )}
                   </div>
@@ -700,20 +684,16 @@ export const AlphabetTrainer: React.FC<AlphabetTrainerProps> = ({ userProfile })
               {/* Пример слова с этой буквой */}
               <div className="bg-zinc-50 dark:bg-zinc-800/60 p-3.5 rounded-2xl border border-zinc-200 dark:border-zinc-700 flex items-center justify-between font-hebrew">
                 <div>
-                  <span className="text-[11px] text-zinc-400">{isUlpan ? 'דֻּגְמָה:' : 'Пример слова:'}</span>
+                  <span className="text-[11px] text-zinc-400">Пример слова:</span>
                   <div className="flex items-center gap-2 mt-0.5">
                     <span dir="rtl" className="text-lg font-bold font-hebrew text-zinc-900 dark:text-zinc-100">
                       {selectedLetter.exampleWord.hebrew}
                     </span>
-                    {!isUlpan && (
-                      <span className="text-xs text-blue-600 dark:text-blue-400 font-medium">
-                        [{selectedLetter.exampleWord.transcription}]
-                      </span>
-                    )}
+                    <span className="text-xs text-blue-600 dark:text-blue-400 font-medium">
+                      [{selectedLetter.exampleWord.transcription}]
+                    </span>
                   </div>
-                  {!isUlpan && (
-                    <p className="text-xs text-zinc-500">{selectedLetter.exampleWord.translation}</p>
-                  )}
+                  <p className="text-xs text-zinc-500">{selectedLetter.exampleWord.translation}</p>
                 </div>
 
                 <div className="text-3xl font-cursive text-blue-600 dark:text-blue-400 font-bold pr-2">
@@ -732,14 +712,14 @@ export const AlphabetTrainer: React.FC<AlphabetTrainerProps> = ({ userProfile })
                     {/* Надстрочная линия (для Ламед) - y ≈ 12.5% */}
                     <div className="absolute w-full top-[12.5%] border-b border-purple-300/60 dark:border-purple-800/60 border-dashed">
                       <span className="absolute left-2 -top-3.5 text-[9px] font-semibold text-purple-600 dark:text-purple-400 font-hebrew">
-                        {isUlpan ? 'מֵעַל הַשּׁוּרָה' : 'Надстрочная (Ламед ל)'}
+                        Надстрочная (Ламед ל)
                       </span>
                     </div>
 
                     {/* Верхняя линия строки (Top line) - y ≈ 32% */}
                     <div className="absolute w-full top-[32%] border-b border-zinc-300 dark:border-zinc-700">
                       <span className="absolute left-2 -top-3.5 text-[9px] font-semibold text-zinc-400 font-hebrew">
-                        {isUlpan ? 'רֹאשׁ הַשּׁוּרָה' : 'Верх строки'}
+                        Верх строки
                       </span>
                     </div>
 
@@ -749,14 +729,14 @@ export const AlphabetTrainer: React.FC<AlphabetTrainerProps> = ({ userProfile })
                     {/* Базовая линия строки (Baseline) - y ≈ 69% */}
                     <div className="absolute w-full top-[69%] border-b-2 border-indigo-400/80 dark:border-indigo-600/80">
                       <span className="absolute left-2 -top-3.5 text-[9px] font-bold text-indigo-600 dark:text-indigo-400 font-hebrew">
-                        {isUlpan ? 'שׁוּרַת בָּסִיס' : 'Базовая линия строки'}
+                        Базовая линия строки
                       </span>
                     </div>
 
                     {/* Подстрочная линия (Descender) - y ≈ 89% */}
                     <div className="absolute w-full top-[89%] border-b border-rose-300/60 dark:border-rose-800/60 border-dashed">
                       <span className="absolute left-2 -top-3.5 text-[9px] font-semibold text-rose-500 dark:text-rose-400 font-hebrew">
-                        {isUlpan ? 'מִתַּחַת לַשּׁוּרָה' : 'Подстрочная (софиты ך, ן, ף, ץ)'}
+                        Подстрочная (софиты ך, ן, ף, ץ)
                       </span>
                     </div>
                   </div>
@@ -844,11 +824,9 @@ export const AlphabetTrainer: React.FC<AlphabetTrainerProps> = ({ userProfile })
 
                 {!hasDrawn && (
                   <div className="absolute bottom-3 text-center pointer-events-none z-30 text-[11px] text-zinc-500 dark:text-zinc-400 bg-white/90 dark:bg-zinc-900/90 px-3 py-1 rounded-full shadow-sm backdrop-blur border border-zinc-200/50 dark:border-zinc-800/50 font-hebrew">
-                    {isUlpan
-                      ? 'הַתְחִילוּ מֵהַנְּקֻדָּה הַיְּרֻקָּה ❶'
-                      : (currentRule && currentRule.strokesCount > 1
+                    {currentRule && currentRule.strokesCount > 1
                       ? 'Начните с точки ❶, затем перейдите к точке ❷'
-                      : 'Начните с зеленой точки ❶')}
+                      : 'Начните с зеленой точки ❶'}
                   </div>
                 )}
               </div>
@@ -865,7 +843,7 @@ export const AlphabetTrainer: React.FC<AlphabetTrainerProps> = ({ userProfile })
                         penColor === c ? 'ring-2 ring-offset-1 ring-blue-500 scale-110' : 'opacity-70'
                       }`}
                       style={{ backgroundColor: c }}
-                      title={isUlpan ? 'בחר צבע' : 'Выбрать цвет чернил'}
+                      title="Выбрать цвет чернил"
                     />
                   ))}
                 </div>
@@ -880,7 +858,7 @@ export const AlphabetTrainer: React.FC<AlphabetTrainerProps> = ({ userProfile })
                         penWidth === w ? 'bg-white dark:bg-zinc-700 text-blue-600 shadow-sm' : 'text-zinc-500'
                       }`}
                     >
-                      {w === 6 ? (isUlpan ? 'דַּק' : 'Тонко') : w === 8 ? (isUlpan ? 'בֵּינוֹנִי' : 'Норм') : (isUlpan ? 'עָבֶה' : 'Жирно')}
+                      {w === 6 ? 'Тонко' : w === 8 ? 'Норм' : 'Жирно'}
                     </button>
                   ))}
                 </div>
@@ -890,7 +868,7 @@ export const AlphabetTrainer: React.FC<AlphabetTrainerProps> = ({ userProfile })
                   onClick={undoLastStroke}
                   disabled={history.length === 0}
                   className="p-2 rounded-xl text-xs font-semibold border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-40 transition text-zinc-600 dark:text-zinc-300 cursor-pointer"
-                  title={isUlpan ? 'בטל קו אחרון' : 'Отменить последний штрих'}
+                  title="Отменить последний штрих"
                 >
                   <Undo2 className="w-4 h-4" />
                 </button>
@@ -899,10 +877,10 @@ export const AlphabetTrainer: React.FC<AlphabetTrainerProps> = ({ userProfile })
                 <button
                   onClick={clearCanvas}
                   className="px-3 py-2 rounded-xl text-xs font-semibold border border-zinc-200 dark:border-zinc-700 hover:bg-red-50 hover:text-red-600 hover:border-red-200 dark:hover:bg-red-950/40 transition flex items-center gap-1.5 text-zinc-600 dark:text-zinc-300 cursor-pointer font-hebrew"
-                  title={isUlpan ? 'נקה הכל' : 'Стереть все нарисованное'}
+                  title="Стереть все нарисованное"
                 >
                   <RotateCcw className="w-3.5 h-3.5" />
-                  <span>{isUlpan ? 'מְחַק' : 'Стереть'}</span>
+                  <span>Стереть</span>
                 </button>
 
                 {/* Следующая буква */}
@@ -910,7 +888,7 @@ export const AlphabetTrainer: React.FC<AlphabetTrainerProps> = ({ userProfile })
                   onClick={handleNextLetter}
                   className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white transition flex items-center gap-1 shadow-sm cursor-pointer font-hebrew"
                 >
-                  <span>{isUlpan ? 'הַבָּא' : 'Дальше'}</span>
+                  <span>Дальше</span>
                   <ChevronRight className="w-3.5 h-3.5" />
                 </button>
               </div>
@@ -925,7 +903,7 @@ export const AlphabetTrainer: React.FC<AlphabetTrainerProps> = ({ userProfile })
                       : 'border-zinc-200 dark:border-zinc-700'
                   }`}
                 >
-                  {isUlpan ? 'נְקֻדּוֹת הַתְחָלָה ❶ ❷' : `Точки старта ❶ ❷: ${showStartingPoints ? 'Вкл' : 'Выкл'}`}
+                  {`Точки старта ❶ ❷: ${showStartingPoints ? 'Вкл' : 'Выкл'}`}
                 </button>
 
                 <button
@@ -936,7 +914,7 @@ export const AlphabetTrainer: React.FC<AlphabetTrainerProps> = ({ userProfile })
                       : 'border-zinc-200 dark:border-zinc-700'
                   }`}
                 >
-                  {isUlpan ? 'שׁוּרוֹת מַחְבֶּרֶת' : `Линовка тетради: ${showNotebookLines ? 'Вкл' : 'Выкл'}`}
+                  {`Линовка тетради: ${showNotebookLines ? 'Вкл' : 'Выкл'}`}
                 </button>
 
                 <button
@@ -948,7 +926,7 @@ export const AlphabetTrainer: React.FC<AlphabetTrainerProps> = ({ userProfile })
                   }`}
                 >
                   {showStencil ? <Eye className="w-3 h-3 inline mr-1" /> : <EyeOff className="w-3 h-3 inline mr-1" />}
-                  <span>{isUlpan ? 'דֻּגְמַת הָאוֹת' : 'Трафарет буквы'}</span>
+                  <span>Трафарет буквы</span>
                 </button>
               </div>
             </div>
@@ -963,9 +941,9 @@ export const AlphabetTrainer: React.FC<AlphabetTrainerProps> = ({ userProfile })
             <div className="space-y-6">
               {/* Шапка квиза */}
               <div className="flex items-center justify-between text-xs font-semibold text-zinc-500 font-hebrew">
-                <span>{isUlpan ? `שְׁאֵלָה ${quizIndex + 1} מִתּוֹךְ 10` : `Вопрос ${quizIndex + 1} из 10`}</span>
+                <span>{`Вопрос ${quizIndex + 1} из 10`}</span>
                 <span className="text-blue-600 dark:text-blue-400 font-bold font-hebrew">
-                  {isUlpan ? `נָכוֹן: ${quizScore}` : `Правильно: ${quizScore}`}
+                  {`Правильно: ${quizScore}`}
                 </span>
               </div>
 
@@ -980,15 +958,13 @@ export const AlphabetTrainer: React.FC<AlphabetTrainerProps> = ({ userProfile })
               {/* Карточка задания */}
               <div className="text-center py-6 bg-blue-50 dark:bg-blue-950/30 rounded-3xl border border-blue-100 dark:border-blue-900/50 space-y-3 font-hebrew">
                 <span className="text-xs uppercase tracking-wider font-semibold text-zinc-400 font-hebrew">
-                  {isUlpan ? 'מִצְאוּ אֶת הָאוֹת בִּכְתָב יָד:' : 'Найдите рукописную пару для буквы:'}
+                  Найдите рукописную пару для буквы:
                 </span>
                 <div className="text-7xl font-bold font-hebrew text-zinc-900 dark:text-zinc-50 py-2">
                   {currentQuizLetter.letter}
                 </div>
                 <p className="text-sm font-semibold text-blue-600 dark:text-blue-400 font-hebrew">
-                  {isUlpan
-                    ? `אוֹת ${currentQuizLetter.nameHebrew}`
-                    : `Буква ${currentQuizLetter.nameRussian} (${currentQuizLetter.nameHebrew})`}
+                  {`Буква ${currentQuizLetter.nameRussian} (${currentQuizLetter.nameHebrew})`}
                 </p>
               </div>
 
@@ -1035,18 +1011,10 @@ export const AlphabetTrainer: React.FC<AlphabetTrainerProps> = ({ userProfile })
                   !כָּל הַכָּבוֹד
                 </h2>
                 <p className="text-base font-semibold text-emerald-600 dark:text-emerald-400 mt-1 font-hebrew">
-                  {isUlpan ? 'סִיַּמְתֶּם אֶת הַמִּבְחָן בְּהַצְלָחָה!' : 'Тест по прописям завершен!'}
+                  Тест по прописям завершен!
                 </p>
                 <p className="text-sm text-zinc-500 mt-2 font-hebrew">
-                  {isUlpan ? (
-                    <>
-                      הַצִּיּוּן שֶׁלָּכֶם: <span className="font-bold text-zinc-900 dark:text-zinc-50">{quizScore}</span> מִתּוֹךְ 10 אוֹתִיּוֹת.
-                    </>
-                  ) : (
-                    <>
-                      Ваш результат: <span className="font-bold text-zinc-900 dark:text-zinc-50">{quizScore}</span> из 10 букв.
-                    </>
-                  )}
+                  Ваш результат: <span className="font-bold text-zinc-900 dark:text-zinc-50">{quizScore}</span> из 10 букв.
                 </p>
               </div>
 
@@ -1055,13 +1023,13 @@ export const AlphabetTrainer: React.FC<AlphabetTrainerProps> = ({ userProfile })
                   onClick={resetQuiz}
                   className="flex-1 py-3 px-4 rounded-xl border border-zinc-200 dark:border-zinc-700 font-semibold text-sm hover:bg-zinc-50 dark:hover:bg-zinc-800 transition cursor-pointer"
                 >
-                  {isUlpan ? 'נַסּוּ שׁוּב 🔄' : 'Пройти снова'}
+                  Пройти снова
                 </button>
                 <button
                   onClick={() => setActiveTab('canvas')}
                   className="flex-1 py-3 px-4 rounded-xl bg-blue-600 text-white font-semibold text-sm hover:bg-blue-700 transition cursor-pointer"
                 >
-                  {isUlpan ? 'אִמּוּן כְּתִיבָה ✍️' : 'Тренировать прописи'}
+                  Тренировать прописи
                 </button>
               </div>
             </div>

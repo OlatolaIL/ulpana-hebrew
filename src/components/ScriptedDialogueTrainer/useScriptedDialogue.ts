@@ -22,7 +22,9 @@ import {
 import {
   markLessonTabCompleted,
   addWordToPersonalDict,
+  loadUserProfile,
 } from '@/lib/storage';
+import { stripNikkud } from '@/lib/transcription';
 import { phoneAudio } from '@/lib/phoneAudio';
 import { TrainerMode } from './types';
 
@@ -106,13 +108,31 @@ export function useScriptedDialogue({
     return lesson.vocabulary || [];
   }, [lesson.vocabulary]);
 
-  const totalAvailableWordsCount = dialogueUsefulWords.length + lessonVocabularyWords.length;
+  const customLessonWords: Word[] = useMemo(() => {
+    return (userProfile.personalVocabulary || []).filter(
+      (w) =>
+        w.lessonId === lesson.id &&
+        !lesson.vocabulary?.some(
+          (lv) => stripNikkud(lv.hebrew) === stripNikkud(w.hebrew)
+        )
+    );
+  }, [userProfile.personalVocabulary, lesson.id, lesson.vocabulary]);
+
+  const totalAvailableWordsCount =
+    dialogueUsefulWords.length + lessonVocabularyWords.length + customLessonWords.length;
 
   const handleAddWordToDict = (w: Word) => {
-    addWordToPersonalDict(w);
-    setAddedWords((prev) => ({ ...prev, [w.hebrew]: true }));
-    if (onWordAdded) onWordAdded(w);
-    if (onUpdateProfile) onUpdateProfile({ ...userProfile });
+    const saved = addWordToPersonalDict(w);
+    const clean = stripNikkud(w.hebrew);
+    setAddedWords((prev) => ({
+      ...prev,
+      [w.hebrew]: true,
+      [clean]: true,
+      [w.hebrewPlain || clean]: true,
+    }));
+    const freshProfile = loadUserProfile();
+    if (onWordAdded) onWordAdded(saved);
+    if (onUpdateProfile) onUpdateProfile(freshProfile);
   };
 
   // Рекогнайзер речи для микрофона и рефы для скролла
@@ -600,6 +620,7 @@ export function useScriptedDialogue({
     mounted,
     dialogueUsefulWords,
     lessonVocabularyWords,
+    customLessonWords,
     totalAvailableWordsCount,
     characterA,
     characterB,

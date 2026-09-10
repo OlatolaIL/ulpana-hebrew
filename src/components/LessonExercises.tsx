@@ -23,8 +23,6 @@ import { Lesson, UserProfile, Exercise } from '@/types';
 import { markLessonTabCompleted } from '@/lib/storage';
 import { speakHebrew } from '@/lib/speech';
 import { stripNikkud } from '@/lib/transcription';
-import { getHebrewPictogram } from '@/lib/pictograms';
-import { ULPAN_OFFLINE_DICTIONARY } from '@/lib/ulpanDictionary';
 import { parseHebrewSentence, stripPunctuation, isPunctuationToken, areWordsEqual } from '@/lib/sentenceParser';
 
 interface LessonExercisesProps {
@@ -48,171 +46,12 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
   const [isFinished, setIsFinished] = useState(false);
   const [answeredMap, setAnsweredMap] = useState<Record<number, boolean>>({});
 
-  const isUlpan = Boolean(userProfile.ulpanMode);
   const exercises = lesson.exercises;
   const currentEx = exercises[currentIdx];
 
-  const getUlpanOptionDisplay = (opt: string): string => {
-    if (!isUlpan) {
-      const isHeb = /[\u0590-\u05FF]/.test(opt);
-      return isHeb && !userProfile.showNikkud ? stripNikkud(opt) : opt;
-    }
-
-    // If already Hebrew
-    if (/[\u0590-\u05FF]/.test(opt)) {
-      return userProfile.showNikkud ? opt : stripNikkud(opt);
-    }
-
-    const gramLower = opt.toLowerCase().trim();
-    if (gramLower.includes('мужской') || gramLower === 'м.р.') return 'זָכָר ♂';
-    if (gramLower.includes('женский') || gramLower === 'ж.р.') return 'נְקֵבָה ♀';
-    if (gramLower.includes('общий')) return 'כְּלָלִי ⚥';
-    if (gramLower.includes('единственное')) return 'יָחִיד (1)';
-    if (gramLower.includes('множественное')) return 'רַבִּים (2+)';
-    if (gramLower === 'да' || gramLower === 'верно' || gramLower === 'правильно') return 'כֵּן / נָכוֹן ✔️';
-    if (gramLower === 'нет' || gramLower === 'неверно' || gramLower === 'неправильно') return 'לֹא / לֹא נָכוֹן ❌';
-
-    // Look up in lesson vocabulary
-    if (lesson && lesson.vocabulary) {
-      for (const w of lesson.vocabulary) {
-        const tr = (w.translation || '').toLowerCase();
-        if (tr.includes(gramLower) || gramLower.includes(tr) || gramLower.split(';').some(s => tr.includes(s.trim()))) {
-          const pic = getHebrewPictogram(w.hebrew);
-          const heb = userProfile.showNikkud ? w.hebrew : (w.hebrewPlain || stripNikkud(w.hebrew));
-          return pic ? `${pic} ${heb}` : heb;
-        }
-      }
-    }
-
-    // Look up in offline dictionary
-    for (const entry of ULPAN_OFFLINE_DICTIONARY) {
-      const tr = (entry.translation || '').toLowerCase();
-      if (tr.includes(gramLower) || gramLower.includes(tr) || gramLower.split(';').some(s => tr.includes(s.trim()))) {
-        const pic = getHebrewPictogram(entry.hebrew);
-        const heb = userProfile.showNikkud ? entry.hebrew : (entry.hebrewPlain || stripNikkud(entry.hebrew));
-        return pic ? `${pic} ${heb}` : heb;
-      }
-    }
-
-    return opt;
-  };
-
-  const findHebrewForRussian = (ruText: string): { hebrew: string; icon?: string } | null => {
-    const cleanRu = ruText.toLowerCase().trim();
-    if (!cleanRu) return null;
-
-    if (lesson && lesson.vocabulary) {
-      for (const w of lesson.vocabulary) {
-        const tr = (w.translation || '').toLowerCase();
-        if (tr.includes(cleanRu) || cleanRu.includes(tr) || cleanRu.split(/[,;/]/).some((s) => s.trim() && tr.includes(s.trim()))) {
-          const pic = getHebrewPictogram(w.hebrew);
-          return {
-            hebrew: userProfile.showNikkud ? w.hebrew : (w.hebrewPlain || stripNikkud(w.hebrew)),
-            icon: pic || undefined,
-          };
-        }
-      }
-    }
-
-    for (const entry of ULPAN_OFFLINE_DICTIONARY) {
-      const tr = (entry.translation || '').toLowerCase();
-      if (tr.includes(cleanRu) || cleanRu.includes(tr) || cleanRu.split(/[,;/]/).some((s) => s.trim() && tr.includes(s.trim()))) {
-        const pic = getHebrewPictogram(entry.hebrew);
-        return {
-          hebrew: userProfile.showNikkud ? entry.hebrew : (entry.hebrewPlain || stripNikkud(entry.hebrew)),
-          icon: pic || undefined,
-        };
-      }
-    }
-
-    return null;
-  };
-
-  const getUlpanQuestionText = (question: string): string => {
-    // ⚠️ Normal mode: returned completely unchanged — do NOT remove this guard
-    if (!isUlpan) return question;
-
-    // ── 1. Russian-to-Hebrew questions: "Как переводится «вода» на иврит?" / "Какое ивритское слово означает «рынок»?"
-    if (
-      (question.includes('Как переводится') && question.includes('на иврит')) ||
-      question.includes('Какое ивритское слово означает') ||
-      question.includes('Как сказать')
-    ) {
-      const m = question.match(/«([^»]+)»/);
-      if (m) {
-        const inner = m[1].trim();
-        // If the quoted term is already Hebrew
-        if (/[\u0590-\u05FF]/.test(inner)) {
-          return `?אֵיךְ אוֹמְרִים «${inner}» בְּעִבְרִית`;
-        }
-        // If Russian, look up the Hebrew counterpart and its visual pictogram
-        const found = findHebrewForRussian(inner);
-        if (found?.icon) {
-          return `?אֵיךְ אוֹמְרִים ${found.icon} בְּעִבְרִית`;
-        }
-      }
-      return '?בַּחֲרוּ אֶת הַמִּילָּה הָעִבְרִית הַנְּכוֹנָה';
-    }
-
-    // ── 2. "Выберите правильный перевод для слова «HEBREW»:" / "Что означает слово «HEBREW»?"
-    if (
-      question.includes('Выберите правильный перевод') ||
-      question.includes('Выберите верный перевод') ||
-      question.includes('Что означает слово')
-    ) {
-      const m = question.match(/«([^»]+)»/);
-      if (m && /[\u0590-\u05FF]/.test(m[1])) {
-        return `?מָה פֵּרוּשׁ הַמִּילָּה «${m[1]}»`;
-      }
-      return '?בַּחֲרוּ אֶת הַתַּרְגּוּם הַנָּכוֹן';
-    }
-
-    // ── 3. Grammatical gender / form questions
-    if (question.includes('Выберите правильный род')) {
-      return question.replace(/Выберите правильный род для\s*(«[^»]+»|местоимения «[^»]+»)\s*:/i, 'בַּחֲרוּ זָכָר ♂ אוֹ נְקֵבָה ♀ עֲבוּר $1 :');
-    }
-    if (question.includes('Выберите правильную форму')) {
-      return 'בַּחֲרוּ אֶת הַצּוּרָה הַנְּכוֹנָה:';
-    }
-    if (question.includes('Что изучается в уроке')) {
-      return 'מַהוּ נוֹשֵׂא הַשִּׁיעוּר?';
-    }
-
-    // ── 4. Fill in the blank: "Вставьте пропущенное слово: «...» (...):"
-    if (question.includes('Вставьте') || question.includes('Заполните') || question.includes('пропуск')) {
-      const m = question.match(/«([^»]+)»/);
-      if (m && /[\u0590-\u05FF]/.test(m[1])) {
-        // Strip the parenthetical Russian translation: «... (translation).»
-        const sentencePart = m[1].replace(/\s*\([^)]+\)\.?$/, '').trim();
-        return `הַשְׁלִימוּ אֶת הַמִּשְׁפָּט: «${sentencePart}»`;
-      }
-      return 'הַשְׁלִימוּ אֶת הַמִּילָּה הַחֲסֵרָה:';
-    }
-
-    // ── 5. Sentence builder: "Соберите предложение «...» на иврите:"
-    if (question.includes('Соберите предложение') || question.includes('Соберите фразу') || question.includes('порядок')) {
-      return 'סַדְּרוּ אֶת הַמִּשְׁפָּט בְּסֵדֶר נָכוֹן:';
-    }
-
-    // ── 6. Audio listening: "Послушайте аудиозапись и определите перевод слова «...»:"
-    if (question.includes('Послушайте') || question.includes('аудио')) {
-      const m = question.match(/«([^»]+)»/);
-      if (m && /[\u0590-\u05FF]/.test(m[1])) {
-        return `?🔊 הַאֲזִינוּ — מָה פֵּרוּשׁ «${m[1]}»`;
-      }
-      return '?🔊 הַאֲזִינוּ וּבַחֲרוּ אֶת הַתַּרְגּוּם הַנָּכוֹן';
-    }
-
-    // ── 7. Fallback for any remaining Russian text
-    if (/[а-яёА-ЯЁ]/.test(question)) {
-      const m = question.match(/«([^»]+)»/);
-      if (m && /[\u0590-\u05FF]/.test(m[1])) {
-        return `?בַּחֲרוּ אֶת הַתַּשׁוּבָה הַנְּכוֹנָה עֲבוּר «${m[1]}»`;
-      }
-      return '?בַּחֲרוּ אֶת הַתַּשׁוּבָה הַנְּכוֹנָה';
-    }
-
-    return question;
+  const getOptionDisplay = (opt: string): string => {
+    const isHeb = /[\u0590-\u05FF]/.test(opt);
+    return isHeb && !userProfile.showNikkud ? stripNikkud(opt) : opt;
   };
 
   const resetCurrentAnswerState = () => {
@@ -362,14 +201,10 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
             !מְצוּיָן
           </h2>
           <p className="text-base font-bold text-emerald-600 dark:text-emerald-400">
-            {userProfile.ulpanMode
-              ? 'כָּל הַתַּרְגִּילִים הוּשְׁלְמוּ בְּהַצְלָחָה!'
-              : `Все упражнения урока ${lesson.number} успешно выполнены!`}
+            {`Все упражнения урока ${lesson.number} успешно выполнены!`}
           </p>
           <p className="text-xs text-zinc-500 dark:text-zinc-400">
-            {userProfile.ulpanMode
-              ? 'שָׁלָב 3 מִתּוֹךְ 5 הוּשְׁלַם. עִבְרוּ לְשִׂיחָה עִם בּוֹט!'
-              : 'Этап 3 из 5 завершен. Переходите к ролевому диалогу с ИИ!'}
+            Этап 3 из 5 завершен. Переходите к ролевому диалогу с ИИ!
           </p>
         </div>
 
@@ -379,11 +214,7 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
               onClick={onCompleted}
               className="w-full py-3.5 px-6 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-sm shadow-md transition active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
             >
-              <span>
-                {userProfile.ulpanMode
-                  ? 'מַעֲבָר לְשִׂיחָה עִם בּוֹט (שָׁלָב 4/5) ➡️'
-                  : 'Перейти к ИИ-чату (этап 4/5) ➡️'}
-              </span>
+              <span>Перейти к ИИ-чату (этап 4/5) ➡️</span>
             </button>
           )}
 
@@ -396,7 +227,7 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
             }}
             className="w-full py-3 px-4 rounded-2xl border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 font-semibold text-xs transition cursor-pointer"
           >
-            {userProfile.ulpanMode ? 'לַחֲזוֹר עַל הַתַּרְגִּילִים' : 'Пройти упражнения еще раз'}
+            Пройти упражнения еще раз
           </button>
         </div>
       </div>
@@ -476,18 +307,14 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
           <div className="min-w-0">
             <div className="flex items-center gap-1.5">
               <span className="text-[11px] font-bold text-zinc-900 dark:text-zinc-100">
-                {userProfile.ulpanMode
-                  ? `שָׁלָב 3/5: תַּרְגִּילִים`
-                  : 'Этап 3/5: Тесты'}
+                Этап 3/5: Тесты
               </span>
               <span className="text-[10px] text-zinc-400 font-medium">
                 ({currentIdx + 1} / {exercises.length})
               </span>
             </div>
             <p className="text-[11px] text-zinc-500 truncate hidden xs:block">
-              {userProfile.ulpanMode
-                ? 'תִּרְגּוּל וְהַבָנָה'
-                : 'Закрепление темы и грамматики'}
+              Закрепление темы и грамматики
             </p>
           </div>
         </div>
@@ -498,17 +325,17 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
             type="button"
             onClick={handleToggleFont}
             className="px-2.5 py-1.5 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-xs text-xs font-semibold flex items-center gap-1.5 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition cursor-pointer"
-            title={isUlpan ? 'שינוי גופן' : 'Переключить шрифт упражнений: Печатный / Рукописный'}
+            title="Переключить шрифт упражнений: Печатный / Рукописный"
           >
             {isCursive ? (
               <>
                 <span className="font-cursive font-bold text-base text-blue-600 dark:text-blue-400 leading-none">כתב</span>
-                <span className="hidden sm:inline text-zinc-700 dark:text-zinc-300">{isUlpan ? 'כְּתַב יָד' : 'Рукописный'}</span>
+                <span className="hidden sm:inline text-zinc-700 dark:text-zinc-300">Рукописный</span>
               </>
             ) : (
               <>
                 <span className="font-hebrew font-bold text-xs text-zinc-700 dark:text-zinc-300 leading-none">דפוס</span>
-                <span className="hidden sm:inline text-zinc-700 dark:text-zinc-300">{isUlpan ? 'דְּפוּס' : 'Печатный'}</span>
+                <span className="hidden sm:inline text-zinc-700 dark:text-zinc-300">Печатный</span>
               </>
             )}
           </button>
@@ -522,7 +349,7 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
               title="Перейти к этапу 4 (ИИ-чат)"
             >
               <Bot className="w-3.5 h-3.5 text-purple-500" />
-              <span className="hidden sm:inline">{isUlpan ? 'לְבּוֹט' : 'К ИИ-чату'}</span>
+              <span className="hidden sm:inline">К ИИ-чату</span>
               <span>➡️</span>
             </button>
           )}
@@ -538,10 +365,10 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
             onClick={handlePrev}
             disabled={currentIdx === 0}
             className="px-2.5 py-1.5 rounded-xl border border-zinc-200 dark:border-zinc-700 text-xs font-semibold text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 disabled:opacity-30 disabled:cursor-not-allowed transition flex items-center gap-1 shrink-0 cursor-pointer"
-            title={isUlpan ? 'שאלה קודמת' : 'Предыдущий вопрос'}
+            title="Предыдущий вопрос"
           >
             <ChevronLeft className="w-4 h-4" />
-            <span className="hidden xs:inline">{isUlpan ? 'אָחוֹרָה' : 'Назад'}</span>
+            <span className="hidden xs:inline">Назад</span>
           </button>
 
           {/* Интерактивные индикаторы номеров вопросов */}
@@ -562,7 +389,7 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
                       ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800/80'
                       : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700'
                   }`}
-                  title={isUlpan ? `מעבר לשאלה ${idx + 1}` : `Перейти к вопросу ${idx + 1}`}
+                  title={`Перейти к вопросу ${idx + 1}`}
                 >
                   {idx + 1}
                 </button>
@@ -581,14 +408,14 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
                   : 'bg-blue-600 hover:bg-blue-700 text-white'
                 : 'bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700'
             }`}
-            title={isAnswered ? (isLastQuestion ? (isUlpan ? 'סיום תרגילים' : 'Завершить тесты') : (isUlpan ? 'השאלה הבאה' : 'Следующий вопрос')) : (isUlpan ? 'דלג על שאלה זו' : 'Пропустить вопрос и перейти к следующему')}
+            title={isAnswered ? (isLastQuestion ? 'Завершить тесты' : 'Следующий вопрос') : 'Пропустить вопрос и перейти к следующему'}
           >
             <span>
               {isAnswered
                 ? isLastQuestion
-                  ? (isUlpan ? 'סִיּוּם 🎉' : 'Завершить 🎉')
-                  : (isUlpan ? 'הַבָּא ➡️' : 'Далее ➡️')
-                : (isUlpan ? 'דַּלֵּג ⏩' : 'Пропустить ⏩')}
+                  ? 'Завершить 🎉'
+                  : 'Далее ➡️'
+                : 'Пропустить ⏩'}
             </span>
           </button>
         </div>
@@ -604,13 +431,8 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
 
       {/* 3. Карточка вопроса */}
       <div className="bg-white dark:bg-zinc-900 rounded-3xl p-5 sm:p-6 border border-zinc-200 dark:border-zinc-800 shadow-sm space-y-5">
-        <h3
-          dir={isUlpan ? 'rtl' : 'ltr'}
-          className={`text-base sm:text-lg font-bold text-zinc-900 dark:text-zinc-100 leading-relaxed ${
-            isUlpan ? 'font-hebrew text-lg sm:text-xl' : ''
-          }`}
-        >
-          {renderFormattedQuestion(getUlpanQuestionText(currentEx.question), isCursive)}
+        <h3 className="text-base sm:text-lg font-bold text-zinc-900 dark:text-zinc-100 leading-relaxed">
+          {renderFormattedQuestion(currentEx.question, isCursive)}
         </h3>
 
         {/* Для типа listening: кнопка прослушивания аудио */}
@@ -631,12 +453,10 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
               className="inline-flex items-center gap-2.5 px-6 py-3.5 rounded-2xl bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800 text-blue-600 dark:text-blue-400 font-bold hover:bg-blue-100 dark:hover:bg-blue-900 transition shadow-sm cursor-pointer active:scale-95 text-xs sm:text-sm"
             >
               <Volume2 className="w-5 h-5" />
-              <span>{isUlpan ? '🔊 לַחֲצוּ לַהַשְׁמָעַת שְׁמִיעָה' : '🔊 Нажмите, чтобы прослушать аудио'}</span>
+              <span>🔊 Нажмите, чтобы прослушать аудио</span>
             </button>
             <p className="text-[11px] text-zinc-400 dark:text-zinc-500 text-center font-hebrew">
-              {isUlpan
-                ? '💡 אִם אֵין קוֹל: בִּדְקוּ שֶׁהַטֶּלֶפוֹן אֵינוֹ בְּמַצַּב הַשְׁתָּקָה (Silent) וְעָצְמַת הַשֵּׁמַע פְּעִילָה'
-                : '💡 Не слышно? Проверьте громкость и Silent Switch (беззвучный режим) на телефоне'}
+              💡 Не слышно? Проверьте громкость и Silent Switch (беззвучный режим) на телефоне
             </p>
           </div>
         )}
@@ -648,7 +468,7 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
               {currentEx.options.map((opt, i) => {
                 const isSelected = selectedOption === opt;
                 const isCorrectOpt = opt === currentEx.correctAnswer;
-                const displayOpt = getUlpanOptionDisplay(opt);
+                const displayOpt = getOptionDisplay(opt);
                 const isDisplayHebrew = /[\u0590-\u05FF]/.test(displayOpt);
 
                 let btnClass =
@@ -693,7 +513,7 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
                             speakHebrew(toSpeak);
                           }}
                           className="p-1.5 rounded-lg text-zinc-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition cursor-pointer"
-                          title={isUlpan ? 'הַשְׁמַע' : 'Прослушать произношение'}
+                          title="Прослушать произношение"
                         >
                           <Volume2 className="w-4 h-4" />
                         </button>
@@ -760,7 +580,7 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
                             : 'border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/40'
                           : 'border-zinc-200 dark:border-zinc-700 hover:border-rose-400 dark:hover:border-rose-500 hover:text-rose-600 dark:hover:text-rose-400'
                       }`}
-                      title={isUlpan ? 'לַחֲצוּ לַהֲסָרַת מִילָּה זוֹ' : 'Нажмите, чтобы убрать слово'}
+                      title="Нажмите, чтобы убрать слово"
                     >
                       {userProfile.showNikkud ? wordText : stripNikkud(wordText)}
                     </button>
@@ -771,7 +591,7 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
                   <span
                     key={`empty-${slotIdx}`}
                     className="inline-flex items-center justify-center min-w-[48px] h-9 px-3 py-1 rounded-xl border-2 border-dashed border-blue-300/80 dark:border-blue-700/60 bg-blue-100/30 dark:bg-blue-950/30 text-blue-400/60 dark:text-blue-500/50 select-none text-xs font-mono"
-                    title={isUlpan ? 'מקום למילה' : 'Место для слова'}
+                    title="Место для слова"
                   >
                     ···
                   </span>
@@ -783,28 +603,26 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
             {selectedSentenceIndices.length > 0 && !isAnswered && (
               <div className="flex items-center justify-between px-1">
                 <span className="text-[11px] text-zinc-400 font-medium">
-                  {isUlpan
-                    ? `${selectedSentenceIndices.length} / ${sentenceStructure.targetWords.length} מִילִּים`
-                    : `Выбрано: ${selectedSentenceIndices.length} из ${sentenceStructure.targetWords.length}`}
+                  {`Выбрано: ${selectedSentenceIndices.length} из ${sentenceStructure.targetWords.length}`}
                 </span>
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
                     onClick={handleRemoveLastWord}
                     className="px-2.5 py-1 rounded-xl border border-amber-200 dark:border-amber-900/60 bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/60 shadow-xs transition active:scale-95 cursor-pointer text-xs font-semibold flex items-center gap-1.5"
-                    title={isUlpan ? 'מחק מילה אחרונה' : 'Стереть последнее выбранное слово'}
+                    title="Стереть последнее выбранное слово"
                   >
                     <Undo2 className="w-3.5 h-3.5" />
-                    <span>{isUlpan ? 'אָחוֹרָה' : 'Назад'}</span>
+                    <span>Назад</span>
                   </button>
                   <button
                     type="button"
                     onClick={handleResetSentence}
                     className="px-2.5 py-1 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-700 shadow-xs transition active:scale-95 cursor-pointer text-xs font-semibold flex items-center gap-1.5"
-                    title={isUlpan ? 'אפס משפט' : 'Очистить всю фразу'}
+                    title="Очистить всю фразу"
                   >
                     <RotateCcw className="w-3.5 h-3.5" />
-                    <span>{isUlpan ? 'אִפּוּס' : 'Сброс'}</span>
+                    <span>Сброс</span>
                   </button>
                 </div>
               </div>
@@ -817,10 +635,10 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
                   type="button"
                   onClick={() => speakHebrew(sentenceStructure.fullSentence)}
                   className="px-3.5 py-2 rounded-xl bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800 text-blue-600 dark:text-blue-400 font-bold hover:bg-blue-100 dark:hover:bg-blue-900 shadow-xs transition active:scale-95 cursor-pointer text-xs flex items-center gap-1.5"
-                  title={isUlpan ? 'השמע משפט' : 'Прослушать полное предложение'}
+                  title="Прослушать полное предложение"
                 >
                   <Volume2 className="w-4 h-4" />
-                  <span>{isUlpan ? '🔊 הַשְׁמָעַת הַמִּשְׁפָּט' : '🔊 Прослушать фразу целиком'}</span>
+                  <span>🔊 Прослушать фразу целиком</span>
                 </button>
               </div>
             )}
@@ -852,7 +670,7 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
         )}
 
         {/* Пояснение после ответа */}
-        {isAnswered && (currentEx.explanation || isUlpan) && (
+        {isAnswered && currentEx.explanation && (
           <div
             className={`p-4 rounded-2xl border text-xs leading-relaxed animate-in fade-in ${
               isCorrect
@@ -863,15 +681,11 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
             <div className="flex items-start justify-between gap-3">
               <div>
                 <p className="font-bold mb-1 font-hebrew">
-                  {isUlpan
-                    ? isCorrect
-                      ? '!נָכוֹן מְאוֹד • כָּל הַכָּבוֹד 🎉'
-                      : '!שִׂימוּ לֵב לַתְּשׁוּבָה הַנְּכוֹנָה 💡'
-                    : isCorrect
+                  {isCorrect
                     ? 'Верно! Отличный ответ.'
                     : 'Почти получилось! Обратите внимание:'}
                 </p>
-                {!isUlpan && currentEx.explanation && <p>{currentEx.explanation}</p>}
+                <p>{currentEx.explanation}</p>
               </div>
               {currentEx.type !== 'build_sentence' && currentEx.type !== 'listening' && Boolean(getExerciseHebrewToSpeak(currentEx)) && (
                 <button
@@ -903,10 +717,8 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
             >
               <span>
                 {isLastQuestion
-                  ? (userProfile.ulpanMode ? 'סִיּוּם תַּרְגִּילִים 🎉' : 'Завершить упражнения 🎉')
-                  : (userProfile.ulpanMode
-                      ? `הַשְּׁאֵלָה הַבָּאָה (${currentIdx + 2}/${exercises.length})`
-                      : `Следующий вопрос (${currentIdx + 2}/${exercises.length})`)}
+                  ? 'Завершить упражнения 🎉'
+                  : `Следующий вопрос (${currentIdx + 2}/${exercises.length})`}
               </span>
               <ArrowRight className="w-4 h-4" />
             </button>
@@ -916,7 +728,7 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
                 onClick={handleSkip}
                 className="flex-1 py-3 px-4 rounded-2xl border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-300 font-semibold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer"
               >
-                <span>{userProfile.ulpanMode ? 'דַּלֵּג עַל שְׁאֵלָה' : 'Пропустить вопрос'}</span>
+                <span>Пропустить вопрос</span>
                 <SkipForward className="w-3.5 h-3.5" />
               </button>
 
@@ -926,11 +738,7 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
                   className="py-3 px-4 rounded-2xl bg-purple-50 dark:bg-purple-950/60 hover:bg-purple-100 text-purple-700 dark:text-purple-300 font-semibold text-xs border border-purple-200 dark:border-purple-800/80 transition flex items-center justify-center gap-1 cursor-pointer"
                 >
                   <Bot className="w-3.5 h-3.5 text-purple-500" />
-                  <span>
-                    {userProfile.ulpanMode
-                      ? 'לְשִׂיחָה עִם בּוֹט (שָׁלָב 4/5) ➡️'
-                      : 'К ИИ-чату (этап 4/5) ➡️'}
-                  </span>
+                  <span>Перейти к ИИ-чату (этап 4/5) ➡️</span>
                 </button>
               )}
             </div>

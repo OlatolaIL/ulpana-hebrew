@@ -149,11 +149,11 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
           type="button"
           onClick={() => setIsWordsDrawerOpen(true)}
           className="fixed right-0 top-1/2 -translate-y-1/2 z-30 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white shadow-xl rounded-l-2xl py-3 px-1.5 sm:px-2 flex flex-col items-center gap-1.5 cursor-pointer border-y border-l border-blue-400/60 transition-all group font-hebrew"
-          title={userProfile.ulpanMode ? 'מִילִּים שֶׁיַּעַזְרוּ בַּשִּׂיחָה' : 'Полезные фразы к звонку'}
+          title="Полезные фразы к звонку"
         >
           <BookOpen className="w-4 h-4 text-white group-hover:scale-110 transition-transform" />
           <span className="text-[10px] font-bold uppercase [writing-mode:vertical-rl] tracking-widest text-blue-100">
-            {userProfile.ulpanMode ? 'מִילִּים' : 'ФРАЗЫ'}
+            ФРАЗЫ
           </span>
           <span className="w-5 h-5 rounded-full bg-white text-blue-700 text-[10px] font-black flex items-center justify-center shadow-xs">
             {scenario.usefulWords.length}

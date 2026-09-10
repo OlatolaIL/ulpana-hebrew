@@ -51,11 +51,7 @@ export const ChatBriefingModal: React.FC<ChatBriefingModalProps> = ({
             <div className="min-w-0">
               <h3 className="font-bold text-sm sm:text-base text-zinc-900 dark:text-zinc-100 truncate">
                 {activeStep
-                  ? userProfile.ulpanMode
-                    ? `שָׁלָב ${activeStep.stepIndex}: מַצָּב וְהַקְשֵׁר`
-                    : `Вводные данные: Шаг ${activeStep.stepIndex} из ${stepsCount}`
-                  : userProfile.ulpanMode
-                  ? 'הַקְשֵׁר וּמַטָּרוֹת הַשִּׂיחָה'
+                  ? `Вводные данные: Шаг ${activeStep.stepIndex} из ${stepsCount}`
                   : 'Вводные данные диалога'}
               </h3>
               <p className="text-[11px] text-zinc-500 dark:text-zinc-400 truncate">
@@ -80,7 +76,7 @@ export const ChatBriefingModal: React.FC<ChatBriefingModalProps> = ({
           {lesson.dialogue.situation && (
             <div className="bg-zinc-100 dark:bg-zinc-800 rounded-xl p-3.5 border border-zinc-200 dark:border-zinc-700 text-xs">
               <span className="font-bold text-zinc-600 dark:text-zinc-400 uppercase tracking-wider block mb-1">
-                {userProfile.ulpanMode ? 'מַצָּב כְּלָלִי' : 'Общая ситуация диалога:'}
+                Общая ситуация диалога:
               </span>
               <p className="text-zinc-900 dark:text-zinc-100 font-medium leading-relaxed">
                 {lesson.dialogue.situation}
@@ -93,12 +89,10 @@ export const ChatBriefingModal: React.FC<ChatBriefingModalProps> = ({
             <>
               {/* Факт текущего шага */}
               <div className="bg-blue-50 dark:bg-blue-950/60 rounded-xl p-4 border border-blue-200 dark:border-blue-800">
-                <span className="text-xs font-bold text-blue-700 dark:text-blue-300 uppercase tracking-wider block mb-1.5 flex items-center gap-1.5">
+                <span className="text-xs font-bold text-blue-700 dark:text-blue-300 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
                   <span>🎯</span>
                   <span>
-                    {userProfile.ulpanMode
-                      ? 'מַה שֶׁקּוֹרֶה עַכְשָׁו (עֻבְדָּה):'
-                      : 'Что происходит прямо сейчас (факт):'}
+                    Что происходит прямо сейчас (факт):
                   </span>
                 </span>
                 <p className="text-sm sm:text-base font-bold text-blue-950 dark:text-blue-100 leading-relaxed">
@@ -110,7 +104,7 @@ export const ChatBriefingModal: React.FC<ChatBriefingModalProps> = ({
               {activeStep.aiQuestionHebrew && (
                 <div className="bg-zinc-100 dark:bg-zinc-800 rounded-xl p-4 border border-zinc-200 dark:border-zinc-700 space-y-2.5">
                   <span className="text-xs font-bold text-zinc-600 dark:text-zinc-400 uppercase tracking-wider block">
-                    {userProfile.ulpanMode ? 'שְׁאֵלַת הַמּוֹרֶה:' : 'Вопрос учителя:'}
+                    Вопрос учителя:
                   </span>
                   <div className="flex items-start justify-between gap-3">
                     <p
@@ -130,7 +124,7 @@ export const ChatBriefingModal: React.FC<ChatBriefingModalProps> = ({
                       <Volume2 className="w-5 h-5" />
                     </button>
                   </div>
-                  {activeStep.aiQuestionRu && !userProfile.ulpanMode && (
+                  {activeStep.aiQuestionRu && (
                     <p className="text-xs text-zinc-700 dark:text-zinc-300 border-t border-zinc-200 dark:border-zinc-700 pt-2 italic">
                       {activeStep.aiQuestionRu}
                     </p>
@@ -142,7 +136,7 @@ export const ChatBriefingModal: React.FC<ChatBriefingModalProps> = ({
               {activeStep.expectedConcept && (
                 <div className="bg-amber-50 dark:bg-amber-950/40 rounded-xl p-3.5 border border-amber-200 dark:border-amber-900/60">
                   <span className="text-xs font-bold text-amber-800 dark:text-amber-300 uppercase tracking-wider block mb-1">
-                    💡 {userProfile.ulpanMode ? 'מַה מְּתַרְגְּלִים:' : 'Ваша задача:'}
+                    💡 Ваша задача:
                   </span>
                   <p className="text-xs sm:text-sm text-amber-950 dark:text-amber-100 font-medium">
                     {activeStep.expectedConcept}
@@ -158,7 +152,7 @@ export const ChatBriefingModal: React.FC<ChatBriefingModalProps> = ({
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   <div className="bg-zinc-100 dark:bg-zinc-800 p-3 rounded-xl border border-zinc-200 dark:border-zinc-700">
                     <span className="text-[10px] uppercase font-bold text-zinc-500 dark:text-zinc-400 block mb-0.5">
-                      {userProfile.ulpanMode ? 'הַתַּפְקִיד שֶׁלְּךָ' : 'Ваша роль:'}
+                      Ваша роль:
                     </span>
                     <span className="font-semibold text-zinc-900 dark:text-zinc-100">
                       {lesson.dialogue.userRole || 'Ученик'}
@@ -166,7 +160,7 @@ export const ChatBriefingModal: React.FC<ChatBriefingModalProps> = ({
                   </div>
                   <div className="bg-zinc-100 dark:bg-zinc-800 p-3 rounded-xl border border-zinc-200 dark:border-zinc-700">
                     <span className="text-[10px] uppercase font-bold text-zinc-500 dark:text-zinc-400 block mb-0.5">
-                      {userProfile.ulpanMode ? 'הַבֶּן זוּג לַשִּׂיחָה' : 'Собеседник:'}
+                      Собеседник:
                     </span>
                     <span className="font-semibold text-zinc-900 dark:text-zinc-100">
                       {lesson.dialogue.aiRole || 'Собеседник'}
@@ -179,7 +173,7 @@ export const ChatBriefingModal: React.FC<ChatBriefingModalProps> = ({
               {lesson.dialogue.goals && lesson.dialogue.goals.length > 0 && (
                 <div className="bg-amber-50 dark:bg-amber-950/40 rounded-xl p-3.5 border border-amber-200 dark:border-amber-900/60">
                   <span className="text-xs font-bold text-amber-800 dark:text-amber-300 uppercase tracking-wider block mb-2">
-                    💡 {userProfile.ulpanMode ? 'מַטָּרוֹת הַשִּׂיחָה:' : 'Цели диалога:'}
+                    💡 Цели диалога:
                   </span>
                   <ul className="space-y-1.5 text-xs sm:text-sm text-amber-950 dark:text-amber-100">
                     {lesson.dialogue.goals.map((goal, idx) => {
@@ -207,7 +201,7 @@ export const ChatBriefingModal: React.FC<ChatBriefingModalProps> = ({
             onClick={onClose}
             className="w-full sm:w-auto px-5 py-2.5 rounded-xl font-bold text-sm bg-blue-600 hover:bg-blue-700 text-white shadow-sm transition active:scale-95 cursor-pointer flex items-center justify-center gap-2"
           >
-            <span>{userProfile.ulpanMode ? 'הֵבַנְתִּי, לַשִּׂיחָה 💬' : 'Понятно, к диалогу 💬'}</span>
+            <span>Понятно, к диалогу 💬</span>
           </button>
         </div>
       </div>

@@ -6,7 +6,7 @@ import { Lesson, UserProfile } from '@/types';
 import { speakHebrew } from '@/lib/speech';
 import { markLessonTabCompleted } from '@/lib/storage';
 import { stripNikkud } from '@/lib/transcription';
-import { getHebrewPictogram, getHebrewGenderLabel, getPictogramDetails } from '@/lib/pictograms';
+import { getHebrewPictogram } from '@/lib/pictograms';
 import { SpokenHebrewDrawer } from './SpokenHebrewDrawer';
 
 interface LessonTheoryProps {
@@ -156,31 +156,11 @@ export const LessonTheory: React.FC<LessonTheoryProps> = ({
   };
 
   const isCursive = userProfile.fontStyle === 'cursive';
-  const isUlpan = Boolean(userProfile.ulpanMode);
 
   return (
     <div data-font-style={userProfile.fontStyle || 'print'} className="space-y-4 sm:space-y-6 max-w-3xl mx-auto pb-10">
-      {/* Баннер режима Ульпан (Визуальное обучение) */}
-      {isUlpan && (
-        <div className="bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-950/40 dark:to-teal-950/40 border border-emerald-200/80 dark:border-emerald-800/60 rounded-2xl p-4 flex items-center justify-between gap-3 shadow-xs">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-emerald-100 dark:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 shrink-0 text-xl">
-              🎓
-            </div>
-            <div>
-              <h3 className="text-sm sm:text-base font-bold text-emerald-900 dark:text-emerald-100 font-hebrew" dir="rtl">
-                עִבְרִית בְּעִבְרִית • לְמִידָה חָזוּתִית (תְּמוּנוֹת וּצְלִילִים)
-              </h3>
-              <p className="text-xs text-emerald-700 dark:text-emerald-300 mt-0.5">
-                ללא תרגום • לחצו על הרמקול להאזנה ועל «רֶמֶז» לבדיקה עצמית במידת הצורך
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Краткое описание темы урока (только в стандартном режиме) */}
-      {!isUlpan && lesson.description && (
+      {/* Краткое описание темы урока */}
+      {lesson.description && (
         <div className="px-1 text-sm sm:text-base text-zinc-600 dark:text-zinc-400 font-medium leading-relaxed">
           {renderFormattedText(
             lesson.description,
@@ -199,19 +179,16 @@ export const LessonTheory: React.FC<LessonTheoryProps> = ({
           className="bg-white dark:bg-zinc-900 rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-zinc-200 dark:border-zinc-800 shadow-sm space-y-4 sm:space-y-5"
         >
           <div className="space-y-1">
-            <h3
-              className="text-base sm:text-lg font-bold text-zinc-900 dark:text-zinc-100"
-              dir={isUlpan ? 'rtl' : 'ltr'}
-            >
-              {isUlpan ? `דִּקְדּוּק וּמִבְנֶה (${i + 1}): ${lesson.titleHebrew}` : topic.title}
+            <h3 className="text-base sm:text-lg font-bold text-zinc-900 dark:text-zinc-100">
+              {topic.title}
             </h3>
-            {!isUlpan && (
+            {topic.summary && (
               <p className="text-sm text-zinc-500 dark:text-zinc-400 font-medium">{topic.summary}</p>
             )}
           </div>
 
-          {/* Текст объяснения (в обычном режиме) */}
-          {!isUlpan && (
+          {/* Текст объяснения */}
+          {topic.explanation && (
             <div className="text-sm sm:text-base text-zinc-700 dark:text-zinc-200 leading-relaxed whitespace-pre-line">
               {renderFormattedText(
                 topic.explanation,
@@ -223,158 +200,18 @@ export const LessonTheory: React.FC<LessonTheoryProps> = ({
             </div>
           )}
 
-          {/* Визуальные таблицы спряжения и форм (с пиктограммами в режиме Ульпан) */}
+          {/* Таблицы спряжения и форм */}
           {topic.tables &&
-            topic.tables.map((table, tIdx) => {
-              const tableTitleHebrew = table.title
-                .replace(/ЕДИНСТВЕННОЕ ЧИСЛО/i, 'יָחִיד / יְחִידָה (1👤)')
-                .replace(/МНОЖЕСТВЕННОЕ ЧИСЛО/i, 'רַבִּים / רַבּוֹת (👥)')
-                .replace(/МУЖСКОЙ РОД/i, 'זָכָר (👨)')
-                .replace(/ЖЕНСКИЙ РОД/i, 'נְקֵבָה (👩)')
-                .replace(/[()]/g, '');
+            topic.tables.map((table, tIdx) => (
+              <div key={tIdx} className="space-y-2.5">
+                {/* Заголовок таблицы */}
+                <h4 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-zinc-600 dark:text-zinc-300 flex items-center gap-2">
+                  <Table className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                  <span>{table.title}</span>
+                </h4>
 
-              return (
-                <div key={tIdx} className="space-y-2.5">
-                  {/* Заголовок таблицы */}
-                  <h4 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-zinc-600 dark:text-zinc-300 flex items-center gap-2">
-                    <Table className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                    <span>{isUlpan ? tableTitleHebrew : table.title}</span>
-                  </h4>
-
-                  {/* РЕЖИМ УЛЬПАН: Интерактивная визуальная сетка карточек с пиктограммами */}
-                  {isUlpan ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                      {table.rows.map((row, rIdx) => {
-                        const hebrewIdx = row.findIndex((c) => /[\u0590-\u05FF]/.test(c));
-                        const hebrewWord = hebrewIdx !== -1 ? row[hebrewIdx] : row[0] || '';
-                        const exampleIdx = row.findIndex((c, idx) => idx > hebrewIdx && /[\u0590-\u05FF]/.test(c));
-                        const examplePhrase = exampleIdx !== -1 ? row[exampleIdx] : null;
-                        const numberCol = row.find((c) => /^\d+$/.test(c.trim()));
-                        const translation =
-                          row.find((c) => /[а-яёА-ЯЁ]/.test(c) && !/[\u0590-\u05FF]/.test(c)) ||
-                          row[2] ||
-                          row[1] ||
-                          '';
-                        const genderRaw =
-                          row[3] ||
-                          (row.some((c) => c.includes('муж')) ? 'זכר' : row.some((c) => c.includes('жен')) ? 'נקבה' : 'כללי');
-                        const genderInfo = getHebrewGenderLabel(genderRaw);
-                        const details = getPictogramDetails(hebrewWord, genderRaw);
-                        const hintKey = `hint-${i}-${tIdx}-${rIdx}`;
-                        const isHintRevealed = Boolean(revealedHints[hintKey]);
-                        const wordKey = `ulpan-word-${i}-${tIdx}-${rIdx}`;
-                        const exampleKey = `ulpan-ex-${i}-${tIdx}-${rIdx}`;
-
-                        return (
-                          <div
-                            key={rIdx}
-                            className={`border rounded-2xl p-3.5 flex flex-col justify-between hover:scale-[1.01] transition shadow-xs group ${details.bgClass} ${details.borderClass}`}
-                          >
-                            <div className="flex items-start justify-between gap-2">
-                              {/* Стильная направленная пиктограмма с цветовым акцентом */}
-                              <div className="flex items-center gap-1.5">
-                                <div className={`px-2.5 py-1 rounded-xl font-bold text-base sm:text-lg border shadow-xs select-none bg-white/90 dark:bg-zinc-800/90 ${details.textClass} ${details.borderClass}`}>
-                                  {details.icon}
-                                </div>
-                                {numberCol && (
-                                  <span className="px-2 py-0.5 rounded-lg text-xs font-bold bg-zinc-200/80 dark:bg-zinc-700/80 text-zinc-700 dark:text-zinc-200 border border-zinc-300 dark:border-zinc-600">
-                                    #{numberCol}
-                                  </span>
-                                )}
-                              </div>
-
-                              {/* Цветной бейдж рода (Голубой ♂ / Розовый ♀ / Индиго ⚥) */}
-                              <span className={`px-2 py-0.5 rounded-lg text-[11px] font-bold border ${genderInfo.badgeClass}`}>
-                                {genderInfo.label} {genderInfo.icon}
-                              </span>
-                            </div>
-
-                            {/* Крупное слово на иврите */}
-                            <div className="my-2.5">
-                              <div
-                                dir="rtl"
-                                onClick={() => handlePlay(hebrewWord, wordKey)}
-                                className={`font-bold text-xl sm:text-2xl text-zinc-900 dark:text-zinc-50 transition cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 ${
-                                  isCursive ? 'font-cursive text-3xl' : 'font-hebrew'
-                                }`}
-                                title="Нажмите на слово, чтобы прослушать произношение"
-                              >
-                                {userProfile.showNikkud ? hebrewWord : stripNikkud(hebrewWord)}
-                              </div>
-
-                              {/* Пример с числительным / формой при наличии */}
-                              {examplePhrase && (
-                                <div className="mt-2 pt-2 border-t border-zinc-200/60 dark:border-zinc-700/60 flex items-center justify-between gap-2">
-                                  <span
-                                    dir="rtl"
-                                    onClick={() => handlePlay(examplePhrase, exampleKey)}
-                                    className="text-xs sm:text-sm font-hebrew text-zinc-700 dark:text-zinc-300 cursor-pointer hover:text-emerald-600 dark:hover:text-emerald-400 font-medium"
-                                    title="Нажмите на пример, чтобы прослушать произношение"
-                                  >
-                                    {userProfile.showNikkud ? examplePhrase : stripNikkud(examplePhrase)}
-                                  </span>
-                                  <button
-                                    type="button"
-                                    onClick={() => handlePlay(examplePhrase, exampleKey)}
-                                    className={`p-1 rounded-lg shrink-0 transition ${
-                                      playingKey === exampleKey
-                                        ? 'bg-emerald-600 text-white scale-110'
-                                        : 'text-zinc-400 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/60'
-                                    }`}
-                                    title="Озвучить пример"
-                                  >
-                                    <Volume2 className="w-3.5 h-3.5" />
-                                  </button>
-                                </div>
-                              )}
-                            </div>
-
-                            {/* Нижняя панель: озвучка и кнопка подсказки */}
-                            <div className="pt-2 border-t border-zinc-200/60 dark:border-zinc-700/60 flex items-center justify-between gap-2">
-                              <button
-                                type="button"
-                                onClick={() => handlePlay(hebrewWord, wordKey)}
-                                className={`p-1.5 rounded-xl transition flex items-center gap-1 text-xs font-semibold cursor-pointer ${
-                                  playingKey === wordKey
-                                    ? 'bg-emerald-600 text-white shadow-xs scale-105'
-                                    : 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100'
-                                }`}
-                                title="השמע מילה (Озвучить слово)"
-                              >
-                                <Volume2 className={`w-3.5 h-3.5 ${playingKey === wordKey ? 'animate-pulse' : ''}`} />
-                                <span>שְׁמַע</span>
-                              </button>
-
-                              {/* Кнопка רמז (подсказка перевода) */}
-                              {isHintRevealed ? (
-                                <button
-                                  type="button"
-                                  onClick={() => handleToggleHint(hintKey)}
-                                  className="px-2 py-1 rounded-lg text-[11px] font-medium text-zinc-600 dark:text-zinc-300 bg-zinc-200/60 dark:bg-zinc-700/60 flex items-center gap-1 transition"
-                                  title="הסתר רמז"
-                                >
-                                  <span>{translation}</span>
-                                  <EyeOff className="w-3 h-3 opacity-60" />
-                                </button>
-                              ) : (
-                                <button
-                                  type="button"
-                                  onClick={() => handleToggleHint(hintKey)}
-                                  className="px-2 py-1 rounded-lg text-[11px] font-semibold text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-200/50 transition flex items-center gap-1"
-                                  title="הצג רמז (Проверить перевод)"
-                                >
-                                  <Eye className="w-3 h-3" />
-                                  <span>רֶמֶז</span>
-                                </button>
-                              )}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    /* СТАНДАРТНЫЙ РЕЖИМ: Адаптивные карточки на смартфонах и таблица на десктопе */
-                    <div className="space-y-2.5">
+                {/* Адаптивные карточки на смартфонах и таблица на десктопе */}
+                <div className="space-y-2.5">
                       {/* МОБИЛЬНЫЙ ВИД: Карточки без горизонтальной прокрутки */}
                       <div className="sm:hidden space-y-2">
                         {table.rows.map((row, rIdx) => {
@@ -626,20 +463,18 @@ export const LessonTheory: React.FC<LessonTheoryProps> = ({
                         </table>
                       </div>
                     </div>
-                  )}
                 </div>
-              );
-            })}
+            ))}
 
-          {/* Правила и памятки (только в обычном режиме) */}
-          {!isUlpan && topic.rules && topic.rules.length > 0 && (
+          {/* Правила и памятки */}
+          {topic.rules && topic.rules.length > 0 && (
             <div className="bg-gradient-to-br from-amber-50/90 to-amber-100/50 dark:from-amber-950/40 dark:to-amber-900/20 border border-amber-200/90 dark:border-amber-900/60 rounded-2xl sm:rounded-3xl p-4 sm:p-5 space-y-3.5 shadow-xs">
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2.5 text-amber-950 dark:text-amber-100 font-bold text-sm sm:text-base">
                   <div className="p-1.5 rounded-xl bg-amber-200/80 dark:bg-amber-900/60 text-amber-800 dark:text-amber-200">
                     <Lightbulb className="w-4 h-4" />
                   </div>
-                  <span>Важные правила ульпана</span>
+                  <span>Важные правила темы</span>
                 </div>
                 <button
                   type="button"
@@ -679,7 +514,7 @@ export const LessonTheory: React.FC<LessonTheoryProps> = ({
       ))}
 
       {/* Разговорная речь (шторка) — для уроков без отдельного блока правил */}
-      {!isUlpan && !lesson.grammar.some((t) => t.rules && t.rules.length > 0) && (
+      {!lesson.grammar.some((t) => t.rules && t.rules.length > 0) && (
         <div className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30 border border-amber-200 dark:border-amber-900/50 rounded-2xl sm:rounded-3xl p-4 flex items-center justify-between gap-3 shadow-xs">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-xl bg-amber-100 dark:bg-amber-900/60 text-amber-700 dark:text-amber-300 text-xl shrink-0">
@@ -708,15 +543,13 @@ export const LessonTheory: React.FC<LessonTheoryProps> = ({
       {/* Базовые примеры предложений с озвучкой */}
       {lesson.basicSentences.length > 0 && (
         <div className="bg-white dark:bg-zinc-900 rounded-3xl p-4 sm:p-6 border border-zinc-200 dark:border-zinc-800 shadow-sm space-y-4">
-          <h3 className="text-base font-bold text-zinc-900 dark:text-zinc-100" dir={isUlpan ? 'rtl' : 'ltr'}>
-            {isUlpan ? 'דֻּגְמָאוֹת וּמִשְׁפָּטִים (דִּיאָלוֹג)' : 'Базовые предложения темы'}
+          <h3 className="text-base font-bold text-zinc-900 dark:text-zinc-100">
+            Базовые предложения темы
           </h3>
 
           <div className="space-y-3">
             {lesson.basicSentences.map((sentence, sIdx) => {
               const sentencePictogram = getHebrewPictogram(sentence.hebrew);
-              const sentenceHintKey = `sent-hint-${sIdx}`;
-              const isSentRevealed = Boolean(revealedHints[sentenceHintKey]);
               const sentPlayKey = `sent-${sIdx}`;
               const isSentPlaying = playingKey === sentPlayKey;
 
@@ -744,42 +577,18 @@ export const LessonTheory: React.FC<LessonTheoryProps> = ({
                       </p>
                     </div>
 
-                    {/* Транскрипция (только вне режима Ульпан) */}
-                    {!isUlpan && userProfile.showTranscription && sentence.transcription && (
+                    {/* Транскрипция */}
+                    {userProfile.showTranscription && sentence.transcription && (
                       <p className="text-xs sm:text-sm font-semibold text-blue-600 dark:text-blue-400">
                         [{sentence.transcription}]
                       </p>
                     )}
 
-                    {/* Перевод (в обычном режиме виден всегда, в Ульпане — по клику на רמז) */}
-                    {isUlpan ? (
-                      <div>
-                        {isSentRevealed ? (
-                          <button
-                            type="button"
-                            onClick={() => handleToggleHint(sentenceHintKey)}
-                            className="text-xs text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 flex items-center gap-1"
-                          >
-                            <span>{sentence.translation}</span>
-                            <EyeOff className="w-3 h-3 opacity-60" />
-                          </button>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => handleToggleHint(sentenceHintKey)}
-                            className="text-[11px] text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 flex items-center gap-1"
-                          >
-                            <Eye className="w-3 h-3" />
-                            <span>רֶמֶז</span>
-                          </button>
-                        )}
-                      </div>
-                    ) : (
-                      sentence.translation && (
-                        <p className="text-sm sm:text-base text-zinc-700 dark:text-zinc-200 font-medium">
-                          {sentence.translation}
-                        </p>
-                      )
+                    {/* Перевод */}
+                    {sentence.translation && (
+                      <p className="text-sm sm:text-base text-zinc-700 dark:text-zinc-200 font-medium">
+                        {sentence.translation}
+                      </p>
                     )}
                   </div>
 
@@ -791,7 +600,7 @@ export const LessonTheory: React.FC<LessonTheoryProps> = ({
                         ? 'bg-emerald-600 text-white scale-105'
                         : 'bg-blue-600 text-white hover:bg-blue-700'
                     }`}
-                    title="השמע משפט (Озвучить)"
+                    title="Озвучить"
                   >
                     <Volume2 className={`w-4 h-4 ${isSentPlaying ? 'animate-pulse text-white' : ''}`} />
                   </button>
@@ -809,11 +618,7 @@ export const LessonTheory: React.FC<LessonTheoryProps> = ({
           className="py-3.5 px-8 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm shadow-md transition active:scale-95 inline-flex items-center gap-2 cursor-pointer"
         >
           <CheckCircle2 className="w-5 h-5 text-emerald-300" />
-          <span>
-            {isUlpan
-              ? 'הֲבָנַת הַחֹמֶר • מַעֲבָר לְאוֹצַר מִילִּים (שָׁלָב 2/5) ➡️'
-              : 'Я изучил теорию • Перейти к словарю (этап 2/5) ➡️'}
-          </span>
+          <span>Я изучил теорию • Перейти к словарю (этап 2/5) ➡️</span>
         </button>
       </div>
 

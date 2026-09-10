@@ -11,7 +11,6 @@ import {
   ArrowRight,
 } from 'lucide-react';
 import { Word, UserProfile } from '@/types';
-import { WordVisual } from '@/components/WordVisual';
 import { getWordTranscription } from '@/lib/transcription';
 import { Tile } from '../types';
 import { getCleanHebrewTarget } from '../helpers';
@@ -19,7 +18,6 @@ import { getCleanHebrewTarget } from '../helpers';
 interface BuilderModeProps {
   currentWord: Word;
   userProfile: UserProfile;
-  isUlpan: boolean;
   currentIndex: number;
   showHint: boolean;
   builderSuccess: boolean;
@@ -40,7 +38,6 @@ interface BuilderModeProps {
 export const BuilderMode: React.FC<BuilderModeProps> = ({
   currentWord,
   userProfile,
-  isUlpan,
   currentIndex,
   showHint,
   builderSuccess,
@@ -65,39 +62,14 @@ export const BuilderMode: React.FC<BuilderModeProps> = ({
     <div className="bg-white dark:bg-zinc-900 rounded-3xl p-6 border border-zinc-200 dark:border-zinc-800 shadow-lg space-y-6">
       <div className="text-center space-y-2">
         <span className="text-xs text-zinc-400 font-semibold">
-          {isUlpan
-            ? hasSpaces
-              ? 'הַרְכֵּב אֶת הַמִּשְׁפָּט מֵאוֹתִיּוֹת וּרְוָחִים:'
-              : 'הַרְכֵּב אֶת הַמִּילָּה מֵאוֹתִיּוֹת:'
-            : hasSpaces
+          {hasSpaces
             ? 'Соберите фразу по буквам и пробелам:'
             : 'Соберите слово по буквам:'}
         </span>
-        {isUlpan ? (
-          <div className="py-1">
-            <WordVisual
-              hebrew={currentWord.hebrew}
-              hebrewPlain={currentWord.hebrewPlain}
-              size="md"
-              ulpanMode={true}
-              className="mb-1"
-            />
-            <button
-              type="button"
-              onClick={() => onSpeakHebrew(currentWord.hebrew)}
-              className="p-2 rounded-full bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 hover:bg-blue-100 transition shadow-xs inline-flex items-center gap-1.5 text-xs font-semibold"
-              title="השמע מילה"
-            >
-              <Volume2 className="w-4 h-4" />
-              <span>שְׁמַע</span>
-            </button>
-          </div>
-        ) : (
-          <div className="text-xl font-bold text-zinc-800 dark:text-zinc-100">
-            {currentWord.translation}
-          </div>
-        )}
-        {!isUlpan && userProfile.showTranscription && getWordTranscription(currentWord) && (
+        <div className="text-xl font-bold text-zinc-800 dark:text-zinc-100">
+          {currentWord.translation}
+        </div>
+        {userProfile.showTranscription && getWordTranscription(currentWord) && (
           <p className="text-xs text-blue-600 dark:text-blue-400">
             [{getWordTranscription(currentWord)}]
           </p>
@@ -110,13 +82,13 @@ export const BuilderMode: React.FC<BuilderModeProps> = ({
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold uppercase tracking-wider text-amber-800 dark:text-amber-300 flex items-center gap-1.5 font-hebrew">
               <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-              <span>{isUlpan ? 'תְּשׁוּבָה נְכוֹנָה:' : 'Правильный ответ:'}</span>
+              <span>Правильный ответ:</span>
             </span>
             <button
               type="button"
               onClick={() => onSpeakHebrew(currentWord.hebrew)}
               className="p-1.5 rounded-lg bg-amber-200/60 dark:bg-amber-900/60 text-amber-900 dark:text-amber-200 hover:bg-amber-300 transition cursor-pointer"
-              title={isUlpan ? 'השמע מילה' : 'Прослушать произношение'}
+              title="Прослушать произношение"
             >
               <Volume2 className="w-4 h-4" />
             </button>
@@ -131,7 +103,7 @@ export const BuilderMode: React.FC<BuilderModeProps> = ({
             {userProfile.showNikkud ? currentWord.hebrew : targetText}
           </div>
 
-          {!isUlpan && getWordTranscription(currentWord) && (
+          {getWordTranscription(currentWord) && (
             <p className="text-xs font-medium text-amber-900/80 dark:text-amber-300/80">
               [{getWordTranscription(currentWord)}]
             </p>
@@ -142,14 +114,10 @@ export const BuilderMode: React.FC<BuilderModeProps> = ({
               type="button"
               onClick={onAutoAssemble}
               className="px-3.5 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold shadow-sm transition flex items-center gap-1.5 active:scale-95 cursor-pointer"
-              title={
-                isUlpan
-                  ? 'הרכב אותיות באופן אוטומטי'
-                  : 'Автоматически собрать правильные буквы и пробелы'
-              }
+              title="Автоматически собрать правильные буквы и пробелы"
             >
               <CheckCircle2 className="w-3.5 h-3.5" />
-              <span>{isUlpan ? 'הַרְכֵּב נָכוֹן' : 'Собрать правильно'}</span>
+              <span>Собрать правильно</span>
             </button>
           </div>
         </div>
@@ -181,12 +149,12 @@ export const BuilderMode: React.FC<BuilderModeProps> = ({
                       isCursive ? 'font-cursive text-blue-600 dark:text-blue-400' : 'font-hebrew'
                     }`
               }`}
-              title={isUlpan ? 'לחץ להסרת אות' : 'Нажмите, чтобы вернуть символ'}
+              title="Нажмите, чтобы вернуть символ"
             >
               {tile.char === ' ' ? (
                 <>
                   <Space className="w-3 h-3" />
-                  <span>{isUlpan ? 'רֶוַח' : 'Пробел'}</span>
+                  <span>Пробел</span>
                 </>
               ) : (
                 tile.char
@@ -195,11 +163,7 @@ export const BuilderMode: React.FC<BuilderModeProps> = ({
           ))
         ) : (
           <span className="text-zinc-400 text-sm font-sans font-medium">
-            {isUlpan
-              ? hasSpaces
-                ? 'לַחֲצוּ עַל הָאוֹתִיּוֹת וְהָרְוָחִים לְמַטָּה...'
-                : 'לַחֲצוּ עַל הָאוֹתִיּוֹת לְמַטָּה...'
-              : hasSpaces
+            {hasSpaces
               ? 'Нажимайте на буквы и пробелы ниже...'
               : 'Нажимайте на буквы ниже...'}
           </span>
@@ -209,9 +173,7 @@ export const BuilderMode: React.FC<BuilderModeProps> = ({
       {/* Панель кнопок управления конструктором (Показать ответ / Стереть / Сброс) */}
       <div className="flex flex-wrap items-center justify-between gap-2">
         <span className="text-xs text-zinc-500 font-medium font-hebrew">
-          {isUlpan
-            ? `אוֹתִיּוֹת: ${builderSelected.length} מִתּוֹךְ ${targetText.length}`
-            : `${hasSpaces ? 'Символов' : 'Букв'}: ${builderSelected.length} из ${targetText.length}`}
+          {`${hasSpaces ? 'Символов' : 'Букв'}: ${builderSelected.length} из ${targetText.length}`}
         </span>
 
         <div className="flex items-center gap-2">
@@ -223,15 +185,11 @@ export const BuilderMode: React.FC<BuilderModeProps> = ({
                 ? 'bg-amber-500 text-white border-amber-600 shadow-sm'
                 : 'border-amber-200 dark:border-amber-800/80 bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/60'
             }`}
-            title={isUlpan ? 'הצג תשובה' : 'Показать правильный ответ'}
+            title="Показать правильный ответ"
           >
             <HelpCircle className="w-3.5 h-3.5" />
             <span>
-              {isUlpan
-                ? showHint
-                  ? 'הַסְתֵּר רֶמֶז'
-                  : 'הַצֵּג רֶמֶז'
-                : showHint
+              {showHint
                 ? 'Скрыть ответ'
                 : 'Показать правильно'}
             </span>
@@ -242,10 +200,10 @@ export const BuilderMode: React.FC<BuilderModeProps> = ({
             disabled={builderSelected.length === 0 || builderSuccess}
             onClick={onBackspace}
             className="px-3 py-1.5 rounded-xl border border-zinc-200 dark:border-zinc-700 text-xs font-semibold text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-30 transition flex items-center gap-1.5 cursor-pointer"
-            title={isUlpan ? 'מחק תו אחרון' : 'Удалить последний символ (Backspace)'}
+            title="Удалить последний символ (Backspace)"
           >
             <Delete className="w-3.5 h-3.5" />
-            <span>{isUlpan ? 'מְחַק' : 'Стереть'}</span>
+            <span>Стереть</span>
           </button>
 
           <button
@@ -253,10 +211,10 @@ export const BuilderMode: React.FC<BuilderModeProps> = ({
             disabled={builderSelected.length === 0 || builderSuccess}
             onClick={onResetBuilder}
             className="px-3 py-1.5 rounded-xl border border-zinc-200 dark:border-zinc-700 text-xs font-semibold text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-30 transition flex items-center gap-1.5 cursor-pointer"
-            title={isUlpan ? 'אפס את כל האותיות' : 'Сбросить все буквы'}
+            title="Сбросить все буквы"
           >
             <RotateCcw className="w-3.5 h-3.5" />
-            <span>{isUlpan ? 'אִפּוּס' : 'Сбросить'}</span>
+            <span>Сбросить</span>
           </button>
         </div>
       </div>
@@ -266,7 +224,7 @@ export const BuilderMode: React.FC<BuilderModeProps> = ({
         <div className="bg-emerald-50 dark:bg-emerald-950/50 border-2 border-emerald-500 rounded-2xl p-5 text-center space-y-3 animate-in zoom-in-95">
           <div className="flex items-center justify-center gap-2 text-emerald-600 dark:text-emerald-400 font-bold text-lg font-hebrew">
             <CheckCircle2 className="w-6 h-6 shrink-0" />
-            <span>{isUlpan ? '!מְצוּיָן! ✓' : '!מְצוּיָן! נָכוֹן (Верно!)'}</span>
+            <span>!מְצוּיָן! נָכוֹן (Верно!)</span>
           </div>
 
           <div
@@ -278,7 +236,7 @@ export const BuilderMode: React.FC<BuilderModeProps> = ({
             {userProfile.showNikkud ? currentWord.hebrew : targetText}
           </div>
 
-          {!isUlpan && userProfile.showTranscription && getWordTranscription(currentWord) && (
+          {userProfile.showTranscription && getWordTranscription(currentWord) && (
             <p className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">
               [{getWordTranscription(currentWord)}]
             </p>
@@ -290,10 +248,10 @@ export const BuilderMode: React.FC<BuilderModeProps> = ({
               disabled={currentIndex === 0}
               onClick={onPrevWord}
               className="py-3 px-3.5 rounded-xl border border-emerald-300 dark:border-emerald-800 bg-white dark:bg-zinc-900 text-emerald-700 dark:text-emerald-300 disabled:opacity-25 disabled:cursor-not-allowed hover:bg-emerald-50 dark:hover:bg-emerald-950/60 font-bold text-xs sm:text-sm shadow-sm transition active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer shrink-0"
-              title={isUlpan ? 'חֲזֹר לַמִּילָּה הַקּוֹדֶמֶת' : 'Предыдущее слово'}
+              title="Предыдущее слово"
             >
               <ArrowLeft className="w-4 h-4" />
-              <span className="hidden sm:inline">{isUlpan ? 'קוֹדֶמֶת' : 'Назад'}</span>
+              <span className="hidden sm:inline">Назад</span>
             </button>
 
             <button
@@ -301,7 +259,7 @@ export const BuilderMode: React.FC<BuilderModeProps> = ({
               onClick={() => onNextWord(5)}
               className="flex-1 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm shadow-md transition flex items-center justify-center gap-2 active:scale-98 cursor-pointer"
             >
-              <span>{isUlpan ? 'הַמִּילָּה הַבָּאָה' : 'Следующее слово'}</span>
+              <span>Следующее слово</span>
               <ArrowRight className="w-4 h-4" />
             </button>
           </div>
@@ -327,16 +285,14 @@ export const BuilderMode: React.FC<BuilderModeProps> = ({
               }`}
               title={
                 tile.char === ' '
-                  ? isUlpan
-                    ? 'רווח'
-                    : 'Пробел (Space)'
-                  : `${isUlpan ? 'אות' : 'Буква'} ${tile.char}`
+                  ? 'Пробел (Space)'
+                  : `Буква ${tile.char}`
               }
             >
               {tile.char === ' ' ? (
                 <>
                   <Space className="w-4 h-4 shrink-0" />
-                  <span>{isUlpan ? 'רֶוַח' : 'Пробел'}</span>
+                  <span>Пробел</span>
                 </>
               ) : (
                 tile.char

@@ -11,7 +11,6 @@ import {
   CheckCircle2,
   ArrowRight,
   ArrowLeft,
-  GraduationCap,
   RotateCw,
   RefreshCw,
   ThumbsUp,
@@ -22,7 +21,6 @@ import { speakHebrew } from '@/lib/speech';
 import { stripNikkud, getWordTranscription } from '@/lib/transcription';
 import { saveUserProfile, markLessonTabCompleted, updateCardSRS } from '@/lib/storage';
 import { getHebrewPictogram } from '@/lib/pictograms';
-import { WordVisual } from '@/components/WordVisual';
 
 interface LessonVocabularyProps {
   lessonId?: number;
@@ -54,7 +52,6 @@ export const LessonVocabulary: React.FC<LessonVocabularyProps> = ({
   const [revealedRoots, setRevealedRoots] = useState<Record<string, boolean>>({});
   const [revealedTranslations, setRevealedTranslations] = useState<Record<string, boolean>>({});
 
-  const isUlpan = Boolean(userProfile.ulpanMode);
   const isCursive = userProfile.fontStyle === 'cursive';
 
   useEffect(() => {
@@ -227,41 +224,6 @@ export const LessonVocabulary: React.FC<LessonVocabularyProps> = ({
   };
 
   const getPosBadge = (pos: PartOfSpeech) => {
-    if (isUlpan) {
-      switch (pos) {
-        case 'noun':
-          return (
-            <span dir="rtl" className="px-2 py-0.5 rounded text-[11px] font-hebrew font-bold bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-200">
-              שֵׁם עֶצֶם
-            </span>
-          );
-        case 'verb':
-          return (
-            <span dir="rtl" className="px-2 py-0.5 rounded text-[11px] font-hebrew font-bold bg-emerald-100 dark:bg-emerald-900/50 text-emerald-800 dark:text-emerald-200">
-              פֹּעַל
-            </span>
-          );
-        case 'adjective':
-          return (
-            <span dir="rtl" className="px-2 py-0.5 rounded text-[11px] font-hebrew font-bold bg-purple-100 dark:bg-purple-900/50 text-purple-800 dark:text-purple-200">
-              שֵׁם תֹּאַר
-            </span>
-          );
-        case 'expression':
-          return (
-            <span dir="rtl" className="px-2 py-0.5 rounded text-[11px] font-hebrew font-bold bg-amber-100 dark:bg-amber-900/50 text-amber-800 dark:text-amber-200">
-              בִּיטּוּי
-            </span>
-          );
-        default:
-          return (
-            <span dir="rtl" className="px-2 py-0.5 rounded text-[11px] font-hebrew font-bold bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300">
-              מִילָּה
-            </span>
-          );
-      }
-    }
-
     switch (pos) {
       case 'noun':
         return <span className="px-2 py-0.5 rounded text-[11px] bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-200">Сущ.</span>;
@@ -282,9 +244,9 @@ export const LessonVocabulary: React.FC<LessonVocabularyProps> = ({
       return (
         <span
           className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-sky-50 dark:bg-sky-950/60 text-sky-700 dark:text-sky-300 border border-sky-200/80 dark:border-sky-800/60"
-          title={isUlpan ? 'זָכָר (ז׳)' : 'Мужской род'}
+          title="Мужской род"
         >
-          {isUlpan ? 'זָכָר ♂' : 'м.р. ♂'}
+          м.р. ♂
         </span>
       );
     }
@@ -292,9 +254,9 @@ export const LessonVocabulary: React.FC<LessonVocabularyProps> = ({
       return (
         <span
           className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border border-rose-200/80 dark:border-rose-800/60"
-          title={isUlpan ? 'נְקֵבָה (נ׳)' : 'Женский род'}
+          title="Женский род"
         >
-          {isUlpan ? 'נְקֵבָה ♀' : 'ж.р. ♀'}
+          ж.р. ♀
         </span>
       );
     }
@@ -302,9 +264,9 @@ export const LessonVocabulary: React.FC<LessonVocabularyProps> = ({
       return (
         <span
           className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200/80 dark:border-indigo-800/60"
-          title={isUlpan ? 'זָכָר וּנְקֵבָה' : 'Общий род'}
+          title="Общий род"
         >
-          {isUlpan ? 'זו״נ ⚥' : 'общ. ⚥'}
+          общ. ⚥
         </span>
       );
     }
@@ -315,24 +277,6 @@ export const LessonVocabulary: React.FC<LessonVocabularyProps> = ({
 
   return (
     <div data-font-style={userProfile.fontStyle || 'print'} className="space-y-4 sm:space-y-6 max-w-3xl mx-auto pb-10">
-      {/* Баннер Режима Ульпан */}
-      {isUlpan && (
-        <div className="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900/50 rounded-2xl p-3.5 flex items-center justify-between gap-3 text-xs text-emerald-800 dark:text-emerald-200 shadow-xs">
-          <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-xl bg-emerald-100 dark:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 shrink-0">
-              <GraduationCap className="w-5 h-5" />
-            </div>
-            <div>
-              <p className="font-bold text-xs sm:text-sm text-emerald-900 dark:text-emerald-100" dir="rtl">
-                עִבְרִית בְּעִבְרִית — אוּלְפָּן
-              </p>
-              <p className="text-[11px] sm:text-xs text-emerald-700 dark:text-emerald-300 mt-0.5" dir="rtl">
-                הַתַּרְגּוּמִים מֻסְתָּרִים. לַחֲצוּ עַל הַכַּרְטִיסִיָּה לְבִדּוּק.
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Верхняя строка управления: Переключатель режимов (Карточки / Списком) */}
       <div className="flex items-center justify-between gap-2 bg-white dark:bg-zinc-900 p-2 sm:p-2.5 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-xs">
@@ -351,7 +295,7 @@ export const LessonVocabulary: React.FC<LessonVocabularyProps> = ({
             }`}
           >
             <Layers className="w-3.5 h-3.5" />
-            <span>{isUlpan ? 'כַּרְטִיסִיּוֹת' : 'Карточки'}</span>
+            <span>Карточки</span>
           </button>
           <button
             type="button"
@@ -363,9 +307,10 @@ export const LessonVocabulary: React.FC<LessonVocabularyProps> = ({
             }`}
           >
             <List className="w-3.5 h-3.5" />
-            <span>{isUlpan ? 'רְשִׁימָה' : 'Списком'}</span>
+            <span>Списком</span>
           </button>
         </div>
+
 
         {/* Счётчик и прогресс для режима карточек */}
         {viewMode === 'card' && !isSessionCompleted && words.length > 0 && (
@@ -385,7 +330,7 @@ export const LessonVocabulary: React.FC<LessonVocabularyProps> = ({
         {/* Индикатор общего количества слов в режиме списка */}
         {viewMode === 'list' && (
           <span className="text-xs font-bold text-zinc-500 dark:text-zinc-400 px-2">
-            {words.length} {isUlpan ? 'מִילִּים' : 'слов'}
+            {words.length} слов
           </span>
         )}
       </div>
@@ -412,7 +357,7 @@ export const LessonVocabulary: React.FC<LessonVocabularyProps> = ({
                         {currentWord.isUserAdded && (
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-100 dark:bg-amber-950/70 text-amber-800 dark:text-amber-200 border border-amber-300 dark:border-amber-800">
                             <span>👑</span>
-                            <span>{isUlpan ? 'נוֹסַף עַל יָדְךָ' : 'Добавлено вами'}</span>
+                            <span>Добавлено вами</span>
                           </span>
                         )}
                       </div>
@@ -443,22 +388,11 @@ export const LessonVocabulary: React.FC<LessonVocabularyProps> = ({
                     </div>
 
                     <div className="my-auto py-6 text-center space-y-4">
-                      {/* Пиктограмма / визуализация (если есть) */}
-                      {isUlpan ? (
-                        <div className="flex justify-center">
-                          <WordVisual
-                            hebrew={currentWord.hebrew}
-                            hebrewPlain={currentWord.hebrewPlain}
-                            size="md"
-                            ulpanMode={true}
-                          />
+                      {/* Пиктограмма (если есть) */}
+                      {getHebrewPictogram(currentWord.hebrew) && (
+                        <div className="text-3xl select-none">
+                          {getHebrewPictogram(currentWord.hebrew)}
                         </div>
-                      ) : (
-                        getHebrewPictogram(currentWord.hebrew) && (
-                          <div className="text-3xl select-none">
-                            {getHebrewPictogram(currentWord.hebrew)}
-                          </div>
-                        )
                       )}
 
                       {/* Крупное слово на иврите */}
@@ -495,9 +429,7 @@ export const LessonVocabulary: React.FC<LessonVocabularyProps> = ({
                     <div className="flex items-center justify-center gap-1.5 text-xs text-zinc-400 dark:text-zinc-500 font-medium pt-2 border-t border-zinc-100 dark:border-zinc-800/60">
                       <RotateCw className="w-3.5 h-3.5 opacity-70" />
                       <span>
-                        {isUlpan
-                          ? 'לַחֲצוּ לְהַצָּגַת הַתַּרְגּוּם'
-                          : 'Нажмите, чтобы проверить перевод'}
+                        Нажмите, чтобы проверить перевод
                       </span>
                     </div>
                   </>
@@ -556,8 +488,7 @@ export const LessonVocabulary: React.FC<LessonVocabularyProps> = ({
                       </div>
 
                       {/* Транскрипция */}
-                      {!isUlpan &&
-                        userProfile.showTranscription &&
+                      {userProfile.showTranscription &&
                         getWordTranscription(currentWord) && (
                           <div className="text-sm sm:text-base font-semibold text-blue-600 dark:text-blue-400 font-mono">
                             [{getWordTranscription(currentWord)}]
@@ -568,7 +499,7 @@ export const LessonVocabulary: React.FC<LessonVocabularyProps> = ({
                       {currentWord.root && (
                         <div className="pt-2 flex items-center justify-center gap-1.5 text-xs text-amber-700 dark:text-amber-400">
                           <span className="text-zinc-400">
-                            {isUlpan ? 'שׁוֹרֶשׁ:' : 'Корень:'}
+                            Корень:
                           </span>
                           <span
                             dir="rtl"
@@ -607,20 +538,16 @@ export const LessonVocabulary: React.FC<LessonVocabularyProps> = ({
                               <Volume2 className="w-3.5 h-3.5" />
                             </button>
                           </div>
-                          {!isUlpan && (
-                            <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                              {currentWord.exampleSentence.translation}
-                            </p>
-                          )}
+                          <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                            {currentWord.exampleSentence.translation}
+                          </p>
                         </div>
                       )}
                     </div>
 
                     <div className="flex items-center justify-center gap-1.5 text-xs text-zinc-400 dark:text-zinc-500 font-medium pt-2 border-t border-zinc-100 dark:border-zinc-800/60">
                       <span>
-                        {isUlpan
-                          ? 'הַעֲרִיכוּ אֶת הַתְּשׁוּבָה שֶׁלָּכֶם לְמַטָּה'
-                          : 'Оцените свой ответ кнопками ниже'}
+                        Оцените свой ответ кнопками ниже
                       </span>
                     </div>
                   </>
@@ -629,14 +556,14 @@ export const LessonVocabulary: React.FC<LessonVocabularyProps> = ({
 
               {/* Панель действий под карточкой: честный двухшаговый процесс (Active Recall) */}
               {!isFlipped ? (
-                /* ШАГ 1 (Карточка закрыта): Ученик вспоминает ответ -> Кнопка "Показать перевод" */
+                 /* ШАГ 1 (Карточка закрыта): Ученик вспоминает ответ -> Кнопка "Показать перевод" */
                 <div className="flex items-center justify-center gap-2 pt-1 animate-in fade-in duration-150">
                   <button
                     type="button"
                     onClick={handlePrev}
                     disabled={currentIndex === 0}
                     className="p-3.5 rounded-2xl border border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-30 disabled:cursor-not-allowed transition active:scale-95 cursor-pointer shrink-0"
-                    title={isUlpan ? 'מִילָּה קוֹדֶמֶת' : 'Предыдущее слово'}
+                    title="Предыдущее слово"
                   >
                     <ArrowLeft className="w-5 h-5" />
                   </button>
@@ -647,14 +574,14 @@ export const LessonVocabulary: React.FC<LessonVocabularyProps> = ({
                     className="flex-1 py-3.5 px-4 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm sm:text-base flex items-center justify-center gap-2 transition active:scale-95 cursor-pointer shadow-sm shadow-blue-600/25"
                   >
                     <RotateCw className="w-4 h-4" />
-                    <span>{isUlpan ? 'הַצֵּג תַּרְגּוּם' : 'Показать перевод'}</span>
+                    <span>Показать перевод</span>
                   </button>
 
                   <button
                     type="button"
                     onClick={handleNext}
                     className="p-3.5 rounded-2xl border border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition active:scale-95 cursor-pointer shrink-0"
-                    title={isUlpan ? 'מִילָּה הַבָּאָה' : 'Следующее слово'}
+                    title="Следующее слово"
                   >
                     <ArrowRight className="w-5 h-5" />
                   </button>
@@ -667,7 +594,7 @@ export const LessonVocabulary: React.FC<LessonVocabularyProps> = ({
                     onClick={handlePrev}
                     disabled={currentIndex === 0}
                     className="p-3.5 rounded-2xl border border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-30 disabled:cursor-not-allowed transition active:scale-95 cursor-pointer shrink-0"
-                    title={isUlpan ? 'מִילָּה קוֹדֶמֶת' : 'Предыдущее слово'}
+                    title="Предыдущее слово"
                   >
                     <ArrowLeft className="w-5 h-5" />
                   </button>
@@ -676,27 +603,27 @@ export const LessonVocabulary: React.FC<LessonVocabularyProps> = ({
                     type="button"
                     onClick={handleMarkRepeat}
                     className="flex-1 py-3.5 px-3 rounded-2xl bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/40 dark:hover:bg-amber-900/60 text-amber-800 dark:text-amber-200 border-2 border-amber-200/90 dark:border-amber-900/70 font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer shadow-xs"
-                    title={isUlpan ? 'שָׁכַחְתִּי / חֲזָרָה' : 'Забыл / Повторить скоро'}
+                    title="Забыл / Повторить скоро"
                   >
                     <RefreshCw className="w-4 h-4" />
-                    <span>{isUlpan ? 'לַחֲזֹר' : 'Повторить'}</span>
+                    <span>Повторить</span>
                   </button>
 
                   <button
                     type="button"
                     onClick={handleMarkKnown}
                     className="flex-1 py-3.5 px-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer shadow-sm shadow-emerald-600/25"
-                    title={isUlpan ? 'יוֹדֵעַ הֵיטֵב' : 'Знаю хорошо'}
+                    title="Знаю хорошо"
                   >
                     <ThumbsUp className="w-4 h-4" />
-                    <span>{isUlpan ? 'יוֹדֵעַ' : 'Знаю'}</span>
+                    <span>Знаю</span>
                   </button>
 
                   <button
                     type="button"
                     onClick={handleNext}
                     className="p-3.5 rounded-2xl border border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition active:scale-95 cursor-pointer shrink-0"
-                    title={isUlpan ? 'מִילָּה הַבָּאָה' : 'Следующее слово'}
+                    title="Следующее слово"
                   >
                     <ArrowRight className="w-5 h-5" />
                   </button>
@@ -711,12 +638,10 @@ export const LessonVocabulary: React.FC<LessonVocabularyProps> = ({
               </div>
               <div className="space-y-1">
                 <h3 className="text-xl sm:text-2xl font-black text-zinc-900 dark:text-zinc-50">
-                  {isUlpan ? '!כָּל הַמִּילִּים נִלְמְדוּ' : 'Все слова урока пройдены!'}
+                  Все слова урока пройдены!
                 </h3>
                 <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400">
-                  {isUlpan
-                    ? 'עֲבַרְתֶּם עַל כָּל הַכַּרְטִיסִיּוֹת שֶׁל הַשִּׁיעוּר'
-                    : `Вы успешно завершили этап карточек (${words.length} слов)`}
+                  {`Вы успешно завершили этап карточек (${words.length} слов)`}
                 </p>
               </div>
 
@@ -727,7 +652,7 @@ export const LessonVocabulary: React.FC<LessonVocabularyProps> = ({
                     {knownWordIds.size}
                   </div>
                   <div className="text-xs text-zinc-500 font-medium">
-                    {isUlpan ? 'יוֹדֵעַ' : 'Усвоено'}
+                    Усвоено
                   </div>
                 </div>
                 <div className="text-center">
@@ -735,7 +660,7 @@ export const LessonVocabulary: React.FC<LessonVocabularyProps> = ({
                     {reviewWordIds.size}
                   </div>
                   <div className="text-xs text-zinc-500 font-medium">
-                    {isUlpan ? 'לַחֲזָרָה' : 'На повторение'}
+                    На повторение
                   </div>
                 </div>
               </div>
@@ -749,9 +674,7 @@ export const LessonVocabulary: React.FC<LessonVocabularyProps> = ({
                 >
                   <CheckCircle2 className="w-5 h-5 text-emerald-300" />
                   <span>
-                    {isUlpan
-                      ? 'מַעֲבָר לְתַרְגִּילִים (שָׁלָב 3/5) ➡️'
-                      : 'Перейти к упражнениям (этап 3/5) ➡️'}
+                    Перейти к упражнениям (этап 3/5) ➡️
                   </span>
                 </button>
 
@@ -762,7 +685,7 @@ export const LessonVocabulary: React.FC<LessonVocabularyProps> = ({
                     className="text-xs text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-200 transition font-semibold flex items-center gap-1.5 py-1.5 px-3 rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer"
                   >
                     <RotateCw className="w-3.5 h-3.5" />
-                    <span>{isUlpan ? 'סִבּוּב נוֹסָף' : 'Пройти карточки заново'}</span>
+                    <span>Пройти карточки заново</span>
                   </button>
                   <button
                     type="button"
@@ -770,7 +693,7 @@ export const LessonVocabulary: React.FC<LessonVocabularyProps> = ({
                     className="text-xs text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-200 transition font-semibold flex items-center gap-1.5 py-1.5 px-3 rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer"
                   >
                     <List className="w-3.5 h-3.5" />
-                    <span>{isUlpan ? 'רְשִׁימַת מִילִּים' : 'Посмотреть списком'}</span>
+                    <span>Посмотреть списком</span>
                   </button>
                 </div>
               </div>
@@ -793,7 +716,7 @@ export const LessonVocabulary: React.FC<LessonVocabularyProps> = ({
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder={isUlpan ? 'חיפוש...' : 'Поиск слова...'}
+                  placeholder="Поиск слова..."
                   className="w-full pl-9 pr-4 py-2 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-600"
                 />
               </div>
@@ -803,11 +726,11 @@ export const LessonVocabulary: React.FC<LessonVocabularyProps> = ({
                 onChange={(e) => setSelectedPos(e.target.value)}
                 className="px-2.5 py-2 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-600"
               >
-                <option value="all">{isUlpan ? 'הַכֹּל' : 'Все части речи'}</option>
-                <option value="noun">{isUlpan ? 'שֵׁם עֶצֶם' : 'Сущ.'}</option>
-                <option value="verb">{isUlpan ? 'פֹּעַל' : 'Глаголы'}</option>
-                <option value="adjective">{isUlpan ? 'שֵׁם תֹּאַר' : 'Прил.'}</option>
-                <option value="expression">{isUlpan ? 'בִּטּוּי' : 'Фразы'}</option>
+                <option value="all">Все части речи</option>
+                <option value="noun">Сущ.</option>
+                <option value="verb">Глаголы</option>
+                <option value="adjective">Прил.</option>
+                <option value="expression">Фразы</option>
               </select>
             </div>
 
@@ -851,7 +774,7 @@ export const LessonVocabulary: React.FC<LessonVocabularyProps> = ({
                         {word.isUserAdded && (
                           <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[9px] font-bold bg-amber-100 dark:bg-amber-950/70 text-amber-800 dark:text-amber-200 border border-amber-300 dark:border-amber-800">
                             <span>👑</span>
-                            <span>{isUlpan ? 'נוֹסַף' : 'Своё'}</span>
+                            <span>Своё</span>
                           </span>
                         )}
                       </div>
@@ -910,8 +833,7 @@ export const LessonVocabulary: React.FC<LessonVocabularyProps> = ({
                     </div>
 
                     {/* Транскрипция */}
-                    {!isUlpan &&
-                      userProfile.showTranscription &&
+                    {userProfile.showTranscription &&
                       getWordTranscription(word) && (
                         <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 mt-0.5">
                           [{getWordTranscription(word)}]
@@ -930,7 +852,7 @@ export const LessonVocabulary: React.FC<LessonVocabularyProps> = ({
                       {word.root && (
                         <div className="flex items-center gap-1.5 text-xs text-amber-700 dark:text-amber-400">
                           <span className="text-[11px] text-zinc-400">
-                            {isUlpan ? 'שׁוֹרֶשׁ:' : 'Шореш:'}
+                            Шореш:
                           </span>
                           <span
                             dir="rtl"
@@ -960,11 +882,9 @@ export const LessonVocabulary: React.FC<LessonVocabularyProps> = ({
                               <Volume2 className="w-3 h-3" />
                             </button>
                           </div>
-                          {!isUlpan && (
-                            <p className="text-[11px] text-zinc-500">
-                              {word.exampleSentence.translation}
-                            </p>
-                          )}
+                          <p className="text-[11px] text-zinc-500">
+                            {word.exampleSentence.translation}
+                          </p>
                         </div>
                       )}
                     </div>
@@ -983,9 +903,7 @@ export const LessonVocabulary: React.FC<LessonVocabularyProps> = ({
             >
               <CheckCircle2 className="w-5 h-5 text-emerald-300" />
               <span>
-                {isUlpan
-                  ? 'לָמַדְתִּי אֶת הַמִּילִּים • מַעֲבָר לְתַרְגִּילִים (שָׁלָב 3/5) ➡️'
-                  : 'Я выучил слова • Перейти к упражнениям (этап 3/5) ➡️'}
+                Я выучил слова • Перейти к упражнениям (этап 3/5) ➡️
               </span>
             </button>
           </div>

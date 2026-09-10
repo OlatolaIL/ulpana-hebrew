@@ -49,6 +49,7 @@ export const WordLookupModal: React.FC<WordLookupModalProps> = ({
     } | null;
   } | null>(null);
   const [isAdded, setIsAdded] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   // Привязка к кнопке/свайпу Назад (popstate)
   useModalHistory(isOpen, onClose, 'word-lookup-modal');
@@ -65,18 +66,20 @@ export const WordLookupModal: React.FC<WordLookupModalProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose]);
 
+  // 1. Первичная загрузка и анализ слова
   useEffect(() => {
     if (!isOpen || !word) return;
 
     setViewMode('summary');
     setLoadingConjugation(false);
-    setIsAdded(isWordInPersonalDict(word));
+    setToastMessage(null);
+    setIsAdded(isWordInPersonalDict(word, userProfile?.personalVocabulary));
 
     // Проверяем встроенную оффлайн-базу спряжений
     const offlineConj = findOfflineVerbConjugation(word);
     setConjugationData(offlineConj);
 
-    // 1. Мгновенная проверка по встроенному оффлайн-словарю (0 мс)
+    // 1.1. Мгновенная проверка по встроенному оффлайн-словарю (0 мс)
     const localMatch = lookupOfflineWord(word);
     if (localMatch) {
       setWordData({
@@ -87,12 +90,14 @@ export const WordLookupModal: React.FC<WordLookupModalProps> = ({
         partOfSpeech: localMatch.partOfSpeech,
         exampleSentence: localMatch.exampleSentence || null,
       });
-      setIsAdded(isWordInPersonalDict(localMatch.hebrew || word));
+      setIsAdded(
+        isWordInPersonalDict(localMatch.hebrew || word, userProfile?.personalVocabulary)
+      );
       setLoading(false);
       return;
     }
 
-    // 2. Если в оффлайн-словаре нет — запрашиваем через серверный API
+    // 1.2. Если в оффлайн-словаре нет — запрашиваем через серверный API
     setLoading(true);
 
     fetch('/api/ai/lookup', {
@@ -101,18 +106,20 @@ export const WordLookupModal: React.FC<WordLookupModalProps> = ({
       body: JSON.stringify({
         word,
         context,
-        provider: userProfile.aiProvider,
+        provider: userProfile?.aiProvider || 'groq',
         apiKey:
-          userProfile.aiProvider === 'groq'
-            ? userProfile.groqApiKey
-            : userProfile.geminiApiKey,
+          userProfile?.aiProvider === 'groq'
+            ? userProfile?.groqApiKey
+            : userProfile?.geminiApiKey,
       }),
     })
       .then(async (res) => {
         const data = await res.json();
         if (res.ok && data && !data.error && data.translation) {
           setWordData(data);
-          setIsAdded(isWordInPersonalDict(data.hebrew || word));
+          setIsAdded(
+            isWordInPersonalDict(data.hebrew || word, userProfile?.personalVocabulary)
+          );
         } else {
           // Запасной вариант при ошибке API
           setWordData({
@@ -138,7 +145,16 @@ export const WordLookupModal: React.FC<WordLookupModalProps> = ({
         });
         setLoading(false);
       });
-  }, [isOpen, word, context, userProfile]);
+  }, [isOpen, word, context]);
+
+  // 2. Отдельная синхронизация статуса "Добавлено в словарик" без сброса карточки
+  useEffect(() => {
+    if (!isOpen) return;
+    const targetWord = wordData?.hebrew || word;
+    if (targetWord) {
+      setIsAdded(isWordInPersonalDict(targetWord, userProfile?.personalVocabulary));
+    }
+  }, [isOpen, word, wordData, userProfile?.personalVocabulary]);
 
   if (!isOpen) return null;
 
@@ -156,6 +172,10 @@ export const WordLookupModal: React.FC<WordLookupModalProps> = ({
       exampleSentence: wordData.exampleSentence || undefined,
     });
     setIsAdded(true);
+    setToastMessage(
+      `Слово «${cleanHebrew}» сохранено в словарик${lessonId ? ` урока ${lessonId}` : ''}!`
+    );
+    setTimeout(() => setToastMessage(null), 3500);
     if (onWordAdded) onWordAdded(newWord);
   };
 
@@ -368,6 +388,14 @@ export const WordLookupModal: React.FC<WordLookupModalProps> = ({
                     </div>
                   )}
 
+                  {/* Всплывающее подтверждение добавления */}
+                  {toastMessage && (
+                    <div className="p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 text-xs font-bold text-center animate-in fade-in zoom-in-95 flex items-center justify-center gap-1.5 shadow-xs">
+                      <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                      <span>{toastMessage}</span>
+                    </div>
+                  )}
+
                   {/* Кнопка добавления в словарик */}
                   <div className="pt-1">
                     <button
@@ -385,11 +413,7 @@ export const WordLookupModal: React.FC<WordLookupModalProps> = ({
                           <Check className="w-5 h-5" />
                           <span>
                             {lessonId
-                              ? userProfile.ulpanMode
-                                ? `בַּמִּלּוֹן שֶׁל שִׁיעוּר ${lessonId}`
-                                : `В словарике урока ${lessonId}`
-                              : userProfile.ulpanMode
-                              ? 'בַּמִּלּוֹן שֶׁלְּךָ'
+                              ? `В словарике урока ${lessonId}`
                               : 'В вашем словарике'}
                           </span>
                         </>
@@ -398,15 +422,11 @@ export const WordLookupModal: React.FC<WordLookupModalProps> = ({
                           <Plus className="w-5 h-5" />
                           <span>
                             {lessonId
-                              ? userProfile.ulpanMode
-                                ? `הוֹסֵף לְמִלּוֹן שִׁיעוּר ${lessonId}`
-                                : `Добавить в словарик урока ${lessonId}`
-                              : userProfile.ulpanMode
-                              ? 'הוֹסֵף לַמִּלּוֹן שֶׁלִּי'
+                              ? `Добавить в словарик урока ${lessonId}`
                               : 'Добавить в мой словарик'}
                           </span>
                           {lessonId && (
-                            <TierBadge tier="pro-beta" size="xs" isUlpan={userProfile.ulpanMode} className="ml-1" />
+                            <TierBadge tier="pro-beta" size="xs" className="ml-1" />
                           )}
                         </>
                       )}

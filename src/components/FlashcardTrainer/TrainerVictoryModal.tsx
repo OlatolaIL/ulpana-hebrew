@@ -4,7 +4,6 @@ import { Word } from '@/types';
 
 interface TrainerVictoryModalProps {
   status: 'part_completed' | 'all_parts_completed' | 'completed';
-  isUlpan: boolean;
   lessonId?: number;
   activePartIndex: number;
   parts: Word[][];
@@ -27,7 +26,6 @@ interface TrainerVictoryModalProps {
 
 export const TrainerVictoryModal: React.FC<TrainerVictoryModalProps> = ({
   status,
-  isUlpan,
   lessonId,
   activePartIndex,
   parts,
@@ -56,24 +54,16 @@ export const TrainerVictoryModal: React.FC<TrainerVictoryModalProps> = ({
         <div className="space-y-2">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 text-xs font-bold border border-blue-200 dark:border-blue-800">
             <Sparkles className="w-3.5 h-3.5" />
-            <span>
-              {isUlpan
-                ? `חֵלֶק ${activePartIndex + 1} מִתּוֹךְ ${parts.length} הוּשְׁלַם!`
-                : `Часть ${activePartIndex + 1} из ${parts.length} пройдена!`}
-            </span>
+            <span>Часть {activePartIndex + 1} из {parts.length} пройдена!</span>
           </div>
           <h2 className="text-2xl sm:text-3xl font-bold text-zinc-900 dark:text-zinc-50 font-hebrew">
             !כָּל הַכָּבוֹד
           </h2>
           <p className="text-base font-bold text-blue-600 dark:text-blue-400">
-            {isUlpan
-              ? `עֲבוֹדָה מְצוּיֶנֶת! שְׁלַטְתֶּם בְּ-${wordsLength} מִילִּים.`
-              : `Отлично! Вы повторили ${wordsLength} слов(а).`}
+            Отлично! Вы повторили {wordsLength} слов(а).
           </p>
           <p className="text-xs text-zinc-500 dark:text-zinc-400">
-            {isUlpan
-              ? `מוּכָנִים לַעֲבוֹר לַחֵלֶק הַבָּא אוֹ לַחֲזוֹר עַל חֵלֶק זֶה?`
-              : `Готовы перейти к следующей части или хотите повторить эту ещё раз?`}
+            Готовы перейти к следующей части или хотите повторить эту ещё раз?
           </p>
         </div>
 
@@ -94,7 +84,7 @@ export const TrainerVictoryModal: React.FC<TrainerVictoryModalProps> = ({
                 }`}
               >
                 {isFinished && <CheckCircle2 className="w-3 h-3 text-emerald-500 shrink-0" />}
-                <span>{isUlpan ? `חלק ${idx + 1}` : `Ч. ${idx + 1}`}</span>
+                <span>Ч. {idx + 1}</span>
                 <span className="text-[10px] opacity-75">({p.length})</span>
               </div>
             );
@@ -108,11 +98,7 @@ export const TrainerVictoryModal: React.FC<TrainerVictoryModalProps> = ({
               onClick={() => onNextPart(nextPartIdx)}
               className="w-full py-3.5 px-6 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-sm shadow-md transition active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
             >
-              <span>
-                {isUlpan
-                  ? `הַמְשֵׁךְ לְחֵלֶק ${nextPartIdx + 1} (${nextPartWordsCount} מִילִּים) ➡️`
-                  : `Перейти к части ${nextPartIdx + 1} (${nextPartWordsCount} слов) ➡️`}
-              </span>
+              <span>Перейти к части {nextPartIdx + 1} ({nextPartWordsCount} слов) ➡️</span>
             </button>
           )}
 
@@ -122,7 +108,7 @@ export const TrainerVictoryModal: React.FC<TrainerVictoryModalProps> = ({
               onClick={onRepeatPart}
               className="flex-1 py-3 px-4 rounded-xl border border-zinc-200 dark:border-zinc-700 font-semibold text-xs sm:text-sm hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 transition cursor-pointer"
             >
-              {isUlpan ? 'חֲזֹר עַל חֵלֶק זֶה' : 'Повторить эту часть'}
+              Повторить эту часть
             </button>
 
             <button
@@ -130,7 +116,7 @@ export const TrainerVictoryModal: React.FC<TrainerVictoryModalProps> = ({
               onClick={onAllWordsTogether}
               className="flex-1 py-3 px-4 rounded-xl border border-indigo-200 dark:border-indigo-800 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 font-semibold text-xs sm:text-sm hover:bg-indigo-100 dark:hover:bg-indigo-900/60 transition cursor-pointer"
             >
-              {isUlpan ? 'הַכֹּל יַחַד עַכְשָׁו' : 'Все слова сразу'}
+              Все слова сразу
             </button>
           </div>
         </div>
@@ -148,20 +134,16 @@ export const TrainerVictoryModal: React.FC<TrainerVictoryModalProps> = ({
         <div className="space-y-2">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 text-xs font-bold border border-emerald-200 dark:border-emerald-800">
             <Sparkles className="w-3.5 h-3.5" />
-            <span>{isUlpan ? '!כָּל הַחֲלָקִים הוּשְׁלְמוּ' : 'Все части успешно пройдены!'}</span>
+            <span>Все части успешно пройдены!</span>
           </div>
           <h2 className="text-2xl sm:text-3xl font-bold text-zinc-900 dark:text-zinc-50 font-hebrew">
             !כָּל הַכָּבוֹד
           </h2>
           <p className="text-base font-bold text-zinc-800 dark:text-zinc-200">
-            {isUlpan
-              ? `עֲבַרְתֶּם עַל כָּל ${parts.length} הַחֲלָקִים (${masterWordsLength} מִילִּים)!`
-              : `Вы последовательно выучили все ${parts.length} частей (${masterWordsLength} слов)!`}
+            Вы последовательно выучили все {parts.length} частей ({masterWordsLength} слов)!
           </p>
           <p className="text-xs text-zinc-500 dark:text-zinc-400">
-            {isUlpan
-              ? 'עַכְשָׁו מֻמְלָץ לְאַחֵד אֶת כָּל הַמִּילִּים וּלְחַזֵּק אֶת הַזִּכָּרוֹן יַחַד.'
-              : 'Теперь закрепим результат: объедините все слова колоды для финального повторения!'}
+            Теперь закрепим результат: объедините все слова колоды для финального повторения!
           </p>
         </div>
 
@@ -173,11 +155,7 @@ export const TrainerVictoryModal: React.FC<TrainerVictoryModalProps> = ({
             className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:via-indigo-700 hover:to-purple-700 text-white font-bold text-sm sm:text-base shadow-lg hover:shadow-xl transition active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
           >
             <Sparkles className="w-5 h-5" />
-            <span>
-              {isUlpan
-                ? `🚀 אֲחֵד וְתַרְגֵּל אֶת כָּל ${masterWordsLength} הַמִּילִּים`
-                : `🚀 Объединить и повторить всё вместе (${masterWordsLength} слов)`}
-            </span>
+            <span>🚀 Объединить и повторить всё вместе ({masterWordsLength} слов)</span>
           </button>
 
           <div className="flex gap-2.5">
@@ -186,7 +164,7 @@ export const TrainerVictoryModal: React.FC<TrainerVictoryModalProps> = ({
               onClick={onRestart}
               className="flex-1 py-3 px-4 rounded-xl border border-zinc-200 dark:border-zinc-700 font-semibold text-xs sm:text-sm hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 transition cursor-pointer"
             >
-              {isUlpan ? 'חֲזֹר עַל חֵלֶק אַחֲרוֹן' : 'Повторить последнюю часть'}
+              Повторить последнюю часть
             </button>
 
             {lessonId ? (
@@ -201,7 +179,7 @@ export const TrainerVictoryModal: React.FC<TrainerVictoryModalProps> = ({
                 }}
                 className="flex-1 py-3 px-4 rounded-xl bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 font-semibold text-xs sm:text-sm text-zinc-700 dark:text-zinc-300 transition cursor-pointer"
               >
-                {isUlpan ? 'מַעֲבָר לְתַרְגִּילִים ➡️' : 'К упражнениям ➡️'}
+                К упражнениям ➡️
               </button>
             ) : onClose ? (
               <button
@@ -209,7 +187,7 @@ export const TrainerVictoryModal: React.FC<TrainerVictoryModalProps> = ({
                 onClick={onClose}
                 className="flex-1 py-3 px-4 rounded-xl border border-zinc-200 dark:border-zinc-700 font-semibold text-xs sm:text-sm hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 transition cursor-pointer"
               >
-                {isUlpan ? 'סְגוֹר' : 'Завершить'}
+                Завершить
               </button>
             ) : null}
           </div>
@@ -229,20 +207,12 @@ export const TrainerVictoryModal: React.FC<TrainerVictoryModalProps> = ({
           !כָּל הַכָּבוֹד
         </h2>
         <p className="text-base font-bold text-emerald-600 dark:text-emerald-400">
-          {isUlpan
-            ? lessonId
-              ? `עֲבוֹדָה מְצוּיֶנֶת! שִׁיעוּר ${lessonId} הוּשְׁלַם בְּהַצְלָחָה!`
-              : 'עֲבוֹדָה מְצוּיֶנֶת! הַתִּרְגּוּל הֻשְׁלַם.'
-            : lessonId
+          {lessonId
             ? `Отличная работа! Словарь урока ${lessonId} успешно пройден!`
             : 'Отличная работа! Тренировка завершена.'}
         </p>
         <p className="text-xs text-zinc-500 dark:text-zinc-400">
-          {isUlpan
-            ? lessonId
-              ? `חֲזַרְתֶּם עַל כָּל ${masterWordsLength} הַמִּילִּים. שָׁלָב 2/5 הוּשְׁלַם.`
-              : `חֲזַרְתֶּם עַל ${masterWordsLength} מִילִּים.`
-            : lessonId
+          {lessonId
             ? `Вы повторили все ${masterWordsLength} слов(а). Раздел «Словарь» зачтен (этап 2/5).`
             : `Вы повторили ${masterWordsLength} слов(а). Прогресс сохранен в интервальной памяти.`}
         </p>
@@ -262,7 +232,7 @@ export const TrainerVictoryModal: React.FC<TrainerVictoryModalProps> = ({
               }}
               className="w-full py-3.5 px-6 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-sm shadow-md transition active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
             >
-              <span>{isUlpan ? 'מַעֲבָר לְתַרְגִּילִים (שָׁלָב 3/5) ➡️' : 'Перейти к упражнениям (этап 3/5) ➡️'}</span>
+              <span>Перейти к упражнениям (этап 3/5) ➡️</span>
             </button>
 
             <div className="flex gap-2.5 flex-wrap">
@@ -277,7 +247,7 @@ export const TrainerVictoryModal: React.FC<TrainerVictoryModalProps> = ({
                 }}
                 className="flex-1 min-w-[110px] py-3 px-4 rounded-xl border border-zinc-200 dark:border-zinc-700 font-semibold text-xs sm:text-sm hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 transition cursor-pointer"
               >
-                {isUlpan ? 'חֲזָרָה לַשִּׁיעוּר' : 'Вернуться в урок'}
+                Вернуться в урок
               </button>
 
               <button
@@ -285,7 +255,7 @@ export const TrainerVictoryModal: React.FC<TrainerVictoryModalProps> = ({
                 onClick={onRestart}
                 className="flex-1 min-w-[110px] py-3 px-4 rounded-xl border border-zinc-200 dark:border-zinc-700 font-semibold text-xs sm:text-sm hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 transition cursor-pointer"
               >
-                {isUlpan ? 'תִּרְגּוּל נוֹסָף' : 'Повторить'}
+                Повторить
               </button>
 
               {canSplit && (
@@ -295,7 +265,7 @@ export const TrainerVictoryModal: React.FC<TrainerVictoryModalProps> = ({
                   className="flex-1 min-w-[110px] py-3 px-4 rounded-xl border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 font-semibold text-xs sm:text-sm hover:bg-blue-100 dark:hover:bg-blue-900/60 transition flex items-center justify-center gap-1.5 cursor-pointer"
                 >
                   <Columns2 className="w-4 h-4" />
-                  <span>{isUlpan ? 'בַּחֲלָקִים' : 'По частям'}</span>
+                  <span>По частям</span>
                 </button>
               )}
             </div>
@@ -307,7 +277,7 @@ export const TrainerVictoryModal: React.FC<TrainerVictoryModalProps> = ({
               onClick={onRestart}
               className="flex-1 py-3 px-4 rounded-xl border border-zinc-200 dark:border-zinc-700 font-semibold text-sm hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 transition cursor-pointer"
             >
-              {isUlpan ? 'תִּרְגּוּל שׁוּב' : 'Повторить снова'}
+              Повторить снова
             </button>
             {canSplit && (
               <button
@@ -316,16 +286,16 @@ export const TrainerVictoryModal: React.FC<TrainerVictoryModalProps> = ({
                 className="flex-1 py-3 px-4 rounded-xl border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/40 hover:bg-blue-100 font-semibold text-sm text-blue-700 dark:text-blue-300 transition flex items-center justify-center gap-2 cursor-pointer"
               >
                 <Columns2 className="w-4 h-4" />
-                <span>{isUlpan ? 'בַּחֲלָקִים' : 'По частям'}</span>
+                <span>По частям</span>
               </button>
             )}
             <button
               type="button"
               onClick={onShuffleRestart}
-              className="flex-1 py-3 px-4 rounded-xl border border-purple-200 dark:border-purple-800 bg-purple-50 dark:bg-purple-950/40 hover:bg-purple-100 dark:hover:bg-purple-900/60 font-semibold text-sm text-purple-700 dark:text-purple-300 transition flex items-center justify-center gap-2 cursor-pointer"
+              className="flex-1 py-3 px-4 rounded-xl border border-purple-200 dark:border-purple-800 bg-purple-50 dark:purple-950/40 hover:bg-purple-100 dark:hover:bg-purple-900/60 font-semibold text-sm text-purple-700 dark:text-purple-300 transition flex items-center justify-center gap-2 cursor-pointer"
             >
               <Shuffle className="w-4 h-4" />
-              <span>{isUlpan ? 'עַרְבֵּב וְהַתְחֵל' : 'Перемешать и учить'}</span>
+              <span>Перемешать и учить</span>
             </button>
             {onClose && (
               <button
@@ -333,7 +303,7 @@ export const TrainerVictoryModal: React.FC<TrainerVictoryModalProps> = ({
                 onClick={onClose}
                 className="flex-1 py-3 px-4 rounded-xl bg-blue-600 text-white font-semibold text-sm hover:bg-blue-700 transition cursor-pointer"
               >
-                {isUlpan ? 'סְגוֹר' : 'Вернуться'}
+                Вернуться
               </button>
             )}
           </div>

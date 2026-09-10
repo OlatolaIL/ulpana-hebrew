@@ -43,10 +43,10 @@ export const AudioHelpModal: React.FC<AudioHelpModalProps> = ({
             </div>
             <div>
               <h3 className="font-bold text-sm sm:text-base text-zinc-100 font-hebrew">
-                {userProfile.ulpanMode ? 'אֵין קוֹל בַּשִּׂיחָה? מַה לַּעֲשׂוֹת' : 'Не слышно собеседника?'}
+                Не слышно собеседника?
               </h3>
               <p className="text-[11px] text-zinc-400">
-                {userProfile.ulpanMode ? 'בְּדִיקַת שֵׁמַע וְהַגְדָּרוֹת' : 'Быстрая проверка звука на устройстве'}
+                Быстрая проверка звука на устройстве
               </p>
             </div>
           </div>

@@ -19,7 +19,6 @@ import { TrainerMode } from './types';
 
 interface TrainerHeaderProps {
   displayTitle?: string;
-  isUlpan: boolean;
   isSplitMode: boolean;
   canSplit: boolean;
   activePartIndex: number;
@@ -46,7 +45,6 @@ interface TrainerHeaderProps {
 
 export const TrainerHeader: React.FC<TrainerHeaderProps> = ({
   displayTitle,
-  isUlpan,
   isSplitMode,
   canSplit,
   activePartIndex,
@@ -80,9 +78,7 @@ export const TrainerHeader: React.FC<TrainerHeaderProps> = ({
             <span>{displayTitle}</span>
             {isSplitMode && canSplit && activePartIndex >= 0 && (
               <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 normal-case">
-                {isUlpan
-                  ? `· חֵלֶק ${activePartIndex + 1} מִתּוֹךְ ${parts.length}`
-                  : `· Часть ${activePartIndex + 1} из ${parts.length}`}
+                · Часть {activePartIndex + 1} из {parts.length}
               </span>
             )}
           </div>
@@ -95,11 +91,7 @@ export const TrainerHeader: React.FC<TrainerHeaderProps> = ({
                 : undefined) ||
               userProfile.flashcardStats?.[stripNikkud(currentWord.hebrew)];
             const mastery = calculateWordMastery(stats);
-            const masteryText = isUlpan
-              ? `יְדִיעָה: ${mastery.score}% (${
-                  mastery.score >= 80 ? 'מְצוּיָן' : mastery.score >= 50 ? 'בְּתַהֲלִיךְ' : 'חָדָשׁ'
-                })`
-              : `Знание: ${mastery.score}% (${mastery.label})`;
+            const masteryText = `Знание: ${mastery.score}% (${mastery.label})`;
             return (
               <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${mastery.badgeBg}`}>
                 {masteryText}
@@ -115,7 +107,7 @@ export const TrainerHeader: React.FC<TrainerHeaderProps> = ({
           {/* Флип */}
           <button
             onClick={() => onSetMode('flip')}
-            title={isUlpan ? 'כַּרְטִיסִייָה' : 'Флип'}
+            title="Флип"
             className={`flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
               mode === 'flip'
                 ? 'bg-blue-600 text-white shadow-sm'
@@ -123,12 +115,12 @@ export const TrainerHeader: React.FC<TrainerHeaderProps> = ({
             }`}
           >
             <Layers className="w-3.5 h-3.5 flex-shrink-0" />
-            <span className="hidden sm:inline">{isUlpan ? 'כַּרְטִיסִייָה' : 'Флип'}</span>
+            <span className="hidden sm:inline">Флип</span>
           </button>
           {/* Конструктор */}
           <button
             onClick={() => onSetMode('builder')}
-            title={isUlpan ? 'הַרְכָּבָה' : 'Конструктор'}
+            title="Конструктор"
             className={`flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
               mode === 'builder'
                 ? 'bg-blue-600 text-white shadow-sm'
@@ -136,12 +128,12 @@ export const TrainerHeader: React.FC<TrainerHeaderProps> = ({
             }`}
           >
             <Hammer className="w-3.5 h-3.5 flex-shrink-0" />
-            <span className="hidden sm:inline">{isUlpan ? 'הַרְכָּבָה' : 'Конструктор'}</span>
+            <span className="hidden sm:inline">Конструктор</span>
           </button>
           {/* На слух */}
           <button
             onClick={() => onSetMode('listening')}
-            title={isUlpan ? 'שְׁמִיעָה' : 'На слух'}
+            title="На слух"
             className={`flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
               mode === 'listening'
                 ? 'bg-blue-600 text-white shadow-sm'
@@ -149,12 +141,12 @@ export const TrainerHeader: React.FC<TrainerHeaderProps> = ({
             }`}
           >
             <Headphones className="w-3.5 h-3.5 flex-shrink-0" />
-            <span className="hidden sm:inline">{isUlpan ? 'שְׁמִיעָה' : 'На слух'}</span>
+            <span className="hidden sm:inline">На слух</span>
           </button>
           {/* Авто на слух */}
           <button
             onClick={() => onSetMode('auto_audio')}
-            title={isUlpan ? 'אוֹטוֹ' : 'Авто на слух'}
+            title="Авто на слух"
             className={`flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
               mode === 'auto_audio'
                 ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-sm'
@@ -162,7 +154,7 @@ export const TrainerHeader: React.FC<TrainerHeaderProps> = ({
             }`}
           >
             <Play className="w-3.5 h-3.5 fill-current flex-shrink-0" />
-            <span className="hidden sm:inline">{isUlpan ? 'אוֹטוֹ' : 'Авто'}</span>
+            <span className="hidden sm:inline">Авто</span>
           </button>
         </div>
 
@@ -178,11 +170,7 @@ export const TrainerHeader: React.FC<TrainerHeaderProps> = ({
                   : 'border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800'
               }`}
               title={
-                isUlpan
-                  ? isSplitMode
-                    ? 'בַּטֵּל חֲלוּקָה לַחֲלָקִים'
-                    : 'חַלֵּק אֶת הַכַּרְטִיסִיּוֹת לַחֲלָקִים (7–10 מִילִּים)'
-                  : isSplitMode
+                isSplitMode
                   ? 'Отключить режим частей'
                   : 'Разбить колоду на части по 7–10 слов'
               }
@@ -193,9 +181,9 @@ export const TrainerHeader: React.FC<TrainerHeaderProps> = ({
                 }`}
               />
               <span className="hidden sm:inline">
-                {isUlpan ? (isSplitMode ? 'בְּחֲלָקִים' : 'חַלֵּק') : isSplitMode ? 'По частям' : 'Поделить'}
+                {isSplitMode ? 'По частям' : 'Поделить'}
               </span>
-              <span className="sm:hidden">{isUlpan ? 'חַלֵּק' : 'Части'}</span>
+              <span className="sm:hidden">Части</span>
               <span
                 className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
                   isSplitMode
@@ -240,23 +228,23 @@ export const TrainerHeader: React.FC<TrainerHeaderProps> = ({
               {cardDirection === 'ru-he' ? (
                 <>
                   <span className="text-amber-700 dark:text-amber-300 font-extrabold">
-                    {isUlpan ? 'רוּ' : 'Рус'}
+                    Рус
                   </span>
                   <span className="text-zinc-400">→</span>
-                  <span>{isUlpan ? 'עִבְ' : 'Ивр'}</span>
+                  <span>Ивр</span>
                 </>
               ) : cardDirection === 'carousel' ? (
                 <>
                   <span className="text-purple-600 dark:text-purple-400 font-extrabold">🔀</span>
-                  <span className="text-purple-700 dark:text-purple-300">{isUlpan ? 'מִיקְס' : 'Карусель'}</span>
+                  <span className="text-purple-700 dark:text-purple-300">Карусель</span>
                 </>
               ) : (
                 <>
                   <span className="text-blue-600 dark:text-blue-400 font-extrabold">
-                    {isUlpan ? 'עִבְ' : 'Ивр'}
+                    Ивр
                   </span>
                   <span className="text-zinc-400">→</span>
-                  <span>{isUlpan ? 'רוּ' : 'Рус'}</span>
+                  <span>Рус</span>
                 </>
               )}
             </span>
@@ -276,9 +264,7 @@ export const TrainerHeader: React.FC<TrainerHeaderProps> = ({
                 ? 'bg-purple-50 dark:bg-purple-950/40 border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300 hover:bg-purple-100'
                 : 'border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800'
             }`}
-            title={
-              isUlpan ? 'עַרְבֵּב מִילִּים (סֵדֶר אַקְרָאִי)' : 'Перемешать слова (случайный порядок)'
-            }
+            title="Перемешать слова (случайный порядок)"
           >
             <Shuffle
               className={`w-3.5 h-3.5 transition-transform duration-300 ${
@@ -290,7 +276,7 @@ export const TrainerHeader: React.FC<TrainerHeaderProps> = ({
               }`}
             />
             <span className="hidden sm:inline">
-              {shuffleToast ? (isUlpan ? 'עֻרְבַּב!' : 'Перемешано!') : isUlpan ? 'עִרְבּוּב' : 'Вразброс'}
+              {shuffleToast ? 'Перемешано!' : 'Вразброс'}
             </span>
           </button>
 
@@ -298,21 +284,21 @@ export const TrainerHeader: React.FC<TrainerHeaderProps> = ({
             type="button"
             onClick={onToggleFontStyle}
             className="px-2.5 py-1.5 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-sm text-xs font-semibold flex items-center gap-1.5 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition cursor-pointer"
-            title={isUlpan ? 'החלף גופן (דפוס / כתב יד)' : 'Переключить шрифт карточек: Печатный / Рукописный'}
+            title="Переключить шрифт карточек: Печатный / Рукописный"
           >
             {userProfile.fontStyle === 'cursive' ? (
               <>
                 <span className="font-cursive font-bold text-base text-blue-600 dark:text-blue-400 leading-none">
                   כתב
                 </span>
-                <span className="text-zinc-700 dark:text-zinc-300">{isUlpan ? 'כְּתַב יָד' : 'Рукописный'}</span>
+                <span className="text-zinc-700 dark:text-zinc-300">Рукописный</span>
               </>
             ) : (
               <>
                 <span className="font-hebrew font-bold text-xs text-zinc-700 dark:text-zinc-300 leading-none">
                   דפוס
                 </span>
-                <span className="text-zinc-700 dark:text-zinc-300">{isUlpan ? 'אוֹתִיּוֹת דְּפוּס' : 'Печатный'}</span>
+                <span className="text-zinc-700 dark:text-zinc-300">Печатный</span>
               </>
             )}
           </button>
@@ -323,21 +309,15 @@ export const TrainerHeader: React.FC<TrainerHeaderProps> = ({
               disabled={currentIndex === 0}
               onClick={onPrevWord}
               className="p-1 rounded-lg text-zinc-600 dark:text-zinc-400 hover:bg-white dark:hover:bg-zinc-700 hover:text-zinc-900 dark:hover:text-zinc-100 disabled:opacity-25 disabled:cursor-not-allowed transition cursor-pointer"
-              title={isUlpan ? 'מִילָּה קוֹדֶמֶת (הקודם)' : 'Предыдущее слово (Стрелка влево)'}
+              title="Предыдущее слово (Стрелка влево)"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
             </button>
             <div className="text-xs font-bold text-zinc-700 dark:text-zinc-300 px-1.5 min-w-[65px] text-center select-none font-hebrew flex flex-col items-center justify-center leading-tight">
-              <span>
-                {isUlpan
-                  ? `${currentIndex + 1} / ${wordsLength}`
-                  : `${currentIndex + 1} из ${wordsLength}`}
-              </span>
+              <span>{currentIndex + 1} из {wordsLength}</span>
               {isSplitMode && canSplit && activePartIndex >= 0 && (
                 <span className="text-[9px] font-semibold text-blue-600 dark:text-blue-400">
-                  {isUlpan
-                    ? `חֵלֶק ${activePartIndex + 1}/${parts.length}`
-                    : `Ч. ${activePartIndex + 1}/${parts.length}`}
+                  Ч. {activePartIndex + 1}/{parts.length}
                 </span>
               )}
             </div>
@@ -346,7 +326,7 @@ export const TrainerHeader: React.FC<TrainerHeaderProps> = ({
               disabled={currentIndex + 1 >= wordsLength}
               onClick={onAdvanceNext}
               className="p-1 rounded-lg text-zinc-600 dark:text-zinc-400 hover:bg-white dark:hover:bg-zinc-700 hover:text-zinc-900 dark:hover:text-zinc-100 disabled:opacity-25 disabled:cursor-not-allowed transition cursor-pointer"
-              title={isUlpan ? 'הַמִּילָּה הַבָּאָה (הבא)' : 'Следующее слово (Стрелка вправо)'}
+              title="Следующее слово (Стрелка вправо)"
             >
               <ArrowRight className="w-3.5 h-3.5" />
             </button>
@@ -358,7 +338,7 @@ export const TrainerHeader: React.FC<TrainerHeaderProps> = ({
       {isSplitMode && canSplit && (
         <div className="bg-white/70 dark:bg-zinc-900/70 backdrop-blur-sm p-2 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 flex items-center gap-1.5 overflow-x-auto scrollbar-none animate-in fade-in slide-in-from-top-1 duration-200">
           <span className="text-[11px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider pl-1.5 shrink-0">
-            {isUlpan ? 'חֲלָקִים:' : 'Части:'}
+            Части:
           </span>
           {parts.map((part, idx) => {
             const isActive = activePartIndex === idx;
@@ -377,7 +357,7 @@ export const TrainerHeader: React.FC<TrainerHeaderProps> = ({
                 }`}
               >
                 {isDone && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />}
-                <span>{isUlpan ? `חֵלֶק ${idx + 1}` : `Часть ${idx + 1}`}</span>
+                <span>Часть {idx + 1}</span>
                 <span
                   className={`text-[10px] px-1.5 py-0.5 rounded-full font-semibold ${
                     isActive
@@ -402,7 +382,7 @@ export const TrainerHeader: React.FC<TrainerHeaderProps> = ({
             }`}
           >
             <Sparkles className="w-3.5 h-3.5 shrink-0" />
-            <span>{isUlpan ? 'הַכֹּל יַחַד' : 'Все вместе'}</span>
+            <span>Все вместе</span>
             <span
               className={`text-[10px] px-1.5 py-0.5 rounded-full font-semibold ${
                 activePartIndex === -1

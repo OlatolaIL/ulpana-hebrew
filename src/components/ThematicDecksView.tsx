@@ -195,21 +195,19 @@ export const ThematicDecksView: React.FC<ThematicDecksViewProps> = ({
             <Sparkles className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
             <span>
               <strong className="font-bold">
-                {userProfile.ulpanMode ? 'עֶרְכּוֹת בֵּטָא:' : 'Тематические колоды в Бете:'}
+                Тематические колоды в Бете:
               </strong>{' '}
-              {userProfile.ulpanMode
-                ? '3 עֶרְכּוֹת בְּסִיסִיּוֹת חִנָּמִיּוֹת תָּמִיד. כָּל שְׁאָר הָעֶרְכּוֹת פְּתוּחוֹת בִּתְקוּפַת הַבֵּטָא (בְּגִרְסָה סוֹפִית — PRO).'
-                : '3 базовые колоды всегда бесплатны. Все остальные тематические колоды сейчас открыты в режиме PRO БЕТА.'}
+              3 базовые колоды всегда бесплатны. Все остальные тематические колоды сейчас открыты в режиме PRO БЕТА.
             </span>
           </div>
           <div className="shrink-0 flex items-center gap-2 self-end sm:self-auto">
-            <TierBadge tier="pro-beta" size="xs" isUlpan={userProfile.ulpanMode} />
+            <TierBadge tier="pro-beta" size="xs" />
             <button
               type="button"
               onClick={dismissBetaBanner}
               className="p-1 rounded-lg text-amber-700/70 hover:text-amber-900 dark:text-amber-300/70 dark:hover:text-amber-100 hover:bg-amber-500/20 transition cursor-pointer"
-              title={userProfile.ulpanMode ? 'הַסְתֵּר לְ-5 יָמִים' : 'Скрыть на 5 дней'}
-              aria-label={userProfile.ulpanMode ? 'הַסְתֵּר לְ-5 יָמִים' : 'Скрыть на 5 дней'}
+              title="Скрыть на 5 дней"
+              aria-label="Скрыть на 5 дней"
             >
               <X className="w-3.5 h-3.5" />
             </button>

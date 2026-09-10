@@ -59,7 +59,6 @@ export const CourseMap: React.FC<CourseMapProps> = ({
   onResetLessonProgress,
 }) => {
   const isPro = userProfile.subscriptionTier === 'pro' || userProfile.subscriptionTier === 'admin';
-  const isUlpan = Boolean(userProfile.ulpanMode);
   const { isVisible: isBetaBannerVisible, dismiss: dismissBetaBanner } = useBannerCooldown('course_map_beta');
 
   // Вычисляем активный урок пользователя
@@ -200,10 +199,10 @@ export const CourseMap: React.FC<CourseMapProps> = ({
             {/* Метка урока и этапы */}
             <div className="flex items-center gap-2 flex-wrap">
               <span className="px-2 py-0.5 rounded-md text-[11px] font-bold bg-white/20 text-white backdrop-blur">
-                {isUlpan ? `שִׁיעוּר ${currentLesson.number}` : `Урок ${currentLesson.number}`}
+                Урок {currentLesson.number}
               </span>
               <span className="text-[11px] font-medium text-blue-100">
-                {isUlpan ? 'הַשִּׁיעוּר הַנּוֹכְחִי' : 'Текущий урок'}
+                Текущий урок
               </span>
               {currentCompletedTabs > 0 && !isCurrentCompleted && (
                 <span className="text-[10px] font-semibold text-emerald-300 bg-black/20 px-1.5 py-0.5 rounded">
@@ -211,9 +210,9 @@ export const CourseMap: React.FC<CourseMapProps> = ({
                 </span>
               )}
               {currentLesson.id > 30 ? (
-                <TierBadge tier="pro-beta" size="xs" isUlpan={isUlpan} />
+                <TierBadge tier="pro-beta" size="xs" />
               ) : (
-                <TierBadge tier="always-free" size="xs" isUlpan={isUlpan} customLabel={isUlpan ? 'חִנָּם' : 'Бесплатно'} />
+                <TierBadge tier="always-free" size="xs" customLabel="Бесплатно" />
               )}
             </div>
 
@@ -224,11 +223,9 @@ export const CourseMap: React.FC<CourseMapProps> = ({
             >
               {userProfile.showNikkud ? currentLesson.titleHebrew : stripNikkud(currentLesson.titleHebrew)}
             </div>
-            {!isUlpan && (
-              <div className="text-xs sm:text-sm font-medium text-blue-100/90 truncate">
-                {currentLesson.titleRussian}
-              </div>
-            )}
+            <div className="text-xs sm:text-sm font-medium text-blue-100/90 truncate">
+              {currentLesson.titleRussian}
+            </div>
           </div>
 
           {/* Правая часть: кнопка действия и прогресс курса */}
@@ -254,8 +251,8 @@ export const CourseMap: React.FC<CourseMapProps> = ({
                 {currentLessonLocked
                   ? 'PRO'
                   : isCurrentCompleted
-                  ? (isUlpan ? 'חֲזוֹר' : 'Повторить')
-                  : (isUlpan ? 'הַמְשֵׁךְ' : 'Продолжить')}
+                  ? 'Повторить'
+                  : 'Продолжить'}
               </span>
               <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition" />
             </button>
@@ -280,23 +277,21 @@ export const CourseMap: React.FC<CourseMapProps> = ({
             </span>
             <div className="text-xs leading-tight">
               <span className="font-bold">
-                {isUlpan ? 'בֵּטָא פְּתוּחָה:' : 'Открытое бета-тестирование:'}
+                Открытое бета-тестирование:
               </span>{' '}
               <span className="opacity-90">
-                {isUlpan
-                  ? 'שִׁיעוּרִים 1–30 חִנָּמִיִּים תָּמִיד. כָּל שְׁאָר הַשִּׁיעוּרִים (31–100) וְשִׂיחוֹת הַ-AI פְּתוּחִים לְלֹא הַגְבָּלָה בְּמַצַּב PRO בֵּטָא.'
-                  : 'Уроки 1–30 всегда бесплатны (этапы 1–3). Продвинутые уроки 31–100 и симуляторы звонков с ИИ сейчас открыты в режиме PRO БЕТА.'}
+                Уроки 1–30 всегда бесплатны (этапы 1–3). Продвинутые уроки 31–100 и симуляторы звонков с ИИ сейчас открыты в режиме PRO БЕТА.
               </span>
             </div>
           </div>
           <div className="shrink-0 flex items-center gap-2 self-end sm:self-auto">
-            <TierBadge tier="pro-beta" size="sm" isUlpan={isUlpan} />
+            <TierBadge tier="pro-beta" size="sm" />
             <button
               type="button"
               onClick={dismissBetaBanner}
               className="p-1 rounded-lg text-amber-700/70 hover:text-amber-900 dark:text-amber-300/70 dark:hover:text-amber-100 hover:bg-amber-500/20 transition cursor-pointer"
-              title={isUlpan ? 'הַסְתֵּר לְ-5 יָמִים' : 'Скрыть на 5 дней'}
-              aria-label={isUlpan ? 'הַסְתֵּר לְ-5 יָמִים' : 'Скрыть на 5 дней'}
+              title="Скрыть на 5 дней"
+              aria-label="Скрыть на 5 дней"
             >
               <X className="w-4 h-4" />
             </button>
@@ -318,7 +313,7 @@ export const CourseMap: React.FC<CourseMapProps> = ({
               }`}
             >
               <span className="font-hebrew text-base font-black leading-none">א</span>
-              <span>{isUlpan ? 'רָמָה א׳' : 'Алеф'}</span>
+              <span>Алеф</span>
               <span className={`text-[10px] px-1 py-0.2 rounded-md font-semibold ${
                 selectedLevel === 'alef' ? 'bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300' : 'text-zinc-400'
               }`}>
@@ -335,7 +330,7 @@ export const CourseMap: React.FC<CourseMapProps> = ({
               }`}
             >
               <span className="font-hebrew text-base font-black leading-none">ב</span>
-              <span>{isUlpan ? 'רָמָה ב׳' : 'Бет'}</span>
+              <span>Бет</span>
               <span className={`text-[10px] px-1 py-0.2 rounded-md font-semibold ${
                 selectedLevel === 'bet' ? 'bg-purple-100 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300' : 'text-zinc-400'
               }`}>
@@ -376,7 +371,7 @@ export const CourseMap: React.FC<CourseMapProps> = ({
                 {hasCurrentLesson && (
                   <Target className={`w-3 h-3 shrink-0 ${isSelected ? 'text-yellow-300' : 'text-blue-500'}`} />
                 )}
-                <span>{isUlpan ? dec.shortHe : dec.shortRu}</span>
+                <span>{dec.shortRu}</span>
                 <span
                   className={`text-[10px] px-1 py-0.2 rounded-md font-bold ${
                     isSelected
@@ -401,7 +396,7 @@ export const CourseMap: React.FC<CourseMapProps> = ({
                 : 'bg-zinc-50 dark:bg-zinc-800/80 text-zinc-600 dark:text-zinc-400 border-zinc-200 dark:border-zinc-700/80 hover:bg-zinc-100 dark:hover:bg-zinc-750'
             }`}
           >
-            <span>{isUlpan ? 'כָּל 50' : 'Все 50'}</span>
+            <span>Все 50</span>
           </button>
         </div>
       </div>
@@ -409,10 +404,10 @@ export const CourseMap: React.FC<CourseMapProps> = ({
       {/* Заголовок активного блока уроков */}
       <div className="flex items-center justify-between px-1 text-xs text-zinc-500 dark:text-zinc-400">
         <span className="font-bold text-zinc-800 dark:text-zinc-200 text-sm">
-          {activeDecadeObj ? (isUlpan ? activeDecadeObj.titleHe : activeDecadeObj.titleRu) : (isUlpan ? 'כָּל הַשִּׁיעוּרִים' : 'Все уроки уровня')}
+          {activeDecadeObj ? activeDecadeObj.titleRu : 'Все уроки уровня'}
         </span>
         <span className="text-zinc-400 font-medium">
-          {filteredCatalog.length} {isUlpan ? 'שִׁיעוּרִים' : 'уроков'}
+          {filteredCatalog.length} уроков
         </span>
       </div>
 
@@ -420,7 +415,7 @@ export const CourseMap: React.FC<CourseMapProps> = ({
       {filteredCatalog.length === 0 ? (
         <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-8 text-center space-y-3">
           <p className="text-zinc-500 text-sm">
-            {isUlpan ? 'לֹא נִמְצְאוּ שִׁיעוּרִים מַתְאִימִים' : 'В этом блоке пока нет доступных уроков.'}
+            В этом блоке пока нет доступных уроков.
           </p>
         </div>
       ) : (
@@ -475,12 +470,12 @@ export const CourseMap: React.FC<CourseMapProps> = ({
                           : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400'
                       }`}
                     >
-                      {isUlpan ? `שִׁיעוּר ${lesson.number}` : `Урок ${lesson.number}`}
+                      Урок {lesson.number}
                     </span>
 
                     {isCurrent && (
                       <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400">
-                        {isUlpan ? 'נוֹכְחִי' : 'Текущий'}
+                        Текущий
                       </span>
                     )}
 
@@ -491,9 +486,9 @@ export const CourseMap: React.FC<CourseMapProps> = ({
                     )}
 
                     {lesson.id > 30 ? (
-                      <TierBadge tier="pro-beta" size="xs" isUlpan={isUlpan} />
+                      <TierBadge tier="pro-beta" size="xs" />
                     ) : (
-                      <TierBadge tier="always-free" size="xs" isUlpan={isUlpan} customLabel={isUlpan ? 'חִנָּם' : 'Бесплатно'} />
+                      <TierBadge tier="always-free" size="xs" customLabel="Бесплатно" />
                     )}
                   </div>
 
@@ -506,11 +501,9 @@ export const CourseMap: React.FC<CourseMapProps> = ({
                   </div>
 
                   {/* Тема урока на русском */}
-                  {!isUlpan && (
-                    <div className="text-xs text-zinc-500 dark:text-zinc-400 font-medium truncate">
-                      {lesson.titleRussian}
-                    </div>
-                  )}
+                  <div className="text-xs text-zinc-500 dark:text-zinc-400 font-medium truncate">
+                    {lesson.titleRussian}
+                  </div>
                 </div>
 
                 {/* Статус урока: зеленая галочка / замок / стрелка */}
@@ -536,7 +529,7 @@ export const CourseMap: React.FC<CourseMapProps> = ({
                   ) : isCompleted ? (
                     <div
                       className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 shadow-2xs"
-                      title={isUlpan ? 'הוּשְׁלַם' : 'Пройден'}
+                      title="Пройден"
                     >
                       <CheckCircle2 className="w-4.5 h-4.5 sm:w-5 sm:h-5 text-emerald-600 dark:text-emerald-400" />
                     </div>

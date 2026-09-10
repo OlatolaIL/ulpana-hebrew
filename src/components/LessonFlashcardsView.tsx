@@ -157,13 +157,9 @@ export const LessonFlashcardsView: React.FC<LessonFlashcardsViewProps> = ({
   const handleStart = () => {
     if (filteredWords.length === 0) return;
     const lessonNumbers = Array.from(selectedLessons).sort((a, b) => a - b);
-    let title = userProfile.ulpanMode
-      ? `שִׁיעוּר ${lessonNumbers[0]}`
-      : `Уроки ${lessonNumbers[0]}`;
+    let title = `Уроки ${lessonNumbers[0]}`;
     if (lessonNumbers.length > 1) {
-      title = userProfile.ulpanMode
-        ? `שִׁיעוּרִים ${lessonNumbers[0]}–${lessonNumbers[lessonNumbers.length - 1]} (${lessonNumbers.length})`
-        : `Уроки ${lessonNumbers[0]}–${lessonNumbers[lessonNumbers.length - 1]} (${lessonNumbers.length} ур.)`;
+      title = `Уроки ${lessonNumbers[0]}–${lessonNumbers[lessonNumbers.length - 1]} (${lessonNumbers.length} ур.)`;
     }
     onStartTraining(filteredWords, title, trainingMode, cardDirection);
   };
@@ -179,19 +175,17 @@ export const LessonFlashcardsView: React.FC<LessonFlashcardsViewProps> = ({
             </div>
             <div>
               <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">
-                {userProfile.ulpanMode ? 'כַּרְטִיסִיּוֹת שִׁיעוּרִים' : 'Карточки уроков курса'}
+                Карточки уроков курса
               </h2>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                {userProfile.ulpanMode
-                  ? 'בְּחַר שִׁיעוּרִים (1–100) וְהַגְדֵּר מַצַּב תִּרְגּוּל'
-                  : 'Выберите уроки (1–100), режим тренировки и интервальные фильтры слов'}
+                Выберите уроки (1–100), режим тренировки и интервальные фильтры слов
               </p>
             </div>
           </div>
           <div className="text-xs text-slate-600 dark:text-slate-300 font-semibold bg-slate-100 dark:bg-slate-800 px-3 py-1.5 rounded-xl self-start sm:self-auto">
-            {userProfile.ulpanMode ? 'נִבְחֲרוּ:' : 'Выбрано:'}{' '}
+            Выбрано:{' '}
             <span className="font-bold text-blue-600 dark:text-blue-400">{selectedLessons.size}</span>{' '}
-            {userProfile.ulpanMode ? 'שִׁיעוּרִים' : 'ур.'}
+            ур.
           </div>
         </div>
 
@@ -199,7 +193,7 @@ export const LessonFlashcardsView: React.FC<LessonFlashcardsViewProps> = ({
         <div>
           <div className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2 flex items-center gap-1.5">
             <Sparkles className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
-            <span>{userProfile.ulpanMode ? 'בְּחִירָה מְהִירָה:' : 'Быстрые наборы уроков:'}</span>
+            <span>Быстрые наборы уроков:</span>
           </div>
           <div className="flex flex-wrap gap-1.5">
             <button

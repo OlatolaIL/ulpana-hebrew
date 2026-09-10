@@ -48,7 +48,6 @@ export const SpokenHebrewDrawer: React.FC<SpokenHebrewDrawerProps> = ({
 
   const guide = getSpokenGuideForLesson(lessonId, category, lessonTitle);
   const isCursive = userProfile.fontStyle === 'cursive';
-  const isUlpan = Boolean(userProfile.ulpanMode);
 
   const handlePlayPhrase = (text: string, key: string) => {
     if (!text) return;
@@ -83,7 +82,7 @@ export const SpokenHebrewDrawer: React.FC<SpokenHebrewDrawerProps> = ({
             </div>
             <div className="min-w-0">
               <h3 className="font-bold text-base text-zinc-900 dark:text-zinc-50 truncate">
-                {isUlpan ? 'שְׂפַת דִּבּוּר וְהֶגֶה' : 'Живая речь и ударения'}
+                Живая речь и ударения
               </h3>
               <p className="text-xs text-zinc-500 dark:text-zinc-400 truncate">
                 {guide.topicTitle || `Секреты живого языка • Урок ${lessonId}`}

@@ -31,7 +31,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
       <div className="h-12 px-3.5 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between shrink-0 bg-white dark:bg-zinc-900">
         <div className="flex items-center gap-1.5 font-bold text-xs text-zinc-900 dark:text-zinc-100 font-hebrew">
           <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-          <span>{userProfile.ulpanMode ? 'שִׁלְדַּת הַשִּׂיחָה וּמִילּוֹן' : 'Шпаргалка к диалогу'}</span>
+          <span>Шпаргалка к диалогу</span>
         </div>
         {lesson.dialogue.usefulWords && (
           <span className="text-[10px] text-zinc-400 font-medium">
@@ -48,7 +48,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
             <div className="flex items-center gap-1.5 text-xs font-bold text-blue-900 dark:text-blue-300 mb-1">
               <span>📌</span>
               <span>
-                {userProfile.ulpanMode ? `שָׁלָב ${activeStep.stepIndex}:` : `Шаг ${activeStep.stepIndex} из ${stepsCount}`}
+                {`Шаг ${activeStep.stepIndex} из ${stepsCount}`}
               </span>
             </div>
             <p className="text-xs text-blue-950 dark:text-blue-100 leading-relaxed font-medium">
@@ -61,7 +61,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
         {lesson.dialogue.usefulWords && lesson.dialogue.usefulWords.length > 0 && (
           <div>
             <p className="text-[11px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-2 px-0.5 font-hebrew">
-              {userProfile.ulpanMode ? 'מִילִּים שֶׁיַּעַזְרוּ לָכֶם:' : 'Слова для ответа:'}
+              Слова для ответа:
             </p>
             <div className="space-y-1.5">
               {lesson.dialogue.usefulWords.map((word, idx) => {
@@ -85,12 +85,12 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                         </span>
                         {word.isNew && (
                           <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-600 dark:text-amber-300">
-                            {userProfile.ulpanMode ? 'חָדָשׁ' : 'Новое'}
+                            Новое
                           </span>
                         )}
                       </div>
                       <div className="text-[11px] text-zinc-500 dark:text-zinc-400 truncate mt-0.5">
-                        {!userProfile.ulpanMode && word.transcription && (
+                        {word.transcription && (
                           <span className="text-blue-500 mr-1">[{word.transcription}]</span>
                         )}
                         <span>{word.translation}</span>

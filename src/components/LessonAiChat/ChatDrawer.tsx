@@ -62,7 +62,7 @@ export const ChatDrawer: React.FC<ChatDrawerProps> = ({
         >
           <BookOpen className="w-4 h-4 text-white group-hover:scale-110 transition-transform" />
           <span className="text-[10px] font-bold uppercase [writing-mode:vertical-rl] tracking-widest text-blue-100">
-            {userProfile.ulpanMode ? 'מִילִּים' : 'СЛОВА'}
+            СЛОВА
           </span>
           <span className="w-5 h-5 rounded-full bg-white text-blue-700 text-[10px] font-black flex items-center justify-center shadow-xs">
             {lesson.dialogue.usefulWords!.length}
@@ -91,10 +91,10 @@ export const ChatDrawer: React.FC<ChatDrawerProps> = ({
                   <span className="text-xl">📖</span>
                   <div className="min-w-0">
                     <h3 className="font-bold text-sm sm:text-base text-zinc-900 dark:text-zinc-50 truncate">
-                      {userProfile.ulpanMode ? 'שִׁלְדַּת הַשִּׂיחָה' : 'Подсказки к шагу'}
+                      Подсказки к шагу
                     </h3>
                     <p className="text-[11px] sm:text-xs text-zinc-500 dark:text-zinc-400 truncate">
-                      {userProfile.ulpanMode ? 'מִילִּים וּדֻּגְמָאוֹת' : 'Слова шага и готовые примеры'}
+                      Слова шага и готовые примеры
                     </p>
                   </div>
                 </div>
@@ -122,7 +122,7 @@ export const ChatDrawer: React.FC<ChatDrawerProps> = ({
                     }`}
                   >
                     <BookOpen className="w-3.5 h-3.5" />
-                    <span>{userProfile.ulpanMode ? 'מִילִּים' : 'Слова шага'}</span>
+                    <span>Слова шага</span>
                     {lesson.dialogue.usefulWords && (
                       <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 font-semibold">
                         {lesson.dialogue.usefulWords.length}
@@ -140,7 +140,7 @@ export const ChatDrawer: React.FC<ChatDrawerProps> = ({
                     }`}
                   >
                     <Lightbulb className="w-3.5 h-3.5 text-amber-500" />
-                    <span>{userProfile.ulpanMode ? 'דֻּגְמָאוֹת' : 'Варианты'}</span>
+                    <span>Варианты</span>
                     <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-indigo-100 dark:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 font-semibold">
                       {lastAiMessage!.suggestedReplies!.length}
                     </span>
@@ -155,7 +155,7 @@ export const ChatDrawer: React.FC<ChatDrawerProps> = ({
                   lesson.dialogue.usefulWords && lesson.dialogue.usefulWords.length > 0 ? (
                     <div className="space-y-2.5">
                       <p className="text-[11px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider px-0.5">
-                        {userProfile.ulpanMode ? 'מִילִּים לַתְּשׁוּבָה:' : 'Слова для ответа:'}
+                        Слова для ответа:
                       </p>
                       {lesson.dialogue.usefulWords.map((word, idx) => {
                         const isAdded =
@@ -178,7 +178,7 @@ export const ChatDrawer: React.FC<ChatDrawerProps> = ({
                                 </span>
                                 {word.isNew && (
                                   <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-600 dark:text-amber-300 shrink-0">
-                                    {userProfile.ulpanMode ? 'חָדָשׁ' : 'Новое'}
+                                    Новое
                                   </span>
                                 )}
                               </div>
@@ -214,7 +214,7 @@ export const ChatDrawer: React.FC<ChatDrawerProps> = ({
                             </div>
 
                             <div className="text-xs sm:text-sm leading-snug flex items-baseline gap-1.5 flex-wrap">
-                              {!userProfile.ulpanMode && word.transcription && (
+                              {word.transcription && (
                                 <span className="text-blue-600 dark:text-blue-400 font-semibold shrink-0">
                                   [{word.transcription}]
                                 </span>
@@ -229,9 +229,7 @@ export const ChatDrawer: React.FC<ChatDrawerProps> = ({
                     </div>
                   ) : (
                     <p className="text-xs text-zinc-500 text-center py-8">
-                      {userProfile.ulpanMode
-                        ? 'אֵין מִילִּים נוֹסָפוֹת'
-                        : 'Для этого шага нет дополнительных слов'}
+                      Для этого шага нет дополнительных слов
                     </p>
                   )
                 ) : (
@@ -239,7 +237,7 @@ export const ChatDrawer: React.FC<ChatDrawerProps> = ({
                   lastAiMessage?.suggestedReplies && (
                     <div className="space-y-2">
                       <p className="text-[11px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider px-0.5">
-                        {userProfile.ulpanMode ? 'דֻּגְמָאוֹת לַתְּשׁוּבָה:' : 'Готовые варианты ответа:'}
+                        Готовые варианты ответа:
                       </p>
                       {lastAiMessage.suggestedReplies.map((reply, rIdx) => (
                         <div
@@ -291,7 +289,7 @@ export const ChatDrawer: React.FC<ChatDrawerProps> = ({
                   onClick={onClose}
                   className="w-full py-2.5 px-3 rounded-xl bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-900 dark:text-zinc-100 text-xs font-bold transition cursor-pointer active:scale-98 border border-zinc-200 dark:border-zinc-700"
                 >
-                  {userProfile.ulpanMode ? 'סְגִירָה' : 'Закрыть подсказки'}
+                  Закрыть подсказки
                 </button>
               </div>
             </div>

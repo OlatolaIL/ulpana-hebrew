@@ -161,19 +161,13 @@ export const FlashcardSetupModal: React.FC<FlashcardSetupModalProps> = ({
   const handleStart = () => {
     if (filteredWords.length === 0) return;
     const lessonNumbers = Array.from(selectedLessons).sort((a, b) => a - b);
-    let title = userProfile.ulpanMode
-      ? `שִׁיעוּר ${lessonNumbers[0]}`
-      : `Уроки ${lessonNumbers[0]}`;
+    let title = `Уроки ${lessonNumbers[0]}`;
     if (lessonNumbers.length > 1) {
-      title = userProfile.ulpanMode
-        ? `שִׁיעוּרִים ${lessonNumbers[0]}–${lessonNumbers[lessonNumbers.length - 1]} (${lessonNumbers.length})`
-        : `Уроки ${lessonNumbers[0]}–${lessonNumbers[lessonNumbers.length - 1]} (${lessonNumbers.length} ур.)`;
+      title = `Уроки ${lessonNumbers[0]}–${lessonNumbers[lessonNumbers.length - 1]} (${lessonNumbers.length} ур.)`;
     }
     onStartSession(filteredWords, trainingMode, title, cardDirection);
     onClose();
   };
-
-  const isUlpan = Boolean(userProfile.ulpanMode);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4 bg-black/60 backdrop-blur-sm animate-fade-in font-sans">

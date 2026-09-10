@@ -17,7 +17,6 @@ const DEFAULT_PROFILE: UserProfile = {
   showTranscription: true,
   fontStyle: 'print',
   speechRate: 0.7,
-  ulpanMode: false,
   completedLessons: [],
   lessonProgress: {},
   personalVocabulary: [],
@@ -101,6 +100,14 @@ export function addWordToPersonalDict(word: Omit<Word, 'id' | 'dateAdded' | 'isU
     (w) => stripNikkud(w.hebrew || w.hebrewPlain || '').trim().toLowerCase() === cleanHeb
   );
   if (existing) {
+    let updated = false;
+    if (word.lessonId && existing.lessonId !== word.lessonId) {
+      existing.lessonId = word.lessonId;
+      updated = true;
+    }
+    if (updated) {
+      saveUserProfile(profile);
+    }
     return existing;
   }
 

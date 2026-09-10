@@ -27,7 +27,6 @@ interface NavbarProps {
   onOpenFeedback?: () => void;
   onOpenGuide?: () => void;
   onToggleFontStyle?: () => void;
-  onToggleUlpanMode?: () => void;
   onOpenAuth?: () => void;
   onOpenSubscription?: () => void;
   onLogout?: () => void;
@@ -41,7 +40,6 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenFeedback,
   onOpenGuide,
   onToggleFontStyle,
-  onToggleUlpanMode,
   onOpenAuth,
   onOpenSubscription,
   onLogout,
@@ -69,7 +67,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <span className="font-extrabold text-base sm:text-lg tracking-tight text-zinc-900 dark:text-zinc-50 truncate">
                   Ульпана
                 </span>
-                <TierBadge tier="pro-beta" size="xs" isUlpan={userProfile.ulpanMode} customLabel={userProfile.ulpanMode ? 'בֵּטָא' : 'БЕТА'} />
+                <TierBadge tier="pro-beta" size="xs" customLabel="БЕТА" />
               </div>
               <span dir="rtl" className="text-[11px] text-zinc-400 font-hebrew font-medium block -mt-0.5">
                 עִבְרִית מִן הַהַתְחָלָה
@@ -88,7 +86,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               }`}
             >
               <BookOpen className="w-4 h-4" />
-              <span>{userProfile.ulpanMode ? 'שִׁיעוּרִים' : 'Уроки'}</span>
+              <span>Уроки</span>
             </button>
 
             <button
@@ -100,7 +98,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               }`}
             >
               <span className="font-cursive font-bold text-lg leading-none text-blue-600 dark:text-blue-400">א</span>
-              <span>{userProfile.ulpanMode ? 'כְּתַב יָד' : 'Прописи'}</span>
+              <span>Прописи</span>
             </button>
 
             <button
@@ -112,7 +110,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               }`}
             >
               <Sparkles className="w-4 h-4 text-amber-500" />
-              <span>{userProfile.ulpanMode ? 'מִילּוֹן' : 'Словарик'}</span>
+              <span>Словарик</span>
               {dictCount > 0 && (
                 <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-200">
                   {dictCount}
@@ -158,14 +156,14 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <>
                   <span className="font-cursive font-bold text-base text-blue-600 dark:text-blue-400 leading-none">כתב</span>
                   <span className="hidden sm:inline text-zinc-700 dark:text-zinc-300">
-                    {userProfile.ulpanMode ? 'כְּתַב' : 'Рукописный'}
+                    Рукописный
                   </span>
                 </>
               ) : (
                 <>
                   <span className="font-hebrew font-bold text-xs text-zinc-700 dark:text-zinc-200 leading-none">דפוס</span>
                   <span className="hidden sm:inline text-zinc-700 dark:text-zinc-300">
-                    {userProfile.ulpanMode ? 'דְּפוּס' : 'Печатный'}
+                    Печатный
                   </span>
                 </>
               )}
@@ -210,7 +208,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 className="h-9 sm:h-10 px-3 rounded-xl bg-[#229ED9] hover:bg-[#1E8CC0] text-white text-xs font-semibold flex items-center gap-1 shadow-xs transition active:scale-95 shrink-0"
                 title="Войти через Telegram для синхронизации прогресса"
               >
-                <span>{userProfile.ulpanMode ? 'כְּנִיסָה' : 'Войти'}</span>
+                <span>Войти</span>
               </button>
             )}
 
@@ -251,7 +249,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           >
             <BookOpen className="w-5 h-5 mb-0.5" />
             <span className="text-[11px] leading-tight">
-              {userProfile.ulpanMode ? 'שִׁיעוּרִים' : 'Уроки'}
+              Уроки
             </span>
           </button>
 
@@ -265,7 +263,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           >
             <span className="font-cursive font-bold text-xl leading-none mb-0.5">א</span>
             <span className="text-[11px] leading-tight">
-              {userProfile.ulpanMode ? 'כְּתַב' : 'Прописи'}
+              Прописи
             </span>
           </button>
 
@@ -286,7 +284,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               )}
             </div>
             <span className="text-[11px] leading-tight">
-              {userProfile.ulpanMode ? 'מִילּוֹן' : 'Словарик'}
+              Словарик
             </span>
           </button>
         </nav>

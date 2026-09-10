@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { Check } from 'lucide-react';
 import { ScriptedDialogueTrainerProps } from './types';
 import { useScriptedDialogue } from './useScriptedDialogue';
 import { DialogueHeader } from './DialogueHeader';
@@ -21,6 +22,7 @@ export const ScriptedDialogueTrainer: React.FC<ScriptedDialogueTrainerProps> = (
 }) => {
   const [selectedLookupWord, setSelectedLookupWord] = useState<string | null>(null);
   const [lookupContext, setLookupContext] = useState<string>('');
+  const [screenToast, setScreenToast] = useState<string | null>(null);
 
   const handleWordClick = (token: TextToken, fullSentence: string) => {
     if (!token.isHebrew || !token.cleanText) return;
@@ -66,6 +68,7 @@ export const ScriptedDialogueTrainer: React.FC<ScriptedDialogueTrainerProps> = (
     mounted,
     dialogueUsefulWords,
     lessonVocabularyWords,
+    customLessonWords,
     totalAvailableWordsCount,
     characterA,
     characterB,
@@ -215,6 +218,7 @@ export const ScriptedDialogueTrainer: React.FC<ScriptedDialogueTrainerProps> = (
         lessonNumber={lesson.number}
         dialogueUsefulWords={dialogueUsefulWords}
         lessonVocabularyWords={lessonVocabularyWords}
+        customLessonWords={customLessonWords}
         totalAvailableWordsCount={totalAvailableWordsCount}
         addedWords={addedWords}
         onAddWordToDict={handleAddWordToDict}
@@ -234,10 +238,19 @@ export const ScriptedDialogueTrainer: React.FC<ScriptedDialogueTrainerProps> = (
           userProfile={userProfile}
           lessonId={lesson.id}
           onWordAdded={(newWord) => {
-            if (onWordAdded) onWordAdded(newWord);
             handleAddWordToDict(newWord);
+            setScreenToast(`Слово «${newWord.hebrew}» добавлено в словарь урока ${lesson.number}!`);
+            setTimeout(() => setScreenToast(null), 3000);
           }}
         />
+      )}
+
+      {/* Всплывающее уведомление об успешном добавлении слова */}
+      {screenToast && (
+        <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-50 bg-emerald-600 text-white font-semibold text-xs sm:text-sm px-4 py-2.5 rounded-2xl shadow-xl flex items-center gap-2 animate-in fade-in slide-in-from-bottom-4">
+          <Check className="w-4 h-4 text-emerald-200" />
+          <span>{screenToast}</span>
+        </div>
       )}
     </div>
   );

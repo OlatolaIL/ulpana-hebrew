@@ -307,7 +307,6 @@ export function useAiChat({
           vocabularyHints: lesson.dialogue?.vocabularyHints || [],
           grammarTopic: lesson.grammar?.[0]?.title || lesson.titleRussian,
           studentKnownWords: knownWords,
-          ulpanMode: Boolean(userProfile.ulpanMode),
           turnIndex: currentUserTurns,
           targetTurns: TARGET_TURNS,
           currentStep,

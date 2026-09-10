@@ -305,22 +305,11 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
     setBuilderSelected([]);
     setShowHint(false);
 
-    const isUlpanMode = Boolean(userProfile.ulpanMode);
     const pool = words.length >= 4 ? words : masterWords;
     const otherOptions = pool
       .filter((w) => w.id !== currentWord.id)
-      .map((w) =>
-        isUlpanMode
-          ? userProfile.showNikkud
-            ? w.hebrew
-            : w.hebrewPlain
-          : w.translation
-      );
-    const currentOpt = isUlpanMode
-      ? userProfile.showNikkud
-        ? currentWord.hebrew
-        : currentWord.hebrewPlain
-      : currentWord.translation;
+      .map((w) => w.translation);
+    const currentOpt = currentWord.translation;
 
     const shuffledOthers = otherOptions.sort(() => Math.random() - 0.5).slice(0, 3);
     const allOpts = [...shuffledOthers, currentOpt].sort(() => Math.random() - 0.5);
@@ -331,7 +320,6 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
     currentWord,
     words,
     masterWords,
-    userProfile.ulpanMode,
     userProfile.showNikkud,
   ]);
 
@@ -690,11 +678,7 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
 
   const handleQuizSelect = (option: string) => {
     setSelectedAnswer(option);
-    const correctOpt = userProfile.ulpanMode
-      ? userProfile.showNikkud
-        ? currentWord.hebrew
-        : currentWord.hebrewPlain
-      : currentWord.translation;
+    const correctOpt = currentWord.translation;
     const isCorrect = option === correctOpt;
 
     if (isCorrect) {
@@ -705,14 +689,11 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
     }
   };
 
-  const isUlpan = Boolean(userProfile.ulpanMode);
-
   // Если состояние победы/завершения:
   if (partCompletionStatus === 'part_completed') {
     return (
       <TrainerVictoryModal
         status="part_completed"
-        isUlpan={isUlpan}
         lessonId={lessonId}
         activePartIndex={activePartIndex}
         parts={parts}
@@ -759,7 +740,6 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
     return (
       <TrainerVictoryModal
         status="all_parts_completed"
-        isUlpan={isUlpan}
         lessonId={lessonId}
         activePartIndex={activePartIndex}
         parts={parts}
@@ -806,7 +786,6 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
     return (
       <TrainerVictoryModal
         status="completed"
-        isUlpan={isUlpan}
         lessonId={lessonId}
         activePartIndex={activePartIndex}
         parts={parts}
@@ -846,18 +825,12 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
     );
   }
 
-  const displayTitle = isUlpan
-    ? (customTitle || '')
-        .replace(/Урок\s*(\d+):\s*Карточки словаря/i, 'שִׁיעוּר $1: כַּרְטִיסִיּוֹת מִילִּים')
-        .replace(/Тренировка карточек/i, 'תִּרְגּוּל כַּרְטִיסִיּוֹת')
-        .replace(/Словарь урока\s*(\d+)/i, 'אוֹצַר מִילִּים $1')
-    : customTitle;
+  const displayTitle = customTitle;
 
   return (
     <div className="max-w-xl mx-auto space-y-4">
       <TrainerHeader
         displayTitle={displayTitle}
-        isUlpan={isUlpan}
         isSplitMode={isSplitMode}
         canSplit={canSplit}
         activePartIndex={activePartIndex}
@@ -890,7 +863,6 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
         <FlipCardMode
           currentWord={currentWord}
           userProfile={userProfile}
-          isUlpan={isUlpan}
           isFlipped={isFlipped}
           isCurrentCardFrontRussian={isCurrentCardFrontRussian}
           cardDirection={cardDirection}
@@ -907,7 +879,6 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
         <BuilderMode
           currentWord={currentWord}
           userProfile={userProfile}
-          isUlpan={isUlpan}
           currentIndex={currentIndex}
           showHint={showHint}
           builderSuccess={builderSuccess}
@@ -929,7 +900,6 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
       {mode === 'listening' && (
         <ListeningMode
           currentWord={currentWord}
-          isUlpan={isUlpan}
           currentIndex={currentIndex}
           quizOptions={quizOptions}
           selectedAnswer={selectedAnswer}
@@ -945,7 +915,6 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
         <AutoAudioMode
           currentWord={currentWord}
           userProfile={userProfile}
-          isUlpan={isUlpan}
           isCurrentCardFrontRussian={isCurrentCardFrontRussian}
           cardDirection={cardDirection}
           currentIndex={currentIndex}
@@ -970,7 +939,6 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
       <PealimModal
         verbData={pealimModalVerb}
         userProfile={userProfile}
-        isUlpan={isUlpan}
         onClose={() => setPealimModalVerb(null)}
         onUpdateProfile={onUpdateProfile}
       />

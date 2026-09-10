@@ -169,10 +169,6 @@ export default function Home() {
   useEffect(() => {
     let p = loadUserProfile();
     p = applyVipProfileEnhancements(p);
-    if (p.ulpanMode) {
-      p = { ...p, ulpanMode: false };
-      saveUserProfile(p);
-    }
     setProfile(p);
     initHebrewVoices();
 
@@ -186,7 +182,6 @@ export default function Home() {
         name: fullName,
         avatarUrl: u.photo_url,
         isLoggedIn: true,
-        ulpanMode: false,
       });
       setProfile(instantProfile);
       saveUserProfile(instantProfile);
@@ -576,12 +571,8 @@ export default function Home() {
     const customTitle =
       title ||
       (lessonId
-        ? (profile?.ulpanMode
-            ? `שִׁיעוּר ${lessonId}: כַּרְטִיסִיּוֹת מִילִּים`
-            : `Урок ${lessonId}: Карточки словаря`)
-        : (profile?.ulpanMode
-            ? 'תִּרְגּוּל כַּרְטִיסִיּוֹת'
-            : 'Тренировка карточек'));
+        ? `Урок ${lessonId}: Карточки словаря`
+        : 'Тренировка карточек');
 
     navigateTo('flashcards', {
       flashcardWords: wordsToTrain,
@@ -615,16 +606,6 @@ export default function Home() {
   const handleToggleFontStyle = () => {
     const nextStyle = profile.fontStyle === 'cursive' ? 'print' : 'cursive';
     const updated: UserProfile = { ...profile, fontStyle: nextStyle };
-    handleUpdateProfile(updated);
-  };
-
-  const handleToggleUlpanMode = () => {
-    const nextUlpan = !profile.ulpanMode;
-    const updated: UserProfile = {
-      ...profile,
-      ulpanMode: nextUlpan,
-      ...(nextUlpan ? { showTranscription: false } : {}),
-    };
     handleUpdateProfile(updated);
   };
 
@@ -733,7 +714,6 @@ export default function Home() {
         onOpenGuide={() => setIsGuideDrawerOpen(true)}
         onOpenFeedback={() => handleOpenFeedback()}
         onToggleFontStyle={handleToggleFontStyle}
-        onToggleUlpanMode={handleToggleUlpanMode}
         onOpenAuth={() => setIsAuthModalOpen(true)}
         onOpenSubscription={() => setIsSubscriptionModalOpen(true)}
         onLogout={handleLogout}
@@ -786,10 +766,8 @@ export default function Home() {
               >
                 <span>
                   {flashcardSourceLessonId
-                    ? (profile?.ulpanMode
-                        ? `← חֲזָרָה לְשִׁיעוּר ${flashcardSourceLessonId}`
-                        : `← Вернуться в урок ${flashcardSourceLessonId}`)
-                    : (profile?.ulpanMode ? '← חֲזָרָה לַמִּילוֹן' : '← Вернуться в словарик')}
+                    ? `← Вернуться в урок ${flashcardSourceLessonId}`
+                    : '← Вернуться в словарик'}
                 </span>
               </button>
             </div>

@@ -22,7 +22,6 @@ interface ChatRequestBody {
   provider?: 'groq' | 'gemini';
   apiKey?: string;
   isPhoneCall?: boolean;
-  ulpanMode?: boolean;
   systemPromptAddition?: string;
   studentKnownWords?: string[];
   turnIndex?: number;
@@ -286,7 +285,6 @@ export async function POST(req: NextRequest) {
     const isFemale = userGender === 'female';
 
     const isLevelAlef = level === 'alef';
-    const isUlpan = Boolean(body.ulpanMode);
     let levelConstraint = '';
 
     const sanitizedMessages = (messages || []).map((m) => {
@@ -450,13 +448,6 @@ ${vocabularyHints.length > 0 ? `- Ключевые слова/подсказки
       ? 'Ученик — ЖЕНЩИНА (נקבה). Обращайся к ученице строго в женском роде (את רוצה, את אוהבת, נעים להכיר אותך [отáх], מה שלומך [шломéх], תרצי להזמין משהו [тирцӣ]). Ответы от неё в подсказках тоже строго женского рода (אני רוצה, אני גרה, קוראים לי...).'
       : 'Ученик — МУЖЧИНА (זכר). Обращайся к ученику строго в мужском роде (אתה רוצה, אתה אוהב, נעים להכיר אותך [отхá], מה שלומך [шломхá], תרצה להזמין משהו [тирцé]). Ответы от него в подсказках тоже строго мужского рода (אני רוצה, אני גר, קוראים לי...).';
 
-    const ulpanImmersionPrompt = isUlpan
-      ? `РЕЖИМ ПОЛНОГО ПОГРУЖЕНИЯ «УЛЬПАН» (עִבְרִית בְּעִבְרִית / IMMERSION MODE):
-- Ученик занимается по классической методике израильского ульпана без использования родного языка.
-- Ты — преподаватель ульпана. Общайся только на легком живом иврите урока.
-- Если ученик ошибся в грамматике, роде или предлоге, напиши обратную связь ("feedback_ru") ИСКЛЮЧИТЕЛЬНО НА ПРОСТОМ ИВРИТЕ с огласовками (например: 'תִּיקּוּן: שִׂימִי לֵב, לוֹמְרִים "אֲנִי רוֹצָה"' или 'תִּיקּוּן: לוֹמְרִים "לַבַּיִת"'). Если ошибок нет — верни null.`
-      : '';
-
     const phoneContext = isPhoneCall
       ? `РЕЖИМ ТЕЛЕФОННОГО ЗВОНКА (PHONE CALL):
 - Это живой разговор по телефону. Отвечай ОЧЕНЬ КРАТКО, тепло и понятно (ровно 1-2 простых предложения, максимум 4-7 слов).
@@ -472,7 +463,6 @@ ${vocabularyHints.length > 0 ? `- Ключевые слова/подсказки
 Роль ученика: "${userRole}".
 ${genderInstruction}
 ${levelConstraint}
-${ulpanImmersionPrompt}
 ${phoneContext}
 ${dialogueTurnInstruction}
 ${systemPromptAddition ? `ДОПОЛНИТЕЛЬНЫЕ ИНСТРУКЦИИ: ${systemPromptAddition}` : ''}

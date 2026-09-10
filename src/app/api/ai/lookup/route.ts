@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { lookupOfflineWord } from '@/lib/ulpanDictionary';
 import { DETAILED_LESSONS } from '@/data/lessonsData';
+import { HANDCRAFTED_DIALOGUES } from '@/data/dialogueLessons';
 import { stripNikkud } from '@/lib/transcription';
 import { verifySessionToken } from '@/lib/auth';
 import { checkRateLimit } from '@/lib/rateLimit';
@@ -97,6 +98,28 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // 3.5. Проверяем словарь авторских диалогов уроков
+    if (typeof HANDCRAFTED_DIALOGUES === 'object' && HANDCRAFTED_DIALOGUES !== null) {
+      for (const diag of Object.values(HANDCRAFTED_DIALOGUES)) {
+        if (!diag?.usefulWords) continue;
+        const usefulWord = diag.usefulWords.find(
+          (w) =>
+            stripNikkud((w.hebrewPlain || '').toLowerCase()) === cleanQuery.toLowerCase() ||
+            stripNikkud((w.hebrew || '').toLowerCase()) === cleanQuery.toLowerCase()
+        );
+        if (usefulWord) {
+          return NextResponse.json({
+            hebrew: usefulWord.hebrew,
+            transcription: usefulWord.transcription,
+            translation: usefulWord.translation,
+            root: usefulWord.root || null,
+            partOfSpeech: usefulWord.partOfSpeech || 'other',
+            exampleSentence: usefulWord.exampleSentence || null,
+          });
+        }
+      }
+    }
+
     // 4. Если слово новое/нестандартное — обращаемся к Groq/Gemini AI
     const defaultKey = ['gsk_', '0fWO7WvRuW3BosCcz81n', 'WGdyb3FY1G6aD7IaBjhD', '22BG3YEGMokO'].join('');
     const groqKey = (apiKey || process.env.GROQ_API_KEY || defaultKey).trim();
@@ -108,6 +131,7 @@ export async function POST(req: NextRequest) {
 
 Твоя задача — вернуть точный лингвистический анализ этого слова.
 КРИТИЧЕСКИЕ ПРАВИЛА:
+0. ОБЯЗАТЕЛЬНО учитывай контекст всего предложения! Если слово написано без огласовок (например, "רהוט" в контексте аренды/квартиры — это "мебель / риhӯт" или "меблированный / мэруhат", а НЕ "просторный"!). Не выдумывай ложных значений, опирайся на реальный современный иврит.
 1. "hebrew": исходная или словарная форма слова с точными огласовками (נִקּוּד).
 2. "cyrillic_transcription": русская транскрипция с ударением (´). Букву ה (хей) ВСЕГДА передавать как "h" (например "hа-бáйит", "hу", "hи", "hолéх"). Буквы ח и כ — как "х".
 3. "russian_translation": точный перевод на русский язык.

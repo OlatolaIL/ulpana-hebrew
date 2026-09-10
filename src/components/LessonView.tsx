@@ -108,19 +108,15 @@ export const LessonView: React.FC<LessonViewProps> = ({
             type="button"
             onClick={onBack}
             className="p-2 rounded-xl border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-200 transition cursor-pointer shrink-0"
-            title={userProfile.ulpanMode ? 'חֲזָרָה לַמַּפָּה' : 'На главную (к карте уроков)'}
+            title="На главную (к карте уроков)"
           >
             <Home className="w-4.5 h-4.5" />
           </button>
 
           <div className="flex items-center gap-1.5 min-w-0">
             <span
-              className={`px-2 py-1 rounded-xl text-xs font-extrabold shrink-0 font-hebrew tracking-wide ${
-                userProfile.ulpanMode
-                  ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300'
-                  : 'bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400'
-              }`}
-              title={userProfile.ulpanMode ? `שִׁיעוּר ${lesson.number}` : `Урок ${lesson.number}`}
+              className="px-2 py-1 rounded-xl text-xs font-extrabold shrink-0 font-hebrew tracking-wide bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400"
+              title={`Урок ${lesson.number}`}
             >
               {lesson.level === 'bet' ? 'ב' : 'א'}{lesson.number}
             </span>
@@ -146,7 +142,7 @@ export const LessonView: React.FC<LessonViewProps> = ({
                     ? 'text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50/60 dark:hover:bg-emerald-950/30 border border-transparent'
                     : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 border border-transparent'
                 }`}
-                title={`${stage.num}. ${userProfile.ulpanMode ? stage.labelHe : stage.labelRu}${isCompleted ? ' (Завершено)' : ''}`}
+                title={`${stage.num}. ${stage.labelRu}${isCompleted ? ' (Завершено)' : ''}`}
               >
                 {/* Индикатор прогресса Stories-стиля */}
                 <div className="w-full h-1 rounded-full mb-0.5 overflow-hidden bg-zinc-200 dark:bg-zinc-700">
@@ -174,7 +170,7 @@ export const LessonView: React.FC<LessonViewProps> = ({
 
                   {/* Текст названия (на десктопе или активной вкладке) */}
                   <span className={`${isActive ? 'inline' : 'hidden sm:inline'} truncate text-[11px] sm:text-xs font-hebrew`}>
-                    {userProfile.ulpanMode ? stage.labelHe : stage.labelRu}
+                    {stage.labelRu}
                   </span>
 
 
@@ -194,7 +190,7 @@ export const LessonView: React.FC<LessonViewProps> = ({
                 ? 'bg-amber-100 dark:bg-amber-950/60 border-amber-300 dark:border-amber-800 text-amber-900 dark:text-amber-200'
                 : 'border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800'
             }`}
-            title={userProfile.ulpanMode ? 'הַחְלֵף גּוֹפָן (דְּפוּס / כְּתָב יָד)' : 'Переключить шрифт (Печатный / Пропись)'}
+            title="Переключить шрифт (Печатный / Пропись)"
           >
             {userProfile.fontStyle === 'cursive' ? (
               <span className="font-cursive text-sm">כתב</span>
@@ -219,7 +215,7 @@ export const LessonView: React.FC<LessonViewProps> = ({
               type="button"
               onClick={() => onSelectLesson(prevLesson)}
               className="p-1.5 rounded-xl border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition cursor-pointer shrink-0"
-              title={userProfile.ulpanMode ? `שִׁיעוּר קוֹדֵם ${prevLesson}` : `Предыдущий урок ${prevLesson}`}
+              title={`Предыдущий урок ${prevLesson}`}
             >
               <ArrowLeft className="w-3.5 h-3.5" />
             </button>
@@ -230,7 +226,7 @@ export const LessonView: React.FC<LessonViewProps> = ({
               type="button"
               onClick={() => onSelectLesson(nextLesson)}
               className="p-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white transition cursor-pointer shrink-0 shadow-xs"
-              title={userProfile.ulpanMode ? `שִׁיעוּר הַבָּא ${nextLesson}` : `Следующий урок ${nextLesson}`}
+              title={`Следующий урок ${nextLesson}`}
             >
               <ArrowRight className="w-3.5 h-3.5" />
             </button>
@@ -244,19 +240,17 @@ export const LessonView: React.FC<LessonViewProps> = ({
           <div className="flex items-center gap-1.5 min-w-0 flex-1">
             <Crown className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
             <span className="font-semibold truncate">
-              {userProfile.ulpanMode
-                ? 'שָׁלָב זֶה הוּא חֵלֶק מִתָּכְנִית PRO — פָּתוּחַ לְלֹא הַגְבָּלָה בִּתְקוּפַת הַבֵּטָא'
-                : 'Этот этап входит в тариф PRO • Доступ открыт бесплатно на период бета-тестирования'}
+              Этот этап входит в тариф PRO • Доступ открыт бесплатно на период бета-тестирования
             </span>
           </div>
           <div className="shrink-0 flex items-center gap-2">
-            <TierBadge tier="pro-beta" size="xs" isUlpan={userProfile.ulpanMode} />
+            <TierBadge tier="pro-beta" size="xs" />
             <button
               type="button"
               onClick={dismissBetaBanner}
               className="p-1 rounded-lg text-amber-700/70 hover:text-amber-900 dark:text-amber-300/70 dark:hover:text-amber-100 hover:bg-amber-500/20 transition cursor-pointer"
-              title={userProfile.ulpanMode ? 'הַסְתֵּר לְ-5 יָמִים' : 'Скрыть на 5 дней'}
-              aria-label={userProfile.ulpanMode ? 'הַסְתֵּר לְ-5 יָמִים' : 'Скрыть на 5 дней'}
+              title="Скрыть на 5 дней"
+              aria-label="Скрыть на 5 дней"
             >
               <X className="w-3.5 h-3.5" />
             </button>
@@ -280,7 +274,7 @@ export const LessonView: React.FC<LessonViewProps> = ({
             lessonId={lesson.id}
             words={(() => {
               const customLessonWords = (userProfile.personalVocabulary || []).filter(
-                (w) => w.lessonId === lesson.id && w.isUserAdded && !lesson.vocabulary.some((lv) => stripNikkud(lv.hebrew) === stripNikkud(w.hebrew))
+                (w) => w.lessonId === lesson.id && !lesson.vocabulary.some((lv) => stripNikkud(lv.hebrew) === stripNikkud(w.hebrew))
               );
               return [...lesson.vocabulary, ...customLessonWords];
             })()}

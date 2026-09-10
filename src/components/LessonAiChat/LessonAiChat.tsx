@@ -90,9 +90,7 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
               {activeStep ? (
                 <>
                   <span className="text-xs font-bold text-blue-900 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-900 px-2.5 py-1 rounded-lg shrink-0">
-                    {userProfile.ulpanMode
-                      ? `שָׁלָב ${activeStep.stepIndex}/${stepsCount}`
-                      : `Шаг ${activeStep.stepIndex}/${stepsCount}`}
+                    Шаг {activeStep.stepIndex}/{stepsCount}
                   </span>
                   <button
                     type="button"
@@ -102,7 +100,7 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
                   >
                     <Info className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400 shrink-0" />
                     <span className="font-bold truncate">
-                      {userProfile.ulpanMode ? 'הַקְשֵׁר וְעֻבְדּוֹת' : 'Вводные данные'}
+                      Вводные данные
                     </span>
                   </button>
                 </>
@@ -119,7 +117,7 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
                   >
                     <Info className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400 shrink-0" />
                     <span className="font-bold truncate">
-                      {userProfile.ulpanMode ? 'הַקְשֵׁר' : 'Вводные данные'}
+                      Вводные данные
                     </span>
                   </button>
                 </>
@@ -233,7 +231,7 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
               <div className="w-2 h-2 rounded-full bg-blue-600 animate-pulse delay-75" />
               <div className="w-2 h-2 rounded-full bg-blue-600 animate-pulse delay-150" />
               <span className="font-hebrew">
-                {userProfile.ulpanMode ? 'הַבּוֹט כּוֹתֵב...' : 'Собеседник печатает...'}
+                Собеседник печатает...
               </span>
             </div>
           )}
@@ -246,14 +244,10 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
                 </div>
                 <div>
                   <p className="font-bold text-xs sm:text-sm text-emerald-950 dark:text-emerald-100">
-                    {userProfile.ulpanMode
-                      ? '🎉 הַשִּׂיחָה הוּשְׁלְמָה בִּמְלוֹאָהּ!'
-                      : '🎉 Диалог успешно завершён!'}
+                    🎉 Диалог успешно завершён!
                   </p>
                   <p className="text-[11px] text-emerald-700 dark:text-emerald-300">
-                    {userProfile.ulpanMode
-                      ? 'הִשְׁלַמְתֶּם אֶת יַעֲדֵי הַשִּׂיחָה. כָּעֵת מוּמלָץ לַעֲבוֹר לְשִׂיחַת טֶלֶפוֹן!'
-                      : 'Вы успешно пообщались с ИИ! Теперь закрепите живую речь в звонке.'}
+                    Вы успешно пообщались с ИИ! Теперь закрепите живую речь в звонке.
                   </p>
                 </div>
               </div>
@@ -269,7 +263,7 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
                     className="flex-1 sm:flex-initial px-3.5 py-2 rounded-xl font-bold text-xs bg-purple-600 hover:bg-purple-700 text-white shadow-xs transition active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer"
                   >
                     <span>
-                      {userProfile.ulpanMode ? 'לְשִׂיחַת טֶלֶפוֹן 📞' : 'Звонок (этап 5/5) 📞 ➡️'}
+                      Звонок (этап 5/5) 📞 ➡️
                     </span>
                   </button>
                 )}

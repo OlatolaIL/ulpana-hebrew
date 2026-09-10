@@ -52,11 +52,7 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
           <Target className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
           <div className="space-y-0.5 flex-1 min-w-0">
             <span className="font-bold text-blue-700 dark:text-blue-300 block uppercase tracking-wider text-[10px]">
-              {userProfile.ulpanMode
-                ? msg.stepIndex === 1
-                  ? 'שָׁלָב 1: הַתְחָלַת הַשִּׂיחָה'
-                  : `שָׁלָב ${msg.stepIndex || 2}: הַמַּצָּב הִשְׁתַּנָּה!`
-                : msg.stepIndex === 1
+              {msg.stepIndex === 1
                 ? 'Шаг 1 из 3: Начало диалога'
                 : `Шаг ${msg.stepIndex || 2} из 3: Ситуация изменилась!`}
             </span>
@@ -122,7 +118,7 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
             {/* Перевод и транскрипция для реплик ИИ (Audio-First: скрыты до клика) */}
             {isAi ? (
               <div>
-                {!userProfile.ulpanMode && isTranslationRevealed && (
+                {isTranslationRevealed && (
                   <div className="mt-2 pt-2 border-t border-zinc-100 dark:border-zinc-700/60 space-y-1 text-xs animate-in fade-in duration-150">
                     {userProfile.showTranscription && msg.transcription && (
                       <p className="text-blue-600 dark:text-blue-400 font-medium">
@@ -139,12 +135,12 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
               </div>
             ) : (
               <div>
-                {!userProfile.ulpanMode && userProfile.showTranscription && msg.transcription && (
+                {userProfile.showTranscription && msg.transcription && (
                   <p className="text-xs text-blue-100 font-medium mt-1">
                     [{msg.transcription}]
                   </p>
                 )}
-                {!userProfile.ulpanMode && msg.translation && (
+                {msg.translation && (
                   <p className="text-xs text-blue-100/90 mt-1">
                     {msg.translation}
                   </p>
@@ -157,7 +153,7 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
               <div className="mt-2.5 pt-2 border-t border-amber-200/70 dark:border-amber-900/50 bg-amber-50/60 dark:bg-amber-950/30 rounded-xl p-2 font-hebrew">
                 <div className="flex items-center gap-1.5 text-[11px] font-bold text-amber-800 dark:text-amber-300 mb-1.5">
                   <Sparkles className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-                  <span>{userProfile.ulpanMode ? 'מִילִּים חֲדָשׁוֹת:' : 'Новые слова в реплике:'}</span>
+                  <span>Новые слова в реплике:</span>
                 </div>
                 <div className="space-y-1">
                   {msg.newWords.map((nw, nwIdx) => {
@@ -173,7 +169,7 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
                           <span dir="rtl" className="font-hebrew font-bold text-zinc-900 dark:text-zinc-100">
                             {userProfile.showNikkud ? nw.hebrew : stripNikkud(nw.hebrew)}
                           </span>
-                          {!userProfile.ulpanMode && nw.transcription && (
+                          {nw.transcription && (
                             <span className="text-[10px] text-blue-500">[{nw.transcription}]</span>
                           )}
                           <span className="text-zinc-600 dark:text-zinc-300 text-[11px] truncate">
@@ -202,12 +198,12 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
                             {isAdded ? (
                               <>
                                 <Check className="w-2.5 h-2.5" />
-                                <span>{userProfile.ulpanMode ? 'בַּמִּילּוֹן' : 'В словаре'}</span>
+                                <span>В словаре</span>
                               </>
                             ) : (
                               <>
                                 <BookmarkPlus className="w-2.5 h-2.5" />
-                                <span>{userProfile.ulpanMode ? 'הוֹסֵף' : '+ В словарик'}</span>
+                                <span>+ В словарик</span>
                               </>
                             )}
                           </button>
@@ -231,7 +227,7 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
                   <div />
                 )}
                 <div className="flex items-center gap-2.5 shrink-0">
-                  {!userProfile.ulpanMode && msg.translation && (
+                  {msg.translation && (
                     <button
                       type="button"
                       onClick={() => onToggleTranslation(msg.id)}
@@ -253,7 +249,7 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
                     title="Прослушать фразу"
                   >
                     <Volume2 className="w-3.5 h-3.5" />
-                    <span>{userProfile.ulpanMode ? 'שמע' : 'Прослушать'}</span>
+                    <span>Прослушать</span>
                   </button>
                 </div>
               </div>
@@ -266,7 +262,7 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
                   title="Прослушать вашу фразу"
                 >
                   <Volume2 className="w-3.5 h-3.5" />
-                  <span>{userProfile.ulpanMode ? 'שמע' : 'Прослушать'}</span>
+                  <span>Прослушать</span>
                 </button>
               </div>
             )}
@@ -284,7 +280,7 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
           <div className="ml-8 sm:ml-10 max-w-[85%] bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/60 p-2 sm:p-2.5 rounded-xl text-xs text-amber-800 dark:text-amber-200 flex items-start gap-1.5">
             <AlertCircle className="w-3.5 h-3.5 shrink-0 text-amber-600 mt-0.5" />
             <div>
-              <span className="font-bold">{userProfile.ulpanMode ? 'מִשׁוּב / תִּיקּוּן: ' : 'Пояснение: '}</span>
+              <span className="font-bold">Пояснение: </span>
               <span>{msg.feedback}</span>
             </div>
           </div>

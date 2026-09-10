@@ -50,10 +50,10 @@ export const CallDrawer: React.FC<CallDrawerProps> = ({
             <span className="text-xl">📖</span>
             <div className="min-w-0">
               <h3 className="font-bold text-sm sm:base text-zinc-900 dark:text-zinc-50 truncate">
-                {userProfile.ulpanMode ? 'מִילִּים לַשִּׂיחָה' : 'Полезные фразы'}
+                Полезные фразы
               </h3>
               <p className="text-[11px] sm:text-xs text-zinc-500 dark:text-zinc-400 truncate">
-                {userProfile.ulpanMode ? 'מִילִּים וּבִיטּוּיִים שֶׁיַּעַזְרוּ לָכֶם' : 'Шпаргалка и подсказки к звонку'}
+                Шпаргалка и подсказки к звонку
               </p>
             </div>
           </div>
@@ -74,7 +74,7 @@ export const CallDrawer: React.FC<CallDrawerProps> = ({
             <div className="space-y-2.5">
               <div className="flex items-center justify-between px-0.5">
                 <p className="text-[11px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
-                  {userProfile.ulpanMode ? 'מִילִּים וּבִיטּוּיִים:' : 'Слова и выражения:'}
+                  Слова и выражения:
                 </p>
                 <span className="text-[11px] text-zinc-400">
                   {scenario.usefulWords.length} шт.
@@ -103,7 +103,7 @@ export const CallDrawer: React.FC<CallDrawerProps> = ({
                         </span>
                         {word.isNew && (
                           <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-amber-500/20 text-amber-600 dark:text-amber-300 border border-amber-500/30 font-hebrew shrink-0">
-                            {userProfile.ulpanMode ? 'חָדָשׁ' : 'Новое'}
+                            Новое
                           </span>
                         )}
                       </div>
@@ -145,38 +145,34 @@ export const CallDrawer: React.FC<CallDrawerProps> = ({
                           {isAdded ? (
                             <>
                               <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                              <span>{userProfile.ulpanMode ? 'בַּמִּילוֹן' : 'В словаре'}</span>
+                              <span>В словаре</span>
                             </>
                           ) : (
                             <>
                               <BookmarkPlus className="w-3.5 h-3.5" />
-                              <span>{userProfile.ulpanMode ? 'לַמִּילוֹן' : 'В словарь'}</span>
+                              <span>В словарь</span>
                             </>
                           )}
                         </button>
                       </div>
                     </div>
 
-                    {!userProfile.ulpanMode && userProfile.showTranscription && word.transcription && (
+                    {userProfile.showTranscription && word.transcription && (
                       <div className="text-xs text-blue-600 dark:text-blue-400 font-mono">
                         [{word.transcription}]
                       </div>
                     )}
 
-                    {!userProfile.ulpanMode && (
-                      <div className="text-xs text-zinc-600 dark:text-zinc-300">
-                        {word.translation}
-                      </div>
-                    )}
+                    <div className="text-xs text-zinc-600 dark:text-zinc-300">
+                      {word.translation}
+                    </div>
                   </div>
                 );
               })}
             </div>
           ) : (
             <p className="text-xs text-zinc-400 text-center py-8">
-              {userProfile.ulpanMode
-                ? 'אֵין מִילִּים נוֹסָפוֹת לְשִׂיחָה זוֹ'
-                : 'К этому сценарию нет дополнительных фраз'}
+              К этому сценарию нет дополнительных фраз
             </p>
           )}
         </div>
