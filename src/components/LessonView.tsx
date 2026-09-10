@@ -24,7 +24,12 @@ import { LessonAiChat } from './LessonAiChat';
 import { ScriptedDialogueTrainer } from './ScriptedDialogueTrainer';
 import { PhoneCallSimulator } from './PhoneCallSimulator';
 import { getLessonById, LESSONS_CATALOG } from '@/data/lessonsData';
-import { loadUserProfile, getFirstIncompleteLessonTab, normalizeHebrewWord } from '@/lib/storage';
+import {
+  loadUserProfile,
+  getFirstIncompleteLessonTab,
+  normalizeHebrewWord,
+  sanitizePersonalVocabulary,
+} from '@/lib/storage';
 import { isStageAlwaysFree } from '@/lib/permissions';
 import { TierBadge } from './TierBadge';
 import { useBannerCooldown } from '@/lib/useBannerCooldown';
@@ -274,22 +279,34 @@ export const LessonView: React.FC<LessonViewProps> = ({
             lessonId={lesson.id}
             words={(() => {
               const seen = new Set<string>();
-              (lesson.vocabulary || []).forEach((lv) => {
-                seen.add(normalizeHebrewWord(lv.hebrewPlain || lv.hebrew));
-              });
-              const customLessonWords: Word[] = [];
-              for (const w of userProfile.personalVocabulary || []) {
+              const result: Word[] = [];
+              // 1. Слова самого урока
+              for (const lv of lesson.vocabulary || []) {
+                const k = normalizeHebrewWord(lv.hebrewPlain || lv.hebrew);
+                const normalizedK = k === 'רהוט' || k === 'ריהוט' ? 'ריהוט' : k;
+                if (normalizedK && !seen.has(normalizedK)) {
+                  seen.add(normalizedK);
+                  result.push(lv);
+                }
+              }
+              // 2. Добавленные пользователем слова для этого урока (прошедшие жесткую дедупликацию и очистку от галлюцинаций)
+              const cleanUserVocab = sanitizePersonalVocabulary(userProfile.personalVocabulary || []);
+              for (const w of cleanUserVocab) {
                 if (w.lessonId === lesson.id) {
-                  const key = normalizeHebrewWord(w.hebrewPlain || w.hebrew);
-                  if (key && !seen.has(key)) {
-                    seen.add(key);
-                    customLessonWords.push(w);
+                  const k = normalizeHebrewWord(w.hebrewPlain || w.hebrew);
+                  const normalizedK = k === 'רהוט' || k === 'ריהוט' ? 'ריהוט' : k;
+                  if (normalizedK && !seen.has(normalizedK)) {
+                    seen.add(normalizedK);
+                    result.push(w);
                   }
                 }
               }
-              return [...lesson.vocabulary, ...customLessonWords];
+              return result;
             })()}
-            userProfile={userProfile}
+            userProfile={{
+              ...userProfile,
+              personalVocabulary: sanitizePersonalVocabulary(userProfile.personalVocabulary || []),
+            }}
             onCompleted={() => setActiveTab('exercises')}
             onStartPractice={(wordsToTrain) => onStartFlashcards(wordsToTrain, lesson.id)}
             onUpdateProfile={onUpdateProfile}

@@ -15,7 +15,13 @@ import { SectionGuideDrawer } from '@/components/SectionGuideDrawer';
 import { FeedbackDrawer } from '@/components/FeedbackDrawer';
 import { FeedbackButton } from '@/components/FeedbackButton';
 import { UserProfile, Word, UserSession } from '@/types';
-import { loadUserProfile, saveUserProfile, resetLessonProgress, getFirstIncompleteLessonTab } from '@/lib/storage';
+import {
+  loadUserProfile,
+  saveUserProfile,
+  resetLessonProgress,
+  getFirstIncompleteLessonTab,
+  sanitizePersonalVocabulary,
+} from '@/lib/storage';
 import { initHebrewVoices } from '@/lib/speech';
 import { DETAILED_LESSONS, getLessonById } from '@/data/lessonsData';
 import { isVipUser, VIP_EXPIRES_AT, applyVipProfileEnhancements } from '@/lib/vipUsers';
@@ -249,10 +255,11 @@ export default function Home() {
                 ...p.lessonProgress,
                 ...(syncData.lessonProgress || {}),
               },
-              personalVocabulary:
+              personalVocabulary: sanitizePersonalVocabulary(
                 syncData.personalVocabulary && syncData.personalVocabulary.length > 0
                   ? syncData.personalVocabulary
-                  : p.personalVocabulary,
+                  : p.personalVocabulary
+              ),
               flashcardStats: {
                 ...(p.flashcardStats || {}),
                 ...(syncData.flashcardStats || {}),
@@ -292,10 +299,11 @@ export default function Home() {
               ...p.lessonProgress,
               ...(syncData.lessonProgress || {}),
             },
-            personalVocabulary:
+            personalVocabulary: sanitizePersonalVocabulary(
               syncData.personalVocabulary && syncData.personalVocabulary.length > 0
                 ? syncData.personalVocabulary
-                : p.personalVocabulary,
+                : p.personalVocabulary
+            ),
             flashcardStats: {
               ...(p.flashcardStats || {}),
               ...(syncData.flashcardStats || {}),

@@ -40,6 +40,60 @@ export function normalizeHebrewWord(text: string): string {
     .toLowerCase();
 }
 
+/**
+ * Гарантированная дедупликация и санитация личного словаря:
+ * 1. Нормализует написание иврита (удаляет никуд, знаки препинания, BiDi-символы).
+ * 2. Полностью удаляет устаревшие галлюцинации ИИ ("רהוט просторный" с корнем ר-ו-ה).
+ * 3. Объединяет 'רהוט' и 'ריהוט' в единое каноническое слово 'רִיהוּט' (мебель).
+ * 4. Оставляет строго по одной записи для каждого слова.
+ */
+export function sanitizePersonalVocabulary(vocab: Word[]): Word[] {
+  if (!Array.isArray(vocab)) return [];
+  const seen = new Set<string>();
+  const cleanVocab: Word[] = [];
+
+  for (const w of vocab) {
+    if (!w || (!w.hebrew && !w.hebrewPlain)) continue;
+
+    const isBogus =
+      Boolean(
+        w.translation?.toLowerCase().includes('просторн') ||
+        w.transcription?.toLowerCase().includes('pixут') ||
+        w.transcription?.toLowerCase().includes('рихут') ||
+        w.transcription?.toLowerCase().includes('рихит') ||
+        w.root === 'ר-ו-ה'
+      );
+
+    const rawKey = normalizeHebrewWord(w.hebrewPlain || w.hebrew || '');
+    if (!rawKey) continue;
+
+    // Объединяем оба варианта написания мебели (כתיב חסר רהוט vs כתיב מלא ריהוט)
+    let normalizedKey = rawKey;
+    if (rawKey === 'רהוט' || rawKey === 'ריהוט') {
+      normalizedKey = 'ריהוט';
+      if (isBogus) {
+        // Если уже есть нормальная мебель, просто отбрасываем старую ошибочную запись
+        if (seen.has('ריהוט')) {
+          continue;
+        }
+        // Иначе исправляем её на правильную мебель
+        w.hebrew = 'רִיהוּט';
+        w.hebrewPlain = 'ריהוט';
+        w.transcription = 'риhӯт';
+        w.translation = 'мебель, обстановка';
+        w.root = 'ר-ה-ט';
+        w.partOfSpeech = 'noun';
+      }
+    }
+
+    if (seen.has(normalizedKey)) continue;
+    seen.add(normalizedKey);
+    cleanVocab.push(w);
+  }
+
+  return cleanVocab;
+}
+
 export function loadUserProfile(): UserProfile {
   if (typeof window === 'undefined') return DEFAULT_PROFILE;
   try {
@@ -76,41 +130,9 @@ export function loadUserProfile(): UserProfile {
 
     // Автоматическая дедупликация и санитация личного словаря
     if (Array.isArray(profile.personalVocabulary)) {
-      const seen = new Set<string>();
-      const cleanVocab: Word[] = [];
-      let hadDuplicates = false;
-
-      for (const w of profile.personalVocabulary) {
-        const key = normalizeHebrewWord(w.hebrewPlain || w.hebrew || '');
-        if (!key || seen.has(key)) {
-          hadDuplicates = true;
-          continue;
-        }
-        seen.add(key);
-
-        // Автоисправление старого ошибочного перевода "רהוט -> просторный"
-        if (key === 'רהוט' || key === 'ריהוט') {
-          if (
-            w.translation?.includes('просторный') ||
-            w.transcription?.includes('pixут') ||
-            w.transcription?.includes('рихит') ||
-            w.root === 'ר-ו-ה'
-          ) {
-            w.hebrew = 'רִיהוּט';
-            w.hebrewPlain = 'ריהוט';
-            w.transcription = 'риhӯт';
-            w.translation = 'мебель, обстановка';
-            w.root = 'ר-ה-ט';
-            w.partOfSpeech = 'noun';
-            hadDuplicates = true;
-          }
-        }
-
-        cleanVocab.push(w);
-      }
-
-      if (hadDuplicates || cleanVocab.length !== profile.personalVocabulary.length) {
-        profile.personalVocabulary = cleanVocab;
+      const originalCount = profile.personalVocabulary.length;
+      profile.personalVocabulary = sanitizePersonalVocabulary(profile.personalVocabulary);
+      if (profile.personalVocabulary.length !== originalCount) {
         try {
           localStorage.setItem(STORAGE_KEY, JSON.stringify(profile));
         } catch {}
@@ -131,6 +153,9 @@ export function saveUserProfile(profile: UserProfile): void {
       profile.flashcardStats = (profile as any).flashcardProgress || {};
     }
     profile.flashcardProgress = profile.flashcardStats;
+    if (Array.isArray(profile.personalVocabulary)) {
+      profile.personalVocabulary = sanitizePersonalVocabulary(profile.personalVocabulary);
+    }
     localStorage.setItem(STORAGE_KEY, JSON.stringify(profile));
   } catch (e) {
     console.error('Failed to save profile to localStorage', e);

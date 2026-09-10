@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Volume2,
   Plus,
@@ -43,6 +43,32 @@ export const LessonVocabulary: React.FC<LessonVocabularyProps> = ({
   onCompleted,
   onUpdateProfile,
 }) => {
+  // Гарантированная дедупликация и очистка на уровне компонента словаря
+  const uniqueWords = useMemo(() => {
+    const seen = new Set<string>();
+    const res: Word[] = [];
+    for (const w of words) {
+      if (!w || (!w.hebrew && !w.hebrewPlain)) continue;
+      const isBogus =
+        Boolean(
+          w.translation?.toLowerCase().includes('просторн') ||
+          w.transcription?.toLowerCase().includes('pixут') ||
+          w.transcription?.toLowerCase().includes('рихут') ||
+          w.transcription?.toLowerCase().includes('рихит') ||
+          w.root === 'ר-ו-ה'
+        );
+      if (isBogus) continue;
+
+      const k = normalizeHebrewWord(w.hebrewPlain || w.hebrew);
+      const normalizedK = k === 'רהוט' || k === 'ריהוט' ? 'ריהוט' : k;
+      if (normalizedK && !seen.has(normalizedK)) {
+        seen.add(normalizedK);
+        res.push(w);
+      }
+    }
+    return res;
+  }, [words]);
+
   // Режим просмотра: 'card' (интерактивные флип-карточки по умолчанию) или 'list' (полный словарь)
   const [viewMode, setViewMode] = useState<'card' | 'list'>('card');
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -72,7 +98,7 @@ export const LessonVocabulary: React.FC<LessonVocabularyProps> = ({
   };
 
   const handleNext = () => {
-    if (currentIndex < words.length - 1) {
+    if (currentIndex < uniqueWords.length - 1) {
       setCurrentIndex((prev) => prev + 1);
       setIsFlipped(false);
     } else {
@@ -91,7 +117,7 @@ export const LessonVocabulary: React.FC<LessonVocabularyProps> = ({
   };
 
   const handleMarkKnown = () => {
-    const word = words[currentIndex];
+    const word = uniqueWords[currentIndex];
     if (word) {
       try {
         updateCardSRS(word.id, 5, word.hebrewPlain || word.hebrew);
@@ -107,7 +133,7 @@ export const LessonVocabulary: React.FC<LessonVocabularyProps> = ({
   };
 
   const handleMarkRepeat = () => {
-    const word = words[currentIndex];
+    const word = uniqueWords[currentIndex];
     if (word) {
       try {
         updateCardSRS(word.id, 1, word.hebrewPlain || word.hebrew);
@@ -159,9 +185,9 @@ export const LessonVocabulary: React.FC<LessonVocabularyProps> = ({
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [viewMode, currentIndex, isSessionCompleted, isFlipped, words]);
+  }, [viewMode, currentIndex, isSessionCompleted, isFlipped, uniqueWords]);
 
-  const filteredWords = words.filter((w) => {
+  const filteredWords = uniqueWords.filter((w) => {
     const q = searchQuery.toLowerCase().trim();
     if (!q) {
       return selectedPos === 'all' || w.partOfSpeech === selectedPos;
@@ -279,7 +305,7 @@ export const LessonVocabulary: React.FC<LessonVocabularyProps> = ({
     return null;
   };
 
-  const currentWord = words[currentIndex] || words[0];
+  const currentWord = uniqueWords[currentIndex] || uniqueWords[0];
 
   return (
     <div data-font-style={userProfile.fontStyle || 'print'} className="space-y-4 sm:space-y-6 max-w-3xl mx-auto pb-10">
@@ -319,15 +345,15 @@ export const LessonVocabulary: React.FC<LessonVocabularyProps> = ({
 
 
         {/* Счётчик и прогресс для режима карточек */}
-        {viewMode === 'card' && !isSessionCompleted && words.length > 0 && (
+        {viewMode === 'card' && !isSessionCompleted && uniqueWords.length > 0 && (
           <div className="flex items-center gap-2 pr-1">
             <span className="text-xs font-bold text-zinc-500 dark:text-zinc-400 font-mono">
-              {currentIndex + 1} / {words.length}
+              {currentIndex + 1} / {uniqueWords.length}
             </span>
             <div className="w-16 sm:w-24 h-2 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
               <div
                 className="h-full bg-blue-600 transition-all duration-300"
-                style={{ width: `${((currentIndex + 1) / words.length) * 100}%` }}
+                style={{ width: `${((currentIndex + 1) / uniqueWords.length) * 100}%` }}
               />
             </div>
           </div>
@@ -336,7 +362,7 @@ export const LessonVocabulary: React.FC<LessonVocabularyProps> = ({
         {/* Индикатор общего количества слов в режиме списка */}
         {viewMode === 'list' && (
           <span className="text-xs font-bold text-zinc-500 dark:text-zinc-400 px-2">
-            {words.length} слов
+            {uniqueWords.length} слов
           </span>
         )}
       </div>
@@ -647,7 +673,7 @@ export const LessonVocabulary: React.FC<LessonVocabularyProps> = ({
                   Все слова урока пройдены!
                 </h3>
                 <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400">
-                  {`Вы успешно завершили этап карточек (${words.length} слов)`}
+                  {`Вы успешно завершили этап карточек (${uniqueWords.length} слов)`}
                 </p>
               </div>
 

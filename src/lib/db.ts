@@ -85,6 +85,8 @@ export async function initDatabase() {
         lesson_id INT DEFAULT 0,
         created_at TIMESTAMPTZ DEFAULT NOW()
       );
+      CREATE UNIQUE INDEX IF NOT EXISTS ulpana_vocab_user_hebrew_plain_idx
+      ON ulpana_vocabulary (user_id, hebrew_plain);
     `);
 
     // 4. Таблица промокодов для PRO-подписки

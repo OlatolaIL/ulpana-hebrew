@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifySessionToken } from '@/lib/auth';
 import { getDbPool } from '@/lib/db';
 import { Word } from '@/types';
-import { normalizeHebrewWord } from '@/lib/storage';
+import { normalizeHebrewWord, sanitizePersonalVocabulary } from '@/lib/storage';
 
 export async function GET(req: NextRequest) {
   try {
@@ -43,40 +43,19 @@ export async function GET(req: NextRequest) {
       [session.id]
     );
 
-    const seenPlain = new Set<string>();
-    const personalVocabulary: Word[] = [];
-    for (const r of vocabRes.rows) {
-      const plain = normalizeHebrewWord(r.hebrew_plain || r.hebrew);
-      if (!plain || seenPlain.has(plain)) continue;
-      seenPlain.add(plain);
+    const rawList: Word[] = vocabRes.rows.map((r) => ({
+      id: r.id,
+      hebrew: r.hebrew,
+      hebrewPlain: r.hebrew_plain,
+      transcription: r.transcription || '',
+      translation: r.translation,
+      partOfSpeech: r.part_of_speech || 'other',
+      root: r.root || undefined,
+      lessonId: r.lesson_id || 0,
+      isUserAdded: true,
+    }));
 
-      let hebrew = r.hebrew;
-      let transcription = r.transcription || '';
-      let translation = r.translation;
-      let root = r.root || undefined;
-
-      // Авто-исправление старых записей мебели
-      if (plain === 'רהוט' || plain === 'ריהוט') {
-        if (translation?.toLowerCase().includes('просторн') || root?.includes('ר-ו-ה')) {
-          hebrew = 'רִיהוּט';
-          transcription = 'риhӯт';
-          translation = 'мебель, обстановка';
-          root = 'ר-ה-ט';
-        }
-      }
-
-      personalVocabulary.push({
-        id: r.id,
-        hebrew,
-        hebrewPlain: plain,
-        transcription,
-        translation,
-        partOfSpeech: r.part_of_speech || 'other',
-        root,
-        lessonId: r.lesson_id || 0,
-        isUserAdded: true,
-      });
-    }
+    const personalVocabulary: Word[] = sanitizePersonalVocabulary(rawList);
 
     // 3. Получаем прогресс карточек (SM-2 интервалы)
     const userRes = await db.query('SELECT flashcard_stats FROM ulpana_users WHERE id = $1', [session.id]);
@@ -165,31 +144,16 @@ export async function POST(req: NextRequest) {
 
       // Сохраняем личный словарик с надёжной дедупликацией
       if (Array.isArray(personalVocabulary)) {
-        const seenInBatch = new Set<string>();
-        for (const word of personalVocabulary) {
+        const cleanList = sanitizePersonalVocabulary(personalVocabulary);
+        for (const word of cleanList) {
           if (!word.hebrew || !word.translation) continue;
           const plain = normalizeHebrewWord(word.hebrewPlain || word.hebrew);
-          if (!plain || seenInBatch.has(plain)) continue;
-          seenInBatch.add(plain);
-
-          // Авто-исправление старых ошибочных записей
-          let hebrew = word.hebrew;
-          let transcription = word.transcription || '';
-          let translation = word.translation;
-          let root = word.root || null;
-          if (plain === 'רהוט' || plain === 'ריהוט') {
-            if (translation?.toLowerCase().includes('просторн') || root?.includes('ר-ו-ה')) {
-              hebrew = 'רִיהוּט';
-              transcription = 'риhӯт';
-              translation = 'мебель, обстановка';
-              root = 'ר-ה-ט';
-            }
-          }
+          if (!plain) continue;
 
           // Ищем существующую запись по hebrew_plain или hebrew
           const existing = await db.query(
             'SELECT id FROM ulpana_vocabulary WHERE user_id = $1 AND (hebrew_plain = $2 OR hebrew = $3) LIMIT 1',
-            [session.id, plain, hebrew]
+            [session.id, plain, word.hebrew]
           );
 
           if (existing.rows.length > 0) {
@@ -205,12 +169,12 @@ export async function POST(req: NextRequest) {
                  lesson_id = COALESCE($7, lesson_id)
                WHERE id = $8`,
               [
-                hebrew,
+                word.hebrew,
                 plain,
-                transcription,
-                translation,
+                word.transcription || '',
+                word.translation,
                 word.partOfSpeech || 'other',
-                root,
+                word.root || null,
                 word.lessonId || null,
                 keepId,
               ]
@@ -218,22 +182,29 @@ export async function POST(req: NextRequest) {
             // Удаляем любые оставшиеся дубликаты этого же слова у пользователя
             await db.query(
               'DELETE FROM ulpana_vocabulary WHERE user_id = $1 AND (hebrew_plain = $2 OR hebrew = $3) AND id != $4',
-              [session.id, plain, hebrew, keepId]
+              [session.id, plain, word.hebrew, keepId]
             );
           } else {
             const wordId = word.id || `w_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
             await db.query(
               `INSERT INTO ulpana_vocabulary (id, user_id, hebrew, hebrew_plain, transcription, translation, part_of_speech, root, lesson_id)
-               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+               ON CONFLICT (user_id, hebrew_plain) DO UPDATE SET
+                 hebrew = EXCLUDED.hebrew,
+                 transcription = EXCLUDED.transcription,
+                 translation = EXCLUDED.translation,
+                 part_of_speech = EXCLUDED.part_of_speech,
+                 root = EXCLUDED.root,
+                 lesson_id = COALESCE(EXCLUDED.lesson_id, ulpana_vocabulary.lesson_id)`,
               [
                 wordId,
                 session.id,
-                hebrew,
+                word.hebrew,
                 plain,
-                transcription,
-                translation,
+                word.transcription || '',
+                word.translation,
                 word.partOfSpeech || 'other',
-                root,
+                word.root || null,
                 word.lessonId || 0,
               ]
             );
