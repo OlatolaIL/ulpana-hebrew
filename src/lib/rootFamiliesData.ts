@@ -716,4 +716,115 @@ export const COMPREHENSIVE_ROOT_FAMILIES: Record<string, RootRelatedWord[]> = {
     { hebrew: 'מַשְׁקִיעַ', hebrewPlain: 'משקיע', transcription: 'машкӣа', translation: 'инвестор, вкладчик (м.р.)', partOfSpeech: 'noun', root: 'ש-ק-ע' },
     { hebrew: 'שֶׁקַע', hebrewPlain: 'שקע', transcription: 'шéка', translation: 'электрическая розетка, впадина (м.р.)', partOfSpeech: 'noun', root: 'ש-ק-ע' },
   ],
+
+  // פ-ר-ק (разбирать, демонтировать, сустав)
+  'פרק': [
+    { hebrew: 'פֵּרוּק', hebrewPlain: 'פירוק', transcription: 'перӯк', translation: 'разборка, демонтаж (м.р.)', partOfSpeech: 'noun', root: 'פ-ר-ק' },
+    { hebrew: 'פֶּרֶק', hebrewPlain: 'פרק', transcription: 'пéрек', translation: 'часть, глава, сустав (м.р.)', partOfSpeech: 'noun', root: 'פ-ר-ק' },
+    { hebrew: 'מְפֹרָק', hebrewPlain: 'מפורק', transcription: 'мефорáк', translation: 'разобранный', partOfSpeech: 'adjective', root: 'פ-ר-ק' },
+    { hebrew: 'פְּרָקִים', hebrewPlain: 'פרקים', transcription: 'пракӣм', translation: 'сочленения, шарниры, суставы (мн.ч.)', partOfSpeech: 'noun', root: 'פ-ר-ק' },
+  ],
+
+  // ח-ל-ף (менять, заменять, развязка)
+  'חלף': [
+    { hebrew: 'הַחְלָפָה', hebrewPlain: 'החלפה', transcription: 'hахлафá', translation: 'замена, обмен (ж.р.)', partOfSpeech: 'noun', root: 'ח-ל-ף' },
+    { hebrew: 'חֶלְקֵי חִלּוּף', hebrewPlain: 'חלקי חילוף', transcription: 'хелькéй хилу́ф', translation: 'запасные части, запчасти (мн.ч.)', partOfSpeech: 'noun', root: 'ח-ל-ף' },
+    { hebrew: 'חֲלִיפִי', hebrewPlain: 'חליפי', transcription: 'халифӣ', translation: 'альтернативный, запасной', partOfSpeech: 'adjective', root: 'ח-ל-ף' },
+    { hebrew: 'מַחְלֵף', hebrewPlain: 'מחלף', transcription: 'махлéф', translation: 'транспортная развязка (м.р.)', partOfSpeech: 'noun', root: 'ח-ל-ף' },
+    { hebrew: 'חֲלִיפָה', hebrewPlain: 'חליפה', transcription: 'халифá', translation: 'костюм (деловой) (ж.р.)', partOfSpeech: 'noun', root: 'ח-ל-ף' },
+  ],
+
+  // ב-ל-ם (тормозить)
+  'בלם': [
+    { hebrew: 'בְּלָמִים', hebrewPlain: 'בלמים', transcription: 'бламӣм', translation: 'тормоза (мн.ч.)', partOfSpeech: 'noun', root: 'ב-ל-ם' },
+    { hebrew: 'בְּלִימָה', hebrewPlain: 'בלימה', transcription: 'блимá', translation: 'торможение (ж.р.)', partOfSpeech: 'noun', root: 'ב-ל-ם' },
+    { hebrew: 'בֶּלֶם', hebrewPlain: 'בלם', transcription: 'бéлем', translation: 'тормоз (м.р.)', partOfSpeech: 'noun', root: 'ב-ל-ם' },
+    { hebrew: 'בּוֹלֵם זַעֲזוּעִים', hebrewPlain: 'בולמי זעזועים', transcription: 'болéм заазуӣм', translation: 'амортизатор (м.р.)', partOfSpeech: 'noun', root: 'ב-ל-ם' },
+  ],
+
+  // נ-ו-ע (двигать, мотор)
+  'נוע': [
+    { hebrew: 'מָנוֹעַ', hebrewPlain: 'מנוע', transcription: 'манóа', translation: 'двигатель, мотор (м.р.)', partOfSpeech: 'noun', root: 'נ-ו-ע' },
+    { hebrew: 'תְּנוּעָה', hebrewPlain: 'תנועה', transcription: 'тенуá', translation: 'движение, дорожный трафик (ж.р.)', partOfSpeech: 'noun', root: 'נ-ו-ע' },
+    { hebrew: 'הַתְנָעָה', hebrewPlain: 'התנעה', transcription: 'hатнаá', translation: 'пуск мотора, зажигание (ж.р.)', partOfSpeech: 'noun', root: 'נ-ו-ע' },
+    { hebrew: 'נָע', hebrewPlain: 'נע', transcription: 'на', translation: 'движущийся, подвижный', partOfSpeech: 'adjective', root: 'נ-ו-ע' },
+  ],
+
+  // ג-ר-ר (тащить, буксировать)
+  'גרר': [
+    { hebrew: 'גְּרָר', hebrewPlain: 'גרר', transcription: 'грар', translation: 'эвакуатор, буксир (м.р.)', partOfSpeech: 'noun', root: 'ג-ר-ר' },
+    { hebrew: 'גְּרִירָה', hebrewPlain: 'גרירה', transcription: 'грирá', translation: 'буксировка, эвакуация (ж.р.)', partOfSpeech: 'noun', root: 'ג-ר-ר' },
+    { hebrew: 'נִגְרָר', hebrewPlain: 'נגרר', transcription: 'нигрáр', translation: 'прицеп (м.р.)', partOfSpeech: 'noun', root: 'ג-ר-ר' },
+  ],
+
+  // ש-מ-ן (масло, жир)
+  'שמן': [
+    { hebrew: 'שֶׁמֶן', hebrewPlain: 'שמן', transcription: 'шéмен', translation: 'масло (м.р.)', partOfSpeech: 'noun', root: 'ש-מ-ן' },
+    { hebrew: 'שִׁמּוּן', hebrewPlain: 'שימון', transcription: 'шиму́н', translation: 'смазка (м.р.)', partOfSpeech: 'noun', root: 'ש-מ-ן' },
+    { hebrew: 'מְשֻׁמָּן', hebrewPlain: 'משומן', transcription: 'мешумáн', translation: 'смазанный', partOfSpeech: 'adjective', root: 'ש-מ-ן' },
+    { hebrew: 'שָׁמֵן', hebrewPlain: 'שמן', transcription: 'шамéн', translation: 'толстый, жирный', partOfSpeech: 'adjective', root: 'ש-מ-ן' },
+  ],
+
+  // כ-ו-ן (направлять, регулировать)
+  'כון': [
+    { hebrew: 'כִּוּוּן', hebrewPlain: 'כיוון', transcription: 'киву́н', translation: 'направление, регулировка, настройка (м.р.)', partOfSpeech: 'noun', root: 'כ-ו-ן' },
+    { hebrew: 'כַּוָּנָה', hebrewPlain: 'כוונה', transcription: 'каванá', translation: 'намерение, цель (ж.р.)', partOfSpeech: 'noun', root: 'כ-ו-ן' },
+    { hebrew: 'מְכֻוָּן', hebrewPlain: 'מכוון', transcription: 'мехувáн', translation: 'направленный, настроенный', partOfSpeech: 'adjective', root: 'כ-ו-ן' },
+    { hebrew: 'נָכוֹן', hebrewPlain: 'נכון', transcription: 'нахóн', translation: 'правильный, верный', partOfSpeech: 'adjective', root: 'כ-ו-ן' },
+    { hebrew: 'הֲכָנָה', hebrewPlain: 'הכנה', transcription: 'hаханá', translation: 'подготовка (ж.р.)', partOfSpeech: 'noun', root: 'כ-ו-ן' },
+  ],
+
+  // ש-ג-ח (присматривать)
+  'שגח': [
+    { hebrew: 'הַשְׁגָּחָה', hebrewPlain: 'השגחה', transcription: 'hашгаха', translation: 'присмотр, надзор, опека (ж.р.)', partOfSpeech: 'noun', root: 'ש-ג-ח' },
+    { hebrew: 'מַשְׁגִּיחַ', hebrewPlain: 'משגיח', transcription: 'машгӣах', translation: 'контролёр, надзиратель (м.р.)', partOfSpeech: 'noun', root: 'ש-ג-ח' },
+  ],
+
+  // ח-ב-ק (обнимать)
+  'חבק': [
+    { hebrew: 'חִבּוּק', hebrewPlain: 'חיבוק', transcription: 'хибӯк', translation: 'объятие (м.р.)', partOfSpeech: 'noun', root: 'ח-ב-ק' },
+    { hebrew: 'מְחֻבָּק', hebrewPlain: 'מחובק', transcription: 'мехубáк', translation: 'обнятый', partOfSpeech: 'adjective', root: 'ח-ב-ק' },
+  ],
+
+  // ד-ב-ק (клеить, наклейка)
+  'דבק': [
+    { hebrew: 'דֶּבֶק', hebrewPlain: 'דבק', transcription: 'дéвек', translation: 'клей (м.р.)', partOfSpeech: 'noun', root: 'ד-ב-ק' },
+    { hebrew: 'מַדְבֵּקָה', hebrewPlain: 'מדבקה', transcription: 'мадбекá', translation: 'наклейка, стикер (ж.р.)', partOfSpeech: 'noun', root: 'ד-ב-ק' },
+    { hebrew: 'הַדְבָּקָה', hebrewPlain: 'הדבקה', transcription: 'hадбака', translation: 'наклеивание, аппликация (ж.р.)', partOfSpeech: 'noun', root: 'ד-ב-ק' },
+    { hebrew: 'דָּבִיק', hebrewPlain: 'דביק', transcription: 'давӣк', translation: 'липкий, клейкий', partOfSpeech: 'adjective', root: 'ד-ב-ק' },
+  ],
+
+  // ג-ז-ר (вырезать, ножницы)
+  'גזר': [
+    { hebrew: 'גְּזִירָה', hebrewPlain: 'גזירה', transcription: 'гзирá', translation: 'вырезание, раскройка (ж.р.)', partOfSpeech: 'noun', root: 'ג-ז-ר' },
+    { hebrew: 'מִגְזֶרֶת', hebrewPlain: 'מגזרת', transcription: 'мигзéрет', translation: 'бумажный силуэт, аппликация (ж.р.)', partOfSpeech: 'noun', root: 'ג-ז-ר' },
+    { hebrew: 'גִּזְרָה', hebrewPlain: 'גזרה', transcription: 'гизрá', translation: 'выкройка, фасон, сектор (ж.р.)', partOfSpeech: 'noun', root: 'ג-ז-р' },
+  ],
+
+  // ש-ת-ף (делиться, общий)
+  'שתף': [
+    { hebrew: 'שִׁתּוּף', hebrewPlain: 'שיתוף', transcription: 'шитӯф', translation: 'сотрудничество, совместное участие (м.р.)', partOfSpeech: 'noun', root: 'ש-ת-ף' },
+    { hebrew: 'שֻׁתָּף', hebrewPlain: 'שותף', transcription: 'шутáф', translation: 'товарищ, партнер (м.р.)', partOfSpeech: 'noun', root: 'ש-ת-ף' },
+    { hebrew: 'מְשֻׁתָּף', hebrewPlain: 'משותף', transcription: 'мешутáф', translation: 'общий, совместный', partOfSpeech: 'adjective', root: 'ש-ת-ף' },
+    { hebrew: 'שֻׁתָּפוּת', hebrewPlain: 'שותפות', transcription: 'шутафӯт', translation: 'партнерство (ж.р.)', partOfSpeech: 'noun', root: 'ש-ת-ף' },
+  ],
+
+  // נ-ח-ם (утешать)
+  'נחם': [
+    { hebrew: 'נֶחָמָה', hebrewPlain: 'נחמה', transcription: 'нехамá', translation: 'утешение (ж.р.)', partOfSpeech: 'noun', root: 'נ-ח-ם' },
+    { hebrew: 'תַּנְחוּמִים', hebrewPlain: 'תנחומים', transcription: 'танхумӣм', translation: 'соболезнования, утешения (мн.ч.)', partOfSpeech: 'noun', root: 'נ-ח-ם' },
+  ],
+
+  // ג-מ-ל (отучать, вознаграждать)
+  'גמל': [
+    { hebrew: 'גְּמִילָה', hebrewPlain: 'גמילה', transcription: 'гмилá', translation: 'отучение (от соски/памперса) (ж.р.)', partOfSpeech: 'noun', root: 'ג-מ-ל' },
+    { hebrew: 'גָּמוּל', hebrewPlain: 'גמול', transcription: 'гамӯль', translation: 'отученный, самостоятельный', partOfSpeech: 'adjective', root: 'ג-מ-ל' },
+    { hebrew: 'גְּמוּל', hebrewPlain: 'גמול', transcription: 'гмуль', translation: 'вознаграждение, отдача (м.р.)', partOfSpeech: 'noun', root: 'ג-מ-ל' },
+  ],
+
+  // נ-ק-ז (сливать, дренаж)
+  'נקז': [
+    { hebrew: 'נִקּוּז', hebrewPlain: 'ניקוז', transcription: 'нику́з', translation: 'слив, дренаж, водоотвод (м.р.)', partOfSpeech: 'noun', root: 'נ-ק-ז' },
+    { hebrew: 'מְנֻקָּז', hebrewPlain: 'מנוקז', transcription: 'менукáз', translation: 'осушенный, дренированный', partOfSpeech: 'adjective', root: 'נ-ק-ז' },
+  ],
 };

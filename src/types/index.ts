@@ -450,6 +450,8 @@ export type ThematicDeckCategory =
   | 'slang'
   | 'media'
   | 'caregiver'   // מטפלת — профессиональный уход за пожилыми
+  | 'autoRepair'  // מוסך / רכב — автомастерская и автомеханика
+  | 'kindergarten' // גן ילדים — воспитатель и детский сад
   | 'other';
 
 export interface ThematicDeck {

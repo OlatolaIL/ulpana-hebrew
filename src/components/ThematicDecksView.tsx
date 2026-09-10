@@ -36,6 +36,9 @@ import {
   Shuffle,
   LayoutGrid,
   GraduationCap,
+  Wrench,
+  Baby,
+  Car,
 } from 'lucide-react';
 import { ThematicDeck, UserProfile, Word, VerbConjugation } from '@/types';
 import {
@@ -79,7 +82,7 @@ export const ThematicDecksView: React.FC<ThematicDecksViewProps> = ({
   initialDeckId,
   onCloseInitialDeck,
 }) => {
-  type DeckFilter = 'all' | 'alef' | 'bet' | 'verbs' | 'food' | 'body' | 'city' | 'slang' | 'caregiver';
+  type DeckFilter = 'all' | 'alef' | 'bet' | 'verbs' | 'food' | 'body' | 'city' | 'slang' | 'caregiver' | 'autoRepair' | 'kindergarten';
   const [filter, setFilter] = useState<DeckFilter>('all');
   const [speakingWordId, setSpeakingWordId] = useState<string | null>(null);
   const { isVisible: isBetaBannerVisible, dismiss: dismissBetaBanner } = useBannerCooldown('thematic_decks_beta');
@@ -178,6 +181,12 @@ export const ThematicDecksView: React.FC<ThematicDecksViewProps> = ({
         return <Radio className={className} />;
       case 'GraduationCap':
         return <GraduationCap className={className} />;
+      case 'Wrench':
+        return <Wrench className={className} />;
+      case 'Baby':
+        return <Baby className={className} />;
+      case 'Car':
+        return <Car className={className} />;
       default:
         return <BookOpen className={className} />;
     }
@@ -190,6 +199,8 @@ export const ThematicDecksView: React.FC<ThematicDecksViewProps> = ({
       if (filter === 'alef') return deck.level === 'alef';
       if (filter === 'bet') return deck.level === 'bet';
       if (filter === 'caregiver') return deck.category === 'caregiver';
+      if (filter === 'autoRepair') return deck.category === 'autoRepair';
+      if (filter === 'kindergarten') return deck.category === 'kindergarten';
       return deck.category === filter;
     });
   }, [filter]);
@@ -499,6 +510,28 @@ export const ThematicDecksView: React.FC<ThematicDecksViewProps> = ({
         >
           👩‍⚕️ Метапелет
         </button>
+        <button
+          type="button"
+          onClick={() => setFilter('autoRepair')}
+          className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition cursor-pointer ${
+            filter === 'autoRepair'
+              ? 'bg-amber-600 text-white shadow-xs'
+              : 'bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 hover:bg-amber-100'
+          }`}
+        >
+          🔧 Автомастерская
+        </button>
+        <button
+          type="button"
+          onClick={() => setFilter('kindergarten')}
+          className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition cursor-pointer ${
+            filter === 'kindergarten'
+              ? 'bg-rose-600 text-white shadow-xs'
+              : 'bg-rose-50 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 hover:bg-rose-100'
+          }`}
+        >
+          👶 Детский сад
+        </button>
       </div>
 
       {/* Компактный каталог колод */}
@@ -507,6 +540,8 @@ export const ThematicDecksView: React.FC<ThematicDecksViewProps> = ({
           const stats = getDeckStats(deck);
           const isAlef = deck.level === 'alef';
           const isCaregiver = deck.category === 'caregiver';
+          const isAutoRepair = deck.category === 'autoRepair';
+          const isKindergarten = deck.category === 'kindergarten';
 
           return (
             <div
@@ -522,9 +557,13 @@ export const ThematicDecksView: React.FC<ThematicDecksViewProps> = ({
                   className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition group-hover:scale-105 ${
                     isCaregiver
                       ? 'bg-teal-100 dark:bg-teal-900/50 text-teal-600 dark:text-teal-400'
-                      : isAlef
-                        ? 'bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400'
-                        : 'bg-purple-100 dark:bg-purple-900/50 text-purple-600 dark:text-purple-400'
+                      : isAutoRepair
+                        ? 'bg-amber-100 dark:bg-amber-900/50 text-amber-600 dark:text-amber-400'
+                        : isKindergarten
+                          ? 'bg-rose-100 dark:bg-rose-900/50 text-rose-600 dark:text-rose-400'
+                          : isAlef
+                            ? 'bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400'
+                            : 'bg-purple-100 dark:bg-purple-900/50 text-purple-600 dark:text-purple-400'
                   }`}
                 >
                   {renderIcon(deck.icon, 'w-5 h-5')}
@@ -554,12 +593,24 @@ export const ThematicDecksView: React.FC<ThematicDecksViewProps> = ({
                       className={`text-[10px] font-extrabold px-1.5 py-0.2 rounded-full ${
                         isCaregiver
                           ? 'bg-teal-50 dark:bg-teal-950/60 text-teal-700 dark:text-teal-300 border border-teal-200/60 dark:border-teal-800'
-                          : isAlef
-                            ? 'bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200/60 dark:border-blue-800'
-                            : 'bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border border-purple-200/60 dark:border-purple-800'
+                          : isAutoRepair
+                            ? 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200/60 dark:border-amber-800'
+                            : isKindergarten
+                              ? 'bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border border-rose-200/60 dark:border-rose-800'
+                              : isAlef
+                                ? 'bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200/60 dark:border-blue-800'
+                                : 'bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border border-purple-200/60 dark:border-purple-800'
                       }`}
                     >
-                      {isCaregiver ? '👩‍⚕️ Метапелет' : isAlef ? 'Алеф (א)' : 'Бет (ב)'}
+                      {isCaregiver
+                        ? '👩‍⚕️ Метапелет'
+                        : isAutoRepair
+                          ? '🔧 Автомастерская'
+                          : isKindergarten
+                            ? '👶 Детский сад'
+                            : isAlef
+                              ? 'Алеф (א)'
+                              : 'Бет (ב)'}
                     </span>
                     <span>•</span>
                     <span>{deck.words.length} слов</span>

@@ -1,8 +1,6 @@
 /**
- * Профессиональные тематические словари
- * Каждая профессия — свой набор колод. Слова могут пересекаться между колодами разных профессий.
- *
  * МЕТАПЕЛЕТ (מְטַפֶּלֶת) — уход за пожилыми / лечение на дому
+ *
  * Колоды:
  *   1. caregiver-verbs        — Глаголы ухода (Пиэль, Хифиль)
  *   2. caregiver-body-medical — Тело, симптомы, медицина
@@ -13,7 +11,7 @@
 
 import { ThematicDeck } from '@/types';
 
-export const PROFESSIONAL_DECKS: ThematicDeck[] = [
+export const CAREGIVER_DECKS: ThematicDeck[] = [
 
   // ==========================================
   // МЕТАПЕЛЕТ — ГЛАГОЛЫ УХОДА
@@ -230,24 +228,3 @@ export const PROFESSIONAL_DECKS: ThematicDeck[] = [
     ],
   },
 ];
-
-/**
- * Получить все профессиональные колоды
- */
-export function getAllProfessionalDecks(): ThematicDeck[] {
-  return PROFESSIONAL_DECKS;
-}
-
-/**
- * Получить колоды по профессии (prefix)
- */
-export function getProfessionalDecksByProfession(prefix: string): ThematicDeck[] {
-  return PROFESSIONAL_DECKS.filter((d) => d.id.startsWith(prefix));
-}
-
-/**
- * Получить колоду по ID
- */
-export function getProfessionalDeckById(id: string): ThematicDeck | undefined {
-  return PROFESSIONAL_DECKS.find((d) => d.id === id);
-}
