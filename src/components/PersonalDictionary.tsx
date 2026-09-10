@@ -32,8 +32,7 @@ import {
 import { stripNikkud, getWordTranscription, generateHebrewTranscription } from '@/lib/transcription';
 import { findOfflineVerbConjugation } from '@/lib/verbConjugations';
 import { VerbConjugationView } from '@/components/VerbConjugationView';
-import { THEMATIC_DECKS } from '@/data/thematicDecks';
-import { ThematicDecksView } from './ThematicDecksView';
+import { ThematicDecksView, ALL_DECKS } from './ThematicDecksView';
 import { LessonFlashcardsView } from './LessonFlashcardsView';
 import { useModalHistory } from '@/lib/useHistoryState';
 
@@ -271,7 +270,7 @@ export const PersonalDictionary: React.FC<PersonalDictionaryProps> = ({
                 : 'bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300 border-purple-300/60 dark:border-purple-800'
             }`}
           >
-            {THEMATIC_DECKS.length}
+            {ALL_DECKS.length}
           </span>
         </button>
 

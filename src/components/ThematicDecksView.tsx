@@ -15,7 +15,7 @@ import { useBannerCooldown } from '@/lib/useBannerCooldown';
 import { DeckCard, DeckFilterBar, DeckWordsModal, DeckStats, DeckFilter } from './ThematicDecks';
 
 // Все колоды: тематические + профессиональные (слова могут пересекаться между профессиями)
-const ALL_DECKS = [...THEMATIC_DECKS, ...PROFESSIONAL_DECKS];
+export const ALL_DECKS = [...THEMATIC_DECKS, ...PROFESSIONAL_DECKS];
 
 interface ThematicDecksViewProps {
   userProfile: UserProfile;
