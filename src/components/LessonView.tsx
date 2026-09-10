@@ -176,9 +176,7 @@ export const LessonView: React.FC<LessonViewProps> = ({
                     {userProfile.ulpanMode ? stage.labelHe : stage.labelRu}
                   </span>
 
-                  {!isStageAlwaysFree(lessonId, stage.id) && (
-                    <Crown className="w-2.5 h-2.5 text-amber-500 shrink-0" />
-                  )}
+
                 </div>
               </button>
             );
