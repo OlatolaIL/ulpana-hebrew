@@ -9,6 +9,7 @@ import {
   ArrowLeft,
   Square,
   ArrowRight,
+  Shuffle,
 } from 'lucide-react';
 import { Word, UserProfile } from '@/types';
 import { getWordTranscription } from '@/lib/transcription';
@@ -34,6 +35,7 @@ interface AutoAudioModeProps {
   onPrevWord: () => void;
   onAdvanceNext: () => void;
   onSpeakHebrew: (text: string) => void;
+  onShuffleWords?: () => void;
 }
 
 export const AutoAudioMode: React.FC<AutoAudioModeProps> = ({
@@ -57,6 +59,7 @@ export const AutoAudioMode: React.FC<AutoAudioModeProps> = ({
   onPrevWord,
   onAdvanceNext,
   onSpeakHebrew,
+  onShuffleWords,
 }) => {
   const isCursive = userProfile.fontStyle === 'cursive';
 
@@ -114,9 +117,26 @@ export const AutoAudioMode: React.FC<AutoAudioModeProps> = ({
             </button>
 
             {cardDirection === 'carousel' && (
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300">
-                🔀 Карусель
+              <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 flex items-center gap-1 border border-purple-200 dark:border-purple-800/60">
+                <span>🔀 {isUlpan ? 'מִיקְס' : 'Карусель'}:</span>
+                <span className="font-extrabold text-purple-900 dark:text-purple-200">
+                  {isCurrentCardFrontRussian
+                    ? (isUlpan ? 'רוּ ← עִבְ' : 'Рус → Ивр')
+                    : (isUlpan ? 'עִבְ ← רוּ' : 'Ивр → Рус')}
+                </span>
               </span>
+            )}
+
+            {onShuffleWords && (
+              <button
+                type="button"
+                onClick={onShuffleWords}
+                className="px-2.5 py-1 rounded-full text-[11px] font-bold transition flex items-center gap-1 cursor-pointer bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700 border border-zinc-200 dark:border-zinc-700"
+                title={isUlpan ? 'עַרְבֵּב סֵדֶר מִילִּים' : 'Перемешать порядок слов'}
+              >
+                <Shuffle className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">{isUlpan ? 'עַרְבֵּב' : 'Перемешать'}</span>
+              </button>
             )}
           </div>
 
@@ -148,20 +168,30 @@ export const AutoAudioMode: React.FC<AutoAudioModeProps> = ({
               <span className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/60 px-3 py-1 rounded-full border border-blue-200 dark:border-blue-800 animate-pulse">
                 <Volume2 className="w-3.5 h-3.5" />
                 <span>
-                  {isCurrentCardFrontRussian ? 'Слушайте русский...' : 'Слушайте иврит...'}
+                  {isCurrentCardFrontRussian
+                    ? (isUlpan ? 'הַאֲזִינוּ לְרוּסִית...' : 'Слушайте русский...')
+                    : (isUlpan ? 'הַאֲזִינוּ לְעִבְרִית...' : 'Слушайте иврит...')}
                 </span>
               </span>
             )}
             {autoPhase === 'pause' && (
               <span className="inline-flex items-center gap-1.5 text-xs font-extrabold text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/60 px-3.5 py-1 rounded-full border border-amber-300 dark:border-amber-700">
                 <Timer className="w-3.5 h-3.5 animate-spin" />
-                <span>Вспомните и произнесите! ({autoCountdown}с)</span>
+                <span>
+                  {isCurrentCardFrontRussian
+                    ? (isUlpan ? `הִזָּכְרוּ בְּעִבְרִית! (${autoCountdown}ש)` : `Вспомните на иврите! (${autoCountdown}с)`)
+                    : (isUlpan ? `הִזָּכְרוּ בַּתַּרְגּוּם! (${autoCountdown}ש)` : `Вспомните перевод! (${autoCountdown}с)`)}
+                </span>
               </span>
             )}
             {autoPhase === 'reveal' && (
               <span className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-3 py-1 rounded-full border border-emerald-200 dark:border-emerald-800">
                 <Sparkles className="w-3.5 h-3.5" />
-                <span>Правильный перевод</span>
+                <span>
+                  {isCurrentCardFrontRussian
+                    ? (isUlpan ? 'תְּשׁוּבָה בְּעִבְרִית' : 'Ответ на иврите')
+                    : (isUlpan ? 'תַּרְגּוּם נָכוֹן' : 'Правильный перевод')}
+                </span>
               </span>
             )}
             {autoPhase === 'paused' && (
@@ -186,28 +216,71 @@ export const AutoAudioMode: React.FC<AutoAudioModeProps> = ({
             )}
           </div>
 
-          {/* Отображение слова */}
-          <div className="space-y-2">
-            <div
-              dir="rtl"
-              className={`text-3xl sm:text-5xl font-bold transition-all duration-300 ${
-                autoPhase === 'pause' && isCurrentCardFrontRussian
-                  ? 'text-zinc-300 dark:text-zinc-700 opacity-40'
-                  : 'text-zinc-900 dark:text-zinc-50'
-              } ${isCursive ? 'font-cursive text-blue-600 dark:text-blue-400' : 'font-hebrew'}`}
-            >
-              {userProfile.showNikkud ? currentWord.hebrew : currentWord.hebrewPlain}
-            </div>
+          {/* Отображение слова с фокусом на вопросе и скрытием ответа до reveal */}
+          <div className="space-y-3">
+            {isCurrentCardFrontRussian ? (
+              /* Направление: Русский (вопрос) → Иврит (ответ) */
+              <>
+                <div className="text-2xl sm:text-4xl font-bold text-zinc-900 dark:text-zinc-50 font-sans tracking-wide">
+                  {currentWord.translation}
+                </div>
 
-            {getWordTranscription(currentWord) && (
-              <p className="text-sm sm:text-base font-semibold text-blue-600 dark:text-blue-400">
-                [{getWordTranscription(currentWord)}]
-              </p>
+                <div
+                  className={`space-y-1 transition-all duration-500 ${
+                    autoPhase === 'reveal' || autoPhase === 'idle' || autoPhase === 'paused'
+                      ? 'opacity-100 filter-none'
+                      : 'opacity-10 filter blur-md select-none pointer-events-none'
+                  }`}
+                >
+                  <div
+                    dir="rtl"
+                    className={`text-3xl sm:text-5xl font-bold ${
+                      isCursive
+                        ? 'font-cursive text-blue-600 dark:text-blue-400'
+                        : 'font-hebrew text-zinc-900 dark:text-zinc-50'
+                    }`}
+                  >
+                    {userProfile.showNikkud ? currentWord.hebrew : currentWord.hebrewPlain}
+                  </div>
+
+                  {getWordTranscription(currentWord) && (
+                    <p className="text-sm sm:text-base font-semibold text-blue-600 dark:text-blue-400">
+                      [{getWordTranscription(currentWord)}]
+                    </p>
+                  )}
+                </div>
+              </>
+            ) : (
+              /* Направление: Иврит (вопрос) → Русский (ответ) */
+              <>
+                <div className="space-y-1">
+                  <div
+                    dir="rtl"
+                    className={`text-3xl sm:text-5xl font-bold text-zinc-900 dark:text-zinc-50 ${
+                      isCursive ? 'font-cursive text-blue-600 dark:text-blue-400' : 'font-hebrew'
+                    }`}
+                  >
+                    {userProfile.showNikkud ? currentWord.hebrew : currentWord.hebrewPlain}
+                  </div>
+
+                  {getWordTranscription(currentWord) && (
+                    <p className="text-sm sm:text-base font-semibold text-blue-600 dark:text-blue-400">
+                      [{getWordTranscription(currentWord)}]
+                    </p>
+                  )}
+                </div>
+
+                <div
+                  className={`text-2xl sm:text-3xl font-bold transition-all duration-500 ${
+                    autoPhase === 'reveal' || autoPhase === 'idle' || autoPhase === 'paused'
+                      ? 'text-zinc-700 dark:text-zinc-200 opacity-100 filter-none'
+                      : 'opacity-10 filter blur-md select-none pointer-events-none'
+                  }`}
+                >
+                  {currentWord.translation}
+                </div>
+              </>
             )}
-
-            <div className="text-xl sm:text-2xl font-bold text-zinc-700 dark:text-zinc-200">
-              {currentWord.translation}
-            </div>
           </div>
         </div>
 

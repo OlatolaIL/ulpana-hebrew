@@ -16,7 +16,7 @@ import { stripNikkud } from '@/lib/transcription';
 import { findOfflineVerbConjugation } from '@/lib/verbConjugations';
 import { useModalHistory } from '@/lib/useHistoryState';
 import { TrainerMode, Tile, FlashcardTrainerProps } from './types';
-import { splitWordsIntoParts, getCleanHebrewTarget } from './helpers';
+import { splitWordsIntoParts, getCleanHebrewTarget, generateCarouselDirections } from './helpers';
 import { TrainerHeader } from './TrainerHeader';
 import { TrainerVictoryModal } from './TrainerVictoryModal';
 import { FlipCardMode } from './modes/FlipCardMode';
@@ -80,6 +80,7 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
   const [autoLoopCount, setAutoLoopCount] = useState(1);
 
   const handleShuffleWords = () => {
+    setCarouselDirections(generateCarouselDirections(words.length));
     if (isSplitMode && canSplit && activePartIndex >= 0 && parts[activePartIndex]) {
       setParts((prev) => {
         const next = [...prev];
@@ -102,6 +103,9 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
       setParts(stableCanonicalParts);
       setIsSplitMode(true);
       setActivePartIndex(0);
+      setCarouselDirections(
+        generateCarouselDirections(stableCanonicalParts[0]?.length || initialWords.length)
+      );
       setCurrentIndex(0);
       setIsFlipped(false);
       setPartCompletionStatus('idle');
@@ -109,6 +113,7 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
     } else {
       setIsSplitMode(false);
       setActivePartIndex(-1);
+      setCarouselDirections(generateCarouselDirections(masterWords.length));
       setCurrentIndex(0);
       setIsFlipped(false);
       setPartCompletionStatus('idle');
@@ -117,6 +122,8 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
   };
 
   const handleSelectPart = (idx: number) => {
+    const targetLength = parts[idx]?.length || masterWords.length;
+    setCarouselDirections(generateCarouselDirections(targetLength));
     setActivePartIndex(idx);
     setCurrentIndex(0);
     setIsFlipped(false);
@@ -135,6 +142,11 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
     return 'he-ru';
   });
 
+  // Направления карточек для режима "Карусель (микс)" (true = Русский -> Иврит, false = Иврит -> Русский)
+  const [carouselDirections, setCarouselDirections] = useState<boolean[]>(() =>
+    generateCarouselDirections(masterWords.length)
+  );
+
   const handleToggleDirection = () => {
     const nextDir: 'he-ru' | 'ru-he' | 'carousel' =
       cardDirection === 'he-ru'
@@ -142,6 +154,9 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
         : cardDirection === 'ru-he'
         ? 'carousel'
         : 'he-ru';
+    if (nextDir === 'carousel') {
+      setCarouselDirections(generateCarouselDirections(words.length));
+    }
     setCardDirection(nextDir);
     setIsFlipped(false);
     if (typeof window !== 'undefined') {
@@ -236,7 +251,38 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
   const currentWord = words[currentIndex];
   const isCurrentCardFrontRussian =
     cardDirection === 'ru-he' ||
-    (cardDirection === 'carousel' && currentIndex % 2 === 1);
+    (cardDirection === 'carousel' &&
+      (carouselDirections[currentIndex] ?? (currentIndex % 2 === 1)));
+
+  // Перезапуск цикла воспроизведения со случайным перемешиванием слов и направлений
+  const reshuffleAndRestartLoop = () => {
+    setAutoLoopCount((prev) => prev + 1);
+    setCarouselDirections(generateCarouselDirections(words.length));
+
+    const lastFinishedWord = words[currentIndex];
+    if (isSplitMode && canSplit && activePartIndex >= 0 && parts[activePartIndex]) {
+      setParts((prev) => {
+        const next = [...prev];
+        const currentPart = next[activePartIndex];
+        let shuffled = shuffleWords(currentPart);
+        if (currentPart.length > 1 && lastFinishedWord && shuffled[0]?.id === lastFinishedWord.id) {
+          shuffled = [shuffled[1], shuffled[0], ...shuffled.slice(2)];
+        }
+        next[activePartIndex] = shuffled;
+        return next;
+      });
+    } else {
+      setMasterWords((prev) => {
+        let shuffled = shuffleWords(prev);
+        if (prev.length > 1 && lastFinishedWord && shuffled[0]?.id === lastFinishedWord.id) {
+          shuffled = [shuffled[1], shuffled[0], ...shuffled.slice(2)];
+        }
+        return shuffled;
+      });
+    }
+    setCurrentIndex(0);
+    setIsFlipped(false);
+  };
 
   useEffect(() => {
     if (!currentWord) return;
@@ -310,9 +356,7 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
       const targetWord = words[currentIndex];
       if (!targetWord) return;
 
-      const promptIsRussian =
-        cardDirection === 'ru-he' ||
-        (cardDirection === 'carousel' && currentIndex % 2 === 1);
+      const promptIsRussian = isCurrentCardFrontRussian;
 
       setAutoPhase('prompt');
       if (promptIsRussian) {
@@ -354,8 +398,7 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
       if (currentIndex + 1 < words.length) {
         setCurrentIndex((prev) => prev + 1);
       } else if (isAutoLooping) {
-        setAutoLoopCount((prev) => prev + 1);
-        setCurrentIndex(0);
+        reshuffleAndRestartLoop();
       } else {
         setIsAutoPlaying(false);
         setAutoPhase('idle');
@@ -381,6 +424,7 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
     words,
     isAutoLooping,
     autoLoopCount,
+    isCurrentCardFrontRussian,
   ]);
 
   const handleAutoStart = () => {
@@ -478,8 +522,7 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
     if (currentIndex + 1 < words.length) {
       setCurrentIndex((prev) => prev + 1);
     } else if (mode === 'auto_audio' && isAutoLooping) {
-      setAutoLoopCount((prev) => prev + 1);
-      setCurrentIndex(0);
+      reshuffleAndRestartLoop();
     } else {
       handleFinishSet();
     }
@@ -684,12 +727,21 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
           setPartCompletionStatus('idle');
         }}
         onRepeatPart={() => {
+          if (isSplitMode && canSplit && activePartIndex >= 0 && parts[activePartIndex]) {
+            setParts((prev) => {
+              const next = [...prev];
+              next[activePartIndex] = shuffleWords(next[activePartIndex]);
+              return next;
+            });
+          }
+          setCarouselDirections(generateCarouselDirections(words.length));
           setCurrentIndex(0);
           setIsFlipped(false);
           setPartCompletionStatus('idle');
         }}
         onAllWordsTogether={() => {
           setActivePartIndex(-1);
+          setCarouselDirections(generateCarouselDirections(masterWords.length));
           setCurrentIndex(0);
           setIsFlipped(false);
           setPartCompletionStatus('idle');
@@ -716,9 +768,22 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
         completedPartIndices={completedPartIndices}
         canSplit={canSplit}
         onNextPart={() => {}}
-        onRepeatPart={() => {}}
+        onRepeatPart={() => {
+          if (isSplitMode && canSplit && activePartIndex >= 0 && parts[activePartIndex]) {
+            setParts((prev) => {
+              const next = [...prev];
+              next[activePartIndex] = shuffleWords(next[activePartIndex]);
+              return next;
+            });
+          }
+          setCarouselDirections(generateCarouselDirections(words.length));
+          setCurrentIndex(0);
+          setIsFlipped(false);
+          setPartCompletionStatus('idle');
+        }}
         onAllWordsTogether={() => {
           setActivePartIndex(-1);
+          setCarouselDirections(generateCarouselDirections(masterWords.length));
           setCurrentIndex(0);
           setIsFlipped(false);
           setPartCompletionStatus('idle');
@@ -726,6 +791,7 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
         onContinueLesson={onContinueLesson}
         onClose={onClose}
         onRestart={() => {
+          setCarouselDirections(generateCarouselDirections(words.length));
           setCurrentIndex(0);
           setIsFlipped(false);
           setPartCompletionStatus('idle');
@@ -754,6 +820,10 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
         onContinueLesson={onContinueLesson}
         onClose={onClose}
         onRestart={() => {
+          if (isShuffled) {
+            setMasterWords((prev) => shuffleWords(prev));
+          }
+          setCarouselDirections(generateCarouselDirections(words.length));
           setCurrentIndex(0);
           setIsCompleted(false);
           setPartCompletionStatus('idle');
@@ -762,6 +832,7 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
           setIsSplitMode(true);
           setActivePartIndex(0);
           setCompletedPartIndices([]);
+          setCarouselDirections(generateCarouselDirections(parts[0]?.length || 10));
           setCurrentIndex(0);
           setIsCompleted(false);
           setPartCompletionStatus('idle');
@@ -892,6 +963,7 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
           onPrevWord={handlePrevWord}
           onAdvanceNext={handleAdvanceNext}
           onSpeakHebrew={speakHebrew}
+          onShuffleWords={handleShuffleWords}
         />
       )}
 
