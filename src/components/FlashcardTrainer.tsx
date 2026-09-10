@@ -23,6 +23,8 @@ import {
   Pause,
   Repeat,
   Timer,
+  Headphones,
+  Hammer,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { Word, UserProfile, VerbConjugation } from '@/types';
@@ -1063,51 +1065,61 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
 
       {/* Шапка тренировки и выбор режима */}
       <div className="bg-white dark:bg-zinc-900 p-3 sm:p-4 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3">
-        <div className="flex items-center gap-1.5 w-full sm:w-auto">
+        <div className="flex items-center gap-1 w-full sm:w-auto bg-zinc-100 dark:bg-zinc-800 rounded-xl p-0.5">
+          {/* Флип */}
           <button
             onClick={() => setMode('flip')}
-            className={`flex-1 sm:flex-initial px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+            title={isUlpan ? 'כַּרְטִיסִייָה' : 'Флип'}
+            className={`flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
               mode === 'flip'
                 ? 'bg-blue-600 text-white shadow-sm'
-                : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400'
+                : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200'
             }`}
           >
-            {isUlpan ? 'כַּרְטִיסִייָה' : 'Флип'}
+            <Layers className="w-3.5 h-3.5 flex-shrink-0" />
+            <span className="hidden sm:inline">{isUlpan ? 'כַּרְטִיסִייָה' : 'Флип'}</span>
           </button>
+          {/* Конструктор */}
           <button
             onClick={() => setMode('builder')}
-            className={`flex-1 sm:flex-initial px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+            title={isUlpan ? 'הַרְכָּבָה' : 'Конструктор'}
+            className={`flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
               mode === 'builder'
                 ? 'bg-blue-600 text-white shadow-sm'
-                : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400'
+                : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200'
             }`}
           >
-            {isUlpan ? 'הַרְכָּבָה' : 'Конструктор'}
+            <Hammer className="w-3.5 h-3.5 flex-shrink-0" />
+            <span className="hidden sm:inline">{isUlpan ? 'הַרְכָּבָה' : 'Конструктор'}</span>
           </button>
+          {/* На слух */}
           <button
             onClick={() => setMode('listening')}
-            className={`flex-1 sm:flex-initial px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+            title={isUlpan ? 'שְׁמִיעָה' : 'На слух'}
+            className={`flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
               mode === 'listening'
                 ? 'bg-blue-600 text-white shadow-sm'
-                : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400'
+                : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200'
             }`}
           >
-            {isUlpan ? 'שְׁמִיעָה' : 'На слух'}
+            <Headphones className="w-3.5 h-3.5 flex-shrink-0" />
+            <span className="hidden sm:inline">{isUlpan ? 'שְׁמִיעָה' : 'На слух'}</span>
           </button>
+          {/* Авто на слух */}
           <button
             onClick={() => {
               setMode('auto_audio');
               setIsAutoPlaying(true);
             }}
-            className={`flex-1 sm:flex-initial px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer flex items-center justify-center gap-1.5 ${
+            title={isUlpan ? 'אוֹטוֹ' : 'Авто на слух'}
+            className={`flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
               mode === 'auto_audio'
                 ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-sm'
-                : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400'
+                : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200'
             }`}
-            title="Автоматическое прослушивание всех слов с паузой для размышления"
           >
-            <Play className="w-3.5 h-3.5 fill-current" />
-            <span>{isUlpan ? 'אוֹטוֹ' : 'Авто на слух'}</span>
+            <Play className="w-3.5 h-3.5 fill-current flex-shrink-0" />
+            <span className="hidden sm:inline">{isUlpan ? 'אוֹטוֹ' : 'Авто'}</span>
           </button>
         </div>
 
