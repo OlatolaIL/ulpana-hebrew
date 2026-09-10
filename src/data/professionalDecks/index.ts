@@ -14,12 +14,16 @@ import { ThematicDeck } from '@/types';
 import { CAREGIVER_DECKS } from './caregiver';
 import { AUTO_REPAIR_DECKS } from './autoRepair';
 import { KINDERGARTEN_DECKS } from './kindergarten';
+import { DOCTOR_DECKS } from './doctor';
+import { ACCOUNTING_DECKS } from './accounting';
 
 // При добавлении новой профессии — просто добавь её массив сюда:
 export const PROFESSIONAL_DECKS: ThematicDeck[] = [
   ...CAREGIVER_DECKS,
   ...AUTO_REPAIR_DECKS,
   ...KINDERGARTEN_DECKS,
+  ...DOCTOR_DECKS,
+  ...ACCOUNTING_DECKS,
 ];
 
 /**

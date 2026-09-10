@@ -827,4 +827,166 @@ export const COMPREHENSIVE_ROOT_FAMILIES: Record<string, RootRelatedWord[]> = {
     { hebrew: 'נִקּוּז', hebrewPlain: 'ניקוז', transcription: 'нику́з', translation: 'слив, дренаж, водоотвод (м.р.)', partOfSpeech: 'noun', root: 'נ-ק-ז' },
     { hebrew: 'מְנֻקָּז', hebrewPlain: 'מנוקז', transcription: 'менукáз', translation: 'осушенный, дренированный', partOfSpeech: 'adjective', root: 'נ-ק-ז' },
   ],
+
+  // ==========================================
+  // СЕМЬИ КОРНЕЙ: МЕДИЦИНА И ВРАЧ (רפואה)
+  // ==========================================
+
+  // א-ב-ח-ן (диагностика)
+  'אבחן': [
+    { hebrew: 'אַבְחָנָה', hebrewPlain: 'אבחנה', transcription: 'авханá', translation: 'диагноз (ж.р.)', partOfSpeech: 'noun', root: 'א-ב-ח-ן' },
+    { hebrew: 'אִבְחוּן', hebrewPlain: 'אבחון', transcription: 'ивхӯн', translation: 'диагностика, процесс обследования (м.р.)', partOfSpeech: 'noun', root: 'א-ב-ח-ן' },
+    { hebrew: 'מַבְחֵן', hebrewPlain: 'מבחן', transcription: 'мавхéн', translation: 'диагностический тест / пробирка (м.р.)', partOfSpeech: 'noun', root: 'א-ב-ח-ן' },
+    { hebrew: 'אִבְחוּנִי', hebrewPlain: 'אבחוני', transcription: 'ивхунӣ', translation: 'диагностический', partOfSpeech: 'adjective', root: 'א-ב-ח-ן' },
+    { hebrew: 'מְאַבְחֵן', hebrewPlain: 'מאבחן', transcription: 'меавхéн', translation: 'диагност (м.р.)', partOfSpeech: 'noun', root: 'א-ב-ח-ן' },
+  ],
+
+  // ר-ש-ם (рецепт, регистрация, запись)
+  'רשם': [
+    { hebrew: 'מִרְשָׁם', hebrewPlain: 'מרשם', transcription: 'миршáм', translation: 'рецепт (врача) (м.р.)', partOfSpeech: 'noun', root: 'ר-ש-ם' },
+    { hebrew: 'רְשִׁימָה', hebrewPlain: 'רשימה', transcription: 'решимá', translation: 'список, перечень (ж.р.)', partOfSpeech: 'noun', root: 'ר-ש-ם' },
+    { hebrew: 'הַרְשָׁמָה', hebrewPlain: 'הרשמה', transcription: 'hаршамá', translation: 'регистрация, запись на приём (ж.р.)', partOfSpeech: 'noun', root: 'ר-ש-ם' },
+    { hebrew: 'רִשּׁוּם', hebrewPlain: 'רישום', transcription: 'ришӯм', translation: 'запись в карточку, учёт (м.р.)', partOfSpeech: 'noun', root: 'ר-ש-ם' },
+    { hebrew: 'רָשׁוּם', hebrewPlain: 'רשום', transcription: 'рашӯм', translation: 'записанный, зарегистрированный', partOfSpeech: 'adjective', root: 'ר-ש-ם' },
+  ],
+
+  // פ-נ-ה (направление к врачу, обращение)
+  'פנה': [
+    { hebrew: 'הַפְנָיָה', hebrewPlain: 'הפניה', transcription: 'hафнайá', translation: 'направление (к врачу/на анализы) (ж.р.)', partOfSpeech: 'noun', root: 'פ-נ-ה' },
+    { hebrew: 'פְּנִיָּה', hebrewPlain: 'פנייה', transcription: 'пнийá', translation: 'обращение к специалисту, запрос (ж.р.)', partOfSpeech: 'noun', root: 'פ-נ-ה' },
+    { hebrew: 'פָּנוּי', hebrewPlain: 'פנוי', transcription: 'панӯй', translation: 'свободный, незанятый (о враче или времени)', partOfSpeech: 'adjective', root: 'פ-נ-ה' },
+    { hebrew: 'פְּנַאי', hebrewPlain: 'פנאי', transcription: 'пнай', translation: 'свободное время, приёмные часы (м.р.)', partOfSpeech: 'noun', root: 'פ-נ-ה' },
+  ],
+
+  // ח-ט-א (дезинфекция, стерилизация)
+  'חטא': [
+    { hebrew: 'חִטּוּי', hebrewPlain: 'חיטוי', transcription: 'хитӯй', translation: 'дезинфекция, обеззараживание (м.р.)', partOfSpeech: 'noun', root: 'ח-ט-א' },
+    { hebrew: 'חֹמֶר חִטּוּי', hebrewPlain: 'חומר חיטוי', transcription: 'хóмер хитӯй', translation: 'антисептик, дезинфицирующее средство (м.р.)', partOfSpeech: 'noun', root: 'ח-ט-א' },
+    { hebrew: 'מְחֻטָּא', hebrewPlain: 'מחוטא', transcription: 'мехутá', translation: 'продезинфицированный, стерильный', partOfSpeech: 'adjective', root: 'ח-ט-א' },
+  ],
+
+  // ח-ב-ש (перевязка, повязка, бинт)
+  'חבש': [
+    { hebrew: 'תַּחְבֹּשֶׁת', hebrewPlain: 'תחבושת', transcription: 'тахбóшет', translation: 'бинт, стерильная повязка (ж.р.)', partOfSpeech: 'noun', root: 'ח-ב-ש' },
+    { hebrew: 'חֲבִישָׁה', hebrewPlain: 'חבישה', transcription: 'хавишá', translation: 'перевязка раны (ж.р.)', partOfSpeech: 'noun', root: 'ח-ב-ש' },
+    { hebrew: 'חוֹבֵשׁ', hebrewPlain: 'חובש', transcription: 'ховéш', translation: 'санитар, фельдшер скорой помощи (м.р.)', partOfSpeech: 'noun', root: 'ח-ב-ש' },
+    { hebrew: 'חָבוּשׁ', hebrewPlain: 'חבוש', transcription: 'хавӯш', translation: 'забинтованный, с повязкой', partOfSpeech: 'adjective', root: 'ח-ב-ש' },
+  ],
+
+  // נ-ת-ח (операция, хирург)
+  'נתח': [
+    { hebrew: 'נִתּוּחַ', hebrewPlain: 'ניתוח', transcription: 'нитӯах', translation: 'хирургическая операция (м.р.)', partOfSpeech: 'noun', root: 'נ-ת-ח' },
+    { hebrew: 'מְנַתֵּחַ', hebrewPlain: 'מנתח', transcription: 'менатéах', translation: 'хирург (м.р.)', partOfSpeech: 'noun', root: 'נ-ת-ח' },
+    { hebrew: 'חֲדַר נִתּוּחַ', hebrewPlain: 'חדר ניתוח', transcription: 'хадáр нитӯах', translation: 'операционная комната (м.р.)', partOfSpeech: 'noun', root: 'נ-ת-ח' },
+    { hebrew: 'נִתּוּחִי', hebrewPlain: 'ניתוחי', transcription: 'нитухӣ', translation: 'хирургический, операционный', partOfSpeech: 'adjective', root: 'נ-ת-ח' },
+  ],
+
+  // ר-ד-ם (анестезия, наркоз)
+  'רדם': [
+    { hebrew: 'הַרְדָּמָה', hebrewPlain: 'הרדמה', transcription: 'hардамá', translation: 'наркоз, анестезия (ж.р.)', partOfSpeech: 'noun', root: 'ר-ד-ם' },
+    { hebrew: 'מַרְדִּים', hebrewPlain: 'מרדים', transcription: 'мардӣм', translation: 'врач-анестезиолог (м.р.)', partOfSpeech: 'noun', root: 'ר-ד-ם' },
+    { hebrew: 'הַרְדָּמָה מְקוֹמִית', hebrewPlain: 'הרדמה מקומית', transcription: 'hардамá мекомӣт', translation: 'местная анестезия (ж.р.)', partOfSpeech: 'noun', root: 'ר-ד-ם' },
+    { hebrew: 'הַרְדָּמָה כְּלָלִית', hebrewPlain: 'הרדמה כללית', transcription: 'hардамá клалӣт', translation: 'общий наркоз (ж.р.)', partOfSpeech: 'noun', root: 'ר-ד-ם' },
+    { hebrew: 'תַּרְדֶּמֶת', hebrewPlain: 'תרדמת', transcription: 'тардéмет', translation: 'кома, летаргический сон (ж.р.)', partOfSpeech: 'noun', root: 'ר-ד-ם' },
+    { hebrew: 'רָדוּם', hebrewPlain: 'רדום', transcription: 'радӯм', translation: 'сонный, дремлющий', partOfSpeech: 'adjective', root: 'ר-ד-ם' },
+  ],
+
+  // ח-ל-ם (выздоровление)
+  'חלם': [
+    { hebrew: 'הַחְלָמָה', hebrewPlain: 'החלמה', transcription: 'hахламá', translation: 'выздоровление, восстановление (ж.р.)', partOfSpeech: 'noun', root: 'ח-ל-ם' },
+    { hebrew: 'הַחְלָמָה מְהִירָה', hebrewPlain: 'החלמה מהירה', transcription: 'hахламá меhирá', translation: 'скорейшего выздоровления!', partOfSpeech: 'expression', root: 'ח-ל-ם' },
+    { hebrew: 'מַחְלִים', hebrewPlain: 'מחלים', transcription: 'махлӣм', translation: 'выздоравливающий', partOfSpeech: 'adjective', root: 'ח-ל-ם' },
+    { hebrew: 'בֵּית הַבְרָאָה', hebrewPlain: 'בית הבראה', transcription: 'бэйт hавраá', translation: 'санаторий, реабилитационный центр (м.р.)', partOfSpeech: 'noun', root: 'ח-ל-ם' },
+  ],
+
+  // ש-ע-ל (кашель)
+  'שעל': [
+    { hebrew: 'שִׁעוּל', hebrewPlain: 'שיעול', transcription: 'ши’ӯль', translation: 'кашель (м.р.)', partOfSpeech: 'noun', root: 'ש-ע-ל' },
+    { hebrew: 'סִירוֹפּ לְשִׁעוּל', hebrewPlain: 'סירופ לשיעול', transcription: 'сирóп леши’ӯль', translation: 'сироп от кашля (м.р.)', partOfSpeech: 'noun', root: 'ש-ע-ל' },
+    { hebrew: 'שַׁעֲלֶת', hebrewPlain: 'שעלת', transcription: 'ша’éлет', translation: 'коклюш (ж.р.)', partOfSpeech: 'noun', root: 'ש-ע-ל' },
+  ],
+
+  // ק-ו-א (рвота)
+  'קוא': [
+    { hebrew: 'הַקָאָה', hebrewPlain: 'הקאה', transcription: 'hакаá', translation: 'рвота (ж.р.)', partOfSpeech: 'noun', root: 'ק-ו-א' },
+    { hebrew: 'בְּחִילָה', hebrewPlain: 'בחילה', transcription: 'бхилá', translation: 'тошнота (ж.р.)', partOfSpeech: 'noun', root: 'ק-ו-א' },
+    { hebrew: 'שַׂקִּית הַקָאָה', hebrewPlain: 'שקית הקאה', transcription: 'сакӣт hакаá', translation: 'пакет при тошноте (ж.р.)', partOfSpeech: 'noun', root: 'ק-ו-א' },
+  ],
+  'קיא': [
+    { hebrew: 'הַקָאָה', hebrewPlain: 'הקאה', transcription: 'hакаá', translation: 'рвота (ж.р.)', partOfSpeech: 'noun', root: 'ק-ו-א' },
+    { hebrew: 'בְּחִילָה', hebrewPlain: 'בחילה', transcription: 'бхилá', translation: 'тошнота (ж.р.)', partOfSpeech: 'noun', root: 'ק-ו-א' },
+  ],
+
+  // ==========================================
+  // СЕМЬИ КОРНЕЙ: БУХГАЛТЕРИЯ И ФИНАНСЫ (הנהלת חשבונות)
+  // ==========================================
+
+  // ח-ש-ב (счёт, бухгалтер, калькулятор)
+  'חשב': [
+    { hebrew: 'חֶשְׁבּוֹן', hebrewPlain: 'חשבון', transcription: 'хешбóн', translation: 'счёт, расчёт, баланс (м.р.)', partOfSpeech: 'noun', root: 'ח-ש-ב' },
+    { hebrew: 'רוֹאֵה חֶשְׁבּוֹן', hebrewPlain: 'רואה חשבון', transcription: 'ро’é хешбóн', translation: 'бухгалтер-аудитор (CPA) (м.р.)', partOfSpeech: 'noun', root: 'ח-ש-ב' },
+    { hebrew: 'הַנְהָלַת חֶשְׁבּוֹנוֹת', hebrewPlain: 'הנהלת חשבונות', transcription: 'hанhалáт хешбонóт', translation: 'бухгалтерский учёт (ж.р.)', partOfSpeech: 'noun', root: 'ח-ש-ב' },
+    { hebrew: 'מַחְשְׁבוֹן', hebrewPlain: 'מחשבון', transcription: 'махшевóн', translation: 'калькулятор (м.р.)', partOfSpeech: 'noun', root: 'ח-ש-ב' },
+    { hebrew: 'תַּחְשִׁיב', hebrewPlain: 'תחשיב', transcription: 'тахшӣв', translation: 'калькуляция, смета расходов (м.р.)', partOfSpeech: 'noun', root: 'ח-ש-ב' },
+    { hebrew: 'חֶשְׁבּוֹנִי', hebrewPlain: 'חשבוני', transcription: 'хешбонӣ', translation: 'арифметический, расчётный', partOfSpeech: 'adjective', root: 'ח-ש-ב' },
+  ],
+
+  // ח-י-ב (дебет, долг, обязательство)
+  'חיב': [
+    { hebrew: 'חִיּוּב', hebrewPlain: 'חיוב', transcription: 'хийӯв', translation: 'дебет, списание средств, начисление долга (м.р.)', partOfSpeech: 'noun', root: 'ח-י-ב' },
+    { hebrew: 'חוֹב', hebrewPlain: 'חוב', transcription: 'хов', translation: 'задолженность, долг (м.р.)', partOfSpeech: 'noun', root: 'ח-י-ב' },
+    { hebrew: 'חַיָּב', hebrewPlain: 'חייב', transcription: 'хайáв', translation: 'должник, обязанный платить', partOfSpeech: 'adjective', root: 'ח-י-ב' },
+    { hebrew: 'הִתְחַיְּבוּת', hebrewPlain: 'התחייבות', transcription: 'hитхайвеӯт', translation: 'финансовое обязательство (ж.р.)', partOfSpeech: 'noun', root: 'ח-י-ב' },
+  ],
+
+  // ז-כ-ה (кредит, льгота, возврат)
+  'זכה': [
+    { hebrew: 'זִכּוּי', hebrewPlain: 'זיכוי', transcription: 'зику́й', translation: 'кредит, возврат денег, зачисление (м.р.)', partOfSpeech: 'noun', root: 'ז-כ-ה' },
+    { hebrew: 'נְקֻדַּת זִכּוּי', hebrewPlain: 'נקודת זיכוי', transcription: 'некудáт зику́й', translation: 'льготный налоговый балл (ж.р.)', partOfSpeech: 'noun', root: 'ז-כ-ה' },
+    { hebrew: 'זְכוּת', hebrewPlain: 'זכות', transcription: 'зхут', translation: 'право, положительный баланс (ж.р.)', partOfSpeech: 'noun', root: 'ז-כ-ה' },
+    { hebrew: 'זַכַּאי', hebrewPlain: 'זכאי', transcription: 'закáй', translation: 'имеющий право на льготу/выплату', partOfSpeech: 'adjective', root: 'ז-כ-ה' },
+  ],
+
+  // פ-ו-ק (эмиссия, выпуск счёта)
+  'פוק': [
+    { hebrew: 'הֲפָקָה', hebrewPlain: 'הפקה', transcription: 'hафакá', translation: 'генерация документа, эмиссия (ж.р.)', partOfSpeech: 'noun', root: 'פ-ו-ק' },
+    { hebrew: 'מֵפִיק', hebrewPlain: 'מפיק', transcription: 'мефӣк', translation: 'составитель отчёта, производитель (м.р.)', partOfSpeech: 'noun', root: 'פ-ו-ק' },
+    { hebrew: 'תְּפוּקָה', hebrewPlain: 'תפוקה', transcription: 'тфукá', translation: 'производительность, выработка (ж.р.)', partOfSpeech: 'noun', root: 'פ-ו-ק' },
+  ],
+
+  // ק-ז-ז (зачёт налога, сальдирование)
+  'קזז': [
+    { hebrew: 'קִזּוּז', hebrewPlain: 'קיזוז', transcription: 'кизӯз', translation: 'взаимозачёт, сальдирование, зачёт налога (м.р.)', partOfSpeech: 'noun', root: 'ק-ז-ז' },
+    { hebrew: 'מְקֻזָּז', hebrewPlain: 'מקוזז', transcription: 'мекузáз', translation: 'зачтённый, сальдированный', partOfSpeech: 'adjective', root: 'ק-ז-ז' },
+  ],
+
+  // נ-כ-ה (вычет, удержание)
+  'נכה': [
+    { hebrew: 'נִכּוּי', hebrewPlain: 'ניכוי', transcription: 'нику́й', translation: 'вычет, удержание из зарплаты (м.р.)', partOfSpeech: 'noun', root: 'נ-כ-ה' },
+    { hebrew: 'נִכּוּי מַס בַּמָּקוֹר', hebrewPlain: 'ניכוי מס במקור', transcription: 'нику́й мас бамакóр', translation: 'удержание налога у источника выплаты (м.р.)', partOfSpeech: 'noun', root: 'נ-כ-ה' },
+  ],
+
+  // ג-ב-ה (инкассация, сбор платежей)
+  'גבה': [
+    { hebrew: 'גְּבִיָּה', hebrewPlain: 'גבייה', transcription: 'гвийá', translation: 'сбор платежей, взыскание долгов (ж.р.)', partOfSpeech: 'noun', root: 'ג-ב-ה' },
+    { hebrew: 'גּוֹבֶה', hebrewPlain: 'גובה', transcription: 'говé', translation: 'сборщик платежей, инкассатор (м.р.)', partOfSpeech: 'noun', root: 'ג-ב-ה' },
+    { hebrew: 'הוֹצָאָה לַפּוֹעַל', hebrewPlain: 'הוצאה לפועל', transcription: 'hоцаá лапóаль', translation: 'служба судебных исполнителей (ж.р.)', partOfSpeech: 'noun', root: 'ג-ב-ה' },
+  ],
+
+  // א-ז-ן (баланс)
+  'אזן': [
+    { hebrew: 'מַאֲזָן', hebrewPlain: 'מאזן', transcription: 'маазáн', translation: 'бухгалтерский баланс (м.р.)', partOfSpeech: 'noun', root: 'א-ז-ן' },
+    { hebrew: 'אִזּוּן', hebrewPlain: 'איזון', transcription: 'изӯн', translation: 'балансирование, уравновешивание (м.р.)', partOfSpeech: 'noun', root: 'א-ז-ן' },
+    { hebrew: 'מְאֻזָּן', hebrewPlain: 'מאוזן', transcription: 'меузáн', translation: 'сбалансированный', partOfSpeech: 'adjective', root: 'א-ז-ן' },
+    { hebrew: 'מֹאזְנַיִם', hebrewPlain: 'מאזניים', transcription: 'мозна́йим', translation: 'весы (дв.ч., м.р.)', partOfSpeech: 'noun', root: 'א-ז-ן' },
+  ],
+
+  // פ-ק-ד (депозит, банковский служащий)
+  'פקד': [
+    { hebrew: 'פִּקָּדוֹן', hebrewPlain: 'פיקדון', transcription: 'пикадóн', translation: 'банковский депозит, вклад, залог (м.р.)', partOfSpeech: 'noun', root: 'פ-ק-ד' },
+    { hebrew: 'הַפְקָדָה', hebrewPlain: 'הפקדה', transcription: 'hафкадá', translation: 'внесение средств на счёт, депозит (ж.р.)', partOfSpeech: 'noun', root: 'פ-ק-ד' },
+    { hebrew: 'פְּקִיד בַּנְק', hebrewPlain: 'פקיד בנק', transcription: 'пкӣд банк', translation: 'банковский служащий (м.р.)', partOfSpeech: 'noun', root: 'פ-ק-ד' },
+    { hebrew: 'תַּפְקִיד', hebrewPlain: 'תפקיד', transcription: 'тафкӣд', translation: 'должность, обязанность, функция (м.р.)', partOfSpeech: 'noun', root: 'פ-ק-ד' },
+    { hebrew: 'פְּקֻדַּת יוֹמָן', hebrewPlain: 'פקודת יומן', transcription: 'пкудáт йомáн', translation: 'бухгалтерская проводка (ж.р.)', partOfSpeech: 'noun', root: 'פ-ק-ד' },
+  ],
 };

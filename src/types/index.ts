@@ -452,6 +452,8 @@ export type ThematicDeckCategory =
   | 'caregiver'   // מטפלת — профессиональный уход за пожилыми
   | 'autoRepair'  // מוסך / רכב — автомастерская и автомеханика
   | 'kindergarten' // גן ילדים — воспитатель и детский сад
+  | 'doctor'      // רופא / מרפאה — медицина и приём врача
+  | 'accounting'  // הנהלת חשבונות — бухгалтерия, налоги и финансы
   | 'other';
 
 export interface ThematicDeck {

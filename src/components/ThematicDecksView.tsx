@@ -39,6 +39,10 @@ import {
   Wrench,
   Baby,
   Car,
+  Calculator,
+  Receipt,
+  Activity,
+  CreditCard,
 } from 'lucide-react';
 import { ThematicDeck, UserProfile, Word, VerbConjugation } from '@/types';
 import {
@@ -82,7 +86,7 @@ export const ThematicDecksView: React.FC<ThematicDecksViewProps> = ({
   initialDeckId,
   onCloseInitialDeck,
 }) => {
-  type DeckFilter = 'all' | 'alef' | 'bet' | 'verbs' | 'food' | 'body' | 'city' | 'slang' | 'caregiver' | 'autoRepair' | 'kindergarten';
+  type DeckFilter = 'all' | 'alef' | 'bet' | 'verbs' | 'food' | 'body' | 'city' | 'slang' | 'caregiver' | 'autoRepair' | 'kindergarten' | 'doctor' | 'accounting';
   const [filter, setFilter] = useState<DeckFilter>('all');
   const [speakingWordId, setSpeakingWordId] = useState<string | null>(null);
   const { isVisible: isBetaBannerVisible, dismiss: dismissBetaBanner } = useBannerCooldown('thematic_decks_beta');
@@ -175,6 +179,14 @@ export const ThematicDecksView: React.FC<ThematicDecksViewProps> = ({
         return <Landmark className={className} />;
       case 'Stethoscope':
         return <Stethoscope className={className} />;
+      case 'Activity':
+        return <Activity className={className} />;
+      case 'Calculator':
+        return <Calculator className={className} />;
+      case 'Receipt':
+        return <Receipt className={className} />;
+      case 'CreditCard':
+        return <CreditCard className={className} />;
       case 'Sparkles':
         return <Sparkles className={className} />;
       case 'Radio':
@@ -201,6 +213,8 @@ export const ThematicDecksView: React.FC<ThematicDecksViewProps> = ({
       if (filter === 'caregiver') return deck.category === 'caregiver';
       if (filter === 'autoRepair') return deck.category === 'autoRepair';
       if (filter === 'kindergarten') return deck.category === 'kindergarten';
+      if (filter === 'doctor') return deck.category === 'doctor';
+      if (filter === 'accounting') return deck.category === 'accounting';
       return deck.category === filter;
     });
   }, [filter]);
@@ -532,6 +546,28 @@ export const ThematicDecksView: React.FC<ThematicDecksViewProps> = ({
         >
           👶 Детский сад
         </button>
+        <button
+          type="button"
+          onClick={() => setFilter('doctor')}
+          className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition cursor-pointer ${
+            filter === 'doctor'
+              ? 'bg-cyan-600 text-white shadow-xs'
+              : 'bg-cyan-50 dark:bg-cyan-950/50 text-cyan-700 dark:text-cyan-300 hover:bg-cyan-100'
+          }`}
+        >
+          🏥 Врач
+        </button>
+        <button
+          type="button"
+          onClick={() => setFilter('accounting')}
+          className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition cursor-pointer ${
+            filter === 'accounting'
+              ? 'bg-emerald-600 text-white shadow-xs'
+              : 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100'
+          }`}
+        >
+          💼 Бухгалтер
+        </button>
       </div>
 
       {/* Компактный каталог колод */}
@@ -542,6 +578,8 @@ export const ThematicDecksView: React.FC<ThematicDecksViewProps> = ({
           const isCaregiver = deck.category === 'caregiver';
           const isAutoRepair = deck.category === 'autoRepair';
           const isKindergarten = deck.category === 'kindergarten';
+          const isDoctor = deck.category === 'doctor';
+          const isAccounting = deck.category === 'accounting';
 
           return (
             <div
@@ -561,9 +599,13 @@ export const ThematicDecksView: React.FC<ThematicDecksViewProps> = ({
                         ? 'bg-amber-100 dark:bg-amber-900/50 text-amber-600 dark:text-amber-400'
                         : isKindergarten
                           ? 'bg-rose-100 dark:bg-rose-900/50 text-rose-600 dark:text-rose-400'
-                          : isAlef
-                            ? 'bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400'
-                            : 'bg-purple-100 dark:bg-purple-900/50 text-purple-600 dark:text-purple-400'
+                          : isDoctor
+                            ? 'bg-cyan-100 dark:bg-cyan-900/50 text-cyan-600 dark:text-cyan-400'
+                            : isAccounting
+                              ? 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400'
+                              : isAlef
+                                ? 'bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400'
+                                : 'bg-purple-100 dark:bg-purple-900/50 text-purple-600 dark:text-purple-400'
                   }`}
                 >
                   {renderIcon(deck.icon, 'w-5 h-5')}
@@ -597,9 +639,13 @@ export const ThematicDecksView: React.FC<ThematicDecksViewProps> = ({
                             ? 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200/60 dark:border-amber-800'
                             : isKindergarten
                               ? 'bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border border-rose-200/60 dark:border-rose-800'
-                              : isAlef
-                                ? 'bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200/60 dark:border-blue-800'
-                                : 'bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border border-purple-200/60 dark:border-purple-800'
+                              : isDoctor
+                                ? 'bg-cyan-50 dark:bg-cyan-950/60 text-cyan-700 dark:text-cyan-300 border border-cyan-200/60 dark:border-cyan-800'
+                                : isAccounting
+                                  ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-800'
+                                  : isAlef
+                                    ? 'bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200/60 dark:border-blue-800'
+                                    : 'bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border border-purple-200/60 dark:border-purple-800'
                       }`}
                     >
                       {isCaregiver
@@ -608,9 +654,13 @@ export const ThematicDecksView: React.FC<ThematicDecksViewProps> = ({
                           ? '🔧 Автомастерская'
                           : isKindergarten
                             ? '👶 Детский сад'
-                            : isAlef
-                              ? 'Алеф (א)'
-                              : 'Бет (ב)'}
+                            : isDoctor
+                              ? '🏥 Врач'
+                              : isAccounting
+                                ? '💼 Бухгалтер'
+                                : isAlef
+                                  ? 'Алеф (א)'
+                                  : 'Бет (ב)'}
                     </span>
                     <span>•</span>
                     <span>{deck.words.length} слов</span>
@@ -686,9 +736,19 @@ export const ThematicDecksView: React.FC<ThematicDecksViewProps> = ({
               <div className="flex items-center gap-2 sm:gap-3 min-w-0">
                 <div
                   className={`w-9 h-9 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl flex items-center justify-center shrink-0 ${
-                    listModalDeck.level === 'alef'
-                      ? 'bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400'
-                      : 'bg-purple-100 dark:bg-purple-900/50 text-purple-600 dark:text-purple-400'
+                    listModalDeck.category === 'caregiver'
+                      ? 'bg-teal-100 dark:bg-teal-900/50 text-teal-600 dark:text-teal-400'
+                      : listModalDeck.category === 'autoRepair'
+                        ? 'bg-amber-100 dark:bg-amber-900/50 text-amber-600 dark:text-amber-400'
+                        : listModalDeck.category === 'kindergarten'
+                          ? 'bg-rose-100 dark:bg-rose-900/50 text-rose-600 dark:text-rose-400'
+                          : listModalDeck.category === 'doctor'
+                            ? 'bg-cyan-100 dark:bg-cyan-900/50 text-cyan-600 dark:text-cyan-400'
+                            : listModalDeck.category === 'accounting'
+                              ? 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400'
+                              : listModalDeck.level === 'alef'
+                                ? 'bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400'
+                                : 'bg-purple-100 dark:bg-purple-900/50 text-purple-600 dark:text-purple-400'
                   }`}
                 >
                   {renderIcon(listModalDeck.icon, 'w-5 h-5 sm:w-6 sm:h-6')}
@@ -696,7 +756,17 @@ export const ThematicDecksView: React.FC<ThematicDecksViewProps> = ({
                 <div className="min-w-0">
                   <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
                     <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300">
-                      Уровень {listModalDeck.level === 'alef' ? 'Алеф (א)' : 'Бет (ב)'}
+                      {listModalDeck.category === 'caregiver'
+                        ? '👩‍⚕️ Метапелет'
+                        : listModalDeck.category === 'autoRepair'
+                          ? '🔧 Автомастерская'
+                          : listModalDeck.category === 'kindergarten'
+                            ? '👶 Детский сад'
+                            : listModalDeck.category === 'doctor'
+                              ? '🏥 Врач'
+                              : listModalDeck.category === 'accounting'
+                                ? '💼 Бухгалтер'
+                                : `Уровень ${listModalDeck.level === 'alef' ? 'Алеф (א)' : listModalDeck.level === 'bet' ? 'Бет (ב)' : 'Все'}`}
                     </span>
                     <span className="text-[11px] sm:text-xs text-slate-500 font-medium">
                       {listModalDeck.words.length} слов
