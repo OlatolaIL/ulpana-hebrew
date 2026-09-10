@@ -28,6 +28,7 @@ import { loadUserProfile, getFirstIncompleteLessonTab } from '@/lib/storage';
 import { isStageAlwaysFree } from '@/lib/permissions';
 import { TierBadge } from './TierBadge';
 import { useBannerCooldown } from '@/lib/useBannerCooldown';
+import { stripNikkud } from '@/lib/transcription';
 
 export type LessonTab = 'theory' | 'vocab' | 'exercises' | 'chat' | 'phone';
 
@@ -277,7 +278,12 @@ export const LessonView: React.FC<LessonViewProps> = ({
         {activeTab === 'vocab' && (
           <LessonVocabulary
             lessonId={lesson.id}
-            words={lesson.vocabulary}
+            words={(() => {
+              const customLessonWords = (userProfile.personalVocabulary || []).filter(
+                (w) => w.lessonId === lesson.id && w.isUserAdded && !lesson.vocabulary.some((lv) => stripNikkud(lv.hebrew) === stripNikkud(w.hebrew))
+              );
+              return [...lesson.vocabulary, ...customLessonWords];
+            })()}
             userProfile={userProfile}
             onCompleted={() => setActiveTab('exercises')}
             onStartPractice={(wordsToTrain) => onStartFlashcards(wordsToTrain, lesson.id)}

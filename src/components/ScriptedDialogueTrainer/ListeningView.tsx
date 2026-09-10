@@ -1,7 +1,7 @@
 import React from 'react';
 import { Volume2, CheckCircle2, ArrowRight, BookOpen } from 'lucide-react';
 import { ScriptedDialogue, ScriptedDialogueTurn, GenderVariant, DialogueParticipant } from '@/types';
-import { stripNikkud } from '@/lib/transcription';
+import { stripNikkud, tokenizeText, TextToken } from '@/lib/transcription';
 
 interface ListeningViewProps {
   dialogue: ScriptedDialogue;
@@ -21,6 +21,7 @@ interface ListeningViewProps {
   onOpenWordsDrawer: () => void;
   onCompleteListenStage: () => void;
   onSelectRole: () => void;
+  onWordClick?: (token: TextToken, fullSentence: string) => void;
 }
 
 export const ListeningView: React.FC<ListeningViewProps> = ({
@@ -41,6 +42,7 @@ export const ListeningView: React.FC<ListeningViewProps> = ({
   onOpenWordsDrawer,
   onCompleteListenStage,
   onSelectRole,
+  onWordClick,
 }) => {
   return (
     <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
@@ -109,7 +111,22 @@ export const ListeningView: React.FC<ListeningViewProps> = ({
                   dir="rtl"
                   className="text-base sm:text-lg font-bold font-hebrew text-zinc-900 dark:text-zinc-50 leading-relaxed mb-1"
                 >
-                  {showNikkud ? variant.hebrew : stripNikkud(variant.hebrew)}
+                  {tokenizeText(variant.hebrew).map((token) => {
+                    const displayWord = showNikkud ? token.text : stripNikkud(token.text);
+                    if (token.isHebrew && onWordClick) {
+                      return (
+                        <span
+                          key={token.id}
+                          onClick={() => onWordClick(token, variant.hebrew)}
+                          className="inline-block px-0.5 py-0.5 rounded-md hover:text-blue-600 dark:hover:text-blue-400 hover:underline hover:bg-blue-100/70 dark:hover:bg-blue-900/50 cursor-pointer transition select-text active:scale-95"
+                          title="Нажмите для перевода и словарика"
+                        >
+                          {displayWord}
+                        </span>
+                      );
+                    }
+                    return <span key={token.id}>{token.text}</span>;
+                  })}
                 </div>
 
                 {/* Транскрипция */}

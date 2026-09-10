@@ -409,6 +409,12 @@ export const LessonVocabulary: React.FC<LessonVocabularyProps> = ({
                       <div className="flex items-center gap-1.5 flex-wrap">
                         {getPosBadge(currentWord.partOfSpeech)}
                         {getGenderBadge(currentWord.gender)}
+                        {currentWord.isUserAdded && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-100 dark:bg-amber-950/70 text-amber-800 dark:text-amber-200 border border-amber-300 dark:border-amber-800">
+                            <span>👑</span>
+                            <span>{isUlpan ? 'נוֹסַף עַל יָדְךָ' : 'Добавлено вами'}</span>
+                          </span>
+                        )}
                       </div>
 
                       <button
@@ -842,6 +848,12 @@ export const LessonVocabulary: React.FC<LessonVocabularyProps> = ({
                       <div className="flex items-center gap-1.5 flex-wrap">
                         {getPosBadge(word.partOfSpeech)}
                         {getGenderBadge(word.gender)}
+                        {word.isUserAdded && (
+                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[9px] font-bold bg-amber-100 dark:bg-amber-950/70 text-amber-800 dark:text-amber-200 border border-amber-300 dark:border-amber-800">
+                            <span>👑</span>
+                            <span>{isUlpan ? 'נוֹסַף' : 'Своё'}</span>
+                          </span>
+                        )}
                       </div>
 
                       <div className="flex items-center gap-1">

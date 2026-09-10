@@ -10,6 +10,7 @@ import { lookupOfflineWord } from '@/lib/ulpanDictionary';
 import { findOfflineVerbConjugation } from '@/lib/verbConjugations';
 import { VerbConjugationView } from '@/components/VerbConjugationView';
 import { useModalHistory } from '@/lib/useHistoryState';
+import { TierBadge } from '@/components/TierBadge';
 
 interface WordLookupModalProps {
   word: string;
@@ -18,6 +19,7 @@ interface WordLookupModalProps {
   onClose: () => void;
   userProfile: UserProfile;
   onWordAdded?: (word: Word) => void;
+  lessonId?: number;
 }
 
 export const WordLookupModal: React.FC<WordLookupModalProps> = ({
@@ -27,6 +29,7 @@ export const WordLookupModal: React.FC<WordLookupModalProps> = ({
   onClose,
   userProfile,
   onWordAdded,
+  lessonId,
 }) => {
   const [loading, setLoading] = useState(false);
   const [viewMode, setViewMode] = useState<'summary' | 'conjugation'>('summary');
@@ -149,7 +152,7 @@ export const WordLookupModal: React.FC<WordLookupModalProps> = ({
       translation: wordData.translation || '',
       partOfSpeech: (wordData.partOfSpeech as any) || 'other',
       root: wordData.root || undefined,
-      lessonId: 0,
+      lessonId: lessonId || 0,
       exampleSentence: wordData.exampleSentence || undefined,
     });
     setIsAdded(true);
@@ -380,12 +383,31 @@ export const WordLookupModal: React.FC<WordLookupModalProps> = ({
                       {isAdded ? (
                         <>
                           <Check className="w-5 h-5" />
-                          <span>В вашем словарике</span>
+                          <span>
+                            {lessonId
+                              ? userProfile.ulpanMode
+                                ? `בַּמִּלּוֹן שֶׁל שִׁיעוּר ${lessonId}`
+                                : `В словарике урока ${lessonId}`
+                              : userProfile.ulpanMode
+                              ? 'בַּמִּלּוֹן שֶׁלְּךָ'
+                              : 'В вашем словарике'}
+                          </span>
                         </>
                       ) : (
                         <>
                           <Plus className="w-5 h-5" />
-                          <span>Добавить в мой словарик</span>
+                          <span>
+                            {lessonId
+                              ? userProfile.ulpanMode
+                                ? `הוֹסֵף לְמִלּוֹן שִׁיעוּר ${lessonId}`
+                                : `Добавить в словарик урока ${lessonId}`
+                              : userProfile.ulpanMode
+                              ? 'הוֹסֵף לַמִּלּוֹן שֶׁלִּי'
+                              : 'Добавить в мой словарик'}
+                          </span>
+                          {lessonId && (
+                            <TierBadge tier="pro-beta" size="xs" isUlpan={userProfile.ulpanMode} className="ml-1" />
+                          )}
                         </>
                       )}
                     </button>

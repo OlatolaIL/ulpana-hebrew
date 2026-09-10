@@ -21,7 +21,7 @@ import {
   DialogueParticipant,
   DialogueEvaluationResult,
 } from '@/types';
-import { stripNikkud } from '@/lib/transcription';
+import { stripNikkud, tokenizeText, TextToken } from '@/lib/transcription';
 import { speakHebrew } from '@/lib/speech';
 
 interface PracticeViewProps {
@@ -43,6 +43,7 @@ interface PracticeViewProps {
   showNikkud: boolean;
   showTranscription: boolean;
   totalAvailableWordsCount: number;
+  onWordClick?: (token: TextToken, fullSentence: string) => void;
   onOpenWordsDrawer: () => void;
   showHint: boolean;
   setShowHint: React.Dispatch<React.SetStateAction<boolean>>;
@@ -94,6 +95,7 @@ export const PracticeView: React.FC<PracticeViewProps> = ({
   startVoiceRecording,
   isRecording,
   isOpponentSpeaking,
+  onWordClick,
 }) => {
   return (
     <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
@@ -197,7 +199,22 @@ export const PracticeView: React.FC<PracticeViewProps> = ({
                       dir="rtl"
                       className="text-base sm:text-lg font-bold font-hebrew text-zinc-900 dark:text-zinc-50 leading-relaxed mb-0.5"
                     >
-                      {showNikkud ? variant.hebrew : stripNikkud(variant.hebrew)}
+                      {tokenizeText(variant.hebrew).map((token) => {
+                        const displayWord = showNikkud ? token.text : stripNikkud(token.text);
+                        if (token.isHebrew && onWordClick) {
+                          return (
+                            <span
+                              key={token.id}
+                              onClick={() => onWordClick(token, variant.hebrew)}
+                              className="inline-block px-0.5 py-0.5 rounded-md hover:text-blue-600 dark:hover:text-blue-400 hover:underline hover:bg-blue-100/70 dark:hover:bg-blue-900/50 cursor-pointer transition select-text active:scale-95"
+                              title="Нажмите для перевода и словарика"
+                            >
+                              {displayWord}
+                            </span>
+                          );
+                        }
+                        return <span key={token.id}>{token.text}</span>;
+                      })}
                     </div>
                     {showTranscription && (
                       <div className="text-xs text-blue-600 dark:text-blue-400 font-medium mb-1">
@@ -276,7 +293,22 @@ export const PracticeView: React.FC<PracticeViewProps> = ({
                 </button>
               </div>
               <div dir="rtl" className="text-sm font-bold font-hebrew text-zinc-900 dark:text-zinc-100">
-                {getTurnText(dialogue.turns[practiceTurnIndex]).hebrew}
+                {tokenizeText(getTurnText(dialogue.turns[practiceTurnIndex]).hebrew).map((token) => {
+                  const displayWord = showNikkud ? token.text : stripNikkud(token.text);
+                  if (token.isHebrew && onWordClick) {
+                    return (
+                      <span
+                        key={token.id}
+                        onClick={() => onWordClick(token, getTurnText(dialogue.turns[practiceTurnIndex]).hebrew)}
+                        className="inline-block px-0.5 py-0.5 rounded-md hover:text-blue-600 dark:hover:text-blue-400 hover:underline hover:bg-amber-100 dark:hover:bg-amber-900/50 cursor-pointer transition select-text active:scale-95"
+                        title="Нажмите для перевода и словарика"
+                      >
+                        {displayWord}
+                      </span>
+                    );
+                  }
+                  return <span key={token.id}>{token.text}</span>;
+                })}
               </div>
               <div className="text-[11px] text-amber-700 dark:text-amber-300">
                 {getTurnText(dialogue.turns[practiceTurnIndex]).transcription}

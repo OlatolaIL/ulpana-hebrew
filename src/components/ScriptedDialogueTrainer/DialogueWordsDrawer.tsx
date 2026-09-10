@@ -68,6 +68,11 @@ export const DialogueWordsDrawer: React.FC<DialogueWordsDrawerProps> = ({
                 К диалогу
               </span>
             )}
+            {word.partOfSpeech === 'expression' && (
+              <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-md bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/25 shrink-0">
+                {userProfile.ulpanMode ? 'בִּטּוּי' : 'Разговорное'}
+              </span>
+            )}
             {word.gender && (
               <span className="text-[10px] text-zinc-400 font-mono">
                 ({word.gender === 'm' ? 'ז' : 'נ'})

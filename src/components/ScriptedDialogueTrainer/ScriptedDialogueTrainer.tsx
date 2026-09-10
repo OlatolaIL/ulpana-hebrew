@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { ScriptedDialogueTrainerProps } from './types';
 import { useScriptedDialogue } from './useScriptedDialogue';
 import { DialogueHeader } from './DialogueHeader';
@@ -9,6 +9,8 @@ import { RoleSelectView } from './RoleSelectView';
 import { PracticeView } from './PracticeView';
 import { CompletedView } from './CompletedView';
 import { DialogueWordsDrawer } from './DialogueWordsDrawer';
+import { WordLookupModal } from '../WordLookupModal';
+import { TextToken } from '@/lib/transcription';
 
 export const ScriptedDialogueTrainer: React.FC<ScriptedDialogueTrainerProps> = ({
   lesson,
@@ -17,6 +19,14 @@ export const ScriptedDialogueTrainer: React.FC<ScriptedDialogueTrainerProps> = (
   onWordAdded,
   onGoToNextTab,
 }) => {
+  const [selectedLookupWord, setSelectedLookupWord] = useState<string | null>(null);
+  const [lookupContext, setLookupContext] = useState<string>('');
+
+  const handleWordClick = (token: TextToken, fullSentence: string) => {
+    if (!token.isHebrew || !token.cleanText) return;
+    setSelectedLookupWord(token.cleanText);
+    setLookupContext(fullSentence);
+  };
   const {
     dialogue,
     userGender,
@@ -126,6 +136,7 @@ export const ScriptedDialogueTrainer: React.FC<ScriptedDialogueTrainerProps> = (
           onOpenWordsDrawer={() => setIsWordsDrawerOpen(true)}
           onCompleteListenStage={handleCompleteListenStage}
           onSelectRole={() => setMode('select_role')}
+          onWordClick={handleWordClick}
         />
       )}
 
@@ -175,6 +186,7 @@ export const ScriptedDialogueTrainer: React.FC<ScriptedDialogueTrainerProps> = (
           startVoiceRecording={startVoiceRecording}
           isRecording={isRecording}
           isOpponentSpeaking={isOpponentSpeaking}
+          onWordClick={handleWordClick}
         />
       )}
 
@@ -211,6 +223,22 @@ export const ScriptedDialogueTrainer: React.FC<ScriptedDialogueTrainerProps> = (
         speechRate={speechRate}
         mounted={mounted}
       />
+
+      {/* Модальное окно перевода слова по клику (PRO-словарь урока) */}
+      {selectedLookupWord && (
+        <WordLookupModal
+          word={selectedLookupWord}
+          context={lookupContext}
+          isOpen={Boolean(selectedLookupWord)}
+          onClose={() => setSelectedLookupWord(null)}
+          userProfile={userProfile}
+          lessonId={lesson.id}
+          onWordAdded={(newWord) => {
+            if (onWordAdded) onWordAdded(newWord);
+            handleAddWordToDict(newWord);
+          }}
+        />
+      )}
     </div>
   );
 };

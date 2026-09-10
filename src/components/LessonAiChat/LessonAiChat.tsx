@@ -357,6 +357,7 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
           isOpen={!!selectedWord}
           onClose={() => setSelectedWord(null)}
           userProfile={userProfile}
+          lessonId={lesson.id}
           onWordAdded={onWordAdded}
         />
       )}
