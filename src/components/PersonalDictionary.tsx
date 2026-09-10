@@ -34,6 +34,7 @@ import { findOfflineVerbConjugation } from '@/lib/verbConjugations';
 import { VerbConjugationView } from '@/components/VerbConjugationView';
 import { THEMATIC_DECKS } from '@/data/thematicDecks';
 import { ThematicDecksView } from './ThematicDecksView';
+import { LessonFlashcardsView } from './LessonFlashcardsView';
 import { useModalHistory } from '@/lib/useHistoryState';
 
 interface PersonalDictionaryProps {
@@ -43,12 +44,14 @@ interface PersonalDictionaryProps {
     words: Word[],
     title?: string,
     mode?: 'flip' | 'builder' | 'listening',
-    shuffle?: boolean
+    shuffle?: boolean,
+    direction?: 'he-ru' | 'ru-he'
   ) => void;
   onOpenMultiLessonSetup?: () => void;
+  initialTab?: DictTab;
 }
 
-type DictTab = 'personal' | 'thematic' | 'lessons';
+type DictTab = 'thematic' | 'lessons' | 'personal';
 type MasteryFilter = 'all' | 'due' | 'learning' | 'mastered';
 
 export const PersonalDictionary: React.FC<PersonalDictionaryProps> = ({
@@ -56,8 +59,18 @@ export const PersonalDictionary: React.FC<PersonalDictionaryProps> = ({
   onUpdateProfile,
   onStartPractice,
   onOpenMultiLessonSetup,
+  initialTab,
 }) => {
-  const [activeTab, setActiveTab] = useState<DictTab>('personal');
+  const [activeTab, setActiveTab] = useState<DictTab>(() => {
+    if (initialTab) return initialTab;
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('ulpana_dict_tab');
+      if (saved === 'thematic' || saved === 'lessons' || saved === 'personal') {
+        return saved;
+      }
+    }
+    return 'thematic';
+  });
   const [searchQuery, setSearchQuery] = useState('');
   const [masteryFilter, setMasteryFilter] = useState<MasteryFilter>('all');
   const [revealedRoots, setRevealedRoots] = useState<Record<string, boolean>>({});
@@ -234,41 +247,25 @@ export const PersonalDictionary: React.FC<PersonalDictionaryProps> = ({
 
   return (
     <div data-font-style={userProfile.fontStyle || 'print'} className="max-w-5xl mx-auto space-y-4 sm:space-y-6">
-      {/* Главные вкладки раздела: Личный словарь / Тематические колоды */}
-      <div className="flex items-center gap-1.5 p-1 bg-slate-200/80 dark:bg-slate-800 rounded-2xl border border-slate-300/70 dark:border-slate-700">
+      {/* Главные вкладки раздела: 1. Тематические колоды, 2. Карточки уроков, 3. Мой словарик */}
+      <div className="flex items-center gap-1 sm:gap-1.5 p-1 bg-slate-200/80 dark:bg-slate-800 rounded-2xl border border-slate-300/70 dark:border-slate-700">
+        {/* 1. Тематические колоды */}
         <button
-          onClick={() => setActiveTab('personal')}
-          className={`flex-1 py-2 px-3 rounded-xl text-xs sm:text-sm font-extrabold flex items-center justify-center gap-2 transition-all cursor-pointer ${
-            activeTab === 'personal'
-              ? 'bg-blue-600 text-white shadow-sm shadow-blue-600/20'
-              : 'text-slate-700 dark:text-slate-300 hover:bg-white/40 dark:hover:bg-slate-700/60'
-          }`}
-        >
-          <BookOpen className="w-4 h-4 shrink-0" />
-          <span>{userProfile.ulpanMode ? 'הַמִּילוֹן שֶׁלִּי' : 'Мой словарик'}</span>
-          <span
-            className={`text-[11px] px-2 py-0.5 rounded-full font-black ${
-              activeTab === 'personal'
-                ? 'bg-white/20 text-white'
-                : 'bg-slate-300 dark:bg-slate-700 text-slate-800 dark:text-slate-200'
-            }`}
-          >
-            {words.length}
-          </span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('thematic')}
-          className={`flex-1 py-2 px-3 rounded-xl text-xs sm:text-sm font-extrabold flex items-center justify-center gap-2 transition-all cursor-pointer ${
+          onClick={() => {
+            setActiveTab('thematic');
+            if (typeof window !== 'undefined') localStorage.setItem('ulpana_dict_tab', 'thematic');
+          }}
+          className={`flex-1 py-2 px-2 sm:px-3 rounded-xl text-xs sm:text-sm font-extrabold flex items-center justify-center gap-1.5 sm:gap-2 transition-all cursor-pointer ${
             activeTab === 'thematic'
               ? 'bg-purple-600 text-white shadow-sm shadow-purple-600/20'
               : 'text-slate-700 dark:text-slate-300 hover:bg-white/40 dark:hover:bg-slate-700/60'
           }`}
         >
           <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
-          <span>{userProfile.ulpanMode ? 'עֶרְכּוֹת נוֹשְׂאִיּוֹת' : 'Тематические колоды'}</span>
+          <span className="hidden sm:inline">{userProfile.ulpanMode ? 'עֶרְכּוֹת נוֹשְׂאִיּוֹת' : 'Тематические колоды'}</span>
+          <span className="sm:hidden truncate">{userProfile.ulpanMode ? 'נוֹשְׂאִיּוֹת' : 'Колоды'}</span>
           <span
-            className={`text-[11px] px-2 py-0.5 rounded-full font-black ${
+            className={`text-[10px] sm:text-[11px] px-1.5 sm:px-2 py-0.5 rounded-full font-black ${
               activeTab === 'thematic'
                 ? 'bg-white/20 text-white'
                 : 'bg-purple-100 dark:bg-purple-950/80 text-purple-700 dark:text-purple-300 border border-purple-300/50 dark:border-purple-800'
@@ -277,9 +274,61 @@ export const PersonalDictionary: React.FC<PersonalDictionaryProps> = ({
             {THEMATIC_DECKS.length}
           </span>
         </button>
+
+        {/* 2. Карточки уроков */}
+        <button
+          onClick={() => {
+            setActiveTab('lessons');
+            if (typeof window !== 'undefined') localStorage.setItem('ulpana_dict_tab', 'lessons');
+          }}
+          className={`flex-1 py-2 px-2 sm:px-3 rounded-xl text-xs sm:text-sm font-extrabold flex items-center justify-center gap-1.5 sm:gap-2 transition-all cursor-pointer ${
+            activeTab === 'lessons'
+              ? 'bg-blue-600 text-white shadow-sm shadow-blue-600/20'
+              : 'text-slate-700 dark:text-slate-300 hover:bg-white/40 dark:hover:bg-slate-700/60'
+          }`}
+        >
+          <Layers className="w-4 h-4 shrink-0" />
+          <span className="hidden sm:inline">{userProfile.ulpanMode ? 'כַּרְטִיסִיּוֹת שִׁיעוּרִים' : 'Карточки уроков'}</span>
+          <span className="sm:hidden truncate">{userProfile.ulpanMode ? 'שִׁיעוּרִים' : 'Уроки'}</span>
+          <span
+            className={`text-[10px] sm:text-[11px] px-1.5 sm:px-2 py-0.5 rounded-full font-black ${
+              activeTab === 'lessons'
+                ? 'bg-white/20 text-white'
+                : 'bg-blue-100 dark:bg-blue-950/80 text-blue-700 dark:text-blue-300 border border-blue-300/50 dark:border-blue-800'
+            }`}
+          >
+            100
+          </span>
+        </button>
+
+        {/* 3. Мой словарик */}
+        <button
+          onClick={() => {
+            setActiveTab('personal');
+            if (typeof window !== 'undefined') localStorage.setItem('ulpana_dict_tab', 'personal');
+          }}
+          className={`flex-1 py-2 px-2 sm:px-3 rounded-xl text-xs sm:text-sm font-extrabold flex items-center justify-center gap-1.5 sm:gap-2 transition-all cursor-pointer ${
+            activeTab === 'personal'
+              ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/20'
+              : 'text-slate-700 dark:text-slate-300 hover:bg-white/40 dark:hover:bg-slate-700/60'
+          }`}
+        >
+          <BookOpen className="w-4 h-4 shrink-0" />
+          <span className="hidden sm:inline">{userProfile.ulpanMode ? 'הַמִּילוֹן שֶׁלִּי' : 'Мой словарик'}</span>
+          <span className="sm:hidden truncate">{userProfile.ulpanMode ? 'מִילוֹן' : 'Словарик'}</span>
+          <span
+            className={`text-[10px] sm:text-[11px] px-1.5 sm:px-2 py-0.5 rounded-full font-black ${
+              activeTab === 'personal'
+                ? 'bg-white/20 text-white'
+                : 'bg-slate-300 dark:bg-slate-700 text-slate-800 dark:text-slate-200'
+            }`}
+          >
+            {words.length}
+          </span>
+        </button>
       </div>
 
-      {/* РЕНДЕР ВКЛАДКИ «ТЕМАТИЧЕСКИЕ КОЛОДЫ» */}
+      {/* РЕНДЕР ВКЛАДКИ 1: «ТЕМАТИЧЕСКИЕ КОЛОДЫ» */}
       {activeTab === 'thematic' && (
         <ThematicDecksView
           userProfile={userProfile}
@@ -294,7 +343,17 @@ export const PersonalDictionary: React.FC<PersonalDictionaryProps> = ({
         />
       )}
 
-      {/* РЕНДЕР ВКЛАДКИ «МОЙ ЛИЧНЫЙ СЛОВАРЬ» */}
+      {/* РЕНДЕР ВКЛАДКИ 2: «КАРТОЧКИ УРОКОВ» */}
+      {activeTab === 'lessons' && (
+        <LessonFlashcardsView
+          userProfile={userProfile}
+          onStartTraining={(lessonWords, title, mode, direction) =>
+            onStartPractice(lessonWords, title, mode, false, direction)
+          }
+        />
+      )}
+
+      {/* РЕНДЕР ВКЛАДКИ 3: «МОЙ ЛИЧНЫЙ СЛОВАРЬ» */}
       {activeTab === 'personal' && (
         <div className="space-y-3 sm:space-y-4">
           {/* Компактная панель поиска и действий */}

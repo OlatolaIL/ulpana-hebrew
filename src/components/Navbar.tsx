@@ -104,27 +104,15 @@ export const Navbar: React.FC<NavbarProps> = ({
             </button>
 
             <button
-              onClick={() => onNavigate('flashcards')}
-              className={`px-3.5 py-2 rounded-xl text-sm font-semibold flex items-center gap-2 transition ${
-                currentView === 'flashcards'
-                  ? 'bg-zinc-100 dark:bg-zinc-800 text-blue-600 dark:text-blue-400'
-                  : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100'
-              }`}
-            >
-              <Layers className="w-4 h-4" />
-              <span>{userProfile.ulpanMode ? 'כַּרְטִיסִיּוֹת' : 'Карточки'}</span>
-            </button>
-
-            <button
               onClick={() => onNavigate('dictionary')}
               className={`px-3.5 py-2 rounded-xl text-sm font-semibold flex items-center gap-2 transition ${
-                currentView === 'dictionary'
+                currentView === 'dictionary' || currentView === 'flashcards'
                   ? 'bg-zinc-100 dark:bg-zinc-800 text-blue-600 dark:text-blue-400'
                   : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100'
               }`}
             >
               <Sparkles className="w-4 h-4 text-amber-500" />
-              <span>{userProfile.ulpanMode ? 'מִילּוֹן' : 'Мой словарик'}</span>
+              <span>{userProfile.ulpanMode ? 'מִילּוֹן' : 'Словарик'}</span>
               {dictCount > 0 && (
                 <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-200">
                   {dictCount}
@@ -282,23 +270,9 @@ export const Navbar: React.FC<NavbarProps> = ({
           </button>
 
           <button
-            onClick={() => onNavigate('flashcards')}
-            className={`flex flex-col items-center justify-center py-1 px-3 rounded-xl transition ${
-              currentView === 'flashcards'
-                ? 'text-blue-600 dark:text-blue-400 font-bold'
-                : 'text-zinc-400 font-medium'
-            }`}
-          >
-            <Layers className="w-5 h-5 mb-0.5" />
-            <span className="text-[11px] leading-tight">
-              {userProfile.ulpanMode ? 'כַּרְטִיסִיּוֹת' : 'Карточки'}
-            </span>
-          </button>
-
-          <button
             onClick={() => onNavigate('dictionary')}
             className={`flex flex-col items-center justify-center py-1 px-3 rounded-xl transition ${
-              currentView === 'dictionary'
+              currentView === 'dictionary' || currentView === 'flashcards'
                 ? 'text-blue-600 dark:text-blue-400 font-bold'
                 : 'text-zinc-400 font-medium'
             }`}

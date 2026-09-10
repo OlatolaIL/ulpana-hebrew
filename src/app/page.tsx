@@ -597,7 +597,7 @@ export default function Home() {
     if (flashcardSourceLessonId) {
       navigateTo('lesson', { lessonId: flashcardSourceLessonId });
     } else {
-      navigateTo('map');
+      navigateTo('dictionary');
     }
   };
 
@@ -723,7 +723,7 @@ export default function Home() {
         currentView={currentView}
         onNavigate={(view) => {
           if (view === 'flashcards') {
-            handleLaunchGeneralFlashcards();
+            navigateTo('dictionary');
           } else {
             navigateTo(view);
           }
@@ -789,7 +789,7 @@ export default function Home() {
                     ? (profile?.ulpanMode
                         ? `← חֲזָרָה לְשִׁיעוּר ${flashcardSourceLessonId}`
                         : `← Вернуться в урок ${flashcardSourceLessonId}`)
-                    : (profile?.ulpanMode ? '← חֲזָרָה' : '← Вернуться назад')}
+                    : (profile?.ulpanMode ? '← חֲזָרָה לַמִּילוֹן' : '← Вернуться в словарик')}
                 </span>
               </button>
             </div>
@@ -817,8 +817,8 @@ export default function Home() {
           <PersonalDictionary
             userProfile={profile}
             onUpdateProfile={handleUpdateProfile}
-            onStartPractice={(words, title, mode, shuffle) =>
-              handleStartFlashcards(words, title, mode, undefined, undefined, shuffle)
+            onStartPractice={(words, title, mode, shuffle, direction) =>
+              handleStartFlashcards(words, title, mode, undefined, direction, shuffle)
             }
             onOpenMultiLessonSetup={() => setIsMultiLessonSetupOpen(true)}
           />
