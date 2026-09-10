@@ -21,7 +21,12 @@ interface ListeningViewProps {
   onOpenWordsDrawer: () => void;
   onCompleteListenStage: () => void;
   onSelectRole: () => void;
-  onWordClick?: (token: TextToken, fullSentence: string) => void;
+  onWordClick?: (
+    token: TextToken,
+    fullSentence: string,
+    sentenceTranslation?: string,
+    sentenceTranscription?: string
+  ) => void;
 }
 
 export const ListeningView: React.FC<ListeningViewProps> = ({
@@ -117,7 +122,14 @@ export const ListeningView: React.FC<ListeningViewProps> = ({
                       return (
                         <span
                           key={token.id}
-                          onClick={() => onWordClick(token, variant.hebrew)}
+                          onClick={() =>
+                            onWordClick(
+                              token,
+                              variant.hebrew,
+                              variant.translation,
+                              variant.transcription
+                            )
+                          }
                           className="inline-block px-0.5 py-0.5 rounded-md hover:text-blue-600 dark:hover:text-blue-400 hover:underline hover:bg-blue-100/70 dark:hover:bg-blue-900/50 cursor-pointer transition select-text active:scale-95"
                           title="Нажмите для перевода и словарика"
                         >

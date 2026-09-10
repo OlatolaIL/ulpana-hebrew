@@ -23,6 +23,8 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
 }) => {
   const [selectedWord, setSelectedWord] = useState<string | null>(null);
   const [wordContext, setWordContext] = useState<string>('');
+  const [wordSentenceTranslation, setWordSentenceTranslation] = useState<string | undefined>(undefined);
+  const [wordSentenceTranscription, setWordSentenceTranscription] = useState<string | undefined>(undefined);
   const [isWordsDrawerOpen, setIsWordsDrawerOpen] = useState(false);
   const [showBriefingModal, setShowBriefingModal] = useState(false);
   const [drawerTab, setDrawerTab] = useState<'words' | 'replies'>('words');
@@ -60,10 +62,17 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
     onWordAdded,
   });
 
-  const handleWordClick = (token: TextToken, fullSentence: string) => {
+  const handleWordClick = (
+    token: TextToken,
+    fullSentence: string,
+    sentenceTranslation?: string,
+    sentenceTranscription?: string
+  ) => {
     if (!token.isHebrew || !token.cleanText) return;
     setSelectedWord(token.cleanText);
     setWordContext(fullSentence);
+    setWordSentenceTranslation(sentenceTranslation);
+    setWordSentenceTranscription(sentenceTranscription);
   };
 
   const handleSpeak = (text: string) => {
@@ -348,6 +357,8 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
         <WordLookupModal
           word={selectedWord}
           context={wordContext}
+          sentenceTranslation={wordSentenceTranslation}
+          sentenceTranscription={wordSentenceTranscription}
           isOpen={!!selectedWord}
           onClose={() => setSelectedWord(null)}
           userProfile={userProfile}

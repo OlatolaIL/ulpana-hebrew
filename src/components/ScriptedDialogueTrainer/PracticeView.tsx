@@ -43,7 +43,12 @@ interface PracticeViewProps {
   showNikkud: boolean;
   showTranscription: boolean;
   totalAvailableWordsCount: number;
-  onWordClick?: (token: TextToken, fullSentence: string) => void;
+  onWordClick?: (
+    token: TextToken,
+    fullSentence: string,
+    sentenceTranslation?: string,
+    sentenceTranscription?: string
+  ) => void;
   onOpenWordsDrawer: () => void;
   showHint: boolean;
   setShowHint: React.Dispatch<React.SetStateAction<boolean>>;
@@ -205,7 +210,14 @@ export const PracticeView: React.FC<PracticeViewProps> = ({
                           return (
                             <span
                               key={token.id}
-                              onClick={() => onWordClick(token, variant.hebrew)}
+                              onClick={() =>
+                                onWordClick(
+                                  token,
+                                  variant.hebrew,
+                                  variant.translation,
+                                  variant.transcription
+                                )
+                              }
                               className="inline-block px-0.5 py-0.5 rounded-md hover:text-blue-600 dark:hover:text-blue-400 hover:underline hover:bg-blue-100/70 dark:hover:bg-blue-900/50 cursor-pointer transition select-text active:scale-95"
                               title="Нажмите для перевода и словарика"
                             >
@@ -292,24 +304,36 @@ export const PracticeView: React.FC<PracticeViewProps> = ({
                   <Volume2 className="w-3.5 h-3.5" />
                 </button>
               </div>
-              <div dir="rtl" className="text-sm font-bold font-hebrew text-zinc-900 dark:text-zinc-100">
-                {tokenizeText(getTurnText(dialogue.turns[practiceTurnIndex]).hebrew).map((token) => {
-                  const displayWord = showNikkud ? token.text : stripNikkud(token.text);
-                  if (token.isHebrew && onWordClick) {
-                    return (
-                      <span
-                        key={token.id}
-                        onClick={() => onWordClick(token, getTurnText(dialogue.turns[practiceTurnIndex]).hebrew)}
-                        className="inline-block px-0.5 py-0.5 rounded-md hover:text-blue-600 dark:hover:text-blue-400 hover:underline hover:bg-amber-100 dark:hover:bg-amber-900/50 cursor-pointer transition select-text active:scale-95"
-                        title="Нажмите для перевода и словарика"
-                      >
-                        {displayWord}
-                      </span>
-                    );
-                  }
-                  return <span key={token.id}>{token.text}</span>;
-                })}
-              </div>
+              {(() => {
+                const turnVariant = getTurnText(dialogue.turns[practiceTurnIndex]);
+                return (
+                  <div dir="rtl" className="text-sm font-bold font-hebrew text-zinc-900 dark:text-zinc-100">
+                    {tokenizeText(turnVariant.hebrew).map((token) => {
+                      const displayWord = showNikkud ? token.text : stripNikkud(token.text);
+                      if (token.isHebrew && onWordClick) {
+                        return (
+                          <span
+                            key={token.id}
+                            onClick={() =>
+                              onWordClick(
+                                token,
+                                turnVariant.hebrew,
+                                turnVariant.translation,
+                                turnVariant.transcription
+                              )
+                            }
+                            className="inline-block px-0.5 py-0.5 rounded-md hover:text-blue-600 dark:hover:text-blue-400 hover:underline hover:bg-amber-100 dark:hover:bg-amber-900/50 cursor-pointer transition select-text active:scale-95"
+                            title="Нажмите для перевода и словарика"
+                          >
+                            {displayWord}
+                          </span>
+                        );
+                      }
+                      return <span key={token.id}>{token.text}</span>;
+                    })}
+                  </div>
+                );
+              })()}
               <div className="text-[11px] text-amber-700 dark:text-amber-300">
                 {getTurnText(dialogue.turns[practiceTurnIndex]).transcription}
               </div>

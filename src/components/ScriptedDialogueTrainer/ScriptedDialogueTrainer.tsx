@@ -22,12 +22,21 @@ export const ScriptedDialogueTrainer: React.FC<ScriptedDialogueTrainerProps> = (
 }) => {
   const [selectedLookupWord, setSelectedLookupWord] = useState<string | null>(null);
   const [lookupContext, setLookupContext] = useState<string>('');
+  const [lookupSentenceTranslation, setLookupSentenceTranslation] = useState<string | undefined>(undefined);
+  const [lookupSentenceTranscription, setLookupSentenceTranscription] = useState<string | undefined>(undefined);
   const [screenToast, setScreenToast] = useState<string | null>(null);
 
-  const handleWordClick = (token: TextToken, fullSentence: string) => {
+  const handleWordClick = (
+    token: TextToken,
+    fullSentence: string,
+    sentenceTranslation?: string,
+    sentenceTranscription?: string
+  ) => {
     if (!token.isHebrew || !token.cleanText) return;
     setSelectedLookupWord(token.cleanText);
     setLookupContext(fullSentence);
+    setLookupSentenceTranslation(sentenceTranslation);
+    setLookupSentenceTranscription(sentenceTranscription);
   };
   const {
     dialogue,
@@ -233,6 +242,8 @@ export const ScriptedDialogueTrainer: React.FC<ScriptedDialogueTrainerProps> = (
         <WordLookupModal
           word={selectedLookupWord}
           context={lookupContext}
+          sentenceTranslation={lookupSentenceTranslation}
+          sentenceTranscription={lookupSentenceTranscription}
           isOpen={Boolean(selectedLookupWord)}
           onClose={() => setSelectedLookupWord(null)}
           userProfile={userProfile}

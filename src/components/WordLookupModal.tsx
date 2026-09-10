@@ -15,6 +15,8 @@ import { TierBadge } from '@/components/TierBadge';
 interface WordLookupModalProps {
   word: string;
   context?: string;
+  sentenceTranslation?: string;
+  sentenceTranscription?: string;
   isOpen: boolean;
   onClose: () => void;
   userProfile: UserProfile;
@@ -25,6 +27,8 @@ interface WordLookupModalProps {
 export const WordLookupModal: React.FC<WordLookupModalProps> = ({
   word,
   context,
+  sentenceTranslation,
+  sentenceTranscription,
   isOpen,
   onClose,
   userProfile,
@@ -106,6 +110,8 @@ export const WordLookupModal: React.FC<WordLookupModalProps> = ({
       body: JSON.stringify({
         word,
         context,
+        sentenceTranslation,
+        sentenceTranscription,
         provider: userProfile?.aiProvider || 'groq',
         apiKey:
           userProfile?.aiProvider === 'groq'
@@ -145,7 +151,7 @@ export const WordLookupModal: React.FC<WordLookupModalProps> = ({
         });
         setLoading(false);
       });
-  }, [isOpen, word, context]);
+  }, [isOpen, word, context, sentenceTranslation, sentenceTranscription]);
 
   // 2. Отдельная синхронизация статуса "Добавлено в словарик" без сброса карточки
   useEffect(() => {
@@ -325,6 +331,15 @@ export const WordLookupModal: React.FC<WordLookupModalProps> = ({
                             ? wordData.root
                             : stripNikkud(wordData.root)}
                         </span>
+                      </div>
+                    )}
+
+                    {sentenceTranslation && (
+                      <div className="mt-3 pt-2 border-t border-blue-200/60 dark:border-blue-900/50 text-xs text-zinc-600 dark:text-zinc-300 text-center">
+                        <span className="text-[10px] uppercase font-bold tracking-wider text-blue-600 dark:text-blue-400 block mb-0.5">
+                          В контексте предложения:
+                        </span>
+                        <span className="italic font-medium">«{sentenceTranslation}»</span>
                       </div>
                     )}
                   </div>

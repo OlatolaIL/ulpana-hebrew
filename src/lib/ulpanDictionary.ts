@@ -1,6 +1,7 @@
 import { stripNikkud } from './transcription';
 import { DETAILED_LESSONS } from '@/data/lessonsData';
 import { THEMATIC_DECKS } from '@/data/thematicDecks';
+import { HANDCRAFTED_DIALOGUES } from '@/data/dialogueLessons';
 
 export interface DictionaryEntry {
   hebrew: string;
@@ -476,126 +477,119 @@ export const ULPAN_OFFLINE_DICTIONARY: DictionaryEntry[] = [
 /**
  * Быстрый поиск слова в оффлайн-базе Ульпана (словарь + 100 уроков + эвристика приставок)
  */
+function matchesHebrew(target: string, query: string): boolean {
+  if (!target || !query) return false;
+  const t = stripNikkud(target).trim().toLowerCase();
+  const q = stripNikkud(query).trim().toLowerCase();
+  if (t === q) return true;
+  // Сравнение с допуском полного / неполного написания (כתיב מלא / כתיב חסר, например רהוט ↔ ריהוט)
+  const tSkeleton = t.replace(/[יו]/g, '');
+  const qSkeleton = q.replace(/[יו]/g, '');
+  if (tSkeleton.length >= 2 && tSkeleton === qSkeleton) return true;
+  return false;
+}
+
+/**
+ * Быстрый поиск слова в оффлайн-базе Ульпана (словарь + авторские диалоги + 100 уроков + эвристика приставок)
+ */
 export function lookupOfflineWord(rawQuery: string): DictionaryEntry | null {
   if (!rawQuery) return null;
   const clean = stripNikkud(rawQuery.trim().toLowerCase());
   if (!clean) return null;
 
-  // 1. Поиск в базовом оффлайн-словаре
-  const directOffline = ULPAN_OFFLINE_DICTIONARY.find(
-    (entry) =>
-      stripNikkud(entry.hebrewPlain.toLowerCase()) === clean ||
-      stripNikkud(entry.hebrew.toLowerCase()) === clean
-  );
-  if (directOffline) return directOffline;
+  const searchInSources = (queryText: string): DictionaryEntry | null => {
+    // 1. Поиск в базовом оффлайн-словаре
+    const directOffline = ULPAN_OFFLINE_DICTIONARY.find(
+      (entry) =>
+        matchesHebrew(entry.hebrewPlain, queryText) ||
+        matchesHebrew(entry.hebrew, queryText)
+    );
+    if (directOffline) return directOffline;
 
-  // 2. Поиск по всем 100 урокам курса Ульпана
-  if (typeof DETAILED_LESSONS === 'object' && DETAILED_LESSONS !== null) {
-    for (const lesson of Object.values(DETAILED_LESSONS)) {
-      if (!lesson?.vocabulary) continue;
-      const lessonWord = lesson.vocabulary.find(
-        (w) =>
-          stripNikkud((w.hebrewPlain || '').toLowerCase()) === clean ||
-          stripNikkud((w.hebrew || '').toLowerCase()) === clean
-      );
-      if (lessonWord) {
-        return {
-          hebrew: lessonWord.hebrew,
-          hebrewPlain: lessonWord.hebrewPlain,
-          transcription: lessonWord.transcription,
-          translation: lessonWord.translation,
-          root: lessonWord.root || null,
-          partOfSpeech: lessonWord.partOfSpeech || 'other',
-          exampleSentence: lessonWord.exampleSentence || null,
-        };
+    // 2. Поиск в полезных словах авторских диалогов (HANDCRAFTED_DIALOGUES)
+    if (typeof HANDCRAFTED_DIALOGUES === 'object' && HANDCRAFTED_DIALOGUES !== null) {
+      for (const diag of Object.values(HANDCRAFTED_DIALOGUES)) {
+        if (!diag?.usefulWords) continue;
+        const usefulWord = diag.usefulWords.find(
+          (w) =>
+            matchesHebrew(w.hebrewPlain || '', queryText) ||
+            matchesHebrew(w.hebrew, queryText)
+        );
+        if (usefulWord) {
+          return {
+            hebrew: usefulWord.hebrew,
+            hebrewPlain: usefulWord.hebrewPlain || usefulWord.hebrew,
+            transcription: usefulWord.transcription,
+            translation: usefulWord.translation,
+            root: usefulWord.root || null,
+            partOfSpeech: usefulWord.partOfSpeech || 'other',
+            exampleSentence: usefulWord.exampleSentence || null,
+          };
+        }
       }
     }
-  }
 
-  // 3. Поиск по тематическим словарям (THEMATIC_DECKS)
-  if (Array.isArray(THEMATIC_DECKS)) {
-    for (const deck of THEMATIC_DECKS) {
-      if (!deck.words) continue;
-      const deckWord = deck.words.find(
-        (w) =>
-          stripNikkud((w.hebrewPlain || '').toLowerCase()) === clean ||
-          stripNikkud((w.hebrew || '').toLowerCase()) === clean
-      );
-      if (deckWord) {
-        return {
-          hebrew: deckWord.hebrew,
-          hebrewPlain: deckWord.hebrewPlain,
-          transcription: deckWord.transcription,
-          translation: deckWord.translation,
-          root: deckWord.root || null,
-          partOfSpeech: deckWord.partOfSpeech || 'other',
-          exampleSentence: deckWord.exampleSentence || null,
-        };
+    // 3. Поиск по всем 100 урокам курса Ульпана
+    if (typeof DETAILED_LESSONS === 'object' && DETAILED_LESSONS !== null) {
+      for (const lesson of Object.values(DETAILED_LESSONS)) {
+        if (!lesson?.vocabulary) continue;
+        const lessonWord = lesson.vocabulary.find(
+          (w) =>
+            matchesHebrew(w.hebrewPlain || '', queryText) ||
+            matchesHebrew(w.hebrew, queryText)
+        );
+        if (lessonWord) {
+          return {
+            hebrew: lessonWord.hebrew,
+            hebrewPlain: lessonWord.hebrewPlain || lessonWord.hebrew,
+            transcription: lessonWord.transcription,
+            translation: lessonWord.translation,
+            root: lessonWord.root || null,
+            partOfSpeech: lessonWord.partOfSpeech || 'other',
+            exampleSentence: lessonWord.exampleSentence || null,
+          };
+        }
       }
     }
-  }
 
-  // 4. Эвристика приставок (הַ-, בְּ-, לְ-, וְ-, מִ-, כְּ-, שֶׁ-)
-  // Если слово начинается с типичного предлога/артикля и длина основы >= 2 букв
+    // 4. Поиск по тематическим словарям (THEMATIC_DECKS)
+    if (Array.isArray(THEMATIC_DECKS)) {
+      for (const deck of THEMATIC_DECKS) {
+        if (!deck.words) continue;
+        const deckWord = deck.words.find(
+          (w) =>
+            matchesHebrew(w.hebrewPlain || '', queryText) ||
+            matchesHebrew(w.hebrew, queryText)
+        );
+        if (deckWord) {
+          return {
+            hebrew: deckWord.hebrew,
+            hebrewPlain: deckWord.hebrewPlain || deckWord.hebrew,
+            transcription: deckWord.transcription,
+            translation: deckWord.translation,
+            root: deckWord.root || null,
+            partOfSpeech: deckWord.partOfSpeech || 'other',
+            exampleSentence: deckWord.exampleSentence || null,
+          };
+        }
+      }
+    }
+
+    return null;
+  };
+
+  // Поиск по исходному слову
+  const directMatch = searchInSources(clean);
+  if (directMatch) return directMatch;
+
+  // 5. Эвристика приставок (הַ-, בְּ-, לְ-, וְ-, מִ-, כְּ-, שֶׁ-)
   const prefixes = ['ה', 'ב', 'ל', 'ו', 'מ', 'כ', 'ש'];
   for (const prefix of prefixes) {
     if (clean.startsWith(prefix) && clean.length > 2) {
       const subClean = clean.slice(1);
-
-      // Проверяем в оффлайн словаре
-      const subOffline = ULPAN_OFFLINE_DICTIONARY.find(
-        (entry) =>
-          stripNikkud(entry.hebrewPlain.toLowerCase()) === subClean ||
-          stripNikkud(entry.hebrew.toLowerCase()) === subClean
-      );
-      if (subOffline) {
-        return subOffline;
-      }
-
-      // Проверяем в уроках
-      if (typeof DETAILED_LESSONS === 'object' && DETAILED_LESSONS !== null) {
-        for (const lesson of Object.values(DETAILED_LESSONS)) {
-          if (!lesson?.vocabulary) continue;
-          const lessonWord = lesson.vocabulary.find(
-            (w) =>
-              stripNikkud((w.hebrewPlain || '').toLowerCase()) === subClean ||
-              stripNikkud((w.hebrew || '').toLowerCase()) === subClean
-          );
-          if (lessonWord) {
-            return {
-              hebrew: lessonWord.hebrew,
-              hebrewPlain: lessonWord.hebrewPlain,
-              transcription: lessonWord.transcription,
-              translation: lessonWord.translation,
-              root: lessonWord.root || null,
-              partOfSpeech: lessonWord.partOfSpeech || 'other',
-              exampleSentence: lessonWord.exampleSentence || null,
-            };
-          }
-        }
-      }
-
-      // Проверяем в тематических колодах
-      if (Array.isArray(THEMATIC_DECKS)) {
-        for (const deck of THEMATIC_DECKS) {
-          if (!deck.words) continue;
-          const deckWord = deck.words.find(
-            (w) =>
-              stripNikkud((w.hebrewPlain || '').toLowerCase()) === subClean ||
-              stripNikkud((w.hebrew || '').toLowerCase()) === subClean
-          );
-          if (deckWord) {
-            return {
-              hebrew: deckWord.hebrew,
-              hebrewPlain: deckWord.hebrewPlain,
-              transcription: deckWord.transcription,
-              translation: deckWord.translation,
-              root: deckWord.root || null,
-              partOfSpeech: deckWord.partOfSpeech || 'other',
-              exampleSentence: deckWord.exampleSentence || null,
-            };
-          }
-        }
+      const subMatch = searchInSources(subClean);
+      if (subMatch) {
+        return subMatch;
       }
     }
   }

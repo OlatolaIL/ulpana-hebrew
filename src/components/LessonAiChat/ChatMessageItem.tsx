@@ -23,7 +23,12 @@ interface ChatMessageItemProps {
   isTranslationRevealed: boolean;
   addedWords: Record<string, boolean>;
   onToggleTranslation: (msgId: string) => void;
-  onWordClick: (token: TextToken, fullSentence: string) => void;
+  onWordClick: (
+    token: TextToken,
+    fullSentence: string,
+    sentenceTranslation?: string,
+    sentenceTranscription?: string
+  ) => void;
   onSpeak: (text: string) => void;
   onAddWordDirectly: (wordItem: DialogueWord) => void;
 }
@@ -99,7 +104,14 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
                   return (
                     <span
                       key={token.id}
-                      onClick={() => onWordClick(token, msg.hebrew)}
+                      onClick={() =>
+                        onWordClick(
+                          token,
+                          msg.hebrew,
+                          msg.translation,
+                          msg.transcription
+                        )
+                      }
                       className={`inline-block px-1 py-0.5 rounded-md transition cursor-pointer select-text ${
                         isAi
                           ? 'hover:text-blue-600 dark:hover:text-blue-400 hover:underline hover:bg-blue-100/70 dark:hover:bg-blue-900/50 active:scale-95'
