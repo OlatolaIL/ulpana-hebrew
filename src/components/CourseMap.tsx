@@ -9,12 +9,14 @@ import {
   ArrowRight,
   Play,
   Sparkles,
+  X,
 } from 'lucide-react';
 import { LESSONS_CATALOG } from '@/data/lessonsData';
 import { Level, UserProfile } from '@/types';
 import { stripNikkud } from '@/lib/transcription';
 import { isLessonLockedForUser } from '@/lib/config';
 import { TierBadge } from './TierBadge';
+import { useBannerCooldown } from '@/lib/useBannerCooldown';
 
 interface CourseMapProps {
   userProfile: UserProfile;
@@ -58,6 +60,7 @@ export const CourseMap: React.FC<CourseMapProps> = ({
 }) => {
   const isPro = userProfile.subscriptionTier === 'pro' || userProfile.subscriptionTier === 'admin';
   const isUlpan = Boolean(userProfile.ulpanMode);
+  const { isVisible: isBetaBannerVisible, dismiss: dismissBetaBanner } = useBannerCooldown('course_map_beta');
 
   // Вычисляем активный урок пользователя
   const currentLessonId = useMemo(() => {
@@ -269,26 +272,37 @@ export const CourseMap: React.FC<CourseMapProps> = ({
       </div>
 
       {/* Информационный баннер открытого бета-тестирования */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 p-3 rounded-2xl bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-orange-500/10 border border-amber-500/30 text-amber-900 dark:text-amber-200">
-        <div className="flex items-center gap-2.5 min-w-0">
-          <span className="p-1.5 rounded-xl bg-amber-500/20 text-amber-700 dark:text-amber-300 shrink-0">
-            <Sparkles className="w-4 h-4" />
-          </span>
-          <div className="text-xs leading-tight">
-            <span className="font-bold">
-              {isUlpan ? 'בֵּטָא פְּתוּחָה:' : 'Открытое бета-тестирование:'}
-            </span>{' '}
-            <span className="opacity-90">
-              {isUlpan
-                ? 'שִׁיעוּרִים 1–30 חִנָּמִיִּים תָּמִיד. כָּל שְׁאָר הַשִּׁיעוּרִים (31–100) וְשִׂיחוֹת הַ-AI פְּתוּחִים לְלֹא הַגְבָּלָה בְּמַצַּב PRO בֵּטָא.'
-                : 'Уроки 1–30 всегда бесплатны (этапы 1–3). Продвинутые уроки 31–100 и симуляторы звонков с ИИ сейчас открыты в режиме PRO БЕТА.'}
+      {isBetaBannerVisible && (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 p-3 rounded-2xl bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-orange-500/10 border border-amber-500/30 text-amber-900 dark:text-amber-200 animate-in fade-in duration-200">
+          <div className="flex items-center gap-2.5 min-w-0 flex-1">
+            <span className="p-1.5 rounded-xl bg-amber-500/20 text-amber-700 dark:text-amber-300 shrink-0">
+              <Sparkles className="w-4 h-4" />
             </span>
+            <div className="text-xs leading-tight">
+              <span className="font-bold">
+                {isUlpan ? 'בֵּטָא פְּתוּחָה:' : 'Открытое бета-тестирование:'}
+              </span>{' '}
+              <span className="opacity-90">
+                {isUlpan
+                  ? 'שִׁיעוּרִים 1–30 חִנָּמִיִּים תָּמִיד. כָּל שְׁאָר הַשִּׁיעוּרִים (31–100) וְשִׂיחוֹת הַ-AI פְּתוּחִים לְלֹא הַגְבָּלָה בְּמַצַּב PRO בֵּטָא.'
+                  : 'Уроки 1–30 всегда бесплатны (этапы 1–3). Продвинутые уроки 31–100 и симуляторы звонков с ИИ сейчас открыты в режиме PRO БЕТА.'}
+              </span>
+            </div>
+          </div>
+          <div className="shrink-0 flex items-center gap-2 self-end sm:self-auto">
+            <TierBadge tier="pro-beta" size="sm" isUlpan={isUlpan} />
+            <button
+              type="button"
+              onClick={dismissBetaBanner}
+              className="p-1 rounded-lg text-amber-700/70 hover:text-amber-900 dark:text-amber-300/70 dark:hover:text-amber-100 hover:bg-amber-500/20 transition cursor-pointer"
+              title={isUlpan ? 'הַסְתֵּר לְ-5 יָמִים' : 'Скрыть на 5 дней'}
+              aria-label={isUlpan ? 'הַסְתֵּר לְ-5 יָמִים' : 'Скрыть на 5 дней'}
+            >
+              <X className="w-4 h-4" />
+            </button>
           </div>
         </div>
-        <div className="shrink-0 self-end sm:self-auto">
-          <TierBadge tier="pro-beta" size="sm" isUlpan={isUlpan} />
-        </div>
-      </div>
+      )}
 
       {/* 2. Единая компактная панель навигации: Уровни (א / ב), Десятки и кнопка «Где я» */}
       <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-2 sm:p-2.5 shadow-sm space-y-2">

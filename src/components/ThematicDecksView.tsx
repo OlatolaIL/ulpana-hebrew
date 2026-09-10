@@ -57,6 +57,7 @@ import { VerbConjugationView } from '@/components/VerbConjugationView';
 import { useModalHistory } from '@/lib/useHistoryState';
 import { isDeckAlwaysFree } from '@/lib/permissions';
 import { TierBadge } from './TierBadge';
+import { useBannerCooldown } from '@/lib/useBannerCooldown';
 
 interface ThematicDecksViewProps {
   userProfile: UserProfile;
@@ -76,6 +77,7 @@ export const ThematicDecksView: React.FC<ThematicDecksViewProps> = ({
   type DeckFilter = 'all' | 'alef' | 'bet' | 'verbs' | 'food' | 'body' | 'city' | 'slang';
   const [filter, setFilter] = useState<DeckFilter>('all');
   const [speakingWordId, setSpeakingWordId] = useState<string | null>(null);
+  const { isVisible: isBetaBannerVisible, dismiss: dismissBetaBanner } = useBannerCooldown('thematic_decks_beta');
 
   // Режим перемешивания слов для колод
   const [shuffleDecks, setShuffleDecks] = useState(() => {
@@ -360,22 +362,33 @@ export const ThematicDecksView: React.FC<ThematicDecksViewProps> = ({
   return (
     <div className="space-y-4 sm:space-y-6">
       {/* Баннер режима бета-доступа к колодам */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 p-3 rounded-2xl bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-orange-500/10 border border-amber-500/30 text-amber-900 dark:text-amber-200 text-xs">
-        <div className="flex items-center gap-2 min-w-0">
-          <Sparkles className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
-          <span>
-            <strong className="font-bold">
-              {userProfile.ulpanMode ? 'עֶרְכּוֹת בֵּטָא:' : 'Тематические колоды в Бете:'}
-            </strong>{' '}
-            {userProfile.ulpanMode
-              ? '3 עֶרְכּוֹת בְּסִיסִיּוֹת חִנָּמִיּוֹת תָּמִיד. כָּל שְׁאָר הָעֶרְכּוֹת פְּתוּחוֹת בִּתְקוּפַת הַבֵּטָא (בְּגִרְסָה סוֹפִית — PRO).'
-              : '3 базовые колоды всегда бесплатны. Все остальные тематические колоды сейчас открыты в режиме PRO БЕТА.'}
-          </span>
+      {isBetaBannerVisible && (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 p-3 rounded-2xl bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-orange-500/10 border border-amber-500/30 text-amber-900 dark:text-amber-200 text-xs animate-in fade-in duration-200">
+          <div className="flex items-center gap-2 min-w-0 flex-1">
+            <Sparkles className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+            <span>
+              <strong className="font-bold">
+                {userProfile.ulpanMode ? 'עֶרְכּוֹת בֵּטָא:' : 'Тематические колоды в Бете:'}
+              </strong>{' '}
+              {userProfile.ulpanMode
+                ? '3 עֶרְכּוֹת בְּסִיסִיּוֹת חִנָּמִיּוֹת תָּמִיד. כָּל שְׁאָר הָעֶרְכּוֹת פְּתוּחוֹת בִּתְקוּפַת הַבֵּטָא (בְּגִרְסָה סוֹפִית — PRO).'
+                : '3 базовые колоды всегда бесплатны. Все остальные тематические колоды сейчас открыты в режиме PRO БЕТА.'}
+            </span>
+          </div>
+          <div className="shrink-0 flex items-center gap-2 self-end sm:self-auto">
+            <TierBadge tier="pro-beta" size="xs" isUlpan={userProfile.ulpanMode} />
+            <button
+              type="button"
+              onClick={dismissBetaBanner}
+              className="p-1 rounded-lg text-amber-700/70 hover:text-amber-900 dark:text-amber-300/70 dark:hover:text-amber-100 hover:bg-amber-500/20 transition cursor-pointer"
+              title={userProfile.ulpanMode ? 'הַסְתֵּר לְ-5 יָמִים' : 'Скрыть на 5 дней'}
+              aria-label={userProfile.ulpanMode ? 'הַסְתֵּר לְ-5 יָמִים' : 'Скрыть на 5 дней'}
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
         </div>
-        <div className="shrink-0 self-end sm:self-auto">
-          <TierBadge tier="pro-beta" size="xs" isUlpan={userProfile.ulpanMode} />
-        </div>
-      </div>
+      )}
 
       {/* Быстрые фильтры по темам и уровням в одну компактную строку */}
       <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar font-hebrew">

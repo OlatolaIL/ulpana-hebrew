@@ -14,6 +14,7 @@ import {
   Phone,
   MessageSquare,
   Crown,
+  X,
 } from 'lucide-react';
 import { Lesson, UserProfile, Word } from '@/types';
 import { LessonTheory } from './LessonTheory';
@@ -26,6 +27,7 @@ import { getLessonById, LESSONS_CATALOG } from '@/data/lessonsData';
 import { loadUserProfile, getFirstIncompleteLessonTab } from '@/lib/storage';
 import { isStageAlwaysFree } from '@/lib/permissions';
 import { TierBadge } from './TierBadge';
+import { useBannerCooldown } from '@/lib/useBannerCooldown';
 
 export type LessonTab = 'theory' | 'vocab' | 'exercises' | 'chat' | 'phone';
 
@@ -54,6 +56,7 @@ export const LessonView: React.FC<LessonViewProps> = ({
     return initialTab || getFirstIncompleteLessonTab(lessonId, userProfile);
   });
   const [dialogueSubTab, setDialogueSubTab] = useState<'scripted' | 'free_ai'>('scripted');
+  const { isVisible: isBetaBannerVisible, dismiss: dismissBetaBanner } = useBannerCooldown('lesson_view_pro_beta');
 
   useEffect(() => {
     if (initialTab) {
@@ -237,9 +240,9 @@ export const LessonView: React.FC<LessonViewProps> = ({
       </div>
 
       {/* Индикатор этапа PRO в режиме Бета */}
-      {!isStageAlwaysFree(lessonId, activeTab) && (
-        <div className="mb-2 px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500/10 via-orange-500/5 to-amber-500/10 border border-amber-500/25 flex items-center justify-between gap-2 text-xs text-amber-900 dark:text-amber-200 shrink-0">
-          <div className="flex items-center gap-1.5 min-w-0">
+      {!isStageAlwaysFree(lessonId, activeTab) && isBetaBannerVisible && (
+        <div className="mb-2 px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500/10 via-orange-500/5 to-amber-500/10 border border-amber-500/25 flex items-center justify-between gap-2 text-xs text-amber-900 dark:text-amber-200 shrink-0 animate-in fade-in duration-200">
+          <div className="flex items-center gap-1.5 min-w-0 flex-1">
             <Crown className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
             <span className="font-semibold truncate">
               {userProfile.ulpanMode
@@ -247,7 +250,18 @@ export const LessonView: React.FC<LessonViewProps> = ({
                 : 'Этот этап входит в тариф PRO • Доступ открыт бесплатно на период бета-тестирования'}
             </span>
           </div>
-          <TierBadge tier="pro-beta" size="xs" isUlpan={userProfile.ulpanMode} />
+          <div className="shrink-0 flex items-center gap-2">
+            <TierBadge tier="pro-beta" size="xs" isUlpan={userProfile.ulpanMode} />
+            <button
+              type="button"
+              onClick={dismissBetaBanner}
+              className="p-1 rounded-lg text-amber-700/70 hover:text-amber-900 dark:text-amber-300/70 dark:hover:text-amber-100 hover:bg-amber-500/20 transition cursor-pointer"
+              title={userProfile.ulpanMode ? 'הַסְתֵּר לְ-5 יָמִים' : 'Скрыть на 5 дней'}
+              aria-label={userProfile.ulpanMode ? 'הַסְתֵּר לְ-5 יָמִים' : 'Скрыть на 5 дней'}
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
         </div>
       )}
 
