@@ -24,7 +24,7 @@ import { LessonAiChat } from './LessonAiChat';
 import { ScriptedDialogueTrainer } from './ScriptedDialogueTrainer';
 import { PhoneCallSimulator } from './PhoneCallSimulator';
 import { getLessonById, LESSONS_CATALOG } from '@/data/lessonsData';
-import { loadUserProfile, getFirstIncompleteLessonTab } from '@/lib/storage';
+import { loadUserProfile, getFirstIncompleteLessonTab, normalizeHebrewWord } from '@/lib/storage';
 import { isStageAlwaysFree } from '@/lib/permissions';
 import { TierBadge } from './TierBadge';
 import { useBannerCooldown } from '@/lib/useBannerCooldown';
@@ -273,9 +273,20 @@ export const LessonView: React.FC<LessonViewProps> = ({
           <LessonVocabulary
             lessonId={lesson.id}
             words={(() => {
-              const customLessonWords = (userProfile.personalVocabulary || []).filter(
-                (w) => w.lessonId === lesson.id && !lesson.vocabulary.some((lv) => stripNikkud(lv.hebrew) === stripNikkud(w.hebrew))
-              );
+              const seen = new Set<string>();
+              (lesson.vocabulary || []).forEach((lv) => {
+                seen.add(normalizeHebrewWord(lv.hebrewPlain || lv.hebrew));
+              });
+              const customLessonWords: Word[] = [];
+              for (const w of userProfile.personalVocabulary || []) {
+                if (w.lessonId === lesson.id) {
+                  const key = normalizeHebrewWord(w.hebrewPlain || w.hebrew);
+                  if (key && !seen.has(key)) {
+                    seen.add(key);
+                    customLessonWords.push(w);
+                  }
+                }
+              }
               return [...lesson.vocabulary, ...customLessonWords];
             })()}
             userProfile={userProfile}

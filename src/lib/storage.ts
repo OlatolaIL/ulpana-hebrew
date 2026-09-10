@@ -24,6 +24,22 @@ const DEFAULT_PROFILE: UserProfile = {
   flashcardDirection: 'he-ru',
 };
 
+/**
+ * Каноническая нормализация иврита для надёжной дедупликации:
+ * 1. Снимает огласовки (ניקוד)
+ * 2. Удаляет невидимые служебные символы BiDi (\u200E, \u200F, \u200B и т.д.)
+ * 3. Удаляет знаки препинания по краям
+ * 4. Удаляет лишние пробелы
+ */
+export function normalizeHebrewWord(text: string): string {
+  if (!text) return '';
+  return stripNikkud(text)
+    .replace(/[\u200B-\u200F\u202A-\u202E\uFEFF\u00A0]/g, '')
+    .replace(/^[.,!?;:"'״׳()[\]{}—\-\s]+|[.,!?;:"'״׳()[\]{}—\-\s]+$/g, '')
+    .trim()
+    .toLowerCase();
+}
+
 export function loadUserProfile(): UserProfile {
   if (typeof window === 'undefined') return DEFAULT_PROFILE;
   try {
@@ -58,6 +74,49 @@ export function loadUserProfile(): UserProfile {
       profile.completedLessons = actualCompleted;
     }
 
+    // Автоматическая дедупликация и санитация личного словаря
+    if (Array.isArray(profile.personalVocabulary)) {
+      const seen = new Set<string>();
+      const cleanVocab: Word[] = [];
+      let hadDuplicates = false;
+
+      for (const w of profile.personalVocabulary) {
+        const key = normalizeHebrewWord(w.hebrewPlain || w.hebrew || '');
+        if (!key || seen.has(key)) {
+          hadDuplicates = true;
+          continue;
+        }
+        seen.add(key);
+
+        // Автоисправление старого ошибочного перевода "רהוט -> просторный"
+        if (key === 'רהוט' || key === 'ריהוט') {
+          if (
+            w.translation?.includes('просторный') ||
+            w.transcription?.includes('pixут') ||
+            w.transcription?.includes('рихит') ||
+            w.root === 'ר-ו-ה'
+          ) {
+            w.hebrew = 'רִיהוּט';
+            w.hebrewPlain = 'ריהוט';
+            w.transcription = 'риhӯт';
+            w.translation = 'мебель, обстановка';
+            w.root = 'ר-ה-ט';
+            w.partOfSpeech = 'noun';
+            hadDuplicates = true;
+          }
+        }
+
+        cleanVocab.push(w);
+      }
+
+      if (hadDuplicates || cleanVocab.length !== profile.personalVocabulary.length) {
+        profile.personalVocabulary = cleanVocab;
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(profile));
+        } catch {}
+      }
+    }
+
     return profile;
   } catch (e) {
     console.error('Failed to load profile from localStorage', e);
@@ -79,13 +138,13 @@ export function saveUserProfile(profile: UserProfile): void {
 }
 
 /**
- * Проверка, находится ли слово в личном словаре (дедупликация по чистому тексту без огласовок)
+ * Проверка, находится ли слово в личном словаре (дедупликация по нормализованному тексту)
  */
 export function isWordInPersonalDict(hebrew: string, vocabularyList?: Word[]): boolean {
-  const clean = stripNikkud(hebrew || '').trim().toLowerCase();
+  const clean = normalizeHebrewWord(hebrew);
   if (!clean) return false;
   const list = vocabularyList || loadUserProfile().personalVocabulary || [];
-  return list.some((w) => stripNikkud(w.hebrew || w.hebrewPlain || '').trim().toLowerCase() === clean);
+  return list.some((w) => normalizeHebrewWord(w.hebrewPlain || w.hebrew || '') === clean);
 }
 
 /**
@@ -93,16 +152,39 @@ export function isWordInPersonalDict(hebrew: string, vocabularyList?: Word[]): b
  */
 export function addWordToPersonalDict(word: Omit<Word, 'id' | 'dateAdded' | 'isUserAdded'>): Word {
   const profile = loadUserProfile();
-  const cleanHeb = stripNikkud(word.hebrew || '').trim().toLowerCase();
+  const cleanHeb = normalizeHebrewWord(word.hebrewPlain || word.hebrew || '');
+  if (!cleanHeb) return word as Word;
 
   // Проверяем, нет ли уже такого слова
   const existing = profile.personalVocabulary.find(
-    (w) => stripNikkud(w.hebrew || w.hebrewPlain || '').trim().toLowerCase() === cleanHeb
+    (w) => normalizeHebrewWord(w.hebrewPlain || w.hebrew || '') === cleanHeb
   );
   if (existing) {
     let updated = false;
     if (word.lessonId && existing.lessonId !== word.lessonId) {
       existing.lessonId = word.lessonId;
+      updated = true;
+    }
+    if (
+      word.translation &&
+      (!existing.translation ||
+        existing.translation === 'Слово на иврите' ||
+        existing.translation.includes('просторный'))
+    ) {
+      existing.translation = word.translation;
+      updated = true;
+    }
+    if (
+      word.transcription &&
+      (!existing.transcription ||
+        existing.transcription.includes('pixут') ||
+        existing.transcription.includes('рихит'))
+    ) {
+      existing.transcription = word.transcription;
+      updated = true;
+    }
+    if (word.root && (!existing.root || existing.root === 'ר-ו-ה')) {
+      existing.root = word.root;
       updated = true;
     }
     if (updated) {
@@ -129,14 +211,14 @@ export function addWordToPersonalDict(word: Omit<Word, 'id' | 'dateAdded' | 'isU
 export function addBatchWordsToPersonalDict(words: Word[]): { addedCount: number; updatedProfile: UserProfile } {
   const profile = loadUserProfile();
   const existingSet = new Set(
-    profile.personalVocabulary.map((w) => stripNikkud(w.hebrew || w.hebrewPlain || '').trim().toLowerCase())
+    profile.personalVocabulary.map((w) => normalizeHebrewWord(w.hebrewPlain || w.hebrew || ''))
   );
 
   let addedCount = 0;
   const newWordsToAdd: Word[] = [];
 
   for (const word of words) {
-    const clean = stripNikkud(word.hebrew || word.hebrewPlain || '').trim().toLowerCase();
+    const clean = normalizeHebrewWord(word.hebrewPlain || word.hebrew || '');
     if (!clean || existingSet.has(clean)) continue;
 
     existingSet.add(clean);

@@ -23,6 +23,7 @@ import {
   markLessonTabCompleted,
   addWordToPersonalDict,
   loadUserProfile,
+  normalizeHebrewWord,
 } from '@/lib/storage';
 import { stripNikkud } from '@/lib/transcription';
 import { phoneAudio } from '@/lib/phoneAudio';
@@ -109,26 +110,40 @@ export function useScriptedDialogue({
   }, [lesson.vocabulary]);
 
   const customLessonWords: Word[] = useMemo(() => {
-    return (userProfile.personalVocabulary || []).filter(
-      (w) =>
-        w.lessonId === lesson.id &&
-        !lesson.vocabulary?.some(
-          (lv) => stripNikkud(lv.hebrew) === stripNikkud(w.hebrew)
-        )
-    );
-  }, [userProfile.personalVocabulary, lesson.id, lesson.vocabulary]);
+    const seen = new Set<string>();
+    (lesson.vocabulary || []).forEach((lv) => {
+      const k = normalizeHebrewWord(lv.hebrewPlain || lv.hebrew);
+      if (k) seen.add(k);
+    });
+    (dialogue.usefulWords || []).forEach((dw) => {
+      const k = normalizeHebrewWord(dw.hebrewPlain || dw.hebrew);
+      if (k) seen.add(k);
+    });
+    const result: Word[] = [];
+    for (const w of userProfile.personalVocabulary || []) {
+      if (w.lessonId === lesson.id) {
+        const key = normalizeHebrewWord(w.hebrewPlain || w.hebrew);
+        if (key && !seen.has(key)) {
+          seen.add(key);
+          result.push(w);
+        }
+      }
+    }
+    return result;
+  }, [userProfile.personalVocabulary, lesson.id, lesson.vocabulary, dialogue.usefulWords]);
 
   const totalAvailableWordsCount =
     dialogueUsefulWords.length + lessonVocabularyWords.length + customLessonWords.length;
 
   const handleAddWordToDict = (w: Word) => {
     const saved = addWordToPersonalDict(w);
-    const clean = stripNikkud(w.hebrew);
+    const clean = normalizeHebrewWord(w.hebrew);
+    const plain = normalizeHebrewWord(w.hebrewPlain || w.hebrew);
     setAddedWords((prev) => ({
       ...prev,
       [w.hebrew]: true,
       [clean]: true,
-      [w.hebrewPlain || clean]: true,
+      [plain]: true,
     }));
     const freshProfile = loadUserProfile();
     if (onWordAdded) onWordAdded(saved);

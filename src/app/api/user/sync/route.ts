@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifySessionToken } from '@/lib/auth';
 import { getDbPool } from '@/lib/db';
 import { Word } from '@/types';
+import { normalizeHebrewWord } from '@/lib/storage';
 
 export async function GET(req: NextRequest) {
   try {
@@ -36,23 +37,46 @@ export async function GET(req: NextRequest) {
       };
     }
 
-    // 2. Получаем личный словарик
+    // 2. Получаем личный словарик с дедупликацией
     const vocabRes = await db.query(
       'SELECT id, hebrew, hebrew_plain, transcription, translation, part_of_speech, root, lesson_id FROM ulpana_vocabulary WHERE user_id = $1 ORDER BY created_at DESC',
       [session.id]
     );
 
-    const personalVocabulary: Word[] = vocabRes.rows.map((r) => ({
-      id: r.id,
-      hebrew: r.hebrew,
-      hebrewPlain: r.hebrew_plain,
-      transcription: r.transcription || '',
-      translation: r.translation,
-      partOfSpeech: r.part_of_speech || 'other',
-      root: r.root || undefined,
-      lessonId: r.lesson_id || 0,
-      isUserAdded: true,
-    }));
+    const seenPlain = new Set<string>();
+    const personalVocabulary: Word[] = [];
+    for (const r of vocabRes.rows) {
+      const plain = normalizeHebrewWord(r.hebrew_plain || r.hebrew);
+      if (!plain || seenPlain.has(plain)) continue;
+      seenPlain.add(plain);
+
+      let hebrew = r.hebrew;
+      let transcription = r.transcription || '';
+      let translation = r.translation;
+      let root = r.root || undefined;
+
+      // Авто-исправление старых записей мебели
+      if (plain === 'רהוט' || plain === 'ריהוט') {
+        if (translation?.toLowerCase().includes('просторн') || root?.includes('ר-ו-ה')) {
+          hebrew = 'רִיהוּט';
+          transcription = 'риhӯт';
+          translation = 'мебель, обстановка';
+          root = 'ר-ה-ט';
+        }
+      }
+
+      personalVocabulary.push({
+        id: r.id,
+        hebrew,
+        hebrewPlain: plain,
+        transcription,
+        translation,
+        partOfSpeech: r.part_of_speech || 'other',
+        root,
+        lessonId: r.lesson_id || 0,
+        isUserAdded: true,
+      });
+    }
 
     // 3. Получаем прогресс карточек (SM-2 интервалы)
     const userRes = await db.query('SELECT flashcard_stats FROM ulpana_users WHERE id = $1', [session.id]);
@@ -139,32 +163,81 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      // Сохраняем личный словарик
+      // Сохраняем личный словарик с надёжной дедупликацией
       if (Array.isArray(personalVocabulary)) {
+        const seenInBatch = new Set<string>();
         for (const word of personalVocabulary) {
           if (!word.hebrew || !word.translation) continue;
-          const wordId = word.id || `w_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+          const plain = normalizeHebrewWord(word.hebrewPlain || word.hebrew);
+          if (!plain || seenInBatch.has(plain)) continue;
+          seenInBatch.add(plain);
 
-          await db.query(
-            `INSERT INTO ulpana_vocabulary (id, user_id, hebrew, hebrew_plain, transcription, translation, part_of_speech, root, lesson_id)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-             ON CONFLICT (id) DO UPDATE SET
-               translation = EXCLUDED.translation,
-               transcription = EXCLUDED.transcription,
-               part_of_speech = EXCLUDED.part_of_speech,
-               root = EXCLUDED.root`,
-            [
-              wordId,
-              session.id,
-              word.hebrew,
-              word.hebrewPlain || word.hebrew,
-              word.transcription || '',
-              word.translation,
-              word.partOfSpeech || 'other',
-              word.root || null,
-              word.lessonId || 0,
-            ]
+          // Авто-исправление старых ошибочных записей
+          let hebrew = word.hebrew;
+          let transcription = word.transcription || '';
+          let translation = word.translation;
+          let root = word.root || null;
+          if (plain === 'רהוט' || plain === 'ריהוט') {
+            if (translation?.toLowerCase().includes('просторн') || root?.includes('ר-ו-ה')) {
+              hebrew = 'רִיהוּט';
+              transcription = 'риhӯт';
+              translation = 'мебель, обстановка';
+              root = 'ר-ה-ט';
+            }
+          }
+
+          // Ищем существующую запись по hebrew_plain или hebrew
+          const existing = await db.query(
+            'SELECT id FROM ulpana_vocabulary WHERE user_id = $1 AND (hebrew_plain = $2 OR hebrew = $3) LIMIT 1',
+            [session.id, plain, hebrew]
           );
+
+          if (existing.rows.length > 0) {
+            const keepId = existing.rows[0].id;
+            await db.query(
+              `UPDATE ulpana_vocabulary SET
+                 hebrew = $1,
+                 hebrew_plain = $2,
+                 transcription = $3,
+                 translation = $4,
+                 part_of_speech = $5,
+                 root = $6,
+                 lesson_id = COALESCE($7, lesson_id)
+               WHERE id = $8`,
+              [
+                hebrew,
+                plain,
+                transcription,
+                translation,
+                word.partOfSpeech || 'other',
+                root,
+                word.lessonId || null,
+                keepId,
+              ]
+            );
+            // Удаляем любые оставшиеся дубликаты этого же слова у пользователя
+            await db.query(
+              'DELETE FROM ulpana_vocabulary WHERE user_id = $1 AND (hebrew_plain = $2 OR hebrew = $3) AND id != $4',
+              [session.id, plain, hebrew, keepId]
+            );
+          } else {
+            const wordId = word.id || `w_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+            await db.query(
+              `INSERT INTO ulpana_vocabulary (id, user_id, hebrew, hebrew_plain, transcription, translation, part_of_speech, root, lesson_id)
+               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+              [
+                wordId,
+                session.id,
+                hebrew,
+                plain,
+                transcription,
+                translation,
+                word.partOfSpeech || 'other',
+                root,
+                word.lessonId || 0,
+              ]
+            );
+          }
         }
       }
     }

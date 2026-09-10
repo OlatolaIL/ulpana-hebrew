@@ -18,8 +18,13 @@ import {
 import confetti from 'canvas-confetti';
 import { Word, UserProfile, PartOfSpeech } from '@/types';
 import { speakHebrew } from '@/lib/speech';
-import { stripNikkud, getWordTranscription } from '@/lib/transcription';
-import { saveUserProfile, markLessonTabCompleted, updateCardSRS } from '@/lib/storage';
+import {
+  saveUserProfile,
+  markLessonTabCompleted,
+  updateCardSRS,
+  normalizeHebrewWord,
+} from '@/lib/storage';
+import { getWordTranscription } from '@/lib/transcription';
 import { getHebrewPictogram } from '@/lib/pictograms';
 
 interface LessonVocabularyProps {
@@ -186,15 +191,15 @@ export const LessonVocabulary: React.FC<LessonVocabularyProps> = ({
   };
 
   const handleToggleDict = (word: Word) => {
-    const cleanWordHeb = stripNikkud(word.hebrew);
+    const cleanWordHeb = normalizeHebrewWord(word.hebrewPlain || word.hebrew);
     let updatedVocab = [...(userProfile.personalVocabulary || [])];
     const isAlreadyIn = updatedVocab.some(
-      (pw) => stripNikkud(pw.hebrew) === cleanWordHeb
+      (pw) => normalizeHebrewWord(pw.hebrewPlain || pw.hebrew) === cleanWordHeb
     );
 
     if (isAlreadyIn) {
       updatedVocab = updatedVocab.filter(
-        (pw) => stripNikkud(pw.hebrew) !== cleanWordHeb
+        (pw) => normalizeHebrewWord(pw.hebrewPlain || pw.hebrew) !== cleanWordHeb
       );
     } else {
       const newWord: Word = {
@@ -218,8 +223,9 @@ export const LessonVocabulary: React.FC<LessonVocabularyProps> = ({
   };
 
   const isWordInDict = (word: Word) => {
+    const cleanWordHeb = normalizeHebrewWord(word.hebrewPlain || word.hebrew);
     return (userProfile.personalVocabulary || []).some(
-      (pw) => stripNikkud(pw.hebrew) === stripNikkud(word.hebrew)
+      (pw) => normalizeHebrewWord(pw.hebrewPlain || pw.hebrew) === cleanWordHeb
     );
   };
 
