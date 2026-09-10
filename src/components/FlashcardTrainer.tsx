@@ -21,6 +21,7 @@ import {
   Columns2,
   Play,
   Pause,
+  Square,
   Repeat,
   Timer,
   Headphones,
@@ -134,8 +135,10 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
   // Для режима "Авто на слух"
   const [isAutoPlaying, setIsAutoPlaying] = useState(false);
   const [autoPauseSec, setAutoPauseSec] = useState(3);
-  const [autoPhase, setAutoPhase] = useState<'idle' | 'prompt' | 'pause' | 'reveal'>('idle');
+  const [autoPhase, setAutoPhase] = useState<'idle' | 'prompt' | 'pause' | 'reveal' | 'paused'>('idle');
   const [autoCountdown, setAutoCountdown] = useState(0);
+  const [isAutoLooping, setIsAutoLooping] = useState(true);
+  const [autoLoopCount, setAutoLoopCount] = useState(1);
 
   const handleShuffleWords = () => {
     if (isSplitMode && canSplit && activePartIndex >= 0 && parts[activePartIndex]) {
@@ -338,6 +341,13 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
     setQuizOptions(allOpts);
   }, [currentIndex, mode, currentWord, words, masterWords, userProfile.ulpanMode, userProfile.showNikkud]);
 
+  // Очистка озвучки при размонтировании компонента
+  useEffect(() => {
+    return () => {
+      stopSpeech();
+    };
+  }, []);
+
   // Эффект для режима "Авто на слух" (Hands-Free):
   // Озвучка первого языка → Пауза 2-3 сек (чтобы ученик вспомнил сам) → Озвучка второго языка → переход к следующему слову
   useEffect(() => {
@@ -399,9 +409,12 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
       });
       if (isCancelled) return;
 
-      // Шаг 5: Переход к следующему слову или завершение
+      // Шаг 5: Переход к следующему слову или бесконечный цикл
       if (currentIndex + 1 < words.length) {
         setCurrentIndex((prev) => prev + 1);
+      } else if (isAutoLooping) {
+        setAutoLoopCount((prev) => prev + 1);
+        setCurrentIndex(0);
       } else {
         setIsAutoPlaying(false);
         setAutoPhase('idle');
@@ -417,7 +430,28 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
       if (countdownInterval) clearInterval(countdownInterval);
       stopSpeech();
     };
-  }, [mode, isAutoPlaying, currentIndex, autoPauseSec, cardDirection, isCompleted, words]);
+  }, [mode, isAutoPlaying, currentIndex, autoPauseSec, cardDirection, isCompleted, words, isAutoLooping, autoLoopCount]);
+
+  // Управление авторежимом на слух (Старт, Пауза, Стоп)
+  const handleAutoStart = () => {
+    if (isAutoPlaying) return;
+    setIsAutoPlaying(true);
+  };
+
+  const handleAutoPause = () => {
+    setIsAutoPlaying(false);
+    setAutoPhase('paused');
+    stopSpeech();
+  };
+
+  const handleAutoStop = () => {
+    setIsAutoPlaying(false);
+    setAutoPhase('idle');
+    setAutoCountdown(0);
+    setCurrentIndex(0);
+    setAutoLoopCount(1);
+    stopSpeech();
+  };
 
   const triggerCelebration = () => {
     confetti({
@@ -441,6 +475,9 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
   const handlePrevWord = () => {
     if (currentIndex > 0) {
       setCurrentIndex((prev) => prev - 1);
+      setIsFlipped(false);
+    } else if (mode === 'auto_audio' && isAutoLooping && words.length > 1) {
+      setCurrentIndex(words.length - 1);
       setIsFlipped(false);
     }
   };
@@ -490,6 +527,9 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
   const handleAdvanceNext = () => {
     if (currentIndex + 1 < words.length) {
       setCurrentIndex((prev) => prev + 1);
+    } else if (mode === 'auto_audio' && isAutoLooping) {
+      setAutoLoopCount((prev) => prev + 1);
+      setCurrentIndex(0);
     } else {
       handleFinishSet();
     }
@@ -1068,7 +1108,10 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
         <div className="flex items-center gap-1 w-full sm:w-auto bg-zinc-100 dark:bg-zinc-800 rounded-xl p-0.5">
           {/* Флип */}
           <button
-            onClick={() => setMode('flip')}
+            onClick={() => {
+              if (mode === 'auto_audio') handleAutoStop();
+              setMode('flip');
+            }}
             title={isUlpan ? 'כַּרְטִיסִייָה' : 'Флип'}
             className={`flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
               mode === 'flip'
@@ -1081,7 +1124,10 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
           </button>
           {/* Конструктор */}
           <button
-            onClick={() => setMode('builder')}
+            onClick={() => {
+              if (mode === 'auto_audio') handleAutoStop();
+              setMode('builder');
+            }}
             title={isUlpan ? 'הַרְכָּבָה' : 'Конструктор'}
             className={`flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
               mode === 'builder'
@@ -1094,7 +1140,10 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
           </button>
           {/* На слух */}
           <button
-            onClick={() => setMode('listening')}
+            onClick={() => {
+              if (mode === 'auto_audio') handleAutoStop();
+              setMode('listening');
+            }}
             title={isUlpan ? 'שְׁמִיעָה' : 'На слух'}
             className={`flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
               mode === 'listening'
@@ -2103,11 +2152,32 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
           <div className="min-h-[260px] sm:min-h-[300px] bg-gradient-to-b from-white to-blue-50/30 dark:from-zinc-900 dark:to-blue-950/20 border-2 border-blue-200 dark:border-blue-900/60 rounded-3xl p-5 sm:p-6 flex flex-col items-center justify-between text-center relative select-none shadow-xl">
             {/* Верхний статус-бейдж фазы */}
             <div className="w-full flex items-center justify-between gap-2 flex-wrap">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <span className="text-[10px] font-extrabold uppercase tracking-wider px-2.5 py-1 rounded-full bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 flex items-center gap-1.5">
-                  <Volume2 className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 animate-pulse" />
+                  <Volume2 className={`w-3.5 h-3.5 text-blue-600 dark:text-blue-400 ${isAutoPlaying ? 'animate-pulse' : ''}`} />
                   <span>{isUlpan ? 'מַצָּב אוֹטוֹמָטִי' : 'Авто на слух'}</span>
                 </span>
+
+                {/* Переключатель «Бесконечный цикл» */}
+                <button
+                  type="button"
+                  onClick={() => setIsAutoLooping((prev) => !prev)}
+                  className={`px-2.5 py-1 rounded-full text-[11px] font-extrabold transition flex items-center gap-1.5 cursor-pointer ${
+                    isAutoLooping
+                      ? 'bg-indigo-100 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-300 dark:border-indigo-700 shadow-xs'
+                      : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500 hover:bg-zinc-200 dark:hover:bg-zinc-700 border border-zinc-200 dark:border-zinc-700'
+                  }`}
+                  title={isAutoLooping ? (isUlpan ? 'לוּלָאָה אֵינְסוֹפִית פְּעִילָה' : 'Бесконечный цикл включён (нажмите для выключения)') : (isUlpan ? 'הַפְעֵל לוּלָאָה אֵינְסוֹפִית' : 'Включить бесконечный цикл')}
+                >
+                  <Repeat className={`w-3.5 h-3.5 ${isAutoLooping ? 'text-indigo-600 dark:text-indigo-400' : ''}`} />
+                  <span>{isUlpan ? (isAutoLooping ? 'לוּלָאָה אֵינְסוֹפִית' : 'לְלֹא לוּלָאָה') : (isAutoLooping ? 'Бесконечный цикл' : 'Без цикла')}</span>
+                  {autoLoopCount > 1 && (
+                    <span className="ml-0.5 px-1.5 py-0.2 rounded-full bg-indigo-200 dark:bg-indigo-900 text-indigo-800 dark:text-indigo-200 text-[10px]">
+                      {isUlpan ? `סִיבּוּב ${autoLoopCount}` : `Круг ${autoLoopCount}`}
+                    </span>
+                  )}
+                </button>
+
                 {cardDirection === 'carousel' && (
                   <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300">
                     🔀 Карусель
@@ -2159,9 +2229,16 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
                     <span>Правильный перевод</span>
                   </span>
                 )}
+                {autoPhase === 'paused' && (
+                  <span className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/60 px-3.5 py-1 rounded-full border border-amber-300 dark:border-amber-700">
+                    <Pause className="w-3.5 h-3.5" />
+                    <span>{isUlpan ? 'מֻשְׁהֶה — לַחַץ עַל הַמְשֵׁךְ' : 'На паузе. Нажмите «Старт» / «Продолжить»'}</span>
+                  </span>
+                )}
                 {autoPhase === 'idle' && (
-                  <span className="text-xs font-medium text-zinc-400">
-                    Нажмите «Старт», чтобы запустить автоматическое воспроизведение
+                  <span className="text-xs font-medium text-zinc-400 flex items-center gap-1.5">
+                    <Play className="w-3 h-3 fill-zinc-400" />
+                    <span>{isUlpan ? 'לַחַץ עַל הַתְחֵל כְּדֵי לְהַפְעִיל' : 'Нажмите «Старт», чтобы запустить бесконечный цикл'}</span>
                   </span>
                 )}
               </div>
@@ -2191,47 +2268,69 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
               </div>
             </div>
 
-            {/* Нижняя панель управления плеером (Play/Pause, Навигация) */}
-            <div className="w-full flex items-center justify-between gap-3 pt-4 border-t border-zinc-200/60 dark:border-zinc-800">
+            {/* Нижняя панель управления плеером (Назад, Старт, Пауза, Стоп, Озвучить, Далее) */}
+            <div className="w-full flex items-center justify-between gap-2 sm:gap-3 pt-4 border-t border-zinc-200/60 dark:border-zinc-800">
               <button
                 type="button"
-                disabled={currentIndex === 0}
+                disabled={currentIndex === 0 && !isAutoLooping}
                 onClick={handlePrevWord}
-                className="py-2 px-3 rounded-xl border border-zinc-200 dark:border-zinc-700 text-xs font-semibold text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-25 transition flex items-center gap-1 cursor-pointer"
-                title="Предыдущее слово"
+                className="py-2.5 px-3 rounded-xl border border-zinc-200 dark:border-zinc-700 text-xs font-semibold text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-25 transition flex items-center gap-1 cursor-pointer shrink-0"
+                title={isUlpan ? 'הַקּוֹדֵם' : 'Предыдущее слово'}
               >
                 <ArrowLeft className="w-4 h-4" />
-                <span className="hidden sm:inline">Назад</span>
+                <span className="hidden sm:inline">{isUlpan ? 'הַקּוֹדֵם' : 'Назад'}</span>
               </button>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap justify-center">
+                {/* Кнопка Старт / Продолжить */}
                 <button
                   type="button"
-                  onClick={() => setIsAutoPlaying((prev) => !prev)}
-                  className={`py-3 px-6 rounded-2xl font-bold text-sm flex items-center gap-2 shadow-md transition active:scale-95 cursor-pointer ${
+                  onClick={handleAutoStart}
+                  disabled={isAutoPlaying}
+                  className={`py-2.5 px-3.5 sm:px-4 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-1.5 transition active:scale-95 shadow-xs ${
                     isAutoPlaying
-                      ? 'bg-amber-500 hover:bg-amber-600 text-white'
-                      : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white'
+                      ? 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-800/60 opacity-60 cursor-default'
+                      : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-md cursor-pointer'
                   }`}
+                  title={isUlpan ? (autoPhase === 'paused' ? 'הַמְשֵׁךְ' : 'הַתְחֵל') : (autoPhase === 'paused' ? 'Продолжить воспроизведение' : 'Запустить авторежим')}
                 >
-                  {isAutoPlaying ? (
-                    <>
-                      <Pause className="w-4 h-4" />
-                      <span>Пауза</span>
-                    </>
-                  ) : (
-                    <>
-                      <Play className="w-4 h-4 fill-white" />
-                      <span>{autoPhase === 'idle' ? 'Старт' : 'Продолжить'}</span>
-                    </>
-                  )}
+                  <Play className="w-4 h-4 fill-current" />
+                  <span>{isUlpan ? (autoPhase === 'paused' ? 'הַמְשֵׁךְ' : 'הַתְחֵל') : (autoPhase === 'paused' ? 'Продолжить' : 'Старт')}</span>
                 </button>
 
+                {/* Кнопка Пауза */}
+                <button
+                  type="button"
+                  onClick={handleAutoPause}
+                  disabled={!isAutoPlaying}
+                  className={`py-2.5 px-3.5 sm:px-4 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-1.5 transition active:scale-95 ${
+                    isAutoPlaying
+                      ? 'bg-amber-500 hover:bg-amber-600 text-white shadow-md cursor-pointer'
+                      : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-400 dark:text-zinc-500 border border-zinc-200 dark:border-zinc-700 opacity-40 cursor-not-allowed'
+                  }`}
+                  title={isUlpan ? 'הַשְׁהֵה' : 'Приостановить воспроизведение'}
+                >
+                  <Pause className="w-4 h-4" />
+                  <span>{isUlpan ? 'הַשְׁהֵה' : 'Пауза'}</span>
+                </button>
+
+                {/* Кнопка Стоп */}
+                <button
+                  type="button"
+                  onClick={handleAutoStop}
+                  className="py-2.5 px-3.5 sm:px-4 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-1.5 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/50 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800/70 transition active:scale-95 cursor-pointer"
+                  title={isUlpan ? 'עֲצֹר וַחֲזֹר לַהַתְחָלָה' : 'Остановить и сбросить в начало'}
+                >
+                  <Square className="w-3.5 h-3.5 fill-current" />
+                  <span>{isUlpan ? 'עֲצֹר' : 'Стоп'}</span>
+                </button>
+
+                {/* Повторить озвучку текущего слова */}
                 <button
                   type="button"
                   onClick={() => speakHebrew(currentWord.hebrew)}
-                  className="p-3 rounded-2xl border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition cursor-pointer"
-                  title="Повторить произношение"
+                  className="p-2.5 rounded-xl border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition cursor-pointer"
+                  title={isUlpan ? 'הַשְׁמַע שׁוּב' : 'Повторить произношение'}
                 >
                   <Volume2 className="w-4 h-4" />
                 </button>
@@ -2240,10 +2339,10 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
               <button
                 type="button"
                 onClick={handleAdvanceNext}
-                className="py-2 px-3 rounded-xl border border-zinc-200 dark:border-zinc-700 text-xs font-semibold text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition flex items-center gap-1 cursor-pointer"
-                title="Следующее слово"
+                className="py-2.5 px-3 rounded-xl border border-zinc-200 dark:border-zinc-700 text-xs font-semibold text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition flex items-center gap-1 cursor-pointer shrink-0"
+                title={isUlpan ? 'הַבָּא' : 'Следующее слово'}
               >
-                <span className="hidden sm:inline">Далее</span>
+                <span className="hidden sm:inline">{isUlpan ? 'הַבָּא' : 'Далее'}</span>
                 <ArrowRight className="w-4 h-4" />
               </button>
             </div>

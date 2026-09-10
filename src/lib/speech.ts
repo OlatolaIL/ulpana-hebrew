@@ -598,7 +598,8 @@ export interface SpeechRecognizerOptions {
   audioContext?: AudioContext | null;
   mediaStream?: MediaStream | null;
   onAudioLevel?: (level: number) => void;
-  onSilenceDetected?: (transcript: string) => void;
+  onSilenceDetected?: (transcript: string, audioBlob?: Blob | null, audioUrl?: string | null) => void;
+  onAudioRecorded?: (audioBlob: Blob, audioUrl: string) => void;
 }
 
 /**
@@ -618,7 +619,7 @@ export class HebrewSpeechRecognizer {
   private lastTranscript = '';
   private onResultCb: ((transcript: string, isFinal: boolean) => void) | null = null;
   private onErrorCb: ((error: string) => void) | null = null;
-  private onEndCb: ((lastTranscript: string) => void) | null = null;
+  private onEndCb: ((lastTranscript: string, audioBlob?: Blob | null, audioUrl?: string | null) => void) | null = null;
   private currentOptions: SpeechRecognizerOptions = {};
   private hasDetectedSpeech = false;
   private silenceStartTime: number | null = null;
@@ -636,7 +637,7 @@ export class HebrewSpeechRecognizer {
   public async start(
     onResult: (transcript: string, isFinal: boolean) => void,
     onError: (error: string) => void,
-    onEnd: (lastTranscript: string) => void,
+    onEnd: (lastTranscript: string, audioBlob?: Blob | null, audioUrl?: string | null) => void,
     options?: SpeechRecognizerOptions
   ): Promise<void> {
     if (!this.isSupported()) {
@@ -716,9 +717,21 @@ export class HebrewSpeechRecognizer {
           const recordedChunks = [...this.audioChunks];
           this.audioChunks = [];
 
+          let recordedBlob: Blob | null = null;
+          let recordedUrl: string | null = null;
+
           if (recordedChunks.length > 0) {
             const blobType = mimeType || recordedChunks[0]?.type || 'audio/webm';
             const audioBlob = new Blob(recordedChunks, { type: blobType });
+            recordedBlob = audioBlob;
+            try {
+              recordedUrl = URL.createObjectURL(audioBlob);
+              if (this.currentOptions.onAudioRecorded) {
+                this.currentOptions.onAudioRecorded(audioBlob, recordedUrl);
+              }
+            } catch (err) {
+              console.warn('createObjectURL error:', err);
+            }
 
             // Если записано реальное аудио (более 1000 байт), транскрибируем через Groq Whisper V3
             if (audioBlob.size > 1000) {
@@ -726,14 +739,14 @@ export class HebrewSpeechRecognizer {
               if (text && text.trim()) {
                 this.lastTranscript = text.trim();
                 this.onResultCb?.(this.lastTranscript, true);
-                this.onEndCb?.(this.lastTranscript);
+                this.onEndCb?.(this.lastTranscript, recordedBlob, recordedUrl);
                 return;
               }
             }
           }
 
           if (!this.onEndCb && !this.onResultCb) return;
-          this.onEndCb?.(this.lastTranscript);
+          this.onEndCb?.(this.lastTranscript, recordedBlob, recordedUrl);
         };
 
         this.mediaRecorder = recorder;
@@ -910,6 +923,13 @@ export class HebrewSpeechRecognizer {
         if (this.audioChunks.length > 0) {
           const blobType = this.mediaRecorder.mimeType || 'audio/webm';
           const audioBlob = new Blob([...this.audioChunks], { type: blobType });
+          let audioUrl: string | null = null;
+          try {
+            audioUrl = URL.createObjectURL(audioBlob);
+            if (this.currentOptions.onAudioRecorded) {
+              this.currentOptions.onAudioRecorded(audioBlob, audioUrl);
+            }
+          } catch {}
 
           // Если записано реальное аудио (более 800 байт), транскрибируем через Groq Whisper V3
           if (audioBlob.size > 800) {
@@ -917,7 +937,7 @@ export class HebrewSpeechRecognizer {
             if (text && text.trim() && !isWhisperSilenceHallucination(text.trim())) {
               this.audioChunks = []; // очищаем буфер только при успешном распознавании
               this.lastTranscript = text.trim();
-              this.currentOptions.onSilenceDetected?.(this.lastTranscript);
+              this.currentOptions.onSilenceDetected?.(this.lastTranscript, audioBlob, audioUrl);
               return;
             }
           }
@@ -930,7 +950,7 @@ export class HebrewSpeechRecognizer {
     // 2. Fallback на браузерный Web Speech API
     const recognizedText = this.lastTranscript.trim();
     if (recognizedText && !isWhisperSilenceHallucination(recognizedText)) {
-      this.currentOptions.onSilenceDetected?.(recognizedText);
+      this.currentOptions.onSilenceDetected?.(recognizedText, null, null);
     }
   }
 

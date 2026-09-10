@@ -43,7 +43,7 @@ interface PersonalDictionaryProps {
   onStartPractice: (
     words: Word[],
     title?: string,
-    mode?: 'flip' | 'builder' | 'listening',
+    mode?: 'flip' | 'builder' | 'listening' | 'auto_audio',
     shuffle?: boolean,
     direction?: 'he-ru' | 'ru-he'
   ) => void;
@@ -248,27 +248,27 @@ export const PersonalDictionary: React.FC<PersonalDictionaryProps> = ({
   return (
     <div data-font-style={userProfile.fontStyle || 'print'} className="max-w-5xl mx-auto space-y-4 sm:space-y-6">
       {/* Главные вкладки раздела: 1. Тематические колоды, 2. Карточки уроков, 3. Мой словарик */}
-      <div className="flex items-center gap-1 sm:gap-1.5 p-1 bg-slate-200/80 dark:bg-slate-800 rounded-2xl border border-slate-300/70 dark:border-slate-700">
+      <div className="flex items-center gap-1 sm:gap-1.5 p-1 pt-1.5 bg-slate-200/80 dark:bg-slate-800 rounded-2xl border border-slate-300/70 dark:border-slate-700">
         {/* 1. Тематические колоды */}
         <button
           onClick={() => {
             setActiveTab('thematic');
             if (typeof window !== 'undefined') localStorage.setItem('ulpana_dict_tab', 'thematic');
           }}
-          className={`flex-1 py-2 px-2 sm:px-3 rounded-xl text-xs sm:text-sm font-extrabold flex items-center justify-center gap-1.5 sm:gap-2 transition-all cursor-pointer ${
+          className={`relative flex-1 py-2 sm:py-2.5 px-1 sm:px-3 rounded-xl text-xs sm:text-sm font-extrabold flex items-center justify-center gap-1 sm:gap-1.5 transition-all cursor-pointer ${
             activeTab === 'thematic'
               ? 'bg-purple-600 text-white shadow-sm shadow-purple-600/20'
               : 'text-slate-700 dark:text-slate-300 hover:bg-white/40 dark:hover:bg-slate-700/60'
           }`}
         >
-          <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
+          <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-400 shrink-0" />
           <span className="hidden sm:inline">{userProfile.ulpanMode ? 'עֶרְכּוֹת נוֹשְׂאִיּוֹת' : 'Тематические колоды'}</span>
           <span className="sm:hidden truncate">{userProfile.ulpanMode ? 'נוֹשְׂאִיּוֹת' : 'Колоды'}</span>
           <span
-            className={`text-[10px] sm:text-[11px] px-1.5 sm:px-2 py-0.5 rounded-full font-black ${
+            className={`absolute -top-2 right-1 sm:-top-2.5 sm:right-2 text-[9px] sm:text-[10px] font-black px-1.5 min-w-[17px] h-[17px] rounded-full flex items-center justify-center leading-none shadow-xs border transition-colors ${
               activeTab === 'thematic'
-                ? 'bg-white/20 text-white'
-                : 'bg-purple-100 dark:bg-purple-950/80 text-purple-700 dark:text-purple-300 border border-purple-300/50 dark:border-purple-800'
+                ? 'bg-white text-purple-700 border-purple-200 shadow-purple-900/10'
+                : 'bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300 border-purple-300/60 dark:border-purple-800'
             }`}
           >
             {THEMATIC_DECKS.length}
@@ -281,20 +281,20 @@ export const PersonalDictionary: React.FC<PersonalDictionaryProps> = ({
             setActiveTab('lessons');
             if (typeof window !== 'undefined') localStorage.setItem('ulpana_dict_tab', 'lessons');
           }}
-          className={`flex-1 py-2 px-2 sm:px-3 rounded-xl text-xs sm:text-sm font-extrabold flex items-center justify-center gap-1.5 sm:gap-2 transition-all cursor-pointer ${
+          className={`relative flex-1 py-2 sm:py-2.5 px-1 sm:px-3 rounded-xl text-xs sm:text-sm font-extrabold flex items-center justify-center gap-1 sm:gap-1.5 transition-all cursor-pointer ${
             activeTab === 'lessons'
               ? 'bg-blue-600 text-white shadow-sm shadow-blue-600/20'
               : 'text-slate-700 dark:text-slate-300 hover:bg-white/40 dark:hover:bg-slate-700/60'
           }`}
         >
-          <Layers className="w-4 h-4 shrink-0" />
+          <Layers className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
           <span className="hidden sm:inline">{userProfile.ulpanMode ? 'כַּרְטִיסִיּוֹת שִׁיעוּרִים' : 'Карточки уроков'}</span>
           <span className="sm:hidden truncate">{userProfile.ulpanMode ? 'שִׁיעוּרִים' : 'Уроки'}</span>
           <span
-            className={`text-[10px] sm:text-[11px] px-1.5 sm:px-2 py-0.5 rounded-full font-black ${
+            className={`absolute -top-2 right-1 sm:-top-2.5 sm:right-2 text-[9px] sm:text-[10px] font-black px-1.5 min-w-[17px] h-[17px] rounded-full flex items-center justify-center leading-none shadow-xs border transition-colors ${
               activeTab === 'lessons'
-                ? 'bg-white/20 text-white'
-                : 'bg-blue-100 dark:bg-blue-950/80 text-blue-700 dark:text-blue-300 border border-blue-300/50 dark:border-blue-800'
+                ? 'bg-white text-blue-700 border-blue-200 shadow-blue-900/10'
+                : 'bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300 border-blue-300/60 dark:border-blue-800'
             }`}
           >
             100
@@ -307,20 +307,20 @@ export const PersonalDictionary: React.FC<PersonalDictionaryProps> = ({
             setActiveTab('personal');
             if (typeof window !== 'undefined') localStorage.setItem('ulpana_dict_tab', 'personal');
           }}
-          className={`flex-1 py-2 px-2 sm:px-3 rounded-xl text-xs sm:text-sm font-extrabold flex items-center justify-center gap-1.5 sm:gap-2 transition-all cursor-pointer ${
+          className={`relative flex-1 py-2 sm:py-2.5 px-1 sm:px-3 rounded-xl text-xs sm:text-sm font-extrabold flex items-center justify-center gap-1 sm:gap-1.5 transition-all cursor-pointer ${
             activeTab === 'personal'
               ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/20'
               : 'text-slate-700 dark:text-slate-300 hover:bg-white/40 dark:hover:bg-slate-700/60'
           }`}
         >
-          <BookOpen className="w-4 h-4 shrink-0" />
+          <BookOpen className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
           <span className="hidden sm:inline">{userProfile.ulpanMode ? 'הַמִּילוֹן שֶׁלִּי' : 'Мой словарик'}</span>
           <span className="sm:hidden truncate">{userProfile.ulpanMode ? 'מִילוֹן' : 'Словарик'}</span>
           <span
-            className={`text-[10px] sm:text-[11px] px-1.5 sm:px-2 py-0.5 rounded-full font-black ${
+            className={`absolute -top-2 right-1 sm:-top-2.5 sm:right-2 text-[9px] sm:text-[10px] font-black px-1.5 min-w-[17px] h-[17px] rounded-full flex items-center justify-center leading-none shadow-xs border transition-colors ${
               activeTab === 'personal'
-                ? 'bg-white/20 text-white'
-                : 'bg-slate-300 dark:bg-slate-700 text-slate-800 dark:text-slate-200'
+                ? 'bg-white text-emerald-700 border-emerald-200 shadow-emerald-900/10'
+                : 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 border-slate-300/80 dark:border-slate-600'
             }`}
           >
             {words.length}

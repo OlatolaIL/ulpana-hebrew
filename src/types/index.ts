@@ -233,6 +233,7 @@ export interface DialogueEvaluationResult {
   userSpokenHebrew: string;
   pronunciationScore?: number; // Четкость произношения 0-100%
   pronunciationFeedbackRu?: string; // Рекомендации по ошибкам в произношении, концовкам букв и звукам
+  userAudioUrl?: string; // Записанное аудио ученика для прослушивания
 }
 
 export interface Exercise {

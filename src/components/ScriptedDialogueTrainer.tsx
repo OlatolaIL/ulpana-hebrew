@@ -28,6 +28,7 @@ import {
   Plus,
   Check,
   Square,
+  Download,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import {
@@ -106,11 +107,59 @@ export const ScriptedDialogueTrainer: React.FC<ScriptedDialogueTrainerProps> = (
   const [isOpponentSpeaking, setIsOpponentSpeaking] = useState<boolean>(false);
   const [isRecording, setIsRecording] = useState<boolean>(false);
   const [isEvaluating, setIsEvaluating] = useState<boolean>(false);
+  const [evaluatingPhase, setEvaluatingPhase] = useState<'idle' | 'transcribing' | 'evaluating'>('idle');
   const [spokenText, setSpokenText] = useState<string>('');
   const [showHint, setShowHint] = useState<boolean>(false);
   const [lastEvaluation, setLastEvaluation] = useState<DialogueEvaluationResult | null>(null);
   const [turnHistory, setTurnHistory] = useState<Record<number, DialogueEvaluationResult>>({});
   const [showSituationModal, setShowSituationModal] = useState<boolean>(false);
+
+  // Аудиозапись ученика для прослушивания
+  const [userAudioUrl, setUserAudioUrl] = useState<string | null>(null);
+  const [playingAudioUrl, setPlayingAudioUrl] = useState<string | null>(null);
+  const isPlayingUserAudio = Boolean(playingAudioUrl);
+  const userAudioPlayerRef = useRef<HTMLAudioElement | null>(null);
+  const evaluationSafetyTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Воспроизведение / пауза записи ученика
+  const handleToggleUserAudio = (audioUrlToPlay?: string) => {
+    const targetUrl = audioUrlToPlay || userAudioUrl || lastEvaluation?.userAudioUrl;
+    if (!targetUrl) return;
+
+    stopSpeech();
+
+    if (userAudioPlayerRef.current) {
+      const isSameSrc = userAudioPlayerRef.current.src === targetUrl || userAudioPlayerRef.current.src.endsWith(targetUrl);
+      if (!userAudioPlayerRef.current.paused) {
+        userAudioPlayerRef.current.pause();
+        setPlayingAudioUrl(null);
+        if (isSameSrc) {
+          return;
+        }
+      }
+    }
+
+    try {
+      const audio = new Audio(targetUrl);
+      userAudioPlayerRef.current = audio;
+      setPlayingAudioUrl(targetUrl);
+
+      audio.onended = () => {
+        setPlayingAudioUrl(null);
+      };
+      audio.onerror = () => {
+        setPlayingAudioUrl(null);
+      };
+
+      audio.play().catch((err) => {
+        console.warn('Playback error:', err);
+        setPlayingAudioUrl(null);
+      });
+    } catch (e) {
+      console.warn('Audio init error:', e);
+      setPlayingAudioUrl(null);
+    }
+  };
 
   // 8. Состояние шторки словаря (по аналогии с 5 этапом - PhoneCallSimulator)
   const [isWordsDrawerOpen, setIsWordsDrawerOpen] = useState<boolean>(false);
@@ -175,6 +224,13 @@ export const ScriptedDialogueTrainer: React.FC<ScriptedDialogueTrainerProps> = (
       stopSpeech();
       if (recognizerRef.current) {
         recognizerRef.current.stop();
+      }
+      if (evaluationSafetyTimerRef.current) {
+        clearTimeout(evaluationSafetyTimerRef.current);
+      }
+      if (userAudioPlayerRef.current) {
+        userAudioPlayerRef.current.pause();
+        userAudioPlayerRef.current = null;
       }
     };
   }, []);
@@ -306,24 +362,41 @@ export const ScriptedDialogueTrainer: React.FC<ScriptedDialogueTrainerProps> = (
   // -------------------------------------------------------------
   // Голосовой ввод ученика (Только микрофон)
   // -------------------------------------------------------------
-  const handleFinalSpeechResult = (recognizedHebrew: string) => {
+  const handleFinalSpeechResult = (
+    recognizedHebrew: string,
+    audioBlob?: Blob | null,
+    audioUrl?: string | null
+  ) => {
+    if (evaluationSafetyTimerRef.current) {
+      clearTimeout(evaluationSafetyTimerRef.current);
+      evaluationSafetyTimerRef.current = null;
+    }
+
     const text = recognizedHebrew.trim();
+    const finalAudioUrl = audioUrl || userAudioUrl;
+    if (finalAudioUrl) {
+      setUserAudioUrl(finalAudioUrl);
+    }
+
     if (!text) {
       setIsRecording(false);
       setIsEvaluating(false);
+      setEvaluatingPhase('idle');
       return;
     }
 
     // Защита от повторной или конкурирующей отправки одной и той же реплики
-    if (evaluatingTurnRef.current === practiceTurnIndex && isEvaluating) {
+    if (evaluatingTurnRef.current === practiceTurnIndex && isEvaluating && evaluatingPhase === 'evaluating') {
       return;
     }
 
     evaluatingTurnRef.current = practiceTurnIndex;
     setIsRecording(false);
+    setIsEvaluating(true);
+    setEvaluatingPhase('evaluating');
     setSpokenText(text);
     spokenTextRef.current = text;
-    evaluateStudentResponse(text);
+    evaluateStudentResponse(text, finalAudioUrl);
   };
 
   const startVoiceRecording = () => {
@@ -333,12 +406,23 @@ export const ScriptedDialogueTrainer: React.FC<ScriptedDialogueTrainerProps> = (
     }
 
     stopSpeech();
+    if (userAudioPlayerRef.current) {
+      userAudioPlayerRef.current.pause();
+    }
+    setPlayingAudioUrl(null);
+    if (evaluationSafetyTimerRef.current) {
+      clearTimeout(evaluationSafetyTimerRef.current);
+      evaluationSafetyTimerRef.current = null;
+    }
+
     setSpokenText('');
     spokenTextRef.current = '';
+    setUserAudioUrl(null);
     setLastEvaluation(null);
     evaluatingTurnRef.current = null;
     setIsRecording(true);
     setIsEvaluating(false);
+    setEvaluatingPhase('idle');
 
     const recognizer = new HebrewSpeechRecognizer();
     recognizerRef.current = recognizer;
@@ -349,26 +433,35 @@ export const ScriptedDialogueTrainer: React.FC<ScriptedDialogueTrainerProps> = (
           setSpokenText(transcript);
           spokenTextRef.current = transcript;
         }
-        // Запись контролируется учеником: отправка происходит по клику на кнопку «Готово, проверить ответ»
       },
       (error) => {
         console.warn('Speech recognition error:', error);
         setIsRecording(false);
         setIsEvaluating(false);
+        setEvaluatingPhase('idle');
       },
-      (finalTranscript) => {
-        // Вызывается после нажатия кнопки стоп учеником и расшифровки полной дорожки через Whisper
+      (finalTranscript, audioBlob, audioUrl) => {
         const text = (finalTranscript && finalTranscript.trim()) || spokenTextRef.current.trim();
+        const finalUrl = audioUrl || userAudioUrl;
+        if (finalUrl) {
+          setUserAudioUrl(finalUrl);
+        }
         if (text) {
-          handleFinalSpeechResult(text);
+          handleFinalSpeechResult(text, audioBlob, finalUrl);
         } else {
           setIsRecording(false);
           setIsEvaluating(false);
+          setEvaluatingPhase('idle');
         }
       },
       {
-        continuous: true, // Постоянный режим прослушивания: паузы ученика не обрывают речь
-        silenceDurationMs: 30000, // Страховочный таймаут (30 сек) только если ученик вообще забыл выключить микрофон
+        continuous: true,
+        silenceDurationMs: 30000,
+        onAudioRecorded: (audioBlob, audioUrl) => {
+          if (audioUrl) {
+            setUserAudioUrl(audioUrl);
+          }
+        },
       }
     );
   };
@@ -376,32 +469,38 @@ export const ScriptedDialogueTrainer: React.FC<ScriptedDialogueTrainerProps> = (
   const stopVoiceRecording = () => {
     setIsRecording(false);
     setIsEvaluating(true);
+    setEvaluatingPhase('transcribing'); // Непрерывно держим статус анализа: фаза 1 - распознавание речи
 
     if (recognizerRef.current) {
       recognizerRef.current.stop();
     }
 
-    // Страховочный таймаут: если рекогнайзер/Whisper не вызвал onEnd в течение 1.5 сек
-    setTimeout(() => {
+    // Защитный таймаут на 25 секунд на случай полного сбоя сети (вместо прежних 1.5 сек!)
+    if (evaluationSafetyTimerRef.current) {
+      clearTimeout(evaluationSafetyTimerRef.current);
+    }
+    evaluationSafetyTimerRef.current = setTimeout(() => {
       if (evaluatingTurnRef.current !== practiceTurnIndex) {
         const text = spokenTextRef.current.trim();
         if (text) {
-          handleFinalSpeechResult(text);
+          handleFinalSpeechResult(text, null, userAudioUrl);
         } else {
           setIsEvaluating(false);
+          setEvaluatingPhase('idle');
         }
       }
-    }, 1500);
+    }, 25000);
   };
 
   // -------------------------------------------------------------
   // Оценка реплики ученика по смыслу через API
   // -------------------------------------------------------------
-  const evaluateStudentResponse = async (recognizedHebrew: string) => {
+  const evaluateStudentResponse = async (recognizedHebrew: string, audioUrl?: string | null) => {
     const currentTurn = dialogue.turns[practiceTurnIndex];
     if (!currentTurn) return;
 
     setIsEvaluating(true);
+    setEvaluatingPhase('evaluating'); // Фаза 2 - проверка смысла и произношения ИИ
     const variant = getTurnText(currentTurn);
 
     try {
@@ -423,6 +522,9 @@ export const ScriptedDialogueTrainer: React.FC<ScriptedDialogueTrainerProps> = (
 
       if (res.ok) {
         const evalResult: DialogueEvaluationResult = await res.json();
+        if (audioUrl) {
+          evalResult.userAudioUrl = audioUrl;
+        }
         setLastEvaluation(evalResult);
         setTurnHistory((prev) => ({ ...prev, [practiceTurnIndex]: evalResult }));
 
@@ -440,6 +542,7 @@ export const ScriptedDialogueTrainer: React.FC<ScriptedDialogueTrainerProps> = (
           feedbackRu: 'Хорошо! Смысл передан понятно.',
           betterAlternative: variant.hebrew,
           userSpokenHebrew: recognizedHebrew,
+          userAudioUrl: audioUrl || undefined,
         };
         setLastEvaluation(fallbackResult);
         setTurnHistory((prev) => ({ ...prev, [practiceTurnIndex]: fallbackResult }));
@@ -452,15 +555,26 @@ export const ScriptedDialogueTrainer: React.FC<ScriptedDialogueTrainerProps> = (
         feedbackRu: 'Ответ принят.',
         betterAlternative: variant.hebrew,
         userSpokenHebrew: recognizedHebrew,
+        userAudioUrl: audioUrl || undefined,
       };
       setLastEvaluation(fallbackResult);
       setTurnHistory((prev) => ({ ...prev, [practiceTurnIndex]: fallbackResult }));
     } finally {
       setIsEvaluating(false);
+      setEvaluatingPhase('idle');
+      if (evaluationSafetyTimerRef.current) {
+        clearTimeout(evaluationSafetyTimerRef.current);
+        evaluationSafetyTimerRef.current = null;
+      }
     }
   };
 
   const handleProceedToNextTurn = () => {
+    if (userAudioPlayerRef.current) {
+      userAudioPlayerRef.current.pause();
+    }
+    setPlayingAudioUrl(null);
+    setUserAudioUrl(null);
     setLastEvaluation(null);
     setSpokenText('');
     setPracticeTurnIndex((prev) => prev + 1);
@@ -1053,15 +1167,40 @@ export const ScriptedDialogueTrainer: React.FC<ScriptedDialogueTrainerProps> = (
                       <span className="text-xs font-bold text-zinc-800 dark:text-zinc-200">
                         {character.nameRu} {isSpeakerUser && ' (Вы)'}
                       </span>
-                      {!isSpeakerUser && (
+                      {!isSpeakerUser ? (
                         <button
                           type="button"
                           onClick={() => handlePlayTurn(turn)}
                           className="p-1 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-400 hover:text-blue-600 transition"
+                          title="Озвучить реплику"
                         >
                           <Volume2 className="w-3.5 h-3.5" />
                         </button>
-                      )}
+                      ) : (turnHistory[idx]?.userAudioUrl || (idx === practiceTurnIndex && userAudioUrl)) ? (
+                        (() => {
+                          const thisAudioUrl = turnHistory[idx]?.userAudioUrl || userAudioUrl || undefined;
+                          const isThisPlaying = Boolean(playingAudioUrl && thisAudioUrl && playingAudioUrl === thisAudioUrl);
+                          return (
+                            <button
+                              type="button"
+                              onClick={() => handleToggleUserAudio(thisAudioUrl)}
+                              className={`px-2 py-0.5 rounded-lg border font-bold text-[10px] flex items-center gap-1 transition cursor-pointer shadow-2xs ${
+                                isThisPlaying
+                                  ? 'bg-blue-600 text-white border-blue-500 ring-1 ring-blue-400'
+                                  : 'bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800 hover:bg-purple-200'
+                              }`}
+                              title={isThisPlaying ? 'Поставить на паузу' : 'Прослушать свою запись этой реплики'}
+                            >
+                              {isThisPlaying ? (
+                                <Pause className="w-2.5 h-2.5" />
+                              ) : (
+                                <Play className="w-2.5 h-2.5 fill-current" />
+                              )}
+                              <span>{isThisPlaying ? 'Пауза' : 'Запись'}</span>
+                            </button>
+                          );
+                        })()
+                      ) : null}
                     </div>
 
                     {/* Если говорит собеседник или реплика ученика уже пройдена */}
@@ -1158,8 +1297,37 @@ export const ScriptedDialogueTrainer: React.FC<ScriptedDialogueTrainerProps> = (
                 </div>
               )}
 
+              {/* Баннер непрерывного анализа речи ИИ (показывается с момента нажатия стоп до выдачи оценки) */}
+              {isEvaluating && !lastEvaluation && (
+                <div className="p-3.5 sm:p-4 rounded-2xl bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/60 dark:to-indigo-950/60 border border-blue-200 dark:border-blue-800/80 shadow-xs space-y-2 animate-pulse">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                      <Sparkles className="w-5 h-5 animate-spin text-amber-300" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs sm:text-sm font-bold text-blue-950 dark:text-blue-100">
+                        {evaluatingPhase === 'transcribing'
+                          ? 'ИИ слушает и расшифровывает вашу речь...'
+                          : 'ИИ оценивает смысл, грамматику и произношение...'}
+                      </p>
+                      <p className="text-[11px] text-blue-700/80 dark:text-blue-300/80">
+                        {evaluatingPhase === 'transcribing'
+                          ? 'Обработка аудиодорожки через нейросеть Whisper...'
+                          : 'Сверка ответа с контекстом диалога...'}
+                      </p>
+                    </div>
+                  </div>
+                  {spokenText && (
+                    <div className="pt-1.5 border-t border-blue-200/60 dark:border-blue-800/60 text-xs text-blue-900 dark:text-blue-200 flex items-center gap-1.5">
+                      <span className="font-semibold">Распознано:</span>
+                      <span dir="rtl" className="font-hebrew font-bold">«{spokenText}»</span>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Поле того, что произнес ученик (показывается во время распознавания) */}
-              {spokenText && !lastEvaluation && (
+              {spokenText && !isEvaluating && !lastEvaluation && (
                 <div className="p-3 rounded-2xl bg-blue-50/90 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-900/60 space-y-1.5 animate-fadeIn shadow-2xs overflow-hidden">
                   <span className="text-xs font-bold text-blue-700 dark:text-blue-300 uppercase tracking-wider flex items-center gap-1.5">
                     <span>🎙️</span>
@@ -1212,23 +1380,73 @@ export const ScriptedDialogueTrainer: React.FC<ScriptedDialogueTrainerProps> = (
                     </div>
                   </div>
 
-                  {/* 1. Как ИИ распознал сказанную фразу */}
+                  {/* 1. Как ИИ распознал сказанную фразу + Прослушивание своей записи и скачивание */}
                   {(lastEvaluation.userSpokenHebrew || spokenText) && (
-                    <div className="p-3 sm:p-3.5 rounded-xl bg-white/95 dark:bg-black/40 border border-black/10 dark:border-white/10 shadow-2xs space-y-1.5 overflow-hidden">
-                      <div className="flex items-center justify-between">
+                    <div className="p-3 sm:p-3.5 rounded-xl bg-white/95 dark:bg-black/40 border border-black/10 dark:border-white/10 shadow-2xs space-y-2 overflow-hidden">
+                      <div className="flex items-center justify-between gap-2 flex-wrap">
                         <span className="text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider flex items-center gap-1.5">
                           <span>🎯</span>
                           <span>ИИ распознал вашу фразу:</span>
                         </span>
-                        <button
-                          type="button"
-                          onClick={() => speakHebrew(lastEvaluation.userSpokenHebrew || spokenText, { rate: speechRate })}
-                          className="p-1.5 rounded-lg text-zinc-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition shrink-0"
-                          title="Прослушать как это прозвучало"
-                        >
-                          <Volume2 className="w-4 h-4" />
-                        </button>
+
+                        {/* Кнопки воспроизведения: аудиозапись своего голоса + скачивание + синтезатор речи */}
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          {(userAudioUrl || lastEvaluation.userAudioUrl) && (
+                            (() => {
+                              const currentEvalUrl = lastEvaluation.userAudioUrl || userAudioUrl || undefined;
+                              const isThisEvalAudioPlaying = Boolean(playingAudioUrl && currentEvalUrl && playingAudioUrl === currentEvalUrl);
+                              return (
+                                <button
+                                  type="button"
+                                  onClick={() => handleToggleUserAudio(currentEvalUrl)}
+                                  className={`px-2.5 py-1 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-2xs transition cursor-pointer ${
+                                    isThisEvalAudioPlaying
+                                      ? 'bg-blue-600 text-white shadow-blue-600/30 ring-2 ring-blue-400'
+                                      : 'bg-blue-50 dark:bg-blue-950/70 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 hover:bg-blue-100 dark:hover:bg-blue-900/60'
+                                  }`}
+                                  title="Прослушать аудиозапись своего голоса"
+                                >
+                                  {isThisEvalAudioPlaying ? (
+                                    <Pause className="w-3.5 h-3.5" />
+                                  ) : (
+                                    <Play className="w-3.5 h-3.5 fill-current" />
+                                  )}
+                                  <span>{isThisEvalAudioPlaying ? 'Пауза' : 'Ваша запись'}</span>
+                                </button>
+                              );
+                            })()
+                          )}
+
+                          {/* Кнопка скачать аудиофайл своей речи */}
+                          {(userAudioUrl || lastEvaluation.userAudioUrl) && (
+                            <a
+                              href={lastEvaluation.userAudioUrl || userAudioUrl || undefined}
+                              download={`ulpana_lesson_${lesson.number}_turn_${practiceTurnIndex + 1}.webm`}
+                              className="p-1.5 rounded-xl text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+                              title="Скачать аудиофайл записи (.webm)"
+                            >
+                              <Download className="w-4 h-4" />
+                            </a>
+                          )}
+
+                          {/* Кнопка синтезатора речи */}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (userAudioPlayerRef.current) {
+                                userAudioPlayerRef.current.pause();
+                              }
+                              setPlayingAudioUrl(null);
+                              speakHebrew(lastEvaluation.userSpokenHebrew || spokenText, { rate: speechRate });
+                            }}
+                            className="p-1.5 rounded-xl text-zinc-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition shrink-0"
+                            title="Прослушать эталонным синтезатором речи"
+                          >
+                            <Volume2 className="w-4 h-4" />
+                          </button>
+                        </div>
                       </div>
+
                       <div className="flex items-start gap-1 text-lg sm:text-xl font-black font-hebrew text-zinc-900 dark:text-zinc-50 leading-relaxed min-w-0">
                         <span className="text-zinc-400 select-none shrink-0">«</span>
                         <bdi dir="rtl" className="break-words whitespace-pre-wrap text-right flex-1 min-w-0">
@@ -1325,8 +1543,12 @@ export const ScriptedDialogueTrainer: React.FC<ScriptedDialogueTrainerProps> = (
                       </>
                     ) : isEvaluating ? (
                       <>
-                        <Sparkles className="w-4 h-4 animate-spin" />
-                        <span>ИИ проверяет смысл...</span>
+                        <Sparkles className="w-4 h-4 animate-spin text-amber-300" />
+                        <span>
+                          {evaluatingPhase === 'transcribing'
+                            ? 'ИИ распознаёт речь...'
+                            : 'ИИ оценивает ответ...'}
+                        </span>
                       </>
                     ) : (
                       <>
@@ -1358,8 +1580,12 @@ export const ScriptedDialogueTrainer: React.FC<ScriptedDialogueTrainerProps> = (
                       </>
                     ) : isEvaluating ? (
                       <>
-                        <Sparkles className="w-5 h-5 animate-spin" />
-                        <span>ИИ проверяет смысл ответа...</span>
+                        <Sparkles className="w-5 h-5 animate-spin text-amber-300" />
+                        <span>
+                          {evaluatingPhase === 'transcribing'
+                            ? 'ИИ слушает и распознаёт речь...'
+                            : 'ИИ проверяет смысл ответа...'}
+                        </span>
                       </>
                     ) : (
                       <>

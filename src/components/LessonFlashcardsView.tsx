@@ -23,7 +23,7 @@ interface LessonFlashcardsViewProps {
   onStartTraining: (
     words: Word[],
     title: string,
-    mode: 'flip' | 'builder' | 'listening',
+    mode: 'flip' | 'builder' | 'listening' | 'auto_audio',
     direction: 'he-ru' | 'ru-he'
   ) => void;
 }
@@ -46,7 +46,7 @@ export const LessonFlashcardsView: React.FC<LessonFlashcardsViewProps> = ({
 
   const [activeLevelTab, setActiveLevelTab] = useState<'alef' | 'bet'>('alef');
   const [filterCondition, setFilterCondition] = useState<FilterCondition>('all');
-  const [trainingMode, setTrainingMode] = useState<'flip' | 'builder' | 'listening'>('flip');
+  const [trainingMode, setTrainingMode] = useState<'flip' | 'builder' | 'listening' | 'auto_audio'>('flip');
   const [cardDirection, setCardDirection] = useState<'he-ru' | 'ru-he'>(() => {
     if (userProfile.flashcardDirection) return userProfile.flashcardDirection;
     if (typeof window !== 'undefined') {
@@ -448,7 +448,7 @@ export const LessonFlashcardsView: React.FC<LessonFlashcardsViewProps> = ({
               <RotateCcw className="w-3.5 h-3.5 text-blue-600" />
               <span>Режим карточек:</span>
             </div>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               <button
                 type="button"
                 onClick={() => setTrainingMode('flip')}
@@ -484,6 +484,18 @@ export const LessonFlashcardsView: React.FC<LessonFlashcardsViewProps> = ({
               >
                 <Headphones className="w-4 h-4" />
                 <span className="text-xs">На слух</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setTrainingMode('auto_audio')}
+                className={`p-2.5 rounded-xl border text-center transition flex flex-col items-center gap-1 cursor-pointer ${
+                  trainingMode === 'auto_audio'
+                    ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 font-bold shadow-xs'
+                    : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
+                }`}
+              >
+                <Play className="w-4 h-4" />
+                <span className="text-xs">Авто на слух</span>
               </button>
             </div>
           </div>

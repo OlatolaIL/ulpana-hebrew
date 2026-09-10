@@ -103,7 +103,7 @@ export default function Home() {
   const [activeLessonId, setActiveLessonId] = useState<number>(1);
   const [flashcardWords, setFlashcardWords] = useState<Word[]>([]);
   const [flashcardTitle, setFlashcardTitle] = useState<string>('Тренировка карточек');
-  const [flashcardMode, setFlashcardMode] = useState<'flip' | 'builder' | 'listening'>('flip');
+  const [flashcardMode, setFlashcardMode] = useState<'flip' | 'builder' | 'listening' | 'auto_audio'>('flip');
   const [flashcardDirection, setFlashcardDirection] = useState<'he-ru' | 'ru-he'>('he-ru');
   const [flashcardShuffle, setFlashcardShuffle] = useState<boolean>(false);
   const [flashcardSourceLessonId, setFlashcardSourceLessonId] = useState<number | null>(null);
@@ -327,7 +327,7 @@ export default function Home() {
         tab?: 'theory' | 'vocab' | 'exercises' | 'chat' | 'phone';
         flashcardWords?: Word[];
         flashcardTitle?: string;
-        flashcardMode?: 'flip' | 'builder' | 'listening';
+        flashcardMode?: 'flip' | 'builder' | 'listening' | 'auto_audio';
         flashcardDirection?: 'he-ru' | 'ru-he';
         flashcardShuffle?: boolean;
         flashcardSourceLessonId?: number | null;
@@ -568,7 +568,7 @@ export default function Home() {
   const handleStartFlashcards = (
     wordsToTrain: Word[],
     title?: string,
-    mode?: 'flip' | 'builder' | 'listening',
+    mode?: 'flip' | 'builder' | 'listening' | 'auto_audio',
     lessonId?: number,
     direction?: 'he-ru' | 'ru-he',
     shuffle?: boolean
