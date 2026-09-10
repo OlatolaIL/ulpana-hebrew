@@ -35,6 +35,7 @@ import {
   Filter,
   Shuffle,
   LayoutGrid,
+  GraduationCap,
 } from 'lucide-react';
 import { ThematicDeck, UserProfile, Word, VerbConjugation } from '@/types';
 import {
@@ -42,6 +43,7 @@ import {
   getDeckWordsAsText,
   exportDeckToTsv,
 } from '@/data/thematicDecks';
+import { PROFESSIONAL_DECKS } from '@/data/professionalDecks';
 import { speakHebrew } from '@/lib/speech';
 import { stripNikkud, getWordTranscription } from '@/lib/transcription';
 import {
@@ -59,6 +61,9 @@ import { isDeckAlwaysFree } from '@/lib/permissions';
 import { TierBadge } from './TierBadge';
 import { useBannerCooldown } from '@/lib/useBannerCooldown';
 
+// Все колоды: тематические + профессиональные (слова могут пересекаться между профессиями)
+const ALL_DECKS = [...THEMATIC_DECKS, ...PROFESSIONAL_DECKS];
+
 interface ThematicDecksViewProps {
   userProfile: UserProfile;
   onStartTraining: (words: Word[], deckTitle: string, shuffle?: boolean) => void;
@@ -74,7 +79,7 @@ export const ThematicDecksView: React.FC<ThematicDecksViewProps> = ({
   initialDeckId,
   onCloseInitialDeck,
 }) => {
-  type DeckFilter = 'all' | 'alef' | 'bet' | 'verbs' | 'food' | 'body' | 'city' | 'slang';
+  type DeckFilter = 'all' | 'alef' | 'bet' | 'verbs' | 'food' | 'body' | 'city' | 'slang' | 'caregiver';
   const [filter, setFilter] = useState<DeckFilter>('all');
   const [speakingWordId, setSpeakingWordId] = useState<string | null>(null);
   const { isVisible: isBetaBannerVisible, dismiss: dismissBetaBanner } = useBannerCooldown('thematic_decks_beta');
@@ -90,7 +95,7 @@ export const ThematicDecksView: React.FC<ThematicDecksViewProps> = ({
   // Состояние модального окна подробного списка колоды
   const [listModalDeck, setListModalDeck] = useState<ThematicDeck | null>(() => {
     if (initialDeckId) {
-      return THEMATIC_DECKS.find((d) => d.id === initialDeckId) || null;
+      return ALL_DECKS.find((d) => d.id === initialDeckId) || null;
     }
     return null;
   });
@@ -98,7 +103,7 @@ export const ThematicDecksView: React.FC<ThematicDecksViewProps> = ({
   const [copiedNotification, setCopiedNotification] = useState(false);
   const [selectedWordIds, setSelectedWordIds] = useState<Set<string>>(() => {
     if (initialDeckId) {
-      const found = THEMATIC_DECKS.find((d) => d.id === initialDeckId);
+      const found = ALL_DECKS.find((d) => d.id === initialDeckId);
       if (found) return new Set(found.words.map((w) => w.id));
     }
     return new Set();
@@ -119,7 +124,7 @@ export const ThematicDecksView: React.FC<ThematicDecksViewProps> = ({
 
   useEffect(() => {
     if (initialDeckId) {
-      const found = THEMATIC_DECKS.find((d) => d.id === initialDeckId);
+      const found = ALL_DECKS.find((d) => d.id === initialDeckId);
       if (found) {
         setListModalDeck(found);
         setModalSearch('');
@@ -171,17 +176,20 @@ export const ThematicDecksView: React.FC<ThematicDecksViewProps> = ({
         return <Sparkles className={className} />;
       case 'Radio':
         return <Radio className={className} />;
+      case 'GraduationCap':
+        return <GraduationCap className={className} />;
       default:
         return <BookOpen className={className} />;
     }
   };
 
-  // Фильтрация колод
+  // Фильтрация колод (тематические + профессиональные)
   const filteredDecks = useMemo(() => {
-    return THEMATIC_DECKS.filter((deck) => {
+    return ALL_DECKS.filter((deck) => {
       if (filter === 'all') return true;
       if (filter === 'alef') return deck.level === 'alef';
       if (filter === 'bet') return deck.level === 'bet';
+      if (filter === 'caregiver') return deck.category === 'caregiver';
       return deck.category === filter;
     });
   }, [filter]);
@@ -401,7 +409,7 @@ export const ThematicDecksView: React.FC<ThematicDecksViewProps> = ({
               : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
           }`}
         >
-          Все ({THEMATIC_DECKS.length})
+          Все ({ALL_DECKS.length})
         </button>
         <button
           type="button"
@@ -480,6 +488,17 @@ export const ThematicDecksView: React.FC<ThematicDecksViewProps> = ({
         >
           🗣️ Сленг
         </button>
+        <button
+          type="button"
+          onClick={() => setFilter('caregiver')}
+          className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition cursor-pointer ${
+            filter === 'caregiver'
+              ? 'bg-teal-600 text-white shadow-xs'
+              : 'bg-teal-50 dark:bg-teal-950/50 text-teal-700 dark:text-teal-300 hover:bg-teal-100'
+          }`}
+        >
+          👩‍⚕️ Метапелет
+        </button>
       </div>
 
       {/* Компактный каталог колод */}
@@ -487,6 +506,7 @@ export const ThematicDecksView: React.FC<ThematicDecksViewProps> = ({
         {filteredDecks.map((deck) => {
           const stats = getDeckStats(deck);
           const isAlef = deck.level === 'alef';
+          const isCaregiver = deck.category === 'caregiver';
 
           return (
             <div
@@ -500,9 +520,11 @@ export const ThematicDecksView: React.FC<ThematicDecksViewProps> = ({
               >
                 <div
                   className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition group-hover:scale-105 ${
-                    isAlef
-                      ? 'bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400'
-                      : 'bg-purple-100 dark:bg-purple-900/50 text-purple-600 dark:text-purple-400'
+                    isCaregiver
+                      ? 'bg-teal-100 dark:bg-teal-900/50 text-teal-600 dark:text-teal-400'
+                      : isAlef
+                        ? 'bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400'
+                        : 'bg-purple-100 dark:bg-purple-900/50 text-purple-600 dark:text-purple-400'
                   }`}
                 >
                   {renderIcon(deck.icon, 'w-5 h-5')}
@@ -530,12 +552,14 @@ export const ThematicDecksView: React.FC<ThematicDecksViewProps> = ({
                   <div className="flex items-center gap-2 mt-1 text-xs text-slate-500 dark:text-slate-400">
                     <span
                       className={`text-[10px] font-extrabold px-1.5 py-0.2 rounded-full ${
-                        isAlef
-                          ? 'bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200/60 dark:border-blue-800'
-                          : 'bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border border-purple-200/60 dark:border-purple-800'
+                        isCaregiver
+                          ? 'bg-teal-50 dark:bg-teal-950/60 text-teal-700 dark:text-teal-300 border border-teal-200/60 dark:border-teal-800'
+                          : isAlef
+                            ? 'bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200/60 dark:border-blue-800'
+                            : 'bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border border-purple-200/60 dark:border-purple-800'
                       }`}
                     >
-                      {isAlef ? 'Алеф (א)' : 'Бет (ב)'}
+                      {isCaregiver ? '👩‍⚕️ Метапелет' : isAlef ? 'Алеф (א)' : 'Бет (ב)'}
                     </span>
                     <span>•</span>
                     <span>{deck.words.length} слов</span>

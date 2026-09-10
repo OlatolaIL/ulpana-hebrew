@@ -449,6 +449,7 @@ export type ThematicDeckCategory =
   | 'health'
   | 'slang'
   | 'media'
+  | 'caregiver'   // מטפלת — профессиональный уход за пожилыми
   | 'other';
 
 export interface ThematicDeck {
