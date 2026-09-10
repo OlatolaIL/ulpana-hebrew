@@ -108,7 +108,7 @@ function createScriptedDialogueFromLesson(lesson: Lesson): ScriptedDialogue {
   // Ищем подходящее утвердительное высказывание из словаря или базовых фраз
   const answerSentence = sents.find((s) => !s.hebrew.includes('?')) || sents[0] || {
     hebrew: 'שָׁלוֹם, הַכֹּל טוֹב מְאוֹד, תּוֹדָה רַבָּה!',
-    transcription: 'шалóм, hакóль тов мэóד, тодá рабá!',
+    transcription: 'шалóм, hакóль тов мэóд, тодá рабá!',
     translation: 'Здравствуйте, все отлично, большое спасибо!',
   };
 
@@ -161,7 +161,7 @@ function createScriptedDialogueFromLesson(lesson: Lesson): ScriptedDialogue {
   // РЕПЛИКА 4 (Спикер Б / Ученик): Развернутое высказывание по цели урока
   const secondSentence = sents.find((s) => s.id !== answerSentence.id && !s.hebrew.includes('?')) || sents[1] || {
     hebrew: 'אֲנִי מְאֹד שָׂמֵחַ לִלְמֹד וּלְדַבֵּר עִבְרִית בָּאוּלְפָּן.',
-    transcription: 'анӣ мэóд самэ́ах лильмóд у-лэдабэ́ר иврӣт ба-ульпáн.',
+    transcription: 'анӣ мэóд самэ́ах лильмóд у-лэдабэ́р иврӣт ба-ульпáн.',
     translation: 'Я очень рад учиться и говорить на иврите в ульпане.',
   };
 
@@ -220,7 +220,7 @@ function createScriptedDialogueFromLesson(lesson: Lesson): ScriptedDialogue {
     },
     mf: {
       hebrew: 'תּוֹדָה רַבָּה לָךְ! הָיָה מְאוֹד נָעִים, לְהִתְרָאוֹת.',
-      transcription: 'тодá рабá лах! hайá мэóד наӣм, лэhитраóт.',
+      transcription: 'тодá рабá лах! hайá мэóд наӣм, лэhитраóт.',
       translation: 'Большое спасибо вам! Было очень приятно, до свидания (к женщине).',
     },
     fm: {
@@ -230,7 +230,7 @@ function createScriptedDialogueFromLesson(lesson: Lesson): ScriptedDialogue {
     },
     ff: {
       hebrew: 'תּוֹדָה רַבָּה לָךְ! הָיָה מְאוֹד נָעִים, לְהִתְרָאוֹת.',
-      transcription: 'тодá рабá лах! hайá мэóד наӣм, лэhитраóт.',
+      transcription: 'тодá рабá лах! hайá мэóд наӣм, лэhитраóт.',
       translation: 'Большое спасибо вам! Было очень приятно, до свидания (к женщине).',
     },
   };

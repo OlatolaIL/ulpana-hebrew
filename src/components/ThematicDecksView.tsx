@@ -126,11 +126,10 @@ export const ThematicDecksView: React.FC<ThematicDecksViewProps> = ({
       gender: word.gender,
       plural: word.plural,
       root: word.root,
-      category: 'verbs',
       lessonId: word.lessonId ?? 0,
     });
     if (added) {
-      onUpdateVocabulary(added.updatedProfile.personalVocabulary);
+      onUpdateVocabulary([added, ...(userProfile.personalVocabulary || [])]);
     }
   };
 

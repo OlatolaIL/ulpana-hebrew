@@ -75,11 +75,10 @@ export const DeckWordsModal: React.FC<DeckWordsModalProps> = ({
       gender: word.gender,
       plural: word.plural,
       root: word.root,
-      category: deck.category || 'other',
       lessonId: word.lessonId ?? 0,
     });
     if (added) {
-      onUpdateVocabulary(added.updatedProfile.personalVocabulary);
+      onUpdateVocabulary([added, ...(userProfile.personalVocabulary || [])]);
     }
   };
 
