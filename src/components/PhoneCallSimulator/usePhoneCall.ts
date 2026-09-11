@@ -64,6 +64,9 @@ export function usePhoneCall({
   const timerRef = useRef<NodeJS.Timeout | any>(null);
   const autoListenTimeoutRef = useRef<NodeJS.Timeout | any>(null);
   const silenceTimeoutRef = useRef<NodeJS.Timeout | any>(null);
+  const callStartTimeRef = useRef<number>(0);
+  const callDurationRef = useRef<number>(0);
+  const callLogIdRef = useRef<string>('');
   const isSendingRef = useRef(false);
   const callActiveRef = useRef(false);
   const shouldListenRef = useRef(false);
@@ -125,9 +128,15 @@ export function usePhoneCall({
   // Таймер звонка
   useEffect(() => {
     if (callState === 'connected') {
+      if (!callStartTimeRef.current) {
+        callStartTimeRef.current = Date.now();
+      }
+      callDurationRef.current = 0;
       setCallDuration(0);
       timerRef.current = setInterval(() => {
-        setCallDuration((prev) => prev + 1);
+        const sec = Math.max(0, Math.round((Date.now() - (callStartTimeRef.current || Date.now())) / 1000));
+        callDurationRef.current = sec;
+        setCallDuration(sec);
       }, 1000);
     } else {
       if (timerRef.current) {
@@ -398,6 +407,10 @@ export function usePhoneCall({
     shouldListenRef.current = false;
     setIsAiHangingUp(false);
     isAiHangingUpRef.current = false;
+    callLogIdRef.current = `call_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    callStartTimeRef.current = 0;
+    callDurationRef.current = 0;
+    setCallDuration(0);
     phoneAudio.startRingingTone();
 
     // Через 2.4 секунды контакт "поднимает трубку"
@@ -415,6 +428,9 @@ export function usePhoneCall({
         timestamp: Date.now(),
       };
 
+      callStartTimeRef.current = Date.now();
+      callDurationRef.current = 0;
+      setCallDuration(0);
       callActiveRef.current = true;
       setBothMessages([initialAiMsg]);
       setCallState('connected');
@@ -581,6 +597,18 @@ export function usePhoneCall({
       activeMicStreamRef.current = null;
     }
 
+    // Вычисляем точную продолжительность звонка по временной метке старта
+    const finalDurationSeconds =
+      callStartTimeRef.current > 0
+        ? Math.max(1, Math.round((Date.now() - callStartTimeRef.current) / 1000))
+        : Math.max(1, callDurationRef.current, callDuration);
+    callDurationRef.current = finalDurationSeconds;
+    setCallDuration(finalDurationSeconds);
+
+    const currentCallLogId =
+      callLogIdRef.current || `call_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    callLogIdRef.current = currentCallLogId;
+
     await phoneAudio.playHangupTone(2);
     setCallState('ended');
     setShowDialogueReviewModal(true);
@@ -596,7 +624,7 @@ export function usePhoneCall({
           form.append('lessonId', String(lesson.id));
           form.append('stage', 'phone');
           form.append('turnIndex', String(idx));
-          form.append('durationSeconds', String(callDuration));
+          form.append('durationSeconds', String(finalDurationSeconds));
           if (userProfile.id) form.append('userId', userProfile.id);
 
           const upRes = await fetch('/api/audio/upload', {
@@ -630,13 +658,13 @@ export function usePhoneCall({
     // 1. Сохраняем в локальное хранилище
     try {
       saveLocalCallLog({
-        id: `call_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+        id: currentCallLogId,
         user_id: userProfile.name || 'local_user',
         user_name: userProfile.name || 'Ученик',
         lesson_id: lesson.id,
         caller_name: scenario.callerNameRu || scenario.callerName,
         caller_role: scenario.callerRole,
-        duration_seconds: callDuration,
+        duration_seconds: finalDurationSeconds,
         messages_count: currentMessages.length,
         transcript: formattedTranscript,
         created_at: new Date().toISOString(),
@@ -645,7 +673,27 @@ export function usePhoneCall({
       console.warn('Local call log error:', e);
     }
 
-    // 2. Запрашиваем педагогический разбор звонка (Debriefing)
+    // 2. Сразу логируем звонок на сервер в БД (не дожидаясь разбора debrief), чтобы длительность не потерялась
+    try {
+      fetch('/api/calls/log', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: currentCallLogId,
+          lessonId: lesson.id,
+          callerName: scenario.callerNameRu || scenario.callerName,
+          callerRole: scenario.callerRole,
+          durationSeconds: finalDurationSeconds,
+          transcript: formattedTranscript,
+          feedback: isSuccessCall ? 'Звонок успешно завершен' : 'Разговор прерван',
+          userName: userProfile.name || 'Ученик',
+        }),
+      }).catch((e) => console.warn('[PhoneCall] Immediate call log warning:', e));
+    } catch (e) {
+      console.warn('[PhoneCall] Immediate call log fetch error:', e);
+    }
+
+    // 3. Запрашиваем педагогический разбор звонка (Debriefing)
     if (userMessages.length > 0) {
       setLoadingDebrief(true);
       try {
@@ -662,7 +710,7 @@ export function usePhoneCall({
             situationSummary: scenario.situationSummary,
             studentObjective: scenario.studentObjective,
             transcript: formattedTranscript,
-            durationSeconds: callDuration,
+            durationSeconds: finalDurationSeconds,
             provider: userProfile.aiProvider,
             apiKey:
               userProfile.aiProvider === 'groq'
@@ -673,15 +721,16 @@ export function usePhoneCall({
           .then((r) => r.json())
           .then((debrief: PhoneDebriefReport) => {
             setDebriefReport(debrief);
-            // Сохраняем отзыв в БД со свежими audio URLs
+            // Обновляем лог в БД с готовым отзывом учителя и свежими audio URLs
             fetch('/api/calls/log', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
+                id: currentCallLogId,
                 lessonId: lesson.id,
                 callerName: scenario.callerNameRu || scenario.callerName,
                 callerRole: scenario.callerRole,
-                durationSeconds: callDuration,
+                durationSeconds: finalDurationSeconds,
                 transcript: messagesRef.current.map((m) => ({
                   role: m.role,
                   hebrew: m.hebrew,

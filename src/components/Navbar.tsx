@@ -121,13 +121,14 @@ export const Navbar: React.FC<NavbarProps> = ({
           </nav>
 
           {/* Правая часть: единый стиль кнопок — чуть крупнее, свободнее и гармоничнее */}
-          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          <div className="flex items-center gap-1 sm:gap-1.5 md:gap-2 shrink-0">
             {/* Кнопка Админки для osa_il */}
             {isAdmin && (
               <Link
                 href="/admin"
                 className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl border border-blue-500/30 bg-blue-50/80 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/50 flex items-center justify-center shadow-xs transition active:scale-95 shrink-0"
                 title="Панель администратора (@osa_il)"
+                aria-label="Панель администратора"
               >
                 <ShieldCheck className="w-4.5 h-4.5 text-blue-600 dark:text-blue-400 shrink-0" />
               </Link>
@@ -136,7 +137,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             {/* Кнопка подписки PRO / Бета */}
             <button
               onClick={onOpenSubscription}
-              className={`h-9 sm:h-10 px-2.5 sm:px-3 rounded-xl border text-xs font-bold flex items-center gap-1.5 shadow-xs transition active:scale-95 shrink-0 ${
+              className={`h-9 sm:h-10 px-2 sm:px-3 rounded-xl border text-xs font-bold flex items-center gap-1 sm:gap-1.5 shadow-xs transition active:scale-95 shrink-0 ${
                 isPro
                   ? 'border-amber-400/80 bg-gradient-to-r from-amber-500 to-yellow-400 text-white shadow-amber-500/20'
                   : 'border-amber-300/80 dark:border-amber-900/60 bg-amber-50/80 dark:bg-amber-950/30 text-amber-800 dark:text-amber-300 hover:bg-amber-100'
@@ -176,17 +177,41 @@ export const Navbar: React.FC<NavbarProps> = ({
                 onClick={onOpenGuide}
                 className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl border border-zinc-200/80 dark:border-zinc-800 bg-zinc-50/80 dark:bg-zinc-800/80 hover:bg-blue-50 dark:hover:bg-blue-950/40 text-blue-600 dark:text-blue-400 flex items-center justify-center shadow-xs transition active:scale-95 shrink-0"
                 title="Инструкция и подсказки по возможностям платформы"
+                aria-label="Инструкция и подсказки"
               >
                 <HelpCircle className="w-4.5 h-4.5 shrink-0" />
               </button>
             )}
 
-            {/* Кнопка входа / Профиль пользователя */}
+            {/* Кнопка обратной связи / ошибки */}
+            {onOpenFeedback && (
+              <button
+                onClick={onOpenFeedback}
+                className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl border border-zinc-200/80 dark:border-zinc-800 bg-zinc-50/80 dark:bg-zinc-800/80 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:text-blue-600 dark:hover:text-blue-400 flex items-center justify-center shadow-xs transition active:scale-95 shrink-0"
+                title="Обратная связь и сообщение об ошибках (@Osa_IL)"
+                aria-label="Обратная связь"
+              >
+                <MessageSquare className="w-4.5 h-4.5 shrink-0" />
+              </button>
+            )}
+
+            {/* Кнопка настроек (перед профилем) */}
+            <button
+              onClick={onOpenSettings}
+              className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl border border-zinc-200/80 dark:border-zinc-800 bg-zinc-50/80 dark:bg-zinc-800/80 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 flex items-center justify-center shadow-xs transition active:scale-95 shrink-0"
+              title="Настройки обучения"
+              aria-label="Настройки обучения"
+            >
+              <Settings className="w-4.5 h-4.5 shrink-0" />
+            </button>
+
+            {/* Кнопка входа / Профиль пользователя (самый правый элемент) */}
             {userProfile.isLoggedIn ? (
               <button
                 onClick={onOpenSettings}
-                className="h-9 sm:h-10 px-1.5 sm:px-2.5 rounded-xl border border-zinc-200/80 dark:border-zinc-800 bg-zinc-50/80 dark:bg-zinc-800/80 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition shadow-xs flex items-center gap-1.5 shrink-0"
+                className="w-9 sm:w-auto h-9 sm:h-10 px-0 sm:px-2.5 rounded-xl border border-zinc-200/80 dark:border-zinc-800 bg-zinc-50/80 dark:bg-zinc-800/80 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition shadow-xs flex items-center justify-center sm:justify-start gap-1.5 shrink-0"
                 title={`Профиль: ${userProfile.name} (@${userProfile.username || 'user'})`}
+                aria-label={`Профиль: ${userProfile.name}`}
               >
                 {userProfile.avatarUrl ? (
                   <img
@@ -206,33 +231,14 @@ export const Navbar: React.FC<NavbarProps> = ({
             ) : (
               <button
                 onClick={onOpenAuth}
-                className="h-9 sm:h-10 px-2.5 sm:px-3 rounded-xl bg-[#229ED9] hover:bg-[#1E8CC0] text-white text-xs font-semibold flex items-center gap-1.5 shadow-xs transition active:scale-95 shrink-0"
+                className="w-9 sm:w-auto h-9 sm:h-10 px-0 sm:px-3 rounded-xl bg-[#229ED9] hover:bg-[#1E8CC0] text-white text-xs font-semibold flex items-center justify-center gap-1.5 shadow-xs transition active:scale-95 shrink-0"
                 title="Бесплатная регистрация в 1 клик через Telegram или Google"
+                aria-label="Войти / Регистрация"
               >
-                <LogIn className="w-3.5 h-3.5 shrink-0" />
-                <span>Войти / Регистрация</span>
+                <LogIn className="w-4.5 h-4.5 sm:w-3.5 sm:h-3.5 shrink-0" />
+                <span className="hidden sm:inline">Войти / Регистрация</span>
               </button>
             )}
-
-            {/* Кнопка обратной связи / ошибки */}
-            {onOpenFeedback && (
-              <button
-                onClick={onOpenFeedback}
-                className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl border border-zinc-200/80 dark:border-zinc-800 bg-zinc-50/80 dark:bg-zinc-800/80 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:text-blue-600 dark:hover:text-blue-400 flex items-center justify-center shadow-xs transition active:scale-95 shrink-0"
-                title="Обратная связь и сообщение об ошибках (@Osa_IL)"
-              >
-                <MessageSquare className="w-4.5 h-4.5 shrink-0" />
-              </button>
-            )}
-
-            {/* Кнопка настроек */}
-            <button
-              onClick={onOpenSettings}
-              className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl border border-zinc-200/80 dark:border-zinc-800 bg-zinc-50/80 dark:bg-zinc-800/80 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 flex items-center justify-center shadow-xs transition active:scale-95 shrink-0"
-              title="Настройки обучения"
-            >
-              <Settings className="w-4.5 h-4.5 shrink-0" />
-            </button>
           </div>
         </div>
       </header>

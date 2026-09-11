@@ -20,6 +20,7 @@ import {
   getStudentKnownVocabulary,
   addWordToPersonalDict,
 } from '@/lib/storage';
+import { getStageNumber } from '@/lib/config';
 import { getInitialMessageForGender } from './helpers';
 
 const TARGET_TURNS = 3;
@@ -104,7 +105,7 @@ export function useAiChat({
         user_name: userProfile.name || 'Ученик',
         lesson_id: lesson.id,
         caller_name: lesson.dialogue.aiRole || 'Преподаватель ульпана',
-        caller_role: 'ИИ-чат (Этап 4)',
+        caller_role: `ИИ-чат (Этап ${getStageNumber('chat')})`,
         duration_seconds: durationSeconds,
         messages_count: history.length,
         transcript: formattedTranscript,
@@ -124,7 +125,7 @@ export function useAiChat({
           id: sessionIdRef.current,
           lessonId: lesson.id,
           callerName: lesson.dialogue.aiRole || 'Преподаватель ульпана',
-          callerRole: 'ИИ-чат (Этап 4)',
+          callerRole: `ИИ-чат (Этап ${getStageNumber('chat')})`,
           durationSeconds,
           transcript: formattedTranscript,
           feedback: effectiveFeedback,

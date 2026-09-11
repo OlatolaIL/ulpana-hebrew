@@ -38,6 +38,7 @@ import { loadLocalCallLogs } from '@/lib/storage';
 import { isVipUser } from '@/lib/vipUsers';
 import { SmartConversationPlayer } from '@/components/PhoneCallSimulator/SmartConversationPlayer';
 import { speakHebrew, stopSpeech } from '@/lib/speech';
+import { getStageNumber, getStageTitle, LESSON_STAGES } from '@/lib/config';
 
 interface AdminStats {
   totalUsers: number;
@@ -276,6 +277,24 @@ export default function AdminPage() {
   useEffect(() => {
     loadAllData();
   }, [loadAllData]);
+
+  const isChatCall = useCallback((call: AdminCallLog) => {
+    const role = (call.caller_role || '').toLowerCase();
+    return role.includes('чат') || role.includes('chat') || role.includes('диалог');
+  }, []);
+
+  const formatCallDuration = useCallback((seconds?: number, msgCount?: number) => {
+    const sec = typeof seconds === 'number' && seconds > 0 ? seconds : 0;
+    if (sec > 0) {
+      const mins = Math.floor(sec / 60);
+      const s = sec % 60;
+      return `${mins}:${s.toString().padStart(2, '0')}`;
+    }
+    const estSec = msgCount && msgCount > 1 ? Math.max(15, (msgCount - 1) * 12) : 15;
+    const mins = Math.floor(estSec / 60);
+    const s = estSec % 60;
+    return `~${mins}:${s.toString().padStart(2, '0')}`;
+  }, []);
 
   // Load user details
   const handleOpenUserDetail = async (userId: string) => {
@@ -1061,7 +1080,7 @@ export default function AdminPage() {
                   <span>История диалогов и звонков с ИИ</span>
                 </h2>
                 <p className="text-xs text-zinc-400 mt-0.5">
-                  Полная стенограмма реальных разговоров учеников с AI (ИИ-чат 4-го этапа и Телефонные звонки 5-го этапа)
+                  Полная стенограмма реальных разговоров учеников с AI (ИИ-чат {getStageNumber('chat')}-го этапа и Телефонные звонки {getStageNumber('phone')}-го этапа)
                 </p>
               </div>
 
@@ -1088,7 +1107,7 @@ export default function AdminPage() {
                         : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100'
                     }`}
                   >
-                    💬 Чаты ({calls.filter((c) => c.caller_role?.includes('чат') || c.caller_role?.includes('Этап 4')).length})
+                    💬 Чаты ({calls.filter(isChatCall).length})
                   </button>
                   <button
                     type="button"
@@ -1099,7 +1118,7 @@ export default function AdminPage() {
                         : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100'
                     }`}
                   >
-                    📞 Звонки ({calls.filter((c) => !c.caller_role?.includes('чат') && !c.caller_role?.includes('Этап 4')).length})
+                    📞 Звонки ({calls.filter((c) => !isChatCall(c)).length})
                   </button>
                 </div>
               </div>
@@ -1110,20 +1129,20 @@ export default function AdminPage() {
                 <MessageSquare className="w-10 h-10 mx-auto text-zinc-300 dark:text-zinc-700 mb-3" />
                 <p className="font-bold text-zinc-700 dark:text-zinc-300">Записей пока нет</p>
                 <p className="text-xs text-zinc-400 mt-1 max-w-sm mx-auto">
-                  Как только вы или ученики пообщаетесь в ИИ-диалоге (этап 4) или совершите звонок (этап 5) в любом из 100 уроков, полная стенограмма разговора появится здесь.
+                  Как только вы или ученики пообщаетесь в ИИ-диалоге (этап {getStageNumber('chat')}) или совершите звонок (этап {getStageNumber('phone')}) в любом из 100 уроков, полная стенограмма разговора появится здесь.
                 </p>
               </div>
             ) : (
               <div className="grid grid-cols-1 gap-4">
                 {calls
                   .filter((call) => {
-                    const isChat = call.caller_role?.includes('чат') || call.caller_role?.includes('Этап 4');
+                    const isChat = isChatCall(call);
                     if (callTypeFilter === 'chat') return isChat;
                     if (callTypeFilter === 'phone') return !isChat;
                     return true;
                   })
                   .map((call) => {
-                    const isChat = call.caller_role?.includes('чат') || call.caller_role?.includes('Этап 4');
+                    const isChat = isChatCall(call);
                     const isExpanded = selectedCall?.id === call.id;
 
                     return (
@@ -1136,8 +1155,8 @@ export default function AdminPage() {
                             <div
                               className={`w-10 h-10 rounded-2xl flex items-center justify-center font-bold text-base ${
                                 isChat
-                                  ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20'
-                                  : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
+                                    ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20'
+                                    : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
                               }`}
                             >
                               {isChat ? '💬' : '📞'}
@@ -1154,7 +1173,9 @@ export default function AdminPage() {
                                       : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-300'
                                   }`}
                                 >
-                                  {isChat ? 'ИИ-чат (Этап 4)' : 'Звонок (Этап 5)'}
+                                  {isChat
+                                    ? `ИИ-чат (Этап ${getStageNumber('chat')})`
+                                    : `Звонок (Этап ${getStageNumber('phone')})`}
                                 </span>
                                 <span className="font-bold text-sm text-zinc-900 dark:text-zinc-100">
                                   {call.caller_name}
@@ -1170,8 +1191,11 @@ export default function AdminPage() {
 
                           <div className="flex items-center gap-3 self-end sm:self-center">
                             <div className="text-right text-xs">
-                              <span className="font-mono font-bold text-zinc-700 dark:text-zinc-300 block">
-                                ⏱️ {Math.floor(call.duration_seconds / 60)}:{(call.duration_seconds % 60).toString().padStart(2, '0')}
+                              <span
+                                className="font-mono font-bold text-zinc-700 dark:text-zinc-300 block"
+                                title={call.duration_seconds > 0 ? `Длительность: ${call.duration_seconds} сек.` : 'Расчетное время разговора'}
+                              >
+                                ⏱️ {formatCallDuration(call.duration_seconds, call.messages_count)}
                               </span>
                               <span className="text-[11px] text-zinc-400">
                                 {call.messages_count} реплик
@@ -1393,7 +1417,7 @@ export default function AdminPage() {
                                   Урок {p.lessonId}: {lesson?.titleRussian || lesson?.titleRu || 'Урок курса'}
                                 </span>
                                 <div className="text-[11px] text-zinc-400 mt-0.5">
-                                  Вкладки: {p.completedTabs.join(', ') || 'нет данных'}
+                                  Этапы: {p.completedTabs.map((t) => getStageTitle(t as any) || t).join(', ') || 'нет данных'}
                                 </div>
                               </div>
 

@@ -29,3 +29,36 @@ export function isLessonLockedForUser(lessonId: number, isPro: boolean): boolean
   }
   return lessonId > FREE_LESSONS_LIMIT && !isPro;
 }
+
+/**
+ * Единый источник истины для этапов каждого урока
+ */
+export type LessonStageId = 'theory' | 'vocab' | 'exercises' | 'essay' | 'chat' | 'phone';
+
+export interface LessonStageConfig {
+  id: LessonStageId;
+  num: number;
+  labelRu: string;
+  labelHe: string;
+  descriptionRu: string;
+}
+
+export const LESSON_STAGES: LessonStageConfig[] = [
+  { id: 'theory', num: 1, labelRu: 'Теория', labelHe: 'תֵּאוֹרְיָה', descriptionRu: 'Теория и правила' },
+  { id: 'vocab', num: 2, labelRu: 'Слова', labelHe: 'מִילִּים', descriptionRu: 'Словарь урока' },
+  { id: 'exercises', num: 3, labelRu: 'Тесты', labelHe: 'תַּרְגִּילִים', descriptionRu: 'Упражнения и тесты' },
+  { id: 'essay', num: 4, labelRu: 'Сочинение', labelHe: 'חִבּוּר', descriptionRu: 'Написание сочинения' },
+  { id: 'chat', num: 5, labelRu: 'Диалог', labelHe: 'שִׂיחָה', descriptionRu: 'Диалог и ИИ-чат' },
+  { id: 'phone', num: 6, labelRu: 'Звонок', labelHe: 'טֶלֶפוֹן', descriptionRu: 'Телефонный звонок с ИИ' },
+];
+
+export function getStageNumber(id: LessonStageId): number {
+  const stage = LESSON_STAGES.find((s) => s.id === id);
+  return stage ? stage.num : 1;
+}
+
+export function getStageTitle(id: LessonStageId): string {
+  const stage = LESSON_STAGES.find((s) => s.id === id);
+  return stage ? stage.labelRu : '';
+}
+

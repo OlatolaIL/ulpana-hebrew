@@ -13,6 +13,7 @@ import { ChatInputBar } from './ChatInputBar';
 import { ChatSidebar } from './ChatSidebar';
 import { ChatDrawer } from './ChatDrawer';
 import { ChatBriefingModal } from './ChatBriefingModal';
+import { getStageNumber, LESSON_STAGES } from '@/lib/config';
 
 export const LessonAiChat: React.FC<LessonAiChatProps> = ({
   lesson,
@@ -272,7 +273,7 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
                     className="flex-1 sm:flex-initial px-3.5 py-2 rounded-xl font-bold text-xs bg-purple-600 hover:bg-purple-700 text-white shadow-xs transition active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer"
                   >
                     <span>
-                      Звонок (этап 5/5) 📞 ➡️
+                      Звонок (этап {getStageNumber('phone')}/{LESSON_STAGES.length}) 📞 ➡️
                     </span>
                   </button>
                 )}

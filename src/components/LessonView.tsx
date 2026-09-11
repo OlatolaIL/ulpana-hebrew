@@ -36,10 +36,18 @@ import {
 import { isStageAlwaysFree } from '@/lib/permissions';
 import { TierBadge } from './TierBadge';
 import { useBannerCooldown } from '@/lib/useBannerCooldown';
-import { stripNikkud } from '@/lib/transcription';
-import { isLessonAuthRequired } from '@/lib/config';
+import { isLessonAuthRequired, LESSON_STAGES, LessonStageId } from '@/lib/config';
 
-export type LessonTab = 'theory' | 'vocab' | 'exercises' | 'essay' | 'chat' | 'phone';
+export type LessonTab = LessonStageId;
+
+const STAGE_ICONS: Record<LessonStageId, React.ComponentType<{ className?: string }>> = {
+  theory: BookOpen,
+  vocab: Layers,
+  exercises: ListTodo,
+  essay: PenTool,
+  chat: Bot,
+  phone: Phone,
+};
 
 interface LessonViewProps {
   lessonId: number;
@@ -96,20 +104,13 @@ export const LessonView: React.FC<LessonViewProps> = ({
     onUpdateProfile(updated);
   };
 
-  const STAGES: {
-    id: LessonTab;
-    num: number;
-    labelRu: string;
-    labelHe: string;
-    icon: React.ComponentType<{ className?: string }>;
-  }[] = [
-    { id: 'theory', num: 1, labelRu: 'Теория', labelHe: 'תֵּאוֹרְיָה', icon: BookOpen },
-    { id: 'vocab', num: 2, labelRu: 'Слова', labelHe: 'מִילִּים', icon: Layers },
-    { id: 'exercises', num: 3, labelRu: 'Тесты', labelHe: 'תַּרְגִּילִים', icon: ListTodo },
-    { id: 'essay', num: 4, labelRu: 'Сочинение', labelHe: 'חִבּוּר', icon: PenTool },
-    { id: 'chat', num: 5, labelRu: 'Диалог', labelHe: 'שִׂיחָה', icon: Bot },
-    { id: 'phone', num: 6, labelRu: 'Звонок', labelHe: 'טֶלֶפוֹן', icon: Phone },
-  ];
+  const STAGES = LESSON_STAGES.map((s) => ({
+    id: s.id as LessonTab,
+    num: s.num,
+    labelRu: s.labelRu,
+    labelHe: s.labelHe,
+    icon: STAGE_ICONS[s.id] || BookOpen,
+  }));
 
 
   return (
