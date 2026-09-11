@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifySessionToken } from '@/lib/auth';
 import { stripNikkud } from '@/lib/transcription';
+import { FREE_GUEST_LESSONS_LIMIT } from '@/lib/config';
 import { EssayEvaluationResult, LessonEssayPrompt, WordOrderCheckItem, GrammarCheckItem } from '@/types';
 import { detectHebrewGrammarErrors, detectHebrewWordOrderErrors } from '@/app/api/ai/dialogue/evaluate/route';
 
@@ -125,6 +126,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         { error: 'Текст сочинения не может быть пустым' },
         { status: 400 }
+      );
+    }
+
+    // Проверка авторизации: уроки с 3-го требуют бесплатной регистрации
+    const sessionCookie = req.cookies.get('ulpana_session')?.value;
+    const session = sessionCookie ? await verifySessionToken(sessionCookie) : null;
+    if (!session && lessonId > FREE_GUEST_LESSONS_LIMIT) {
+      return NextResponse.json(
+        { error: 'Unauthorized: Требуется бесплатная регистрация для доступа к урокам с 3-го' },
+        { status: 401 }
       );
     }
 

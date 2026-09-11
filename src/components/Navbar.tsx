@@ -14,6 +14,7 @@ import {
   GraduationCap,
   HelpCircle,
   MessageSquare,
+  LogIn,
 } from 'lucide-react';
 import { UserProfile } from '@/types';
 import { isVipUser } from '@/lib/vipUsers';
@@ -205,10 +206,11 @@ export const Navbar: React.FC<NavbarProps> = ({
             ) : (
               <button
                 onClick={onOpenAuth}
-                className="h-9 sm:h-10 px-3 rounded-xl bg-[#229ED9] hover:bg-[#1E8CC0] text-white text-xs font-semibold flex items-center gap-1 shadow-xs transition active:scale-95 shrink-0"
-                title="Войти через Telegram для синхронизации прогресса"
+                className="h-9 sm:h-10 px-2.5 sm:px-3 rounded-xl bg-[#229ED9] hover:bg-[#1E8CC0] text-white text-xs font-semibold flex items-center gap-1.5 shadow-xs transition active:scale-95 shrink-0"
+                title="Бесплатная регистрация в 1 клик через Telegram или Google"
               >
-                <span>Войти</span>
+                <LogIn className="w-3.5 h-3.5 shrink-0" />
+                <span>Войти / Регистрация</span>
               </button>
             )}
 
