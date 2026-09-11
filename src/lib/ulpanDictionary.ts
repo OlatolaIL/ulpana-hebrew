@@ -472,37 +472,369 @@ export const ULPAN_OFFLINE_DICTIONARY: DictionaryEntry[] = [
     translation: 'урок',
     partOfSpeech: 'noun',
   },
+  {
+    hebrew: 'רַע',
+    hebrewPlain: 'רע',
+    transcription: 'ра',
+    translation: 'плохой, дурной',
+    partOfSpeech: 'adjective',
+    exampleSentence: {
+      hebrew: 'זֶה לֹא רַע.',
+      transcription: 'зэ ло ра.',
+      translation: 'Это неплохо.',
+    },
+  },
+  {
+    hebrew: 'בְּלִי',
+    hebrewPlain: 'בלי',
+    transcription: 'бли',
+    translation: 'без',
+    partOfSpeech: 'preposition',
+    exampleSentence: {
+      hebrew: 'קָפֶה בְּלִי סוּכָּר, בְּבַקָּשָׁה.',
+      transcription: 'кафэ́ бли сукáр, бэвакашá.',
+      translation: 'Кофе без сахара, пожалуйста.',
+    },
+  },
+  {
+    hebrew: 'עִם',
+    hebrewPlain: 'עם',
+    transcription: 'им',
+    translation: 'с, вместе с',
+    partOfSpeech: 'preposition',
+    exampleSentence: {
+      hebrew: 'תֵּה עִם לִימוֹן.',
+      transcription: 'тэ им лимóн.',
+      translation: 'Чай с лимоном.',
+    },
+  },
+  {
+    hebrew: 'עַל',
+    hebrewPlain: 'על',
+    transcription: 'аль',
+    translation: 'на; о, про',
+    partOfSpeech: 'preposition',
+    exampleSentence: {
+      hebrew: 'הַסֵּפֶר עַל הַשֻּׁלְחָן.',
+      transcription: 'hа-сéфер аль hа-шульхáн.',
+      translation: 'Книга на столе.',
+    },
+  },
+  {
+    hebrew: 'תַּחַת',
+    hebrewPlain: 'תחת',
+    transcription: 'тáхат',
+    translation: 'под',
+    partOfSpeech: 'preposition',
+    exampleSentence: {
+      hebrew: 'הַחֲתוּל תַּחַת הַכִּסֵּא.',
+      transcription: 'hа-хатӯль тáхат hа-кисэ́.',
+      translation: 'Кот под стулом.',
+    },
+  },
+  {
+    hebrew: 'לְיַד',
+    hebrewPlain: 'ליד',
+    transcription: 'лэ-йáд',
+    translation: 'около, возле, рядом с',
+    partOfSpeech: 'preposition',
+    exampleSentence: {
+      hebrew: 'אֲנִי גָּר לְיַד הַיָּם.',
+      transcription: 'анӣ гар лэ-йáд hа-йам.',
+      translation: 'Я живу рядом с морем.',
+    },
+  },
+  {
+    hebrew: 'בֵּין',
+    hebrewPlain: 'בין',
+    transcription: 'бейн',
+    translation: 'между',
+    partOfSpeech: 'preposition',
+    exampleSentence: {
+      hebrew: 'בֵּין הַבַּיִת לָרְחוֹב.',
+      transcription: 'бейн hа-бáйит ла-рэхóв.',
+      translation: 'Между домом и улицей.',
+    },
+  },
+  {
+    hebrew: 'מוּל',
+    hebrewPlain: 'מול',
+    transcription: 'муль',
+    translation: 'напротив, перед',
+    partOfSpeech: 'preposition',
+    exampleSentence: {
+      hebrew: 'הַקָּפֶה מוּל הַבַּנְק.',
+      transcription: 'hа-кафэ́ муль hа-банк.',
+      translation: 'Кафе напротив банка.',
+    },
+  },
+  {
+    hebrew: 'לִפְנֵי',
+    hebrewPlain: 'לפני',
+    transcription: 'лифнéй',
+    translation: 'до, перед (по времени или месту)',
+    partOfSpeech: 'preposition',
+    exampleSentence: {
+      hebrew: 'לִפְנֵי הַשִּׁיעוּר.',
+      transcription: 'лифнéй hа-шиӯр.',
+      translation: 'Перед уроком.',
+    },
+  },
+  {
+    hebrew: 'אַחֲרֵי',
+    hebrewPlain: 'אחרי',
+    transcription: 'ахарéй',
+    translation: 'после, позади',
+    partOfSpeech: 'preposition',
+    exampleSentence: {
+      hebrew: 'אַחֲרֵי הָעֲבוֹדָה.',
+      transcription: 'ахарéй hа-аводá.',
+      translation: 'После работы.',
+    },
+  },
+  {
+    hebrew: 'בִּגְלַל',
+    hebrewPlain: 'בגלל',
+    transcription: 'биглáль',
+    translation: 'из-за, по причине',
+    partOfSpeech: 'preposition',
+    exampleSentence: {
+      hebrew: 'בִּגְלַל הַגֶּשֶׁם.',
+      transcription: 'биглáль hа-гéшем.',
+      translation: 'Из-за дождя.',
+    },
+  },
+  {
+    hebrew: 'כְּמוֹ',
+    hebrewPlain: 'כמו',
+    transcription: 'кмо',
+    translation: 'как, подобно',
+    partOfSpeech: 'preposition',
+    exampleSentence: {
+      hebrew: 'הוּא מְדַבֵּר כְּמוֹ יִשְׂרְאֵלִי.',
+      transcription: 'hу мэдабэ́р кмо исрээлӣ.',
+      translation: 'Он говорит как израильтянин.',
+    },
+  },
+  {
+    hebrew: 'פֹּה',
+    hebrewPlain: 'פה',
+    transcription: 'по',
+    translation: 'здесь, тут',
+    partOfSpeech: 'adverb',
+    exampleSentence: {
+      hebrew: 'נָעִים מְאוֹד פֹּה.',
+      transcription: 'наӣм мэóд по.',
+      translation: 'Здесь очень приятно.',
+    },
+  },
+  {
+    hebrew: 'כָּאן',
+    hebrewPlain: 'כאן',
+    transcription: 'кан',
+    translation: 'здесь, тут',
+    partOfSpeech: 'adverb',
+    exampleSentence: {
+      hebrew: 'אֲנִי כָּאן.',
+      transcription: 'анӣ кан.',
+      translation: 'Я здесь.',
+    },
+  },
+  {
+    hebrew: 'שָׁם',
+    hebrewPlain: 'שם',
+    transcription: 'шам',
+    translation: 'там',
+    partOfSpeech: 'adverb',
+    exampleSentence: {
+      hebrew: 'הַחֲנוּת שָׁם.',
+      transcription: 'hа-ханӯт шам.',
+      translation: 'Магазин там.',
+    },
+  },
+  {
+    hebrew: 'רַק',
+    hebrewPlain: 'רק',
+    transcription: 'рак',
+    translation: 'только, лишь',
+    partOfSpeech: 'adverb',
+    exampleSentence: {
+      hebrew: 'רַק רֶגַע, בְּבַקָּשָׁה.',
+      transcription: 'рак рéга, бэвакашá.',
+      translation: 'Только минутку, пожалуйста.',
+    },
+  },
+  {
+    hebrew: 'עוֹד',
+    hebrewPlain: 'עוד',
+    transcription: 'од',
+    translation: 'ещё, снова',
+    partOfSpeech: 'adverb',
+    exampleSentence: {
+      hebrew: 'עוֹד קָפֶה, בְּבַקָּשָׁה.',
+      transcription: 'од кафэ́, бэвакашá.',
+      translation: 'Ещё кофе, пожалуйста.',
+    },
+  },
+  {
+    hebrew: 'כְּבָר',
+    hebrewPlain: 'כבר',
+    transcription: 'квар',
+    translation: 'уже',
+    partOfSpeech: 'adverb',
+    exampleSentence: {
+      hebrew: 'אֲנִי כְּבָר מוּכָן.',
+      transcription: 'анӣ квар мухáн.',
+      translation: 'Я уже готов.',
+    },
+  },
+  {
+    hebrew: 'אֲבָל',
+    hebrewPlain: 'אבל',
+    transcription: 'авáль',
+    translation: 'но, однако',
+    partOfSpeech: 'conjunction',
+    exampleSentence: {
+      hebrew: 'רוֹצֶה, אֲבָל לֹא עַכְשָׁיו.',
+      transcription: 'роцé, авáль ло ахшáв.',
+      translation: 'Хочу, но не сейчас.',
+    },
+  },
+  {
+    hebrew: 'הַרְבֵּה',
+    hebrewPlain: 'הרבה',
+    transcription: 'hарбé',
+    translation: 'много',
+    partOfSpeech: 'adverb',
+    exampleSentence: {
+      hebrew: 'יֵשׁ כָּאן הַרְבֵּה אֲנָשִׁים.',
+      transcription: 'йеш кан hарбé анашӣм.',
+      translation: 'Здесь много людей.',
+    },
+  },
+  {
+    hebrew: 'קְצָת',
+    hebrewPlain: 'קצת',
+    transcription: 'кцат',
+    translation: 'немного, чуть-чуть',
+    partOfSpeech: 'adverb',
+    exampleSentence: {
+      hebrew: 'רַק קְצָת חָלָב.',
+      transcription: 'рак кцат халáв.',
+      translation: 'Только немного молока.',
+    },
+  },
+  {
+    hebrew: 'זֶה',
+    hebrewPlain: 'זה',
+    transcription: 'зэ',
+    translation: 'это, этот (м.р.)',
+    partOfSpeech: 'pronoun',
+    exampleSentence: {
+      hebrew: 'זֶה קָפֶה טוֹב.',
+      transcription: 'зэ кафэ́ тов.',
+      translation: 'Это хороший кофе.',
+    },
+  },
+  {
+    hebrew: 'זֹאת',
+    hebrewPlain: 'זאת',
+    transcription: 'зот',
+    translation: 'эта, это (ж.р.)',
+    partOfSpeech: 'pronoun',
+    exampleSentence: {
+      hebrew: 'זֹאת עוּגָה טְעִימָה.',
+      transcription: 'зот угá тэимá.',
+      translation: 'Это вкусный пирог.',
+    },
+  },
+  {
+    hebrew: 'זוֹ',
+    hebrewPlain: 'זו',
+    transcription: 'зо',
+    translation: 'эта, это (ж.р.)',
+    partOfSpeech: 'pronoun',
+    exampleSentence: {
+      hebrew: 'זוֹ דִּירָה יָפָה.',
+      transcription: 'зо дирá йафá.',
+      translation: 'Это красивая квартира.',
+    },
+  },
+  {
+    hebrew: 'אֵלֶּה',
+    hebrewPlain: 'אלה',
+    transcription: 'э́ле',
+    translation: 'эти (мн.ч.)',
+    partOfSpeech: 'pronoun',
+    exampleSentence: {
+      hebrew: 'מִי אֵלֶּה?',
+      transcription: 'ми э́ле?',
+      translation: 'Кто эти (люди)?',
+    },
+  },
+  {
+    hebrew: 'אֵלּוּ',
+    hebrewPlain: 'אלו',
+    transcription: 'э́лу',
+    translation: 'эти (мн.ч.)',
+    partOfSpeech: 'pronoun',
+    exampleSentence: {
+      hebrew: 'אֵלּוּ דְּבָרִים חֲשׁוּבִים.',
+      transcription: 'э́лу дварӣм хашувӣм.',
+      translation: 'Это важные вещи.',
+    },
+  },
 ];
 
 /**
- * Быстрый поиск слова в оффлайн-базе Ульпана (словарь + 100 уроков + эвристика приставок)
+ * Строгое совпадение без огласовок
  */
-function matchesHebrew(target: string, query: string): boolean {
+function exactMatchesHebrew(target: string, query: string): boolean {
+  if (!target || !query) return false;
+  return stripNikkud(target).trim().toLowerCase() === query;
+}
+
+/**
+ * Безопасное сопоставление כתיב מלא / כתיב חסר (например רהוט ↔ ריהוט, חלצה ↔ חולצה).
+ * ВАЖНО:
+ * - Применяется только к словам от 4 букв (в 2-3 буквенных словах выпадение буквы ломает корень).
+ * - Первая и последняя буквы ОБЯЗАНЫ совпадать строго (начальная י или ו — это корень/приставка, а не гласная!).
+ */
+function fuzzySpellingMatches(target: string, query: string): boolean {
   if (!target || !query) return false;
   const t = stripNikkud(target).trim().toLowerCase();
   const q = stripNikkud(query).trim().toLowerCase();
   if (t === q) return true;
-  // Сравнение с допуском полного / неполного написания (כתיב מלא / כתיב חסר, например רהוט ↔ ריהוט)
-  const tSkeleton = t.replace(/[יו]/g, '');
-  const qSkeleton = q.replace(/[יו]/g, '');
-  if (tSkeleton.length >= 2 && tSkeleton === qSkeleton) return true;
-  return false;
+  if (t.length < 4 || q.length < 4) return false;
+  if (t[0] !== q[0] || t[t.length - 1] !== q[q.length - 1]) return false;
+
+  // Сравниваем только внутренние согласные, удаляя внутренние י и ו
+  const tInternal = t.slice(1, -1).replace(/[יו]/g, '');
+  const qInternal = q.slice(1, -1).replace(/[יו]/g, '');
+  return tInternal.length >= 2 && tInternal === qInternal;
 }
 
 /**
  * Быстрый поиск слова в оффлайн-базе Ульпана (словарь + авторские диалоги + 100 уроков + эвристика приставок)
+ * Выполняется строго поэтапно:
+ *   1. Точный поиск по всей базе (Exact match)
+ *   2. Поиск с валидным отделением приставок (основа >= 3 букв)
+ *   3. Безопасное ктив-мале / חסר сопоставление (только если точных совпадений нет нигде)
  */
 export function lookupOfflineWord(rawQuery: string): DictionaryEntry | null {
   if (!rawQuery) return null;
   const clean = stripNikkud(rawQuery.trim().toLowerCase());
   if (!clean) return null;
 
-  const searchInSources = (queryText: string): DictionaryEntry | null => {
+  const searchInSources = (
+    matcher: (target: string, q: string) => boolean,
+    queryText: string
+  ): DictionaryEntry | null => {
     // 1. Поиск в базовом оффлайн-словаре
     const directOffline = ULPAN_OFFLINE_DICTIONARY.find(
       (entry) =>
-        matchesHebrew(entry.hebrewPlain, queryText) ||
-        matchesHebrew(entry.hebrew, queryText)
+        matcher(entry.hebrewPlain, queryText) ||
+        matcher(entry.hebrew, queryText)
     );
     if (directOffline) return directOffline;
 
@@ -512,8 +844,8 @@ export function lookupOfflineWord(rawQuery: string): DictionaryEntry | null {
         if (!diag?.usefulWords) continue;
         const usefulWord = diag.usefulWords.find(
           (w) =>
-            matchesHebrew(w.hebrewPlain || '', queryText) ||
-            matchesHebrew(w.hebrew, queryText)
+            matcher(w.hebrewPlain || '', queryText) ||
+            matcher(w.hebrew, queryText)
         );
         if (usefulWord) {
           return {
@@ -535,8 +867,8 @@ export function lookupOfflineWord(rawQuery: string): DictionaryEntry | null {
         if (!lesson?.vocabulary) continue;
         const lessonWord = lesson.vocabulary.find(
           (w) =>
-            matchesHebrew(w.hebrewPlain || '', queryText) ||
-            matchesHebrew(w.hebrew, queryText)
+            matcher(w.hebrewPlain || '', queryText) ||
+            matcher(w.hebrew, queryText)
         );
         if (lessonWord) {
           return {
@@ -558,8 +890,8 @@ export function lookupOfflineWord(rawQuery: string): DictionaryEntry | null {
         if (!deck.words) continue;
         const deckWord = deck.words.find(
           (w) =>
-            matchesHebrew(w.hebrewPlain || '', queryText) ||
-            matchesHebrew(w.hebrew, queryText)
+            matcher(w.hebrewPlain || '', queryText) ||
+            matcher(w.hebrew, queryText)
         );
         if (deckWord) {
           return {
@@ -578,21 +910,27 @@ export function lookupOfflineWord(rawQuery: string): DictionaryEntry | null {
     return null;
   };
 
-  // Поиск по исходному слову
-  const directMatch = searchInSources(clean);
-  if (directMatch) return directMatch;
+  // ЭТАП 1: Точный поиск слова по всем базам
+  const exactMatch = searchInSources(exactMatchesHebrew, clean);
+  if (exactMatch) return exactMatch;
 
-  // 5. Эвристика приставок (הַ-, בְּ-, לְ-, וְ-, מִ-, כְּ-, שֶׁ-)
+  // ЭТАП 2: Поиск с отделением приставки (הַ-, בְּ-, לְ-, וְ-, מִ-, כְּ-, שֶׁ-)
+  // Основа слова после отделения приставки должна быть не менее 3 букв!
+  // Это предотвращает ошибочное отрезание первой буквы у коротких слов (например 'ב' у 'בלי')
   const prefixes = ['ה', 'ב', 'ל', 'ו', 'מ', 'כ', 'ש'];
   for (const prefix of prefixes) {
-    if (clean.startsWith(prefix) && clean.length > 2) {
+    if (clean.startsWith(prefix) && clean.length >= 4) {
       const subClean = clean.slice(1);
-      const subMatch = searchInSources(subClean);
+      const subMatch = searchInSources(exactMatchesHebrew, subClean);
       if (subMatch) {
         return subMatch;
       }
     }
   }
+
+  // ЭТАП 3: Осторожный поиск כתיב מלא / חסר (только для слов от 4 букв)
+  const fuzzyMatch = searchInSources(fuzzySpellingMatches, clean);
+  if (fuzzyMatch) return fuzzyMatch;
 
   return null;
 }
