@@ -128,6 +128,23 @@ export async function initDatabase() {
         feedback TEXT,
         created_at TIMESTAMPTZ DEFAULT NOW()
       );
+      ALTER TABLE ulpana_call_logs ADD COLUMN IF NOT EXISTS audio_data JSONB DEFAULT '{}';
+    `);
+
+    // 7. Таблица сохраненных аудиозаписей учеников (строго 1 последняя попытка на user_id + lesson_id + stage)
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS ulpana_audio_recordings (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        lesson_id INT NOT NULL,
+        stage TEXT NOT NULL,
+        turns_audio JSONB DEFAULT '{}',
+        full_audio_url TEXT,
+        duration_seconds INT DEFAULT 0,
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        updated_at TIMESTAMPTZ DEFAULT NOW(),
+        CONSTRAINT ulpana_user_lesson_stage_unique UNIQUE (user_id, lesson_id, stage)
+      );
     `);
 
     // Вставляем базовые промокоды, если таблица пуста

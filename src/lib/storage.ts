@@ -107,7 +107,7 @@ export function loadUserProfile(): UserProfile {
     }
     profile.flashcardProgress = profile.flashcardStats;
 
-    // Автоматическая нормализация: урок считается завершенным ТОЛЬКО если пройдены ВСЕ 5 этапов (включая звонок 'phone')
+    // Автоматическая нормализация: урок считается завершенным ТОЛЬКО если пройдены ВСЕ 6 этапов
     if (profile.lessonProgress) {
       const actualCompleted: number[] = [];
       for (const [idStr, prog] of Object.entries(profile.lessonProgress)) {
@@ -117,6 +117,7 @@ export function loadUserProfile(): UserProfile {
           tabs.includes('theory') &&
           tabs.includes('vocab') &&
           tabs.includes('exercises') &&
+          tabs.includes('essay') &&
           tabs.includes('chat') &&
           tabs.includes('phone');
 
@@ -291,16 +292,17 @@ export function markLessonTabCompleted(lessonId: number, tab: string): UserProfi
   }
   current.lastVisited = Date.now();
 
-  // Урок считается полностью завершенным ТОЛЬКО когда пройдены ВСЕ 5 этапов:
-  // 1. theory, 2. vocab, 3. exercises, 4. chat, 5. phone
-  const isAllFive =
+  // Урок считается полностью завершенным ТОЛЬКО когда пройдены ВСЕ 6 этапов:
+  // 1. theory, 2. vocab, 3. exercises, 4. essay, 5. chat, 6. phone
+  const isAllSix =
     current.completedTabs.includes('theory') &&
     current.completedTabs.includes('vocab') &&
     current.completedTabs.includes('exercises') &&
+    current.completedTabs.includes('essay') &&
     current.completedTabs.includes('chat') &&
     current.completedTabs.includes('phone');
 
-  if (isAllFive) {
+  if (isAllSix) {
     current.isCompleted = true;
     if (!profile.completedLessons.includes(lessonId)) {
       profile.completedLessons.push(lessonId);
@@ -337,19 +339,22 @@ export function markLessonTabCompleted(lessonId: number, tab: string): UserProfi
   return profile;
 }
 
-export type LessonStageTab = 'theory' | 'vocab' | 'exercises' | 'chat' | 'phone';
+export type LessonStageTab = 'theory' | 'vocab' | 'exercises' | 'essay' | 'chat' | 'phone';
 
 export const LESSON_STAGES_ORDER: LessonStageTab[] = [
   'theory',
   'vocab',
   'exercises',
+  'essay',
   'chat',
   'phone',
 ];
 
+export const LESSONS_STAGES_ORDER = LESSON_STAGES_ORDER;
+
 /**
  * Получить первый непройденный этап урока для автоматического открытия при входе.
- * Если все 5 пройдены или ничего не пройдено — открывает первый этап ('theory').
+ * Если все 6 пройдены или ничего не пройдено — открывает первый этап ('theory').
  */
 export function getFirstIncompleteLessonTab(
   lessonId: number,
@@ -368,7 +373,7 @@ export function getFirstIncompleteLessonTab(
  */
 export function unmarkLessonTabCompleted(
   lessonId: number,
-  tab: 'theory' | 'vocab' | 'exercises' | 'chat' | 'phone'
+  tab: LessonStageTab
 ): UserProfile {
   const profile = loadUserProfile();
   if (profile.lessonProgress && profile.lessonProgress[lessonId]) {
@@ -381,6 +386,7 @@ export function unmarkLessonTabCompleted(
   }
   return profile;
 }
+
 
 /**
  * Сброс прогресса конкретного урока

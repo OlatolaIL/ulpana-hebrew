@@ -351,6 +351,20 @@ export interface ChatMessage {
   stepFact?: string; // Описание новой ситуации при смене шага
   stepIndex?: number; // Номер шага (напр. 2 из 3)
   timestamp: number;
+  userAudioUrl?: string; // Локальный blob: или облачный https: URL записи голоса ученика
+  userAudioBlob?: Blob; // Сырой аудио-блоб для отправки на сервер
+}
+
+export interface LessonAudioRecording {
+  id: string;
+  userId: string;
+  lessonId: number;
+  stage: 'chat' | 'phone';
+  turnsAudio: Record<number, string>; // { [turnIndex]: "https://..." }
+  fullAudioUrl?: string;
+  durationSeconds?: number;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface FlashcardProgress {
@@ -497,3 +511,64 @@ export interface VerbConjugation {
   notes?: string;
   rootFamily?: RootRelatedWord[];
 }
+
+export interface EssayWordChip {
+  hebrew: string;
+  translation: string;
+  transcription?: string;
+}
+
+export interface LessonEssayPrompt {
+  topicRu: string;
+  topicHe: string;
+  situationRu: string;
+  grammarFocusRu: string;
+  minWords: number;
+  suggestedWords: EssayWordChip[];
+  sampleEssay?: {
+    hebrew: string;
+    transcription: string;
+    translation: string;
+  };
+}
+
+export interface WordOrderCheckItem {
+  ruleNameRu: string;
+  issueSnippet?: string;
+  correctionSnippet?: string;
+  explanationRu: string;
+}
+
+export interface GrammarCheckItem {
+  type: string;
+  wrongSnippet: string;
+  correctionSnippet: string;
+  explanationRu: string;
+}
+
+export interface EssayEvaluationResult {
+  score: number; // 0 - 100
+  rating: 'excellent' | 'good' | 'needs_work';
+  summaryRu: string;
+  wordOrderFeedback: {
+    hasErrors: boolean;
+    items: WordOrderCheckItem[];
+    generalAdviceRu: string;
+  };
+  grammarFeedback: {
+    items: GrammarCheckItem[];
+    genderAgreementRu?: string;
+  };
+  vocabularyAnalysis: {
+    usedLessonWords: string[];
+    count: number;
+    commentRu: string;
+  };
+  correctedVersion: {
+    hebrew: string;
+    transcription: string;
+    translation: string;
+  };
+  valuableTipsRu: string[];
+}
+

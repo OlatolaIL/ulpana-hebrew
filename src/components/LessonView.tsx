@@ -15,11 +15,13 @@ import {
   MessageSquare,
   Crown,
   X,
+  PenTool,
 } from 'lucide-react';
 import { Lesson, UserProfile, Word } from '@/types';
 import { LessonTheory } from './LessonTheory';
 import { LessonVocabulary } from './LessonVocabulary';
 import { LessonExercises } from './LessonExercises';
+import { LessonEssay } from './LessonEssay';
 import { LessonAiChat } from './LessonAiChat';
 import { ScriptedDialogueTrainer } from './ScriptedDialogueTrainer';
 import { PhoneCallSimulator } from './PhoneCallSimulator';
@@ -35,7 +37,7 @@ import { TierBadge } from './TierBadge';
 import { useBannerCooldown } from '@/lib/useBannerCooldown';
 import { stripNikkud } from '@/lib/transcription';
 
-export type LessonTab = 'theory' | 'vocab' | 'exercises' | 'chat' | 'phone';
+export type LessonTab = 'theory' | 'vocab' | 'exercises' | 'essay' | 'chat' | 'phone';
 
 interface LessonViewProps {
   lessonId: number;
@@ -99,13 +101,15 @@ export const LessonView: React.FC<LessonViewProps> = ({
     { id: 'theory', num: 1, labelRu: 'Теория', labelHe: 'תֵּאוֹרְיָה', icon: BookOpen },
     { id: 'vocab', num: 2, labelRu: 'Слова', labelHe: 'מִילִּים', icon: Layers },
     { id: 'exercises', num: 3, labelRu: 'Тесты', labelHe: 'תַּרְגִּילִים', icon: ListTodo },
-    { id: 'chat', num: 4, labelRu: 'Диалог', labelHe: 'שִׂיחָה', icon: Bot },
-    { id: 'phone', num: 5, labelRu: 'Звонок', labelHe: 'טֶלֶפוֹן', icon: Phone },
+    { id: 'essay', num: 4, labelRu: 'Сочинение', labelHe: 'חִבּוּר', icon: PenTool },
+    { id: 'chat', num: 5, labelRu: 'Диалог', labelHe: 'שִׂיחָה', icon: Bot },
+    { id: 'phone', num: 6, labelRu: 'Звонок', labelHe: 'טֶלֶפוֹן', icon: Phone },
   ];
+
 
   return (
     <div className="flex flex-col h-full min-h-0 w-full overflow-hidden">
-      {/* 1. Единый ультра-компактный бар навигации (48px) со встроенным прогрессом 5 этапов */}
+      {/* 1. Единый ультра-компактный бар навигации (48px) со встроенным прогрессом 6 этапов */}
       <div className="h-12 px-2 sm:px-3 bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-xs flex items-center justify-between gap-1.5 sm:gap-2 shrink-0 mb-2">
         {/* Слева: Выход на главную (Домой) + Индикатор урока */}
         <div className="flex items-center gap-1.5 shrink-0 min-w-0">
@@ -128,7 +132,7 @@ export const LessonView: React.FC<LessonViewProps> = ({
           </div>
         </div>
 
-        {/* Центр: 5 симметричных Stories-сегментов с прогрессом */}
+        {/* Центр: 6 симметричных Stories-сегментов с прогрессом */}
         <div className="flex-1 flex items-center justify-center gap-1 max-w-md mx-1 sm:mx-2 min-w-0">
           {STAGES.map((stage) => {
             const isCompleted = completedTabs.includes(stage.id);
@@ -315,6 +319,15 @@ export const LessonView: React.FC<LessonViewProps> = ({
 
         {activeTab === 'exercises' && (
           <LessonExercises
+            lesson={lesson}
+            userProfile={userProfile}
+            onCompleted={() => setActiveTab('essay')}
+            onUpdateProfile={onUpdateProfile}
+          />
+        )}
+
+        {activeTab === 'essay' && (
+          <LessonEssay
             lesson={lesson}
             userProfile={userProfile}
             onCompleted={() => setActiveTab('chat')}

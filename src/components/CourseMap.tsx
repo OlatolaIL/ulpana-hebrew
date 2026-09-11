@@ -17,6 +17,9 @@ import { stripNikkud } from '@/lib/transcription';
 import { isLessonLockedForUser } from '@/lib/config';
 import { TierBadge } from './TierBadge';
 import { useBannerCooldown } from '@/lib/useBannerCooldown';
+import { LESSON_STAGES_ORDER } from '@/lib/storage';
+
+const TOTAL_STAGES = LESSON_STAGES_ORDER.length;
 
 interface CourseMapProps {
   userProfile: UserProfile;
@@ -206,7 +209,7 @@ export const CourseMap: React.FC<CourseMapProps> = ({
               </span>
               {currentCompletedTabs > 0 && !isCurrentCompleted && (
                 <span className="text-[10px] font-semibold text-emerald-300 bg-black/20 px-1.5 py-0.5 rounded">
-                  {currentCompletedTabs}/5
+                  {currentCompletedTabs}/{TOTAL_STAGES}
                 </span>
               )}
               {currentLesson.id > 30 ? (
@@ -481,7 +484,7 @@ export const CourseMap: React.FC<CourseMapProps> = ({
 
                     {!isCompleted && completedTabsCount > 0 && (
                       <span className="text-[10px] font-semibold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 px-1.5 py-0.2 rounded">
-                        {completedTabsCount}/5
+                        {completedTabsCount}/{TOTAL_STAGES}
                       </span>
                     )}
 

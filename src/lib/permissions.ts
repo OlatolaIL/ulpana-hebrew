@@ -38,7 +38,7 @@ export function isLessonAlwaysFree(lessonId: number): boolean {
  * Проверка, является ли конкретный этап урока всегда бесплатным
  */
 export function isStageAlwaysFree(lessonId: number, tabId: string): boolean {
-  // В уроках 1 и 2 все 5 этапов всегда бесплатны
+  // В уроках 1 и 2 все 6 этапов всегда бесплатны
   if (lessonId <= 2) return true;
 
   // В уроках 3-30 этапы theory, vocab, exercises всегда бесплатны
