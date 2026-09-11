@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAdminRequest } from '@/lib/adminAuth';
 import { getDbPool, initDatabase } from '@/lib/db';
-import { VIP_EXPIRES_AT } from '@/lib/vipUsers';
+import { VIP_EXPIRES_AT, isVipUser } from '@/lib/vipUsers';
 
 export async function GET(req: NextRequest) {
   try {
@@ -230,6 +230,60 @@ export async function POST(req: NextRequest) {
     });
   } catch (error) {
     console.error('[API Admin Users POST] Error:', error);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+  }
+}
+
+export async function DELETE(req: NextRequest) {
+  try {
+    const auth = await verifyAdminRequest(req);
+    if (!auth.authorized) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status || 403 });
+    }
+
+    const { userId } = await req.json().catch(() => ({ userId: null }));
+    if (!userId) {
+      return NextResponse.json({ error: 'Параметр userId обязателен' }, { status: 400 });
+    }
+
+    await initDatabase();
+    const db = getDbPool();
+    if (!db) {
+      return NextResponse.json({ error: 'База данных не подключена' }, { status: 503 });
+    }
+
+    // Проверяем существование пользователя
+    const userRes = await db.query('SELECT * FROM ulpana_users WHERE id = $1', [userId]);
+    if (userRes.rows.length === 0) {
+      return NextResponse.json({ error: 'Пользователь не найден' }, { status: 404 });
+    }
+
+    const targetUser = userRes.rows[0];
+
+    // Защита администратора от случайного удаления
+    if (isVipUser(targetUser.username, targetUser.telegram_id, targetUser.name)) {
+      return NextResponse.json(
+        { error: 'Запрещено удалять учетную запись администратора' },
+        { status: 400 }
+      );
+    }
+
+    // Каскадное удаление всех связанных данных ученика
+    await db.query('DELETE FROM ulpana_lesson_progress WHERE user_id = $1', [userId]);
+    await db.query('DELETE FROM ulpana_vocabulary WHERE user_id = $1', [userId]);
+    await db.query('DELETE FROM ulpana_audio_recordings WHERE user_id = $1', [userId]);
+    await db.query('DELETE FROM ulpana_essays WHERE user_id = $1', [userId]);
+    await db.query('DELETE FROM ulpana_call_logs WHERE user_id = $1', [userId]);
+
+    // Удаление пользователя
+    await db.query('DELETE FROM ulpana_users WHERE id = $1', [userId]);
+
+    return NextResponse.json({
+      success: true,
+      message: `Пользователь ${targetUser.name} успешно удален`,
+    });
+  } catch (error) {
+    console.error('[API Admin Users DELETE] Error:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

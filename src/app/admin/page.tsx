@@ -335,6 +335,39 @@ export default function AdminPage() {
     }
   };
 
+  // Delete user permanently
+  const handleDeleteUser = async (userId: string, userName: string) => {
+    const confirmed = window.confirm(
+      `Вы уверены, что хотите навсегда удалить пользователя "${userName}"?\n\nВсе связанные данные (прогресс уроков, личный словарик, записи звонков и сочинения) будут безвозвратно удалены.`
+    );
+    if (!confirmed) return;
+
+    setActionLoading(userId);
+    try {
+      const res = await fetch('/api/admin/users', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        if (selectedUserId === userId) {
+          setSelectedUserId(null);
+          setUserDetail(null);
+        }
+        await fetchUsers(searchQuery);
+        await fetchStats();
+      } else {
+        alert(data.error || 'Ошибка при удалении пользователя');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Не удалось связаться с сервером при удалении пользователя');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
   // Create promo code
   const handleCreatePromo = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -886,6 +919,18 @@ export default function AdminPage() {
                                     title="Выдать PRO подписку на 30 дней"
                                   >
                                     <span>+ PRO 30д</span>
+                                  </button>
+                                )}
+
+                                {!isVipUser(u.username, u.telegramId, u.name) && (
+                                  <button
+                                    onClick={() => handleDeleteUser(u.id, u.name)}
+                                    disabled={actionLoading === u.id}
+                                    className="p-1.5 rounded-xl border border-zinc-200 dark:border-zinc-800 hover:border-red-300 dark:hover:border-red-900 hover:bg-red-50 dark:hover:bg-red-950/40 text-zinc-400 hover:text-red-600 dark:hover:text-red-400 transition"
+                                    title={`Удалить пользователя ${u.name}`}
+                                    aria-label={`Удалить пользователя ${u.name}`}
+                                  >
+                                    <Trash2 className="w-4 h-4" />
                                   </button>
                                 )}
                               </div>
@@ -1506,6 +1551,19 @@ export default function AdminPage() {
                     className="px-4 py-2 rounded-xl border border-red-300 dark:border-red-900 bg-red-50 dark:bg-red-950/40 text-red-600 text-xs font-bold transition"
                   >
                     <span>Отозвать PRO</span>
+                  </button>
+                )}
+
+                {/* Удалить ученика навсегда (кроме администраторов) */}
+                {userDetail && !isVipUser(userDetail.user.username, userDetail.user.telegramId, userDetail.user.name) && (
+                  <button
+                    onClick={() => handleDeleteUser(userDetail.user.id, userDetail.user.name)}
+                    disabled={actionLoading === userDetail.user.id}
+                    className="px-3.5 py-2 rounded-xl border border-red-200 dark:border-red-900/50 hover:bg-red-50 dark:hover:bg-red-950/40 text-red-600 dark:text-red-400 font-semibold text-xs flex items-center gap-1.5 transition"
+                    title="Удалить пользователя навсегда"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Удалить ученика</span>
                   </button>
                 )}
               </div>
