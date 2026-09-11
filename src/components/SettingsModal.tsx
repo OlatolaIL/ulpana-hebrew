@@ -2,8 +2,8 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { X, Key, User, Volume2, Eye, HelpCircle, CheckCircle2, ShieldCheck, Sparkles, MessageSquare, Download, Smartphone } from 'lucide-react';
-import { UserProfile, UserGender, AiProvider } from '@/types';
+import { X, User, Volume2, Eye, CheckCircle2, ShieldCheck, MessageSquare, Download, Smartphone } from 'lucide-react';
+import { UserProfile } from '@/types';
 import { isVipUser } from '@/lib/vipUsers';
 import { saveUserProfile } from '@/lib/storage';
 import { speakHebrew } from '@/lib/speech';
@@ -65,7 +65,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               <h2 className="font-bold text-base text-zinc-900 dark:text-zinc-50">
                 Настройки и профиль
               </h2>
-              <p className="text-xs text-zinc-500">Аккаунт, подписка, пол и ИИ</p>
+              <p className="text-xs text-zinc-500">Аккаунт, подписка, пол и озвучка</p>
             </div>
           </div>
           <button
@@ -425,107 +425,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             </div>
           </div>
 
-          <hr className="border-zinc-200 dark:border-zinc-800" />
-
-          {/* 3. Настройка бесплатного ИИ (Groq / Gemini) */}
-          <div className="space-y-4">
-            <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
-              <Key className="w-4 h-4 text-amber-500" />
-              <span>Движок искусственного интеллекта (Бесплатно)</span>
-            </h3>
-
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={() => handleChange({ aiProvider: 'groq' })}
-                className={`p-3 rounded-xl border text-left transition ${
-                  profile.aiProvider === 'groq'
-                    ? 'border-blue-600 bg-blue-50 dark:bg-blue-950/40 text-blue-900 dark:text-blue-200 ring-2 ring-blue-600/20'
-                    : 'border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400'
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-sm">Groq (Рекомендуется)</span>
-                  {profile.aiProvider === 'groq' && (
-                    <CheckCircle2 className="w-4 h-4 text-blue-600" />
-                  )}
-                </div>
-                <p className="text-xs text-zinc-500 mt-1">Llama 3.3 70B • Сверхбыстро и бесплатно</p>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleChange({ aiProvider: 'gemini' })}
-                className={`p-3 rounded-xl border text-left transition ${
-                  profile.aiProvider === 'gemini'
-                    ? 'border-blue-600 bg-blue-50 dark:bg-blue-950/40 text-blue-900 dark:text-blue-200 ring-2 ring-blue-600/20'
-                    : 'border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400'
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-sm">Google Gemini</span>
-                  {profile.aiProvider === 'gemini' && (
-                    <CheckCircle2 className="w-4 h-4 text-blue-600" />
-                  )}
-                </div>
-                <p className="text-xs text-zinc-500 mt-1">Gemini 2.0 Flash • Google AI Studio</p>
-              </button>
-            </div>
-
-            {profile.aiProvider === 'groq' ? (
-              <div className="space-y-2">
-                <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300">
-                  Ключ Groq API (gsk_...)
-                </label>
-                <input
-                  type="password"
-                  value={profile.groqApiKey || ''}
-                  onChange={(e) => handleChange({ groqApiKey: e.target.value })}
-                  placeholder="Вставьте бесплатный ключ Groq"
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600"
-                />
-                <p className="text-xs text-zinc-500">
-                  Ключ можно получить бесплатно на сайте{' '}
-                  <a
-                    href="https://console.groq.com/keys"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-blue-600 underline font-medium"
-                  >
-                    console.groq.com
-                  </a>
-                  . Работает без оплаты и кредитных карт.
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300">
-                  Ключ Google Gemini API (AIzaSy...)
-                </label>
-                <input
-                  type="password"
-                  value={profile.geminiApiKey || ''}
-                  onChange={(e) => handleChange({ geminiApiKey: e.target.value })}
-                  placeholder="Вставьте ключ Gemini"
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600"
-                />
-                <p className="text-xs text-zinc-500">
-                  Ключ доступен бесплатно на{' '}
-                  <a
-                    href="https://aistudio.google.com/app/apikey"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-blue-600 underline font-medium"
-                  >
-                    aistudio.google.com
-                  </a>
-                  .
-                </p>
-              </div>
-            )}
-          </div>
-
-          {/* 5. Обратная связь и ошибки */}
+          {/* 4. Обратная связь и ошибки */}
           <div className="bg-zinc-50 dark:bg-zinc-800/50 rounded-2xl p-4 border border-zinc-200/80 dark:border-zinc-700/60 space-y-3">
             <div className="flex items-center gap-2.5">
               <div className="p-2 rounded-xl bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 shrink-0">
