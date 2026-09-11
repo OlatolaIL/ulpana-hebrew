@@ -732,37 +732,41 @@ export function getLessonPhoneScenario(lesson: Lesson, gender: UserGender): Phon
   // 3. Системный автоматический генератор для ВСЕХ остальных уроков (1-100)
   const dial = lesson.dialogue;
   const aiRole = dial.aiRole || 'Собеседник';
+  const userRole = dial.userRole || 'Собеседник';
   const aiRoleLower = aiRole.toLowerCase();
   const situationLower = (dial.situation || '').toLowerCase();
   const titleLower = (lesson.titleRussian || '').toLowerCase();
   const catLower = (lesson.category || '').toLowerCase();
 
-  // Определяем тип звонка: входящий (звонят ученику) или исходящий (ученик звонит в службу/организацию)
-  const isIncoming =
-    aiRoleLower.includes('נהג') ||
-    aiRoleLower.includes('שליח') ||
-    aiRoleLower.includes('חבר') ||
-    aiRoleLower.includes('שכן') ||
-    aiRoleLower.includes('водитель') ||
-    aiRoleLower.includes('курьер') ||
-    aiRoleLower.includes('сосед') ||
-    aiRoleLower.includes('соседк') ||
-    aiRoleLower.includes('друг') ||
-    aiRoleLower.includes('подруг') ||
-    aiRoleLower.includes('знаком') ||
-    aiRoleLower.includes('коллег') ||
-    aiRoleLower.includes('одногрупп') ||
-    aiRoleLower.includes('однокурс') ||
-    aiRoleLower.includes('приятел') ||
-    aiRoleLower.includes('мама') ||
-    aiRoleLower.includes('папа') ||
-    aiRoleLower.includes('брат') ||
-    aiRoleLower.includes('сестр') ||
-    aiRoleLower.includes('сын') ||
-    aiRoleLower.includes('дочь') ||
-    aiRoleLower.includes('родствен') ||
-    situationLower.includes('вам звонит') ||
-    situationLower.includes('звонит вам');
+  // Определяем тип звонка: явный из данных урока → иначе ключевые слова как запасной вариант
+  const explicitCallType = lesson.dialogue.callType;
+  const isIncoming = explicitCallType
+    ? explicitCallType === 'incoming'
+    : (aiRoleLower.includes('נהג') ||
+      aiRoleLower.includes('שליח') ||
+      aiRoleLower.includes('חבר') ||
+      aiRoleLower.includes('שכן') ||
+      aiRoleLower.includes('водитель') ||
+      aiRoleLower.includes('курьер') ||
+      aiRoleLower.includes('сосед') ||
+      aiRoleLower.includes('соседк') ||
+      aiRoleLower.includes('друг') ||
+      aiRoleLower.includes('подруг') ||
+      aiRoleLower.includes('знаком') ||
+      aiRoleLower.includes('коллег') ||
+      aiRoleLower.includes('одногрупп') ||
+      aiRoleLower.includes('однокурс') ||
+      aiRoleLower.includes('приятел') ||
+      aiRoleLower.includes('мама') ||
+      aiRoleLower.includes('папа') ||
+      aiRoleLower.includes('брат') ||
+      aiRoleLower.includes('сестр') ||
+      aiRoleLower.includes('сын') ||
+      aiRoleLower.includes('дочь') ||
+      aiRoleLower.includes('родствен') ||
+      situationLower.includes('вам звонит') ||
+      situationLower.includes('звонит вам'));
+
 
   const callType: PhoneCallType = isIncoming ? 'incoming' : 'outgoing';
 
@@ -782,8 +786,8 @@ export function getLessonPhoneScenario(lesson: Lesson, gender: UserGender): Phon
     : `Вы звоните (${aiRole}). ${cleanSituationDesc || cleanTopic}`;
 
   const callerObjective = isIncoming
-    ? `Кратко обсудить с учеником бытовой вопрос («${cleanTopic}») и тепло завершить звонок.`
-    : `Принять звонок в роли «${aiRole}», помочь ученику по вопросу «${cleanTopic}» и вежливо завершить разговор.`;
+    ? `Кратко обсудить с учеником бытовой вопрос («${cleanTopic}») в роли «${aiRole}» и тепло завершить звонок.`
+    : `Принять звонок в роли «${aiRole}», помочь ученику («${userRole}») по вопросу «${cleanTopic}» и вежливо завершить разговор.`;
 
   const studentObjective = isIncoming
     ? `Ответить на вопрос собеседника и завершить звонок.`
@@ -801,27 +805,26 @@ export function getLessonPhoneScenario(lesson: Lesson, gender: UserGender): Phon
     initHeb.includes('רוֹאֶה') ||
     initHeb.includes('תִּסְתַּכֵּל');
 
-  if (isIncoming) {
-    if (initHeb && !isVisualInPerson) {
-      initialGreetingHeb = `הַלּוֹ? שָׁלוֹם! ${dial.initialMessage!.hebrew}`;
-      initialGreetingTr = `hалó? шалóм! ${dial.initialMessage!.transcription || ''}`;
-      initialGreetingRu = `Алло? Привет! ${dial.initialMessage!.translation || ''}`;
-    } else {
-      initialGreetingHeb = `הַלּוֹ? שָׁלוֹם! מָה נִשְׁמַע?`;
-      initialGreetingTr = `hалó? шалóм! ма нишмá?`;
-      initialGreetingRu = `Алло? Привет! Как дела?`;
+  // Если в уроке есть авторское начальное сообщение — бережно используем его!
+  if (initHeb && !isVisualInPerson) {
+    let heb = dial.initialMessage!.hebrew.trim();
+    let tr = dial.initialMessage!.transcription ? dial.initialMessage!.transcription.trim() : '';
+    let ru = dial.initialMessage!.translation ? dial.initialMessage!.translation.trim() : '';
+
+    // Для входящего звонка, если ещё нет "הלו", добавим телефонное приветствие
+    if (isIncoming && !heb.startsWith('הַלּוֹ') && !heb.startsWith('הלו')) {
+      heb = `הַלּוֹ? ${heb}`;
+      tr = tr ? `hалó? ${tr}` : tr;
+      ru = ru ? `Алло? ${ru}` : ru;
     }
+
+    initialGreetingHeb = heb;
+    initialGreetingTr = tr;
+    initialGreetingRu = ru;
   } else {
-    // Outgoing call: ученик звонит в организацию / сервис
-    if (initHeb && !initHeb.includes('?') && !isVisualInPerson) {
-      initialGreetingHeb = `שָׁלוֹם! ${initHeb}`;
-      initialGreetingTr = `шалóм! ${dial.initialMessage!.transcription || ''}`;
-      initialGreetingRu = `Здравствуйте! ${dial.initialMessage!.translation || ''}`;
-    } else {
-      initialGreetingHeb = `שָׁלוֹם! כֵּן, אֵיךְ אֶפְשָׁר לַעֲזֹר?`;
-      initialGreetingTr = `шалóм! кен, эйх эфшáр лаазóр?`;
-      initialGreetingRu = `Здравствуйте! Да, чем могу помочь?`;
-    }
+    initialGreetingHeb = isIncoming ? 'הַלּוֹ? שָׁלוֹם! מָה נִשְׁמַע?' : 'שָׁלוֹם! כֵּן, אֵיךְ אֶפְשָׁר לַעֲזֹר?';
+    initialGreetingTr = isIncoming ? 'hалó? шалóм! ма нишмá?' : 'шалóм! кен, эйх эфшáр лаазóр?';
+    initialGreetingRu = isIncoming ? 'Алло? Привет! Как дела?' : 'Здравствуйте! Да, чем могу помочь?';
   }
 
   // Адаптация рода в приветствии
@@ -867,6 +870,7 @@ export function getLessonPhoneScenario(lesson: Lesson, gender: UserGender): Phon
     callerName: aiRole,
     callerNameRu: aiRole,
     callerRole: aiRole,
+    userRole: userRole,
     avatarEmoji: getEmojiForCategory(lesson.category),
     situationSummary,
     callerObjective,
@@ -907,14 +911,21 @@ export function getLessonPhoneScenario(lesson: Lesson, gender: UserGender): Phon
     ],
     vocabularyHints: dial.vocabularyHints || (lesson.vocabulary || []).slice(0, 5).map((w) => w.hebrew),
     usefulWords: dynamicUsefulWords,
-    systemPromptAddition: `Ты ${aiRole}. Это телефонный диалог в Израиле по теме «${cleanTopic}».
-ТЫ — ОБЫЧНЫЙ ЧЕЛОВЕК, А НЕ ПРЕПОДАВАТЕЛЬ И НЕ БОТ!
+    systemPromptAddition: `ТВОЙ ПЕРСОНАЖ (ИИ): ${aiRole}.
+РОЛЬ УЧЕНИКА: ${userRole}.
+СИТУАЦИЯ: ${rawSituation || cleanTopic}.
+${isIncoming
+  ? `ТЫ ЗВОНИШЬ УЧЕНИКУ — ты инициируешь разговор от лица «${aiRole}».`
+  : `УЧЕНИК ОБРАЩАЕТСЯ К ТЕБЕ — ты принимаешь обращение в образе «${aiRole}» и помогаешь ему («${userRole}»).`}
+ТЫ — ЖИВОЙ ЧЕЛОВЕК, А НЕ ПРЕПОДАВАТЕЛЬ И НЕ БОТ!
 КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО:
-- Задавать экзаменационные вопросы, спрашивать перевод («Как сказать...?», «איך אומרים...?») или проверять грамматику!
-- Завершать диалог на первом же ответе ученика.
+- Путать роли: ты — ${aiRole}, а ученик — ${userRole}! Никогда не говори от лица ученика!
+- Задавать экзаменационные вопросы, спрашивать перевод («Как сказать...?», «איך אומרים...?») или проверять грамматику.
+- Прощаться и вешать трубку раньше 3-го раунда.
 ПРАВИЛА ВЕДЕНИЯ ДИАЛОГА (3 раунда):
-- Раунды 1-2: Внимательно выслушай ученика, тепло отреагируй на его ответ (1 короткая фраза) и задай следующий дружеский НАВОДЯЩИЙ ВОПРОС по ситуации (из задач разговора), помогая ученику раскрыть тему и ответить на иврите. НЕ ВЕШАЙ ТРУБКУ!
-- Раунд 3 (финал): Подтверди договоренность, поблагодари или пожелай хорошего дня («מְעֻלֶּה! תּוֹדָה רַבָּה, יוֹם טוֹב וּבַיי!»), установи isCompleted: true и shouldHangUp: true, и повесь трубку!`,
+- Раунды 1-2: Тепло и коротко отреагируй на слова ученика, затем задай следующий логичный наводящий вопрос по ситуации от лица «${aiRole}». НЕ ВЕШАЙ ТРУБКУ!
+- Раунд 3 (финал): Подтверди, поблагодари или пожелай хорошего дня, установи isCompleted: true и shouldHangUp: true.`,
+
   };
 }
 

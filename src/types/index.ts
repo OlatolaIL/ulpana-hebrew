@@ -166,6 +166,7 @@ export interface DialogueScenario {
   situation: string; // Описание контекста (напр. "Вы в кафе в Тель-Авиве")
   aiRole: string; // Роль ИИ (напр. "Официант Дани")
   userRole: string; // Роль пользователя (напр. "Посетитель кафе")
+  callType?: 'incoming' | 'outgoing'; // 'incoming' = ИИ звонит ученику; 'outgoing' = ученик звонит ИИ
   initialMessage: {
     hebrew: string;
     transcription: string;
@@ -290,6 +291,7 @@ export interface PhoneScenario {
   callerName: string; // 'דני - שליח וולט'
   callerNameRu: string; // 'Дани (курьер Wolt)'
   callerRole: string; // 'Курьер доставки'
+  userRole?: string; // 'Посетитель' / 'Арендатор' / 'Покупатель' / 'Ученик'
   avatarEmoji: string; // '🛵'
   situationSummary: string; // Краткое описание ситуации перед звонком
   callerObjective?: string; // Что нужно собеседнику (для incoming) или что он готов предложить/уточнить (для outgoing)

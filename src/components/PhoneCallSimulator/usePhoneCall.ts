@@ -482,6 +482,7 @@ export function usePhoneCall({
           callerName: scenario.callerName,
           callerNameRu: scenario.callerNameRu,
           callerRole: scenario.callerRole,
+          userRole: scenario.userRole,
           situationSummary: scenario.situationSummary,
           callerObjective: scenario.callerObjective,
           studentObjective: scenario.studentObjective,

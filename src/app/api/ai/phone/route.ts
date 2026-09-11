@@ -16,6 +16,7 @@ interface PhoneRequestBody {
   callerName?: string;
   callerNameRu?: string;
   callerRole?: string;
+  userRole?: string;
   situationSummary?: string;
   callerObjective?: string;
   studentObjective?: string;
@@ -117,6 +118,7 @@ export async function POST(req: NextRequest) {
     const finalCallerName = serverScenario?.callerName || callerName;
     const finalCallerNameRu = serverScenario?.callerNameRu || callerNameRu;
     const finalCallerRole = serverScenario?.callerRole || callerRole;
+    const finalUserRole = serverLesson?.dialogue?.userRole || serverScenario?.userRole || body.userRole || 'Ученик';
     const finalSituationSummary = serverScenario?.situationSummary || situationSummary;
     const finalCallerObj = serverScenario?.callerObjective || callerObjective;
     const finalStudentObj = serverScenario?.studentObjective || studentObjective;
@@ -152,6 +154,12 @@ export async function POST(req: NextRequest) {
     const cleanStudentObjective = cleanGrammarJargon(finalStudentObj);
     const cleanCompletionCondition = cleanGrammarJargon(finalCondition);
 
+    // Очищаем подсказки целей от готовых реплик на иврите от 1-го лица (например: (אֲנִי מְחַפֵּשׂ...)),
+    // чтобы нейросеть не повторяла фразы ученика от своего имени!
+    const cleanGoals = (finalGoals || []).map((g: string) =>
+      g.replace(/\s*\([^)]*[\u0590-\u05FF]+[^)]*\)/g, '').trim()
+    );
+
     // Грамматические рамки для урока (1-100)
     const grammarGuidance = getGrammarBoundary(lessonNumber);
 
@@ -174,41 +182,53 @@ ${knownWordsSlice.length > 0 ? `- Знакомые слова ученика и�
 - Краткие телефонные реплики без лишней академичности.`;
 
     const roleGuidance = isIncoming
-      ? `ТЕЛЕФОННЫЙ ЗВОНОК: ВХОДЯЩИЙ ДЛЯ УЧЕНИКА (ТЫ ЗВОНИШЬ УЧЕНИКУ)
-- ТЫ — ${finalCallerNameRu} (${finalCallerRole}).
-- ТВОЯ ЦЕЛЬ ЗВОНКА: "${cleanCallerObjective || 'Обсудить тему с учеником'}".
-- ЗАДАЧА УЧЕНИКА: "${cleanStudentObjective || 'Поддержать беседу и ответить на вопросы'}".
-- ГЛАВНАЯ ЦЕЛЬ: ВЕСТИ ПОЛНОЦЕННЫЙ, ЖИВОЙ ТЕЛЕФОННЫЙ ДИАЛОГ (${finalTargetTurns} РАУНДА)! ЭТО НЕ МОНОЛОГ И НЕ СБРОС ТРУБКИ!
-- ПРАВИЛА ВЕДЕНИЯ ДИАЛОГА:
-  1. ТЫ — НАСТОЯЩИЙ ЖИВОЙ ЧЕЛОВЕК (ДРУГ, СОСЕД, КОЛЛЕГА, ВОДИТЕЛЬ, КУРЬЕР), А НЕ УЧИТЕЛЬ!
-  2. СТРОЖАЙШЕ ЗАПРЕЩЕНО СПРАШИВАТЬ: «Как сказать...?», «איך אומרים...?», «Что значит...?» ИЛИ ПРОВОДИТЬ ОПРОСЫ ПО ГРАММАТИКЕ! ТЫ НЕ ЭКЗАМЕНАТОР!
+      ? `КТО ТЫ (ИИ): ${finalCallerNameRu} (${finalCallerRole}).
+КТО ТВОЙ СОБЕСЕДНИК: Ученик — ${finalUserRole}. Ты сам позвонил ему.
+СИТУАЦИЯ: ${cleanSituation}
+ТВОЯ ЦЕЛЬ: "${cleanCallerObjective || 'Обсудить тему с учеником и тепло завершить разговор'}".
+ЗАДАЧА УЧЕНИКА: "${cleanStudentObjective || 'Поддержать беседу и ответить на вопросы'}".
+ГЛАВНАЯ ЦЕЛЬ: ВЕСТИ ПОЛНОЦЕННЫЙ ЖИВОЙ ТЕЛЕФОННЫЙ ДИАЛОГ (${finalTargetTurns} РАУНДА)! ЭТО НЕ МОНОЛОГ И НЕ СБРОС ТРУБКИ!
+ПРАВИЛА ВЕДЕНИЯ ДИАЛОГА:
+  1. ТЫ — НАСТОЯЩИЙ ЖИВОЙ ЧЕЛОВЕК (${finalCallerRole}), А НЕ УЧИТЕЛЬ!
+  2. СТРОЖАЙШЕ ЗАПРЕЩЕНО СПРАШИВАТЬ: «Как сказать...?», «איך אומרים...?» или проводить опросы по грамматике!
   3. В ХОДЕ ДИАЛОГА (раунды до ${finalTargetTurns}):
-     * Коротко и тепло отреагируй на реплику ученика (например: «אֵיזֶה יֹפִי!», «מְעֻלֶּה!», «יוֹפִי!», «הַבַּנְתִּי!»).
-     * ЗАДАЙ СЛЕДУЮЩИЙ ДРУЖЕСКИЙ НАВОДЯЩИЙ ВОПРОС по ситуации и задачам диалога! Помогай ученику раскрыть тему и сказать новую фразу на иврите.
+     * Коротко и тепло отреагируй на реплику ученика («אֵיזֶה יֹפִי!», «מְעֻלֶּה!», «הַבַּנְתִּי!»).
+     * ЗАДАЙ СЛЕДУЮЩИЙ ДРУЖЕСКИЙ НАВОДЯЩИЙ ВОПРОС со стороны своей роли («${finalCallerRole}»)!
      * НЕ ВЕШАЙ ТРУБКУ РАНЬШЕ ВРЕМЕНИ! Обязательно установи "isCompleted": false, "shouldHangUp": false.
   4. ФИНАЛЬНЫЙ РАУНД (когда раунд >= ${finalTargetTurns} или если ученик САМ явно прощается «ביי / להתראות»):
-     * Тепло поблагодари, передай привет или пожелай хорошего дня («אֵיזֶה כֵּיף! תּוֹדָה רַבָּה! נִתְרָאֶה בְּקָרוֹב, בַּיי!»).
+     * Тепло поблагодари, передай привет или пожелай хорошего дня.
      * ОБЯЗАТЕЛЬНО установи "isCompleted": true, "shouldHangUp": true и повесь трубку!`
-      : `ТЕЛЕФОННЫЙ ЗВОНОК: ИСХОДЯЩИЙ ДЛЯ УЧЕНИКА (УЧЕНИК ЗВОНИТ ТЕБЕ)
-- ТЫ — ${finalCallerNameRu} (${finalCallerRole}), принимающий звонок организации/сервиса.
-- ТВОЯ РОЛЬ: "${cleanCallerObjective || 'Принять звонок и помочь ученику'}".
-- ЗАДАЧА УЧЕНИКА: "${cleanStudentObjective || 'Сделать заказ или задать вопрос'}".
-- ГЛАВНАЯ ЦЕЛЬ: ВЕСТИ ПОЛНОЦЕННЫЙ ЖИВОЙ ДИАЛОГ (${finalTargetTurns} РАУНДА)!
-- ПРАВИЛА ВЕДЕНИЯ ДИАЛОГА:
-  1. ТЫ — НАСТОЯЩИЙ ЖИВОЙ ЧЕЛОВЕК (БАРИСТА, АДМИНИСТРАТОР, ВРАЧ, СОТРУДНИК).
+      : `КТО ТЫ (ИИ): ${finalCallerNameRu} (${finalCallerRole}).
+КТО ТЕБЕ ПОЗВОНИЛ: Ученик — ${finalUserRole}. Он сам набрал тебе. Ты принимаешь звонок.
+СИТУАЦИЯ: ${cleanSituation}
+ТВОЯ РОЛЬ: "${cleanCallerObjective || 'Принять звонок и помочь ученику в роли «' + finalCallerRole + '»'}".
+ЗАДАЧА УЧЕНИКА: "${cleanStudentObjective || 'Объяснить свой запрос и получить помощь'}".
+ГЛАВНАЯ ЦЕЛЬ: ВЕСТИ ПОЛНОЦЕННЫЙ ЖИВОЙ ДИАЛОГ (${finalTargetTurns} РАУНДА)! ОСТАВАЙСЯ В ОБРАЗЕ ПЕРСОНАЖА!
+ПРАВИЛА ВЕДЕНИЯ ДИАЛОГА:
+  1. ТЫ — ${finalCallerRole}. Не безликий оператор, а конкретный живой человек в этой роли.
   2. СТРОЖАЙШЕ ЗАПРЕЩЕНО СПРАШИВАТЬ «איך אומרים» ИЛИ ТЕСТИРОВАТЬ УЧЕНИКА!
   3. В ХОДЕ ДИАЛОГА (раунды до ${finalTargetTurns}):
-     * Вежливо прими запрос ученика, подтверди и задай следующий логичный уточняющий наводящий вопрос (про размер, сахар/молоко, дату, время, детали).
+     * Прими запрос ученика в образе своего персонажа («${finalCallerRole}»), задай логичный уточняющий вопрос (детали, время, предпочтения со своей стороны).
      * НЕ ВЕШАЙ ТРУБКУ РАНЬШЕ ВРЕМЕНИ! Обязательно установи "isCompleted": false, "shouldHangUp": false.
   4. ФИНАЛЬНЫЙ РАУНД (когда раунд >= ${finalTargetTurns} или если ученик прощается):
-     * Подтверди договоренность («בְּסֵדֶר גָּמוּר, הַהַזְמָנָה מוּכָנָה! נִתְרָאֶה, בַּיי!»), установи "isCompleted": true, "shouldHangUp": true и заверши звонок!`;
+     * Подтверди договорённость или пожелай хорошего дня в образе своего персонажа.
+     * Установи "isCompleted": true, "shouldHangUp": true и заверши звонок!`;
+
 
     const systemPrompt = `ТЫ — ЖИВОЙ ПЕРСОНАЖ ТЕЛЕФОННОГО ЗВОНКА В ИЗРАИЛЕ.
-ИМЯ: ${finalCallerName} (${finalCallerNameRu}).
-РОЛЬ: ${finalCallerRole}.
+ТВОЁ ИМЯ И РОЛЬ: ${finalCallerName} (${finalCallerNameRu} — ${finalCallerRole}).
+ТВОЙ СОБЕСЕДНИК (УЧЕНИК): ${finalUserRole}.
+ПОЛ СОБЕСЕДНИКА (УЧЕНИКА): ${isFemale ? 'Женский (обращайся к ней на «אַתְּ», глаголы «-תְּ»)' : 'Мужской (обращайся к нему на «אַתָּה», глаголы «-תָּ»)'}.
 СИТУАЦИЯ ЗВОНКА: ${cleanSituation}.
-ПОЛ СОБЕСЕДНИКА (УЧЕНИКА): ${isFemale ? 'Женский (נקבה)' : 'Мужской (זכר)'}. Обращайся к ученику строго в ${isFemale ? 'женском' : 'мужском'} роде!
 ТЕКУЩИЙ РАУНД: ${userTurnsCount} из ${finalTargetTurns}.
+
+СТРОЖАЙШИЙ ЗАПРЕТ НА ПОДМЕНУ РОЛЕЙ:
+1. ТЫ — ${finalCallerRole}! Твой собеседник — ${finalUserRole}!
+2. НИ В КОЕМ СЛУЧАЕ НЕ ПРИПИСЫВАЙ СЕБЕ СТАТУС, ЖЕЛАНИЯ ИЛИ СЛОВА УЧЕНИКА:
+   - Если ты арендодатель/хозяин, а ученик — арендатор: ТЫ сдаёшь квартиру, а ученик ищет! КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО говорить «אֲנִי מְחַפֵּשׂ דִּירָה» («я ищу квартиру»)! Задай вопрос со стороны арендодателя: «כַּמָּה חֲדָרִים אַתָּה מְחַפֵּשׂ?» («сколько комнат ты ищешь?»).
+   - Если ты продавец/официант, а ученик — покупатель/посетитель: ТЫ обслуживаешь, а не заказываешь! Спроси «מָה תִּרְצֶה לִקְנוֹת/לְהַזְמִין?», а не говори «אני רוצה...».
+   - Если ты врач/специалист, а ученик — пациент/клиент: ТЫ ведёшь приём, а не жалуешься на симптомы.
+3. НИКОГДА НЕ ПОВТОРЯЙ ФРАЗЫ ОТ ПЕРВОГО ЛИЦА («אֲנִי...»), ЕСЛИ ЭТО ЖЕЛАНИЕ ИЛИ ДЕЙСТВИЕ УЧЕНИКА! Твои реплики должны отражать только твою роль («${finalCallerRole}»).
 
 ${grammarGuidance}
 
@@ -216,7 +236,7 @@ ${vocabGuidance}
 
 ${roleGuidance}
 
-${finalGoals && finalGoals.length > 0 ? `ЗАДАЧИ РАЗГОВОРА ДЛЯ УЧЕНИКА (помогай ученику ответить на эти пункты в ходе диалога своими наводящими вопросами):\n${finalGoals.map((g: string, i: number) => `${i + 1}. ${g}`).join('\n')}` : ''}
+${cleanGoals && cleanGoals.length > 0 ? `ТЕМЫ И ЗАДАЧИ ДИАЛОГА (помогай ученику раскрыть эти темы встречными вопросами от лица ${finalCallerRole}):\n${cleanGoals.map((g: string, i: number) => `${i + 1}. ${g}`).join('\n')}` : ''}
 
 ${cleanCompletionCondition ? `УСЛОВИЕ УСПЕШНОГО ЗАВЕРШЕНИЯ ЗВОНКА: "${cleanCompletionCondition}".` : ''}
 
@@ -355,7 +375,7 @@ ${shouldForceFinalTurn ? `
                   parts: [
                     {
                       text: `${systemPrompt}\n\nИстория звонка:\n${sanitizedMessages
-                        .map((m) => `${m.role === 'user' ? 'Ученик' : callerRole}: ${m.content}`)
+                        .map((m) => `${m.role === 'user' ? `Ученик (${finalUserRole})` : `${finalCallerNameRu} (${finalCallerRole})`}: ${m.content}`)
                         .join('\n')}`,
                     },
                   ],
