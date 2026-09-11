@@ -3,7 +3,7 @@ import { verifySessionToken } from '@/lib/auth';
 import { checkRateLimit } from '@/lib/rateLimit';
 import { stripNikkud } from '@/lib/transcription';
 import { DialogueStep, DialogueWord } from '@/types';
-import { IS_EARLY_ACCESS_FREE, FREE_LESSONS_LIMIT } from '@/lib/config';
+import { IS_EARLY_ACCESS_FREE, FREE_LESSONS_LIMIT, FREE_GUEST_LESSONS_LIMIT } from '@/lib/config';
 
 interface ChatRequestBody {
   messages: Array<{ role: 'user' | 'assistant'; content: string; hebrew?: string }>;
@@ -258,13 +258,19 @@ export async function POST(req: NextRequest) {
       usefulWords = [],
     } = body;
 
-    // 1. Проверка авторизации: в платном режиме уроки выше FREE_LESSONS_LIMIT требуют авторизации
+    // 1. Проверка авторизации: уроки с 3-го требуют бесплатной регистрации
     const sessionCookie = req.cookies.get('ulpana_session')?.value;
     const session = sessionCookie ? await verifySessionToken(sessionCookie) : null;
-    if (!IS_EARLY_ACCESS_FREE && !session && lessonNumber > FREE_LESSONS_LIMIT) {
+    if (!session && lessonNumber > FREE_GUEST_LESSONS_LIMIT) {
       return NextResponse.json(
-        { error: 'Unauthorized: Требуется авторизация и подписка PRO для уроков выше 3-го' },
+        { error: 'Unauthorized: Требуется бесплатная регистрация для доступа к урокам с 3-го' },
         { status: 401 }
+      );
+    }
+    if (!IS_EARLY_ACCESS_FREE && (!session || session.subscriptionTier !== 'pro') && lessonNumber > FREE_LESSONS_LIMIT) {
+      return NextResponse.json(
+        { error: 'Unauthorized: Требуется подписка PRO для уроков выше 30-го' },
+        { status: 403 }
       );
     }
 

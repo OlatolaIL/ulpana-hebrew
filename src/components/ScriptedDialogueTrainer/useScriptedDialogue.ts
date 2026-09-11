@@ -96,7 +96,35 @@ export function useScriptedDialogue({
 
   useEffect(() => {
     setMounted(true);
-  }, []);
+    // Загрузка последней сохраненной попытки аудиозаписей для урока
+    fetch(`/api/audio/recording?lessonId=${lesson.id}&stage=chat${userProfile?.id ? `&userId=${userProfile.id}` : ''}`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (data?.recording?.turnsAudio) {
+          const turnsAudio = data.recording.turnsAudio as Record<string, string>;
+          setTurnHistory((prev) => {
+            const updated = { ...prev };
+            Object.entries(turnsAudio).forEach(([idxStr, url]) => {
+              const idx = parseInt(idxStr, 10);
+              if (!updated[idx]) {
+                updated[idx] = {
+                  isCorrect: true,
+                  score: 90,
+                  assessment: 'good',
+                  feedbackRu: 'Запись голоса сохранена',
+                  userSpokenHebrew: '',
+                  userAudioUrl: url,
+                };
+              } else {
+                updated[idx] = { ...updated[idx], userAudioUrl: url };
+              }
+            });
+            return updated;
+          });
+        }
+      })
+      .catch(() => {});
+  }, [lesson.id, userProfile?.id]);
 
   // Список слов для шторки:
   // 1. Полезные выражения и новые слова конкретного диалога (dialogue.usefulWords)
@@ -390,7 +418,7 @@ export function useScriptedDialogue({
     setEvaluatingPhase('evaluating');
     setSpokenText(text);
     spokenTextRef.current = text;
-    evaluateStudentResponse(text, finalAudioUrl);
+    evaluateStudentResponse(text, finalAudioUrl, audioBlob);
   };
 
   const startVoiceRecording = () => {
@@ -486,9 +514,47 @@ export function useScriptedDialogue({
   };
 
   // Оценка реплики ученика по смыслу через API
-  const evaluateStudentResponse = async (recognizedHebrew: string, audioUrl?: string | null) => {
+  const evaluateStudentResponse = async (
+    recognizedHebrew: string,
+    audioUrl?: string | null,
+    audioBlob?: Blob | null
+  ) => {
     const currentTurn = dialogue.turns[practiceTurnIndex];
     if (!currentTurn) return;
+
+    // Фоновая выгрузка аудиозаписи реплики ученика на сервер/в облако (строго 1 последняя попытка)
+    if (audioBlob) {
+      try {
+        const form = new FormData();
+        form.append('file', audioBlob);
+        form.append('lessonId', String(lesson.id));
+        form.append('stage', 'chat');
+        form.append('turnIndex', String(practiceTurnIndex));
+        if (userProfile.id) form.append('userId', userProfile.id);
+
+        fetch('/api/audio/upload', {
+          method: 'POST',
+          body: form,
+        })
+          .then((r) => r.json())
+          .then((data) => {
+            if (data.url) {
+              setUserAudioUrl(data.url);
+              setTurnHistory((prev) => {
+                const cur = prev[practiceTurnIndex];
+                if (!cur) return prev;
+                return {
+                  ...prev,
+                  [practiceTurnIndex]: { ...cur, userAudioUrl: data.url },
+                };
+              });
+            }
+          })
+          .catch((err) => console.warn('[ScriptedDialogue] Upload error:', err));
+      } catch (err) {
+        console.warn('[ScriptedDialogue] Form error:', err);
+      }
+    }
 
     setIsEvaluating(true);
     setEvaluatingPhase('evaluating');

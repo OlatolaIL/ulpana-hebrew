@@ -3,6 +3,7 @@
  */
 
 import { UserProfile, Word, FlashcardProgress, UserGender, AiProvider, WordMasteryInfo } from '@/types';
+import { getLessonById } from '@/data/lessonsData';
 import { stripNikkud } from './transcription';
 
 const STORAGE_KEY = 'hebrew_app_profile_v1';
@@ -313,24 +314,28 @@ export function markLessonTabCompleted(lessonId: number, tab: string): UserProfi
   }
 
   // Автоматическое добавление всех слов урока в личный словарик без дубликатов
-  if (tab === 'vocab' || current.isCompleted) {
-    if (typeof DETAILED_LESSONS === 'object' && DETAILED_LESSONS !== null) {
-      const lessonData = DETAILED_LESSONS[lessonId];
-      if (lessonData?.vocabulary && lessonData.vocabulary.length > 0) {
-        const newWords: Word[] = [];
-        for (const w of lessonData.vocabulary) {
-          if (!isWordInPersonalDict(w.hebrew, profile.personalVocabulary) && !newWords.some(nw => isWordInPersonalDict(nw.hebrew, [w]))) {
-            newWords.push({
-              ...w,
-              isUserAdded: true,
-              dateAdded: Date.now(),
-            });
-          }
-        }
-        if (newWords.length > 0) {
-          profile.personalVocabulary = [...newWords, ...profile.personalVocabulary];
-        }
+  const lesson = getLessonById(lessonId);
+  if (lesson && lesson.vocabulary) {
+    const existing = profile.personalVocabulary || [];
+    const existingKeys = new Set(
+      existing.map((w) => normalizeHebrewWord(w.hebrewPlain || w.hebrew))
+    );
+
+    const newWords: Word[] = [];
+    for (const word of lesson.vocabulary) {
+      const key = normalizeHebrewWord(word.hebrewPlain || word.hebrew);
+      if (key && !existingKeys.has(key)) {
+        existingKeys.add(key);
+        newWords.push({
+          ...word,
+          lessonId,
+          dateAdded: Date.now(),
+        });
       }
+    }
+
+    if (newWords.length > 0) {
+      profile.personalVocabulary = [...existing, ...newWords];
     }
   }
 

@@ -1,9 +1,9 @@
 'use client';
 
 import React from 'react';
-import { Crown, Sparkles, CheckCircle2 } from 'lucide-react';
+import { Crown, Sparkles, CheckCircle2, LogIn } from 'lucide-react';
 
-export type TierType = 'pro-beta' | 'always-free' | 'pro';
+export type TierType = 'pro-beta' | 'always-free' | 'pro' | 'free-registration';
 
 interface TierBadgeProps {
   tier: TierType;
@@ -46,6 +46,18 @@ export const TierBadge: React.FC<TierBadgeProps> = ({
       >
         {showIcon && <CheckCircle2 className="w-3 h-3 text-emerald-500 shrink-0" />}
         <span>{customLabel || 'Бесплатно'}</span>
+      </span>
+    );
+  }
+
+  if (tier === 'free-registration') {
+    return (
+      <span
+        className={`inline-flex items-center font-bold tracking-tight rounded-md select-none border bg-indigo-50/90 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 border-indigo-200/70 dark:border-indigo-800/50 shadow-2xs ${sizeClasses} ${className}`}
+        title="Бесплатно после быстрой регистрации в 1 клик"
+      >
+        {showIcon && <LogIn className="w-3 h-3 text-indigo-600 dark:text-indigo-400 shrink-0" />}
+        <span>{customLabel || 'Бесплатно • Вход'}</span>
       </span>
     );
   }

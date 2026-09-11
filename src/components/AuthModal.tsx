@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState, useRef } from 'react';
-import { X, Send, CheckCircle2, AlertCircle, Loader2, ExternalLink, LogIn } from 'lucide-react';
+import { X, Send, CheckCircle2, AlertCircle, Loader2, ExternalLink, LogIn, Sparkles } from 'lucide-react';
 import { UserSession } from '@/types';
 
 const GoogleIcon = ({ className = 'w-5 h-5' }: { className?: string }) => (
@@ -25,11 +25,18 @@ const GoogleIcon = ({ className = 'w-5 h-5' }: { className?: string }) => (
   </svg>
 );
 
+export interface AuthModalReason {
+  lessonId?: number;
+  title?: string;
+  description?: string;
+}
+
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
   onLoginSuccess: (session: UserSession, gender?: 'male' | 'female', fontStyle?: 'print' | 'cursive') => void;
   botUsername?: string;
+  reason?: AuthModalReason | null;
 }
 
 export const AuthModal: React.FC<AuthModalProps> = ({
@@ -37,6 +44,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   onClose,
   onLoginSuccess,
   botUsername = process.env.NEXT_PUBLIC_TELEGRAM_BOT_NAME || 'Ulpinebot',
+  reason = null,
 }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -341,15 +349,22 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         </button>
 
         {/* Заголовок */}
-        <div className="text-center space-y-1.5">
+        <div className="text-center space-y-2">
           <div className="w-14 h-14 mx-auto rounded-2xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shadow-inner">
             <LogIn className="w-7 h-7" />
           </div>
+
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">
+            <Sparkles className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+            <span>100% БЕСПЛАТНАЯ РЕГИСТРАЦИЯ</span>
+          </div>
+
           <h2 className="text-xl font-bold text-zinc-900 dark:text-zinc-50">
-            Вход и регистрация
+            {reason?.title || 'Вход и регистрация'}
           </h2>
-          <p className="text-xs text-zinc-500 dark:text-zinc-400 max-w-xs mx-auto">
-            Авторизация в 1 клик для сохранения прогресса и слов
+          <p className="text-xs text-zinc-600 dark:text-zinc-400 max-w-sm mx-auto leading-relaxed">
+            {reason?.description ||
+              'Уроки 1 и 2 открыты всем гостям. Чтобы продолжить обучение с 3-го урока, сохранять свой прогресс и личный словарь — войдите бесплатно в 1 клик без пароля.'}
           </p>
         </div>
 
@@ -440,11 +455,15 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         <div className="bg-zinc-50 dark:bg-zinc-800/50 rounded-2xl p-3 border border-zinc-200/80 dark:border-zinc-700/60 space-y-1.5 text-xs text-zinc-600 dark:text-zinc-300">
           <div className="flex items-center gap-2">
             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+            <span>100% бесплатно — без банковских карт и скрытых оплат</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
             <span>Авто-синхронизация прогресса на ПК и телефоне</span>
           </div>
           <div className="flex items-center gap-2">
             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-            <span>Сохранение словарика и карточек SRS</span>
+            <span>Сохранение личного словаря и карточек SRS</span>
           </div>
         </div>
       </div>

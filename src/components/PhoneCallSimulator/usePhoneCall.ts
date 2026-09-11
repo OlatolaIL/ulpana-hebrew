@@ -69,6 +69,8 @@ export function usePhoneCall({
   const shouldListenRef = useRef(false);
   const lastAiSpokenTextRef = useRef('');
   const lastAiSpokenTimeRef = useRef(0);
+  const lastRecordedAudioUrlRef = useRef<string | null>(null);
+  const lastRecordedAudioBlobRef = useRef<Blob | null>(null);
 
   const knownWords = useMemo(
     () => getStudentKnownVocabulary(userProfile, 50),
@@ -236,7 +238,7 @@ export function usePhoneCall({
       (error) => {
         console.warn('Speech recognition warning:', error);
       },
-      (lastTranscript) => {
+      (lastTranscript, recordedBlob, recordedUrl) => {
         // Завершение сессии распознавания: если все еще слушаем, проверяем наличие фразы
         if (
           callActiveRef.current &&
@@ -252,7 +254,10 @@ export function usePhoneCall({
             !isEchoFromAi(lastTranscript) &&
             !isWhisperSilenceHallucination(lastTranscript)
           ) {
-            handleSendMessage(lastTranscript.trim());
+            handleSendMessage(lastTranscript.trim(), {
+              audioBlob: recordedBlob || lastRecordedAudioBlobRef.current,
+              audioUrl: recordedUrl || lastRecordedAudioUrlRef.current,
+            });
           }
         }
       },
@@ -269,6 +274,12 @@ export function usePhoneCall({
         speechThreshold: 10,
         audioContext: phoneAudio.getContext(),
         mediaStream: activeMicStreamRef.current,
+        onAudioRecorded: (blob, url) => {
+          if (url) {
+            lastRecordedAudioUrlRef.current = url;
+            lastRecordedAudioBlobRef.current = blob;
+          }
+        },
         onAudioLevel: (level) => {
           if (!isAiSpeakingRef.current && !loadingAiRef.current && !isMutedRef.current) {
             setAudioLevel(level);
@@ -276,7 +287,7 @@ export function usePhoneCall({
             setAudioLevel(0);
           }
         },
-        onSilenceDetected: (transcript) => {
+        onSilenceDetected: (transcript, audioBlob, audioUrl) => {
           if (
             callActiveRef.current &&
             shouldListenRef.current &&
@@ -291,7 +302,10 @@ export function usePhoneCall({
               !isEchoFromAi(textToSubmit) &&
               !isWhisperSilenceHallucination(textToSubmit)
             ) {
-              handleSendMessage(textToSubmit);
+              handleSendMessage(textToSubmit, {
+                audioBlob: audioBlob || lastRecordedAudioBlobRef.current,
+                audioUrl: audioUrl || lastRecordedAudioUrlRef.current,
+              });
             }
           }
         },
@@ -425,7 +439,12 @@ export function usePhoneCall({
   // Отправка реплики собеседнику
   const handleSendMessage = async (
     textToSend?: string,
-    meta?: { translation?: string; transcription?: string }
+    meta?: {
+      translation?: string;
+      transcription?: string;
+      audioBlob?: Blob | null;
+      audioUrl?: string | null;
+    }
   ) => {
     stopListening();
     const text = (textToSend || textInput || liveTranscript).trim();
@@ -452,12 +471,19 @@ export function usePhoneCall({
     setAudioLevel(0);
     setAiLoading(true);
 
+    const userAudioBlob = meta?.audioBlob || lastRecordedAudioBlobRef.current || undefined;
+    const userAudioUrl = meta?.audioUrl || lastRecordedAudioUrlRef.current || undefined;
+    lastRecordedAudioBlobRef.current = null;
+    lastRecordedAudioUrlRef.current = null;
+
     const userMsg: ChatMessage = {
       id: `user-${Date.now()}`,
       role: 'user',
       hebrew: text,
       transcription: meta?.transcription,
       translation: meta?.translation,
+      userAudioUrl,
+      userAudioBlob,
       timestamp: Date.now(),
     };
 
@@ -560,11 +586,42 @@ export function usePhoneCall({
     setShowDialogueReviewModal(true);
 
     const currentMessages = messagesRef.current;
+
+    // Фоновая выгрузка аудиозаписей реплик ученика на сервер/в облако (строго 1 последняя попытка)
+    currentMessages.forEach(async (m, idx) => {
+      if (m.role === 'user' && m.userAudioBlob) {
+        try {
+          const form = new FormData();
+          form.append('file', m.userAudioBlob);
+          form.append('lessonId', String(lesson.id));
+          form.append('stage', 'phone');
+          form.append('turnIndex', String(idx));
+          form.append('durationSeconds', String(callDuration));
+          if (userProfile.id) form.append('userId', userProfile.id);
+
+          const upRes = await fetch('/api/audio/upload', {
+            method: 'POST',
+            body: form,
+          });
+          if (upRes.ok) {
+            const data = await upRes.json();
+            if (data.url) {
+              m.userAudioUrl = data.url;
+              setBothMessages([...messagesRef.current]);
+            }
+          }
+        } catch (e) {
+          console.warn('[PhoneCall] Failed to upload audio turn', idx, e);
+        }
+      }
+    });
+
     const formattedTranscript = currentMessages.map((m) => ({
       role: m.role,
       hebrew: m.hebrew,
       translation: m.translation,
       transcription: m.transcription,
+      userAudioUrl: m.userAudioUrl,
     }));
 
     const userMessages = currentMessages.filter((m) => m.role === 'user');
@@ -616,7 +673,7 @@ export function usePhoneCall({
           .then((r) => r.json())
           .then((debrief: PhoneDebriefReport) => {
             setDebriefReport(debrief);
-            // Сохраняем отзыв в БД
+            // Сохраняем отзыв в БД со свежими audio URLs
             fetch('/api/calls/log', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -625,7 +682,13 @@ export function usePhoneCall({
                 callerName: scenario.callerNameRu || scenario.callerName,
                 callerRole: scenario.callerRole,
                 durationSeconds: callDuration,
-                transcript: formattedTranscript,
+                transcript: messagesRef.current.map((m) => ({
+                  role: m.role,
+                  hebrew: m.hebrew,
+                  translation: m.translation,
+                  transcription: m.transcription,
+                  userAudioUrl: m.userAudioUrl,
+                })),
                 feedback: debrief.summaryRu || 'Звонок успешно завершен',
                 userName: userProfile.name || 'Ученик',
               }),

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import {
   Users,
@@ -30,10 +30,14 @@ import {
   Calendar,
   Phone,
   MessageSquare,
+  Volume2,
+  Pause,
 } from 'lucide-react';
 import { getLessonById } from '@/data/lessonsData';
 import { loadLocalCallLogs } from '@/lib/storage';
 import { isVipUser } from '@/lib/vipUsers';
+import { SmartConversationPlayer } from '@/components/PhoneCallSimulator/SmartConversationPlayer';
+import { speakHebrew, stopSpeech } from '@/lib/speech';
 
 interface AdminStats {
   totalUsers: number;
@@ -70,6 +74,7 @@ interface AdminCallLog {
     hebrew: string;
     translation?: string;
     transcription?: string;
+    userAudioUrl?: string;
   }>;
   feedback?: string;
   created_at: string;
@@ -161,6 +166,34 @@ export default function AdminPage() {
 
   // Sub action state
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+
+  // Call audio player state
+  const [playingAdminAudioUrl, setPlayingAdminAudioUrl] = useState<string | null>(null);
+  const [activeAdminTranscriptIdx, setActiveAdminTranscriptIdx] = useState<number | null>(null);
+  const adminAudioPlayerRef = useRef<HTMLAudioElement | null>(null);
+
+  const handleToggleAdminAudio = (url: string) => {
+    stopSpeech();
+    if (adminAudioPlayerRef.current) {
+      if (!adminAudioPlayerRef.current.paused && playingAdminAudioUrl === url) {
+        adminAudioPlayerRef.current.pause();
+        setPlayingAdminAudioUrl(null);
+        return;
+      }
+      adminAudioPlayerRef.current.pause();
+    }
+
+    try {
+      const audio = new Audio(url);
+      adminAudioPlayerRef.current = audio;
+      setPlayingAdminAudioUrl(url);
+      audio.onended = () => setPlayingAdminAudioUrl(null);
+      audio.onerror = () => setPlayingAdminAudioUrl(null);
+      audio.play().catch(() => setPlayingAdminAudioUrl(null));
+    } catch {
+      setPlayingAdminAudioUrl(null);
+    }
+  };
 
   const fetchStats = useCallback(async () => {
     try {
@@ -1158,29 +1191,81 @@ export default function AdminPage() {
                         {/* Expandable Transcript */}
                         {isExpanded && (
                           <div className="pt-2 space-y-3">
-                            <h4 className="text-xs font-bold text-zinc-500 uppercase tracking-wider">
-                              Стенограмма разговора:
-                            </h4>
+                            <div className="flex items-center justify-between gap-2">
+                              <h4 className="text-xs font-bold text-zinc-500 uppercase tracking-wider">
+                                Стенограмма разговора:
+                              </h4>
+                            </div>
+
+                            {/* Умный плеер для учителя */}
+                            {Array.isArray(call.transcript) && call.transcript.length > 0 && (
+                              <SmartConversationPlayer
+                                messages={call.transcript}
+                                callerName={call.caller_name}
+                                userName={call.user_name || 'Ученик'}
+                                onActiveMessageChange={setActiveAdminTranscriptIdx}
+                                className="mb-2"
+                              />
+                            )}
 
                             <div className="space-y-2.5 bg-zinc-50 dark:bg-zinc-950/60 p-4 rounded-2xl border border-zinc-200 dark:border-zinc-800">
                               {Array.isArray(call.transcript) && call.transcript.length > 0 ? (
                                 call.transcript.map((msg: any, idx: number) => {
                                   const isUser = msg.role === 'user';
+                                  const isHighlighted = activeAdminTranscriptIdx === idx;
                                   return (
                                     <div
                                       key={idx}
                                       className={`flex flex-col ${isUser ? 'items-end' : 'items-start'}`}
                                     >
                                       <div
-                                        className={`max-w-[85%] rounded-2xl p-3 text-xs sm:text-sm ${
+                                        className={`max-w-[85%] rounded-2xl p-3 text-xs sm:text-sm transition-all duration-300 ${
+                                          isHighlighted ? 'ring-2 ring-blue-500 scale-[1.01] shadow-md' : ''
+                                        } ${
                                           isUser
                                             ? 'bg-blue-600 text-white rounded-tr-xs'
                                             : 'bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-100 rounded-tl-xs shadow-xs'
                                         }`}
                                       >
-                                        <div className="font-bold text-xs opacity-75 mb-1 font-sans">
-                                          {isUser ? 'Ученик (голос / ввод)' : call.caller_name}
+                                        <div className="flex items-center justify-between gap-2 mb-1">
+                                          <div className="font-bold text-xs opacity-75 font-sans flex items-center gap-1.5">
+                                            <span>{isUser ? 'Ученик' : call.caller_name}</span>
+                                            {isUser && msg.userAudioUrl && (
+                                              <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-500/20 text-emerald-200 border border-emerald-400/40">
+                                                🎙️ Запись голоса
+                                              </span>
+                                            )}
+                                          </div>
+
+                                          {isUser && msg.userAudioUrl ? (
+                                            <button
+                                              type="button"
+                                              onClick={() => handleToggleAdminAudio(msg.userAudioUrl)}
+                                              className={`p-1 rounded-md transition cursor-pointer ${
+                                                playingAdminAudioUrl === msg.userAudioUrl
+                                                  ? 'bg-white text-blue-600 animate-pulse'
+                                                  : 'bg-white/10 hover:bg-white/20 text-white'
+                                              }`}
+                                              title={playingAdminAudioUrl === msg.userAudioUrl ? 'Пауза' : 'Слушать запись ученика'}
+                                            >
+                                              {playingAdminAudioUrl === msg.userAudioUrl ? (
+                                                <Pause className="w-3.5 h-3.5" />
+                                              ) : (
+                                                <Volume2 className="w-3.5 h-3.5" />
+                                              )}
+                                            </button>
+                                          ) : (
+                                            <button
+                                              type="button"
+                                              onClick={() => speakHebrew(msg.hebrew)}
+                                              className="p-1 rounded-md text-zinc-400 hover:text-blue-600 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition cursor-pointer"
+                                              title="Озвучить реплику"
+                                            >
+                                              <Volume2 className="w-3.5 h-3.5" />
+                                            </button>
+                                          )}
                                         </div>
+
                                         <div className="font-hebrew font-bold text-base leading-relaxed">
                                           {msg.hebrew}
                                         </div>

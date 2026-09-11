@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import {
   X,
   Volume2,
+  Pause,
   Award,
   Mic,
   BookOpen,
@@ -17,9 +18,10 @@ import {
   RotateCcw,
 } from 'lucide-react';
 import { UserProfile, PhoneScenario, ChatMessage, Word, PhoneDebriefReport } from '@/types';
-import { speakHebrew } from '@/lib/speech';
+import { speakHebrew, stopSpeech } from '@/lib/speech';
 import { stripNikkud } from '@/lib/transcription';
 import { isWordInPersonalDict } from '@/lib/storage';
+import { SmartConversationPlayer } from './SmartConversationPlayer';
 
 interface DialogueReviewModalProps {
   isOpen: boolean;
@@ -54,6 +56,33 @@ export const DialogueReviewModal: React.FC<DialogueReviewModalProps> = ({
   onStartCall,
   mounted,
 }) => {
+  const [activeHighlightIndex, setActiveHighlightIndex] = useState<number | null>(null);
+  const [playingTurnAudioUrl, setPlayingTurnAudioUrl] = useState<string | null>(null);
+  const userAudioPlayerRef = useRef<HTMLAudioElement | null>(null);
+
+  const handleToggleSingleAudio = (audioUrl: string) => {
+    stopSpeech();
+    if (userAudioPlayerRef.current) {
+      if (!userAudioPlayerRef.current.paused && playingTurnAudioUrl === audioUrl) {
+        userAudioPlayerRef.current.pause();
+        setPlayingTurnAudioUrl(null);
+        return;
+      }
+      userAudioPlayerRef.current.pause();
+    }
+
+    try {
+      const audio = new Audio(audioUrl);
+      userAudioPlayerRef.current = audio;
+      setPlayingTurnAudioUrl(audioUrl);
+      audio.onended = () => setPlayingTurnAudioUrl(null);
+      audio.onerror = () => setPlayingTurnAudioUrl(null);
+      audio.play().catch(() => setPlayingTurnAudioUrl(null));
+    } catch {
+      setPlayingTurnAudioUrl(null);
+    }
+  };
+
   if (!mounted || !isOpen || typeof document === 'undefined') {
     return null;
   }
@@ -207,6 +236,16 @@ export const DialogueReviewModal: React.FC<DialogueReviewModalProps> = ({
             </div>
           )}
 
+          {/* Умный плеер всего диалога: воспроизведение реплик собеседника и реального голоса ученика */}
+          <SmartConversationPlayer
+            messages={messages}
+            callerName={scenario.callerName}
+            userName={userProfile.name || 'Ученик'}
+            speechRate={userProfile.speechRate || 0.75}
+            onActiveMessageChange={setActiveHighlightIndex}
+            className="mb-4"
+          />
+
           {/* Список реплик с комментариями к ответам ученика */}
           <div className="space-y-3.5">
             {messages.map((msg, idx) => {
@@ -225,7 +264,11 @@ export const DialogueReviewModal: React.FC<DialogueReviewModalProps> = ({
               return (
                 <div
                   key={msg.id || idx}
-                  className={`rounded-2xl p-3.5 sm:p-4 border transition ${
+                  className={`rounded-2xl p-3.5 sm:p-4 border transition-all duration-300 ${
+                    activeHighlightIndex === idx
+                      ? 'ring-2 ring-blue-500 shadow-lg scale-[1.01]'
+                      : ''
+                  } ${
                     isUser
                       ? 'bg-blue-50/70 dark:bg-blue-950/30 border-blue-200/80 dark:border-blue-900/60 ml-2 sm:ml-6'
                       : 'bg-zinc-50 dark:bg-zinc-800/60 border-zinc-200 dark:border-zinc-700/60 mr-2 sm:mr-6'
@@ -248,18 +291,42 @@ export const DialogueReviewModal: React.FC<DialogueReviewModalProps> = ({
                           ? 'Вы (ученик)'
                           : `${scenario.callerName} (${scenario.callerRole})`}
                       </span>
+                      {isUser && msg.userAudioUrl && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 font-bold border border-emerald-300 dark:border-emerald-800">
+                          🎙️ Голос записан
+                        </span>
+                      )}
                     </div>
 
-                    <button
-                      type="button"
-                      onClick={() =>
-                        speakHebrew(msg.hebrew, { rate: userProfile.speechRate || 0.7 })
-                      }
-                      className="p-1.5 rounded-lg text-zinc-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition cursor-pointer"
-                      title="Прослушать реплику"
-                    >
-                      <Volume2 className="w-4 h-4" />
-                    </button>
+                    {isUser && msg.userAudioUrl ? (
+                      <button
+                        type="button"
+                        onClick={() => handleToggleSingleAudio(msg.userAudioUrl!)}
+                        className={`p-1.5 rounded-lg transition cursor-pointer ${
+                          playingTurnAudioUrl === msg.userAudioUrl
+                            ? 'bg-blue-600 text-white animate-pulse'
+                            : 'text-zinc-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-zinc-100 dark:hover:bg-zinc-700'
+                        }`}
+                        title={playingTurnAudioUrl === msg.userAudioUrl ? 'Пауза' : 'Прослушать вашу запись'}
+                      >
+                        {playingTurnAudioUrl === msg.userAudioUrl ? (
+                          <Pause className="w-4 h-4" />
+                        ) : (
+                          <Volume2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                        )}
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          speakHebrew(msg.hebrew, { rate: userProfile.speechRate || 0.7 })
+                        }
+                        className="p-1.5 rounded-lg text-zinc-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition cursor-pointer"
+                        title="Прослушать реплику"
+                      >
+                        <Volume2 className="w-4 h-4" />
+                      </button>
+                    )}
                   </div>
 
                   {/* Текст реплики на иврите */}

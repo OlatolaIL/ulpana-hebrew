@@ -9,7 +9,7 @@ import { PersonalDictionary } from '@/components/PersonalDictionary';
 import { AlphabetTrainer } from '@/components/AlphabetTrainer';
 import { FlashcardSetupModal } from '@/components/FlashcardSetupModal';
 import { SettingsModal } from '@/components/SettingsModal';
-import { AuthModal } from '@/components/AuthModal';
+import { AuthModal, AuthModalReason } from '@/components/AuthModal';
 import { SubscriptionModal } from '@/components/SubscriptionModal';
 import { SectionGuideDrawer } from '@/components/SectionGuideDrawer';
 import { FeedbackDrawer } from '@/components/FeedbackDrawer';
@@ -21,12 +21,13 @@ import {
   resetLessonProgress,
   getFirstIncompleteLessonTab,
   sanitizePersonalVocabulary,
+  LessonStageTab,
 } from '@/lib/storage';
 import { initHebrewVoices } from '@/lib/speech';
 import { DETAILED_LESSONS, getLessonById } from '@/data/lessonsData';
 import { isVipUser, VIP_EXPIRES_AT, applyVipProfileEnhancements } from '@/lib/vipUsers';
 import { useModalHistory } from '@/lib/useHistoryState';
-import { isLessonLockedForUser } from '@/lib/config';
+import { isLessonLockedForUser, isLessonAuthRequired } from '@/lib/config';
 
 type ViewMode = 'map' | 'lesson' | 'flashcards' | 'dictionary' | 'alphabet';
 
@@ -113,10 +114,12 @@ export default function Home() {
   const [flashcardDirection, setFlashcardDirection] = useState<'he-ru' | 'ru-he'>('he-ru');
   const [flashcardShuffle, setFlashcardShuffle] = useState<boolean>(false);
   const [flashcardSourceLessonId, setFlashcardSourceLessonId] = useState<number | null>(null);
-  const [lessonInitialTab, setLessonInitialTab] = useState<'theory' | 'vocab' | 'exercises' | 'chat' | 'phone'>('theory');
+  const [lessonInitialTab, setLessonInitialTab] = useState<LessonStageTab>('theory');
   const [isMultiLessonSetupOpen, setIsMultiLessonSetupOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [pendingLessonId, setPendingLessonId] = useState<number | null>(null);
+  const [authModalReason, setAuthModalReason] = useState<AuthModalReason | null>(null);
   const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState(false);
   const [isGuideDrawerOpen, setIsGuideDrawerOpen] = useState(false);
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
@@ -327,7 +330,7 @@ export default function Home() {
       view: ViewMode,
       options?: {
         lessonId?: number;
-        tab?: 'theory' | 'vocab' | 'exercises' | 'chat' | 'phone';
+        tab?: LessonStageTab;
         flashcardWords?: Word[];
         flashcardTitle?: string;
         flashcardMode?: 'flip' | 'builder' | 'listening' | 'auto_audio';
@@ -395,14 +398,26 @@ export default function Home() {
     const initialHash = window.location.hash;
     let initialView: ViewMode = 'map';
     let initialLessonId = 1;
-    let initialTab: 'theory' | 'vocab' | 'exercises' | 'chat' | 'phone' = 'theory';
+    let initialTab: LessonStageTab = 'theory';
 
     if (initialHash.startsWith('#lesson-')) {
-      initialView = 'lesson';
       const num = parseInt(initialHash.replace('#lesson-', ''), 10);
+      const userProf = loadUserProfile();
       if (!isNaN(num) && num >= 1 && num <= 100) {
-        initialLessonId = num;
-        initialTab = getFirstIncompleteLessonTab(num, loadUserProfile());
+        if (isLessonAuthRequired(num, Boolean(userProf.isLoggedIn))) {
+          setPendingLessonId(num);
+          setAuthModalReason({
+            lessonId: num,
+            title: `Урок ${num} доступен после бесплатной регистрации`,
+            description: `Уроки 1 и 2 открыты всем гостям. Чтобы перейти к уроку ${num} и сохранять прогресс — войдите бесплатно в 1 клик.`,
+          });
+          setIsAuthModalOpen(true);
+          initialView = 'map';
+        } else {
+          initialView = 'lesson';
+          initialLessonId = num;
+          initialTab = getFirstIncompleteLessonTab(num, userProf);
+        }
       }
     } else if (initialHash === '#flashcards') {
       initialView = 'flashcards';
@@ -551,10 +566,29 @@ export default function Home() {
 
   const isPro = profile.subscriptionTier === 'pro' || profile.subscriptionTier === 'admin';
 
+  const handleRequireAuth = (lessonId?: number) => {
+    if (lessonId) {
+      setPendingLessonId(lessonId);
+      setAuthModalReason({
+        lessonId,
+        title: `Урок ${lessonId} доступен после бесплатной регистрации`,
+        description: `Уроки 1 и 2 открыты всем гостям. Чтобы перейти к уроку ${lessonId}, продолжить обучение и сохранять свой прогресс — зарегистрируйтесь бесплатно в 1 клик.`,
+      });
+    } else {
+      setPendingLessonId(null);
+      setAuthModalReason(null);
+    }
+    setIsAuthModalOpen(true);
+  };
+
   const handleSelectLesson = (
     id: number,
-    tab?: 'theory' | 'vocab' | 'exercises' | 'chat' | 'phone'
+    tab?: LessonStageTab
   ) => {
+    if (isLessonAuthRequired(id, Boolean(profile.isLoggedIn))) {
+      handleRequireAuth(id);
+      return;
+    }
     if (isLessonLockedForUser(id, isPro)) {
       setIsSubscriptionModalOpen(true);
       return;
@@ -637,6 +671,15 @@ export default function Home() {
     };
 
     handleUpdateProfile(updated);
+
+    // Если перед авторизацией был выбран урок 3+ — сразу открываем его
+    if (pendingLessonId) {
+      const targetId = pendingLessonId;
+      setPendingLessonId(null);
+      setAuthModalReason(null);
+      const targetTab = getFirstIncompleteLessonTab(targetId, updated);
+      navigateTo('lesson', { lessonId: targetId, tab: targetTab });
+    }
 
     // Сразу загружаем в облако локальный прогресс
     try {
@@ -739,6 +782,7 @@ export default function Home() {
           <CourseMap
             userProfile={profile}
             onSelectLesson={handleSelectLesson}
+            onRequireAuth={handleRequireAuth}
             onRequirePro={() => setIsSubscriptionModalOpen(true)}
             onResetLessonProgress={handleResetLessonProgress}
           />
@@ -751,6 +795,7 @@ export default function Home() {
             userProfile={profile}
             onBack={handleCloseLesson}
             onSelectLesson={(id) => handleSelectLesson(id, 'theory')}
+            onOpenAuth={() => handleRequireAuth(activeLessonId)}
             onStartFlashcards={(words, lessonId) =>
               handleStartFlashcards(
                 words,
@@ -836,11 +881,15 @@ export default function Home() {
         onLogout={handleLogout}
       />
 
-      {/* Модалка авторизации через Telegram */}
+      {/* Модалка авторизации через Telegram / Google */}
       <AuthModal
         isOpen={isAuthModalOpen}
-        onClose={() => setIsAuthModalOpen(false)}
+        onClose={() => {
+          setIsAuthModalOpen(false);
+          setAuthModalReason(null);
+        }}
         onLoginSuccess={handleLoginSuccess}
+        reason={authModalReason}
       />
 
       {/* Модалка подписки PRO и промокодов */}

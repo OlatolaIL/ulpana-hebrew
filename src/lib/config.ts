@@ -10,6 +10,16 @@ export const IS_EARLY_ACCESS_FREE = true;
 // Количество базовых бесплатных уроков Алеф при выключенном режиме раннего доступа
 export const FREE_LESSONS_LIMIT = 30;
 
+// Количество уроков, полностью доступных гостям без регистрации
+export const FREE_GUEST_LESSONS_LIMIT = 2;
+
+/**
+ * Проверка, требуется ли бесплатная регистрация для доступа к уроку
+ */
+export function isLessonAuthRequired(lessonId: number, isLoggedIn: boolean): boolean {
+  return lessonId > FREE_GUEST_LESSONS_LIMIT && !isLoggedIn;
+}
+
 /**
  * Проверка, заблокирован ли урок для пользователя (при выключенном раннем доступе)
  */

@@ -16,6 +16,7 @@ import {
   Crown,
   X,
   PenTool,
+  LogIn,
 } from 'lucide-react';
 import { Lesson, UserProfile, Word } from '@/types';
 import { LessonTheory } from './LessonTheory';
@@ -36,6 +37,7 @@ import { isStageAlwaysFree } from '@/lib/permissions';
 import { TierBadge } from './TierBadge';
 import { useBannerCooldown } from '@/lib/useBannerCooldown';
 import { stripNikkud } from '@/lib/transcription';
+import { isLessonAuthRequired } from '@/lib/config';
 
 export type LessonTab = 'theory' | 'vocab' | 'exercises' | 'essay' | 'chat' | 'phone';
 
@@ -48,6 +50,7 @@ interface LessonViewProps {
   onStartFlashcards: (words: Word[], lessonId?: number) => void;
   onUpdateProfile: (profile: UserProfile) => void;
   onOpenFeedback?: (tab?: LessonTab) => void;
+  onOpenAuth?: () => void;
 }
 
 export const LessonView: React.FC<LessonViewProps> = ({
@@ -59,6 +62,7 @@ export const LessonView: React.FC<LessonViewProps> = ({
   onStartFlashcards,
   onUpdateProfile,
   onOpenFeedback,
+  onOpenAuth,
 }) => {
   const [activeTab, setActiveTab] = useState<LessonTab>(() => {
     return initialTab || getFirstIncompleteLessonTab(lessonId, userProfile);
@@ -81,6 +85,7 @@ export const LessonView: React.FC<LessonViewProps> = ({
 
   const progress = userProfile.lessonProgress[lessonId];
   const completedTabs = progress?.completedTabs || [];
+  const isAuthReq = isLessonAuthRequired(lessonId, Boolean(userProfile.isLoggedIn));
 
   const handleToggleFont = () => {
     const nextStyle: 'print' | 'cursive' = userProfile.fontStyle === 'cursive' ? 'print' : 'cursive';
@@ -244,7 +249,7 @@ export const LessonView: React.FC<LessonViewProps> = ({
       </div>
 
       {/* Индикатор этапа PRO в режиме Бета */}
-      {!isStageAlwaysFree(lessonId, activeTab) && isBetaBannerVisible && (
+      {!isAuthReq && !isStageAlwaysFree(lessonId, activeTab) && isBetaBannerVisible && (
         <div className="mb-2 px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500/10 via-orange-500/5 to-amber-500/10 border border-amber-500/25 flex items-center justify-between gap-2 text-xs text-amber-900 dark:text-amber-200 shrink-0 animate-in fade-in duration-200">
           <div className="flex items-center gap-1.5 min-w-0 flex-1">
             <Crown className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
@@ -267,138 +272,180 @@ export const LessonView: React.FC<LessonViewProps> = ({
         </div>
       )}
 
-      {/* 2. Рабочая область выбранного этапа */}
-      <div className={`flex-1 min-h-0 ${activeTab === 'chat' ? 'flex flex-col min-h-0 h-full overflow-hidden' : 'overflow-y-auto pr-1'}`}>
-        {activeTab === 'theory' && (
-          <LessonTheory
-            lesson={lesson}
-            userProfile={userProfile}
-            onCompleted={() => setActiveTab('vocab')}
-            onUpdateProfile={onUpdateProfile}
-          />
-        )}
+      {/* 2. Рабочая область выбранного этапа (или плашка бесплатной регистрации) */}
+      {isAuthReq ? (
+        <div className="flex-1 min-h-0 flex items-center justify-center p-4">
+          <div className="max-w-md w-full bg-white dark:bg-zinc-900 rounded-3xl p-6 sm:p-8 border border-zinc-200 dark:border-zinc-800 shadow-xl text-center space-y-4 animate-in fade-in">
+            <div className="w-14 h-14 mx-auto rounded-2xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shadow-inner">
+              <LogIn className="w-7 h-7" />
+            </div>
 
-        {activeTab === 'vocab' && (
-          <LessonVocabulary
-            lessonId={lesson.id}
-            words={(() => {
-              const seen = new Set<string>();
-              const result: Word[] = [];
-              // 1. Слова самого урока
-              for (const lv of lesson.vocabulary || []) {
-                const k = normalizeHebrewWord(lv.hebrewPlain || lv.hebrew);
-                const normalizedK = k === 'רהוט' || k === 'ריהוט' ? 'ריהוט' : k;
-                if (normalizedK && !seen.has(normalizedK)) {
-                  seen.add(normalizedK);
-                  result.push(lv);
-                }
-              }
-              // 2. Добавленные пользователем слова для этого урока (прошедшие жесткую дедупликацию и очистку от галлюцинаций)
-              const cleanUserVocab = sanitizePersonalVocabulary(userProfile.personalVocabulary || []);
-              for (const w of cleanUserVocab) {
-                if (w.lessonId === lesson.id) {
-                  const k = normalizeHebrewWord(w.hebrewPlain || w.hebrew);
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">
+              <Sparkles className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+              <span>100% БЕСПЛАТНАЯ РЕГИСТРАЦИЯ</span>
+            </div>
+
+            <div className="space-y-1.5">
+              <h2 className="text-xl font-bold text-zinc-900 dark:text-zinc-50">
+                Урок {lesson.number}: Доступ после входа
+              </h2>
+              <p className="text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed max-w-sm mx-auto">
+                Уроки 1 и 2 открыты всем гостям без ограничений. Чтобы открыть Урок {lesson.number}, продолжить обучение и сохранять свой личный прогресс и словарь — войдите бесплатно в 1 клик.
+              </p>
+            </div>
+
+            <div className="pt-2 space-y-2">
+              <button
+                type="button"
+                onClick={() => onOpenAuth?.()}
+                className="w-full py-3.5 px-5 rounded-2xl bg-blue-600 hover:bg-blue-700 active:scale-98 text-white font-bold text-sm shadow-md transition cursor-pointer flex items-center justify-center gap-2"
+              >
+                <LogIn className="w-4 h-4" />
+                <span>Войти / Зарегистрироваться бесплатно</span>
+              </button>
+              <button
+                type="button"
+                onClick={onBack}
+                className="w-full py-2.5 px-4 rounded-xl border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 font-semibold text-xs hover:bg-zinc-100 dark:hover:bg-zinc-800 transition cursor-pointer"
+              >
+                Вернуться к карте уроков
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className={`flex-1 min-h-0 ${activeTab === 'chat' ? 'flex flex-col min-h-0 h-full overflow-hidden' : 'overflow-y-auto pr-1'}`}>
+          {activeTab === 'theory' && (
+            <LessonTheory
+              lesson={lesson}
+              userProfile={userProfile}
+              onCompleted={() => setActiveTab('vocab')}
+              onUpdateProfile={onUpdateProfile}
+            />
+          )}
+
+          {activeTab === 'vocab' && (
+            <LessonVocabulary
+              lessonId={lesson.id}
+              words={(() => {
+                const seen = new Set<string>();
+                const result: Word[] = [];
+                // 1. Слова самого урока
+                for (const lv of lesson.vocabulary || []) {
+                  const k = normalizeHebrewWord(lv.hebrewPlain || lv.hebrew);
                   const normalizedK = k === 'רהוט' || k === 'ריהוט' ? 'ריהוט' : k;
                   if (normalizedK && !seen.has(normalizedK)) {
                     seen.add(normalizedK);
-                    result.push(w);
+                    result.push(lv);
                   }
                 }
-              }
-              return result;
-            })()}
-            userProfile={{
-              ...userProfile,
-              personalVocabulary: sanitizePersonalVocabulary(userProfile.personalVocabulary || []),
-            }}
-            onCompleted={() => setActiveTab('exercises')}
-            onStartPractice={(wordsToTrain) => onStartFlashcards(wordsToTrain, lesson.id)}
-            onUpdateProfile={onUpdateProfile}
-          />
-        )}
+                // 2. Добавленные пользователем слова для этого урока (прошедшие жесткую дедупликацию и очистку от галлюцинаций)
+                const cleanUserVocab = sanitizePersonalVocabulary(userProfile.personalVocabulary || []);
+                for (const w of cleanUserVocab) {
+                  if (w.lessonId === lesson.id) {
+                    const k = normalizeHebrewWord(w.hebrewPlain || w.hebrew);
+                    const normalizedK = k === 'רהוט' || k === 'ריהוט' ? 'ריהוט' : k;
+                    if (normalizedK && !seen.has(normalizedK)) {
+                      seen.add(normalizedK);
+                      result.push(w);
+                    }
+                  }
+                }
+                return result;
+              })()}
+              userProfile={{
+                ...userProfile,
+                personalVocabulary: sanitizePersonalVocabulary(userProfile.personalVocabulary || []),
+              }}
+              onCompleted={() => setActiveTab('exercises')}
+              onStartPractice={(wordsToTrain) => onStartFlashcards(wordsToTrain, lesson.id)}
+              onUpdateProfile={onUpdateProfile}
+            />
+          )}
 
-        {activeTab === 'exercises' && (
-          <LessonExercises
-            lesson={lesson}
-            userProfile={userProfile}
-            onCompleted={() => setActiveTab('essay')}
-            onUpdateProfile={onUpdateProfile}
-          />
-        )}
+          {activeTab === 'exercises' && (
+            <LessonExercises
+              lesson={lesson}
+              userProfile={userProfile}
+              onCompleted={() => setActiveTab('essay')}
+              onUpdateProfile={onUpdateProfile}
+            />
+          )}
 
-        {activeTab === 'essay' && (
-          <LessonEssay
-            lesson={lesson}
-            userProfile={userProfile}
-            onCompleted={() => setActiveTab('chat')}
-            onUpdateProfile={onUpdateProfile}
-          />
-        )}
+          {activeTab === 'essay' && (
+            <LessonEssay
+              lesson={lesson}
+              userProfile={userProfile}
+              onCompleted={() => setActiveTab('chat')}
+              onUpdateProfile={onUpdateProfile}
+            />
+          )}
 
-        {activeTab === 'chat' && (
-          <div className="flex flex-col h-full min-h-0 overflow-hidden space-y-1.5">
-            {/* Подвкладки этапа: Диалог по ролям (Скрипт) vs Свободный чат с ИИ */}
-            <div className="shrink-0 flex items-center justify-between px-1 pt-0.5">
-              <div className="flex items-center p-0.5 bg-zinc-100 dark:bg-zinc-800 rounded-xl text-xs font-semibold">
-                <button
-                  type="button"
-                  onClick={() => setDialogueSubTab('scripted')}
-                  className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition ${
-                    dialogueSubTab === 'scripted'
-                      ? 'bg-white dark:bg-zinc-900 text-blue-600 dark:text-blue-400 shadow-2xs font-bold'
-                      : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
-                  }`}
-                >
-                  <span>🎭</span>
-                  <span>Диалог по ролям (Слушать и говорить)</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setDialogueSubTab('free_ai')}
-                  className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition ${
-                    dialogueSubTab === 'free_ai'
-                      ? 'bg-white dark:bg-zinc-900 text-blue-600 dark:text-blue-400 shadow-2xs font-bold'
-                      : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
-                  }`}
-                >
-                  <span>🤖</span>
-                  <span>Свободный чат с ИИ</span>
-                </button>
+          {activeTab === 'chat' && (
+            <div className="flex flex-col h-full min-h-0 overflow-hidden space-y-1.5">
+              {/* Подвкладки этапа: Диалог по ролям (Скрипт) vs Свободный чат с ИИ */}
+              <div className="shrink-0 flex items-center justify-between px-1 pt-0.5">
+                <div className="flex items-center p-0.5 bg-zinc-100 dark:bg-zinc-800 rounded-xl text-xs font-semibold">
+                  <button
+                    type="button"
+                    onClick={() => setDialogueSubTab('scripted')}
+                    className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition ${
+                      dialogueSubTab === 'scripted'
+                        ? 'bg-white dark:bg-zinc-900 text-blue-600 dark:text-blue-400 shadow-2xs font-bold'
+                        : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
+                    }`}
+                  >
+                    <span>🎭</span>
+                    <span>Диалог по ролям (Слушать и говорить)</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDialogueSubTab('free_ai')}
+                    className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition ${
+                      dialogueSubTab === 'free_ai'
+                        ? 'bg-white dark:bg-zinc-900 text-blue-600 dark:text-blue-400 shadow-2xs font-bold'
+                        : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
+                    }`}
+                  >
+                    <span>🤖</span>
+                    <span>Свободный чат с ИИ</span>
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex-1 min-h-0 overflow-hidden">
+                {dialogueSubTab === 'scripted' ? (
+                  <ScriptedDialogueTrainer
+                    lesson={lesson}
+                    userProfile={userProfile}
+                    onUpdateProfile={onUpdateProfile}
+                    onWordAdded={() => onUpdateProfile(loadUserProfile())}
+                    onGoToNextTab={() => setActiveTab('phone')}
+                  />
+                ) : (
+                  <LessonAiChat
+                    lesson={lesson}
+                    userProfile={userProfile}
+                    onUpdateProfile={onUpdateProfile}
+                    onWordAdded={() => onUpdateProfile(loadUserProfile())}
+                    onGoToPhone={() => setActiveTab('phone')}
+                  />
+                )}
               </div>
             </div>
+          )}
 
-            <div className="flex-1 min-h-0 overflow-hidden">
-              {dialogueSubTab === 'scripted' ? (
-                <ScriptedDialogueTrainer
-                  lesson={lesson}
-                  userProfile={userProfile}
-                  onUpdateProfile={onUpdateProfile}
-                  onWordAdded={() => onUpdateProfile(loadUserProfile())}
-                  onGoToNextTab={() => setActiveTab('phone')}
-                />
-              ) : (
-                <LessonAiChat
-                  lesson={lesson}
-                  userProfile={userProfile}
-                  onUpdateProfile={onUpdateProfile}
-                  onWordAdded={() => onUpdateProfile(loadUserProfile())}
-                  onGoToPhone={() => setActiveTab('phone')}
-                />
-              )}
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'phone' && (
-          <PhoneCallSimulator
-            lesson={lesson}
-            userProfile={userProfile}
-            onUpdateProfile={onUpdateProfile}
-            onWordAdded={() => onUpdateProfile(loadUserProfile())}
-            onBackToLesson={() => setActiveTab('theory')}
-          />
-        )}
-      </div>
+          {activeTab === 'phone' && (
+            <PhoneCallSimulator
+              lesson={lesson}
+              userProfile={userProfile}
+              onUpdateProfile={onUpdateProfile}
+              onWordAdded={() => onUpdateProfile(loadUserProfile())}
+              onBackToLesson={() => setActiveTab('theory')}
+            />
+          )}
+        </div>
+      )}
     </div>
   );
 };
