@@ -3,10 +3,11 @@ import { Pool } from 'pg';
 let pool: Pool | null = null;
 
 export function getDbPool(): Pool | null {
-  const connectionString = process.env.DATABASE_URL || process.env.POSTGRES_URL;
+  let connectionString = process.env.DATABASE_URL || process.env.POSTGRES_URL;
   if (!connectionString) {
     return null;
   }
+  connectionString = connectionString.trim().replace(/^["']|["']$/g, '');
 
   if (!pool) {
     pool = new Pool({

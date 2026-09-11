@@ -28,8 +28,8 @@ export async function POST(req: NextRequest) {
     const from = message.from;
 
     if (text.startsWith('/start')) {
-      const parts = text.split(' ');
-      const startParam = parts[1]; // e.g. ulp_XXXXX
+      const parts = text.split(/\s+/);
+      const startParam = parts[1]?.trim(); // e.g. ulp_XXXXX
 
       const fullName = [from.first_name, from.last_name].filter(Boolean).join(' ') || from.username || 'Ученик';
       const userId = `tg_${from.id}`;
@@ -139,23 +139,36 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// GET-запрос для регистрации Webhook (требует секретный ключ)
+// GET-запрос для проверки и регистрации Webhook
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
+    const action = searchParams.get('action') || 'info';
     const secret = searchParams.get('secret');
     const webhookSecret = process.env.TELEGRAM_WEBHOOK_SECRET;
 
-    if (!webhookSecret || secret !== webhookSecret) {
-      return NextResponse.json({ error: 'Forbidden: Invalid or missing secret' }, { status: 403 });
+    // Если задан TELEGRAM_WEBHOOK_SECRET, проверяем секрет
+    if (webhookSecret && secret !== webhookSecret) {
+      return NextResponse.json({ error: 'Forbidden: Invalid secret' }, { status: 403 });
     }
 
-    const webhookUrl = 'https://ulpana-hebrew.vercel.app/api/auth/telegram/webhook';
-    const res = await fetch(
-      `https://api.telegram.org/bot${BOT_TOKEN}/setWebhook?url=${encodeURIComponent(webhookUrl)}&secret_token=${encodeURIComponent(webhookSecret)}`
-    );
-    const data = await res.json();
-    return NextResponse.json(data);
+    if (action === 'info') {
+      const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/getWebhookInfo`);
+      const data = await res.json();
+      return NextResponse.json(data);
+    }
+
+    if (action === 'set') {
+      const webhookUrl = 'https://ulpana-hebrew.vercel.app/api/auth/telegram/webhook';
+      const setUrl = webhookSecret
+        ? `https://api.telegram.org/bot${BOT_TOKEN}/setWebhook?url=${encodeURIComponent(webhookUrl)}&secret_token=${encodeURIComponent(webhookSecret)}&drop_pending_updates=true`
+        : `https://api.telegram.org/bot${BOT_TOKEN}/setWebhook?url=${encodeURIComponent(webhookUrl)}&drop_pending_updates=true`;
+      const res = await fetch(setUrl);
+      const data = await res.json();
+      return NextResponse.json(data);
+    }
+
+    return NextResponse.json({ ok: true });
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
