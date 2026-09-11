@@ -14,7 +14,7 @@ import { SubscriptionModal } from '@/components/SubscriptionModal';
 import { SectionGuideDrawer } from '@/components/SectionGuideDrawer';
 import { FeedbackDrawer } from '@/components/FeedbackDrawer';
 import { FeedbackButton } from '@/components/FeedbackButton';
-import { UserProfile, Word, UserSession } from '@/types';
+import { UserProfile, Word, UserSession, ThematicDeck } from '@/types';
 import {
   loadUserProfile,
   saveUserProfile,
@@ -119,6 +119,8 @@ export default function Home() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [pendingLessonId, setPendingLessonId] = useState<number | null>(null);
+  const [pendingDeckId, setPendingDeckId] = useState<string | null>(null);
+  const [activeDeckId, setActiveDeckId] = useState<string | null>(null);
   const [authModalReason, setAuthModalReason] = useState<AuthModalReason | null>(null);
   const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState(false);
   const [isGuideDrawerOpen, setIsGuideDrawerOpen] = useState(false);
@@ -140,7 +142,12 @@ export default function Home() {
 
   // Привязка модалок страницы к истории браузера (свайп назад / кнопка Back закрывает модалку)
   useModalHistory(isSettingsOpen, () => setIsSettingsOpen(false), 'settings-modal');
-  useModalHistory(isAuthModalOpen, () => setIsAuthModalOpen(false), 'auth-modal');
+  useModalHistory(isAuthModalOpen, () => {
+    setIsAuthModalOpen(false);
+    setAuthModalReason(null);
+    setPendingLessonId(null);
+    setPendingDeckId(null);
+  }, 'auth-modal');
   useModalHistory(isSubscriptionModalOpen, () => setIsSubscriptionModalOpen(false), 'subscription-modal');
   useModalHistory(isGuideDrawerOpen, () => setIsGuideDrawerOpen(false), 'guide-drawer');
   useModalHistory(isMultiLessonSetupOpen, () => setIsMultiLessonSetupOpen(false), 'setup-modal');
@@ -569,6 +576,7 @@ export default function Home() {
   const handleRequireAuth = (lessonId?: number) => {
     if (lessonId) {
       setPendingLessonId(lessonId);
+      setPendingDeckId(null);
       setAuthModalReason({
         lessonId,
         title: `Урок ${lessonId} доступен после бесплатной регистрации`,
@@ -576,8 +584,19 @@ export default function Home() {
       });
     } else {
       setPendingLessonId(null);
+      setPendingDeckId(null);
       setAuthModalReason(null);
     }
+    setIsAuthModalOpen(true);
+  };
+
+  const handleRequireDeckAuth = (deck: ThematicDeck) => {
+    setPendingDeckId(deck.id);
+    setPendingLessonId(null);
+    setAuthModalReason({
+      title: `Колода «${deck.title}»`,
+      description: `Тематические и профессиональные словари входят в тариф PRO. На период бета-тестирования они открыты на 100% бесплатно! Войдите в 1 клик через Telegram или Google, чтобы учить слова.`,
+    });
     setIsAuthModalOpen(true);
   };
 
@@ -676,9 +695,19 @@ export default function Home() {
     if (pendingLessonId) {
       const targetId = pendingLessonId;
       setPendingLessonId(null);
+      setPendingDeckId(null);
       setAuthModalReason(null);
       const targetTab = getFirstIncompleteLessonTab(targetId, updated);
       navigateTo('lesson', { lessonId: targetId, tab: targetTab });
+    } else if (pendingDeckId) {
+      const targetDeckId = pendingDeckId;
+      setPendingDeckId(null);
+      setPendingLessonId(null);
+      setAuthModalReason(null);
+      setActiveDeckId(targetDeckId);
+      if (currentView !== 'dictionary') {
+        navigateTo('dictionary');
+      }
     }
 
     // Сразу загружаем в облако локальный прогресс
@@ -847,11 +876,13 @@ export default function Home() {
         {currentView === 'dictionary' && (
           <PersonalDictionary
             userProfile={profile}
+            initialDeckId={activeDeckId}
             onUpdateProfile={handleUpdateProfile}
             onStartPractice={(words, title, mode, shuffle, direction) =>
               handleStartFlashcards(words, title, mode, undefined, direction, shuffle)
             }
             onOpenMultiLessonSetup={() => setIsMultiLessonSetupOpen(true)}
+            onRequireAuth={handleRequireDeckAuth}
           />
         )}
       </main>
@@ -887,6 +918,8 @@ export default function Home() {
         onClose={() => {
           setIsAuthModalOpen(false);
           setAuthModalReason(null);
+          setPendingLessonId(null);
+          setPendingDeckId(null);
         }}
         onLoginSuccess={handleLoginSuccess}
         reason={authModalReason}

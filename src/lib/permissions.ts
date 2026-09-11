@@ -58,6 +58,17 @@ export function isDeckAlwaysFree(deckId: string): boolean {
 }
 
 /**
+ * Проверка, требуется ли бесплатная регистрация для доступа к колоде
+ * (3 базовые колоды открыты гостям, остальные требуют регистрации)
+ */
+export function isDeckAuthRequired(deckId: string, isLoggedIn: boolean): boolean {
+  if (isDeckAlwaysFree(deckId)) {
+    return false;
+  }
+  return !isLoggedIn;
+}
+
+/**
  * Получить категорию доступа к уроку
  */
 export function getLessonAccessTier(lessonId: number, isPro: boolean): ContentAccessTier {

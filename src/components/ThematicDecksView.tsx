@@ -12,6 +12,7 @@ import { VerbConjugationView } from '@/components/VerbConjugationView';
 import { useModalHistory } from '@/lib/useHistoryState';
 import { TierBadge } from './TierBadge';
 import { useBannerCooldown } from '@/lib/useBannerCooldown';
+import { isDeckAuthRequired } from '@/lib/permissions';
 import { DeckCard, DeckFilterBar, DeckWordsModal, DeckStats, DeckFilter } from './ThematicDecks';
 
 // Все колоды: тематические + профессиональные (слова могут пересекаться между профессиями)
@@ -23,6 +24,7 @@ interface ThematicDecksViewProps {
   onUpdateVocabulary: (newWords: Word[]) => void;
   initialDeckId?: string | null;
   onCloseInitialDeck?: () => void;
+  onRequireAuth?: (deck: ThematicDeck) => void;
 }
 
 export const ThematicDecksView: React.FC<ThematicDecksViewProps> = ({
@@ -31,6 +33,7 @@ export const ThematicDecksView: React.FC<ThematicDecksViewProps> = ({
   onUpdateVocabulary,
   initialDeckId,
   onCloseInitialDeck,
+  onRequireAuth,
 }) => {
   const [filter, setFilter] = useState<DeckFilter>('all');
   const { isVisible: isBetaBannerVisible, dismiss: dismissBetaBanner } = useBannerCooldown('thematic_decks_beta');
@@ -46,7 +49,11 @@ export const ThematicDecksView: React.FC<ThematicDecksViewProps> = ({
   // Модалка списка слов
   const [listModalDeck, setListModalDeck] = useState<ThematicDeck | null>(() => {
     if (initialDeckId) {
-      return ALL_DECKS.find((d) => d.id === initialDeckId) || null;
+      const found = ALL_DECKS.find((d) => d.id === initialDeckId) || null;
+      if (found && isDeckAuthRequired(found.id, Boolean(userProfile.isLoggedIn))) {
+        return null;
+      }
+      return found;
     }
     return null;
   });
@@ -60,10 +67,14 @@ export const ThematicDecksView: React.FC<ThematicDecksViewProps> = ({
     if (initialDeckId) {
       const found = ALL_DECKS.find((d) => d.id === initialDeckId);
       if (found) {
-        setListModalDeck(found);
+        if (isDeckAuthRequired(found.id, Boolean(userProfile.isLoggedIn))) {
+          onRequireAuth?.(found);
+        } else {
+          setListModalDeck(found);
+        }
       }
     }
-  }, [initialDeckId]);
+  }, [initialDeckId, userProfile.isLoggedIn, onRequireAuth]);
 
   // Модалка спряжений Pealim
   const [pealimModal, setPealimModal] = useState<{
@@ -113,6 +124,10 @@ export const ThematicDecksView: React.FC<ThematicDecksViewProps> = ({
   };
 
   const handleOpenListModal = (deck: ThematicDeck) => {
+    if (isDeckAuthRequired(deck.id, Boolean(userProfile.isLoggedIn))) {
+      onRequireAuth?.(deck);
+      return;
+    }
     setListModalDeck(deck);
   };
 
@@ -195,9 +210,9 @@ export const ThematicDecksView: React.FC<ThematicDecksViewProps> = ({
             <Sparkles className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
             <span>
               <strong className="font-bold">
-                Тематические колоды в Бете:
+                Тематические и профессиональные колоды в Бете:
               </strong>{' '}
-              3 базовые колоды всегда бесплатны. Все остальные тематические колоды сейчас открыты в режиме PRO БЕТА.
+              3 базовые колоды всегда бесплатны для всех гостей. Все остальные тематические и профессиональные колоды открыты в режиме PRO БЕТА бесплатно после быстрой регистрации.
             </span>
           </div>
           <div className="shrink-0 flex items-center gap-2 self-end sm:self-auto">
@@ -233,6 +248,7 @@ export const ThematicDecksView: React.FC<ThematicDecksViewProps> = ({
             shuffleDecks={shuffleDecks}
             onOpenListModal={handleOpenListModal}
             onStartTraining={onStartTraining}
+            onRequireAuth={onRequireAuth}
           />
         ))}
       </div>

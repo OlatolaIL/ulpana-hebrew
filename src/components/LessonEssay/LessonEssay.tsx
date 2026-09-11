@@ -16,7 +16,7 @@ import { Lesson, UserProfile, EssayEvaluationResult } from '@/types';
 import { getLessonEssayPrompt } from '@/data/essayTopics';
 import { VirtualHebrewKeyboard } from './VirtualHebrewKeyboard';
 import { EssayEvaluationView } from './EssayEvaluationView';
-import { markLessonTabCompleted } from '@/lib/storage';
+import { saveLessonEssay } from '@/lib/storage';
 
 interface LessonEssayProps {
   lesson: Lesson;
@@ -32,11 +32,12 @@ export const LessonEssay: React.FC<LessonEssayProps> = ({
   onUpdateProfile,
 }) => {
   const prompt = getLessonEssayPrompt(lesson.id);
+  const savedEssay = userProfile.lessonProgress[lesson.id]?.essay;
 
-  const [text, setText] = useState<string>('');
-  const [cursorPos, setCursorPos] = useState<number>(0);
+  const [text, setText] = useState<string>(() => savedEssay?.text || '');
+  const [cursorPos, setCursorPos] = useState<number>(() => (savedEssay?.text ? savedEssay.text.length : 0));
   const [loading, setLoading] = useState<boolean>(false);
-  const [evaluation, setEvaluation] = useState<EssayEvaluationResult | null>(null);
+  const [evaluation, setEvaluation] = useState<EssayEvaluationResult | null>(() => savedEssay?.evaluation || null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const textContainerRef = useRef<HTMLDivElement>(null);
@@ -76,18 +77,6 @@ export const LessonEssay: React.FC<LessonEssayProps> = ({
     handleChar('\n');
   };
 
-  // Быстрая вставка рекомендуемого слова по клику на чипс
-  const handleInsertWord = (word: string) => {
-    const cleanWord = word.trim();
-    if (!cleanWord) return;
-    const needSpaceBefore = text.length > 0 && !text.endsWith(' ') && !text.endsWith('\n');
-    const toInsert = (needSpaceBefore ? ' ' : '') + cleanWord + ' ';
-    const before = text.slice(0, cursorPos);
-    const after = text.slice(cursorPos);
-    setText(before + toInsert + after);
-    setCursorPos(cursorPos + toInsert.length);
-  };
-
   // Отправка на проверку ИИ
   const handleSubmit = async () => {
     if (words.length < 3) {
@@ -122,9 +111,24 @@ export const LessonEssay: React.FC<LessonEssayProps> = ({
       const result: EssayEvaluationResult = await res.json();
       setEvaluation(result);
 
-      // Засчитываем прохождение этапа
-      const updatedProfile = markLessonTabCompleted(lesson.id, 'essay');
+      // Сохраняем сочинение в профиле пользователя (localStorage + sync)
+      const updatedProfile = saveLessonEssay(lesson.id, text, result);
       onUpdateProfile(updatedProfile);
+
+      // Логируем в базу данных PostgreSQL
+      fetch('/api/essays/log', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          lessonId: lesson.id,
+          topicTitle: prompt.topicRu,
+          essayText: text,
+          score: result.score,
+          rating: result.rating,
+          evaluation: result,
+          userName: userProfile.name || 'Ученик',
+        }),
+      }).catch((err) => console.warn('Essay log error:', err));
     } catch (e: any) {
       console.error('Failed to evaluate essay:', e);
       setErrorMessage(e?.message || 'Не удалось связаться с сервером проверки.');
@@ -178,32 +182,6 @@ export const LessonEssay: React.FC<LessonEssayProps> = ({
           <Info className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
           <span className="leading-snug">{prompt.grammarFocusRu}</span>
         </div>
-
-        {/* Рекомендуемые слова урока (чипсы) */}
-        {prompt.suggestedWords && prompt.suggestedWords.length > 0 && (
-          <div className="space-y-1.5 pt-1">
-            <div className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider flex items-center gap-1">
-              <BookOpen className="w-3 h-3" />
-              <span>Слова урока (нажмите для быстрой вставки):</span>
-            </div>
-            <div className="flex flex-wrap gap-1.5">
-              {prompt.suggestedWords.map((item, idx) => (
-                <button
-                  key={idx}
-                  type="button"
-                  onClick={() => handleInsertWord(item.hebrew)}
-                  className="px-2.5 py-1 rounded-xl text-xs bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-950/50 dark:hover:text-blue-400 border border-zinc-200 dark:border-zinc-700 transition cursor-pointer flex items-center gap-1.5"
-                  title={`${item.translation}${item.transcription ? ` [${item.transcription}]` : ''}`}
-                >
-                  <span dir="rtl" className="font-hebrew font-bold text-sm">
-                    {item.hebrew}
-                  </span>
-                  <span className="text-[10px] text-zinc-400">({item.translation})</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
 
       {/* 2. Поле набора сочинения (БЕЗ нативной клавиатуры телефона — 100% без подсказок) */}

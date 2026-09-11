@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
 
     // 1. Получаем прогресс уроков
     const progressRes = await db.query(
-      'SELECT lesson_id, completed_tabs, is_completed, score, last_visited FROM ulpana_lesson_progress WHERE user_id = $1',
+      'SELECT lesson_id, completed_tabs, is_completed, score, last_visited, essay FROM ulpana_lesson_progress WHERE user_id = $1',
       [session.id]
     );
 
@@ -34,6 +34,7 @@ export async function GET(req: NextRequest) {
         isCompleted: row.is_completed,
         score: row.score,
         lastVisited: Number(row.last_visited) || Date.now(),
+        essay: row.essay || undefined,
       };
     }
 
@@ -121,14 +122,15 @@ export async function POST(req: NextRequest) {
           if (isNaN(lessonId)) continue;
 
           await db.query(
-            `INSERT INTO ulpana_lesson_progress (user_id, lesson_id, completed_tabs, is_completed, score, last_visited, updated_at)
-             VALUES ($1, $2, $3, $4, $5, $6, NOW())
+            `INSERT INTO ulpana_lesson_progress (user_id, lesson_id, completed_tabs, is_completed, score, last_visited, essay, updated_at)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
              ON CONFLICT (user_id, lesson_id)
              DO UPDATE SET
                completed_tabs = EXCLUDED.completed_tabs,
                is_completed = EXCLUDED.is_completed,
                score = EXCLUDED.score,
                last_visited = EXCLUDED.last_visited,
+               essay = COALESCE(EXCLUDED.essay, ulpana_lesson_progress.essay),
                updated_at = NOW()`,
             [
               session.id,
@@ -137,6 +139,7 @@ export async function POST(req: NextRequest) {
               !!prog.isCompleted,
               prog.score || 0,
               prog.lastVisited || Date.now(),
+              prog.essay ? JSON.stringify(prog.essay) : null,
             ]
           );
         }

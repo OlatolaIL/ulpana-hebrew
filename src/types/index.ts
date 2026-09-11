@@ -400,11 +400,18 @@ export interface PromoCode {
   expiresAt?: number | null;
 }
 
+export interface SavedLessonEssay {
+  text: string;
+  evaluation: EssayEvaluationResult;
+  updatedAt: number;
+}
+
 export interface LessonProgress {
-  completedTabs: string[]; // 'theory', 'vocab', 'sentences', 'chat', 'exercises', 'phone'
+  completedTabs: string[]; // 'theory', 'vocab', 'exercises', 'essay', 'chat', 'phone'
   isCompleted: boolean;
   score?: number;
   lastVisited: number;
+  essay?: SavedLessonEssay;
 }
 
 export interface UserProfile {

@@ -147,6 +147,25 @@ export async function initDatabase() {
       );
     `);
 
+    // 8. Таблица сохраненных сочинений учеников и рецензий ИИ
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS ulpana_essays (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        user_name TEXT,
+        lesson_id INT NOT NULL,
+        topic_title TEXT,
+        essay_text TEXT NOT NULL,
+        score INT DEFAULT 0,
+        rating TEXT,
+        evaluation JSONB DEFAULT '{}',
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        updated_at TIMESTAMPTZ DEFAULT NOW(),
+        CONSTRAINT ulpana_user_lesson_essay_unique UNIQUE (user_id, lesson_id)
+      );
+      ALTER TABLE ulpana_lesson_progress ADD COLUMN IF NOT EXISTS essay JSONB DEFAULT NULL;
+    `);
+
     // Вставляем базовые промокоды, если таблица пуста
     const promoCheck = await db.query(`SELECT COUNT(*) as count FROM ulpana_promo_codes`);
     if (parseInt(promoCheck.rows[0].count, 10) === 0) {

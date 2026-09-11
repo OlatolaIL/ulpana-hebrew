@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   Search,
   Volume2,
@@ -19,7 +19,7 @@ import {
   Zap,
   Filter,
 } from 'lucide-react';
-import { Word, UserProfile, VerbConjugation } from '@/types';
+import { Word, UserProfile, VerbConjugation, ThematicDeck } from '@/types';
 import { speakHebrew } from '@/lib/speech';
 import {
   removeWordFromPersonalDict,
@@ -48,6 +48,8 @@ interface PersonalDictionaryProps {
   ) => void;
   onOpenMultiLessonSetup?: () => void;
   initialTab?: DictTab;
+  initialDeckId?: string | null;
+  onRequireAuth?: (deck: ThematicDeck) => void;
 }
 
 type DictTab = 'thematic' | 'lessons' | 'personal';
@@ -59,6 +61,8 @@ export const PersonalDictionary: React.FC<PersonalDictionaryProps> = ({
   onStartPractice,
   onOpenMultiLessonSetup,
   initialTab,
+  initialDeckId,
+  onRequireAuth,
 }) => {
   const [activeTab, setActiveTab] = useState<DictTab>(() => {
     if (initialTab) return initialTab;
@@ -79,7 +83,14 @@ export const PersonalDictionary: React.FC<PersonalDictionaryProps> = ({
   const [newTranslation, setNewTranslation] = useState('');
   const [newRoot, setNewRoot] = useState('');
 
-  const [selectedThematicDeckId, setSelectedThematicDeckId] = useState<string | null>(null);
+  const [selectedThematicDeckId, setSelectedThematicDeckId] = useState<string | null>(initialDeckId || null);
+
+  useEffect(() => {
+    if (initialDeckId) {
+      setSelectedThematicDeckId(initialDeckId);
+      setActiveTab('thematic');
+    }
+  }, [initialDeckId]);
 
   const handleOpenThematicDeck = (deckId: string) => {
     setSelectedThematicDeckId(deckId);
@@ -339,6 +350,7 @@ export const PersonalDictionary: React.FC<PersonalDictionaryProps> = ({
           onUpdateVocabulary={(newWords) => {
             onUpdateProfile(loadUserProfile());
           }}
+          onRequireAuth={onRequireAuth}
         />
       )}
 

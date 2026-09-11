@@ -1,7 +1,7 @@
 import React from 'react';
-import { Play, List } from 'lucide-react';
+import { Play, List, LogIn } from 'lucide-react';
 import { ThematicDeck, UserProfile, Word } from '@/types';
-import { isDeckAlwaysFree } from '@/lib/permissions';
+import { isDeckAlwaysFree, isDeckAuthRequired } from '@/lib/permissions';
 import { TierBadge } from '../TierBadge';
 import { DeckIcon } from './DeckIcon';
 import { shuffleWords, sortWordsBySRSPriority } from '@/lib/storage';
@@ -20,6 +20,7 @@ interface DeckCardProps {
   shuffleDecks: boolean;
   onOpenListModal: (deck: ThematicDeck) => void;
   onStartTraining: (words: Word[], deckTitle: string, shuffle?: boolean) => void;
+  onRequireAuth?: (deck: ThematicDeck) => void;
 }
 
 export const DeckCard: React.FC<DeckCardProps> = ({
@@ -29,6 +30,7 @@ export const DeckCard: React.FC<DeckCardProps> = ({
   shuffleDecks,
   onOpenListModal,
   onStartTraining,
+  onRequireAuth,
 }) => {
   const isAlef = deck.level === 'alef';
   const isCaregiver = deck.category === 'caregiver';
@@ -66,7 +68,22 @@ export const DeckCard: React.FC<DeckCardProps> = ({
     return 'bg-purple-100 dark:bg-purple-900/50 text-purple-600 dark:text-purple-400';
   };
 
+  const isAuthRequired = isDeckAuthRequired(deck.id, Boolean(userProfile.isLoggedIn));
+
+  const handleCardClick = () => {
+    if (isAuthRequired) {
+      if (onRequireAuth) onRequireAuth(deck);
+      else onOpenListModal(deck);
+      return;
+    }
+    onOpenListModal(deck);
+  };
+
   const handleTrainClick = () => {
+    if (isAuthRequired) {
+      if (onRequireAuth) onRequireAuth(deck);
+      return;
+    }
     const words = shuffleDecks
       ? shuffleWords(deck.words)
       : sortWordsBySRSPriority(
@@ -78,10 +95,14 @@ export const DeckCard: React.FC<DeckCardProps> = ({
   };
 
   return (
-    <div className="bg-white dark:bg-slate-800/90 rounded-2xl border border-slate-200 dark:border-slate-700/80 p-3.5 sm:p-4 shadow-xs hover:border-purple-300 dark:hover:border-purple-700 transition flex flex-col justify-between gap-3">
+    <div className={`bg-white dark:bg-slate-800/90 rounded-2xl border p-3.5 sm:p-4 shadow-xs transition flex flex-col justify-between gap-3 ${
+      isAuthRequired
+        ? 'border-slate-200 dark:border-slate-700/80 hover:border-indigo-300 dark:hover:border-indigo-700'
+        : 'border-slate-200 dark:border-slate-700/80 hover:border-purple-300 dark:hover:border-purple-700'
+    }`}>
       <div
         className="flex items-start gap-3 cursor-pointer group"
-        onClick={() => onOpenListModal(deck)}
+        onClick={handleCardClick}
         title={`Открыть слова «${deck.title}»`}
       >
         <div
@@ -101,6 +122,12 @@ export const DeckCard: React.FC<DeckCardProps> = ({
                   tier="always-free"
                   size="xs"
                   customLabel="Бесплатно"
+                />
+              ) : isAuthRequired ? (
+                <TierBadge
+                  tier="free-registration"
+                  size="xs"
+                  customLabel="PRO БЕТА • Вход"
                 />
               ) : (
                 <TierBadge tier="pro-beta" size="xs" />
@@ -139,16 +166,29 @@ export const DeckCard: React.FC<DeckCardProps> = ({
           type="button"
           onClick={handleTrainClick}
           className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 text-white shadow-xs transition active:scale-98 cursor-pointer ${
-            isAlef ? 'bg-blue-600 hover:bg-blue-700' : 'bg-purple-600 hover:bg-purple-700'
+            isAuthRequired
+              ? 'bg-indigo-600 hover:bg-indigo-700'
+              : isAlef
+              ? 'bg-blue-600 hover:bg-blue-700'
+              : 'bg-purple-600 hover:bg-purple-700'
           }`}
         >
-          <Play className="w-3.5 h-3.5 fill-current" />
-          <span>Тренировать</span>
+          {isAuthRequired ? (
+            <>
+              <LogIn className="w-3.5 h-3.5" />
+              <span>Войти бесплатно</span>
+            </>
+          ) : (
+            <>
+              <Play className="w-3.5 h-3.5 fill-current" />
+              <span>Тренировать</span>
+            </>
+          )}
         </button>
 
         <button
           type="button"
-          onClick={() => onOpenListModal(deck)}
+          onClick={handleCardClick}
           className="py-2 px-3 rounded-xl bg-slate-100 dark:bg-slate-700/70 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold flex items-center gap-1.5 transition cursor-pointer"
           title="Посмотреть список слов"
         >

@@ -2,7 +2,7 @@
  * Локальное хранилище данных: профиль пользователя, прогресс по урокам, личный словарик и карточки.
  */
 
-import { UserProfile, Word, FlashcardProgress, UserGender, AiProvider, WordMasteryInfo } from '@/types';
+import { UserProfile, Word, FlashcardProgress, UserGender, AiProvider, WordMasteryInfo, EssayEvaluationResult } from '@/types';
 import { getLessonById } from '@/data/lessonsData';
 import { stripNikkud } from './transcription';
 
@@ -336,6 +336,56 @@ export function markLessonTabCompleted(lessonId: number, tab: string): UserProfi
 
     if (newWords.length > 0) {
       profile.personalVocabulary = [...existing, ...newWords];
+    }
+  }
+
+  profile.lessonProgress[lessonId] = current;
+  saveUserProfile(profile);
+  return profile;
+}
+
+/**
+ * Сохранение написанного сочинения и рецензии ИИ в профиль пользователя
+ */
+export function saveLessonEssay(
+  lessonId: number,
+  text: string,
+  evaluation: EssayEvaluationResult
+): UserProfile {
+  const profile = loadUserProfile();
+  const current = profile.lessonProgress[lessonId] || {
+    completedTabs: [],
+    isCompleted: false,
+    lastVisited: Date.now(),
+  };
+
+  current.essay = {
+    text,
+    evaluation,
+    updatedAt: Date.now(),
+  };
+
+  if (typeof evaluation.score === 'number') {
+    current.score = evaluation.score;
+  }
+
+  if (!current.completedTabs.includes('essay')) {
+    current.completedTabs.push('essay');
+  }
+  current.lastVisited = Date.now();
+
+  const isAllSix =
+    current.completedTabs.includes('theory') &&
+    current.completedTabs.includes('vocab') &&
+    current.completedTabs.includes('exercises') &&
+    current.completedTabs.includes('essay') &&
+    current.completedTabs.includes('chat') &&
+    current.completedTabs.includes('phone');
+
+  if (isAllSix) {
+    current.isCompleted = true;
+    if (!profile.completedLessons.includes(lessonId)) {
+      profile.completedLessons.push(lessonId);
     }
   }
 
