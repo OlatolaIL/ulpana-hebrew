@@ -66,6 +66,11 @@ function getTelegramUser(): any | null {
     try {
       tg.ready();
       tg.expand();
+      if (typeof tg.disableVerticalSwipes === 'function') {
+        tg.disableVerticalSwipes();
+      }
+      document.documentElement.classList.add('in-telegram');
+      document.body.classList.add('in-telegram');
     } catch {}
     if (tg.initDataUnsafe?.user) {
       return tg.initDataUnsafe.user;

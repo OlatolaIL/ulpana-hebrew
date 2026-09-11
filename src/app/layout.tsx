@@ -63,6 +63,30 @@ export default function RootLayout({
           src="https://telegram.org/js/telegram-web-app.js"
           strategy="beforeInteractive"
         />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                try {
+                  var isTg = (window.Telegram && window.Telegram.WebApp && (window.Telegram.WebApp.initData || window.Telegram.WebApp.version)) ||
+                             location.hash.indexOf('tgWebAppData') !== -1 ||
+                             location.search.indexOf('tgWebAppData') !== -1 ||
+                             /Telegram/i.test(navigator.userAgent);
+                  if (isTg) {
+                    document.documentElement.classList.add('in-telegram');
+                    if (window.Telegram && window.Telegram.WebApp) {
+                      window.Telegram.WebApp.ready();
+                      window.Telegram.WebApp.expand();
+                      if (typeof window.Telegram.WebApp.disableVerticalSwipes === 'function') {
+                        window.Telegram.WebApp.disableVerticalSwipes();
+                      }
+                    }
+                  }
+                } catch (e) {}
+              })();
+            `,
+          }}
+        />
       </head>
       <body className="min-h-screen flex flex-col font-sans bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-50 selection:bg-blue-500 selection:text-white">
         {children}
