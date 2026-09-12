@@ -97,6 +97,8 @@ export const ThematicDecksView: React.FC<ThematicDecksViewProps> = ({
       if (filter === 'kindergarten') return deck.category === 'kindergarten';
       if (filter === 'doctor') return deck.category === 'doctor';
       if (filter === 'accounting') return deck.category === 'accounting';
+      if (filter === 'librarian') return deck.category === 'librarian';
+      if (filter === 'carWash') return deck.category === 'carWash';
       return deck.category === filter;
     });
   }, [filter]);

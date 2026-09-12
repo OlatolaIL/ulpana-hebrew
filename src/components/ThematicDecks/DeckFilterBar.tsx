@@ -13,7 +13,9 @@ export type DeckFilter =
   | 'autoRepair'
   | 'kindergarten'
   | 'doctor'
-  | 'accounting';
+  | 'accounting'
+  | 'librarian'
+  | 'carWash';
 
 interface FilterOption {
   id: DeckFilter;
@@ -100,6 +102,18 @@ const FILTER_OPTIONS: FilterOption[] = [
     label: '💼 Бухгалтер',
     activeClass: 'bg-emerald-600 text-white shadow-xs',
     inactiveClass: 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100',
+  },
+  {
+    id: 'librarian',
+    label: '📚 Библиотекарь',
+    activeClass: 'bg-violet-600 text-white shadow-xs',
+    inactiveClass: 'bg-violet-50 dark:bg-violet-950/50 text-violet-700 dark:text-violet-300 hover:bg-violet-100',
+  },
+  {
+    id: 'carWash',
+    label: '🚿 Автомойка',
+    activeClass: 'bg-sky-600 text-white shadow-xs',
+    inactiveClass: 'bg-sky-50 dark:bg-sky-950/50 text-sky-700 dark:text-sky-300 hover:bg-sky-100',
   },
 ];
 

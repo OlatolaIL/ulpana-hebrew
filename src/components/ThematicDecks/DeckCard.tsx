@@ -38,6 +38,8 @@ export const DeckCard: React.FC<DeckCardProps> = ({
   const isKindergarten = deck.category === 'kindergarten';
   const isDoctor = deck.category === 'doctor';
   const isAccounting = deck.category === 'accounting';
+  const isLibrarian = deck.category === 'librarian';
+  const isCarWash = deck.category === 'carWash';
 
   const getCategoryBadgeLabel = () => {
     if (isCaregiver) return '👩‍⚕️ Метапелет';
@@ -45,6 +47,8 @@ export const DeckCard: React.FC<DeckCardProps> = ({
     if (isKindergarten) return '👶 Детский сад';
     if (isDoctor) return '🏥 Врач';
     if (isAccounting) return '💼 Бухгалтер';
+    if (isLibrarian) return '📚 Библиотекарь';
+    if (isCarWash) return '🚿 Автомойка';
     return isAlef ? 'Алеф (א)' : 'Бет (ב)';
   };
 
@@ -54,6 +58,8 @@ export const DeckCard: React.FC<DeckCardProps> = ({
     if (isKindergarten) return 'bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border border-rose-200/60 dark:border-rose-800';
     if (isDoctor) return 'bg-cyan-50 dark:bg-cyan-950/60 text-cyan-700 dark:text-cyan-300 border border-cyan-200/60 dark:border-cyan-800';
     if (isAccounting) return 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-800';
+    if (isLibrarian) return 'bg-violet-50 dark:bg-violet-950/60 text-violet-700 dark:text-violet-300 border border-violet-200/60 dark:border-violet-800';
+    if (isCarWash) return 'bg-sky-50 dark:bg-sky-950/60 text-sky-700 dark:text-sky-300 border border-sky-200/60 dark:border-sky-800';
     if (isAlef) return 'bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200/60 dark:border-blue-800';
     return 'bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border border-purple-200/60 dark:border-purple-800';
   };
@@ -64,6 +70,8 @@ export const DeckCard: React.FC<DeckCardProps> = ({
     if (isKindergarten) return 'bg-rose-100 dark:bg-rose-900/50 text-rose-600 dark:text-rose-400';
     if (isDoctor) return 'bg-cyan-100 dark:bg-cyan-900/50 text-cyan-600 dark:text-cyan-400';
     if (isAccounting) return 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400';
+    if (isLibrarian) return 'bg-violet-100 dark:bg-violet-900/50 text-violet-600 dark:text-violet-400';
+    if (isCarWash) return 'bg-sky-100 dark:bg-sky-900/50 text-sky-600 dark:text-sky-400';
     if (isAlef) return 'bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400';
     return 'bg-purple-100 dark:bg-purple-900/50 text-purple-600 dark:text-purple-400';
   };

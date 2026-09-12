@@ -151,6 +151,8 @@ export const DeckWordsModal: React.FC<DeckWordsModalProps> = ({
     if (deck.category === 'kindergarten') return '👶 Детский сад';
     if (deck.category === 'doctor') return '🏥 Врач';
     if (deck.category === 'accounting') return '💼 Бухгалтер';
+    if (deck.category === 'librarian') return '📚 Библиотекарь и архивариус';
+    if (deck.category === 'carWash') return '🚿 Автомойка и детейлинг';
     return `Уровень ${deck.level === 'alef' ? 'Алеф (א)' : deck.level === 'bet' ? 'Бет (ב)' : 'Все'}`;
   };
 
@@ -160,6 +162,8 @@ export const DeckWordsModal: React.FC<DeckWordsModalProps> = ({
     if (deck.category === 'kindergarten') return 'bg-rose-100 dark:bg-rose-900/50 text-rose-600 dark:text-rose-400';
     if (deck.category === 'doctor') return 'bg-cyan-100 dark:bg-cyan-900/50 text-cyan-600 dark:text-cyan-400';
     if (deck.category === 'accounting') return 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400';
+    if (deck.category === 'librarian') return 'bg-violet-100 dark:bg-violet-900/50 text-violet-600 dark:text-violet-400';
+    if (deck.category === 'carWash') return 'bg-sky-100 dark:bg-sky-900/50 text-sky-600 dark:text-sky-400';
     if (deck.level === 'alef') return 'bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400';
     return 'bg-purple-100 dark:bg-purple-900/50 text-purple-600 dark:text-purple-400';
   };

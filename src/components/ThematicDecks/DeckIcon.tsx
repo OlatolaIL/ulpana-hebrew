@@ -23,6 +23,10 @@ import {
   Receipt,
   Activity,
   CreditCard,
+  Library,
+  Archive,
+  BookMarked,
+  Droplets,
 } from 'lucide-react';
 
 interface DeckIconProps {
@@ -76,6 +80,14 @@ export const DeckIcon: React.FC<DeckIconProps> = ({ name, className = 'w-5 h-5' 
       return <Baby className={className} />;
     case 'Car':
       return <Car className={className} />;
+    case 'Library':
+      return <Library className={className} />;
+    case 'Archive':
+      return <Archive className={className} />;
+    case 'BookMarked':
+      return <BookMarked className={className} />;
+    case 'Droplets':
+      return <Droplets className={className} />;
     default:
       return <BookOpen className={className} />;
   }

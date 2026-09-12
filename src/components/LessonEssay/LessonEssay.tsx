@@ -16,9 +16,8 @@ import { EssayEvaluationView } from './EssayEvaluationView';
 import { saveLessonEssay } from '@/lib/storage';
 
 // Соответствие стандартной израильской раскладки клавиатуры (QWERTY -> עברית)
+// Знаки препинания (. , ! ? и т.д.) НЕ маппятся в буквы, чтобы точка и запятая всегда оставались пунктуацией
 const QWERTY_TO_HEBREW_MAP: Record<string, string> = {
-  'q': '/',
-  'w': '\'',
   'e': 'ק',
   'r': 'ר',
   't': 'א',
@@ -36,8 +35,6 @@ const QWERTY_TO_HEBREW_MAP: Record<string, string> = {
   'j': 'ח',
   'k': 'ל',
   'l': 'ך',
-  ';': 'ף',
-  '\'': ',',
   'z': 'ז',
   'x': 'ס',
   'c': 'ב',
@@ -45,14 +42,19 @@ const QWERTY_TO_HEBREW_MAP: Record<string, string> = {
   'b': 'נ',
   'n': 'מ',
   'm': 'צ',
-  ',': 'ת',
-  '.': 'ץ',
+  // Удобные соответствия для ввода с английской клавиатуры:
+  'T': 'ת', // Shift+T -> ת (Тав)
+  'M': 'ץ', // Shift+M -> ץ (Цади-софит)
+  'P': 'ף', // Shift+P -> ף (Пей-софит)
+  'N': 'ן', // Shift+N -> ן (Нун-софит)
+  'K': 'ך', // Shift+K -> ך (Хаф-софит)
+  'O': 'ם', // Shift+O -> ם (Мем-софит)
 };
 
-// Соответствие русской клавиатуры (ЙЦУКЕН) стандартной израильской раскладке
+// Соответствие русской клавиатуры (ЙЦУКЕН) буквам иврита
+// Все 22 буквы + 5 софитов строго на русских буквенных клавишах.
+// Пунктуация (точка, запятая на крайней нижней клавише) НЕ перехватывается и вводится штатно.
 const RUSSIAN_TO_HEBREW_MAP: Record<string, string> = {
-  'й': '/',
-  'ц': '\'',
   'у': 'ק',
   'к': 'ר',
   'е': 'א',
@@ -61,8 +63,6 @@ const RUSSIAN_TO_HEBREW_MAP: Record<string, string> = {
   'ш': 'ן',
   'щ': 'ם',
   'з': 'פ',
-  'х': ']',
-  'ъ': '[',
   'ф': 'ש',
   'ы': 'ד',
   'в': 'ג',
@@ -73,7 +73,6 @@ const RUSSIAN_TO_HEBREW_MAP: Record<string, string> = {
   'л': 'ל',
   'д': 'ך',
   'ж': 'ף',
-  'э': ',',
   'я': 'ז',
   'ч': 'ס',
   'с': 'ב',
@@ -196,8 +195,39 @@ export const LessonEssay: React.FC<LessonEssayProps> = ({
       return;
     }
 
-    // Если включена авто-раскладка иврита, переводим нажатия клавиш QWERTY / ЙЦУКЕН в буквы иврита
+    // Знаки препинания, цифры и пробелы всегда вводятся нативно (точка, запятая, кавычки и т.д.)
+    if (
+      e.key === '.' ||
+      e.key === ',' ||
+      e.key === '!' ||
+      e.key === '?' ||
+      e.key === ':' ||
+      e.key === ';' ||
+      e.key === '-' ||
+      e.key === '–' ||
+      e.key === '—' ||
+      e.key === '"' ||
+      e.key === '\'' ||
+      e.key === '(' ||
+      e.key === ')' ||
+      e.key === '/' ||
+      e.key === '\\' ||
+      (e.key >= '0' && e.key <= '9')
+    ) {
+      return;
+    }
+
+    // Если включена авто-раскладка иврита, переводим нажатия буквенных клавиш QWERTY / ЙЦУКЕН в буквы иврита
     if (isAutoHebrew && e.key.length === 1) {
+      // 1. Проверяем точный регистр (например, Shift+T -> ת или Shift+M -> ץ)
+      const exactMapped = QWERTY_TO_HEBREW_MAP[e.key] || RUSSIAN_TO_HEBREW_MAP[e.key];
+      if (exactMapped) {
+        e.preventDefault();
+        handleChar(exactMapped);
+        return;
+      }
+
+      // 2. Проверяем строчный регистр
       const lower = e.key.toLowerCase();
       const mapped = QWERTY_TO_HEBREW_MAP[lower] || RUSSIAN_TO_HEBREW_MAP[lower];
       if (mapped) {
