@@ -277,23 +277,14 @@ export const LessonEssay: React.FC<LessonEssayProps> = ({
     <div className="space-y-3 sm:space-y-4 max-w-3xl mx-auto pb-6 animate-in fade-in duration-300">
       {/* 1. Карточка задания темы */}
       <div className="p-3.5 sm:p-5 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-xs space-y-2.5">
-        <div className="flex items-start justify-between gap-3">
-          <div className="space-y-0.5 min-w-0">
-            <div className="flex items-center gap-1.5 text-xs text-blue-600 dark:text-blue-400 font-bold uppercase tracking-wider">
-              <PenTool className="w-3.5 h-3.5" />
-              <span>Этап 4 • Написание сочинения (חִבּוּר)</span>
-            </div>
-            <h2 className="text-base sm:text-lg font-bold text-zinc-900 dark:text-zinc-50 truncate">
-              {prompt.topicRu}
-            </h2>
+        <div className="space-y-0.5">
+          <div className="flex items-center gap-1.5 text-xs text-blue-600 dark:text-blue-400 font-bold uppercase tracking-wider">
+            <PenTool className="w-3.5 h-3.5" />
+            <span>Этап 4 • Написание сочинения</span>
           </div>
-
-          <span
-            dir="rtl"
-            className="text-base sm:text-lg font-hebrew font-bold text-zinc-800 dark:text-zinc-200 shrink-0 bg-blue-50 dark:bg-blue-950/60 px-2.5 py-1 rounded-xl"
-          >
-            {prompt.topicHe}
-          </span>
+          <h2 className="text-base sm:text-lg font-bold text-zinc-900 dark:text-zinc-50">
+            {prompt.topicRu}
+          </h2>
         </div>
 
         {/* Описание ситуации */}
@@ -301,11 +292,13 @@ export const LessonEssay: React.FC<LessonEssayProps> = ({
           {prompt.situationRu}
         </p>
 
-        {/* Фокус на порядок слов и грамматику */}
-        <div className="p-2.5 rounded-xl bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/60 text-xs text-amber-900 dark:text-amber-200 flex items-start gap-2">
-          <Info className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-          <span className="leading-snug">{prompt.grammarFocusRu}</span>
-        </div>
+        {/* Фокус на грамматику (чисто методическое пояснение на русском БЕЗ готовых слов на иврите) */}
+        {prompt.grammarFocusRu && (
+          <div className="p-2.5 rounded-xl bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200/80 dark:border-amber-800/50 text-xs text-amber-900 dark:text-amber-200 flex items-start gap-2">
+            <Info className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+            <span className="leading-snug">{prompt.grammarFocusRu}</span>
+          </div>
+        )}
       </div>
 
       {/* 2. Поле набора сочинения (поддержка клавиатуры ПК + экранной клавиатуры) */}
