@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   PenTool,
   Send,
@@ -106,6 +106,14 @@ export const LessonEssay: React.FC<LessonEssayProps> = ({
   const [evaluation, setEvaluation] = useState<EssayEvaluationResult | null>(() => savedEssay?.evaluation || null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isAutoHebrew, setIsAutoHebrew] = useState<boolean>(true);
+  const [showVirtualKeyboard, setShowVirtualKeyboard] = useState<boolean>(false);
+
+  // На мобильных устройствах открываем экранную клавиатуру по умолчанию
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.innerWidth < 768) {
+      setShowVirtualKeyboard(true);
+    }
+  }, []);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -323,6 +331,20 @@ export const LessonEssay: React.FC<LessonEssayProps> = ({
               <Keyboard className="w-3.5 h-3.5" />
               <span>{isAutoHebrew ? 'Авто-иврит: Вкл (QWERTY)' : 'Раскладка: Системная'}</span>
             </button>
+
+            {/* Кнопка показа/скрытия экранной клавиатуры */}
+            <button
+              type="button"
+              onClick={() => setShowVirtualKeyboard(!showVirtualKeyboard)}
+              className={`px-2.5 py-1 rounded-lg text-[11px] font-medium flex items-center gap-1.5 transition cursor-pointer ${
+                showVirtualKeyboard
+                  ? 'bg-zinc-200 dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 font-bold'
+                  : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-750'
+              }`}
+              title="Показать или скрыть экранные клавиши"
+            >
+              <span>{showVirtualKeyboard ? 'Скрыть экранные клавиши' : 'Экранные клавиши'}</span>
+            </button>
           </div>
 
           <span
@@ -346,10 +368,10 @@ export const LessonEssay: React.FC<LessonEssayProps> = ({
             setErrorMessage(null);
           }}
           onKeyDown={handleKeyDown}
-          placeholder="Печатайте текст на иврите с клавиатуры компьютера или нажимайте буквы на экранной клавиатуре внизу..."
-          rows={4}
+          placeholder="Печатайте текст сочинения на иврите с клавиатуры компьютера..."
+          rows={5}
           disabled={loading}
-          className="w-full min-h-[120px] max-h-[240px] p-3.5 sm:p-4 rounded-xl bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 font-hebrew text-lg sm:text-xl text-zinc-900 dark:text-zinc-50 leading-relaxed focus:outline-none focus:ring-2 focus:ring-blue-500/50 resize-y placeholder:text-zinc-400 dark:placeholder:text-zinc-600 placeholder:font-sans placeholder:text-xs sm:placeholder:text-sm placeholder:italic"
+          className="w-full min-h-[140px] max-h-[260px] p-3.5 sm:p-4 rounded-xl bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 font-hebrew text-lg sm:text-xl text-zinc-900 dark:text-zinc-50 leading-relaxed focus:outline-none focus:ring-2 focus:ring-blue-500/50 resize-y placeholder:text-zinc-400 dark:placeholder:text-zinc-600 placeholder:font-sans placeholder:text-xs sm:placeholder:text-sm placeholder:italic"
         />
 
         {errorMessage && (
@@ -360,16 +382,18 @@ export const LessonEssay: React.FC<LessonEssayProps> = ({
         )}
       </div>
 
-      {/* 3. Экранная клавиатура иврита (Virtual Hebrew Keyboard) */}
-      <div className="space-y-2">
-        <VirtualHebrewKeyboard
-          onChar={handleChar}
-          onBackspace={handleBackspace}
-          onSpace={handleSpace}
-          onEnter={handleEnter}
-          disabled={loading}
-        />
-      </div>
+      {/* 3. Экранная клавиатура иврита (Virtual Hebrew Keyboard) - открывается на мобильных или по кнопке */}
+      {showVirtualKeyboard && (
+        <div className="space-y-2 animate-in fade-in duration-200">
+          <VirtualHebrewKeyboard
+            onChar={handleChar}
+            onBackspace={handleBackspace}
+            onSpace={handleSpace}
+            onEnter={handleEnter}
+            disabled={loading}
+          />
+        </div>
+      )}
 
       {/* 4. Кнопка отправки на проверку ИИ */}
       <div className="flex items-center justify-between gap-3 pt-1">
