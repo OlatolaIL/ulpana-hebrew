@@ -106,11 +106,19 @@ export const LessonEssay: React.FC<LessonEssayProps> = ({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isAutoHebrew, setIsAutoHebrew] = useState<boolean>(true);
   const [showVirtualKeyboard, setShowVirtualKeyboard] = useState<boolean>(false);
+  const [isMobileDevice, setIsMobileDevice] = useState<boolean>(false);
 
-  // На мобильных устройствах открываем экранную клавиатуру по умолчанию
+  // Определение мобильного устройства: на телефонах блокируем системную клавиатуру
   useEffect(() => {
-    if (typeof window !== 'undefined' && window.innerWidth < 768) {
-      setShowVirtualKeyboard(true);
+    if (typeof window !== 'undefined') {
+      const isMobile =
+        window.innerWidth < 768 ||
+        /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+        window.matchMedia('(pointer: coarse)').matches;
+      setIsMobileDevice(isMobile);
+      if (isMobile) {
+        setShowVirtualKeyboard(true);
+      }
     }
   }, []);
 
@@ -140,7 +148,10 @@ export const LessonEssay: React.FC<LessonEssayProps> = ({
     setErrorMessage(null);
 
     requestAnimationFrame(() => {
-      textarea.focus();
+      // На мобильных устройствах не вызываем focus(), чтобы браузер не открывал нативную клавиатуру
+      if (!isMobileDevice) {
+        textarea.focus();
+      }
       const nextPos = start + char.length;
       textarea.setSelectionRange(nextPos, nextPos);
     });
@@ -162,14 +173,18 @@ export const LessonEssay: React.FC<LessonEssayProps> = ({
       const nextText = text.slice(0, start) + text.slice(end);
       setText(nextText);
       requestAnimationFrame(() => {
-        textarea.focus();
+        if (!isMobileDevice) {
+          textarea.focus();
+        }
         textarea.setSelectionRange(start, start);
       });
     } else if (start > 0) {
       const nextText = text.slice(0, start - 1) + text.slice(start);
       setText(nextText);
       requestAnimationFrame(() => {
-        textarea.focus();
+        if (!isMobileDevice) {
+          textarea.focus();
+        }
         textarea.setSelectionRange(start - 1, start - 1);
       });
     }
@@ -347,34 +362,43 @@ export const LessonEssay: React.FC<LessonEssayProps> = ({
               Ваш текст на иврите
             </span>
 
-            {/* Переключатель авто-раскладки для тех, у кого нет иврита в системе */}
-            <button
-              type="button"
-              onClick={() => setIsAutoHebrew(!isAutoHebrew)}
-              className={`px-2.5 py-1 rounded-lg text-[11px] font-bold flex items-center gap-1.5 transition cursor-pointer ${
-                isAutoHebrew
-                  ? 'bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800'
-                  : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-200 dark:hover:bg-zinc-700'
-              }`}
-              title="Если в вашей системе нет раскладки иврита, этот режим автоматически переводит нажатия клавиш QWERTY / ЙЦУКЕН в буквы иврита"
-            >
-              <Keyboard className="w-3.5 h-3.5" />
-              <span>{isAutoHebrew ? 'Авто-иврит: Вкл (QWERTY)' : 'Раскладка: Системная'}</span>
-            </button>
+            {/* На смартфонах показываем бейдж "Экранная клавиатура (без подсказок)" */}
+            {isMobileDevice ? (
+              <span className="text-[10px] px-2 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 font-bold border border-emerald-200/80 dark:border-emerald-800/60">
+                Экранная клавиатура (без подсказок)
+              </span>
+            ) : (
+              <>
+                {/* Переключатель авто-раскладки для ПК */}
+                <button
+                  type="button"
+                  onClick={() => setIsAutoHebrew(!isAutoHebrew)}
+                  className={`px-2.5 py-1 rounded-lg text-[11px] font-bold flex items-center gap-1.5 transition cursor-pointer ${
+                    isAutoHebrew
+                      ? 'bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800'
+                      : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-200 dark:hover:bg-zinc-700'
+                  }`}
+                  title="Если в вашей системе нет раскладки иврита, этот режим автоматически переводит нажатия клавиш QWERTY / ЙЦУКЕН в буквы иврита"
+                >
+                  <Keyboard className="w-3.5 h-3.5" />
+                  <span>{isAutoHebrew ? 'Авто-иврит: Вкл (QWERTY)' : 'Раскладка: Системная'}</span>
+                </button>
 
-            {/* Кнопка показа/скрытия экранной клавиатуры */}
-            <button
-              type="button"
-              onClick={() => setShowVirtualKeyboard(!showVirtualKeyboard)}
-              className={`px-2.5 py-1 rounded-lg text-[11px] font-medium flex items-center gap-1.5 transition cursor-pointer ${
-                showVirtualKeyboard
-                  ? 'bg-zinc-200 dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 font-bold'
-                  : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-750'
-              }`}
-              title="Показать или скрыть экранные клавиши"
-            >
-              <span>{showVirtualKeyboard ? 'Скрыть экранные клавиши' : 'Экранные клавиши'}</span>
-            </button>
+                {/* Кнопка показа/скрытия экранной клавиатуры на ПК */}
+                <button
+                  type="button"
+                  onClick={() => setShowVirtualKeyboard(!showVirtualKeyboard)}
+                  className={`px-2.5 py-1 rounded-lg text-[11px] font-medium flex items-center gap-1.5 transition cursor-pointer ${
+                    showVirtualKeyboard
+                      ? 'bg-zinc-200 dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 font-bold'
+                      : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-750'
+                  }`}
+                  title="Показать или скрыть экранные клавиши"
+                >
+                  <span>{showVirtualKeyboard ? 'Скрыть экранные клавиши' : 'Экранные клавиши'}</span>
+                </button>
+              </>
+            )}
           </div>
 
           <span
@@ -388,7 +412,7 @@ export const LessonEssay: React.FC<LessonEssayProps> = ({
           </span>
         </div>
 
-        {/* Настоящее нативное текстовое поле textarea с поддержкой клавиатуры ПК */}
+        {/* Текстовое поле: на ПК редактируемое с клавиатуры, на телефонах readOnly с вводом с экранных клавиш (без всплытия мобильной клавиатуры) */}
         <textarea
           ref={textareaRef}
           dir="rtl"
@@ -398,7 +422,13 @@ export const LessonEssay: React.FC<LessonEssayProps> = ({
             setErrorMessage(null);
           }}
           onKeyDown={handleKeyDown}
-          placeholder="Печатайте текст сочинения на иврите с клавиатуры компьютера..."
+          inputMode={isMobileDevice ? 'none' : undefined}
+          readOnly={isMobileDevice}
+          placeholder={
+            isMobileDevice
+              ? 'Нажимайте буквы на экранной клавиатуре внизу, чтобы составить сочинение...'
+              : 'Печатайте текст сочинения на иврите с клавиатуры компьютера...'
+          }
           rows={5}
           disabled={loading}
           className="w-full min-h-[140px] max-h-[260px] p-3.5 sm:p-4 rounded-xl bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 font-hebrew text-lg sm:text-xl text-zinc-900 dark:text-zinc-50 leading-relaxed focus:outline-none focus:ring-2 focus:ring-blue-500/50 resize-y placeholder:text-zinc-400 dark:placeholder:text-zinc-600 placeholder:font-sans placeholder:text-xs sm:placeholder:text-sm placeholder:italic"
