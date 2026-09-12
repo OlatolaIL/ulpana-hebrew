@@ -77,6 +77,27 @@ export const LessonEssay: React.FC<LessonEssayProps> = ({
     handleChar('\n');
   };
 
+  // Поддержка физической клавиатуры (буквы иврита, пробел, backspace, enter)
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (loading) return;
+    if (e.key === 'Backspace') {
+      e.preventDefault();
+      handleBackspace();
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      handleEnter();
+    } else if (e.key === ' ' || e.code === 'Space') {
+      e.preventDefault();
+      handleSpace();
+    } else if (e.key.length === 1) {
+      // Иврит и знаки препинания
+      if (/[\u0590-\u05FF.,!?"'־-]/.test(e.key)) {
+        e.preventDefault();
+        handleChar(e.key);
+      }
+    }
+  };
+
   // Отправка на проверку ИИ
   const handleSubmit = async () => {
     if (words.length < 3) {
@@ -101,6 +122,8 @@ export const LessonEssay: React.FC<LessonEssayProps> = ({
             userProfile.aiProvider === 'groq'
               ? userProfile.groqApiKey
               : userProfile.geminiApiKey,
+          lessonLevel: lesson.level,
+          lessonTitle: lesson.titleRussian,
         }),
       });
 
@@ -208,12 +231,14 @@ export const LessonEssay: React.FC<LessonEssayProps> = ({
         {/* Область отображения набранного текста */}
         <div
           ref={textContainerRef}
+          tabIndex={0}
+          onKeyDown={handleKeyDown}
           dir="rtl"
           onClick={() => {
             // Клик ставит курсор в конец текста
             setCursorPos(text.length);
           }}
-          className="w-full min-h-[120px] max-h-[220px] overflow-y-auto p-3.5 sm:p-4 rounded-xl bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 font-hebrew text-lg sm:text-xl text-zinc-900 dark:text-zinc-50 leading-relaxed cursor-text whitespace-pre-wrap select-none relative"
+          className="w-full min-h-[120px] max-h-[220px] overflow-y-auto p-3.5 sm:p-4 rounded-xl bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 font-hebrew text-lg sm:text-xl text-zinc-900 dark:text-zinc-50 leading-relaxed cursor-text whitespace-pre-wrap select-none relative focus:outline-none focus:ring-2 focus:ring-blue-500/40"
         >
           {text.length === 0 ? (
             <span className="text-zinc-400 dark:text-zinc-600 italic font-sans text-sm">

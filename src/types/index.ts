@@ -539,6 +539,19 @@ export interface LessonEssayPrompt {
   };
 }
 
+export interface SpellingCheckItem {
+  wrongWord: string;
+  correctWord: string;
+  explanationRu: string;
+}
+
+export interface TaskComplianceFeedback {
+  isRelevant: boolean;
+  score: number; // 0 - 100
+  topicCommentRu: string;
+  levelCommentRu: string;
+}
+
 export interface WordOrderCheckItem {
   ruleNameRu: string;
   issueSnippet?: string;
@@ -557,6 +570,12 @@ export interface EssayEvaluationResult {
   score: number; // 0 - 100
   rating: 'excellent' | 'good' | 'needs_work';
   summaryRu: string;
+  taskCompliance?: TaskComplianceFeedback;
+  spellingFeedback?: {
+    hasErrors: boolean;
+    items: SpellingCheckItem[];
+    generalAdviceRu?: string;
+  };
   wordOrderFeedback: {
     hasErrors: boolean;
     items: WordOrderCheckItem[];

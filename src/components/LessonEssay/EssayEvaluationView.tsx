@@ -9,9 +9,10 @@ import {
   Volume2,
   Sparkles,
   BookOpen,
-  HelpCircle,
   Lightbulb,
   ArrowLeftRight,
+  PenLine,
+  Target,
 } from 'lucide-react';
 import { EssayEvaluationResult } from '@/types';
 import { speakHebrew } from '@/lib/speech';
@@ -32,7 +33,7 @@ export const EssayEvaluationView: React.FC<EssayEvaluationViewProps> = ({
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
 
   const handlePlayAudio = async () => {
-    if (!evaluation.correctedVersion.hebrew || isPlayingAudio) return;
+    if (!evaluation.correctedVersion?.hebrew || isPlayingAudio) return;
     setIsPlayingAudio(true);
     try {
       await speakHebrew(evaluation.correctedVersion.hebrew, { rate: 0.75 });
@@ -59,6 +60,11 @@ export const EssayEvaluationView: React.FC<EssayEvaluationViewProps> = ({
       ? 'טוֹב מְאוֹד!'
       : 'דּוֹרֵשׁ שִׁפּוּר';
 
+  const spelling = evaluation.spellingFeedback;
+  const hasSpellingErrors = Boolean(spelling?.hasErrors && spelling.items && spelling.items.length > 0);
+
+  const compliance = evaluation.taskCompliance;
+
   return (
     <div className="space-y-4 max-w-3xl mx-auto pb-6 animate-in fade-in duration-300">
       {/* 1. Главная карточка с баллом и рецензией преподавателя */}
@@ -83,7 +89,117 @@ export const EssayEvaluationView: React.FC<EssayEvaluationViewProps> = ({
         </div>
       </div>
 
-      {/* 2. СПЕЦИАЛЬНЫЙ БЛОК: ПОРЯДОК СЛОВ (סֵדֶר הַמִּילִּים) */}
+      {/* 2. СООТВЕТСТВИЕ ЗАДАНИЮ И УРОВНЮ УРОКА */}
+      {compliance && (
+        <div className="p-4 sm:p-5 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-xs space-y-2.5">
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-xl bg-purple-50 dark:bg-purple-950/50 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0">
+                <Target className="w-4 h-4" />
+              </div>
+              <div>
+                <h3 className="text-sm sm:text-base font-bold text-zinc-900 dark:text-zinc-50 flex items-center gap-1.5">
+                  <span>Соответствие заданию и уровню</span>
+                  <span className="font-hebrew text-xs font-normal text-purple-600 dark:text-purple-400">
+                    (הַתְאָמָה לַמְּשִׂימָה)
+                  </span>
+                </h3>
+              </div>
+            </div>
+
+            <span
+              className={`px-2.5 py-1 rounded-xl text-xs font-bold flex items-center gap-1.5 ${
+                compliance.isRelevant
+                  ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60'
+                  : 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60'
+              }`}
+            >
+              {compliance.isRelevant ? (
+                <>
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>Тема раскрыта</span>
+                </>
+              ) : (
+                <>
+                  <AlertTriangle className="w-3.5 h-3.5 text-amber-600" />
+                  <span>Требуется дополнить</span>
+                </>
+              )}
+            </span>
+          </div>
+
+          <div className="space-y-1 text-xs sm:text-sm text-zinc-700 dark:text-zinc-300">
+            {compliance.topicCommentRu && (
+              <p className="leading-relaxed">
+                <span className="font-semibold text-zinc-900 dark:text-zinc-100">Сюжет и тема: </span>
+                {compliance.topicCommentRu}
+              </p>
+            )}
+            {compliance.levelCommentRu && (
+              <p className="text-xs text-zinc-500 dark:text-zinc-400 italic pt-1 border-t border-zinc-100 dark:border-zinc-800">
+                {compliance.levelCommentRu}
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* 3. ОРФОГРАФИЯ И ПРАВОПИСАНИЕ (כְּתִיב וְאִיּוּת) */}
+      <div className="p-4 sm:p-5 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-xs space-y-3">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-xl bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0">
+            <PenLine className="w-4 h-4" />
+          </div>
+          <div>
+            <h3 className="text-sm sm:text-base font-bold text-zinc-900 dark:text-zinc-50 flex items-center gap-1.5">
+              <span>Орфография и правописание</span>
+              <span className="font-hebrew text-xs font-normal text-rose-600 dark:text-rose-400">
+                (כְּתִיב וְאִיּוּת)
+              </span>
+            </h3>
+            <p className="text-xs text-zinc-500 dark:text-zinc-400">
+              Проверка букв созвучия (ט/ת, כ/ק, א/ע), опечаток и букв-софитов (ם, ן, ץ, ף, ך)
+            </p>
+          </div>
+        </div>
+
+        {hasSpellingErrors && spelling?.items ? (
+          <div className="space-y-2.5">
+            {spelling.items.map((item, idx) => (
+              <div
+                key={idx}
+                className="p-3 rounded-xl bg-rose-50/60 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800/60 space-y-1.5 text-xs sm:text-sm"
+              >
+                <div className="flex items-center gap-2 flex-wrap font-hebrew text-base sm:text-lg" dir="rtl">
+                  <span className="line-through text-rose-600 font-bold px-2 py-0.5 rounded bg-rose-100 dark:bg-rose-950/70 border border-rose-200/60 dark:border-rose-800/40">
+                    {item.wrongWord}
+                  </span>
+                  <span className="text-zinc-400 font-sans text-xs">➔</span>
+                  <span className="font-bold text-emerald-700 dark:text-emerald-300 px-2 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950/70 border border-emerald-200/60 dark:border-emerald-800/40">
+                    {item.correctWord}
+                  </span>
+                </div>
+                <p className="text-zinc-800 dark:text-zinc-200 font-medium leading-snug">
+                  {item.explanationRu}
+                </p>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 flex items-center gap-2 text-xs sm:text-sm text-emerald-800 dark:text-emerald-300">
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+            <span>Безупречная орфография! Все слова на иврите написаны грамотно и без опечаток.</span>
+          </div>
+        )}
+
+        {spelling?.generalAdviceRu && (
+          <p className="text-xs text-zinc-500 dark:text-zinc-400 italic pt-1 border-t border-zinc-100 dark:border-zinc-800">
+            {spelling.generalAdviceRu}
+          </p>
+        )}
+      </div>
+
+      {/* 4. СПЕЦИАЛЬНЫЙ БЛОК: ПОРЯДОК СЛОВ (סֵדֶר הַמִּילִּים) */}
       <div className="p-4 sm:p-5 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-xs space-y-3">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
@@ -92,10 +208,12 @@ export const EssayEvaluationView: React.FC<EssayEvaluationViewProps> = ({
           <div>
             <h3 className="text-sm sm:text-base font-bold text-zinc-900 dark:text-zinc-50 flex items-center gap-1.5">
               <span>Порядок слов</span>
-              <span className="font-hebrew text-xs font-normal text-indigo-600 dark:text-indigo-400">(סֵדֶר הַמִּילִּים)</span>
+              <span className="font-hebrew text-xs font-normal text-indigo-600 dark:text-indigo-400">
+                (סֵדֶר הַמִּילִּים)
+              </span>
             </h3>
             <p className="text-xs text-zinc-500 dark:text-zinc-400">
-              Позиция прилагательных, отрицания «לא» и вопросительных слов
+              Позиция прилагательных (всегда ПОСЛЕ существительного) и отрицания «לא» (строго ПЕРЕД глаголом)
             </p>
           </div>
         </div>
@@ -131,7 +249,7 @@ export const EssayEvaluationView: React.FC<EssayEvaluationViewProps> = ({
         ) : (
           <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 flex items-center gap-2 text-xs sm:text-sm text-emerald-800 dark:text-emerald-300">
             <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-            <span>Отличная структура! Вы верно расставили слова и соблюли порядок иврита.</span>
+            <span>Отличная структура! Вы верно расставили слова и соблюли естественный порядок иврита.</span>
           </div>
         )}
 
@@ -142,12 +260,15 @@ export const EssayEvaluationView: React.FC<EssayEvaluationViewProps> = ({
         )}
       </div>
 
-      {/* 3. ГРАММАТИКА И РОД */}
+      {/* 5. ГРАММАТИКА И РОД */}
       {(evaluation.grammarFeedback?.items?.length > 0 || evaluation.grammarFeedback?.genderAgreementRu) && (
         <div className="p-4 sm:p-5 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-xs space-y-2.5">
           <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-50 flex items-center gap-2">
             <Sparkles className="w-4 h-4 text-amber-500" />
             <span>Грамматика и согласование рода</span>
+            <span className="font-hebrew text-xs font-normal text-amber-600 dark:text-amber-400">
+              (דִּקְדּוּק)
+            </span>
           </h3>
 
           {evaluation.grammarFeedback.items?.map((g, idx) => (
@@ -172,17 +293,20 @@ export const EssayEvaluationView: React.FC<EssayEvaluationViewProps> = ({
         </div>
       )}
 
-      {/* 4. ИСПОЛЬЗОВАННЫЕ СЛОВА УРОКА */}
+      {/* 6. ИСПОЛЬЗОВАННЫЕ СЛОВА УРОКА */}
       {evaluation.vocabularyAnalysis && (
         <div className="p-4 sm:p-5 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-xs space-y-2">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-50 flex items-center gap-2">
               <BookOpen className="w-4 h-4 text-blue-500" />
               <span>Лексика урока</span>
+              <span className="font-hebrew text-xs font-normal text-blue-600 dark:text-blue-400">
+                (אוֹצַר מִילִּים)
+              </span>
             </h3>
             {evaluation.vocabularyAnalysis.count > 0 && (
               <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
-                Использовано: {evaluation.vocabularyAnalysis.count} слов
+                Применено: {evaluation.vocabularyAnalysis.count} слов
               </span>
             )}
           </div>
@@ -209,7 +333,7 @@ export const EssayEvaluationView: React.FC<EssayEvaluationViewProps> = ({
         </div>
       )}
 
-      {/* 5. ОБРАЗЦОВАЯ ВЕРСИЯ НА ЖИВОМ ИВРИТЕ (С ОГЛАСОВКАМИ И ОЗВУЧКОЙ) */}
+      {/* 7. ОБРАЗЦОВАЯ ВЕРСИЯ НА ЖИВОМ ИВРИТЕ (С ОГЛАСОВКАМИ И ОЗВУЧКОЙ) */}
       <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-blue-50/70 via-indigo-50/40 to-white dark:from-blue-950/30 dark:via-zinc-900 dark:to-zinc-900 border border-blue-200/80 dark:border-blue-900/60 shadow-xs space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -256,7 +380,7 @@ export const EssayEvaluationView: React.FC<EssayEvaluationViewProps> = ({
         )}
       </div>
 
-      {/* 6. ЦЕННЫЕ СОВЕТЫ И РЕКОМЕНДАЦИИ ИИ */}
+      {/* 8. ЦЕННЫЕ СОВЕТЫ И РЕКОМЕНДАЦИИ ИИ */}
       {evaluation.valuableTipsRu && evaluation.valuableTipsRu.length > 0 && (
         <div className="p-4 sm:p-5 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-xs space-y-2.5">
           <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-50 flex items-center gap-2">
@@ -276,7 +400,7 @@ export const EssayEvaluationView: React.FC<EssayEvaluationViewProps> = ({
         </div>
       )}
 
-      {/* 7. КНОПКИ ДЕЙСТВИЯ */}
+      {/* 9. КНОПКИ ДЕЙСТВИЯ */}
       <div className="flex items-center justify-between gap-3 pt-2">
         <button
           type="button"
@@ -299,4 +423,3 @@ export const EssayEvaluationView: React.FC<EssayEvaluationViewProps> = ({
     </div>
   );
 };
-
