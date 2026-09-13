@@ -1,8 +1,14 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
 const React = require('react');
+const { act } = require('react');
+const { createRoot } = require('react-dom/client');
 const { renderToStaticMarkup } = require('react-dom/server');
+const { JSDOM } = require('jsdom');
 
+const confetti = require('canvas-confetti');
+const speechModule = require('../src/lib/speech.ts');
 const { getLessonPhoneScenario } = require('../src/data/phoneScenarios.ts');
 const { getExerciseQuestionDisplay, LessonExercises } = require('../src/components/LessonExercises.tsx');
 const { createGuestProfile } = require('../src/lib/storage.ts');
@@ -275,88 +281,232 @@ test('LessonExercises component renders hidden prompt without leaking Hebrew sni
   }
 });
 
-test('interactive transition flow: unanswered hides word, answered reveals word, retry resets and hides word again', () => {
-  for (let num = 1; num <= 5; num++) {
-    const lesson = findLesson(num);
-    const listeningEx = lesson.exercises.find((e) => e.type === 'listening');
-    assert.ok(listeningEx, `Lesson ${num} missing listening exercise`);
+async function runInteractiveComponentFlow({
+  lessonNumber,
+  listeningId,
+  wrongChoice,
+  correctChoice,
+  expectedSnippet,
+}) {
+  const dom = new JSDOM('<!doctype html><html><body><div id="root"></div></body></html>', {
+    url: 'http://localhost',
+    pretendToBeVisual: true,
+  });
 
-    // 1. Initial unanswered state: word is hidden
-    assert.equal(
-      getExerciseQuestionDisplay(listeningEx, false),
-      'Послушайте аудиозапись и выберите верный перевод:'
-    );
+  const originalWindow = global.window;
+  const originalDocument = global.document;
+  const originalNavigator = global.navigator;
+  const originalHTMLElement = global.HTMLElement;
+  const originalElement = global.Element;
+  const originalNode = global.Node;
+  const originalActEnv = global.IS_REACT_ACT_ENVIRONMENT;
+  const originalSpeakHebrew = speechModule.speakHebrew;
+  const originalAddEventListener = global.addEventListener;
+  const originalRemoveEventListener = global.removeEventListener;
 
-    // 2. Option selected (isAnswered = true): word is revealed for feedback
-    const answeredText = getExerciseQuestionDisplay(listeningEx, true);
-    assert.equal(answeredText, listeningEx.question);
-    assert.ok(answeredText.includes(listeningEx.hebrewSnippet));
+  global.window = dom.window;
+  global.document = dom.window.document;
+  global.navigator = dom.window.navigator;
+  global.HTMLElement = dom.window.HTMLElement;
+  global.Element = dom.window.Element;
+  global.Node = dom.window.Node;
+  global.IS_REACT_ACT_ENVIRONMENT = true;
+  global.addEventListener = dom.window.addEventListener.bind(dom.window);
+  global.removeEventListener = dom.window.removeEventListener.bind(dom.window);
 
-    // 3. User clicks retry (handleRetryCurrent -> resetCurrentAnswerState -> isAnswered = false):
-    // word is hidden again
-    assert.equal(
-      getExerciseQuestionDisplay(listeningEx, false),
-      'Послушайте аудиозапись и выберите верный перевод:'
-    );
-  }
-});
+  // Stub missing DOM methods in jsdom environment
+  dom.window.Element.prototype.scrollIntoView = () => {};
+  dom.window.scrollTo = () => {};
 
-test('listening exercises resolve valid Hebrew audio playback source independently of question prompt', () => {
-  for (let num = 1; num <= 5; num++) {
-    const lesson = findLesson(num);
-    const listeningEx = lesson.exercises.find((e) => e.type === 'listening');
-    assert.ok(listeningEx, `Lesson ${num} missing listening exercise`);
-
-    // The audio button in LessonExercises uses:
-    // textToSpeak = currentEx.hebrewSnippet || (currentEx.correctAnswer ...)
-    const textToSpeak =
-      listeningEx.hebrewSnippet ||
-      (listeningEx.correctAnswer &&
-      typeof listeningEx.correctAnswer === 'string' &&
-      /[\u0590-\u05FF]/.test(listeningEx.correctAnswer)
-        ? listeningEx.correctAnswer
-        : '');
-
-    assert.ok(textToSpeak, `Lesson ${num} audio source must not be empty`);
-    assert.ok(/[\u0590-\u05FF]/.test(textToSpeak), `Lesson ${num} audio source must contain Hebrew characters`);
-    assert.equal(textToSpeak, listeningEx.hebrewSnippet, `Lesson ${num} textToSpeak must match hebrewSnippet`);
-  }
-});
-
-test('audio playback handler in listening exercise passes exact hebrewSnippet to speakHebrew', () => {
-  const speech = require('../src/lib/speech.ts');
-  const originalSpeak = speech.speakHebrew;
-  let spokenText = null;
-  speech.speakHebrew = (text) => {
-    spokenText = text;
+  // Mock only the external speech boundary
+  const spokenTexts = [];
+  speechModule.speakHebrew = (text) => {
+    spokenTexts.push(text);
   };
 
+  const container = dom.window.document.getElementById('root');
+  const root = createRoot(container);
+
   try {
-    for (let num = 1; num <= 5; num++) {
-      const lesson = findLesson(num);
-      const listeningEx = lesson.exercises.find((e) => e.type === 'listening');
-      assert.ok(listeningEx);
+    const fullLesson = findLesson(lessonNumber);
+    const listeningIndex = fullLesson.exercises.findIndex((e) => e.id === listeningId);
+    assert.ok(listeningIndex >= 0, `Exercise ${listeningId} not found in lesson ${lessonNumber}`);
+    const listeningEx = fullLesson.exercises[listeningIndex];
+    const nextEx = fullLesson.exercises[listeningIndex + 1] || fullLesson.exercises[0];
 
-      // Simulate the exact audio button click logic from LessonExercises.tsx (lines 623-633)
-      const textToSpeak =
-        listeningEx.hebrewSnippet ||
-        (listeningEx.correctAnswer &&
-        typeof listeningEx.correctAnswer === 'string' &&
-        /[\u0590-\u05FF]/.test(listeningEx.correctAnswer)
-          ? listeningEx.correctAnswer
-          : '');
+    // Real exercises passed to component; 2 exercises allow testing skip and return
+    const lessonForTest = {
+      ...fullLesson,
+      exercises: [listeningEx, nextEx],
+    };
 
-      if (textToSpeak) speech.speakHebrew(textToSpeak);
-
-      assert.equal(
-        spokenText,
-        listeningEx.hebrewSnippet,
-        `Lesson ${num} did not invoke speakHebrew with hebrewSnippet`
+    await act(async () => {
+      root.render(
+        React.createElement(LessonExercises, {
+          lesson: lessonForTest,
+          userProfile: createGuestProfile(),
+        })
       );
-      spokenText = null;
-    }
+    });
+
+    const getHeaderText = () => {
+      const h3 = container.querySelector('h3');
+      return h3 ? h3.textContent.trim() : '';
+    };
+
+    const getButtons = () => Array.from(container.querySelectorAll('button'));
+
+    // 1. Initial unanswered state: word is HIDDEN behind neutral prompt
+    const initialHeader = getHeaderText();
+    assert.equal(initialHeader, 'Послушайте аудиозапись и выберите верный перевод:');
+    assert.ok(
+      !initialHeader.includes(expectedSnippet),
+      `Leaked "${expectedSnippet}" in initial unanswered state`
+    );
+
+    // 2. Click genuine audio button -> verify speakHebrew called with expected snippet
+    const audioBtn = getButtons().find(
+      (b) => b.textContent && b.textContent.includes('Нажмите, чтобы прослушать аудио')
+    );
+    assert.ok(audioBtn, 'Genuine audio playback button not found');
+
+    await act(async () => {
+      audioBtn.click();
+    });
+
+    assert.ok(spokenTexts.length > 0, 'No audio was spoken via speakHebrew');
+    assert.equal(
+      spokenTexts[spokenTexts.length - 1],
+      expectedSnippet,
+      `Spoken text "${spokenTexts[spokenTexts.length - 1]}" did not match snippet "${expectedSnippet}"`
+    );
+
+    // 3. Skip and return: returning to skipped question must keep the question hidden
+    const skipBtn = getButtons().find(
+      (b) => b.textContent && b.textContent.includes('Пропустить')
+    );
+    assert.ok(skipBtn, 'Skip button not found');
+
+    await act(async () => {
+      skipBtn.click();
+    });
+
+    // Moved to next exercise
+    assert.notEqual(
+      getHeaderText(),
+      'Послушайте аудиозапись и выберите верный перевод:'
+    );
+
+    // Click "Предыдущий вопрос"
+    const prevBtn = container.querySelector('button[title="Предыдущий вопрос"]');
+    assert.ok(prevBtn, 'Previous question button not found');
+
+    await act(async () => {
+      prevBtn.click();
+    });
+
+    // Returned to listening exercise: header must still be hidden
+    const returnedHeader = getHeaderText();
+    assert.equal(returnedHeader, 'Послушайте аудиозапись и выберите верный перевод:');
+    assert.ok(
+      !returnedHeader.includes(expectedSnippet),
+      `Leaked "${expectedSnippet}" after returning to skipped question`
+    );
+
+    // 4. Select incorrect answer -> verify error debrief and question text revealing the Hebrew word
+    const wrongOptBtn = getButtons().find(
+      (b) => b.textContent && b.textContent.trim() === wrongChoice
+    );
+    assert.ok(wrongOptBtn, `Wrong option button "${wrongChoice}" not found`);
+
+    await act(async () => {
+      wrongOptBtn.click();
+    });
+
+    const revealedWrongHeader = getHeaderText();
+    assert.ok(
+      revealedWrongHeader.includes(expectedSnippet),
+      `Snippet "${expectedSnippet}" not revealed after wrong answer: "${revealedWrongHeader}"`
+    );
+
+    const retryBtn = getButtons().find(
+      (b) => b.textContent && b.textContent.includes('Попробовать ещё раз')
+    );
+    assert.ok(retryBtn, 'Retry button "Попробовать ещё раз" not found after wrong answer');
+
+    // 5. Click "Попробовать ещё раз" -> verify question header reverts to neutral hidden instruction
+    await act(async () => {
+      retryBtn.click();
+    });
+
+    const retriedHeader = getHeaderText();
+    assert.equal(retriedHeader, 'Послушайте аудиозапись и выберите верный перевод:');
+    assert.ok(
+      !retriedHeader.includes(expectedSnippet),
+      `Snippet "${expectedSnippet}" leaked after retry clicked: "${retriedHeader}"`
+    );
+
+    // 6. Select correct answer -> verify success feedback and question revelation
+    const correctOptBtn = getButtons().find(
+      (b) => b.textContent && b.textContent.trim() === correctChoice
+    );
+    assert.ok(correctOptBtn, `Correct option button "${correctChoice}" not found`);
+
+    await act(async () => {
+      correctOptBtn.click();
+    });
+
+    const revealedCorrectHeader = getHeaderText();
+    assert.ok(
+      revealedCorrectHeader.includes(expectedSnippet),
+      `Snippet "${expectedSnippet}" not revealed after correct answer: "${revealedCorrectHeader}"`
+    );
+    assert.ok(
+      container.textContent.includes('Верно! Отличный ответ.'),
+      'Success feedback not displayed after correct answer'
+    );
   } finally {
-    speech.speakHebrew = originalSpeak;
+    try {
+      if (typeof confetti.reset === 'function') {
+        confetti.reset();
+      }
+    } catch {}
+
+    await act(async () => {
+      root.unmount();
+    });
+    dom.window.close();
+
+    speechModule.speakHebrew = originalSpeakHebrew;
+    global.window = originalWindow;
+    global.document = originalDocument;
+    global.navigator = originalNavigator;
+    global.HTMLElement = originalHTMLElement;
+    global.Element = originalElement;
+    global.Node = originalNode;
+    global.IS_REACT_ACT_ENVIRONMENT = originalActEnv;
+    global.addEventListener = originalAddEventListener;
+    global.removeEventListener = originalRemoveEventListener;
   }
+}
+
+test('interactive component workflow via createRoot and jsdom: audio, error debrief, retry, correct, skip/return (Lesson 2 pilot)', async () => {
+  await runInteractiveComponentFlow({
+    lessonNumber: 2,
+    listeningId: 'ex2-9',
+    wrongChoice: 'вода',
+    correctChoice: 'чай',
+    expectedSnippet: 'תֵּה',
+  });
+});
+
+test('interactive component workflow via createRoot and jsdom: audio, error debrief, retry, correct, skip/return (Lesson 6 beyond pilot)', async () => {
+  await runInteractiveComponentFlow({
+    lessonNumber: 6,
+    listeningId: 'ex6-9',
+    wrongChoice: 'семья',
+    correctChoice: 'сестра; медсестра',
+    expectedSnippet: 'אָחוֹת',
+  });
 });
 
