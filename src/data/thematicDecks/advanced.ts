@@ -87,7 +87,7 @@ export const ADVANCED_DECKS: ThematicDeck[] = [
     category: 'slang',
     icon: 'Sparkles',
     words: [
-      { id: 's_bet_1', hebrew: 'סַבָּבָה', hebrewPlain: 'סבבה', transcription: 'сабáба', translation: 'отлично, супер, без проблем', partOfSpeech: 'expression', lessonId: 0 },
+      { id: 's_bet_1', hebrew: 'סַבָּבָּה', hebrewPlain: 'סבבה', transcription: 'сабáба', translation: 'отлично, супер, без проблем', partOfSpeech: 'expression', lessonId: 0 },
       { id: 's_bet_2', hebrew: 'תַּכְלֶ׳ס', hebrewPlain: 'תכלס', transcription: 'тáхлес', translation: 'по сути, на самом деле, если честно', partOfSpeech: 'expression', lessonId: 0 },
       { id: 's_bet_3', hebrew: 'חוּצְפָּה', hebrewPlain: 'חוצפה', transcription: 'хуцпá', translation: 'дерзость, наглость, сверх-смелость', partOfSpeech: 'noun', lessonId: 0 },
       { id: 's_bet_4', hebrew: 'עַל הַפָּנִים', hebrewPlain: 'על הפנים', transcription: 'аль hа-панӣм', translation: 'ужасно, ниже плинтуса, отвратительно', partOfSpeech: 'expression', lessonId: 0 },

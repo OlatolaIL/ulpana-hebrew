@@ -77,7 +77,7 @@ export const CITY_AND_PEOPLE_DECKS: ThematicDeck[] = [
       { id: 'fam_alef_8', hebrew: 'יַלְדָּה', hebrewPlain: 'ילדה', transcription: 'яльдá', translation: 'девочка', partOfSpeech: 'noun', plural: 'יְלָדוֹת', lessonId: 0 },
       { id: 'fam_alef_9', hebrew: 'אָח', hebrewPlain: 'אח', transcription: 'ах', translation: 'брат', partOfSpeech: 'noun', plural: 'אַחִים', lessonId: 0 },
       { id: 'fam_alef_10', hebrew: 'אָחוֹת', hebrewPlain: 'אחות', transcription: 'ахóт', translation: 'сестра / медсестра', partOfSpeech: 'noun', plural: 'אֲחָיוֹת', lessonId: 0 },
-      { id: 'fam_alef_11', hebrew: 'סָבָא', hebrewPlain: 'סבא', transcription: 'сáба', translation: 'дедушка', partOfSpeech: 'noun', lessonId: 0 },
+      { id: 'fam_alef_11', hebrew: 'סַבָּא', hebrewPlain: 'סבא', transcription: 'сáба', translation: 'дедушка', partOfSpeech: 'noun', lessonId: 0 },
       { id: 'fam_alef_12', hebrew: 'סָבְתָא', hebrewPlain: 'סבתא', transcription: 'сáвта', translation: 'бабушка', partOfSpeech: 'noun', lessonId: 0 },
       { id: 'fam_alef_13', hebrew: 'בַּעַל', hebrewPlain: 'בעל', transcription: 'бáаль', translation: 'муж', partOfSpeech: 'noun', lessonId: 0 },
       { id: 'fam_alef_14', hebrew: 'אִישָּׁה', hebrewPlain: 'אישה', transcription: 'ишá', translation: 'жена, женщина', partOfSpeech: 'noun', plural: 'נָשִׁים', lessonId: 0 },

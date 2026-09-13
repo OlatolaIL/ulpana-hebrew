@@ -142,7 +142,7 @@ export const ULPAN_OFFLINE_DICTIONARY: DictionaryEntry[] = [
     partOfSpeech: 'adjective',
   },
   {
-    hebrew: 'סַבָּבָה',
+    hebrew: 'סַבָּבָּה',
     hebrewPlain: 'סבבה',
     transcription: 'сабáба',
     translation: 'круто, отлично, лады',
