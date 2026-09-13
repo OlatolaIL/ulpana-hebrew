@@ -13,6 +13,7 @@ import {
 import { detectHebrewGrammarErrors, detectHebrewWordOrderErrors } from '@/app/api/ai/dialogue/evaluate/route';
 import { getLessonById } from '@/data/lessonsData';
 import { getLessonEssayPrompt } from '@/data/essayTopics';
+import { lookupOfflineWord } from '@/lib/ulpanDictionary';
 
 interface EssayEvaluateRequestBody {
   userEssay: string;
@@ -49,8 +50,19 @@ function levenshteinDistance(a: string, b: string): number {
   return dp[m][n];
 }
 
+const VALID_PROPER_NAMES_AND_PARTICLES = new Set([
+  'דניאל', 'דוד', 'שרה', 'יוסי', 'מיכל', 'רוני', 'תמר', 'נועה', 'איתי', 'אורי', 'יוסף',
+  'תל', 'אביב', 'ירושלים', 'חיפה', 'ישראל',
+  'את', 'לא', 'כן', 'של', 'שלי', 'שלך', 'שלו', 'שלה', 'שלנו', 'שלכם', 'שלהם',
+  'על', 'עם', 'זה', 'זאת', 'זו', 'אלה', 'אלו',
+  'מי', 'מה', 'איפה', 'למה', 'מדוע', 'מתי', 'איך', 'כמה',
+  'כי', 'אם', 'אבל', 'אך', 'או', 'גם', 'רק', 'כל', 'פה', 'שם', 'כאן',
+  'יש', 'אין', 'הנה', 'עכשיו', 'היום', 'אתמול', 'מחר',
+  'שלום', 'להתראות', 'בבקשה', 'תודה'
+]);
+
 /**
- * Локальный детектор орфографических ошибок на иврите
+ * Локальный детектор орфографических ошибок на иврите (проверяет ВСЕ слова сочинения)
  */
 function detectHebrewSpellingErrors(
   userEssay: string,
@@ -77,7 +89,7 @@ function detectHebrewSpellingErrors(
     'ץ': 'צ',
   };
 
-  // 1. Проверка правил софитов (конечных букв)
+  // 1. Проверка правил софитов (конечных букв) — ДЛЯ ВСЕХ СЛОВ ТЕКСТА
   for (const w of rawWords) {
     if (w.length < 2) continue;
     const lastChar = w[w.length - 1];
@@ -111,7 +123,7 @@ function detectHebrewSpellingErrors(
     }
   }
 
-  // 2. Сравнение с целевыми словами урока (опечатки и путаница букв)
+  // 2. Целевые слова текущего урока
   const cleanTargets = suggestedWords.map((sw) => ({
     original: sw.hebrew,
     clean: stripNikkud(sw.hebrew).trim(),
@@ -122,10 +134,25 @@ function detectHebrewSpellingErrors(
     if (reportedWords.has(userWord)) continue;
     if (userWord.length < 2) continue;
 
-    for (const target of cleanTargets) {
-      if (userWord === target.clean) continue; // Точное совпадение — ошибки нет
+    // Пропуск известных имен собственных, служебных частиц и точных слов урока
+    if (VALID_PROPER_NAMES_AND_PARTICLES.has(userWord)) continue;
+    if (cleanTargets.some((target) => target.clean === userWord)) continue;
 
-      // Проверка характерных подмен букв
+    // Пропуск имен с предлогами (бирушалаим, леданиэль и т.д.)
+    if (userWord.length >= 4 && ['ב', 'ל', 'מ', 'ו', 'כ', 'ש'].includes(userWord[0])) {
+      const base = userWord.slice(1);
+      if (VALID_PROPER_NAMES_AND_PARTICLES.has(base)) continue;
+    }
+
+    // Проверка в оффлайн-словаре Ульпана: если слово существует в языке, ошибки нет
+    const offlineExact = lookupOfflineWord(userWord);
+    if (offlineExact) continue;
+
+    // 2.1 Сравнение с целевыми словами урока (опечатки и путаница букв)
+    let matchedInLesson = false;
+    for (const target of cleanTargets) {
+      if (userWord === target.clean) continue;
+
       const substituteT = userWord.replace(/ת/g, 'ט');
       const substituteTet = userWord.replace(/ט/g, 'ת');
       const substituteS = userWord.replace(/ס/g, 'ש');
@@ -153,6 +180,32 @@ function detectHebrewSpellingErrors(
           wrongWord: userWord,
           correctWord: target.original,
           explanationRu: reason,
+        });
+        reportedWords.add(userWord);
+        matchedInLesson = true;
+        break;
+      }
+    }
+    if (matchedInLesson) continue;
+
+    // 2.2 Проверка опечаток и созвучных букв по всей лексике Ульпана (словарь всех уроков)
+    const subCandidates: { cand: string; letterRule: string }[] = [];
+    if (userWord.includes('ט')) subCandidates.push({ cand: userWord.replace(/ט/g, 'ת'), letterRule: '«ת», а не «ט»' });
+    if (userWord.includes('ת')) subCandidates.push({ cand: userWord.replace(/ת/g, 'ט'), letterRule: '«ט», а не «ת»' });
+    if (userWord.includes('ס')) subCandidates.push({ cand: userWord.replace(/ס/g, 'ש'), letterRule: '«ש» (син/шин), а не «ס»' });
+    if (userWord.includes('ש')) subCandidates.push({ cand: userWord.replace(/ש/g, 'ס'), letterRule: '«ס», а не «ש»' });
+    if (userWord.includes('כ')) subCandidates.push({ cand: userWord.replace(/כ/g, 'ק'), letterRule: '«ק», а не «כ»' });
+    if (userWord.includes('ק')) subCandidates.push({ cand: userWord.replace(/ק/g, 'כ'), letterRule: '«כ», а не «ק»' });
+    if (userWord.includes('א')) subCandidates.push({ cand: userWord.replace(/א/g, 'ע'), letterRule: '«ע» (аин), а не «א» (алеф)' });
+    if (userWord.includes('ע')) subCandidates.push({ cand: userWord.replace(/ע/g, 'א'), letterRule: '«א» (алеф), а не «ע» (аин)' });
+
+    for (const { cand, letterRule } of subCandidates) {
+      const match = lookupOfflineWord(cand);
+      if (match) {
+        items.push({
+          wrongWord: userWord,
+          correctWord: match.hebrew,
+          explanationRu: `В слове «${match.hebrew}» (${match.translation}) пишется буква ${letterRule}.`,
         });
         reportedWords.add(userWord);
         break;
@@ -349,9 +402,10 @@ export async function POST(req: NextRequest) {
 ТВОЯ ЗАДАЧА — ПРОВЕРИТЬ СОЧИНЕНИЕ (חִבּוּר) УЧЕНИКА, НАПИСАННОЕ НА ИВРИТЕ, ДАТЬ ЧЕСТНУЮ, ПЕДАГОГИЧЕСКИ ВЫВЕРЕННУЮ РЕЦЕНЗИЮ И УКАЗАТЬ НА ВСЕ ОШИБКИ.
 
 СТРОГИЙ ЧЕК-ЛИСТ ПРОВЕРКИ:
-1. ОРФОГРАФИЯ И ПРАВОПИСАНИЕ (כְּתִיב) — ОБЯЗАТЕЛЬНО ДЛЯ КАЖДОГО СЛОВА:
-   - Внимательно прочитай каждое отдельное слово текста ученика.
-   - Если слово написано с ошибкой, опечаткой или несуществующей формой — ОБЯЗАТЕЛЬНО зафиксируй это в блоке "spellingFeedback.items"!
+1. ОРФОГРАФИЯ И ПРАВОПИСАНИЕ (כְּתִיב) — ОБЯЗАТЕЛЬНО ДЛЯ ВСЕХ СЛОВ ТЕКСТА:
+   - Внимательно прочитай КАЖДОЕ отдельное слово текста ученика.
+   - ПРОВЕРЯЙ ВСЕ СЛОВА СОЧИНЕНИЯ, А НЕ ТОЛЬКО СЛОВА ТЕКУЩЕГО УРОКА! Если ученик допустил ошибку в любом общеупотребительном слове (например: «טודה» вместо «תודה», «סלום» вместо «שלום», «תוב» вместо «טוב», «טה» вместо «תה», «אוגה» вместо «עוגה»), ОБЯЗАТЕЛЬНО зафиксируй это в блоке "spellingFeedback.items"!
+   - Не считай ошибками распространенные имена собственные и топонимы (דניאל, דוד, שרה, תל אביב, ירושלים).
    - КРИТИЧЕСКИ ВАЖНО (СТРОГАЯ АНТИ-ГАЛЛЮЦИНАЦИЯ):
      * Твои комментарии и правила должны на 100% соответствовать РЕАЛЬНЫМ БУКВАМ проверяемого слова!
      * СТРОЖАЙШЕ ЗАПРЕЩЕНО придумывать несуществующие буквы или применять правила о других буквах (например, КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО утверждать, что в слове «להתראות» есть «ם» или мем-софит — слово «להתראות» оканчивается на букву «ת»!).
@@ -429,6 +483,7 @@ export async function POST(req: NextRequest) {
 - Рекомендуемые слова урока: ${JSON.stringify(essayPrompt.suggestedWords?.map((w) => `${w.hebrew} (${w.translation})`) || [])}
 - Рекомендуемый объём: от ${essayPrompt.minWords} слов
 - Пол ученика: ${userGender === 'female' ? 'Женский (נקבה)' : 'Мужской (זכר)'}
+- ВАЖНО ПО ОРФОГРАФИИ: Проверяй правописание ВСЕХ слов сочинения ученика без исключения (включая общеупотребительные слова, приветствия, продукты и слова прошлых уроков), а не только рекомендованных слов текущей темы!
 
 СОЧИНЕНИЕ УЧЕНИКА ДЛЯ ПРОВЕРКИ:
 """
