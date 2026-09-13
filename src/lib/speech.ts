@@ -145,7 +145,11 @@ export function cleanHebrewForSpeech(text: string): string {
 /**
  * Высоконадежное воспроизведение произношения через Google TTS Audio fallback
  */
-export function playFallbackAudio(text: string, rate: number = 0.75): Promise<void> {
+export function playFallbackAudio(
+  text: string,
+  rate: number = 0.75,
+  lang: string = 'iw'
+): Promise<void> {
   return new Promise((resolve) => {
     if (typeof window === 'undefined') {
       resolve();
@@ -167,7 +171,7 @@ export function playFallbackAudio(text: string, rate: number = 0.75): Promise<vo
       const cleanText = text
         .replace(/["'״׳()[\]{}—<>«»]/g, ' ')
         .replace(/\s+([.,!?:;])/g, '$1')
-        .replace(/([.,!?:;])(?=[\u0590-\u05FF])/g, '$1 ')
+        .replace(/([.,!?:;])(?=[\u0590-\u05FF\u0400-\u04FFa-zA-Z])/g, '$1 ')
         .replace(/\s+/g, ' ')
         .trim();
       if (!cleanText) {
@@ -175,7 +179,7 @@ export function playFallbackAudio(text: string, rate: number = 0.75): Promise<vo
         return;
       }
 
-      const url = `https://translate.google.com/translate_tts?ie=UTF-8&tl=iw&client=tw-ob&q=${encodeURIComponent(cleanText)}`;
+      const url = `https://translate.google.com/translate_tts?ie=UTF-8&tl=${lang}&client=tw-ob&q=${encodeURIComponent(cleanText)}`;
       const audio = new Audio(url);
       activeFallbackAudio = audio;
       audio.playbackRate = Math.max(0.6, Math.min(1.3, rate || 0.75));
@@ -420,12 +424,114 @@ export function stopSpeech(): void {
 }
 
 /**
+ * Очищает русский перевод от пояснений в скобках (род, число, цифры, комментарии),
+ * чтобы синтезатор речи (TTS) не зачитывал лишние пометки ("(100)" -> "сто сто", "(м.р.)" -> "м.р.")
+ */
+export function cleanRussianForSpeech(text: string): string {
+  if (!text) return '';
+
+  let res = text
+    // 1. Удаляем иконки, мета-метки и эмодзи
+    .replace(/[♂♀⚥✔️❌①②③④⑤👉📦🌸🎙️👥↗️➡️⬅️⬆️⬇️✨💫\u200D\uFE0F\uFE0E]/g, '')
+    // 2. Удаляем любые пояснения и комментарии внутри круглых, квадратных и фигурных скобок:
+    // например: "сто (100)" -> "сто", "ночь (м.р.)" -> "ночь", "рука (кисть/рука, ж.р.)" -> "рука"
+    .replace(/\([^)]*(\)|$)/g, ' ')
+    .replace(/\[[^\]]*(\]|$)/g, ' ')
+    .replace(/\{[^}]*(\}|$)/g, ' ')
+    .replace(/<[^>]*>/g, ' ');
+
+  // 3. Удаляем указания грамматического рода и чисел, даже если они написаны без скобок через дефис или запятую:
+  // например: "это - м.р.", "книга - м.р. на иврите", "слово, ж.р.", "муж. род", "ж.р.", "мн.ч."
+  res = res.replace(
+    /(?:^|[\s,;—–-])+(?:(?:м|ж|ср)\.?\s*р\.?|(?:м|ж)\.(?!\w)|муж(?:\.|ской)?(?:\s+род)?|жен(?:\.|ский)?(?:\s+род)?|мн\.?\s*ч\.?|ед\.?\s*ч\.?)(?:[\s,;—–-]|$)/gi,
+    ' '
+  );
+
+  // 4. Если в фразе есть варианты через слэш (например "один / одна", "он / она", "хочу / хочет"),
+  // берем первый (базовый) вариант, соответствующий первой форме на иврите
+  if (res.includes('/')) {
+    const parts = res.split('/');
+    if (parts[0]?.trim()) {
+      res = parts[0];
+    }
+  }
+
+  // 5. Если перевод содержит синонимы через запятую или точку с запятой (например "есть, кушать", "жить, проживать"),
+  // берем первое значение для лаконичной и естественной озвучки
+  if (res.includes(',') || res.includes(';')) {
+    const parts = res.split(/[,;]/);
+    if (parts[0]?.trim()) {
+      res = parts[0];
+    }
+  }
+
+  // 6. Если в тексте уже есть буквенные слова, удаляем оставшиеся изолированные цифры и числовые метки
+  // (например, если встретилось "сто 100" -> "сто", "двадцать 20" -> "двадцать"),
+  // чтобы голос не читал число дважды
+  if (/[а-яА-ЯёЁa-zA-Z]/.test(res)) {
+    res = res.replace(/(?:^|\s)\d+[-–—]?(?:й|я|е|го|му|м|ом|х|ти)?(?:\s|$)/g, ' ');
+    res = res.replace(/\b\d+\b/g, ' ');
+  }
+
+  // 7. Удаляем кавычки, технические знаки, стрелки и лишние разделители
+  res = res
+    .replace(/["'«»"״׳`~@#$%^&*+=<>\\|/]/g, ' ')
+    .replace(/[—–_]/g, ' ')
+    .replace(/\s+/g, ' ')
+    // Убираем висящие знаки пунктуации по краям
+    .replace(/^[\s,;.—–-]+|[\s,;.—–-]+$/g, '')
+    .trim();
+
+  // Страховочный возврат: если строка опустела (например, если карточка содержала только цифры или пояснение),
+  // возвращаем очищенный базовый текст
+  if (!res) {
+    return text.replace(/[()[\]{}«»—"']/g, ' ').replace(/\s+/g, ' ').trim();
+  }
+
+  return res;
+}
+
+/**
  * Озвучка русского текста через Web Speech API (для режима карточек "Авто на слух")
  */
 export function speakRussian(text: string, options: { rate?: number } = {}): Promise<void> {
   return new Promise((resolve) => {
-    if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
+    if (typeof window === 'undefined') {
       resolve();
+      return;
+    }
+
+    // 1. Очищаем все предыдущие таймеры и активные проигрыватели
+    if (speechSafetyTimer) {
+      clearTimeout(speechSafetyTimer);
+      speechSafetyTimer = null;
+    }
+
+    if (activeUtterance) {
+      activeUtterance.onend = null;
+      activeUtterance.onerror = null;
+      activeUtterance = null;
+    }
+
+    if (activeFallbackAudio) {
+      try {
+        activeFallbackAudio.onended = null;
+        activeFallbackAudio.onerror = null;
+        activeFallbackAudio.pause();
+        activeFallbackAudio.src = '';
+      } catch {}
+      activeFallbackAudio = null;
+    }
+
+    const clean = cleanRussianForSpeech(text);
+    if (!clean) {
+      resolve();
+      return;
+    }
+
+    // Если speechSynthesis не поддерживается в браузере — запускаем fallback audio на русском
+    if (!('speechSynthesis' in window)) {
+      playFallbackAudio(clean, options.rate ?? 0.95, 'ru').then(() => resolve());
       return;
     }
 
@@ -435,21 +541,22 @@ export function speakRussian(text: string, options: { rate?: number } = {}): Pro
       }
     } catch {}
 
-    const clean = text
-      .replace(/[()[\]{}«»—"']/g, ' ')
-      .replace(/;+/g, ',')
-      .replace(/\s+/g, ' ')
-      .trim();
-    if (!clean) {
-      resolve();
-      return;
-    }
-
-    // Берём первую часть перевода для лаконичной озвучки
-    const primary = clean.split(',')[0].trim();
+    let isDone = false;
+    const done = () => {
+      if (!isDone) {
+        isDone = true;
+        activeUtterance = null;
+        if (speechSafetyTimer) {
+          clearTimeout(speechSafetyTimer);
+          speechSafetyTimer = null;
+        }
+        resolve();
+      }
+    };
 
     try {
-      const utterance = new SpeechSynthesisUtterance(primary || clean);
+      const utterance = new SpeechSynthesisUtterance(clean);
+      activeUtterance = utterance;
       utterance.lang = 'ru-RU';
       utterance.rate = options.rate ?? 0.95;
 
@@ -459,22 +566,60 @@ export function speakRussian(text: string, options: { rate?: number } = {}): Pro
       );
       if (ruVoice) utterance.voice = ruVoice;
 
-      let isDone = false;
-      const done = () => {
-        if (!isDone) {
-          isDone = true;
-          resolve();
+      utterance.onend = () => {
+        if (speechSafetyTimer) {
+          clearTimeout(speechSafetyTimer);
+          speechSafetyTimer = null;
         }
+        done();
       };
 
-      utterance.onend = done;
-      utterance.onerror = done;
-      // Страховочный таймер от зависания SpeechSynthesis
-      setTimeout(done, 4000);
+      utterance.onerror = (e) => {
+        if (speechSafetyTimer) {
+          clearTimeout(speechSafetyTimer);
+          speechSafetyTimer = null;
+        }
+        if (e?.error === 'canceled' || e?.error === 'interrupted') {
+          done();
+          return;
+        }
+        playFallbackAudio(clean, options.rate ?? 0.95, 'ru').then(() => done());
+      };
 
-      window.speechSynthesis.speak(utterance);
+      // Страховочный таймер от зависания SpeechSynthesis
+      const maxDurationMs = Math.max(3000, clean.length * 150 + 1500);
+      speechSafetyTimer = setTimeout(() => {
+        if (!isDone) {
+          isDone = true;
+          speechSafetyTimer = null;
+          if (activeUtterance) {
+            activeUtterance.onend = null;
+            activeUtterance.onerror = null;
+            activeUtterance = null;
+          }
+          try {
+            window.speechSynthesis.cancel();
+          } catch {}
+          playFallbackAudio(clean, options.rate ?? 0.95, 'ru').then(() => done());
+        }
+      }, maxDurationMs);
+
+      setTimeout(() => {
+        try {
+          window.speechSynthesis.speak(utterance);
+          if (window.speechSynthesis.paused) {
+            window.speechSynthesis.resume();
+          }
+        } catch {
+          if (speechSafetyTimer) {
+            clearTimeout(speechSafetyTimer);
+            speechSafetyTimer = null;
+          }
+          playFallbackAudio(clean, options.rate ?? 0.95, 'ru').then(() => done());
+        }
+      }, 15);
     } catch {
-      resolve();
+      playFallbackAudio(clean, options.rate ?? 0.95, 'ru').then(() => resolve());
     }
   });
 }
