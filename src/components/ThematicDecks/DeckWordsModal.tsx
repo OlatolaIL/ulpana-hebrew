@@ -16,10 +16,12 @@ import {
   BookmarkPlus,
   Play,
 } from 'lucide-react';
-import { ThematicDeck, UserProfile, Word } from '@/types';
+import { ThematicDeck, UserProfile, Word, LinguisticTip } from '@/types';
 import { getDeckWordsAsText, exportDeckToTsv } from '@/data/thematicDecks';
 import { speakHebrew } from '@/lib/speech';
 import { stripNikkud, getWordTranscription } from '@/lib/transcription';
+import { detectLinguisticTip } from '@/lib/linguisticTips';
+import { LinguisticTipDrawer } from './LinguisticTipDrawer';
 import {
   calculateWordMastery,
   isWordInPersonalDict,
@@ -56,6 +58,7 @@ export const DeckWordsModal: React.FC<DeckWordsModalProps> = ({
   );
   const [modalViewMode, setModalViewMode] = useState<'cards' | 'table'>('cards');
   const [speakingWordId, setSpeakingWordId] = useState<string | null>(null);
+  const [activeTip, setActiveTip] = useState<LinguisticTip | null>(null);
 
   const isCursive = userProfile.fontStyle === 'cursive';
 
@@ -360,6 +363,7 @@ export const DeckWordsModal: React.FC<DeckWordsModalProps> = ({
                 );
                 const isChecked = selectedWordIds.has(word.id);
                 const isVerb = isVerbWord(word);
+                const tip = detectLinguisticTip(word);
 
                 return (
                   <div
@@ -435,12 +439,12 @@ export const DeckWordsModal: React.FC<DeckWordsModalProps> = ({
                       className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-700/60 gap-1.5 min-w-0"
                       onClick={(e) => e.stopPropagation()}
                     >
-                      <div className="shrink-0">
+                      <div className="flex items-center gap-1.5 flex-wrap shrink-0">
                         {isVerb ? (
                           <button
                             type="button"
                             onClick={() => onOpenPealim(word)}
-                            className="px-2 sm:px-2.5 py-1 rounded-lg bg-indigo-50 dark:bg-indigo-950/50 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 text-[11px] font-bold flex items-center gap-1 border border-indigo-200 dark:border-indigo-800 transition"
+                            className="px-2 sm:px-2.5 py-1 rounded-lg bg-indigo-50 dark:bg-indigo-950/50 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 text-[11px] font-bold flex items-center gap-1 border border-indigo-200 dark:border-indigo-800 transition cursor-pointer"
                             title="Таблица спряжений и семья корня (Pealim)"
                           >
                             <Sparkles className="w-3 h-3 text-indigo-500" />
@@ -450,6 +454,18 @@ export const DeckWordsModal: React.FC<DeckWordsModalProps> = ({
                           <span className="text-[11px] text-slate-400">
                             {word.plural ? `мн: ${word.plural}` : word.partOfSpeech}
                           </span>
+                        )}
+
+                        {tip && (
+                          <button
+                            type="button"
+                            onClick={() => setActiveTip(tip)}
+                            className="px-2 py-1 rounded-lg bg-amber-50 dark:bg-amber-950/50 hover:bg-amber-100 dark:hover:bg-amber-900/60 text-amber-800 dark:text-amber-300 text-[11px] font-bold flex items-center gap-1 border border-amber-200 dark:border-amber-800 transition cursor-pointer"
+                            title={tip.ruleTitle}
+                          >
+                            <span>💡</span>
+                            <span>{tip.badgeTitle}</span>
+                          </button>
                         )}
                       </div>
 
@@ -525,6 +541,7 @@ export const DeckWordsModal: React.FC<DeckWordsModalProps> = ({
                     );
                     const isChecked = selectedWordIds.has(word.id);
                     const isVerb = isVerbWord(word);
+                    const tip = detectLinguisticTip(word);
 
                     return (
                       <tr
@@ -586,7 +603,7 @@ export const DeckWordsModal: React.FC<DeckWordsModalProps> = ({
 
                         <td className="py-3 px-3 text-center">
                           <span
-                            className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${wordMastery.badgeBg}`}
+                            className={`inline-block text-[10px] font-extrabold px-2 py-0.5 rounded-full ${wordMastery.badgeBg}`}
                           >
                             {wordMastery.score}%
                           </span>
@@ -594,6 +611,17 @@ export const DeckWordsModal: React.FC<DeckWordsModalProps> = ({
 
                         <td className="py-3 px-3 text-right">
                           <div className="flex items-center justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
+                            {tip && (
+                              <button
+                                type="button"
+                                onClick={() => setActiveTip(tip)}
+                                className="px-2 py-1 rounded-lg bg-amber-50 dark:bg-amber-950/50 hover:bg-amber-100 dark:hover:bg-amber-900/60 text-amber-800 dark:text-amber-300 text-[11px] font-bold flex items-center gap-1 border border-amber-200 dark:border-amber-800 transition cursor-pointer"
+                                title={tip.ruleTitle}
+                              >
+                                <span>💡</span>
+                                <span className="hidden sm:inline">{tip.badgeTitle}</span>
+                              </button>
+                            )}
                             {isVerb && (
                               <button
                                 type="button"
@@ -720,6 +748,14 @@ export const DeckWordsModal: React.FC<DeckWordsModalProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Шторка лингвистической подсказки */}
+      <LinguisticTipDrawer
+        isOpen={Boolean(activeTip)}
+        onClose={() => setActiveTip(null)}
+        tip={activeTip}
+        userProfile={userProfile}
+      />
     </div>
   );
 };

@@ -82,6 +82,7 @@ export interface Word {
   lessonId: number;
   isUserAdded?: boolean;
   dateAdded?: number;
+  note?: string; // лингвистическая подсказка / комментарий автора к карточке
 }
 
 export interface Sentence {
@@ -136,6 +137,28 @@ export interface SpokenHebrewGuide {
     meaning: string;
     usageTip: string;
   }>;
+}
+
+export interface TipExample {
+  hebrew: string;
+  transcription: string;
+  translation: string;
+}
+
+export interface LinguisticTip {
+  id: string;
+  category: 'phonetics' | 'grammar' | 'abbreviation' | 'slang' | 'custom';
+  badgeTitle: string;
+  ruleTitle: string;
+  ruleExplanation: string;
+  ruleDetails?: string[];
+  spokenVsAcademic?: {
+    academic: string;
+    academicNote: string;
+    spoken: string;
+    spokenNote: string;
+  };
+  examples: TipExample[];
 }
 
 export interface DialogueWord {

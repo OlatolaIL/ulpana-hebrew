@@ -1,8 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Volume2, RotateCw, ArrowLeft, RotateCcw, Sparkles } from 'lucide-react';
 import { Word, UserProfile } from '@/types';
 import { getHebrewPictogram } from '@/lib/pictograms';
 import { getWordTranscription } from '@/lib/transcription';
+import { detectLinguisticTip } from '@/lib/linguisticTips';
+import { LinguisticTipDrawer } from '@/components/ThematicDecks/LinguisticTipDrawer';
 
 interface FlipCardModeProps {
   currentWord: Word;
@@ -32,6 +34,8 @@ export const FlipCardMode: React.FC<FlipCardModeProps> = ({
   onSpeakHebrew,
 }) => {
   const isCursive = userProfile.fontStyle === 'cursive';
+  const [isTipOpen, setIsTipOpen] = useState(false);
+  const tip = detectLinguisticTip(currentWord);
 
   return (
     <div className="space-y-3 sm:space-y-4">
@@ -56,6 +60,23 @@ export const FlipCardMode: React.FC<FlipCardModeProps> = ({
             <Volume2 className="w-4 h-4" />
           </button>
         </div>
+
+        {/* Кнопка подсказки в верхнем левом углу карточки */}
+        {tip && (
+          <div className="absolute top-3 left-3">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsTipOpen(true);
+              }}
+              className="p-1.5 sm:p-2 rounded-full bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/60 border border-amber-200/80 dark:border-amber-800/80 transition shadow-xs cursor-pointer"
+              title={`Лингвистическая подсказка: ${tip.ruleTitle}`}
+            >
+              <span className="text-sm">💡</span>
+            </button>
+          </div>
+        )}
 
         {!isFlipped ? (
           isCurrentCardFrontRussian ? (
@@ -214,6 +235,23 @@ export const FlipCardMode: React.FC<FlipCardModeProps> = ({
                 </button>
               </div>
             )}
+
+            {/* Кнопка лингвистической подсказки */}
+            {tip && (
+              <div className="pt-0.5">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsTipOpen(true);
+                  }}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-50 dark:bg-amber-950/80 hover:bg-amber-100 dark:hover:bg-amber-900/60 text-amber-800 dark:text-amber-300 text-xs font-bold border border-amber-300/60 dark:border-amber-800 shadow-2xs transition active:scale-95 cursor-pointer"
+                >
+                  <span>💡</span>
+                  <span>{tip.badgeTitle}: {tip.ruleTitle}</span>
+                </button>
+              </div>
+            )}
           </div>
         ) : (
           /* Оборотная сторона: Перевод и детали (прямой режим) */
@@ -284,6 +322,23 @@ export const FlipCardMode: React.FC<FlipCardModeProps> = ({
                 >
                   <Sparkles className="w-3.5 h-3.5 text-amber-400" />
                   <span>Пеалим (спряжения и семья корня)</span>
+                </button>
+              </div>
+            )}
+
+            {/* Кнопка лингвистической подсказки */}
+            {tip && (
+              <div className="pt-0.5">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsTipOpen(true);
+                  }}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-50 dark:bg-amber-950/80 hover:bg-amber-100 dark:hover:bg-amber-900/60 text-amber-800 dark:text-amber-300 text-xs font-bold border border-amber-300/60 dark:border-amber-800 shadow-2xs transition active:scale-95 cursor-pointer"
+                >
+                  <span>💡</span>
+                  <span>{tip.badgeTitle}: {tip.ruleTitle}</span>
                 </button>
               </div>
             )}
@@ -375,6 +430,14 @@ export const FlipCardMode: React.FC<FlipCardModeProps> = ({
           </div>
         </div>
       )}
+
+      {/* Шторка лингвистической подсказки */}
+      <LinguisticTipDrawer
+        isOpen={isTipOpen}
+        onClose={() => setIsTipOpen(false)}
+        tip={tip}
+        userProfile={userProfile}
+      />
     </div>
   );
 };
