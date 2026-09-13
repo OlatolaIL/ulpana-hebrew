@@ -222,7 +222,7 @@ export const LessonView: React.FC<LessonViewProps> = ({
           <button
             type="button"
             onClick={handleToggleFont}
-            className={`hidden sm:inline-flex px-2 py-1 rounded-xl border text-xs font-hebrew font-bold transition cursor-pointer select-none shrink-0 ${
+            className={`px-2 py-1 rounded-xl border text-xs font-hebrew font-bold transition cursor-pointer select-none shrink-0 ${
               userProfile.fontStyle === 'cursive'
                 ? 'bg-amber-100 dark:bg-amber-950/60 border-amber-300 dark:border-amber-800 text-amber-900 dark:text-amber-200'
                 : 'border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800'
