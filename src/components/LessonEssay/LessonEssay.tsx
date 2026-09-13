@@ -110,7 +110,6 @@ export const LessonEssay: React.FC<LessonEssayProps> = ({
   const [isAutoHebrew, setIsAutoHebrew] = useState<boolean>(true);
   const [showVirtualKeyboard, setShowVirtualKeyboard] = useState<boolean>(false);
   const [isMobileDevice, setIsMobileDevice] = useState<boolean>(false);
-  const [mobileKeyboardMode, setMobileKeyboardMode] = useState<'virtual' | 'native'>('virtual');
   const [showCheatSheet, setShowCheatSheet] = useState<boolean>(false);
 
   // Определение мобильного устройства (по ширине экрана или сигнатуре смартфона)
@@ -438,26 +437,11 @@ export const LessonEssay: React.FC<LessonEssayProps> = ({
               Ваш текст на иврите
             </span>
 
-            {/* На смартфонах переключатель между экранной клавиатурой и системной клавиатурой */}
+            {/* На смартфонах бейдж "Экранная клавиатура (без подсказок)" */}
             {isMobileDevice ? (
-              <button
-                type="button"
-                onClick={() => {
-                  const nextMode = mobileKeyboardMode === 'virtual' ? 'native' : 'virtual';
-                  setMobileKeyboardMode(nextMode);
-                  setShowVirtualKeyboard(nextMode === 'virtual');
-                  setTimeout(() => textareaRef.current?.focus(), 50);
-                }}
-                className="px-2.5 py-1 rounded-lg text-[11px] font-bold flex items-center gap-1.5 transition cursor-pointer bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800"
-                title="Переключить между экранными клавишами и системной клавиатурой телефона"
-              >
-                <Keyboard className="w-3.5 h-3.5" />
-                <span>
-                  {mobileKeyboardMode === 'virtual'
-                    ? 'Клавиатура: Экранная'
-                    : 'Клавиатура: Телефона'}
-                </span>
-              </button>
+              <span className="text-[10px] px-2 py-0.5 rounded-md bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 font-bold border border-blue-200 dark:border-blue-800">
+                Экранная клавиатура (без подсказок)
+              </span>
             ) : (
               <>
                 {/* Переключатель авто-раскладки для ПК */}
@@ -513,10 +497,10 @@ export const LessonEssay: React.FC<LessonEssayProps> = ({
             setErrorMessage(null);
           }}
           onKeyDown={handleKeyDown}
-          inputMode={isMobileDevice && mobileKeyboardMode === 'virtual' ? 'none' : undefined}
+          inputMode={isMobileDevice ? 'none' : undefined}
           placeholder={
-            isMobileDevice && mobileKeyboardMode === 'virtual'
-              ? 'Составляйте сочинение буквами на экранных клавишах внизу...'
+            isMobileDevice
+              ? 'Нажимайте буквы на экранных клавишах внизу, чтобы составить сочинение...'
               : 'Печатайте текст сочинения на иврите с клавиатуры компьютера...'
           }
           rows={5}
