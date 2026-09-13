@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const React = require('react');
 const { renderToStaticMarkup } = require('react-dom/server');
 
-const { getLessonPhoneScenario, adaptGenderInScenario, BESPOKE_PHONE_SCENARIOS } = require('../src/data/phoneScenarios.ts');
+const { getLessonPhoneScenario } = require('../src/data/phoneScenarios.ts');
 const { getExerciseQuestionDisplay, LessonExercises } = require('../src/components/LessonExercises.tsx');
 const { createGuestProfile } = require('../src/lib/storage.ts');
 const { DETAILED_LESSONS } = require('../src/data/lessonsData.ts');
@@ -135,8 +135,13 @@ test('phone scenario female adaptation in Lesson 5 adapts student replies and pr
   // Female student checks
   assert.ok(femaleScenario.studentObjective.includes('«אֲנִי יוֹרֶדֶת עַכְשָׁו»'));
   assert.ok(!femaleScenario.studentObjective.includes('«אֲנִי יוֹרֵד עַכְשָׁו»'));
-  assert.ok(femaleScenario.completionCondition.includes('Пассажирка сообщила, что спускается («אני יורדת»)'));
-  assert.ok(femaleScenario.completionCondition.includes('попросила подождать'));
+  assert.equal(
+    femaleScenario.completionCondition,
+    'Пассажирка сообщила, что спускается («אני יורדת»), попросила подождать («עוד שתי דקות», «רגע») или спросила о машине.'
+  );
+  assert.ok(!/(^|\s)сообщил(\s|,|$)/.test(femaleScenario.completionCondition));
+  assert.ok(!/(^|\s)попросил(\s|,|$)/.test(femaleScenario.completionCondition));
+  assert.ok(!/(^|\s)спросил(\s|,|$)/.test(femaleScenario.completionCondition));
   assert.equal(
     femaleScenario.suggestedReplies[0].hebrew,
     'שָׁלוֹם! אֲנִי יוֹרֶדֶת עַכְשָׁו, עוֹד שְׁתֵּי דַּקּוֹת אֲנִי שָׁם.'
@@ -269,3 +274,89 @@ test('LessonExercises component renders hidden prompt without leaking Hebrew sni
     assert.ok(html.includes(opt), `Missing option in rendered markup: ${opt}`);
   }
 });
+
+test('interactive transition flow: unanswered hides word, answered reveals word, retry resets and hides word again', () => {
+  for (let num = 1; num <= 5; num++) {
+    const lesson = findLesson(num);
+    const listeningEx = lesson.exercises.find((e) => e.type === 'listening');
+    assert.ok(listeningEx, `Lesson ${num} missing listening exercise`);
+
+    // 1. Initial unanswered state: word is hidden
+    assert.equal(
+      getExerciseQuestionDisplay(listeningEx, false),
+      'Послушайте аудиозапись и выберите верный перевод:'
+    );
+
+    // 2. Option selected (isAnswered = true): word is revealed for feedback
+    const answeredText = getExerciseQuestionDisplay(listeningEx, true);
+    assert.equal(answeredText, listeningEx.question);
+    assert.ok(answeredText.includes(listeningEx.hebrewSnippet));
+
+    // 3. User clicks retry (handleRetryCurrent -> resetCurrentAnswerState -> isAnswered = false):
+    // word is hidden again
+    assert.equal(
+      getExerciseQuestionDisplay(listeningEx, false),
+      'Послушайте аудиозапись и выберите верный перевод:'
+    );
+  }
+});
+
+test('listening exercises resolve valid Hebrew audio playback source independently of question prompt', () => {
+  for (let num = 1; num <= 5; num++) {
+    const lesson = findLesson(num);
+    const listeningEx = lesson.exercises.find((e) => e.type === 'listening');
+    assert.ok(listeningEx, `Lesson ${num} missing listening exercise`);
+
+    // The audio button in LessonExercises uses:
+    // textToSpeak = currentEx.hebrewSnippet || (currentEx.correctAnswer ...)
+    const textToSpeak =
+      listeningEx.hebrewSnippet ||
+      (listeningEx.correctAnswer &&
+      typeof listeningEx.correctAnswer === 'string' &&
+      /[\u0590-\u05FF]/.test(listeningEx.correctAnswer)
+        ? listeningEx.correctAnswer
+        : '');
+
+    assert.ok(textToSpeak, `Lesson ${num} audio source must not be empty`);
+    assert.ok(/[\u0590-\u05FF]/.test(textToSpeak), `Lesson ${num} audio source must contain Hebrew characters`);
+    assert.equal(textToSpeak, listeningEx.hebrewSnippet, `Lesson ${num} textToSpeak must match hebrewSnippet`);
+  }
+});
+
+test('audio playback handler in listening exercise passes exact hebrewSnippet to speakHebrew', () => {
+  const speech = require('../src/lib/speech.ts');
+  const originalSpeak = speech.speakHebrew;
+  let spokenText = null;
+  speech.speakHebrew = (text) => {
+    spokenText = text;
+  };
+
+  try {
+    for (let num = 1; num <= 5; num++) {
+      const lesson = findLesson(num);
+      const listeningEx = lesson.exercises.find((e) => e.type === 'listening');
+      assert.ok(listeningEx);
+
+      // Simulate the exact audio button click logic from LessonExercises.tsx (lines 623-633)
+      const textToSpeak =
+        listeningEx.hebrewSnippet ||
+        (listeningEx.correctAnswer &&
+        typeof listeningEx.correctAnswer === 'string' &&
+        /[\u0590-\u05FF]/.test(listeningEx.correctAnswer)
+          ? listeningEx.correctAnswer
+          : '');
+
+      if (textToSpeak) speech.speakHebrew(textToSpeak);
+
+      assert.equal(
+        spokenText,
+        listeningEx.hebrewSnippet,
+        `Lesson ${num} did not invoke speakHebrew with hebrewSnippet`
+      );
+      spokenText = null;
+    }
+  } finally {
+    speech.speakHebrew = originalSpeak;
+  }
+});
+

@@ -944,7 +944,7 @@ ${isIncoming
   };
 }
 
-export function adaptGenderInScenario(
+function adaptGenderInScenario(
   scenario: PhoneScenario,
   isFemale: boolean,
   lessonNumber?: number
@@ -1013,9 +1013,8 @@ export function adaptGenderInScenario(
         copy.studentObjective = copy.studentObjective.replace('«אֲנִי יוֹרֵד עַכְשָׁו»', '«אֲנִי יוֹרֶדֶת עַכְשָׁו»');
       }
       if (copy.completionCondition) {
-        copy.completionCondition = copy.completionCondition
-          .replace('Пассажир сообщил, что спускается («אני יורד»)', 'Пассажирка сообщила, что спускается («אני יורדת»)')
-          .replace('попросил подождать', 'попросила подождать');
+        copy.completionCondition =
+          'Пассажирка сообщила, что спускается («אני יורדת»), попросила подождать («עוד שתי דקות», «רגע») или спросила о машине.';
       }
       if (copy.suggestedReplies?.[0]) {
         copy.suggestedReplies[0].hebrew = copy.suggestedReplies[0].hebrew.replace('אֲנִי יוֹרֵד עַכְשָׁו', 'אֲנִי יוֹרֶדֶת עַכְשָׁו');
