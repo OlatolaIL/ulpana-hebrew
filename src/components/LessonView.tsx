@@ -255,7 +255,8 @@ export const LessonView: React.FC<LessonViewProps> = ({
             <button
               type="button"
               onClick={() => onOpenFeedback(activeTab)}
-              className="hidden md:inline-flex p-1.5 rounded-xl border border-zinc-200 dark:border-zinc-700 text-zinc-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition cursor-pointer shrink-0"
+              className="inline-flex p-1.5 rounded-xl border border-zinc-200 dark:border-zinc-700 text-zinc-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition cursor-pointer shrink-0"
+              aria-label="Сообщить об ошибке в уроке"
               title="Сообщить об ошибке в уроке / на вкладке (@Osa_IL)"
             >
               <MessageSquare className="w-3.5 h-3.5" />
@@ -292,7 +293,7 @@ export const LessonView: React.FC<LessonViewProps> = ({
           <div className="flex items-center gap-1.5 min-w-0 flex-1">
             <Crown className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
             <span className="font-semibold truncate">
-              Этот этап входит в тариф PRO • Доступ открыт бесплатно на период бета-тестирования
+              Этот этап бесплатен на время беты
             </span>
           </div>
           <div className="shrink-0 flex items-center gap-2">
@@ -454,6 +455,7 @@ export const LessonView: React.FC<LessonViewProps> = ({
               <div className="flex-1 min-h-0 overflow-hidden">
                 {dialogueSubTab === 'scripted' ? (
                   <ScriptedDialogueTrainer
+                    key={`dialogue-${lesson.id}-${userProfile.id ?? 'guest'}`}
                     lesson={lesson}
                     userProfile={userProfile}
                     onUpdateProfile={onUpdateProfile}
@@ -462,6 +464,7 @@ export const LessonView: React.FC<LessonViewProps> = ({
                   />
                 ) : (
                   <LessonAiChat
+                    key={`ai-chat-${lesson.id}-${userProfile.id ?? 'guest'}-${userProfile.gender}`}
                     lesson={lesson}
                     userProfile={userProfile}
                     onUpdateProfile={onUpdateProfile}
@@ -475,6 +478,7 @@ export const LessonView: React.FC<LessonViewProps> = ({
 
           {activeTab === 'phone' && (
             <PhoneCallSimulator
+              key={`phone-${lesson.id}-${userProfile.id ?? 'guest'}`}
               lesson={lesson}
               userProfile={userProfile}
               onUpdateProfile={onUpdateProfile}

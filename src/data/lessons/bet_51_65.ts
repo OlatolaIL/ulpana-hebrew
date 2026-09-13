@@ -86,7 +86,6 @@ export const BET_LESSONS_51_65: Record<number, Lesson> = {
         "transcription": "махáр",
         "translation": "завтра",
         "partOfSpeech": "adverb",
-        "root": "ת-כ-נ-ן",
         "lessonId": 51
       },
       {
@@ -96,7 +95,6 @@ export const BET_LESSONS_51_65: Record<number, Lesson> = {
         "transcription": "мохоратáйим",
         "translation": "послезавтра",
         "partOfSpeech": "adverb",
-        "root": "ת-כ-נ-ן",
         "lessonId": 51
       },
       {
@@ -106,7 +104,7 @@ export const BET_LESSONS_51_65: Record<number, Lesson> = {
         "transcription": "ба-шавýа hа-ба",
         "translation": "на следующей неделе",
         "partOfSpeech": "expression",
-        "root": "ש-נ-ה / ב-ו-א",
+        "root": "ש-ב-ע / ב-ו-א",
         "lessonId": 51
       },
       {

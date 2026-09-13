@@ -8,7 +8,6 @@ import {
   Undo2,
   BookOpen,
   HelpCircle,
-  Sparkles,
   Award,
   ChevronRight,
   ChevronLeft,
@@ -16,9 +15,6 @@ import {
   EyeOff,
   Play,
   Square,
-  Layers,
-  ArrowRight,
-  CheckCircle2,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { HEBREW_ALPHABET } from '@/data/alphabetData';
@@ -34,7 +30,34 @@ interface AlphabetTrainerProps {
 type TabMode = 'grid' | 'canvas' | 'quiz';
 type ViewDisplay = 'both' | 'print' | 'cursive';
 
-export const AlphabetTrainer: React.FC<AlphabetTrainerProps> = ({ userProfile }) => {
+function getQuizOptionsForIndex(quizIndex: number, currentLetter: HebrewLetter | undefined): HebrewLetter[] {
+  if (!currentLetter) return [];
+  const others = HEBREW_ALPHABET.filter((l) => l.id !== currentLetter.id);
+  const count = others.length;
+  if (count === 0) return [currentLetter];
+
+  const seed = Math.abs(quizIndex * 31 + currentLetter.id.charCodeAt(0));
+  const i1 = seed % count;
+  const i2 = (seed * 7 + 3) % count;
+  const i3 = (seed * 13 + 7) % count;
+
+  const pickedIndices = new Set<number>();
+  for (const idx of [i1, i2, i3]) {
+    let pick = idx;
+    while (pickedIndices.has(pick) && pickedIndices.size < count) {
+      pick = (pick + 1) % count;
+    }
+    pickedIndices.add(pick);
+  }
+
+  const distractors = Array.from(pickedIndices).map((idx) => others[idx]);
+  const insertPos = seed % (distractors.length + 1);
+  const result = [...distractors];
+  result.splice(insertPos, 0, currentLetter);
+  return result;
+}
+
+export const AlphabetTrainer: React.FC<AlphabetTrainerProps> = () => {
   const [activeTab, setActiveTab] = useState<TabMode>('grid');
   const [displayMode, setDisplayMode] = useState<ViewDisplay>('both');
   const [selectedCategory, setSelectedCategory] = useState<'all' | 'regular' | 'sofit'>('all');
@@ -51,13 +74,24 @@ export const AlphabetTrainer: React.FC<AlphabetTrainerProps> = ({ userProfile })
   // Переключатели слоёв и ориентиров
   const [showStencil, setShowStencil] = useState(true);
   const [showStartingPoints, setShowStartingPoints] = useState(true);
-  const [showDirectionArrows, setShowDirectionArrows] = useState(true);
   const [showNotebookLines, setShowNotebookLines] = useState(true);
 
   // Анимация демонстрации начертания
   const [isAnimating, setIsAnimating] = useState(false);
   const [activeAnimStroke, setActiveAnimStroke] = useState<number | null>(null);
-  const animTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const animTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Сброс состояния холста и анимации при смене буквы или вкладки
+  const [prevLetterId, setPrevLetterId] = useState(selectedLetter.id);
+  const [prevTab, setPrevTab] = useState(activeTab);
+  if (selectedLetter.id !== prevLetterId || activeTab !== prevTab) {
+    setPrevLetterId(selectedLetter.id);
+    setPrevTab(activeTab);
+    setHasDrawn(false);
+    setHistory([]);
+    setIsAnimating(false);
+    setActiveAnimStroke(null);
+  }
 
   // Точки для сглаживания текущего штриха (Bézier curves)
   const currentPointsRef = useRef<Array<{ x: number; y: number }>>([]);
@@ -65,11 +99,19 @@ export const AlphabetTrainer: React.FC<AlphabetTrainerProps> = ({ userProfile })
   // Квиз
   const [quizIndex, setQuizIndex] = useState(0);
   const [quizScore, setQuizScore] = useState(0);
-  const [quizOptions, setQuizOptions] = useState<HebrewLetter[]>([]);
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [quizCompleted, setQuizCompleted] = useState(false);
 
   const currentRule: LetterWritingRule | undefined = HEBREW_STROKE_RULES[selectedLetter.id];
+
+  const stopAnimation = useCallback(() => {
+    setIsAnimating(false);
+    setActiveAnimStroke(null);
+    if (animTimeoutRef.current) {
+      clearTimeout(animTimeoutRef.current);
+      animTimeoutRef.current = null;
+    }
+  }, []);
 
   const filteredLetters = HEBREW_ALPHABET.filter((item) => {
     if (selectedCategory === 'regular') return !item.isSofit;
@@ -120,11 +162,26 @@ export const AlphabetTrainer: React.FC<AlphabetTrainerProps> = ({ userProfile })
   };
 
   useEffect(() => {
-    if (activeTab === 'canvas') {
-      clearCanvas();
-      stopAnimation();
+    if (animTimeoutRef.current) {
+      clearTimeout(animTimeoutRef.current);
+      animTimeoutRef.current = null;
     }
-  }, [selectedLetter, activeTab, clearCanvas]);
+    if (activeTab === 'canvas') {
+      const canvas = canvasRef.current;
+      if (canvas) {
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+      }
+    }
+    return () => {
+      if (animTimeoutRef.current) {
+        clearTimeout(animTimeoutRef.current);
+        animTimeoutRef.current = null;
+      }
+    };
+  }, [selectedLetter, activeTab]);
 
   // --- Точный расчёт координат (Pointer Events + Retina) ---
   const getCanvasCoords = (e: React.PointerEvent<HTMLCanvasElement>) => {
@@ -212,16 +269,7 @@ export const AlphabetTrainer: React.FC<AlphabetTrainerProps> = ({ userProfile })
   };
 
   // --- Анимация демонстрации начертания ---
-  const stopAnimation = () => {
-    setIsAnimating(false);
-    setActiveAnimStroke(null);
-    if (animTimeoutRef.current) {
-      clearTimeout(animTimeoutRef.current);
-      animTimeoutRef.current = null;
-    }
-  };
-
-  const playDemoAnimation = () => {
+  const playDemoAnimation = useCallback(() => {
     if (!currentRule || currentRule.strokes.length === 0) return;
     stopAnimation();
     setIsAnimating(true);
@@ -239,7 +287,7 @@ export const AlphabetTrainer: React.FC<AlphabetTrainerProps> = ({ userProfile })
         stopAnimation();
       }, 2500);
     }
-  };
+  }, [currentRule, stopAnimation]);
 
   const handleNextLetter = () => {
     stopAnimation();
@@ -263,16 +311,10 @@ export const AlphabetTrainer: React.FC<AlphabetTrainerProps> = ({ userProfile })
 
   // --- Квиз по прописям ---
   const currentQuizLetter = HEBREW_ALPHABET[quizIndex];
-
-  useEffect(() => {
-    if (!currentQuizLetter) return;
-    setSelectedOption(null);
-
-    const others = HEBREW_ALPHABET.filter((l) => l.id !== currentQuizLetter.id);
-    const shuffledOthers = others.sort(() => Math.random() - 0.5).slice(0, 3);
-    const all = [...shuffledOthers, currentQuizLetter].sort(() => Math.random() - 0.5);
-    setQuizOptions(all);
-  }, [quizIndex, currentQuizLetter]);
+  const quizOptions = React.useMemo(
+    () => getQuizOptionsForIndex(quizIndex, currentQuizLetter),
+    [quizIndex, currentQuizLetter]
+  );
 
   const handleQuizAnswer = (chosenLetterId: string) => {
     setSelectedOption(chosenLetterId);
@@ -284,6 +326,7 @@ export const AlphabetTrainer: React.FC<AlphabetTrainerProps> = ({ userProfile })
     }
 
     setTimeout(() => {
+      setSelectedOption(null);
       if (quizIndex + 1 < 10) {
         setQuizIndex((prev) => prev + 1);
       } else {
@@ -619,9 +662,21 @@ export const AlphabetTrainer: React.FC<AlphabetTrainerProps> = ({ userProfile })
                       <span>Правила написания буквы:</span>
                     </div>
 
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-200/80 dark:bg-amber-900/80 text-amber-900 dark:text-amber-200">
-                      {currentRule.strokesCount === 1 ? '1 слитный штрих' : '2 штриха с отрывом руки'}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={isAnimating ? stopAnimation : playDemoAnimation}
+                        className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-200/90 hover:bg-amber-300 dark:bg-amber-900/80 text-amber-900 dark:text-amber-200 flex items-center gap-1 transition cursor-pointer"
+                        title={isAnimating ? 'Остановить показ' : 'Показать порядок штрихов'}
+                      >
+                        {isAnimating ? <Square className="w-2.5 h-2.5" /> : <Play className="w-2.5 h-2.5" />}
+                        <span>{isAnimating ? 'Стоп' : 'Показ'}</span>
+                      </button>
+
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-200/80 dark:bg-amber-900/80 text-amber-900 dark:text-amber-200">
+                        {currentRule.strokesCount === 1 ? '1 слитный штрих' : '2 штриха с отрывом руки'}
+                      </span>
+                    </div>
                   </div>
 
                   <p className="text-xs text-amber-950 dark:text-amber-200 leading-relaxed font-medium">

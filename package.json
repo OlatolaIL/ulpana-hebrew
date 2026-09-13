@@ -4,9 +4,12 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "next build --webpack",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "eslint src",
+    "typecheck": "next typegen && tsc --noEmit",
+    "test": "node --require ./tests/register.cjs --test --test-isolation=none tests/*.test.cjs",
+    "test:db": "node --require ./tests/register.cjs --test --test-isolation=none tests/database.integration.cjs",
     "demo:record": "node scripts/record_demo_walkthrough.mjs",
     "demo:record-audio": "node scripts/record_full_walkthrough_with_sound.mjs"
   },
@@ -16,7 +19,7 @@
     "clsx": "^2.1.1",
     "jose": "^6.2.10",
     "lucide-react": "^1.33.0",
-    "next": "16.3.2",
+    "next": "16.3.5",
     "pg": "^8.23.0",
     "react": "19.2.8",
     "react-dom": "19.2.8",
@@ -31,7 +34,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
-    "eslint-config-next": "16.3.2",
+    "eslint-config-next": "16.3.5",
     "playwright": "^1.63.0",
     "tailwindcss": "^4",
     "typescript": "^5"

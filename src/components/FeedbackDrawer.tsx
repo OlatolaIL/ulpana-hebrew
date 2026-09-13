@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useSyncExternalStore } from 'react';
 import { createPortal } from 'react-dom';
 import {
   X,
@@ -35,13 +35,54 @@ interface FeedbackDrawerProps {
 
 type FeedbackCategory = 'bug' | 'idea' | 'question';
 
+interface SpeechRecognitionEventLike {
+  resultIndex: number;
+  results: {
+    length: number;
+    [index: number]: {
+      isFinal: boolean;
+      [index: number]: { transcript: string };
+    };
+  };
+}
+
+interface SpeechRecognitionErrorEventLike {
+  error: string;
+}
+
+interface SpeechRecognitionLike {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  maxAlternatives?: number;
+  onstart: (() => void) | null;
+  onresult: ((event: SpeechRecognitionEventLike) => void) | null;
+  onerror: ((event: SpeechRecognitionErrorEventLike) => void) | null;
+  onend: (() => void) | null;
+  start: () => void;
+  stop: () => void;
+  abort?: () => void;
+}
+
+type SpeechRecognitionConstructor = new () => SpeechRecognitionLike;
+
+interface TelegramWebAppWindow {
+  Telegram?: {
+    WebApp?: {
+      initData?: string;
+    };
+  };
+}
+
+const emptySubscribe = () => () => {};
+
 export const FeedbackDrawer: React.FC<FeedbackDrawerProps> = ({
   isOpen,
   onClose,
   userProfile,
   pageContext,
 }) => {
-  const [mounted, setMounted] = useState(false);
+  const isClient = useSyncExternalStore(emptySubscribe, () => true, () => false);
   const [category, setCategory] = useState<FeedbackCategory>('bug');
   const [message, setMessage] = useState('');
   const [isSending, setIsSending] = useState(false);
@@ -53,14 +94,37 @@ export const FeedbackDrawer: React.FC<FeedbackDrawerProps> = ({
   const [speechLang, setSpeechLang] = useState<'ru-RU' | 'he-IL'>('ru-RU');
   const [speechError, setSpeechError] = useState<string | null>(null);
   const [interimText, setInterimText] = useState('');
-  const recognitionRef = useRef<any>(null);
+  const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
+
+  // Сброс состояния при закрытии
+  const [prevIsOpen, setPrevIsOpen] = useState(isOpen);
+  if (isOpen !== prevIsOpen) {
+    setPrevIsOpen(isOpen);
+    if (!isOpen) {
+      setIsSuccess(false);
+      setErrorMsg(null);
+      setSpeechError(null);
+      setIsListening(false);
+      setInterimText('');
+    }
+  }
+
+  const stopVoiceRecognition = useCallback(() => {
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.onresult = null;
+        recognitionRef.current.onerror = null;
+        recognitionRef.current.onend = null;
+        recognitionRef.current.stop();
+      } catch {}
+      recognitionRef.current = null;
+    }
+    setIsListening(false);
+    setInterimText('');
+  }, []);
 
   // Привязка к истории браузера (кнопка назад / свайп назад на смартфонах)
   useModalHistory(isOpen, onClose, 'feedback-drawer');
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   // Закрытие по клавише Escape
   useEffect(() => {
@@ -73,28 +137,11 @@ export const FeedbackDrawer: React.FC<FeedbackDrawerProps> = ({
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
+  }, [isOpen, onClose, stopVoiceRecognition]);
 
-  // Сброс состояния при закрытии
+  // Остановка распознавания речи при закрытии или размонтировании
   useEffect(() => {
-    if (!isOpen) {
-      stopVoiceRecognition();
-      setIsSuccess(false);
-      setErrorMsg(null);
-      setSpeechError(null);
-      setInterimText('');
-    }
-  }, [isOpen]);
-
-  // Остановка распознавания речи при размонтировании
-  useEffect(() => {
-    return () => {
-      stopVoiceRecognition();
-    };
-  }, []);
-
-  const stopVoiceRecognition = () => {
-    if (recognitionRef.current) {
+    if (!isOpen && recognitionRef.current) {
       try {
         recognitionRef.current.onresult = null;
         recognitionRef.current.onerror = null;
@@ -103,17 +150,33 @@ export const FeedbackDrawer: React.FC<FeedbackDrawerProps> = ({
       } catch {}
       recognitionRef.current = null;
     }
-    setIsListening(false);
-    setInterimText('');
-  };
+  }, [isOpen]);
+
+  useEffect(() => {
+    return () => {
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.onresult = null;
+          recognitionRef.current.onerror = null;
+          recognitionRef.current.onend = null;
+          recognitionRef.current.stop();
+        } catch {}
+        recognitionRef.current = null;
+      }
+    };
+  }, []);
 
   const startVoiceRecognition = () => {
     setSpeechError(null);
 
     if (typeof window === 'undefined') return;
 
+    const windowWithSpeech = window as unknown as {
+      SpeechRecognition?: SpeechRecognitionConstructor;
+      webkitSpeechRecognition?: SpeechRecognitionConstructor;
+    };
     const SpeechRecognition =
-      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      windowWithSpeech.SpeechRecognition || windowWithSpeech.webkitSpeechRecognition;
 
     if (!SpeechRecognition) {
       setSpeechError('Голосовой ввод не поддерживается в вашем браузере. Вы можете ввести текст вручную.');
@@ -133,7 +196,7 @@ export const FeedbackDrawer: React.FC<FeedbackDrawerProps> = ({
         setIsListening(true);
       };
 
-      rec.onresult = (event: any) => {
+      rec.onresult = (event: SpeechRecognitionEventLike) => {
         let currentInterim = '';
         let finalChunk = '';
 
@@ -154,7 +217,7 @@ export const FeedbackDrawer: React.FC<FeedbackDrawerProps> = ({
         }
       };
 
-      rec.onerror = (event: any) => {
+      rec.onerror = (event: SpeechRecognitionErrorEventLike) => {
         if (event.error === 'no-speech') {
           return;
         }
@@ -174,8 +237,9 @@ export const FeedbackDrawer: React.FC<FeedbackDrawerProps> = ({
 
       recognitionRef.current = rec;
       rec.start();
-    } catch (err: any) {
-      setSpeechError(err?.message || 'Не удалось запустить микрофон');
+    } catch (err: unknown) {
+      const errText = err instanceof Error ? err.message : 'Не удалось запустить микрофон';
+      setSpeechError(errText);
       setIsListening(false);
     }
   };
@@ -249,7 +313,9 @@ export const FeedbackDrawer: React.FC<FeedbackDrawerProps> = ({
           userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : '',
           screenSize:
             typeof window !== 'undefined' ? `${window.innerWidth}x${window.innerHeight}` : '',
-          isTelegramWebApp: typeof window !== 'undefined' && Boolean((window as any).Telegram?.WebApp?.initData),
+          isTelegramWebApp:
+            typeof window !== 'undefined' &&
+            Boolean((window as unknown as TelegramWebAppWindow).Telegram?.WebApp?.initData),
         },
       };
 
@@ -267,8 +333,10 @@ export const FeedbackDrawer: React.FC<FeedbackDrawerProps> = ({
 
       setIsSuccess(true);
       setMessage('');
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Не удалось отправить сообщение. Попробуйте написать напрямую в Telegram.');
+    } catch (err: unknown) {
+      const errText =
+        err instanceof Error ? err.message : 'Не удалось отправить сообщение. Попробуйте написать напрямую в Telegram.';
+      setErrorMsg(errText);
     } finally {
       setIsSending(false);
     }
@@ -286,7 +354,7 @@ export const FeedbackDrawer: React.FC<FeedbackDrawerProps> = ({
     return `https://t.me/Osa_IL?text=${encodeURIComponent(fullText)}`;
   };
 
-  if (!mounted || !isOpen || typeof document === 'undefined') {
+  if (!isClient || !isOpen || typeof document === 'undefined') {
     return null;
   }
 

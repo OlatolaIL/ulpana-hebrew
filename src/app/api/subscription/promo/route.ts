@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifySessionToken, createSessionToken } from '@/lib/auth';
 import { getDbPool } from '@/lib/db';
 import { UserSession } from '@/types';
+import { IS_EARLY_ACCESS_FREE } from '@/lib/config';
 
 const STATIC_PROMO_CODES: Record<string, number> = {
   ULPANA2026: 30,
@@ -9,6 +10,9 @@ const STATIC_PROMO_CODES: Record<string, number> = {
 };
 
 export async function POST(req: NextRequest) {
+  if (IS_EARLY_ACCESS_FREE) {
+    return NextResponse.json({ error: 'Во время бесплатной беты промокод не требуется.' }, { status: 409 });
+  }
   try {
     const token = req.cookies.get('ulpana_session')?.value;
     if (!token) {

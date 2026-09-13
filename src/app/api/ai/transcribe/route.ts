@@ -1,55 +1,28 @@
+import { geminiModel, resolveAiKeys } from '@/lib/aiModels';
+import { normalizeHebrewHomophones, isWhisperSilenceHallucination } from '@/lib/speechTranscription';
+import { checkAiRequest, fetchAi, aiErrorResponse, AiRequestError } from '@/lib/aiRequest';
 import { NextRequest, NextResponse } from 'next/server';
+import { readBoundedForm } from '@/lib/requestBody';
 
-function normalizeHebrewHomophones(text: string): string {
-  if (!text) return '';
-  let res = text.trim();
-  res = res.replace(/(^|[\s.,!?:;])(זֶ?ה|הִ?נֵּ?ה|כֵּ?ן\s+זֶ?ה)\s+(?:עֵ?ת|אֵ?ט|טֵ?ת|טת)(?=[\s.,!?:;]|$)/gi, '$1$2 עֵט');
-  res = res.replace(/(^|[\s.,!?:;])(זה|הנה|כן\s+זה)\s+(?:עת|אט|טת)(?=[\s.,!?:;]|$)/gi, '$1$2 עט');
-  res = res.replace(/^(?:עת|אט|טת)[.!?]?$/gi, 'עט');
-  res = res.replace(/^(?:עֵת|אֵט|טֵת)[.!?]?$/gi, 'עֵט');
-  return res;
-}
 
-export function isWhisperSilenceHallucination(text: string): boolean {
-  if (!text) return true;
-  const clean = text
-    .replace(/[.,!?:;״"'\-_/\\]/g, '')
-    .trim()
-    .toLowerCase();
 
-  const hallucinations = new Set([
-    'תודה',
-    'תודה רבה',
-    'תודה רבה לך',
-    'תודה על הצפייה',
-    'תודה שצפיתם',
-    'צפייה מהנה',
-    'thank you',
-    'thanks for watching',
-    'thank you for watching',
-    'спасибо за просмотр',
-    'спасибо',
-    'субтитры',
-  ]);
 
-  return hallucinations.has(clean);
-}
 
 export async function POST(req: NextRequest) {
   try {
-    const formData = await req.formData();
+    await checkAiRequest(req);
+    if (Number(req.headers.get('content-length') || 0) > 10 * 1024 * 1024) throw new AiRequestError('Слишком большая запись.', 413);
+    const formData = await readBoundedForm(req, 10 * 1024 * 1024);
     const file = formData.get('file') as Blob | File | null;
     const prompt = (formData.get('prompt') as string) || '';
     const customKey = (formData.get('apiKey') as string) || '';
 
-    if (!file) {
+    if (!(file instanceof Blob) || !file.type.startsWith('audio/') || file.size === 0 || file.size > 10 * 1024 * 1024 || prompt.length > 2000) {
       return NextResponse.json({ error: 'No audio file provided' }, { status: 400 });
     }
 
     const provider = (formData.get('provider') as string) || 'groq';
-    const defaultKey = ['gsk_', '0fWO7WvRuW3BosCcz81n', 'WGdyb3FY1G6aD7IaBjhD', '22BG3YEGMokO'].join('');
-    const groqKey = (customKey || process.env.GROQ_API_KEY || defaultKey).trim();
-    const geminiKey = (customKey || process.env.GEMINI_API_KEY || '').trim();
+    const { groqKey, geminiKey } = resolveAiKeys(provider, customKey);
 
     // 1. Если выбран Gemini и есть ключ — используем Gemini Transcribe
     if (provider === 'gemini' && geminiKey) {
@@ -58,8 +31,8 @@ export async function POST(req: NextRequest) {
         const base64Audio = Buffer.from(arrayBuffer).toString('base64');
         const mimeType = file.type || 'audio/webm';
 
-        const geminiRes = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-transcribe:generateContent?key=${geminiKey}`,
+        const geminiRes = await fetchAi(
+          `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel()}:generateContent?key=${geminiKey}`,
           {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -93,13 +66,13 @@ export async function POST(req: NextRequest) {
             if (isWhisperSilenceHallucination(text)) {
               return NextResponse.json({
                 text: '',
-                engine: 'Gemini 3.5 Transcribe (silence filtered)',
+                engine: 'Gemini (silence filtered)',
                 filtered: true,
               });
             }
             return NextResponse.json({
               text,
-              engine: 'Gemini 3.5 Transcribe',
+              engine: 'Gemini',
             });
           }
         }
@@ -123,7 +96,7 @@ export async function POST(req: NextRequest) {
           groqFormData.append('prompt', prompt);
         }
 
-        const groqRes = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
+        const groqRes = await fetchAi('https://api.groq.com/openai/v1/audio/transcriptions', {
           method: 'POST',
           headers: {
             Authorization: `Bearer ${groqKey}`,
@@ -145,7 +118,7 @@ export async function POST(req: NextRequest) {
           const isHallucination = isWhisperSilenceHallucination(text);
 
           // Если Whisper выдал классическую галлюцинацию тишины или вероятность отсутствия речи высокая (> 0.45)
-          if (isHallucination || avgNoSpeechProb > 0.45) {
+          if (avgNoSpeechProb > 0.8 || (isHallucination && avgNoSpeechProb > 0.45)) {
             return NextResponse.json({
               text: '',
               engine: 'Groq Whisper V3',
@@ -168,8 +141,5 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json({ error: 'Не удалось распознать речь' }, { status: 500 });
-  } catch (error: any) {
-    console.error('Transcribe route error:', error);
-    return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
-  }
+  } catch (error: any) { return aiErrorResponse(error); }
 }

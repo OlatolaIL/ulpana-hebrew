@@ -1,6 +1,5 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
-  Volume2,
   CheckCircle2,
   XCircle,
   ArrowRight,
@@ -10,7 +9,7 @@ import {
   Link2,
 } from 'lucide-react';
 import { Word, UserProfile } from '@/types';
-import { extractVerbTriad, VerbTriadInfo } from '@/lib/verbTriad';
+import { extractVerbTriad } from '@/lib/verbTriad';
 import { stripNikkud } from '@/lib/transcription';
 
 interface ConjugationModeProps {
@@ -33,11 +32,25 @@ interface OptionItem {
   isCorrect: boolean;
 }
 
+function deterministicShuffle<T>(items: T[], seedStr: string): T[] {
+  const result = [...items];
+  let seed = 0;
+  for (let i = 0; i < seedStr.length; i++) {
+    seed = (seed * 31 + seedStr.charCodeAt(i)) >>> 0;
+  }
+  for (let i = result.length - 1; i > 0; i--) {
+    seed = (seed * 1664525 + 1013904223) >>> 0;
+    const j = seed % (i + 1);
+    const temp = result[i];
+    result[i] = result[j];
+    result[j] = temp;
+  }
+  return result;
+}
+
 export const ConjugationMode: React.FC<ConjugationModeProps> = ({
   currentWord,
   userProfile,
-  currentIndex,
-  wordsLength,
   onAdvanceNext,
   onSpeakHebrew,
   onOpenPealim,
@@ -51,10 +64,12 @@ export const ConjugationMode: React.FC<ConjugationModeProps> = ({
   const [isAnswered, setIsAnswered] = useState(false);
 
   // Сброс при смене слова
-  useEffect(() => {
+  const [prevWordId, setPrevWordId] = useState(currentWord.id);
+  if (currentWord.id !== prevWordId) {
+    setPrevWordId(currentWord.id);
     setSelectedOptionId(null);
     setIsAnswered(false);
-  }, [currentWord]);
+  }
 
   // Генерация вариантов ответов
   const options = useMemo<OptionItem[]>(() => {
@@ -69,7 +84,7 @@ export const ConjugationMode: React.FC<ConjugationModeProps> = ({
         ...distractors.map((p, idx) => ({ id: `dist-${idx}`, hebrew: p, isCorrect: false })),
       ];
       // Перемешиваем детерминированно относительно слова
-      return combined.sort(() => (currentWord.id.charCodeAt(0) % 2 === 0 ? 0.5 - Math.random() : Math.random() - 0.5));
+      return deterministicShuffle(combined, `${currentWord.id}_prep`);
     }
 
     // По умолчанию: «Мостик времён: Настоящее (он) -> Прошедшее (он)»
@@ -138,28 +153,31 @@ export const ConjugationMode: React.FC<ConjugationModeProps> = ({
       ...uniqueDistractors,
     ];
 
-    return combined.sort(() => 0.5 - Math.random());
+    return deterministicShuffle(combined, `${currentWord.id}_tense`);
   }, [triad, drillType, currentWord]);
 
-  const handleSelectOption = (opt: OptionItem) => {
-    if (isAnswered) return;
-    setSelectedOptionId(opt.id);
-    setIsAnswered(true);
+  const handleSelectOption = useCallback(
+    (opt: OptionItem) => {
+      if (isAnswered) return;
+      setSelectedOptionId(opt.id);
+      setIsAnswered(true);
 
-    if (opt.isCorrect) {
-      onSpeakHebrew(opt.hebrew);
-    } else {
-      const correctOpt = options.find((o) => o.isCorrect);
-      if (correctOpt) {
-        setTimeout(() => onSpeakHebrew(correctOpt.hebrew), 300);
+      if (opt.isCorrect) {
+        onSpeakHebrew(opt.hebrew);
+      } else {
+        const correctOpt = options.find((o) => o.isCorrect);
+        if (correctOpt) {
+          setTimeout(() => onSpeakHebrew(correctOpt.hebrew), 300);
+        }
       }
-    }
-  };
+    },
+    [isAnswered, onSpeakHebrew, options]
+  );
 
-  const handleNext = () => {
+  const handleNext = useCallback(() => {
     const isCorrect = options.find((o) => o.id === selectedOptionId)?.isCorrect;
     onAdvanceNext(isCorrect ? 5 : 2);
-  };
+  }, [onAdvanceNext, options, selectedOptionId]);
 
   // Горячие клавиши (цифры 1-4 и пробел/Enter для далее)
   useEffect(() => {
@@ -176,7 +194,7 @@ export const ConjugationMode: React.FC<ConjugationModeProps> = ({
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isAnswered, options, selectedOptionId]);
+  }, [handleNext, handleSelectOption, isAnswered, options]);
 
   if (!triad) {
     return (

@@ -137,6 +137,8 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
           addedWords={addedWords}
           onAddWord={handleAddWord}
           debriefReport={debriefReport}
+          loadingDebrief={loadingDebrief}
+          evaluationNotice={speechNotice}
           onOpenDialogueReview={() => setShowDialogueReviewModal(true)}
           onStartCall={handleStartCall}
           onBackToLesson={onBackToLesson}

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo, useSyncExternalStore } from 'react';
 import confetti from 'canvas-confetti';
 import { Lesson, UserProfile, Word, ChatMessage, PhoneDebriefReport } from '@/types';
 import { getLessonPhoneScenario } from '@/data/phoneScenarios';
@@ -19,6 +19,7 @@ interface UsePhoneCallProps {
   onUpdateProfile?: (profile: UserProfile) => void;
   onWordAdded?: (word: Word) => void;
 }
+const subscribeToHydration = () => () => {};
 
 export function usePhoneCall({
   lesson,
@@ -45,7 +46,7 @@ export function usePhoneCall({
   const [addedWords, setAddedWords] = useState<Record<string, boolean>>({});
   const [speechNotice, setSpeechNotice] = useState<string | null>(null);
   const [isAiHangingUp, setIsAiHangingUp] = useState(false);
-  const [mounted, setMounted] = useState(false);
+  const mounted = useSyncExternalStore(subscribeToHydration, () => true, () => false);
   const [isWordsDrawerOpen, setIsWordsDrawerOpen] = useState(false);
   const [showDialogueReviewModal, setShowDialogueReviewModal] = useState(false);
   const [debriefReport, setDebriefReport] = useState<PhoneDebriefReport | null>(null);
@@ -61,14 +62,16 @@ export function usePhoneCall({
   const loadingAiRef = useRef(false);
   const isRecordingRef = useRef(false);
   const isMutedRef = useRef(false);
-  const timerRef = useRef<NodeJS.Timeout | any>(null);
-  const autoListenTimeoutRef = useRef<NodeJS.Timeout | any>(null);
-  const silenceTimeoutRef = useRef<NodeJS.Timeout | any>(null);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const autoListenTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const silenceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const callStartTimeRef = useRef<number>(0);
   const callDurationRef = useRef<number>(0);
   const callLogIdRef = useRef<string>('');
   const isSendingRef = useRef(false);
   const callActiveRef = useRef(false);
+  const callGenerationRef = useRef(0);
+  const endingCallRef = useRef(false);
   const shouldListenRef = useRef(false);
   const lastAiSpokenTextRef = useRef('');
   const lastAiSpokenTimeRef = useRef(0);
@@ -103,9 +106,9 @@ export function usePhoneCall({
 
   // Инициализация распознавания речи
   useEffect(() => {
-    setMounted(true);
     recognizerRef.current = new HebrewSpeechRecognizer();
     return () => {
+      callGenerationRef.current += 1;
       callActiveRef.current = false;
       shouldListenRef.current = false;
       phoneAudio.stopAll();
@@ -131,8 +134,6 @@ export function usePhoneCall({
       if (!callStartTimeRef.current) {
         callStartTimeRef.current = Date.now();
       }
-      callDurationRef.current = 0;
-      setCallDuration(0);
       timerRef.current = setInterval(() => {
         const sec = Math.max(0, Math.round((Date.now() - (callStartTimeRef.current || Date.now())) / 1000));
         callDurationRef.current = sec;
@@ -372,6 +373,10 @@ export function usePhoneCall({
 
   // Запуск вызова
   const handleStartCall = async () => {
+    const generation = ++callGenerationRef.current;
+    endingCallRef.current = false;
+    setDebriefReport(null);
+    setLoadingDebrief(false);
     // 1. Активируем AudioContext прямо по клику пользователя (User Gesture)
     const ctx = phoneAudio.getContext();
     if (ctx && ctx.state === 'suspended') {
@@ -388,12 +393,17 @@ export function usePhoneCall({
             autoGainControl: true,
           },
         });
+        if (generation !== callGenerationRef.current) {
+          stream.getTracks().forEach(track => track.stop());
+          return;
+        }
         activeMicStreamRef.current = stream;
       } catch (err) {
         console.warn('Mic permission error:', err);
       }
     }
 
+    if (generation !== callGenerationRef.current) return;
     setCallState('dialing');
     setBothMessages([]);
     setLastFeedback(null);
@@ -415,8 +425,10 @@ export function usePhoneCall({
 
     // Через 2.4 секунды контакт "поднимает трубку"
     setTimeout(async () => {
+      if (generation !== callGenerationRef.current) return;
       phoneAudio.stopAll();
       await phoneAudio.playPickupSound();
+      if (generation !== callGenerationRef.current) return;
 
       const initialAiMsg: ChatMessage = {
         id: `ai-init-${Date.now()}`,
@@ -453,7 +465,7 @@ export function usePhoneCall({
   };
 
   // Отправка реплики собеседнику
-  const handleSendMessage = async (
+  async function handleSendMessage(
     textToSend?: string,
     meta?: {
       translation?: string;
@@ -461,13 +473,14 @@ export function usePhoneCall({
       audioBlob?: Blob | null;
       audioUrl?: string | null;
     }
-  ) => {
+  ) {
     stopListening();
     const text = (textToSend || textInput || liveTranscript).trim();
 
     if (!text || loadingAiRef.current || isSendingRef.current || !callActiveRef.current) {
       return;
     }
+    const generation = callGenerationRef.current;
 
     // Защита от эхо собственного голоса ИИ и галлюцинаций тишины Whisper
     if ((isEchoFromAi(text) || isWhisperSilenceHallucination(text)) && !textToSend && !textInput) {
@@ -542,7 +555,10 @@ export function usePhoneCall({
         }),
       });
 
+      if (!res.ok) throw new Error('Собеседник сейчас недоступен. Попробуйте ещё раз.');
       const data = await res.json();
+      if (generation !== callGenerationRef.current) return;
+      if (typeof data.hebrew !== 'string' || !data.hebrew.trim()) throw new Error('Не удалось получить ответ собеседника.');
       const willHangUp = Boolean(data.shouldHangUp || data.isCompleted);
 
       if (willHangUp) {
@@ -568,7 +584,9 @@ export function usePhoneCall({
       // Озвучиваем ответ ИИ (если willHangUp = true, после реплики ИИ сам повесит трубку)
       playAiVoice(aiMsg.hebrew, willHangUp);
     } catch (err) {
+      if (generation !== callGenerationRef.current) return;
       console.error('Phone AI Error:', err);
+      setSpeechNotice('Ответ собеседника не получен. Можно повторить фразу или завершить звонок.');
       setAiLoading(false);
       isSendingRef.current = false;
       setTimeout(() => {
@@ -580,7 +598,10 @@ export function usePhoneCall({
   };
 
   // Завершение звонка
-  const handleEndCall = async () => {
+  async function handleEndCall() {
+    if (endingCallRef.current) return;
+    endingCallRef.current = true;
+    const generation = ++callGenerationRef.current;
     callActiveRef.current = false;
     setIsAiHangingUp(false);
     isAiHangingUpRef.current = false;
@@ -610,6 +631,7 @@ export function usePhoneCall({
     callLogIdRef.current = currentCallLogId;
 
     await phoneAudio.playHangupTone(2);
+    if (generation !== callGenerationRef.current) return;
     setCallState('ended');
     setShowDialogueReviewModal(true);
 
@@ -617,7 +639,7 @@ export function usePhoneCall({
 
     // Фоновая выгрузка аудиозаписей реплик ученика на сервер/в облако (строго 1 последняя попытка)
     currentMessages.forEach(async (m, idx) => {
-      if (m.role === 'user' && m.userAudioBlob) {
+      if (userProfile.isLoggedIn && m.role === 'user' && m.userAudioBlob) {
         try {
           const form = new FormData();
           form.append('file', m.userAudioBlob);
@@ -633,7 +655,7 @@ export function usePhoneCall({
           });
           if (upRes.ok) {
             const data = await upRes.json();
-            if (data.url) {
+            if (generation === callGenerationRef.current && data.url) {
               m.userAudioUrl = data.url;
               setBothMessages([...messagesRef.current]);
             }
@@ -653,7 +675,6 @@ export function usePhoneCall({
     }));
 
     const userMessages = currentMessages.filter((m) => m.role === 'user');
-    const isSuccessCall = userMessages.length >= 1;
 
     // 1. Сохраняем в локальное хранилище
     try {
@@ -685,7 +706,7 @@ export function usePhoneCall({
           callerRole: scenario.callerRole,
           durationSeconds: finalDurationSeconds,
           transcript: formattedTranscript,
-          feedback: isSuccessCall ? 'Звонок успешно завершен' : 'Разговор прерван',
+          feedback: userMessages.length ? 'Разговор завершён, оценка ещё не получена' : 'Разговор прерван без ответов ученика',
           userName: userProfile.name || 'Ученик',
         }),
       }).catch((e) => console.warn('[PhoneCall] Immediate call log warning:', e));
@@ -718,9 +739,14 @@ export function usePhoneCall({
                 : userProfile.geminiApiKey,
           }),
         })
-          .then((r) => r.json())
-          .then((debrief: PhoneDebriefReport) => {
+          .then((r) => { if (!r.ok) throw new Error('Проверка разговора недоступна'); return r.json(); })
+            .then((debrief: PhoneDebriefReport) => {
+              if (generation !== callGenerationRef.current) return;
             setDebriefReport(debrief);
+            if (debrief.isSuccess === true) {
+              const updated = markLessonTabCompleted(lesson.id, 'phone');
+              onUpdateProfile?.(updated);
+            }
             // Обновляем лог в БД с готовым отзывом учителя и свежими audio URLs
             fetch('/api/calls/log', {
               method: 'POST',
@@ -745,9 +771,10 @@ export function usePhoneCall({
           })
           .catch((err) => {
             console.warn('Debrief fetch error:', err);
+            if (generation === callGenerationRef.current) setSpeechNotice('Разговор сохранён локально. Оценка недоступна, этап не зачтён.');
           })
-          .finally(() => {
-            setLoadingDebrief(false);
+            .finally(() => {
+              if (generation === callGenerationRef.current) setLoadingDebrief(false);
           });
       } catch (err) {
         console.warn('Debrief error:', err);
@@ -755,22 +782,7 @@ export function usePhoneCall({
       }
     }
 
-    if (isSuccessCall) {
-      // Начисление прогресса в уроке
-      const updated = markLessonTabCompleted(lesson.id, 'phone');
-      if (onUpdateProfile) {
-        onUpdateProfile(updated);
-      }
 
-      // Запуск конфетти
-      try {
-        confetti({
-          particleCount: 70,
-          spread: 60,
-          origin: { y: 0.6 },
-        });
-      } catch {}
-    }
   };
 
   // Добавление слова в личный словарь

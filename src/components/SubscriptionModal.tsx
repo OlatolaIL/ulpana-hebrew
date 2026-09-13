@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { X, Crown, CheckCircle2, Sparkles, KeyRound, AlertCircle, ArrowRight, MessageSquare, Send } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { UserProfile, UserSession } from '@/types';
+import { IS_EARLY_ACCESS_FREE } from '@/lib/config';
 
 interface SubscriptionModalProps {
   isOpen: boolean;
@@ -26,6 +27,22 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
   if (!isOpen) return null;
+
+  if (IS_EARLY_ACCESS_FREE) {
+    return (
+      <div role="dialog" aria-modal="true" aria-labelledby="beta-access-title" className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+        <div className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-3xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6 space-y-5">
+          <button type="button" onClick={onClose} aria-label="Закрыть информацию о бете" className="absolute top-3 right-3 p-2"><X className="w-5 h-5" /></button>
+          <h2 id="beta-access-title" className="pr-8 text-xl font-bold">Открытая бесплатная бета</h2>
+          <p>Все 100 уроков, словарь, карточки и учебные разговоры доступны бесплатно на время беты. Покупать PRO или вводить промокод сейчас не нужно.</p>
+          <p className="text-sm text-zinc-600 dark:text-zinc-300">Первые два урока можно попробовать без входа. Для дальнейших уроков и сохранения прогресса между устройствами войдите в аккаунт.</p>
+          <p className="text-sm text-zinc-600 dark:text-zinc-300">Курс и автоматическая проверка ещё дорабатываются. О неточности можно сообщить через кнопку обратной связи.</p>
+          {!userProfile.isLoggedIn && <button type="button" onClick={() => { onClose(); onOpenAuth(); }} className="w-full rounded-xl bg-blue-600 px-4 py-3 font-bold text-white">Войти бесплатно</button>}
+          <button type="button" onClick={onClose} className="w-full rounded-xl border border-zinc-300 dark:border-zinc-700 px-4 py-3 font-semibold">Продолжить обучение</button>
+        </div>
+      </div>
+    );
+  }
 
   const isPro = userProfile.subscriptionTier === 'pro' || userProfile.subscriptionTier === 'admin';
   const expiresDate = userProfile.subscriptionExpiresAt
@@ -112,7 +129,7 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
               </div>
             </div>
             <span className="px-2 py-0.5 rounded-md text-[10px] font-extrabold bg-amber-500 text-white shrink-0">
-              PRO БЕТА
+              БЕТА
             </span>
           </div>
         </div>

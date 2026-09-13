@@ -79,7 +79,7 @@ export function getInitialMessageForGender(
   // Общий шаблон для остальных уроков с автозаменой обращений
   let heb = lesson.dialogue.initialMessage.hebrew;
   let tr = lesson.dialogue.initialMessage.transcription;
-  let transl = lesson.dialogue.initialMessage.translation;
+  const transl = lesson.dialogue.initialMessage.translation;
 
   if (!isFemale) {
     heb = heb

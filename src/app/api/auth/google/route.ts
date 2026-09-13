@@ -50,6 +50,7 @@ export async function POST(req: NextRequest) {
     // 2. Интеграция с базой данных
     await initDatabase();
     const db = getDbPool();
+    if (!db) return NextResponse.json({ error: 'Вход временно недоступен: база данных не подключена.' }, { status: 503 });
 
     if (db) {
       // Ищем по email или по google ID

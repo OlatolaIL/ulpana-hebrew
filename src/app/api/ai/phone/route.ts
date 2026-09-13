@@ -1,9 +1,11 @@
+import { groqModels as configuredGroqModels, geminiModel, resolveAiKeys } from '@/lib/aiModels';
+import { readAiJson, fetchAi, aiErrorResponse } from '@/lib/aiRequest';
 import { NextRequest, NextResponse } from 'next/server';
 import { verifySessionToken } from '@/lib/auth';
 import { checkRateLimit } from '@/lib/rateLimit';
 import { stripNikkud } from '@/lib/transcription';
 import { IS_EARLY_ACCESS_FREE, FREE_LESSONS_LIMIT, FREE_GUEST_LESSONS_LIMIT } from '@/lib/config';
-import { sanitizeRussianTranslation } from '@/app/api/ai/chat/route';
+import { sanitizeRussianTranslation } from '@/lib/russianTranslation';
 import { cleanGrammarJargon, BESPOKE_PHONE_SCENARIOS, getLessonPhoneScenario } from '@/data/phoneScenarios';
 import { DETAILED_LESSONS } from '@/data/lessonsData';
 
@@ -58,7 +60,7 @@ function getGrammarBoundary(lessonNumber: number): string {
 
 export async function POST(req: NextRequest) {
   try {
-    const body: PhoneRequestBody = await req.json();
+    const body = await readAiJson<PhoneRequestBody>(req);
     const {
       messages = [],
       lessonNumber = 1,
@@ -105,10 +107,7 @@ export async function POST(req: NextRequest) {
         { status: 429 }
       );
     }
-
-    const defaultKey = ['gsk_', '0fWO7WvRuW3BosCcz81n', 'WGdyb3FY1G6aD7IaBjhD', '22BG3YEGMokO'].join('');
-    const groqKey = (apiKey || process.env.GROQ_API_KEY || defaultKey).trim();
-    const geminiKey = (apiKey || process.env.GEMINI_API_KEY || '').trim();
+    const { groqKey, geminiKey } = resolveAiKeys(provider, apiKey);
 
     const isFemale = userGender === 'female';
 
@@ -308,17 +307,10 @@ ${shouldForceFinalTurn ? `
 }`;
 
     if (groqKey) {
-      const groqModels = [
-        process.env.GROQ_MODEL,
-        'qwen/qwen3.8-27b',
-        'openai/gpt-oss-120b',
-        'qwen/qwen3.6-27b',
-        'openai/gpt-oss-20b',
-        'groq/compound',
-      ].filter(Boolean) as string[];
+      const groqModels = configuredGroqModels();
       for (const groqModel of groqModels) {
         try {
-          const groqResponse = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          const groqResponse = await fetchAi('https://api.groq.com/openai/v1/chat/completions', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -382,8 +374,8 @@ ${shouldForceFinalTurn ? `
     // 2. Попытка запроса через Gemini API
     if (geminiKey) {
       try {
-        const geminiRes = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiKey}`,
+        const geminiRes = await fetchAi(
+          `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel()}:generateContent?key=${geminiKey}`,
           {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -480,8 +472,5 @@ ${shouldForceFinalTurn ? `
           ],
       engine: 'Автоответчик (Звонок)',
     });
-  } catch (error: any) {
-    console.error('Phone call API error:', error);
-    return NextResponse.json({ error: error.message || 'Server error' }, { status: 500 });
-  }
+  } catch (error: any) { return aiErrorResponse(error); }
 }

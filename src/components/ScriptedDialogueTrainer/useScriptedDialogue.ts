@@ -28,6 +28,7 @@ import {
 import { stripNikkud } from '@/lib/transcription';
 import { phoneAudio } from '@/lib/phoneAudio';
 import { TrainerMode } from './types';
+import { isDialoguePracticeComplete, requestDialogueEvaluation } from '@/lib/dialoguePractice';
 
 interface UseScriptedDialogueProps {
   lesson: Lesson;
@@ -79,7 +80,12 @@ export function useScriptedDialogue({
   const [spokenText, setSpokenText] = useState<string>('');
   const [showHint, setShowHint] = useState<boolean>(false);
   const [lastEvaluation, setLastEvaluation] = useState<DialogueEvaluationResult | null>(null);
+  const [evaluationError, setEvaluationError] = useState<string | null>(null);
   const [turnHistory, setTurnHistory] = useState<Record<number, DialogueEvaluationResult>>({});
+  const [savedTurnAudio, setSavedTurnAudio] = useState<Record<number, string>>({});
+  const acceptedTurnsRef = useRef<Record<number, DialogueEvaluationResult>>({});
+  const practiceSessionRef = useRef(0);
+  const evaluationControllerRef = useRef<AbortController | null>(null);
   const [showSituationModal, setShowSituationModal] = useState<boolean>(false);
 
   // Аудиозапись ученика для прослушивания
@@ -96,35 +102,19 @@ export function useScriptedDialogue({
 
   useEffect(() => {
     setMounted(true);
+    if (!userProfile.isLoggedIn) return;
+    let active = true;
     // Загрузка последней сохраненной попытки аудиозаписей для урока
     fetch(`/api/audio/recording?lessonId=${lesson.id}&stage=chat${userProfile?.id ? `&userId=${userProfile.id}` : ''}`)
-      .then((r) => r.json())
+      .then((r) => r.ok ? r.json() : null)
       .then((data) => {
-        if (data?.recording?.turnsAudio) {
-          const turnsAudio = data.recording.turnsAudio as Record<string, string>;
-          setTurnHistory((prev) => {
-            const updated = { ...prev };
-            Object.entries(turnsAudio).forEach(([idxStr, url]) => {
-              const idx = parseInt(idxStr, 10);
-              if (!updated[idx]) {
-                updated[idx] = {
-                  isCorrect: true,
-                  score: 90,
-                  assessment: 'good',
-                  feedbackRu: 'Запись голоса сохранена',
-                  userSpokenHebrew: '',
-                  userAudioUrl: url,
-                };
-              } else {
-                updated[idx] = { ...updated[idx], userAudioUrl: url };
-              }
-            });
-            return updated;
-          });
+        if (active && data?.recording?.turnsAudio) {
+          setSavedTurnAudio(data.recording.turnsAudio);
         }
       })
       .catch(() => {});
-  }, [lesson.id, userProfile?.id]);
+    return () => { active = false; };
+  }, [lesson.id, userProfile.id, userProfile.isLoggedIn]);
 
   // Список слов для шторки:
   // 1. Полезные выражения и новые слова конкретного диалога (dialogue.usefulWords)
@@ -186,6 +176,12 @@ export function useScriptedDialogue({
   const practiceScrollRef = useRef<HTMLDivElement>(null);
   const evaluationRef = useRef<HTMLDivElement>(null);
   const bottomConsoleRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => () => {
+    practiceSessionRef.current += 1;
+    evaluationControllerRef.current?.abort();
+    recognizerRef.current?.stop();
+  }, [mode]);
 
   // Воспроизведение / пауза записи ученика
   const handleToggleUserAudio = (audioUrlToPlay?: string) => {
@@ -330,12 +326,18 @@ export function useScriptedDialogue({
 
   // Режим 2: Запуск ролевой практики
   const startRoleplay = (chosenRole: 'a' | 'b') => {
+    practiceSessionRef.current += 1;
+    evaluationControllerRef.current?.abort();
+    acceptedTurnsRef.current = {};
     stopSpeech();
     isCancelledRef.current = true;
     setIsPlayingAll(false);
     setUserRoleSide(chosenRole);
     setPracticeTurnIndex(0);
     setLastEvaluation(null);
+    setEvaluationError(null);
+    setIsEvaluating(false);
+    setIsRecording(false);
     setTurnHistory({});
     setSpokenText('');
     setShowHint(false);
@@ -346,6 +348,10 @@ export function useScriptedDialogue({
   useEffect(() => {
     if (mode !== 'practice') return;
     if (practiceTurnIndex >= dialogue.turns.length) {
+      if (!isDialoguePracticeComplete(dialogue.turns, userRoleSide, acceptedTurnsRef.current)) {
+        setMode('select_role');
+        return;
+      }
       // Завершение диалога!
       confetti({ particleCount: 75, spread: 70, origin: { y: 0.6 } });
       const updated = markLessonTabCompleted(lesson.id, 'chat');
@@ -360,6 +366,7 @@ export function useScriptedDialogue({
     const isUserTurn = currentTurn.speaker === userRoleSide;
 
     setLastEvaluation(null);
+    setEvaluationError(null);
     setSpokenText('');
     setShowHint(false);
 
@@ -369,17 +376,19 @@ export function useScriptedDialogue({
       const variant = getTurnText(currentTurn);
       const isFemale = opponentGender === 'female';
 
+      let active = true;
       const timer = setTimeout(async () => {
         await speakHebrew(variant.hebrew, {
           rate: speechRate,
           pitch: isFemale ? 1.1 : 0.95,
         });
+        if (!active) return;
         setIsOpponentSpeaking(false);
         // Передаем ход ученику
         setPracticeTurnIndex((prev) => prev + 1);
       }, 600);
 
-      return () => clearTimeout(timer);
+      return () => { active = false; clearTimeout(timer); stopSpeech(); };
     }
   }, [mode, practiceTurnIndex, userRoleSide, dialogue.turns, opponentGender, speechRate]);
 
@@ -422,6 +431,7 @@ export function useScriptedDialogue({
   };
 
   const startVoiceRecording = () => {
+    if (isEvaluating || mode !== 'practice') return;
     if (isRecording) {
       stopVoiceRecording();
       return;
@@ -441,6 +451,8 @@ export function useScriptedDialogue({
     spokenTextRef.current = '';
     setUserAudioUrl(null);
     setLastEvaluation(null);
+    setEvaluationError(null);
+    delete acceptedTurnsRef.current[practiceTurnIndex];
     evaluatingTurnRef.current = null;
     setIsRecording(true);
     setIsEvaluating(false);
@@ -448,21 +460,26 @@ export function useScriptedDialogue({
 
     const recognizer = new HebrewSpeechRecognizer();
     recognizerRef.current = recognizer;
+    const session = practiceSessionRef.current;
+    const isCurrent = () => session === practiceSessionRef.current && recognizerRef.current === recognizer;
 
     recognizer.start(
       (transcript) => {
+        if (!isCurrent()) return;
         if (transcript) {
           setSpokenText(transcript);
           spokenTextRef.current = transcript;
         }
       },
       (error) => {
+        if (!isCurrent()) return;
         console.warn('Speech recognition error:', error);
         setIsRecording(false);
         setIsEvaluating(false);
         setEvaluatingPhase('idle');
       },
       (finalTranscript, audioBlob, audioUrl) => {
+        if (!isCurrent()) return;
         const text = (finalTranscript && finalTranscript.trim()) || spokenTextRef.current.trim();
         const finalUrl = audioUrl || userAudioUrl;
         if (finalUrl) {
@@ -480,6 +497,7 @@ export function useScriptedDialogue({
         continuous: true,
         silenceDurationMs: 30000,
         onAudioRecorded: (audioBlob, audioUrl) => {
+          if (!isCurrent()) return;
           if (audioUrl) {
             setUserAudioUrl(audioUrl);
           }
@@ -520,10 +538,18 @@ export function useScriptedDialogue({
     audioBlob?: Blob | null
   ) => {
     const currentTurn = dialogue.turns[practiceTurnIndex];
-    if (!currentTurn) return;
+    if (!currentTurn || currentTurn.speaker !== userRoleSide || mode !== 'practice') return;
+    const session = practiceSessionRef.current;
+    evaluationControllerRef.current?.abort();
+    const controller = new AbortController();
+    evaluationControllerRef.current = controller;
+    const isCurrent = () => session === practiceSessionRef.current && evaluationControllerRef.current === controller;
+    setLastEvaluation(null);
+    setEvaluationError(null);
+    delete acceptedTurnsRef.current[practiceTurnIndex];
 
     // Фоновая выгрузка аудиозаписи реплики ученика на сервер/в облако (строго 1 последняя попытка)
-    if (audioBlob) {
+    if (audioBlob && userProfile.isLoggedIn) {
       try {
         const form = new FormData();
         form.append('file', audioBlob);
@@ -535,10 +561,11 @@ export function useScriptedDialogue({
         fetch('/api/audio/upload', {
           method: 'POST',
           body: form,
+          signal: controller.signal,
         })
-          .then((r) => r.json())
+          .then((r) => r.ok ? r.json() : null)
           .then((data) => {
-            if (data.url) {
+            if (isCurrent() && data?.url) {
               setUserAudioUrl(data.url);
               setTurnHistory((prev) => {
                 const cur = prev[practiceTurnIndex];
@@ -561,10 +588,7 @@ export function useScriptedDialogue({
     const variant = getTurnText(currentTurn);
 
     try {
-      const res = await fetch('/api/ai/dialogue/evaluate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      const evalResult = await requestDialogueEvaluation({
           userSpokenHebrew: recognizedHebrew,
           targetIntentRu: currentTurn.intentRu,
           referenceHebrew: variant.hebrew,
@@ -574,11 +598,8 @@ export function useScriptedDialogue({
           opponentGender,
           lessonNumber: lesson.number,
           level: lesson.level,
-        }),
-      });
-
-      if (res.ok) {
-        const evalResult: DialogueEvaluationResult = await res.json();
+        }, AbortSignal.any([controller.signal, AbortSignal.timeout(70000)]));
+      if (isCurrent()) {
         if (audioUrl) {
           evalResult.userAudioUrl = audioUrl;
         }
@@ -590,42 +611,24 @@ export function useScriptedDialogue({
             phoneAudio.playSuccessChime();
           } catch {}
         }
-      } else {
-        const fallbackResult: DialogueEvaluationResult = {
-          isCorrect: true,
-          score: 85,
-          assessment: 'good',
-          feedbackRu: 'Хорошо! Смысл передан понятно.',
-          betterAlternative: variant.hebrew,
-          userSpokenHebrew: recognizedHebrew,
-          userAudioUrl: audioUrl || undefined,
-        };
-        setLastEvaluation(fallbackResult);
-        setTurnHistory((prev) => ({ ...prev, [practiceTurnIndex]: fallbackResult }));
       }
     } catch {
-      const fallbackResult: DialogueEvaluationResult = {
-        isCorrect: true,
-        score: 85,
-        assessment: 'good',
-        feedbackRu: 'Ответ принят.',
-        betterAlternative: variant.hebrew,
-        userSpokenHebrew: recognizedHebrew,
-        userAudioUrl: audioUrl || undefined,
-      };
-      setLastEvaluation(fallbackResult);
-      setTurnHistory((prev) => ({ ...prev, [practiceTurnIndex]: fallbackResult }));
+      if (isCurrent()) setEvaluationError('Проверка сейчас недоступна. Ответ не оценён. Можно повторить проверку этой фразы или записать новую.');
     } finally {
+      if (isCurrent()) {
       setIsEvaluating(false);
       setEvaluatingPhase('idle');
       if (evaluationSafetyTimerRef.current) {
         clearTimeout(evaluationSafetyTimerRef.current);
         evaluationSafetyTimerRef.current = null;
       }
+      }
     }
   };
 
   const handleProceedToNextTurn = () => {
+    if (isEvaluating || !lastEvaluation?.isCorrect || mode !== 'practice') return;
+    acceptedTurnsRef.current[practiceTurnIndex] = lastEvaluation;
     if (userAudioPlayerRef.current) {
       userAudioPlayerRef.current.pause();
     }
@@ -646,17 +649,9 @@ export function useScriptedDialogue({
 
   const handleCompleteListenStage = () => {
     stopSpeech();
+    isCancelledRef.current = true;
     setIsPlayingAll(false);
-    confetti({ particleCount: 75, spread: 70, origin: { y: 0.6 } });
-    const updated = markLessonTabCompleted(lesson.id, 'chat');
-    if (onUpdateProfile) {
-      onUpdateProfile(updated);
-    }
-    if (onGoToNextTab) {
-      onGoToNextTab();
-    } else {
-      setMode('completed');
-    }
+    onGoToNextTab?.();
   };
 
   return {
@@ -688,6 +683,9 @@ export function useScriptedDialogue({
     showHint,
     setShowHint,
     lastEvaluation,
+    evaluationError,
+    retryEvaluation: () => { if (!isEvaluating && spokenText.trim()) void evaluateStudentResponse(spokenText, userAudioUrl); },
+    savedTurnAudio,
     turnHistory,
     showSituationModal,
     setShowSituationModal,

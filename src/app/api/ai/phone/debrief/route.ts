@@ -1,10 +1,12 @@
+import { groqModels as configuredGroqModels, geminiModel, resolveAiKeys } from '@/lib/aiModels';
+import { readAiJson, fetchAi, aiErrorResponse, textOnlyEvaluation } from '@/lib/aiRequest';
 import { NextRequest, NextResponse } from 'next/server';
 import { verifySessionToken } from '@/lib/auth';
 import { checkRateLimit } from '@/lib/rateLimit';
 import { IS_EARLY_ACCESS_FREE, FREE_LESSONS_LIMIT, FREE_GUEST_LESSONS_LIMIT } from '@/lib/config';
-import { sanitizeRussianTranslation } from '@/app/api/ai/chat/route';
+import { sanitizeRussianTranslation } from '@/lib/russianTranslation';
 import { PhoneDebriefReport, PhoneDebriefGrammarError, PhoneDebriefTurnReview } from '@/types';
-import { detectHebrewGrammarErrors, detectHebrewWordOrderErrors } from '@/app/api/ai/dialogue/evaluate/route';
+import { detectHebrewGrammarErrors, detectHebrewWordOrderErrors } from '@/lib/hebrewFeedback';
 
 interface PhoneDebriefRequestBody {
   lessonNumber: number;
@@ -22,152 +24,45 @@ interface PhoneDebriefRequestBody {
 }
 
 function normalizeReport(
-  parsed: any,
+  parsed: PhoneDebriefReport,
   userTurns: Array<{ hebrew: string }>,
-  transcript: Array<{ role: string; hebrew: string }>
 ): PhoneDebriefReport {
-  const assistantHebrews = new Set(
-    transcript.filter((t) => t.role === 'assistant').map((t) => t.hebrew.trim())
-  );
-
-  const rawTurnReviews = Array.isArray(parsed?.turnReviews)
-    ? parsed.turnReviews.filter((tr: any) => {
-        if (!tr?.userHebrew) return false;
-        const trimmed = String(tr.userHebrew).trim();
-        if (assistantHebrews.has(trimmed)) return false;
-        return true;
-      })
-    : [];
-
-  const turnSource = rawTurnReviews.length > 0
-    ? rawTurnReviews
-    : userTurns.map((u) => ({
-        userHebrew: u.hebrew,
-        assessment: 'good',
-        commentRu: 'Ваш ответ понятен собеседнику.',
-      }));
-
+  const validScore = (score: unknown): score is number => typeof score === 'number' && Number.isFinite(score) && score >= 0 && score <= 100;
+  if (!parsed || typeof parsed.isSuccess !== 'boolean' || !validScore(parsed.overallScore) || !validScore(parsed.grammarScore) ||
+      typeof parsed.summaryRu !== 'string' || !parsed.summaryRu.trim() ||
+      !Array.isArray(parsed.turnReviews) || parsed.turnReviews.length !== userTurns.length) throw new Error('Incomplete debrief');
   let totalDetectedErrors = 0;
-  let totalPronunciationScore = 0;
-
-  const finalTurnReviews: PhoneDebriefTurnReview[] = turnSource.map((tr: any, idx: number) => {
-    const userHebrew = String(tr.userHebrew || (userTurns[idx]?.hebrew ?? '')).trim();
-
-    // 1. Строгая проверка базовой грамматики и порядка слов (как на 4 этапе)
-    const detectedGrammar = detectHebrewGrammarErrors(userHebrew);
-    const detectedWordOrder = detectHebrewWordOrderErrors(userHebrew);
-
-    // 2. Объединяем с ошибками от модели (если модель нашла дополнительные)
-    const llmErrors: PhoneDebriefGrammarError[] = Array.isArray(tr.grammarErrors)
-      ? tr.grammarErrors
-          .map((ge: any) => ({
-            type: String(ge?.type || 'grammar_error'),
-            wrongPhrase: String(ge?.wrongPhrase || '').trim(),
-            correctPhrase: String(ge?.correctPhrase || '').trim(),
-            explanationRu: sanitizeRussianTranslation(ge?.explanationRu || ''),
-          }))
-          .filter((ge: PhoneDebriefGrammarError) => ge.wrongPhrase && ge.correctPhrase)
-      : [];
-
-    // Дедупликация
+  const key = (value: string) => value.replace(/[\u0591-\u05C7.,!?;:"]/g, '').replace(/\s+/g, ' ').trim();
+  const turnReviews: PhoneDebriefTurnReview[] = userTurns.map((turn, index) => {
+    const review = parsed.turnReviews[index];
+    if (!review || typeof review.userHebrew !== 'string' || key(review.userHebrew) !== key(turn.hebrew) ||
+        !['perfect', 'good', 'needs_improvement'].includes(review.assessment) || typeof review.commentRu !== 'string' || !review.commentRu.trim()) throw new Error('Incomplete turn review');
+    const errors = [...detectHebrewGrammarErrors(turn.hebrew), ...detectHebrewWordOrderErrors(turn.hebrew)];
     const errorMap = new Map<string, PhoneDebriefGrammarError>();
-    for (const err of [...detectedGrammar, ...detectedWordOrder]) {
-      errorMap.set(err.wrongPhrase.toLowerCase(), {
-        type: err.type,
-        wrongPhrase: err.wrongPhrase,
-        correctPhrase: err.correctPhrase,
-        explanationRu: err.explanationRu,
-      });
-    }
-    for (const err of llmErrors) {
-      if (!errorMap.has(err.wrongPhrase.toLowerCase())) {
-        errorMap.set(err.wrongPhrase.toLowerCase(), err);
+    for (const error of errors) errorMap.set(error.wrongPhrase, error);
+    if (Array.isArray(review.grammarErrors)) for (const error of review.grammarErrors) {
+      if (error && typeof error.wrongPhrase === 'string' && typeof error.correctPhrase === 'string' && typeof error.explanationRu === 'string') {
+        errorMap.set(error.wrongPhrase, { type: typeof error.type === 'string' ? error.type : 'grammar', wrongPhrase: error.wrongPhrase, correctPhrase: error.correctPhrase, explanationRu: sanitizeRussianTranslation(error.explanationRu) });
       }
     }
-    const grammarErrors = Array.from(errorMap.values());
+    const grammarErrors = [...errorMap.values()];
     totalDetectedErrors += grammarErrors.length;
-
-    // 3. Оценка реплики (assessment)
-    let assessment: 'perfect' | 'good' | 'needs_improvement' =
-      (['perfect', 'good', 'needs_improvement'].includes(tr.assessment)
-        ? tr.assessment
-        : 'good') as 'perfect' | 'good' | 'needs_improvement';
-    if (grammarErrors.length > 0 && assessment === 'perfect') {
-      assessment = 'good';
-    }
-
-    // 4. Балл произношения для данной реплики
-    const turnPScore = typeof tr.pronunciationScore === 'number'
-      ? Math.min(100, Math.max(0, Math.round(tr.pronunciationScore)))
-      : (grammarErrors.length > 0 ? 82 : (assessment === 'perfect' ? 96 : 88));
-    totalPronunciationScore += turnPScore;
-
-    // 5. Совет по произношению
-    let turnPFeedback = tr.pronunciationFeedbackRu
-      ? sanitizeRussianTranslation(tr.pronunciationFeedbackRu)
-      : undefined;
-    if (!turnPFeedback) {
-      if (grammarErrors.length > 0) {
-        turnPFeedback = 'Следите за чётким произношением окончаний и согласованием родов.';
-      } else if (assessment === 'perfect') {
-        turnPFeedback = 'Превосходная чёткость речи! Все звуки и ударения прозвучали естественно.';
-      } else {
-        turnPFeedback = 'Хорошая разборчивость речи. Следите за ударением на последний слог.';
-      }
-    }
-
-    return {
-      userHebrew,
-      assessment,
-      commentRu: sanitizeRussianTranslation(tr.commentRu || 'Ваш ответ понятен собеседнику.'),
-      betterAlternative: tr.betterAlternative ? String(tr.betterAlternative).trim() : undefined,
-      pronunciationScore: turnPScore,
-      pronunciationFeedbackRu: turnPFeedback,
-      grammarErrors: grammarErrors.length > 0 ? grammarErrors : undefined,
-    };
+    return { userHebrew: turn.hebrew, assessment: grammarErrors.length && review.assessment === 'perfect' ? 'good' : review.assessment,
+      commentRu: sanitizeRussianTranslation(review.commentRu), grammarErrors,
+      betterAlternative: typeof review.betterAlternative === 'string' ? review.betterAlternative : undefined };
   });
-
-  const avgPronunciation = finalTurnReviews.length > 0
-    ? Math.round(totalPronunciationScore / finalTurnReviews.length)
-    : 92;
-
-  const parsedPronunciation = typeof parsed?.pronunciationScore === 'number'
-    ? Math.min(100, Math.max(0, Math.round(parsed.pronunciationScore)))
-    : avgPronunciation;
-
-  const calculatedGrammarScore = Math.max(50, Math.min(100, 100 - totalDetectedErrors * 12));
-  const parsedGrammar = typeof parsed?.grammarScore === 'number'
-    ? Math.min(100, Math.max(0, Math.round(parsed.grammarScore)))
-    : calculatedGrammarScore;
-
-  const finalGrammarScore = totalDetectedErrors > 0
-    ? Math.min(80, parsedGrammar, calculatedGrammarScore)
-    : Math.max(90, parsedGrammar);
-
-  const baseOverall = typeof parsed?.overallScore === 'number'
-    ? Math.min(100, Math.max(0, Math.round(parsed.overallScore)))
-    : 90;
-  const finalOverall = totalDetectedErrors > 0
-    ? Math.min(baseOverall, Math.round((baseOverall * 2 + finalGrammarScore) / 3))
-    : baseOverall;
-
-  return {
-    overallScore: finalOverall,
-    pronunciationScore: parsedPronunciation,
-    grammarScore: finalGrammarScore,
-    isSuccess: Boolean(parsed?.isSuccess ?? (finalOverall >= 70)),
-    summaryRu: sanitizeRussianTranslation(
-      parsed?.summaryRu || 'Отличный телефонный разговор! Вы успешно решили задачу на иврите.'
-    ),
-    turnReviews: finalTurnReviews,
-    spokenTip: parsed?.spokenTip ? sanitizeRussianTranslation(parsed.spokenTip) : undefined,
-    recommendedWords: Array.isArray(parsed?.recommendedWords) ? parsed.recommendedWords : undefined,
-  };
+  // Local checks can lower a supported grade, but cannot invent or inflate one.
+  const grammarScore = Math.round(Math.min(parsed.grammarScore, Math.max(0, 100 - totalDetectedErrors * 12)));
+  const overallScore = Math.round(totalDetectedErrors ? Math.min(parsed.overallScore, (parsed.overallScore * 2 + grammarScore) / 3) : parsed.overallScore);
+  return { overallScore, grammarScore, isSuccess: parsed.isSuccess && overallScore >= 70,
+    summaryRu: sanitizeRussianTranslation(parsed.summaryRu), turnReviews,
+    spokenTip: typeof parsed.spokenTip === 'string' ? sanitizeRussianTranslation(parsed.spokenTip) : undefined,
+    recommendedWords: Array.isArray(parsed.recommendedWords) ? parsed.recommendedWords.filter(w => w && typeof w.hebrew === 'string' && typeof w.translation === 'string' && typeof w.transcription === 'string').slice(0, 5) : undefined };
 }
 
 export async function POST(req: NextRequest) {
   try {
-    const body: PhoneDebriefRequestBody = await req.json();
+    const body = await readAiJson<PhoneDebriefRequestBody>(req);
     const {
       lessonNumber = 1,
       level = 'alef',
@@ -188,13 +83,13 @@ export async function POST(req: NextRequest) {
     const session = sessionCookie ? await verifySessionToken(sessionCookie) : null;
     if (!session && lessonNumber > FREE_GUEST_LESSONS_LIMIT) {
       return NextResponse.json(
-        { error: 'Unauthorized: Требуется бесплатная регистрация для доступа к урокам с 3-го' },
+        textOnlyEvaluation({ error: 'Unauthorized: Требуется бесплатная регистрация для доступа к урокам с 3-го' }),
         { status: 401 }
       );
     }
     if (!IS_EARLY_ACCESS_FREE && (!session || session.subscriptionTier !== 'pro') && lessonNumber > FREE_LESSONS_LIMIT) {
       return NextResponse.json(
-        { error: 'Unauthorized: Требуется подписка PRO для уроков выше 30-го' },
+        textOnlyEvaluation({ error: 'Unauthorized: Требуется подписка PRO для уроков выше 30-го' }),
         { status: 403 }
       );
     }
@@ -205,14 +100,11 @@ export async function POST(req: NextRequest) {
     const rl = checkRateLimit(rateLimitKey, { limit: 20, windowMs: 60 * 1000 });
     if (!rl.allowed) {
       return NextResponse.json(
-        { error: `Слишком много запросов. Подождите ${rl.resetInSeconds} сек.` },
+        textOnlyEvaluation({ error: `Слишком много запросов. Подождите ${rl.resetInSeconds} сек.` }),
         { status: 429 }
       );
     }
-
-    const defaultKey = ['gsk_', '0fWO7WvRuW3BosCcz81n', 'WGdyb3FY1G6aD7IaBjhD', '22BG3YEGMokO'].join('');
-    const groqKey = (apiKey || process.env.GROQ_API_KEY || defaultKey).trim();
-    const geminiKey = (apiKey || process.env.GEMINI_API_KEY || '').trim();
+    const { groqKey, geminiKey } = resolveAiKeys(provider, apiKey);
 
     const userTurns = transcript.filter((t) => t.role === 'user');
 
@@ -225,7 +117,7 @@ export async function POST(req: NextRequest) {
         turnReviews: [],
         spokenTip: 'В Израиле при звонке важно сразу отозваться: «הַלּוֹ, שָׁלוֹם!» (Алло, привет!).',
       };
-      return NextResponse.json(emptyReport);
+      return NextResponse.json(textOnlyEvaluation(emptyReport));
     }
 
     const transcriptFormatted = transcript
@@ -249,15 +141,13 @@ ${transcriptFormatted}
 
 ПРАВИЛА ОЦЕНКИ И РАЗБОРА:
 1. "overallScore": от 0 до 100 баллов (общий балл телефонного разговора и решения задачи).
-2. "pronunciationScore": от 0 до 100 баллов (средний балл чёткости речи, правильных ударений на последний слог, звуков ח, ר, ע, выдоха ה).
+2. Доступен только распознанный текст: не оценивай произношение, звуки или ударения.
 3. "grammarScore": от 0 до 100 баллов (правильность родов זכר/נקבה, согласования указательных местоимений זֶה / זֹאת / אֵלֶּה, порядка слов: прилагательное ПОСЛЕ существительного!).
 4. "summaryRu": 1-2 тёплых, вдохновляющих предложения на грамотном русском языке с подведением итогов звонка.
-5. "turnReviews": Массив разборов СТРОГО ТОЛЬКО ДЛЯ РЕПЛИК УЧЕНИКА (никогда не включай сюда реплики водителя/собеседника!):
+5. "turnReviews": Полный массив разборов для каждой реплики ученика в исходном порядке. Массив разборов СТРОГО ТОЛЬКО ДЛЯ РЕПЛИК УЧЕНИКА (никогда не включай сюда реплики водителя/собеседника!):
    - "userHebrew": точный текст реплики ученика.
    - "assessment": "perfect" (отлично), "good" (хорошо) или "needs_improvement" (стоит улучшить).
    - "commentRu": Короткий ясный комментарий на русском языке: почему ответ сработал, и какая деталь важна.
-   - "pronunciationScore": число от 0 до 100 (чёткость данной фразы).
-   - "pronunciationFeedbackRu": конкретный практичный совет по звукам, ударениям или артикуляции (на русском языке).
    - "grammarErrors": массив ошибок согласования родов или порядка слов (если замечены ошибки вроде «זה משפחה» вместо «זאת משפחה», или «גדול בית» вместо «בית גדול»):
      [{ "type": "gender_or_word_order", "wrongPhrase": "זה משפחה", "correctPhrase": "זאת משפחה", "explanationRu": "..." }]. Если ошибок нет — пустой массив [].
    - "betterAlternative": Как эту же мысль выражают коренные израильтяне в живом разговоре (סלנג או סגנון דיבור ישראלי טבעי) — обязательно с огласовками и русским переводом в скобках, например: «רֶגַע, אֲנִי כְּבָר יוֹרֵד! (Секунду, я уже спускаюсь!)».
@@ -267,7 +157,7 @@ ${transcriptFormatted}
 Ты ОБЯЗАН ответить СТРОГО валидным JSON-объектом:
 {
   "overallScore": 95,
-  "pronunciationScore": 92,
+
   "grammarScore": 96,
   "isSuccess": true,
   "summaryRu": "...",
@@ -276,8 +166,7 @@ ${transcriptFormatted}
       "userHebrew": "...",
       "assessment": "perfect",
       "commentRu": "...",
-      "pronunciationScore": 95,
-      "pronunciationFeedbackRu": "...",
+
       "grammarErrors": [],
       "betterAlternative": "..."
     }
@@ -294,19 +183,10 @@ ${transcriptFormatted}
 
     // 1. Запрос через Groq
     if (groqKey) {
-      const groqModels = [
-        process.env.GROQ_MODEL,
-        'openai/gpt-oss-120b',
-        'qwen/qwen3.8-27b',
-        'openai/gpt-oss-20b',
-        'qwen/qwen3.6-27b',
-        'groq/compound',
-        'llama-3.3-70b-versatile',
-        'llama-3.1-8b-instant',
-      ].filter(Boolean) as string[];
+      const groqModels = configuredGroqModels();
       for (const groqModel of groqModels) {
         try {
-          const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          const res = await fetchAi('https://api.groq.com/openai/v1/chat/completions', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -325,7 +205,8 @@ ${transcriptFormatted}
             const data = await res.json();
             const content = data.choices[0]?.message?.content || '{}';
             const parsed = JSON.parse(content);
-            return NextResponse.json(normalizeReport(parsed, userTurns, transcript));
+          if (typeof parsed.isSuccess !== 'boolean' || !Number.isFinite(parsed.overallScore) || typeof parsed.summaryRu !== 'string') throw new Error('Invalid debrief');
+            return NextResponse.json(textOnlyEvaluation(normalizeReport(parsed, userTurns)));
           }
         } catch (e) {
           console.warn('Debrief Groq error:', e);
@@ -336,8 +217,8 @@ ${transcriptFormatted}
     // 2. Fallback через Gemini
     if (geminiKey) {
       try {
-        const geminiRes = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiKey}`,
+        const geminiRes = await fetchAi(
+          `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel()}:generateContent?key=${geminiKey}`,
           {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -352,52 +233,14 @@ ${transcriptFormatted}
           const data = await geminiRes.json();
           const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
           const parsed = JSON.parse(text);
-          return NextResponse.json(normalizeReport(parsed, userTurns, transcript));
+          if (typeof parsed.isSuccess !== 'boolean' || !Number.isFinite(parsed.overallScore) || typeof parsed.summaryRu !== 'string') throw new Error('Invalid debrief');
+          return NextResponse.json(textOnlyEvaluation(normalizeReport(parsed, userTurns)));
         }
       } catch (e) {
         console.warn('Debrief Gemini error:', e);
       }
     }
 
-    // 3. Fallback без внешних AI
-    let fallbackErrorsCount = 0;
-    const fallbackTurnReviews: PhoneDebriefTurnReview[] = userTurns.map((u) => {
-      const gErrors = detectHebrewGrammarErrors(u.hebrew);
-      const wErrors = detectHebrewWordOrderErrors(u.hebrew);
-      const combined = [...gErrors, ...wErrors].map((e) => ({
-        type: e.type,
-        wrongPhrase: e.wrongPhrase,
-        correctPhrase: e.correctPhrase,
-        explanationRu: e.explanationRu,
-      }));
-      fallbackErrorsCount += combined.length;
-      return {
-        userHebrew: u.hebrew,
-        assessment: combined.length > 0 ? ('good' as const) : ('perfect' as const),
-        commentRu: combined.length > 0
-          ? 'Ответ понятен собеседнику, но обратите внимание на согласование слов.'
-          : 'Точный и органичный ответ в контексте звонка.',
-        pronunciationScore: combined.length > 0 ? 84 : 96,
-        pronunciationFeedbackRu: combined.length > 0
-          ? 'Следите за чётким произношением окончаний и правильным согласованием слов.'
-          : 'Чистая, уверенная речь и правильные ударения.',
-        grammarErrors: combined.length > 0 ? combined : undefined,
-      };
-    });
-
-    const fallbackReport: PhoneDebriefReport = {
-      overallScore: fallbackErrorsCount > 0 ? 82 : 92,
-      pronunciationScore: fallbackErrorsCount > 0 ? 86 : 95,
-      grammarScore: fallbackErrorsCount > 0 ? 75 : 96,
-      isSuccess: true,
-      summaryRu: 'Вы провели телефонный диалог на иврите. Собеседник понял ваш ответ и звонок завершился успешно.',
-      turnReviews: fallbackTurnReviews,
-      spokenTip: 'В израильских телефонных звонках ценится краткость: 1-2 уверенных предложения решают любую задачу.',
-    };
-
-    return NextResponse.json(fallbackReport);
-  } catch (error: any) {
-    console.error('Debrief API error:', error);
-    return NextResponse.json({ error: error.message || 'Server error' }, { status: 500 });
-  }
+    return aiErrorResponse(new Error('Debrief unavailable'));
+  } catch (error: any) { return aiErrorResponse(error); }
 }

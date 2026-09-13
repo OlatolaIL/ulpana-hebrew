@@ -1,3 +1,5 @@
+import { groqModels as configuredGroqModels, geminiModel, resolveAiKeys } from '@/lib/aiModels';
+import { readAiJson, fetchAi, aiErrorResponse } from '@/lib/aiRequest';
 import { NextRequest, NextResponse } from 'next/server';
 import { verifySessionToken } from '@/lib/auth';
 import { stripNikkud, ensureCyrillicHebrewTranscription } from '@/lib/transcription';
@@ -10,7 +12,7 @@ import {
   SpellingCheckItem,
   TaskComplianceFeedback,
 } from '@/types';
-import { detectHebrewGrammarErrors, detectHebrewWordOrderErrors } from '@/app/api/ai/dialogue/evaluate/route';
+import { detectHebrewGrammarErrors, detectHebrewWordOrderErrors } from '@/lib/hebrewFeedback';
 import { getLessonById } from '@/data/lessonsData';
 import { getLessonEssayPrompt } from '@/data/essayTopics';
 import { lookupOfflineWord } from '@/lib/ulpanDictionary';
@@ -348,7 +350,7 @@ function evaluateHeuristicEssay(
 
 export async function POST(req: NextRequest) {
   try {
-    const body: EssayEvaluateRequestBody = await req.json();
+    const body = await readAiJson<EssayEvaluateRequestBody>(req);
     const {
       userEssay = '',
       lessonId = 1,
@@ -394,9 +396,7 @@ export async function POST(req: NextRequest) {
     const detectedSpelling = detectHebrewSpellingErrors(trimmedEssay, essayPrompt.suggestedWords);
 
     // 3. Вызов нейросети (Groq / Gemini) с полным резервным ключом
-    const defaultKey = ['gsk_', '0fWO7WvRuW3BosCcz81n', 'WGdyb3FY1G6aD7IaBjhD', '22BG3YEGMokO'].join('');
-    const groqKey = (apiKey || process.env.GROQ_API_KEY || defaultKey).trim();
-    const geminiKey = (apiKey || process.env.GEMINI_API_KEY || '').trim();
+    const { groqKey, geminiKey } = resolveAiKeys(provider, apiKey);
 
     const systemPrompt = `ТЫ — ВЫСОКОКВАЛИФИЦИРОВАННЫЙ, МУДРЫЙ И ВНИМАТЕЛЬНЫЙ ПРЕПОДАВАТЕЛЬ ИВРИТА ИЗРАИЛЬСКОГО УЛЬПАНА (מוֹרֶה בָּכִיר בָּאוּלְפָּן).
 ТВОЯ ЗАДАЧА — ПРОВЕРИТЬ СОЧИНЕНИЕ (חִבּוּר) УЧЕНИКА, НАПИСАННОЕ НА ИВРИТЕ, ДАТЬ ЧЕСТНУЮ, ПЕДАГОГИЧЕСКИ ВЫВЕРЕННУЮ РЕЦЕНЗИЮ И УКАЗАТЬ НА ВСЕ ОШИБКИ.
@@ -590,6 +590,11 @@ ${detectedGrammar.length > 0 ? `ПРЕДВАРИТЕЛЬНЫЙ ДЕТЕКТОР 
 
     // Функция нормализации и объединения данных LLM с детекторами безопасности
     const normalizeAndEnforceSafety = (parsed: any): EssayEvaluationResult => {
+      if (!parsed || typeof parsed.score !== 'number' || !Number.isFinite(parsed.score) ||
+          parsed.score < 0 || parsed.score > 100 || typeof parsed.summaryRu !== 'string' ||
+          !parsed.summaryRu.trim() || typeof parsed.taskCompliance?.isRelevant !== 'boolean') {
+        throw new Error('Invalid essay assessment');
+      }
       const rawSpellingItems: SpellingCheckItem[] = Array.isArray(parsed.spellingFeedback?.items)
         ? parsed.spellingFeedback.items
         : [];
@@ -649,7 +654,7 @@ ${detectedGrammar.length > 0 ? `ПРЕДВАРИТЕЛЬНЫЙ ДЕТЕКТОР 
         }
       }
 
-      finalScore = Math.max(40, Math.min(100, Math.round(finalScore)));
+      finalScore = Math.max(0, Math.min(100, Math.round(finalScore)));
       const finalRating: 'excellent' | 'good' | 'needs_work' =
         finalScore >= 88 ? 'excellent' : finalScore >= 70 ? 'good' : 'needs_work';
 
@@ -708,19 +713,10 @@ ${detectedGrammar.length > 0 ? `ПРЕДВАРИТЕЛЬНЫЙ ДЕТЕКТОР 
 
     // Попытка 1: Groq LLM
     if (groqKey) {
-      const groqModels = [
-        process.env.GROQ_MODEL,
-        'openai/gpt-oss-120b',
-        'qwen/qwen3.8-27b',
-        'openai/gpt-oss-20b',
-        'qwen/qwen3.6-27b',
-        'groq/compound',
-        'llama-3.3-70b-versatile',
-        'llama-3.1-8b-instant',
-      ].filter(Boolean) as string[];
+      const groqModels = configuredGroqModels();
       for (const groqModel of groqModels) {
         try {
-          const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          const res = await fetchAi('https://api.groq.com/openai/v1/chat/completions', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -754,8 +750,8 @@ ${detectedGrammar.length > 0 ? `ПРЕДВАРИТЕЛЬНЫЙ ДЕТЕКТОР 
     // Попытка 2: Gemini LLM
     if (geminiKey) {
       try {
-        const geminiRes = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`,
+        const geminiRes = await fetchAi(
+          `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel()}:generateContent?key=${geminiKey}`,
           {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -785,13 +781,6 @@ ${detectedGrammar.length > 0 ? `ПРЕДВАРИТЕЛЬНЫЙ ДЕТЕКТОР 
     }
 
     // Попытка 3: Продвинутая локальная эвристическая оценка (offline fallback)
-    const heuristic = evaluateHeuristicEssay(trimmedEssay, essayPrompt, userGender, lessonId);
-    return NextResponse.json(heuristic);
-  } catch (error) {
-    console.error('Error in essay evaluate route:', error);
-    return NextResponse.json(
-      { error: 'Не удалось проверить сочинение. Пожалуйста, попробуйте снова.' },
-      { status: 500 }
-    );
-  }
+    return aiErrorResponse(new Error('Essay evaluation unavailable'));
+  } catch (error) { return aiErrorResponse(error); }
 }

@@ -1,26 +1,30 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import {
   CheckCircle2,
   XCircle,
   Award,
-  HelpCircle,
   ArrowRight,
-  ArrowLeft,
   ChevronLeft,
-  ChevronRight,
   Volume2,
   RotateCcw,
-  Sparkles,
   Undo2,
+  BookOpen,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { Lesson, UserProfile, Exercise } from '@/types';
 import { markLessonTabCompleted } from '@/lib/storage';
 import { speakHebrew } from '@/lib/speech';
 import { stripNikkud } from '@/lib/transcription';
-import { parseHebrewSentence, stripPunctuation, isPunctuationToken, areWordsEqual } from '@/lib/sentenceParser';
+import { areWordsEqual } from '@/lib/sentenceParser';
+import { getExerciseSentence } from '@/lib/exerciseSentence';
+import {
+  ExerciseResultsMap,
+  recordExerciseResult,
+  calculateExerciseSummary,
+  findFirstIncompleteIndex,
+} from '@/lib/exerciseResults';
 
 interface LessonExercisesProps {
   lesson: Lesson;
@@ -35,18 +39,63 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
   onCompleted,
   onUpdateProfile,
 }) => {
+  const exercises = useMemo(() => lesson.exercises || [], [lesson.exercises]);
+
+  const [prevLessonId, setPrevLessonId] = useState(lesson.id);
   const [currentIdx, setCurrentIdx] = useState(0);
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [selectedSentenceIndices, setSelectedSentenceIndices] = useState<number[]>([]);
   const [isAnswered, setIsAnswered] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
   const [isFinished, setIsFinished] = useState(false);
-  const [answeredMap, setAnsweredMap] = useState<Record<number, boolean>>({});
+  const [resultsMap, setResultsMap] = useState<ExerciseResultsMap>({});
 
   const topRef = useRef<HTMLDivElement | null>(null);
   const nextButtonRef = useRef<HTMLButtonElement | null>(null);
+  const hasMarkedCompletedRef = useRef<number | null>(null);
 
-  // Плавный скролл к кнопке «Следующий вопрос» после ответа, чтобы пользователю не приходилось листать экран
+  // Сброс состояния при смене lesson.id непосредственно во время рендера (без эффекта и каскадных перерендеров)
+  if (prevLessonId !== lesson.id) {
+    setPrevLessonId(lesson.id);
+    setCurrentIdx(0);
+    setIsFinished(false);
+    setIsAnswered(false);
+    setSelectedOption(null);
+    setSelectedSentenceIndices([]);
+    setIsCorrect(false);
+    setResultsMap({});
+  }
+
+  const resetCurrentAnswerState = useCallback(() => {
+    setIsAnswered(false);
+    setSelectedOption(null);
+    setSelectedSentenceIndices([]);
+    setIsCorrect(false);
+  }, []);
+
+  const currentEx: Exercise | undefined = exercises[currentIdx];
+
+  // Расчёт сводной статистики по заданиям
+  const stats = useMemo(() => {
+    return calculateExerciseSummary(exercises, resultsMap);
+  }, [exercises, resultsMap]);
+
+  // Зачёт этапа ТОЛЬКО при 100% правильных ответах на все задания текущего урока
+  useEffect(() => {
+    if (
+      isFinished &&
+      stats.isAllCorrect &&
+      !stats.isEmpty &&
+      hasMarkedCompletedRef.current !== lesson.id
+    ) {
+      hasMarkedCompletedRef.current = lesson.id;
+      const updated = markLessonTabCompleted(lesson.id, 'exercises');
+      if (onUpdateProfile) onUpdateProfile(updated);
+      confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 } });
+    }
+  }, [isFinished, stats.isAllCorrect, stats.isEmpty, lesson.id, onUpdateProfile]);
+
+  // Плавный скролл к кнопке «Следующий вопрос» после ответа
   useEffect(() => {
     if (isAnswered && nextButtonRef.current) {
       const timer = setTimeout(() => {
@@ -56,34 +105,48 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
     }
   }, [isAnswered]);
 
-  // При переходе к новому вопросу возвращаем скролл наверх к началу карточки
+  // При смене вопроса возвращаем скролл наверх к началу карточки
   useEffect(() => {
     topRef.current?.scrollIntoView({ behavior: 'instant', block: 'start' });
   }, [currentIdx]);
-
-  const exercises = lesson.exercises;
-  const currentEx = exercises[currentIdx];
 
   const getOptionDisplay = (opt: string): string => {
     const isHeb = /[\u0590-\u05FF]/.test(opt);
     return isHeb && !userProfile.showNikkud ? stripNikkud(opt) : opt;
   };
 
-  const resetCurrentAnswerState = () => {
-    setIsAnswered(false);
-    setSelectedOption(null);
-    setSelectedSentenceIndices([]);
-    setIsCorrect(false);
+  // Переход к конкретному номеру с подгрузкой ранее сохранённого ответа (если был)
+  const goToIndex = (targetIdx: number) => {
+    if (targetIdx < 0 || targetIdx >= exercises.length) return;
+    const targetEx = exercises[targetIdx];
+    const saved = targetEx ? resultsMap[targetEx.id] : undefined;
+
+    if (saved && (saved.status === 'correct' || saved.status === 'incorrect')) {
+      setIsAnswered(true);
+      setIsCorrect(saved.status === 'correct');
+      setSelectedOption(saved.selectedOption ?? null);
+      setSelectedSentenceIndices(saved.selectedSentenceIndices ?? []);
+    } else {
+      resetCurrentAnswerState();
+    }
+
+    setCurrentIdx(targetIdx);
   };
 
   const handleSelectOption = (opt: string) => {
-    if (isAnswered) return;
+    if (isAnswered || !currentEx) return;
     setSelectedOption(opt);
     setIsAnswered(true);
 
     const correct = opt === currentEx.correctAnswer;
     setIsCorrect(correct);
-    setAnsweredMap((prev) => ({ ...prev, [currentIdx]: true }));
+
+    // Сохраняем по id упражнения, пересчитываем без накопления
+    setResultsMap((prev) =>
+      recordExerciseResult(prev, currentEx.id, correct ? 'correct' : 'incorrect', {
+        selectedOption: opt,
+      })
+    );
 
     if (correct) {
       confetti({ particleCount: 40, spread: 50, origin: { y: 0.7 } });
@@ -91,46 +154,10 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
   };
 
   // Вычисляем структуру предложения для режима build_sentence
-  const sentenceStructure = React.useMemo(() => {
-    if (!currentEx || currentEx.type !== 'build_sentence') {
-      return null;
-    }
-
-    // Ищем полное предложение на иврите из объяснения или correctAnswer
-    let targetSentenceText = '';
-    if (currentEx.explanation) {
-      const m = currentEx.explanation.match(/:\s*([^()]+?)(?:\s*\(|$)/);
-      if (m && /[\u0590-\u05FF]/.test(m[1])) {
-        targetSentenceText = m[1].trim();
-      }
-    }
-
-    if (!targetSentenceText) {
-      if (Array.isArray(currentEx.correctAnswer)) {
-        targetSentenceText = currentEx.correctAnswer.join(' ');
-      } else if (typeof currentEx.correctAnswer === 'string') {
-        targetSentenceText = currentEx.correctAnswer;
-      }
-    }
-
-    const parsed = parseHebrewSentence(targetSentenceText);
-
-    // Очищаем options от знаков препинания и standalone тире
-    const rawOptions = currentEx.options || [];
-    const cleanOptions = rawOptions
-      .map((w) => stripPunctuation(w))
-      .filter((w) => w.length > 0 && !isPunctuationToken(w));
-
-    return {
-      parsed,
-      cleanOptions,
-      targetWords: parsed.cleanWords,
-      fullSentence: parsed.fullSentence || targetSentenceText,
-    };
-  }, [currentEx]);
+  const sentenceStructure = useMemo(() => currentEx ? getExerciseSentence(currentEx) : null, [currentEx]);
 
   const handleSentenceWordClick = (poolIndex: number) => {
-    if (isAnswered || !sentenceStructure) return;
+    if (isAnswered || !sentenceStructure || !currentEx) return;
     const { cleanOptions, targetWords } = sentenceStructure;
     const nextIndices = [...selectedSentenceIndices, poolIndex];
     setSelectedSentenceIndices(nextIndices);
@@ -144,7 +171,12 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
         nextWords.every((w, idx) => areWordsEqual(w, targetWords[idx], false));
 
       setIsCorrect(correct);
-      setAnsweredMap((prev) => ({ ...prev, [currentIdx]: true }));
+      setResultsMap((prev) =>
+        recordExerciseResult(prev, currentEx.id, correct ? 'correct' : 'incorrect', {
+          selectedSentenceIndices: nextIndices,
+        })
+      );
+
       if (correct) {
         confetti({ particleCount: 50, spread: 60, origin: { y: 0.7 } });
       }
@@ -166,75 +198,236 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
     setSelectedSentenceIndices([]);
   };
 
-  const handleNext = () => {
+  // Повторить текущее задание (разрешает исправить ошибку)
+  const handleRetryCurrent = () => {
     resetCurrentAnswerState();
+  };
 
+  const handleNext = () => {
     if (currentIdx + 1 < exercises.length) {
-      setCurrentIdx((prev) => prev + 1);
+      goToIndex(currentIdx + 1);
     } else {
       setIsFinished(true);
-      const updated = markLessonTabCompleted(lesson.id, 'exercises');
-      if (onUpdateProfile) onUpdateProfile(updated);
-      confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 } });
     }
   };
 
   const handlePrev = () => {
     if (currentIdx > 0) {
-      resetCurrentAnswerState();
-      setCurrentIdx((prev) => prev - 1);
+      goToIndex(currentIdx - 1);
     }
   };
 
   const handleJumpTo = (idx: number) => {
     if (idx >= 0 && idx < exercises.length && idx !== currentIdx) {
-      resetCurrentAnswerState();
-      setCurrentIdx(idx);
+      goToIndex(idx);
     }
   };
 
+  // Пропуск текущего задания: записывает статус 'skipped' по id упражнения
   const handleSkip = () => {
-    handleNext();
+    if (!currentEx) return;
+    if (!isAnswered) {
+      setResultsMap((prev) =>
+        recordExerciseResult(prev, currentEx.id, 'skipped')
+      );
+    }
+
+    if (currentIdx + 1 < exercises.length) {
+      goToIndex(currentIdx + 1);
+    } else {
+      setIsFinished(true);
+    }
   };
 
-  if (!currentEx || isFinished) {
+  // 1. Пустой список заданий: не показывает бесконечную доработку
+  if (exercises.length === 0) {
     return (
       <div className="bg-white dark:bg-zinc-900 rounded-3xl p-6 sm:p-8 border border-zinc-200 dark:border-zinc-800 shadow-xl max-w-lg mx-auto text-center space-y-6 animate-in zoom-in-95 duration-200">
-        <div className="w-20 h-20 mx-auto rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shadow-inner">
-          <Award className="w-10 h-10" />
+        <div className="w-16 h-16 mx-auto rounded-full bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center shadow-inner">
+          <BookOpen className="w-8 h-8" />
         </div>
-        <div className="space-y-1">
-          <h2 className="text-3xl font-black text-zinc-900 dark:text-zinc-50 font-hebrew">
-            !מְצוּיָן
+        <div className="space-y-1.5">
+          <h2 className="text-2xl font-bold text-zinc-900 dark:text-zinc-50">
+            {`Урок ${lesson.number}: ${lesson.titleRussian}`}
           </h2>
-          <p className="text-base font-bold text-emerald-600 dark:text-emerald-400">
-            {`Все упражнения урока ${lesson.number} успешно выполнены!`}
+          <p className="text-sm text-zinc-600 dark:text-zinc-400">
+            В этом уроке пока нет интерактивных упражнений.
+          </p>
+          <p className="text-xs text-zinc-400 dark:text-zinc-500">
+            Вы можете сразу перейти к написанию сочинения или диалогу с ИИ.
+          </p>
+        </div>
+        {onCompleted && (
+          <button
+            type="button"
+            onClick={onCompleted}
+            className="w-full py-3.5 px-6 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-sm shadow-md transition active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
+          >
+            <span>Перейти к сочинению (этап 4/6) ✍️</span>
+          </button>
+        )}
+      </div>
+    );
+  }
+
+  // 2. ЭКРАН РЕЗУЛЬТАТОВ (финальный зачёт или доработка)
+  if (!currentEx || isFinished) {
+    if (stats.isAllCorrect) {
+      return (
+        <div className="bg-white dark:bg-zinc-900 rounded-3xl p-6 sm:p-8 border border-zinc-200 dark:border-zinc-800 shadow-xl max-w-lg mx-auto text-center space-y-6 animate-in zoom-in-95 duration-200">
+          <div className="w-20 h-20 mx-auto rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shadow-inner">
+            <Award className="w-10 h-10" />
+          </div>
+          <div className="space-y-1">
+            <h2 className="text-3xl font-black text-zinc-900 dark:text-zinc-50 font-hebrew">
+              !מְצוּיָן
+            </h2>
+            <p className="text-base font-bold text-emerald-600 dark:text-emerald-400">
+              {`Все упражнения урока ${lesson.number} успешно выполнены!`}
+            </p>
+            <p className="text-xs text-zinc-500 dark:text-zinc-400">
+              {`Верно решено ${stats.correctCount} из ${stats.total} заданий (100%). Этап 3 из 6 завершен. Переходите к написанию сочинения!`}
+            </p>
+          </div>
+
+          <div className="space-y-2.5 pt-2">
+            {onCompleted && (
+              <button
+                onClick={onCompleted}
+                className="w-full py-3.5 px-6 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-sm shadow-md transition active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <span>Перейти к сочинению (этап 4/6) ✍️</span>
+              </button>
+            )}
+
+            <button
+              onClick={() => {
+                setCurrentIdx(0);
+                setIsFinished(false);
+                setResultsMap({});
+                hasMarkedCompletedRef.current = null;
+                resetCurrentAnswerState();
+              }}
+              className="w-full py-3 px-4 rounded-2xl border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 font-semibold text-xs transition cursor-pointer"
+            >
+              Пройти упражнения еще раз
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    const incompleteCount = stats.incorrectCount + stats.skippedCount + stats.unansweredCount;
+
+    return (
+      <div className="bg-white dark:bg-zinc-900 rounded-3xl p-6 sm:p-8 border border-zinc-200 dark:border-zinc-800 shadow-xl max-w-lg mx-auto text-center space-y-6 animate-in zoom-in-95 duration-200">
+        <div className="w-20 h-20 mx-auto rounded-full bg-amber-100 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center shadow-inner">
+          <RotateCcw className="w-10 h-10" />
+        </div>
+        <div className="space-y-1.5">
+          <h2 className="text-2xl sm:text-3xl font-black text-zinc-900 dark:text-zinc-50">
+            Требуется доработка
+          </h2>
+          <p className="text-sm font-semibold text-amber-600 dark:text-amber-400">
+            Чтобы засчитать этап, необходимо правильно ответить на все задания урока.
           </p>
           <p className="text-xs text-zinc-500 dark:text-zinc-400">
-            Этап 3 из 6 завершен. Переходите к написанию сочинения!
+            {`Урок ${lesson.number}: верно решено ${stats.correctCount} из ${stats.total} (${stats.scorePercent}%).`}
           </p>
         </div>
 
+        {/* Честная сводка результатов */}
+        <div className="grid grid-cols-3 gap-2 text-center">
+          <div className="p-3 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60">
+            <div className="text-xs font-semibold text-emerald-700 dark:text-emerald-300">Верно</div>
+            <div className="text-xl sm:text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-0.5">
+              {stats.correctCount}
+            </div>
+          </div>
+          <div className="p-3 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/60">
+            <div className="text-xs font-semibold text-rose-700 dark:text-rose-300">Ошибки</div>
+            <div className="text-xl sm:text-2xl font-black text-rose-600 dark:text-rose-400 mt-0.5">
+              {stats.incorrectCount}
+            </div>
+          </div>
+          <div className="p-3 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60">
+            <div className="text-xs font-semibold text-amber-700 dark:text-amber-300">Пропущено</div>
+            <div className="text-xl sm:text-2xl font-black text-amber-600 dark:text-amber-400 mt-0.5">
+              {stats.skippedCount + stats.unansweredCount}
+            </div>
+          </div>
+        </div>
+
+        {/* Список заданий с возможностью быстрого перехода */}
+        <div className="space-y-1.5 text-left max-h-56 overflow-y-auto pr-1">
+          <div className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider px-1">
+            Задания урока:
+          </div>
+          {exercises.map((ex, idx) => {
+            const res = resultsMap[ex.id];
+            const status = res?.status;
+            let badge = { text: 'Не решено', bg: 'bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400' };
+            if (status === 'correct') {
+              badge = { text: 'Верно ✓', bg: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300' };
+            } else if (status === 'incorrect') {
+              badge = { text: 'Ошибка ✕', bg: 'bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300' };
+            } else if (status === 'skipped') {
+              badge = { text: 'Пропущено ⏩', bg: 'bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300' };
+            }
+
+            return (
+              <button
+                key={ex.id}
+                type="button"
+                onClick={() => {
+                  setIsFinished(false);
+                  goToIndex(idx);
+                  if (status !== 'correct') {
+                    resetCurrentAnswerState();
+                  }
+                }}
+                className="w-full p-2.5 rounded-xl border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800/60 flex items-center justify-between text-xs transition cursor-pointer gap-2"
+                title={`Перейти к заданию ${idx + 1}`}
+              >
+                <span className="font-semibold text-zinc-800 dark:text-zinc-200 truncate">
+                  {`${idx + 1}. ${ex.question}`}
+                </span>
+                <span className={`px-2 py-0.5 rounded-md font-bold text-[11px] shrink-0 ${badge.bg}`}>
+                  {badge.text}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Действия по доработке */}
         <div className="space-y-2.5 pt-2">
-          {onCompleted && (
-            <button
-              onClick={onCompleted}
-              className="w-full py-3.5 px-6 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-sm shadow-md transition active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
-            >
-              <span>Перейти к сочинению (этап 4/6) ✍️</span>
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={() => {
+              const targetIdx = findFirstIncompleteIndex(exercises, resultsMap);
+              setIsFinished(false);
+              goToIndex(targetIdx);
+              resetCurrentAnswerState();
+            }}
+            className="w-full py-3.5 px-6 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm shadow-md transition active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
+          >
+            <RotateCcw className="w-4 h-4" />
+            <span>{`Доработать задания (${incompleteCount}) 🔄`}</span>
+          </button>
 
           <button
+            type="button"
             onClick={() => {
+              setResultsMap({});
               setCurrentIdx(0);
               setIsFinished(false);
-              setAnsweredMap({});
+              hasMarkedCompletedRef.current = null;
               resetCurrentAnswerState();
             }}
             className="w-full py-3 px-4 rounded-2xl border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 font-semibold text-xs transition cursor-pointer"
           >
-            Пройти упражнения еще раз
+            Начать заново (сбросить все ответы)
           </button>
         </div>
       </div>
@@ -293,6 +486,7 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
   };
 
   const isLastQuestion = currentIdx + 1 >= exercises.length;
+  const currentStatus = currentEx ? resultsMap[currentEx.id]?.status : undefined;
 
   return (
     <div
@@ -300,7 +494,7 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
       data-font-style={userProfile.fontStyle || 'print'}
       className="max-w-xl mx-auto space-y-3 sm:space-y-4"
     >
-      {/* Верхний блок быстрой навигации по вопросам + кнопка перехода */}
+      {/* Верхний блок навигации по вопросам */}
       <div className="bg-white dark:bg-zinc-900 p-2 sm:p-2.5 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-xs space-y-2">
         <div className="flex items-center justify-between gap-2">
           {/* Кнопка «Назад» */}
@@ -315,25 +509,42 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
             <span className="hidden xs:inline">Назад</span>
           </button>
 
-          {/* Интерактивные индикаторы номеров вопросов */}
+          {/* Индикаторы номеров вопросов со статусом */}
           <div className="flex items-center gap-1 overflow-x-auto py-0.5 px-1 scrollbar-none max-w-full justify-center">
             {exercises.map((_, idx) => {
+              const ex = exercises[idx];
               const isCurrent = idx === currentIdx;
-              const isAnsweredItem = Boolean(answeredMap[idx]);
+              const status = resultsMap[ex.id]?.status;
+
+              let badgeClass =
+                'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700';
+
+              if (status === 'correct') {
+                badgeClass =
+                  'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800/80';
+              } else if (status === 'incorrect') {
+                badgeClass =
+                  'bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border border-rose-300 dark:border-rose-800/80';
+              } else if (status === 'skipped') {
+                badgeClass =
+                  'bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-800/80';
+              }
+
+              if (isCurrent) {
+                badgeClass += ' ring-2 ring-blue-500/50 scale-105';
+                if (!status) {
+                  badgeClass =
+                    'bg-blue-600 text-white shadow-sm ring-2 ring-blue-400/40 scale-105';
+                }
+              }
 
               return (
                 <button
                   key={idx}
                   type="button"
                   onClick={() => handleJumpTo(idx)}
-                  className={`w-7 h-7 sm:w-8 sm:h-8 rounded-xl text-xs font-bold flex items-center justify-center transition shrink-0 cursor-pointer ${
-                    isCurrent
-                      ? 'bg-blue-600 text-white shadow-sm ring-2 ring-blue-400/40 scale-105'
-                      : isAnsweredItem
-                      ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800/80'
-                      : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700'
-                  }`}
-                  title={`Перейти к вопросу ${idx + 1}`}
+                  className={`w-7 h-7 sm:w-8 sm:h-8 rounded-xl text-xs font-bold flex items-center justify-center transition shrink-0 cursor-pointer ${badgeClass}`}
+                  title={`Вопрос ${idx + 1}${status ? ` (${status})` : ''}`}
                 >
                   {idx + 1}
                 </button>
@@ -341,23 +552,33 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
             })}
           </div>
 
-          {/* ВЕРХНЯЯ КНОПКА ПЕРЕХОДА / СЛЕДУЮЩИЙ ВОПРОС */}
+          {/* ВЕРХНЯЯ КНОПКА: ДАЛЕЕ / ЗАВЕРШИТЬ / ПРОПУСТИТЬ */}
           <button
             type="button"
             onClick={isAnswered ? handleNext : handleSkip}
             className={`px-3 py-1.5 rounded-xl text-xs font-bold transition shadow-sm flex items-center gap-1.5 shrink-0 cursor-pointer active:scale-95 ${
               isAnswered
                 ? isLastQuestion
-                  ? 'bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white animate-pulse'
+                  ? stats.isAllCorrect
+                    ? 'bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white animate-pulse'
+                    : 'bg-blue-600 hover:bg-blue-700 text-white'
                   : 'bg-blue-600 hover:bg-blue-700 text-white'
                 : 'bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700'
             }`}
-            title={isAnswered ? (isLastQuestion ? 'Завершить тесты' : 'Следующий вопрос') : 'Пропустить вопрос и перейти к следующему'}
+            title={
+              isAnswered
+                ? isLastQuestion
+                  ? 'Завершить тесты'
+                  : 'Следующий вопрос'
+                : 'Пропустить вопрос и перейти к следующему'
+            }
           >
             <span>
               {isAnswered
                 ? isLastQuestion
-                  ? 'Завершить 🎉'
+                  ? stats.isAllCorrect
+                    ? 'Завершить 🎉'
+                    : 'Итоги 📊'
                   : 'Далее ➡️'
                 : 'Пропустить ⏩'}
             </span>
@@ -373,8 +594,15 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
         </div>
       </div>
 
-      {/* 3. Карточка вопроса */}
+      {/* Карточка вопроса */}
       <div className="bg-white dark:bg-zinc-900 rounded-3xl p-4 sm:p-5 border border-zinc-200 dark:border-zinc-800 shadow-sm space-y-3.5 sm:space-y-4">
+        {/* Баннер, если вопрос ранее был пропущен */}
+        {currentStatus === 'skipped' && !isAnswered && (
+          <div className="flex items-center gap-1.5 text-xs font-semibold text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 px-3 py-1.5 rounded-xl border border-amber-200 dark:border-amber-800/60 animate-in fade-in">
+            <span>⏩ Задание было пропущено. Выберите верный ответ:</span>
+          </div>
+        )}
+
         <h3 className="text-base sm:text-lg font-bold text-zinc-900 dark:text-zinc-100 leading-relaxed">
           {renderFormattedQuestion(currentEx.question, isCursive)}
         </h3>
@@ -405,7 +633,7 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
           </div>
         )}
 
-        {/* Варианты выбора (word_match, fill_blank, listening) */}
+        {/* Варианты выбора: кнопка ответа и кнопка озвучки оформлены как СОСЕДНИЕ элементы (без недопустимой вложенности button в button) */}
         {(currentEx.type === 'word_match' || currentEx.type === 'fill_blank' || currentEx.type === 'listening') &&
           currentEx.options && (
             <div className="grid grid-cols-1 gap-2">
@@ -429,47 +657,52 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
                 }
 
                 return (
-                  <button
-                    key={i}
-                    disabled={isAnswered}
-                    onClick={() => handleSelectOption(opt)}
-                    className={`py-2.5 sm:py-3 px-3.5 sm:px-4 rounded-xl border text-left flex items-center justify-between transition cursor-pointer ${btnClass}`}
-                  >
-                    <span
-                      dir={isDisplayHebrew ? 'rtl' : 'ltr'}
-                      className={
-                        isDisplayHebrew
-                          ? isCursive
-                            ? 'font-cursive text-2xl md:text-3xl font-bold'
-                            : 'font-hebrew text-lg font-bold'
-                          : 'text-xs sm:text-sm font-medium'
-                      }
+                  <div key={i} className="flex items-center gap-2">
+                    {/* Кнопка выбора варианта ответа */}
+                    <button
+                      type="button"
+                      disabled={isAnswered}
+                      onClick={() => handleSelectOption(opt)}
+                      className={`flex-1 py-2.5 sm:py-3 px-3.5 sm:px-4 rounded-xl border text-left flex items-center justify-between transition cursor-pointer ${btnClass}`}
                     >
-                      {displayOpt}
-                    </span>
-                    <div className="flex items-center gap-2">
-                      {isDisplayHebrew && (
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            const toSpeak = opt && /[\u0590-\u05FF]/.test(opt) ? opt : displayOpt;
-                            speakHebrew(toSpeak);
-                          }}
-                          className="p-1.5 rounded-lg text-zinc-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition cursor-pointer"
-                          title="Прослушать произношение"
-                        >
-                          <Volume2 className="w-4 h-4" />
-                        </button>
-                      )}
-                      {isAnswered && isCorrectOpt && (
-                        <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
-                      )}
-                      {isAnswered && isSelected && !isCorrectOpt && (
-                        <XCircle className="w-5 h-5 text-rose-600 shrink-0" />
-                      )}
-                    </div>
-                  </button>
+                      <span
+                        dir={isDisplayHebrew ? 'rtl' : 'ltr'}
+                        className={
+                          isDisplayHebrew
+                            ? isCursive
+                              ? 'font-cursive text-2xl md:text-3xl font-bold'
+                              : 'font-hebrew text-lg font-bold'
+                            : 'text-xs sm:text-sm font-medium'
+                        }
+                      >
+                        {displayOpt}
+                      </span>
+                      <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                        {isAnswered && isCorrectOpt && (
+                          <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+                        )}
+                        {isAnswered && isSelected && !isCorrectOpt && (
+                          <XCircle className="w-5 h-5 text-rose-600 shrink-0" />
+                        )}
+                      </div>
+                    </button>
+
+                    {/* Соседняя отдельная кнопка прослушивания произношения */}
+                    {isDisplayHebrew && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const toSpeak = opt && /[\u0590-\u05FF]/.test(opt) ? opt : displayOpt;
+                          speakHebrew(toSpeak);
+                        }}
+                        className="p-2.5 sm:p-3 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-zinc-50 dark:hover:bg-zinc-700/60 transition shrink-0 cursor-pointer active:scale-95"
+                        title="Прослушать произношение"
+                        aria-label={`Прослушать ${displayOpt}`}
+                      >
+                        <Volume2 className="w-4 h-4 sm:w-5 sm:h-5" />
+                      </button>
+                    )}
+                  </div>
                 );
               })}
             </div>
@@ -478,7 +711,7 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
         {/* Режим сборки предложения из слов (build_sentence) */}
         {currentEx.type === 'build_sentence' && sentenceStructure && (
           <div className="space-y-3.5 sm:space-y-4">
-            {/* 1. Поле сборки предложения на 100% ширины с фиксированными знаками препинания */}
+            {/* Поле сборки предложения */}
             <div
               dir="rtl"
               className={`w-full min-h-[64px] p-3.5 sm:p-4 rounded-2xl border-2 border-dashed ${
@@ -543,7 +776,7 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
               })}
             </div>
 
-            {/* 2. Панель вспомогательных действий под зоной сборки */}
+            {/* Панель вспомогательных действий */}
             {selectedSentenceIndices.length > 0 && !isAnswered && (
               <div className="flex items-center justify-between px-1">
                 <span className="text-[11px] text-zinc-400 font-medium">
@@ -572,7 +805,7 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
               </div>
             )}
 
-            {/* 3. Кнопка озвучки — появляется ТОЛЬКО ПОСЛЕ полной сборки / ответа */}
+            {/* Кнопка озвучки после ответа */}
             {isAnswered && sentenceStructure.fullSentence && (
               <div className="flex items-center justify-end px-1">
                 <button
@@ -587,7 +820,7 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
               </div>
             )}
 
-            {/* 4. Банк чистых слов (без знаков препинания и тире) */}
+            {/* Банк чистых слов */}
             <div dir="rtl" className="flex flex-wrap gap-2 justify-center pt-1">
               {sentenceStructure.cleanOptions.map((w, i) => {
                 const isUsed = selectedSentenceIndices.includes(i);
@@ -613,7 +846,7 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
           </div>
         )}
 
-        {/* Пояснение после ответа */}
+        {/* Пояснение после ответа с кнопкой «Попробовать снова» при ошибке */}
         {isAnswered && currentEx.explanation && (
           <div
             className={`p-3 sm:p-3.5 rounded-xl border text-xs leading-relaxed animate-in fade-in ${
@@ -623,32 +856,46 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
             }`}
           >
             <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="font-bold mb-1 font-hebrew">
+              <div className="space-y-1.5 flex-1">
+                <p className="font-bold font-hebrew">
                   {isCorrect
                     ? 'Верно! Отличный ответ.'
                     : 'Почти получилось! Обратите внимание:'}
                 </p>
                 <p>{currentEx.explanation}</p>
+                {!isCorrect && (
+                  <div className="pt-1">
+                    <button
+                      type="button"
+                      onClick={handleRetryCurrent}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-amber-300 dark:border-amber-700 bg-amber-100/80 dark:bg-amber-900/40 text-amber-900 dark:text-amber-100 font-bold text-xs hover:bg-amber-200 dark:hover:bg-amber-900/70 transition active:scale-95 cursor-pointer shadow-2xs"
+                    >
+                      <RotateCcw className="w-3.5 h-3.5" />
+                      <span>Попробовать ещё раз</span>
+                    </button>
+                  </div>
+                )}
               </div>
-              {currentEx.type !== 'build_sentence' && currentEx.type !== 'listening' && Boolean(getExerciseHebrewToSpeak(currentEx)) && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    const textToSpeak = getExerciseHebrewToSpeak(currentEx);
-                    if (textToSpeak) speakHebrew(textToSpeak);
-                  }}
-                  className="p-2 rounded-xl bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 hover:text-blue-600 shadow-xs transition active:scale-95 shrink-0 cursor-pointer"
-                  title="Прослушать"
-                >
-                  <Volume2 className="w-4 h-4" />
-                </button>
-              )}
+              {currentEx.type !== 'build_sentence' &&
+                currentEx.type !== 'listening' &&
+                Boolean(getExerciseHebrewToSpeak(currentEx)) && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const textToSpeak = getExerciseHebrewToSpeak(currentEx);
+                      if (textToSpeak) speakHebrew(textToSpeak);
+                    }}
+                    className="p-2 rounded-xl bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 hover:text-blue-600 shadow-xs transition active:scale-95 shrink-0 cursor-pointer"
+                    title="Прослушать"
+                  >
+                    <Volume2 className="w-4 h-4" />
+                  </button>
+                )}
             </div>
           </div>
         )}
 
-        {/* 4. Нижняя кнопка перехода (только после ответа на вопрос) */}
+        {/* Нижняя кнопка перехода (после ответа на вопрос) */}
         {isAnswered && (
           <div className="pt-1">
             <button
@@ -656,13 +903,17 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
               onClick={handleNext}
               className={`w-full py-3 sm:py-3.5 px-6 rounded-xl font-bold text-sm flex items-center justify-center gap-2 shadow-md transition cursor-pointer active:scale-95 ${
                 isLastQuestion
-                  ? 'bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white'
+                  ? stats.isAllCorrect
+                    ? 'bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white'
+                    : 'bg-blue-600 hover:bg-blue-700 text-white'
                   : 'bg-blue-600 hover:bg-blue-700 text-white'
               }`}
             >
               <span>
                 {isLastQuestion
-                  ? 'Завершить упражнения 🎉'
+                  ? stats.isAllCorrect
+                    ? 'Завершить упражнения 🎉'
+                    : 'Проверить итоги 📊'
                   : `Следующий вопрос (${currentIdx + 2}/${exercises.length})`}
               </span>
               <ArrowRight className="w-4 h-4" />

@@ -1,14 +1,15 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
+import { useGuidePreference } from '@/lib/useGuidePreference';
 import Link from 'next/link';
 import { X, User, Volume2, Eye, CheckCircle2, ShieldCheck, MessageSquare, Download, Smartphone } from 'lucide-react';
 import { UserProfile } from '@/types';
 import { isVipUser } from '@/lib/vipUsers';
-import { saveUserProfile } from '@/lib/storage';
 import { speakHebrew } from '@/lib/speech';
 import { usePwaInstall } from '@/lib/usePwaInstall';
 import { PwaInstallGuideModal } from '@/components/PwaInstallGuideModal';
+import { IS_EARLY_ACCESS_FREE } from '@/lib/config';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -35,22 +36,28 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   onToggleFloatingFeedback,
   onLogout,
 }) => {
-  if (!isOpen) return null;
+  const { isStandalone, isIOS, showGuide, setShowGuide, installApp } = usePwaInstall();
+  const [autoShowGuides, setAutoShowGuides] = useGuidePreference();
 
   const isPro = profile.subscriptionTier === 'pro' || profile.subscriptionTier === 'admin';
-  const { isStandalone, isIOS, showGuide, setShowGuide, installApp } = usePwaInstall();
-  const [autoShowGuides, setAutoShowGuides] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('ulpana_auto_show_guides') !== 'false';
-    }
-    return true;
-  });
 
   const handleChange = (fields: Partial<UserProfile>) => {
     const updated = { ...profile, ...fields };
     onUpdateProfile(updated);
-    saveUserProfile(updated);
   };
+
+  if (!isOpen) {
+    if (showGuide) {
+      return (
+        <PwaInstallGuideModal
+          isOpen={showGuide}
+          onClose={() => setShowGuide(false)}
+          isIOS={isIOS}
+        />
+      );
+    }
+    return null;
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in">
@@ -70,6 +77,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           </div>
           <button
             onClick={onClose}
+            aria-label="Закрыть настройки"
             className="p-1 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800"
           >
             <X className="w-5 h-5" />
@@ -113,13 +121,20 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     onClose();
                     if (onOpenSubscription) onOpenSubscription();
                   }}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-bold ${
+                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
                     isPro
                       ? 'bg-amber-500 text-white shadow-sm'
+                      : IS_EARLY_ACCESS_FREE
+                      ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300/60 dark:border-emerald-700/60'
                       : 'bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300'
                   }`}
+                  title={
+                    IS_EARLY_ACCESS_FREE && !isPro
+                      ? 'В период открытой беты все 100 уроков и функции ИИ доступны бесплатно'
+                      : undefined
+                  }
                 >
-                  {isPro ? '👑 PRO' : 'Купить PRO'}
+                  {isPro ? '👑 PRO' : IS_EARLY_ACCESS_FREE ? 'Бета: открытый доступ' : 'Купить PRO'}
                 </button>
               </div>
             </div>
@@ -310,7 +325,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   onChange={(e) => {
                     const val = e.target.checked;
                     setAutoShowGuides(val);
-                    localStorage.setItem('ulpana_auto_show_guides', val ? 'true' : 'false');
                   }}
                   className="w-5 h-5 accent-blue-600 rounded cursor-pointer"
                 />

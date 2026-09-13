@@ -10,16 +10,18 @@ export function getDbPool(): Pool | null {
   connectionString = connectionString.trim().replace(/^["']|["']$/g, '');
 
   if (!pool) {
+    const databaseUrl = new URL(connectionString);
+    const isLoopback = ['localhost', '127.0.0.1', '[::1]'].includes(databaseUrl.hostname);
+    const sslMode = databaseUrl.searchParams.get('sslmode');
+    if (!isLoopback || (sslMode && sslMode !== 'disable')) {
+      databaseUrl.searchParams.set('sslmode', 'verify-full');
+    }
     pool = new Pool({
-      connectionString,
-      ssl:
-        connectionString.includes('neon.tech') ||
-        connectionString.includes('sslmode=require') ||
-        (process.env.NODE_ENV === 'production' && !connectionString.includes('localhost'))
-          ? { rejectUnauthorized: false }
-          : undefined,
+      connectionString: databaseUrl.toString(),
       max: 10,
       idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: 10000,
+      statement_timeout: 15000,
     });
   }
 
@@ -27,16 +29,26 @@ export function getDbPool(): Pool | null {
 }
 
 let initialized = false;
+let initialization: Promise<void> | null = null;
 
 export async function initDatabase() {
   if (initialized) return;
-  const db = getDbPool();
-  if (!db) {
+  if (!initialization) initialization = initializeDatabase().finally(() => { initialization = null; });
+  return initialization;
+}
+
+async function initializeDatabase() {
+  const database = getDbPool();
+  if (!database) {
     console.warn('[DB] No DATABASE_URL found. Running in offline/fallback mode.');
     return;
   }
 
+  const db = await database.connect();
   try {
+    await db.query('BEGIN');
+    // Serialize first-start migrations across server processes, and roll back partial DDL.
+    await db.query("SELECT pg_advisory_xact_lock(hashtext('ulpana_schema_v1'))");
     // 1. Таблица пользователей
     await db.query(`
       CREATE TABLE IF NOT EXISTS ulpana_users (
@@ -55,6 +67,7 @@ export async function initDatabase() {
         updated_at TIMESTAMPTZ DEFAULT NOW()
       );
       ALTER TABLE ulpana_users ADD COLUMN IF NOT EXISTS flashcard_stats JSONB DEFAULT '{}';
+      ALTER TABLE ulpana_users ADD COLUMN IF NOT EXISTS sync_revision BIGINT NOT NULL DEFAULT 0;
     `);
 
     // 2. Таблица прогресса по урокам
@@ -167,21 +180,23 @@ export async function initDatabase() {
       ALTER TABLE ulpana_lesson_progress ADD COLUMN IF NOT EXISTS essay JSONB DEFAULT NULL;
     `);
 
-    // Вставляем базовые промокоды, если таблица пуста
-    const promoCheck = await db.query(`SELECT COUNT(*) as count FROM ulpana_promo_codes`);
-    if (parseInt(promoCheck.rows[0].count, 10) === 0) {
-      await db.query(`
-        INSERT INTO ulpana_promo_codes (id, code, days_valid, max_uses, used_count, is_active)
-        VALUES
-          ('promo-1', 'ULPANA2026', 30, 1000, 0, true),
-          ('promo-2', 'MAZAL_TOV', 90, 500, 0, true)
-        ON CONFLICT (code) DO NOTHING;
-      `);
-    }
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS ulpana_ai_usage (
+        scope TEXT NOT NULL,
+        window_start TIMESTAMPTZ NOT NULL,
+        request_count INT NOT NULL,
+        expires_at TIMESTAMPTZ NOT NULL,
+        PRIMARY KEY (scope, window_start)
+      );
+      CREATE INDEX IF NOT EXISTS ulpana_ai_usage_expiry_idx ON ulpana_ai_usage(expires_at);
+    `);
 
+    await db.query('COMMIT');
     initialized = true;
     console.log('[DB] Database tables initialized successfully.');
   } catch (err) {
+    await db.query('ROLLBACK');
     console.error('[DB] Failed to initialize tables:', err);
-  }
+    throw err;
+  } finally { db.release(); }
 }

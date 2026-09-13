@@ -204,11 +204,10 @@ export const ListeningView: React.FC<ListeningViewProps> = ({
             type="button"
             onClick={onCompleteListenStage}
             className="px-3 py-2 rounded-xl border border-emerald-300 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/50 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 font-bold text-xs flex items-center gap-1.5 transition cursor-pointer shadow-2xs"
-            title="Отметить диалог пройденным и перейти к следующему этапу (Звонок)"
+            title="Перейти к звонку без зачёта диалога"
           >
             <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-            <span className="hidden sm:inline">Зачесть этап и</span>
-            <span>к Звонку →</span>
+            <span>К звонку без зачёта →</span>
           </button>
 
           <button

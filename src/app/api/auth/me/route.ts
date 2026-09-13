@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifySessionToken } from '@/lib/auth';
-import { getDbPool } from '@/lib/db';
+import { getDbPool, initDatabase } from '@/lib/db';
 import { isVipUser, VIP_EXPIRES_AT } from '@/lib/vipUsers';
 
 export async function GET(req: NextRequest) {
@@ -16,6 +16,8 @@ export async function GET(req: NextRequest) {
     }
 
     const db = getDbPool();
+    if (!db) return NextResponse.json({ error: 'Сервис входа временно недоступен' }, { status: 503 });
+    await initDatabase();
     let updatedSession = session;
     let gender = 'female';
     let fontStyle = 'print';
@@ -30,6 +32,7 @@ export async function GET(req: NextRequest) {
 
     if (db) {
       const res = await db.query('SELECT * FROM ulpana_users WHERE id = $1', [session.id]);
+      if (!res.rows.length) return NextResponse.json({ authenticated: false, user: null }, { status: 401 });
       if (res.rows.length > 0) {
         const row = res.rows[0];
         gender = row.gender || 'female';
@@ -70,9 +73,9 @@ export async function GET(req: NextRequest) {
       user: updatedSession,
       gender,
       fontStyle,
-    });
+    }, { headers: { 'Cache-Control': 'no-store' } });
   } catch (error) {
     console.error('[API Auth Me] Error:', error);
-    return NextResponse.json({ authenticated: false, user: null });
+    return NextResponse.json({ error: 'Не удалось проверить вход. Попробуйте снова.' }, { status: 503 });
   }
 }

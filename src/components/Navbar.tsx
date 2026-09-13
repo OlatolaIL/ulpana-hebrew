@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { UserProfile } from '@/types';
 import { isVipUser } from '@/lib/vipUsers';
+import { IS_EARLY_ACCESS_FREE } from '@/lib/config';
 import { TierBadge } from './TierBadge';
 
 interface NavbarProps {
@@ -138,7 +139,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               }`}
               title="Статус открытого бета-тестирования и доступ PRO"
             >
-              <span className="tracking-wide">{isPro ? 'PRO' : 'PRO БЕТА'}</span>
+              <span className="tracking-wide">{IS_EARLY_ACCESS_FREE ? 'БЕТА' : 'PRO'}</span>
             </button>
 
             {/* Быстрый переключатель шрифта (десктоп) */}

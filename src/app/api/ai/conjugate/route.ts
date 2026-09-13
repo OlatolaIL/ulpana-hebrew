@@ -1,3 +1,5 @@
+import { groqModels as configuredGroqModels, geminiModel, resolveAiKeys } from '@/lib/aiModels';
+import { readAiJson, fetchAi, aiErrorResponse } from '@/lib/aiRequest';
 import { NextRequest, NextResponse } from 'next/server';
 import { findOfflineVerbConjugation } from '@/lib/verbConjugations';
 import { stripNikkud } from '@/lib/transcription';
@@ -74,7 +76,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { verb, context, provider = 'groq', apiKey } = await req.json();
+    const { verb, context, provider = 'groq', apiKey } = await readAiJson<{ verb?: string; context?: string; apiKey?: string; provider?: string }>(req);
 
     if (!verb) {
       return NextResponse.json({ error: 'Глагол не указан' }, { status: 400 });
@@ -87,9 +89,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 2. ИИ-генерация полной таблицы спряжений в стиле Pealim
-    const defaultKey = ['gsk_', '0fWO7WvRuW3BosCcz81n', 'WGdyb3FY1G6aD7IaBjhD', '22BG3YEGMokO'].join('');
-    const groqKey = (apiKey || process.env.GROQ_API_KEY || defaultKey).trim();
-    const geminiKey = (apiKey || process.env.GEMINI_API_KEY || '').trim();
+    const { groqKey, geminiKey } = resolveAiKeys(provider, apiKey);
 
     const systemPrompt = `Ты — профессиональный лингвистический генератор таблиц спряжения глаголов иврита в строгом соответствии со стандартами Pealim.com и Академии языка Иврит (האקדמיה ללשון העברית).
 Пользователь запросил полное спряжение для глагола или глагольной формы: "${verb}".
@@ -178,24 +178,14 @@ export async function POST(req: NextRequest) {
 }`;
 
     if (provider === 'groq' && groqKey) {
-      const modelsToTry = [
-        process.env.GROQ_MODEL,
-        'qwen/qwen3.8-27b',
-        'openai/gpt-oss-120b',
-        'openai/gpt-oss-20b',
-        'qwen/qwen3.6-27b',
-        'groq/compound',
-        'llama-3.3-70b-versatile',
-        'llama-3.1-8b-instant',
-        'gemma2-9b-it',
-      ].filter(Boolean) as string[];
+      const modelsToTry = configuredGroqModels();
 
       for (const groqModel of modelsToTry) {
         try {
           const controller = new AbortController();
           const timeoutId = setTimeout(() => controller.abort(), 7000);
 
-          const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          const groqRes = await fetchAi('https://api.groq.com/openai/v1/chat/completions', {
             method: 'POST',
             signal: controller.signal,
             headers: {
@@ -235,8 +225,8 @@ export async function POST(req: NextRequest) {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 7000);
 
-        const geminiRes = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiKey}`,
+        const geminiRes = await fetchAi(
+          `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel()}:generateContent?key=${geminiKey}`,
           {
             method: 'POST',
             signal: controller.signal,
@@ -275,8 +265,5 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json({ error: 'Не удалось получить таблицу спряжения глагола' }, { status: 500 });
-  } catch (err: any) {
-    console.error('Conjugate route error:', err);
-    return NextResponse.json({ error: 'Ошибка при анализе спряжений' }, { status: 500 });
-  }
+  } catch (err: any) { return aiErrorResponse(err); }
 }

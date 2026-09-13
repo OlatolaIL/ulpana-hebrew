@@ -1,3 +1,6 @@
+import { groqModels as configuredGroqModels, geminiModel, resolveAiKeys } from '@/lib/aiModels';
+import { readAiJson, fetchAi, aiErrorResponse } from '@/lib/aiRequest';
+import { sanitizeRussianTranslation } from '@/lib/russianTranslation';
 import { NextRequest, NextResponse } from 'next/server';
 import { verifySessionToken } from '@/lib/auth';
 import { checkRateLimit } from '@/lib/rateLimit';
@@ -35,72 +38,10 @@ interface ChatRequestBody {
 /**
  * Очистка и исправление типичных дословных калек с иврита в русском переводе для ВСЕХ уроков
  */
-export function sanitizeRussianTranslation(text: string): string {
-  if (!text || typeof text !== 'string') return '';
-  let res = text.trim();
 
-  // 1. Языки и речь: "на какой язык ты говоришь" -> "на каком языке ты говоришь"
-  res = res.replace(/на\s+как(?:ой|ом)\s+язык(\?|\s+|$)/gi, 'на каком языке$1');
-  res = res.replace(/на\s+как(?:ой|ом)\s+язык\s+ты\s+говоришь/gi, 'на каком языке ты говоришь');
-  res = res.replace(/на\s+как(?:ой|ом)\s+язык\s+вы\s+говорите/gi, 'на каком языке вы говорите');
-  res = res.replace(/на\s+какие\s+языки\s+ты\s+говоришь/gi, 'на каких языках ты говоришь');
-  res = res.replace(/на\s+какие\s+языки\s+вы\s+говорите/gi, 'на каких языках вы говорите');
-  res = res.replace(/говори(?:шь|те)\s+иврит(\?|\s+|$)/gi, (m, end) => m.toLowerCase().startsWith('говорите') ? `говорите на иврите${end}` : `говоришь на иврите${end}`);
-  res = res.replace(/говори(?:шь|те)\s+русский(\?|\s+|$)/gi, (m, end) => m.toLowerCase().startsWith('говорите') ? `говорите по-русски${end}` : `говоришь по-русски${end}`);
-  res = res.replace(/говори(?:шь|те)\s+английский(\?|\s+|$)/gi, (m, end) => m.toLowerCase().startsWith('говорите') ? `говорите по-английски${end}` : `говоришь по-английски${end}`);
-
-  // 2. Место жительства и география: "откуда ты живешь" -> "где ты живешь"
-  res = res.replace(/откуда\s+ты\s+живешь/gi, 'где ты живешь');
-  res = res.replace(/откуда\s+вы\s+живете/gi, 'где вы живете');
-  res = res.replace(/откуда\s+ты\s+проживаешь/gi, 'где ты живешь');
-  res = res.replace(/в\s+как(?:ой|ом)\s+город\s+ты\s+живешь/gi, 'в каком городе ты живешь');
-  res = res.replace(/в\s+как(?:ой|ом)\s+город\s+вы\s+живете/gi, 'в каком городе вы живете');
-  res = res.replace(/из\s+какой\s+город/gi, 'из какого города');
-  res = res.replace(/из\s+какой\s+страна/gi, 'из какой страны');
-  res = res.replace(/в\s+как(?:ой|ую)\s+улиц(?:у|е)/gi, 'на какой улице');
-  res = res.replace(/в\s+как(?:ой|ом)\s+этаж(?:е|)/gi, 'на каком этаже');
-
-  // 3. Время и расписание (уроки по времени, часам и встречам)
-  res = res.replace(/в\s+как(?:ой|ом)\s+час(?:е|)(\?|\s+|$)/gi, 'в котором часу$1');
-  res = res.replace(/что\s+час\??/gi, 'который час?');
-  res = res.replace(/что\s+время\??/gi, 'сколько времени?');
-
-  // 4. Возраст, знакомство и приветствия
-  res = res.replace(/сын\s+скольких?\s+(?:лет|ты)/gi, 'сколько тебе лет');
-  res = res.replace(/дочь\s+скольких?\s+(?:лет|ты)/gi, 'сколько тебе лет');
-  res = res.replace(/как\s+(?:читают|называют)\s+теб(?:е|я)/gi, 'как тебя зовут');
-  res = res.replace(/как\s+(?:читают|называют)\s+вам/gi, 'как вас зовут');
-  res = res.replace(/приятный\s+очень/gi, 'очень приятно');
-  res = res.replace(/что\s+твой\s+мир/gi, 'как твои дела');
-  res = res.replace(/что\s+твой\s+покой/gi, 'как твои дела');
-  res = res.replace(/что\s+слышно\s+с\s+тобой/gi, 'как дела');
-
-  // 5. Покупки, кафе и быт (уроки по магазину, кафе, ресторану)
-  res = res.replace(/сколько\s+это\s+поднимается/gi, 'сколько это стоит');
-  res = res.replace(/есть\s+тебе(\?|\s+|$)/gi, 'у тебя есть$1');
-  res = res.replace(/есть\s+вам(\?|\s+|$)/gi, 'у вас есть$1');
-  res = res.replace(/нет\s+мне(\?|\s+|$)/gi, 'у меня нет$1');
-  res = res.replace(/нет\s+тебе(\?|\s+|$)/gi, 'у тебя нет$1');
-
-  // 6. Самочувствие (уроки здоровья и врача)
-  res = res.replace(/что\s+болит\s+тебе/gi, 'что у тебя болит');
-  res = res.replace(/болит\s+мне/gi, 'у меня болит');
-  res = res.replace(/горячо\s+мне/gi, 'мне жарко');
-
-  // Сохраняем заглавную букву в начале первого предложения
-  if (text.length > 0 && text[0] === text[0].toUpperCase() && res.length > 0) {
-    res = res[0].toUpperCase() + res.slice(1);
-  }
-
-  return res;
-}
 
 function sanitizeTranscription(text: string): string {
-  if (!text) return '';
-  let res = text.trim();
-  // Союз «ו» в современном разговорном иврите всегда звучит как «вэ-», заменяем архаичное книжное «у-»
-  res = res.replace(/(^|[\s"«(—])у-([а-яёА-ЯЁa-zA-Z])/gi, '$1вэ-$2');
-  return res;
+  return typeof text === 'string' ? text.trim() : '';
 }
 
 function normalizeResponse(
@@ -111,6 +52,9 @@ function normalizeResponse(
   isFemale: boolean = false,
   aiRole?: string
 ) {
+  if (!parsed || typeof parsed.hebrew !== 'string' || !/[\u0590-\u05ff]/.test(parsed.hebrew)) {
+    throw new Error('Invalid AI conversation response');
+  }
   let rawTranslation =
     parsed.russian_translation ||
     parsed.translation_ru ||
@@ -124,7 +68,8 @@ function normalizeResponse(
     parsed.transcription ||
     '';
 
-  const isCompleted = Boolean(parsed.isCompleted ?? parsed.is_completed ?? defaultIsCompleted);
+  const completionValue = parsed.isCompleted ?? parsed.is_completed;
+  const isCompleted = completionValue === true && defaultIsCompleted;
   const shouldHangUp = Boolean(parsed.shouldHangUp ?? parsed.should_hang_up ?? isCompleted);
 
   const rawNewWords = parsed.new_words || parsed.newWords;
@@ -177,14 +122,6 @@ function normalizeResponse(
     }
   }
 
-  // Если teacherReactionHebrew не заполнен при переходе между шагами, даем гарантированную похвалу
-  if (!rawTeacherReactionHebrew && nextStep && !isCompleted) {
-    rawTeacherReactionHebrew = 'יוֹפִי! נָכוֹן מְאוֹד!';
-    if (!rawTeacherReactionRu) {
-      rawTeacherReactionRu = 'Прекрасно! Очень правильно!';
-    }
-  }
-
   let suggestedReplies = Array.isArray(parsed.suggestedReplies)
     ? parsed.suggestedReplies
         .map((r: any) => ({
@@ -233,7 +170,7 @@ function normalizeResponse(
 
 export async function POST(req: NextRequest) {
   try {
-    const body: ChatRequestBody = await req.json();
+    const body = await readAiJson<ChatRequestBody>(req);
     const {
       messages,
       lessonNumber,
@@ -284,10 +221,7 @@ export async function POST(req: NextRequest) {
         { status: 429 }
       );
     }
-
-    const defaultKey = ['gsk_', '0fWO7WvRuW3BosCcz81n', 'WGdyb3FY1G6aD7IaBjhD', '22BG3YEGMokO'].join('');
-    const groqKey = (apiKey || process.env.GROQ_API_KEY || defaultKey).trim();
-    const geminiKey = (apiKey || process.env.GEMINI_API_KEY || '').trim();
+    const { groqKey, geminiKey } = resolveAiKeys(provider, apiKey);
     const isFemale = userGender === 'female';
 
     const isLevelAlef = level === 'alef';
@@ -567,20 +501,11 @@ ${goals.map((g, idx) => `${idx + 1}. Ученик должен: ${g}`).join('\n'
 
     // 1. Попытка запроса через Groq API
     if (provider === 'groq' && groqKey) {
-      const modelsToTry = [
-        process.env.GROQ_MODEL,
-        'openai/gpt-oss-120b',
-        'qwen/qwen3.8-27b',
-        'openai/gpt-oss-20b',
-        'qwen/qwen3.6-27b',
-        'groq/compound',
-        'llama-3.3-70b-versatile',
-        'llama-3.1-8b-instant',
-      ].filter(Boolean) as string[];
+      const modelsToTry = configuredGroqModels();
 
       for (const groqModel of modelsToTry) {
         try {
-          const groqResponse = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          const groqResponse = await fetchAi('https://api.groq.com/openai/v1/chat/completions', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -620,8 +545,8 @@ ${goals.map((g, idx) => `${idx + 1}. Ученик должен: ${g}`).join('\n'
     // 2. Попытка запроса через Gemini API
     if (geminiKey) {
       try {
-        const geminiRes = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiKey}`,
+        const geminiRes = await fetchAi(
+          `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel()}:generateContent?key=${geminiKey}`,
           {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -660,108 +585,6 @@ ${goals.map((g, idx) => `${idx + 1}. Ученик должен: ${g}`).join('\n'
       }
     }
 
-    // 3. Умный контекстный фолбэк строго по текущему шагу урока
-    if (currentStep && !isFinalTurn) {
-      const fallbackReplies = (currentStep.sampleAnswers && currentStep.sampleAnswers.length > 0)
-        ? currentStep.sampleAnswers
-        : (lessonNumber === 4
-            ? [
-                { hebrew: 'זֶה עֵט', transcription: 'зэ эт', translation: 'Это ручка' },
-                { hebrew: 'זֹאת מַחְבֶּרֶת', transcription: 'зот махбэ́рэт', translation: 'Это тетрадь' },
-                { hebrew: 'אֵלֶּה תַּלְמִידִים', transcription: 'э́ле тальмиди́м', translation: 'Это ученики' },
-              ]
-            : []);
-
-      let fallbackReactionHebrew = previousStep ? 'יוֹפִי! נָכוֹן מְאוֹד!' : null;
-      let fallbackReactionRu = previousStep ? 'Прекрасно! Очень правильно!' : null;
-      if (previousStep?.sampleAnswers?.[0]?.hebrew) {
-        fallbackReactionHebrew = `יוֹפִי! נָכוֹן מְאוֹד, ${previousStep.sampleAnswers[0].hebrew}!`;
-        fallbackReactionRu = previousStep.sampleAnswers[0].translation
-          ? `Прекрасно! Очень правильно, ${previousStep.sampleAnswers[0].translation.toLowerCase()}!`
-          : 'Прекрасно! Очень правильно!';
-      }
-
-      return NextResponse.json({
-        hebrew: effectiveNextQuestionHebrew || currentStep.aiQuestionHebrew,
-        transcription: '',
-        translation: currentStep.aiQuestionRu,
-        teacherReactionHebrew: fallbackReactionHebrew,
-        teacherReactionRu: fallbackReactionRu,
-        feedback: null,
-        stepFact: currentStep.fact || null,
-        stepIndex: currentStep.stepIndex || null,
-        isCompleted: false,
-        engine: 'Ульпан-автоответчик (Сценарный шаг)',
-        suggestedReplies: fallbackReplies,
-      });
-    }
-
-    if (lessonNumber === 4) {
-      return NextResponse.json({
-        hebrew: isFinalTurn
-          ? (isFemale
-              ? 'מְעֻלֶּה! כָּל הַכָּבוֹד, עַכְשָׁיו אַתְּ יוֹדַעַת אֶת הַמִּלִּים וְאֶת הַהֶבְדֵּל בֵּין זֶה לְזֹאת. לְהִתְרָאוֹת!'
-              : 'מְעֻלֶּה! כָּל הַכָּבוֹד, עַכְשָׁיו אַתָּה יוֹדֵעַ אֶת הַמִּלִּים וְאֶת הַהֶבְדֵּל בֵּין זֶה לְזֹאת. לְהִתְרָאוֹת!')
-          : 'יוֹפִי מְאוֹד! נָכוֹן מְאוֹד. וְמָה זֶה?',
-        transcription: isFinalTurn
-          ? (isFemale
-              ? 'мэулé! коль hа-кавóд, ахшáв ат йодáат эт hа-милӣм вэ-эт hа-hевдéль бейн зэ лэ-зот. лэhитраóт!'
-              : 'мэулé! коль hа-кавóд, ахшáв атá йодéа эт hа-милӣм вэ-эт hа-hевдéль бейн зэ лэ-зот. лэhитраóт!')
-          : 'йóфи мэóд! нахóн мэóд. вэ-ма зэ?',
-        translation: isFinalTurn
-          ? 'Превосходно! Молодец, теперь ты отлично знаешь слова и разницу между «זה» и «זאת». До свидания!'
-          : 'Очень хорошо! Совершенно верно. А что это?',
-        feedback: null,
-        isCompleted: isFinalTurn,
-        engine: 'Ульпан-автоответчик (Урок 4)',
-        suggestedReplies: isFinalTurn
-          ? [
-              { hebrew: 'תּוֹדָה רַבָּה, לְהִתְרָאוֹת!', transcription: 'тодá рабá, лэhитраóт!', translation: 'Большое спасибо, до свидания!' },
-              { hebrew: 'יוֹם טוֹב, בַּיי!', transcription: 'йом тов, бай!', translation: 'Хорошего дня, пока!' },
-            ]
-          : [
-              { hebrew: 'זֶה עֵט', transcription: 'зэ эт', translation: 'Это ручка' },
-              { hebrew: 'זֶה מַחְשֵׁב', transcription: 'зэ махшéв', translation: 'Это компьютер' },
-              { hebrew: 'זֹאת כּוֹס', transcription: 'зот кос', translation: 'Это стакан' },
-            ],
-      });
-    }
-
-    return NextResponse.json({
-      hebrew: isFinalTurn
-        ? (isFemale ? 'נָעִים מְאוֹד! כָּל הַכָּבוֹד, שִׂיחָה מְצוּיֶּנֶת! לְהִתְרָאוֹת!' : 'נָעִים מְאוֹד! כָּל הַכָּבוֹד, שִׂיחָה מְצוּיֶּנֶת! לְהִתְרָאוֹת!')
-        : (isFemale
-            ? `יוֹפִי! הֵבַנְתִּי אוֹתָךְ מְצוּיָן. סַפְּרִי לִי עוֹד, בְּבַקָּשָׁה.`
-            : `יוֹפִי! הֵבַנְתִּי אוֹתְךָ מְצוּיָן. סַפֵּר לִי עוֹד, בְּבַקָּשָׁה.`),
-      transcription: isFinalTurn
-        ? 'наӣм мэóд! коль hа-кавóд, сиха мэцуйéнэт! лэhитраóт!'
-        : (isFemale
-            ? 'йóфи! hэвáнти отáх мэцуйáн. сапрӣ ли од, бэвакашá.'
-            : 'йóфи! hэвáнти отхá мэцуйáн. сапéр ли од, бэвакашá.'),
-      translation: isFinalTurn
-        ? 'Очень приятно! Молодец, отличная беседа! До свидания!'
-        : 'Отлично! Я прекрасно тебя понял(а). Расскажи мне еще, пожалуйста.',
-      feedback: null,
-      isCompleted: isFinalTurn,
-      engine: 'Ульпан-автоответчик',
-      suggestedReplies: isFinalTurn
-        ? [
-            { hebrew: 'תּוֹדָה רַבָּה, לְהִתְרָאוֹת!', transcription: 'тодá рабá, лэhитраóт!', translation: 'Большое спасибо, до свидания!' },
-            { hebrew: 'יוֹם טוֹב, בַּיי!', transcription: 'йом тов, бай!', translation: 'Хорошего дня, пока!' },
-            { hebrew: 'שָׁלוֹם וְתוֹדָה!', transcription: 'шалóм вэ-тодá!', translation: 'Пока и спасибо!' },
-          ]
-        : [
-            { hebrew: 'הַכֹּל מְצוּיָן, תּוֹדָה!', transcription: 'hа-коль мэцуйáн, тодá!', translation: 'Всё отлично, спасибо!' },
-            { hebrew: 'בְּסֵדֶר, תּוֹדָה.', transcription: 'бэсéдер, тодá.', translation: 'В порядке, спасибо.' },
-          ],
-    });
-  } catch (error: any) {
-    return NextResponse.json({
-      hebrew: 'סְלִיחָה, הָיְתָה בְּעָיָה בַּתִּקְשֹׁרֶת. נַסּוּ שׁוּב.',
-      transcription: 'слихá, hайтá беайá ба-тикшóрет. насӯ шув.',
-      translation: 'Извините, произошла ошибка связи. Попробуйте еще раз.',
-      feedback: null,
-      suggestedReplies: [],
-    });
-  }
+    return NextResponse.json({ error: 'Собеседник временно недоступен. Повторите отправку; этап не зачтён.' }, { status: 503 });
+  } catch (error: any) { return aiErrorResponse(error); }
 }

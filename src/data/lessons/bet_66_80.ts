@@ -3910,7 +3910,7 @@ export const BET_LESSONS_66_80: Record<number, Lesson> = {
         "transcription": "птихáт э́сек",
         "translation": "открытие бизнеса (смихут)",
         "partOfSpeech": "noun",
-        "root": "פ-ת-ח / ע-שׂ-ק",
+        "root": "פ-ת-ח / ע-ס-ק",
         "gender": "f",
         "lessonId": 75
       },

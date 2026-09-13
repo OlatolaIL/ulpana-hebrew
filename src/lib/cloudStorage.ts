@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import type { S3Client } from '@aws-sdk/client-s3';
 
 export interface UploadOptions {
   buffer: Buffer;
@@ -22,7 +23,22 @@ export function isCloudStorageConfigured(): boolean {
   return hasR2 || hasS3;
 }
 
-let s3ClientInstance: any = null;
+let s3ClientInstance: S3Client | null = null;
+
+export function validateAudioKey(key: string): void {
+  if (!/^audio\/[a-f0-9]{64}\/[a-f0-9-]{36}\.(webm|m4a|aac)$/.test(key)) {
+    throw new Error('Invalid recording key');
+  }
+}
+
+function privateAudioPath(key: string): string {
+  validateAudioKey(key);
+  return path.join(process.cwd(), '.uploads', ...key.split('/'));
+}
+
+function recordingUrl(key: string): string {
+  return `/api/audio/file?key=${encodeURIComponent(key)}`;
+}
 
 async function getS3Client() {
   if (s3ClientInstance) return s3ClientInstance;
@@ -61,9 +77,10 @@ async function getS3Client() {
 
 /**
  * Загружает аудио-буфер в Cloudflare R2 / AWS S3 или локально на диск при отсутствии ключей облака.
- * Возвращает публичный URL для воспроизведения в браузере.
+ * Возвращает адрес защищённого обработчика воспроизведения.
  */
 export async function uploadAudioFile({ buffer, key, contentType = 'audio/webm' }: UploadOptions): Promise<string> {
+  validateAudioKey(key);
   // 1. Попытка загрузки в Cloudflare R2 / S3
   if (isCloudStorageConfigured()) {
     try {
@@ -81,31 +98,29 @@ export async function uploadAudioFile({ buffer, key, contentType = 'audio/webm' 
           })
         );
 
-        const publicBaseUrl = (
-          process.env.R2_PUBLIC_URL ||
-          process.env.AWS_S3_PUBLIC_URL ||
-          `https://${bucket}.r2.dev`
-        ).replace(/\/$/, '');
-
-        return `${publicBaseUrl}/${key}`;
+        return recordingUrl(key);
       }
     } catch (error) {
-      console.error('[Storage] Cloud upload failed, falling back to local storage:', error);
+      console.error('[Storage] Cloud upload failed:', error);
+      throw new Error('Recording storage unavailable');
     }
   }
 
-  // 2. Локальный фолбэк: сохранение в public/uploads/...
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('Private cloud recording storage is required in production');
+  }
+
+  // 2. Development-only private storage outside public/.
   try {
-    const cleanKey = key.replace(/^[/\\]+/, '');
-    const localDir = path.join(process.cwd(), 'public', 'uploads', path.dirname(cleanKey));
-    const localPath = path.join(process.cwd(), 'public', 'uploads', cleanKey);
+    const localPath = privateAudioPath(key);
+    const localDir = path.dirname(localPath);
 
     if (!fs.existsSync(localDir)) {
       fs.mkdirSync(localDir, { recursive: true });
     }
 
     fs.writeFileSync(localPath, buffer);
-    return `/uploads/${cleanKey.replace(/\\/g, '/')}`;
+    return recordingUrl(key);
   } catch (localErr) {
     console.error('[Storage] Local file save failed:', localErr);
     throw new Error('Failed to save audio recording');
@@ -117,9 +132,12 @@ export async function uploadAudioFile({ buffer, key, contentType = 'audio/webm' 
  */
 export async function deleteAudioFile(keyOrUrl: string): Promise<boolean> {
   try {
-    if (keyOrUrl.startsWith('/uploads/')) {
-      const relativePath = keyOrUrl.replace(/^\/uploads\//, '');
-      const localPath = path.join(process.cwd(), 'public', 'uploads', relativePath);
+    const key = keyOrUrl.startsWith('/api/audio/file?')
+      ? new URL(keyOrUrl, 'http://localhost').searchParams.get('key') || ''
+      : keyOrUrl;
+    validateAudioKey(key);
+    if (!isCloudStorageConfigured() && process.env.NODE_ENV !== 'production') {
+      const localPath = privateAudioPath(key);
       if (fs.existsSync(localPath)) {
         fs.unlinkSync(localPath);
       }
@@ -132,10 +150,6 @@ export async function deleteAudioFile(keyOrUrl: string): Promise<boolean> {
         const { DeleteObjectCommand } = await import('@aws-sdk/client-s3');
         const bucket = process.env.R2_BUCKET_NAME || process.env.AWS_S3_BUCKET;
         // Извлекаем key из URL, если передан полный URL
-        const key = keyOrUrl.startsWith('http')
-          ? new URL(keyOrUrl).pathname.replace(/^\//, '')
-          : keyOrUrl;
-
         await s3.send(
           new DeleteObjectCommand({
             Bucket: bucket,
@@ -149,4 +163,21 @@ export async function deleteAudioFile(keyOrUrl: string): Promise<boolean> {
     console.warn('[Storage] Delete file warning:', err);
   }
   return false;
+}
+
+export async function readAudioFile(key: string): Promise<{ data: Uint8Array; contentType: string }> {
+  validateAudioKey(key);
+  if (isCloudStorageConfigured()) {
+    const client = await getS3Client();
+    if (!client) throw new Error('Recording storage unavailable');
+    const { GetObjectCommand } = await import('@aws-sdk/client-s3');
+    const result = await client.send(new GetObjectCommand({
+      Bucket: process.env.R2_BUCKET_NAME || process.env.AWS_S3_BUCKET,
+      Key: key,
+    }));
+    if (!result.Body) throw new Error('Recording not found');
+    return { data: await result.Body.transformToByteArray(), contentType: result.ContentType || 'audio/webm' };
+  }
+  if (process.env.NODE_ENV === 'production') throw new Error('Recording storage unavailable');
+  return { data: fs.readFileSync(privateAudioPath(key)), contentType: key.endsWith('.m4a') ? 'audio/mp4' : key.endsWith('.aac') ? 'audio/aac' : 'audio/webm' };
 }

@@ -19,6 +19,8 @@ interface CallDebriefViewProps {
   addedWords: Record<string, boolean>;
   onAddWord: (w: Word) => void;
   debriefReport: PhoneDebriefReport | null;
+  loadingDebrief: boolean;
+  evaluationNotice?: string | null;
   onOpenDialogueReview: () => void;
   onStartCall: () => void;
   onBackToLesson?: () => void;
@@ -34,12 +36,14 @@ export const CallDebriefView: React.FC<CallDebriefViewProps> = ({
   addedWords,
   onAddWord,
   debriefReport,
+  loadingDebrief,
+  evaluationNotice,
   onOpenDialogueReview,
   onStartCall,
   onBackToLesson,
 }) => {
   const userTurnsCount = messages.filter((m) => m.role === 'user').length;
-  const isCallSuccessful = userTurnsCount >= 2;
+  const isCallSuccessful = debriefReport?.isSuccess === true;
 
   return (
     <div className="bg-white dark:bg-zinc-900 rounded-3xl p-6 sm:p-8 border border-zinc-200 dark:border-zinc-800 shadow-xl space-y-6">
@@ -62,10 +66,16 @@ export const CallDebriefView: React.FC<CallDebriefViewProps> = ({
             📞
           </div>
           <h2 className="text-xl sm:text-2xl font-bold text-zinc-900 dark:text-zinc-50 font-hebrew">
-            Разговор был слишком коротким
+            Разговор завершён
           </h2>
           <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1 max-w-md mx-auto font-hebrew">
-            Собеседник не услышал ваших реплик (0 ответов). Чтобы урок был засчитан, произнесите ответ вслух или нажмите на подсказку.
+            {loadingDebrief
+              ? 'Проверяем разговор. Результат появится здесь.'
+              : debriefReport
+                ? 'Есть над чем потренироваться. Откройте разбор и попробуйте разговор ещё раз.'
+                : userTurnsCount === 0
+                  ? 'Вы пока не ответили собеседнику. Начните новый разговор, когда будете готовы.'
+                  : evaluationNotice || 'Проверка сейчас недоступна. Разговор не получил оценку и зачёт.'}
           </p>
         </div>
       )}
@@ -95,7 +105,7 @@ export const CallDebriefView: React.FC<CallDebriefViewProps> = ({
             Результат
           </span>
           <span className={`text-lg font-bold ${isCallSuccessful ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-500'}`}>
-            {isCallSuccessful ? '100% 🏆' : 'Требуется диалог'}
+            {debriefReport ? `${debriefReport.overallScore}%` : 'Без оценки'}
           </span>
         </div>
       </div>
@@ -110,7 +120,7 @@ export const CallDebriefView: React.FC<CallDebriefViewProps> = ({
           {scenario.goals.map((goal, idx) => (
             <li key={idx} className="flex items-center gap-2 text-xs sm:text-sm text-zinc-700 dark:text-zinc-300">
               <div className="w-4 h-4 rounded-full bg-emerald-500 text-white flex items-center justify-center text-[10px] shrink-0 font-bold">
-                ✓
+                •
               </div>
               <span>{goal}</span>
             </li>
@@ -189,7 +199,7 @@ export const CallDebriefView: React.FC<CallDebriefViewProps> = ({
               🎙️ Произношение
             </span>
             <span className="text-base sm:text-lg font-extrabold text-blue-800 dark:text-blue-200 font-mono">
-              {debriefReport.pronunciationScore ?? 92}%
+              {typeof debriefReport.pronunciationScore === 'number' ? `${debriefReport.pronunciationScore}%` : 'Не оценивалось'}
             </span>
           </div>
           <div
@@ -203,7 +213,7 @@ export const CallDebriefView: React.FC<CallDebriefViewProps> = ({
               📚 Грамматика
             </span>
             <span className="text-base sm:text-lg font-extrabold font-mono">
-              {debriefReport.grammarScore ?? 95}%
+              {typeof debriefReport.grammarScore === 'number' ? `${debriefReport.grammarScore}%` : 'Нет оценки'}
             </span>
           </div>
         </div>

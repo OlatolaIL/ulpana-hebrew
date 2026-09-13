@@ -1,3 +1,5 @@
+import { groqModels as configuredGroqModels, geminiModel, resolveAiKeys } from '@/lib/aiModels';
+import { readAiJson, fetchAi, aiErrorResponse } from '@/lib/aiRequest';
 import { NextRequest, NextResponse } from 'next/server';
 import { lookupOfflineWord } from '@/lib/ulpanDictionary';
 import { DETAILED_LESSONS } from '@/data/lessonsData';
@@ -62,7 +64,7 @@ export async function POST(req: NextRequest) {
       sentenceTranscription,
       provider = 'groq',
       apiKey,
-    } = await req.json();
+    } = await readAiJson<{ word?: string; context?: string; sentenceTranslation?: string; sentenceTranscription?: string; apiKey?: string; provider?: string }>(req);
 
     if (!word) {
       return NextResponse.json({ error: 'Слово не указано' }, { status: 400 });
@@ -128,9 +130,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 4. Если слово новое/нестандартное — обращаемся к Groq/Gemini AI
-    const defaultKey = ['gsk_', '0fWO7WvRuW3BosCcz81n', 'WGdyb3FY1G6aD7IaBjhD', '22BG3YEGMokO'].join('');
-    const groqKey = (apiKey || process.env.GROQ_API_KEY || defaultKey).trim();
-    const geminiKey = (apiKey || process.env.GEMINI_API_KEY || '').trim();
+    const { groqKey, geminiKey } = resolveAiKeys(provider, apiKey);
 
     const systemPrompt = `Ты — профессиональный лингвистический словарь иврита для русскоязычных студентов ульпана.
 Пользователь нажал на слово на иврите: "${word}".
@@ -168,20 +168,11 @@ ${sentenceTranscription ? `   - Русская транскрипция слов
 
     // Запрос через Groq
     if (provider === 'groq' && groqKey) {
-      const modelsToTry = [
-        process.env.GROQ_MODEL,
-        'qwen/qwen3.8-27b',
-        'openai/gpt-oss-120b',
-        'openai/gpt-oss-20b',
-        'qwen/qwen3.6-27b',
-        'groq/compound',
-        'llama-3.3-70b-versatile',
-        'llama-3.1-8b-instant',
-      ].filter(Boolean) as string[];
+      const modelsToTry = configuredGroqModels();
 
       for (const groqModel of modelsToTry) {
         try {
-          const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          const groqRes = await fetchAi('https://api.groq.com/openai/v1/chat/completions', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -215,8 +206,8 @@ ${sentenceTranscription ? `   - Русская транскрипция слов
     // Запрос через Gemini
     if (geminiKey) {
       try {
-        const geminiRes = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiKey}`,
+        const geminiRes = await fetchAi(
+          `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel()}:generateContent?key=${geminiKey}`,
           {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -251,8 +242,5 @@ ${sentenceTranscription ? `   - Русская транскрипция слов
       partOfSpeech: 'other',
       exampleSentence: null,
     });
-  } catch (err: any) {
-    console.error('Word lookup error:', err);
-    return NextResponse.json({ error: 'Не удалось разобрать слово' }, { status: 500 });
-  }
+  } catch (err: any) { return aiErrorResponse(err); }
 }

@@ -4,7 +4,6 @@ import React, { useState } from 'react';
 import { Info, RotateCcw, CheckCircle2 } from 'lucide-react';
 import { TextToken } from '@/lib/transcription';
 import { speakHebrew } from '@/lib/speech';
-import { markLessonTabCompleted } from '@/lib/storage';
 import { WordLookupModal } from '../WordLookupModal';
 import { LessonAiChatProps } from './types';
 import { useAiChat } from './useAiChat';
@@ -44,6 +43,8 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
     handleAddWordDirectly,
     handleAppendWord,
     handleSendMessage,
+    handleRetry,
+    chatError,
     toggleRecording,
     handleResetChat,
     handleGenderSwitch,
@@ -246,6 +247,13 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
             </div>
           )}
 
+          {chatError && (
+            <div role="alert" className="rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 dark:bg-amber-950 dark:text-amber-100">
+              <p>{chatError}</p>
+              <button type="button" onClick={handleRetry} disabled={loading} className="mt-2 rounded-lg border border-amber-500 px-3 py-2 font-semibold disabled:opacity-50">Повторить отправку</button>
+            </div>
+          )}
+
           {isDialogueFinished && userTurnsCount >= TARGET_TURNS && (
             <div className="p-3.5 bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-blue-500/10 border border-emerald-400/40 dark:border-emerald-700/60 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left animate-in fade-in shadow-xs my-2 font-hebrew">
               <div className="flex items-center gap-2.5">
@@ -266,8 +274,6 @@ export const LessonAiChat: React.FC<LessonAiChatProps> = ({
                   <button
                     type="button"
                     onClick={() => {
-                      const updated = markLessonTabCompleted(lesson.id, 'chat');
-                      if (onUpdateProfile) onUpdateProfile(updated);
                       onGoToPhone();
                     }}
                     className="flex-1 sm:flex-initial px-3.5 py-2 rounded-xl font-bold text-xs bg-purple-600 hover:bg-purple-700 text-white shadow-xs transition active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer"

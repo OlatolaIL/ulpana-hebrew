@@ -1,10 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifySessionToken } from '@/lib/auth';
 import { getDbPool, initDatabase } from '@/lib/db';
+import { randomUUID } from 'crypto';
+import { readBoundedJson, RequestBodyError } from '@/lib/requestBody';
+import { checkRateLimit } from '@/lib/rateLimit';
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
+    const token = req.cookies.get('ulpana_session')?.value;
+    const session = token ? await verifySessionToken(token) : null;
+    if (!session) return NextResponse.json({ success: true, savedToDb: false });
+    if (!checkRateLimit(`essays:${session.id}`, { limit: 30 }).allowed) return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
+    const body = await readBoundedJson(req, 128 * 1024);
     const {
       lessonId = 1,
       topicTitle = 'Сочинение',
@@ -15,14 +22,15 @@ export async function POST(req: NextRequest) {
       userName = 'Ученик',
     } = body;
 
-    const trimmed = (essayText || '').trim();
+    if (typeof essayText !== 'string' || essayText.length > 20000 || typeof topicTitle !== 'string' || topicTitle.length > 500 ||
+        typeof rating !== 'string' || rating.length > 80 || !Number.isInteger(lessonId) || Number(lessonId) < 1 || Number(lessonId) > 100 ||
+        !Number.isInteger(score) || Number(score) < 0 || Number(score) > 100) throw new RequestBodyError('Некорректные данные сочинения.', 400);
+    const trimmed = essayText.trim();
     if (!trimmed) {
       return NextResponse.json({ success: false, error: 'Текст сочинения пуст' }, { status: 400 });
     }
 
-    const token = req.cookies.get('ulpana_session')?.value;
-    const session = token ? await verifySessionToken(token) : null;
-    const userId = session?.id || 'guest';
+    const userId = session.id;
     const finalUserName = session?.name || userName || 'Ученик';
 
     const db = getDbPool();
@@ -33,9 +41,9 @@ export async function POST(req: NextRequest) {
 
     await initDatabase();
 
-    const essayId = `essay_${userId}_${lessonId}`;
+    const essayId = `essay_${randomUUID()}`;
 
-    await db.query(
+    const saved = await db.query(
       `INSERT INTO ulpana_essays 
         (id, user_id, user_name, lesson_id, topic_title, essay_text, score, rating, evaluation, created_at, updated_at)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), NOW())
@@ -45,7 +53,7 @@ export async function POST(req: NextRequest) {
         score = EXCLUDED.score,
         rating = EXCLUDED.rating,
         evaluation = EXCLUDED.evaluation,
-        updated_at = NOW()`,
+        updated_at = NOW() RETURNING id`,
       [
         essayId,
         userId,
@@ -59,10 +67,11 @@ export async function POST(req: NextRequest) {
       ]
     );
 
-    return NextResponse.json({ success: true, essayId, savedToDb: true });
-  } catch (error: any) {
+    return NextResponse.json({ success: true, essayId: saved.rows[0].id, savedToDb: true });
+  } catch (error) {
+    if (error instanceof RequestBodyError) return NextResponse.json({ error: error.message }, { status: error.status });
     console.error('Failed to log essay:', error);
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    return NextResponse.json({ success: false, error: 'Не удалось сохранить сочинение' }, { status: 503 });
   }
 }
 

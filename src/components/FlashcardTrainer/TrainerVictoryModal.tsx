@@ -213,7 +213,7 @@ export const TrainerVictoryModal: React.FC<TrainerVictoryModalProps> = ({
         </p>
         <p className="text-xs text-zinc-500 dark:text-zinc-400">
           {lessonId
-            ? `Вы повторили все ${masterWordsLength} слов(а). Раздел «Словарь» зачтен (этап 2/5).`
+            ? `Вы повторили все ${masterWordsLength} слов(а). Раздел «Словарь» зачтен (этап 2/6).`
             : `Вы повторили ${masterWordsLength} слов(а). Прогресс сохранен в интервальной памяти.`}
         </p>
       </div>
@@ -232,7 +232,7 @@ export const TrainerVictoryModal: React.FC<TrainerVictoryModalProps> = ({
               }}
               className="w-full py-3.5 px-6 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-sm shadow-md transition active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
             >
-              <span>Перейти к упражнениям (этап 3/5) ➡️</span>
+              <span>Перейти к упражнениям (этап 3/6) ➡️</span>
             </button>
 
             <div className="flex gap-2.5 flex-wrap">

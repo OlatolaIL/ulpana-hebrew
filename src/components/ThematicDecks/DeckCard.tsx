@@ -135,7 +135,7 @@ export const DeckCard: React.FC<DeckCardProps> = ({
                 <TierBadge
                   tier="free-registration"
                   size="xs"
-                  customLabel="PRO БЕТА • Вход"
+                  customLabel="БЕТА • Вход"
                 />
               ) : (
                 <TierBadge tier="pro-beta" size="xs" />

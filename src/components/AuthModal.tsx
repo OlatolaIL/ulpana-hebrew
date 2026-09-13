@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { X, Send, CheckCircle2, AlertCircle, Loader2, ExternalLink, LogIn, Sparkles } from 'lucide-react';
 import { UserSession } from '@/types';
 
@@ -39,6 +39,93 @@ interface AuthModalProps {
   reason?: AuthModalReason | null;
 }
 
+type DirectLoginPayload =
+  | { initData: string }
+  | {
+      id?: number;
+      first_name?: string;
+      last_name?: string;
+      username?: string;
+      photo_url?: string;
+      auth_date?: number;
+      hash?: string;
+    }
+  | Record<string, unknown>;
+
+interface TelegramWebApp {
+  initData?: string;
+  close?: () => void;
+}
+
+interface TelegramUserAuth {
+  id: number;
+  first_name: string;
+  last_name?: string;
+  username?: string;
+  photo_url?: string;
+  auth_date: number;
+  hash: string;
+}
+
+interface GoogleTokenResponse {
+  access_token?: string;
+  error?: string;
+}
+
+interface GoogleNonOAuthError {
+  type?: string;
+  message?: string;
+}
+
+interface GoogleTokenClient {
+  requestAccessToken: (overrideConfig?: { prompt?: string }) => void;
+}
+
+interface GoogleAccountsOAuth2 {
+  initTokenClient: (config: {
+    client_id: string;
+    scope: string;
+    callback: (response: GoogleTokenResponse) => void;
+    error_callback?: (error: GoogleNonOAuthError) => void;
+  }) => GoogleTokenClient;
+}
+
+interface GoogleAccountsId {
+  initialize: (config: {
+    client_id: string;
+    callback: (response: { credential?: string }) => void;
+    auto_select?: boolean;
+  }) => void;
+  renderButton: (
+    parent: HTMLElement,
+    options: {
+      type?: string;
+      theme?: string;
+      size?: string;
+      text?: string;
+      shape?: string;
+      logo_alignment?: string;
+      width?: number;
+    }
+  ) => void;
+  prompt: () => void;
+}
+
+interface GoogleAccountsNamespace {
+  oauth2?: GoogleAccountsOAuth2;
+  id?: GoogleAccountsId;
+}
+
+interface CustomWindow {
+  Telegram?: {
+    WebApp?: TelegramWebApp;
+  };
+  onTelegramAuth?: (user: TelegramUserAuth) => void;
+  google?: {
+    accounts?: GoogleAccountsNamespace;
+  };
+}
+
 export const AuthModal: React.FC<AuthModalProps> = ({
   isOpen,
   onClose,
@@ -51,26 +138,224 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [isWaitingForBot, setIsWaitingForBot] = useState(false);
   const [pollToken, setPollToken] = useState<string | null>(null);
   const [botUrl, setBotUrl] = useState<string | null>(null);
-  const [isGoogleReady, setIsGoogleReady] = useState(false);
+  const [pollStartedAt, setPollStartedAt] = useState(0);
   const [isGoogleButtonRendered, setIsGoogleButtonRendered] = useState(false);
+  const [wasOpen, setWasOpen] = useState(isOpen);
+  if (wasOpen !== isOpen) {
+    setWasOpen(isOpen);
+    setIsWaitingForBot(false);
+    setPollToken(null);
+    setError(null);
+    setIsGoogleButtonRendered(false);
+  }
   const containerRef = useRef<HTMLDivElement>(null);
   const googleButtonRef = useRef<HTMLDivElement>(null);
   const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+
+  const executeLogin = useCallback(
+    async (payload: DirectLoginPayload) => {
+      try {
+        const res = await fetch('/api/auth/telegram', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+
+        const data = await res.json();
+        if (res.ok && data.success) {
+          onLoginSuccess(data.user, data.gender, data.fontStyle);
+          onClose();
+        } else {
+          setError(data.error || 'Ошибка авторизации');
+        }
+      } catch {
+        setError('Не удалось связаться с сервером авторизации');
+      } finally {
+        setLoading(false);
+      }
+    },
+    [onClose, onLoginSuccess]
+  );
+
+  const handleDirectLogin = useCallback(
+    async (payload: DirectLoginPayload) => {
+      setLoading(true);
+      setError(null);
+      await executeLogin(payload);
+    },
+    [executeLogin]
+  );
+
+  const handleGoogleResponse = useCallback(
+    async (response: { credential?: string }) => {
+      if (!response || !response.credential) {
+        setError('Не удалось получить данные от Google');
+        return;
+      }
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await fetch('/api/auth/google', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ credential: response.credential }),
+        });
+
+        const data = await res.json();
+        if (res.ok && data.success) {
+          onLoginSuccess(data.user, data.gender, data.fontStyle);
+          onClose();
+        } else {
+          setError(data.error || 'Ошибка входа через Google');
+        }
+      } catch {
+        setError('Не удалось связаться с сервером для входа через Google');
+      } finally {
+        setLoading(false);
+      }
+    },
+    [onClose, onLoginSuccess]
+  );
+
+  const handleGoogleAccessToken = useCallback(
+    async (accessToken: string) => {
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await fetch('/api/auth/google', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ accessToken }),
+        });
+
+        const data = await res.json();
+        if (res.ok && data.success) {
+          onLoginSuccess(data.user, data.gender, data.fontStyle);
+          onClose();
+        } else {
+          setError(data.error || 'Ошибка входа через Google');
+        }
+      } catch {
+        setError('Не удалось связаться с сервером для входа через Google');
+      } finally {
+        setLoading(false);
+      }
+    },
+    [onClose, onLoginSuccess]
+  );
+
+  const handleGoogleButtonClick = useCallback(() => {
+    if (!googleClientId) {
+      setError('Вход через Google временно недоступен. Попробуйте Telegram.');
+      return;
+    }
+    const customWindow = window as unknown as CustomWindow;
+    const google = customWindow.google;
+    if (!google) {
+      setError('Библиотека Google еще загружается, пожалуйста подождите секунду...');
+      return;
+    }
+
+    // Способ 1: Прямой запуск OAuth2 Popup через initTokenClient (не зависит от One Tap)
+    if (google.accounts?.oauth2) {
+      try {
+        const client = google.accounts.oauth2.initTokenClient({
+          client_id: googleClientId,
+          scope: 'email profile openid',
+          callback: (tokenResponse: GoogleTokenResponse) => {
+            if (tokenResponse?.access_token) {
+              handleGoogleAccessToken(tokenResponse.access_token);
+            } else if (tokenResponse?.error && tokenResponse.error !== 'popup_closed_by_user') {
+              console.warn('[Google OAuth2] error:', tokenResponse.error);
+              setError(`Ошибка авторизации Google: ${tokenResponse.error}`);
+            }
+          },
+          error_callback: (nonOAuthError: GoogleNonOAuthError) => {
+            console.warn('[Google OAuth2] nonOAuthError:', nonOAuthError);
+            if (nonOAuthError?.type !== 'popup_closed') {
+              setError('Не удалось открыть окно авторизации Google. Разрешите всплывающие окна в браузере.');
+            }
+          },
+        });
+        client.requestAccessToken({ prompt: 'select_account' });
+        return;
+      } catch (err) {
+        console.warn('[Google OAuth2] init error, fallback to prompt:', err);
+      }
+    }
+
+    // Способ 2: Fallback на Google One Tap
+    if (google.accounts?.id) {
+      google.accounts.id.prompt();
+    }
+  }, [googleClientId, handleGoogleAccessToken]);
+
+  // Запуск входа в 1 клик через Telegram-бота
+  const handleStartBotLogin = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch('/api/auth/telegram/token', { method: 'POST' });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setPollToken(data.token);
+        setPollStartedAt(Date.now());
+        setBotUrl(data.botUrl);
+        setIsWaitingForBot(true);
+        window.open(data.botUrl, '_blank');
+      } else {
+        setError('Не удалось создать сессию входа');
+      }
+    } catch {
+      setError('Ошибка связи с сервером');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // 1. Автоматический вход, если приложение открыто внутри Telegram (Mini App / WebApp)
   useEffect(() => {
     if (!isOpen) return;
 
+    let ignore = false;
+
     try {
-      const tg = (window as any).Telegram?.WebApp;
+      const customWindow = window as unknown as CustomWindow;
+      const tg = customWindow.Telegram?.WebApp;
       if (tg && tg.initData) {
-        handleDirectLogin({ initData: tg.initData });
-        return;
+        const autoLogin = async (initData: string) => {
+          try {
+            const res = await fetch('/api/auth/telegram', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ initData }),
+            });
+            const data = await res.json();
+            if (!ignore) {
+              if (res.ok && data.success) {
+                onLoginSuccess(data.user, data.gender, data.fontStyle);
+                onClose();
+              } else {
+                setError(data.error || 'Ошибка авторизации');
+              }
+            }
+          } catch {
+            if (!ignore) {
+              setError('Не удалось связаться с сервером авторизации');
+            }
+          }
+        };
+
+        void autoLogin(tg.initData);
+        return () => {
+          ignore = true;
+        };
       }
     } catch {}
 
     // Глобальная функция, которую вызывает официальный скрипт Telegram Login Widget
-    (window as any).onTelegramAuth = async (user: any) => {
+    const customWindow = window as unknown as CustomWindow;
+    customWindow.onTelegramAuth = async (user: TelegramUserAuth) => {
       handleDirectLogin(user);
     };
 
@@ -89,174 +374,60 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     }
 
     return () => {
-      delete (window as any).onTelegramAuth;
+      ignore = true;
+      delete (window as unknown as CustomWindow).onTelegramAuth;
     };
-  }, [isOpen, botUsername]);
+  }, [isOpen, botUsername, handleDirectLogin, onClose, onLoginSuccess]);
 
   // 2. Поллинг статуса подтверждения через Telegram-бота
   useEffect(() => {
-    if (!isWaitingForBot || !pollToken) return;
-
-    const interval = setInterval(async () => {
+    if (!isOpen || !isWaitingForBot || !pollToken) return;
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const controller = new AbortController();
+    const poll = async () => {
+      if (cancelled) return;
+      if (Date.now() - pollStartedAt >= 10 * 60 * 1000) {
+        setIsWaitingForBot(false);
+        setError('Время ожидания истекло. Нажмите «Войти через Telegram» ещё раз.');
+        return;
+      }
       try {
-        const res = await fetch(`/api/auth/telegram/token?token=${pollToken}`);
+        const res = await fetch(`/api/auth/telegram/token?token=${encodeURIComponent(pollToken)}`, {
+          signal: AbortSignal.any([controller.signal, AbortSignal.timeout(15000)]),
+          cache: 'no-store',
+        });
         const data = await res.json();
-        if (data.completed && data.user) {
-          clearInterval(interval);
+        if (cancelled) return;
+        if (res.ok && data.completed && data.user) {
           setIsWaitingForBot(false);
           onLoginSuccess(data.user, data.gender, data.fontStyle);
           onClose();
+          return;
         }
-      } catch (e) {
-        console.warn('[Polling] error:', e);
+        if (data.status === 'expired' || data.status === 'invalid' || res.status === 400) {
+          setIsWaitingForBot(false);
+          setError('Ссылка для входа устарела. Начните вход ещё раз.');
+          return;
+        }
+        if (!res.ok) {
+          setError('Связь со службой входа временно недоступна. Повторяем проверку…');
+        } else {
+          setError(null);
+        }
+      } catch {
+        if (cancelled) return;
+        setError('Не удалось проверить вход. Проверьте соединение; повторяем попытку…');
       }
-    }, 1500);
-
-    return () => clearInterval(interval);
-  }, [isWaitingForBot, pollToken, onLoginSuccess, onClose]);
-
-  // Запуск входа в 1 клик через Telegram-бота
-  const handleStartBotLogin = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await fetch('/api/auth/telegram/token', { method: 'POST' });
-      const data = await res.json();
-      if (res.ok && data.success) {
-        setPollToken(data.token);
-        setBotUrl(data.botUrl);
-        setIsWaitingForBot(true);
-        window.open(data.botUrl, '_blank');
-      } else {
-        setError('Не удалось создать сессию входа');
-      }
-    } catch {
-      setError('Ошибка связи с сервером');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleDirectLogin = async (payload: any) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await fetch('/api/auth/telegram', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-
-      const data = await res.json();
-      if (res.ok && data.success) {
-        onLoginSuccess(data.user, data.gender, data.fontStyle);
-        onClose();
-      } else {
-        setError(data.error || 'Ошибка авторизации');
-      }
-    } catch (e) {
-      setError('Не удалось связаться с сервером авторизации');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleGoogleResponse = async (response: any) => {
-    if (!response || !response.credential) {
-      setError('Не удалось получить данные от Google');
-      return;
-    }
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await fetch('/api/auth/google', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ credential: response.credential }),
-      });
-
-      const data = await res.json();
-      if (res.ok && data.success) {
-        onLoginSuccess(data.user, data.gender, data.fontStyle);
-        onClose();
-      } else {
-        setError(data.error || 'Ошибка входа через Google');
-      }
-    } catch {
-      setError('Не удалось связаться с сервером для входа через Google');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleGoogleAccessToken = async (accessToken: string) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await fetch('/api/auth/google', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ accessToken }),
-      });
-
-      const data = await res.json();
-      if (res.ok && data.success) {
-        onLoginSuccess(data.user, data.gender, data.fontStyle);
-        onClose();
-      } else {
-        setError(data.error || 'Ошибка входа через Google');
-      }
-    } catch {
-      setError('Не удалось связаться с сервером для входа через Google');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleGoogleButtonClick = () => {
-    if (!googleClientId) {
-      setError('Google Client ID еще не настроен. Укажите NEXT_PUBLIC_GOOGLE_CLIENT_ID в .env.local');
-      return;
-    }
-    const google = (window as any).google;
-    if (!google) {
-      setError('Библиотека Google еще загружается, пожалуйста подождите секунду...');
-      return;
-    }
-
-    // Способ 1: Прямой запуск OAuth2 Popup через initTokenClient (не зависит от One Tap)
-    if (google.accounts?.oauth2) {
-      try {
-        const client = google.accounts.oauth2.initTokenClient({
-          client_id: googleClientId,
-          scope: 'email profile openid',
-          callback: (tokenResponse: any) => {
-            if (tokenResponse?.access_token) {
-              handleGoogleAccessToken(tokenResponse.access_token);
-            } else if (tokenResponse?.error && tokenResponse.error !== 'popup_closed_by_user') {
-              console.warn('[Google OAuth2] error:', tokenResponse.error);
-              setError(`Ошибка авторизации Google: ${tokenResponse.error}`);
-            }
-          },
-          error_callback: (nonOAuthError: any) => {
-            console.warn('[Google OAuth2] nonOAuthError:', nonOAuthError);
-            if (nonOAuthError?.type !== 'popup_closed') {
-              setError('Не удалось открыть окно авторизации Google. Разрешите всплывающие окна в браузере.');
-            }
-          },
-        });
-        client.requestAccessToken({ prompt: 'select_account' });
-        return;
-      } catch (err) {
-        console.warn('[Google OAuth2] init error, fallback to prompt:', err);
-      }
-    }
-
-    // Способ 2: Fallback на Google One Tap
-    if (google.accounts?.id) {
-      google.accounts.id.prompt();
-    }
-  };
+      if (!cancelled) timer = setTimeout(poll, 1500);
+    };
+    timer = setTimeout(poll, 1500);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [isOpen, isWaitingForBot, pollToken, pollStartedAt, onLoginSuccess, onClose]);
 
   // 3. Инициализация Google Identity Services
   useEffect(() => {
@@ -266,10 +437,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
     const initGoogle = () => {
       if (!isMounted) return;
-      const google = (window as any).google;
+      const customWindow = window as unknown as CustomWindow;
+      const google = customWindow.google;
       if (!google?.accounts) return;
 
-      setIsGoogleReady(true);
       if (!googleClientId) return;
 
       try {
@@ -305,7 +476,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       }
     };
 
-    if ((window as any).google?.accounts) {
+    const customWindow = window as unknown as CustomWindow;
+    if (customWindow.google?.accounts) {
       initGoogle();
     } else {
       const existingScript = document.getElementById('google-jssdk') as HTMLScriptElement | null;
@@ -320,7 +492,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       } else {
         existingScript.addEventListener('load', () => initGoogle());
         const timer = setTimeout(() => {
-          if ((window as any).google?.accounts) {
+          if ((window as unknown as CustomWindow).google?.accounts) {
             initGoogle();
           }
         }, 400);
@@ -334,15 +506,16 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     return () => {
       isMounted = false;
     };
-  }, [isOpen, googleClientId]);
+  }, [isOpen, googleClientId, handleGoogleResponse]);
 
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in">
-      <div className="bg-white dark:bg-zinc-900 rounded-3xl p-6 md:p-8 max-w-md w-full border border-zinc-200 dark:border-zinc-800 shadow-2xl space-y-5 relative">
+      <div role="dialog" aria-modal="true" aria-label="Вход и регистрация" className="bg-white dark:bg-zinc-900 rounded-3xl p-6 md:p-8 max-w-md w-full max-h-[90dvh] overflow-y-auto border border-zinc-200 dark:border-zinc-800 shadow-2xl space-y-5 relative">
         <button
           onClick={onClose}
+          aria-label="Закрыть окно входа"
           className="absolute top-4 right-4 p-2 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
         >
           <X className="w-5 h-5" />

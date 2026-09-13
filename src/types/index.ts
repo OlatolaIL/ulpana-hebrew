@@ -438,6 +438,8 @@ export interface LessonProgress {
 }
 
 export interface UserProfile {
+  cloudRevision?: number;
+  cloudSyncPending?: boolean;
   id?: string;
   telegramId?: number;
   username?: string;

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Volume2, BookOpen, CheckCircle2, Lightbulb, Table, Sparkles, Eye, EyeOff, GraduationCap } from 'lucide-react';
+import { Volume2, CheckCircle2, Lightbulb, Table } from 'lucide-react';
 import { Lesson, UserProfile } from '@/types';
 import { speakHebrew } from '@/lib/speech';
 import { markLessonTabCompleted } from '@/lib/storage';
@@ -618,7 +618,7 @@ export const LessonTheory: React.FC<LessonTheoryProps> = ({
           className="py-3.5 px-8 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm shadow-md transition active:scale-95 inline-flex items-center gap-2 cursor-pointer"
         >
           <CheckCircle2 className="w-5 h-5 text-emerald-300" />
-          <span>Я изучил теорию • Перейти к словарю (этап 2/5) ➡️</span>
+          <span>Я изучил теорию • Перейти к словарю (этап 2/6) ➡️</span>
         </button>
       </div>
 

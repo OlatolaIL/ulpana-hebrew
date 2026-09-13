@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import confetti from 'canvas-confetti';
 import { Word, UserProfile, VerbConjugation } from '@/types';
 import { speakHebrew, speakRussian, stopSpeech } from '@/lib/speech';
@@ -26,6 +26,22 @@ import { AutoAudioMode } from './modes/AutoAudioMode';
 import { ConjugationMode } from './modes/ConjugationMode';
 import { extractVerbTriad } from '@/lib/verbTriad';
 import { PealimModal } from './PealimModal';
+
+function deterministicShuffle<T>(items: T[], seedStr: string): T[] {
+  const result = [...items];
+  let seed = 0;
+  for (let i = 0; i < seedStr.length; i++) {
+    seed = (seed * 31 + seedStr.charCodeAt(i)) >>> 0;
+  }
+  for (let i = result.length - 1; i > 0; i--) {
+    seed = (seed * 1664525 + 1013904223) >>> 0;
+    const j = seed % (i + 1);
+    const temp = result[i];
+    result[i] = result[j];
+    result[j] = temp;
+  }
+  return result;
+}
 
 export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
   initialWords,
@@ -56,6 +72,7 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
   const [parts, setParts] = useState<Word[][]>(() => stableCanonicalParts);
   const [activePartIndex, setActivePartIndex] = useState<number>(0);
   const [completedPartIndices, setCompletedPartIndices] = useState<number[]>([]);
+  const [isCompleted, setIsCompleted] = useState(false);
   const [partCompletionStatus, setPartCompletionStatus] = useState<
     'idle' | 'part_completed' | 'all_parts_completed'
   >('idle');
@@ -71,7 +88,6 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
   const [mode, setMode] = useState<TrainerMode>(initialMode || 'flip');
-  const [isCompleted, setIsCompleted] = useState(false);
 
   // Для режима "Авто на слух"
   const [isAutoPlaying, setIsAutoPlaying] = useState(false);
@@ -149,7 +165,7 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
   // Направление карточек: 'he-ru', 'ru-he' или 'carousel'
   const [cardDirection, setCardDirection] = useState<'he-ru' | 'ru-he' | 'carousel'>(() => {
     if (initialDirection) return initialDirection;
-    if (userProfile.flashcardDirection) return userProfile.flashcardDirection as any;
+    if (userProfile.flashcardDirection) return userProfile.flashcardDirection;
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('flashcard_direction');
       if (saved === 'ru-he' || saved === 'he-ru' || saved === 'carousel') return saved;
@@ -178,7 +194,8 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
       localStorage.setItem('flashcard_direction', nextDir);
     }
     if (onUpdateProfile) {
-      const updated: UserProfile = { ...userProfile, flashcardDirection: nextDir as any };
+      const profileDir: 'he-ru' | 'ru-he' | undefined = nextDir === 'carousel' ? undefined : nextDir;
+      const updated: UserProfile = { ...userProfile, flashcardDirection: profileDir };
       saveUserProfile(updated);
       onUpdateProfile(updated);
     }
@@ -299,26 +316,27 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
     setIsFlipped(false);
   };
 
-  useEffect(() => {
-    if (!currentWord) return;
+  // Сброс и инициализация состояния для нового слова
+  const [prevWordId, setPrevWordId] = useState<string | undefined>(undefined);
+  const [prevMode, setPrevMode] = useState(mode);
+
+  if (currentWord && (currentWord.id !== prevWordId || mode !== prevMode)) {
+    setPrevWordId(currentWord.id);
+    setPrevMode(mode);
     setIsFlipped(false);
     setSelectedAnswer(null);
     setBuilderError(false);
     setBuilderSuccess(false);
-
-    if (mode === 'listening') {
-      speakHebrew(currentWord.hebrew);
-    }
+    setBuilderSelected([]);
+    setShowHint(false);
 
     const targetText = getCleanHebrewTarget(currentWord);
     const rawChars = targetText.split('');
     const tiles: Tile[] = rawChars.map((char, index) => ({
-      id: `tile-${index}-${char}-${Math.random().toString(36).substr(2, 4)}`,
+      id: `tile-${currentWord.id}-${index}-${char}`,
       char: char,
     }));
-    setBuilderAvailable([...tiles].sort(() => Math.random() - 0.5));
-    setBuilderSelected([]);
-    setShowHint(false);
+    setBuilderAvailable(deterministicShuffle(tiles, `${currentWord.id}_tiles`));
 
     const pool = words.length >= 4 ? words : masterWords;
     const otherOptions = pool
@@ -326,23 +344,126 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
       .map((w) => w.translation);
     const currentOpt = currentWord.translation;
 
-    const shuffledOthers = otherOptions.sort(() => Math.random() - 0.5).slice(0, 3);
-    const allOpts = [...shuffledOthers, currentOpt].sort(() => Math.random() - 0.5);
+    const shuffledOthers = deterministicShuffle(otherOptions, `${currentWord.id}_others`).slice(0, 3);
+    const allOpts = deterministicShuffle([...shuffledOthers, currentOpt], `${currentWord.id}_quiz`);
     setQuizOptions(allOpts);
-  }, [
-    currentIndex,
-    mode,
-    currentWord,
-    words,
-    masterWords,
-    userProfile.showNikkud,
-  ]);
+  }
+
+  useEffect(() => {
+    if (currentWord && mode === 'listening') {
+      speakHebrew(currentWord.hebrew);
+    }
+  }, [currentWord, mode]);
 
   useEffect(() => {
     return () => {
       stopSpeech();
     };
   }, []);
+
+  const triggerCelebration = useCallback(() => {
+    confetti({
+      particleCount: 100,
+      spread: 70,
+      origin: { y: 0.6 },
+    });
+  }, []);
+
+  const handleFinishSet = useCallback(() => {
+    if (isSplitMode && canSplit && activePartIndex >= 0) {
+      const nextCompleted = completedPartIndices.includes(activePartIndex)
+        ? completedPartIndices
+        : [...completedPartIndices, activePartIndex];
+      setCompletedPartIndices(nextCompleted);
+
+      triggerCelebration();
+
+      const allDone = parts.every((_, idx) => nextCompleted.includes(idx));
+      if (allDone || activePartIndex >= parts.length - 1) {
+        if (lessonId) {
+          const updated = markLessonTabCompleted(lessonId, 'vocab');
+          if (onUpdateProfile) onUpdateProfile(updated);
+        }
+        setPartCompletionStatus('all_parts_completed');
+      } else {
+        setPartCompletionStatus('part_completed');
+      }
+    } else {
+      setIsCompleted(true);
+      if (lessonId) {
+        const updated = markLessonTabCompleted(lessonId, 'vocab');
+        if (onUpdateProfile) onUpdateProfile(updated);
+      } else {
+        const updated = loadUserProfile();
+        if (onUpdateProfile) onUpdateProfile(updated);
+      }
+      triggerCelebration();
+    }
+  }, [
+    activePartIndex,
+    canSplit,
+    completedPartIndices,
+    isSplitMode,
+    lessonId,
+    onUpdateProfile,
+    parts,
+    triggerCelebration,
+  ]);
+
+  const handleRecordSRS = useCallback(
+    (quality = 4) => {
+      if (currentWord) {
+        const cleanHeb = stripNikkud(currentWord.hebrewPlain || currentWord.hebrew || '');
+        updateCardSRS(currentWord.id, quality, cleanHeb);
+        const updated = loadUserProfile();
+        if (onUpdateProfile) {
+          onUpdateProfile(updated);
+        }
+      }
+    },
+    [currentWord, onUpdateProfile]
+  );
+
+  const handleNextWord = useCallback(
+    (quality = 4) => {
+      handleRecordSRS(quality);
+
+      if (currentIndex + 1 < words.length) {
+        setCurrentIndex((prev) => prev + 1);
+      } else {
+        handleFinishSet();
+      }
+    },
+    [currentIndex, handleFinishSet, handleRecordSRS, words.length]
+  );
+
+  const handlePrevWord = useCallback(() => {
+    if (currentIndex > 0) {
+      setCurrentIndex((prev) => prev - 1);
+      setIsFlipped(false);
+    } else if (mode === 'auto_audio' && isAutoLooping && words.length > 1) {
+      setCurrentIndex(words.length - 1);
+      setIsFlipped(false);
+    }
+  }, [currentIndex, isAutoLooping, mode, words.length]);
+
+  const handleFlipCard = useCallback(() => {
+    setIsFlipped((prev) => {
+      const next = !prev;
+      if (next && isCurrentCardFrontRussian && currentWord) {
+        speakHebrew(currentWord.hebrew);
+      }
+      return next;
+    });
+  }, [currentWord, isCurrentCardFrontRussian]);
+
+  const handleFinishSetRef = useRef(handleFinishSet);
+  const reshuffleRef = useRef(reshuffleAndRestartLoop);
+
+  useEffect(() => {
+    handleFinishSetRef.current = handleFinishSet;
+    reshuffleRef.current = reshuffleAndRestartLoop;
+  });
 
   // Авто на слух (Hands-Free)
   useEffect(() => {
@@ -351,8 +472,8 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
     }
 
     let isCancelled = false;
-    let timer: any = null;
-    let countdownInterval: any = null;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    let countdownInterval: ReturnType<typeof setInterval> | null = null;
 
     const runCycle = async () => {
       if (isCancelled) return;
@@ -470,11 +591,11 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
       if (currentIndex + 1 < words.length) {
         setCurrentIndex((prev) => prev + 1);
       } else if (isAutoLooping) {
-        reshuffleAndRestartLoop();
+        reshuffleRef.current();
       } else {
         setIsAutoPlaying(false);
         setAutoPhase('idle');
-        handleFinishSet();
+        handleFinishSetRef.current();
       }
     };
 
@@ -520,95 +641,14 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
     stopSpeech();
   };
 
-  const triggerCelebration = () => {
-    confetti({
-      particleCount: 100,
-      spread: 70,
-      origin: { y: 0.6 },
-    });
-  };
-
-  const handleRecordSRS = (quality = 4) => {
-    if (currentWord) {
-      const cleanHeb = stripNikkud(currentWord.hebrewPlain || currentWord.hebrew || '');
-      updateCardSRS(currentWord.id, quality, cleanHeb);
-      const updated = loadUserProfile();
-      if (onUpdateProfile) {
-        onUpdateProfile(updated);
-      }
-    }
-  };
-
-  const handlePrevWord = () => {
-    if (currentIndex > 0) {
-      setCurrentIndex((prev) => prev - 1);
-      setIsFlipped(false);
-    } else if (mode === 'auto_audio' && isAutoLooping && words.length > 1) {
-      setCurrentIndex(words.length - 1);
-      setIsFlipped(false);
-    }
-  };
-
-  const handleFinishSet = () => {
-    if (isSplitMode && canSplit && activePartIndex >= 0) {
-      const nextCompleted = completedPartIndices.includes(activePartIndex)
-        ? completedPartIndices
-        : [...completedPartIndices, activePartIndex];
-      setCompletedPartIndices(nextCompleted);
-
-      triggerCelebration();
-
-      const allDone = parts.every((_, idx) => nextCompleted.includes(idx));
-      if (allDone || activePartIndex >= parts.length - 1) {
-        if (lessonId) {
-          const updated = markLessonTabCompleted(lessonId, 'vocab');
-          if (onUpdateProfile) onUpdateProfile(updated);
-        }
-        setPartCompletionStatus('all_parts_completed');
-      } else {
-        setPartCompletionStatus('part_completed');
-      }
-    } else {
-      setIsCompleted(true);
-      if (lessonId) {
-        const updated = markLessonTabCompleted(lessonId, 'vocab');
-        if (onUpdateProfile) onUpdateProfile(updated);
-      } else {
-        const updated = loadUserProfile();
-        if (onUpdateProfile) onUpdateProfile(updated);
-      }
-      triggerCelebration();
-    }
-  };
-
-  const handleNextWord = (quality = 4) => {
-    handleRecordSRS(quality);
-
-    if (currentIndex + 1 < words.length) {
-      setCurrentIndex((prev) => prev + 1);
-    } else {
-      handleFinishSet();
-    }
-  };
-
   const handleAdvanceNext = () => {
     if (currentIndex + 1 < words.length) {
       setCurrentIndex((prev) => prev + 1);
     } else if (mode === 'auto_audio' && isAutoLooping) {
-      reshuffleAndRestartLoop();
+      reshuffleRef.current();
     } else {
       handleFinishSet();
     }
-  };
-
-  const handleFlipCard = () => {
-    setIsFlipped((prev) => {
-      const next = !prev;
-      if (next && isCurrentCardFrontRussian && currentWord) {
-        speakHebrew(currentWord.hebrew);
-      }
-      return next;
-    });
   };
 
   // Горячие клавиши для режима карточек
@@ -651,56 +691,62 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [mode, currentWord, currentIndex, cardDirection, isFlipped]);
+  }, [currentWord, handleFlipCard, handleNextWord, handlePrevWord, isFlipped, mode]);
 
-  const handleSelectTile = (tile: Tile) => {
-    if (builderSuccess) return;
-    const nextSelected = [...builderSelected, tile];
-    const nextAvailable = builderAvailable.filter((t) => t.id !== tile.id);
-
-    setBuilderSelected(nextSelected);
-    setBuilderAvailable(nextAvailable);
-
-    const targetWord = getCleanHebrewTarget(currentWord);
-    const currentInput = nextSelected.map((t) => t.char).join('');
-
-    if (currentInput === targetWord) {
-      setBuilderSuccess(true);
+  const handleUnselectTile = useCallback(
+    (tile: Tile) => {
+      if (builderSuccess) return;
+      setBuilderSelected((prev) => prev.filter((t) => t.id !== tile.id));
+      setBuilderAvailable((prev) => [...prev, tile]);
       setBuilderError(false);
-      speakHebrew(currentWord.hebrew);
-      confetti({ particleCount: 50, spread: 60, origin: { y: 0.7 } });
-    } else if (!targetWord.startsWith(currentInput)) {
-      setBuilderError(true);
-      setTimeout(() => {
+    },
+    [builderSuccess]
+  );
+
+  const handleSelectTile = useCallback(
+    (tile: Tile) => {
+      if (builderSuccess) return;
+      const nextSelected = [...builderSelected, tile];
+      const nextAvailable = builderAvailable.filter((t) => t.id !== tile.id);
+
+      setBuilderSelected(nextSelected);
+      setBuilderAvailable(nextAvailable);
+
+      const targetWord = currentWord ? getCleanHebrewTarget(currentWord) : '';
+      const currentInput = nextSelected.map((t) => t.char).join('');
+
+      if (currentInput === targetWord) {
+        setBuilderSuccess(true);
         setBuilderError(false);
-      }, 700);
-    } else {
-      setBuilderError(false);
-    }
-  };
+        if (currentWord) speakHebrew(currentWord.hebrew);
+        confetti({ particleCount: 50, spread: 60, origin: { y: 0.7 } });
+      } else if (!targetWord.startsWith(currentInput)) {
+        setBuilderError(true);
+        setTimeout(() => {
+          setBuilderError(false);
+        }, 700);
+      } else {
+        setBuilderError(false);
+      }
+    },
+    [builderAvailable, builderSelected, builderSuccess, currentWord]
+  );
 
-  const handleUnselectTile = (tile: Tile) => {
-    if (builderSuccess) return;
-    setBuilderSelected((prev) => prev.filter((t) => t.id !== tile.id));
-    setBuilderAvailable((prev) => [...prev, tile]);
-    setBuilderError(false);
-  };
-
-  const handleBackspace = () => {
+  const handleBackspace = useCallback(() => {
     if (builderSuccess || builderSelected.length === 0) return;
     const lastTile = builderSelected[builderSelected.length - 1];
     handleUnselectTile(lastTile);
-  };
+  }, [builderSelected, builderSuccess, handleUnselectTile]);
 
   const handleResetBuilder = () => {
-    if (builderSuccess) return;
+    if (builderSuccess || !currentWord) return;
     const targetText = getCleanHebrewTarget(currentWord);
     const rawChars = targetText.split('');
     const tiles: Tile[] = rawChars.map((char, index) => ({
-      id: `tile-${index}-${char}-${Math.random().toString(36).substr(2, 4)}`,
+      id: `tile-${currentWord.id}-${index}-${char}-${Date.now()}`,
       char: char,
     }));
-    setBuilderAvailable([...tiles].sort(() => Math.random() - 0.5));
+    setBuilderAvailable(tiles);
     setBuilderSelected([]);
     setBuilderError(false);
     setBuilderSuccess(false);
@@ -710,7 +756,7 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
     if (builderSuccess || !currentWord) return;
     const targetText = getCleanHebrewTarget(currentWord);
     const fullTiles: Tile[] = targetText.split('').map((char, index) => ({
-      id: `tile-auto-${index}-${char}-${Math.random().toString(36).substr(2, 4)}`,
+      id: `tile-auto-${currentWord.id}-${index}-${char}-${Date.now()}`,
       char: char,
     }));
 
@@ -759,7 +805,15 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [mode, currentWord, builderAvailable, builderSelected, builderSuccess]);
+  }, [
+    builderAvailable,
+    builderSuccess,
+    currentWord,
+    handleBackspace,
+    handleNextWord,
+    handleSelectTile,
+    mode,
+  ]);
 
   const handleQuizSelect = (option: string) => {
     setSelectedAnswer(option);

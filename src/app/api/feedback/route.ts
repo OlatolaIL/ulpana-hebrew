@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ADMIN_TELEGRAM_IDS } from '@/lib/vipUsers';
 import { getDbPool, initDatabase } from '@/lib/db';
+import { verifySessionToken } from '@/lib/auth';
+import { checkRateLimit } from '@/lib/rateLimit';
+import { readBoundedJson, RequestBodyError } from '@/lib/requestBody';
 
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
 
@@ -31,10 +34,17 @@ interface FeedbackPayload {
 
 export async function POST(req: NextRequest) {
   try {
-    const body: FeedbackPayload = await req.json();
-    const { message, category = 'bug', pageInfo, user, deviceInfo } = body;
+    const body = await readBoundedJson(req, 16 * 1024) as unknown as FeedbackPayload;
+    const { message, category = 'bug', pageInfo, deviceInfo } = body;
+    const token = req.cookies.get('ulpana_session')?.value;
+    const session = token ? await verifySessionToken(token) : null;
+    const user = session || undefined;
+    const identity = session?.id || req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'guest';
+    if (!checkRateLimit(`feedback:${identity}`, { limit: 5 }).allowed || !checkRateLimit('feedback:global', { limit: 100 }).allowed) {
+      return NextResponse.json({ error: 'Слишком много сообщений. Попробуйте через минуту.' }, { status: 429 });
+    }
 
-    if (!message || !message.trim()) {
+    if (typeof message !== 'string' || !message.trim() || message.length > 2000) {
       return NextResponse.json(
         { error: 'Текст сообщения не может быть пустым' },
         { status: 400 }
@@ -42,6 +52,16 @@ export async function POST(req: NextRequest) {
     }
 
     const cleanMessage = message.trim();
+    for (const context of [pageInfo, deviceInfo]) {
+      if (context && (typeof context !== 'object' || Array.isArray(context) ||
+          Object.values(context).some(v => typeof v === 'string' && v.length > 512))) {
+        throw new RequestBodyError('Слишком длинный контекст сообщения.', 400);
+      }
+    }
+    if (pageInfo?.url) {
+      try { const url = new URL(pageInfo.url); pageInfo.url = url.origin + url.pathname; }
+      catch { delete pageInfo.url; }
+    }
 
     // 1. Формируем категорию с иконкой
     const categoryLabels: Record<string, string> = {
@@ -109,6 +129,7 @@ export async function POST(req: NextRequest) {
       `<blockquote>${escapeTg(cleanMessage)}</blockquote>`;
 
     // 6. Опционально сохраняем в базу данных Postgres
+    let savedToDb = false;
     try {
       await initDatabase();
       const db = getDbPool();
@@ -132,7 +153,7 @@ export async function POST(req: NextRequest) {
           `INSERT INTO ulpana_feedback (user_id, telegram_id, user_name, user_username, category, message, page_info, device_info)
            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
           [
-            user?.telegramId ? `tg_${user.telegramId}` : null,
+            session?.id || null,
             user?.telegramId ? Number(user.telegramId) : null,
             userName,
             user?.username || null,
@@ -142,6 +163,7 @@ export async function POST(req: NextRequest) {
             JSON.stringify(deviceInfo || {}),
           ]
         );
+        savedToDb = true;
       }
     } catch (dbErr) {
       console.warn('[Feedback API] DB insert warning:', dbErr);
@@ -150,7 +172,7 @@ export async function POST(req: NextRequest) {
     // 7. Отправка администратору Osa_IL в Telegram через бота
     let sentCount = 0;
     if (BOT_TOKEN) {
-      const inlineKeyboard: any[][] = [];
+      const inlineKeyboard: { text: string; url: string }[][] = [];
       if (user?.username) {
         inlineKeyboard.push([
           {
@@ -165,6 +187,7 @@ export async function POST(req: NextRequest) {
         try {
           const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
             method: 'POST',
+            signal: AbortSignal.timeout(10000),
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               chat_id: adminId,
@@ -188,14 +211,19 @@ export async function POST(req: NextRequest) {
       console.warn('[Feedback API] TELEGRAM_BOT_TOKEN is not configured.');
     }
 
+    if (!savedToDb && sentCount === 0) {
+      return NextResponse.json({ error: 'Не удалось отправить сообщение. Текст сохранён в форме; попробуйте позже.' }, { status: 503 });
+    }
     return NextResponse.json({
       success: true,
+      savedToDb,
       deliveredToTelegram: sentCount > 0,
     });
-  } catch (error: any) {
+  } catch (error) {
+    if (error instanceof RequestBodyError) return NextResponse.json({ error: error.message }, { status: error.status });
     console.error('[Feedback API] Unexpected error:', error);
     return NextResponse.json(
-      { error: error?.message || 'Не удалось отправить сообщение' },
+      { error: 'Не удалось отправить сообщение' },
       { status: 500 }
     );
   }

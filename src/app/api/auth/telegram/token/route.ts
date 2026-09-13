@@ -1,30 +1,36 @@
-import { NextRequest, NextResponse } from 'next/server';
-import crypto from 'crypto';
+﻿import { NextRequest, NextResponse } from 'next/server';
 import { getDbPool, initDatabase } from '@/lib/db';
 import { createSessionToken } from '@/lib/auth';
-import { isVipUser, VIP_EXPIRES_AT } from '@/lib/vipUsers';
-import { UserSession } from '@/types';
-
-// In-memory fallback map if DB is offline
-const memoryAuthTokens = new Map<string, { status: string; userData?: any; createdAt: number }>();
+import {
+  checkAuthConfiguration,
+  createPollingSession,
+  consumePollingSession,
+  isLegacyOrInsecureToken,
+  isValidPollingToken,
+  toUserSession,
+} from '@/lib/loginTokens';
 
 export async function POST() {
   try {
-    const token = 'ulp_' + crypto.randomBytes(12).toString('hex');
-    const botUsername = process.env.NEXT_PUBLIC_TELEGRAM_BOT_NAME || 'Ulpinebot';
-    
-    await initDatabase();
-    const db = getDbPool();
-
-    if (db) {
-      await db.query(
-        'INSERT INTO ulpana_auth_tokens (token, status, created_at) VALUES ($1, $2, NOW()) ON CONFLICT (token) DO NOTHING',
-        [token, 'pending']
+    const authConfig = checkAuthConfiguration();
+    if (!authConfig.ok || !process.env.TELEGRAM_BOT_TOKEN?.trim() || !process.env.TELEGRAM_WEBHOOK_SECRET?.trim()) {
+      return NextResponse.json(
+        { error: authConfig.error || 'Служба авторизации недоступна' },
+        { status: 503 }
       );
-    } else {
-      memoryAuthTokens.set(token, { status: 'pending', createdAt: Date.now() });
     }
 
+    await initDatabase();
+    const db = getDbPool();
+    if (!db) {
+      return NextResponse.json(
+        { error: 'База данных авторизации недоступна' },
+        { status: 503 }
+      );
+    }
+
+    const token = await createPollingSession(db);
+    const botUsername = process.env.NEXT_PUBLIC_TELEGRAM_BOT_NAME || 'Ulpinebot';
     const botUrl = `https://t.me/${botUsername}?start=${token}`;
 
     return NextResponse.json({
@@ -32,67 +38,59 @@ export async function POST() {
       token,
       botUrl,
       botUsername,
-    });
+    }, { headers: { 'Cache-Control': 'no-store' } });
   } catch (error) {
     console.error('[Auth Token POST] Error:', error);
-    return NextResponse.json({ error: 'Failed to create auth session' }, { status: 500 });
+    return NextResponse.json({ error: 'Не удалось создать сессию авторизации' }, { status: 500 });
   }
 }
 
 export async function GET(req: NextRequest) {
   try {
+    const authConfig = checkAuthConfiguration();
+    if (!authConfig.ok) {
+      return NextResponse.json(
+        { error: authConfig.error || 'Служба авторизации недоступна' },
+        { status: 503 }
+      );
+    }
+
     const { searchParams } = new URL(req.url);
-    const token = searchParams.get('token');
+    const token = searchParams.get('token')?.trim();
 
     if (!token) {
-      return NextResponse.json({ error: 'Missing token' }, { status: 400 });
+      return NextResponse.json({ error: 'Токен не передан' }, { status: 400 });
+    }
+
+    // Отклоняем токены старого небезопасного формата и сырые JWT
+    if (isLegacyOrInsecureToken(token) || !isValidPollingToken(token)) {
+      return NextResponse.json(
+        { error: 'Недействительный или устаревший формат токена' },
+        { status: 400 }
+      );
     }
 
     await initDatabase();
     const db = getDbPool();
-
-    let status = 'pending';
-    let userData: any = null;
-
-    if (db) {
-      const res = await db.query(
-        'SELECT status, user_data FROM ulpana_auth_tokens WHERE token = $1 AND expires_at > NOW()',
-        [token]
+    if (!db) {
+      return NextResponse.json(
+        { error: 'База данных авторизации недоступна' },
+        { status: 503 }
       );
-      if (res.rows.length > 0) {
-        status = res.rows[0].status;
-        userData = res.rows[0].user_data;
-      }
-    } else {
-      const mem = memoryAuthTokens.get(token);
-      if (mem) {
-        status = mem.status;
-        userData = mem.userData;
-      }
     }
 
-    if (status === 'completed' && userData) {
-      const isVip = isVipUser(userData.username, userData.id, [userData.first_name, userData.last_name].filter(Boolean).join(' '));
-      const tier = isVip ? 'pro' : (userData.subscriptionTier || 'free');
-      const expiresAt = isVip ? VIP_EXPIRES_AT : (userData.subscriptionExpiresAt || null);
+    // Одноразовое атомарное потребление токена поллинга
+    const result = await consumePollingSession(db, token);
 
-      const session: UserSession = {
-        id: `tg_${userData.id}`,
-        telegramId: userData.id,
-        username: userData.username,
-        name: [userData.first_name, userData.last_name].filter(Boolean).join(' ') || (userData.username ? `@${userData.username}` : 'Ученик'),
-        avatarUrl: userData.photo_url,
-        subscriptionTier: tier,
-        subscriptionExpiresAt: expiresAt,
-      };
-
+    if (result.completed && result.userData) {
+      const session = toUserSession(result.userData);
       const sessionJwt = await createSessionToken(session);
 
       const response = NextResponse.json({
         completed: true,
         user: session,
-        gender: userData.gender || 'female',
-        fontStyle: userData.fontStyle || 'print',
+        gender: result.userData.gender || 'female',
+        fontStyle: result.userData.fontStyle || 'print',
       });
 
       response.cookies.set('ulpana_session', sessionJwt, {
@@ -102,20 +100,14 @@ export async function GET(req: NextRequest) {
         maxAge: 30 * 24 * 60 * 60,
         path: '/',
       });
-
-      // Cleanup token
-      if (db) {
-        await db.query('DELETE FROM ulpana_auth_tokens WHERE token = $1', [token]);
-      } else {
-        memoryAuthTokens.delete(token);
-      }
+      response.headers.set('Cache-Control', 'no-store');
 
       return response;
     }
 
-    return NextResponse.json({ completed: false, status });
+    return NextResponse.json({ completed: false, status: result.status }, { headers: { 'Cache-Control': 'no-store' } });
   } catch (error) {
     console.error('[Auth Token GET] Error:', error);
-    return NextResponse.json({ error: 'Internal Error' }, { status: 500 });
+    return NextResponse.json({ error: 'Внутренняя ошибка сервера' }, { status: 500 });
   }
 }

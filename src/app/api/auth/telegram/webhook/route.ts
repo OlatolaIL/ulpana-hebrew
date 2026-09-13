@@ -1,175 +1,95 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDbPool, initDatabase } from '@/lib/db';
-import { createSessionToken } from '@/lib/auth';
 import { isVipUser, VIP_EXPIRES_AT } from '@/lib/vipUsers';
-import { UserSession } from '@/types';
+import { checkAuthConfiguration, confirmPollingSession, createMagicLinkSession, isValidPollingToken, type TokenUserData } from '@/lib/loginTokens';
+import { readBoundedJson, RequestBodyError } from '@/lib/requestBody';
 
-const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
+interface TelegramUpdate {
+  message?: {
+    text?: string;
+    chat?: { id?: number; type?: string };
+    from?: { id?: number; first_name?: string; last_name?: string; username?: string };
+  };
+}
 
 export async function POST(req: NextRequest) {
+  const webhookSecret = process.env.TELEGRAM_WEBHOOK_SECRET?.trim();
+  const botToken = process.env.TELEGRAM_BOT_TOKEN?.trim();
+  if (!webhookSecret || !botToken || !checkAuthConfiguration().ok) {
+    return NextResponse.json({ error: 'Login service unavailable' }, { status: 503 });
+  }
+  if (req.headers.get('x-telegram-bot-api-secret-token') !== webhookSecret) {
+    return NextResponse.json({ error: 'Unauthorized webhook' }, { status: 401 });
+  }
   try {
-    // Проверка секретного токена вебхука Telegram
-    const webhookSecret = process.env.TELEGRAM_WEBHOOK_SECRET;
-    if (webhookSecret) {
-      const headerSecret = req.headers.get('x-telegram-bot-api-secret-token');
-      if (headerSecret !== webhookSecret) {
-        return NextResponse.json({ error: 'Unauthorized webhook' }, { status: 401 });
-      }
-    }
-
-    const update = await req.json();
+    const update = await readBoundedJson(req, 128 * 1024) as TelegramUpdate;
     const message = update.message;
-
-    if (!message || !message.text) {
+    const from = message?.from;
+    // Never send credentials to a group or a chat belonging to somebody else.
+    if (message?.chat?.type !== 'private' || !from || !Number.isSafeInteger(from.id) ||
+        Number(from.id) <= 0 || message.chat.id !== from.id || typeof message.text !== 'string' ||
+        !/^\/start(?:\s|$)/.test(message.text.trim())) {
       return NextResponse.json({ ok: true });
     }
-
-    const text = message.text.trim();
-    const from = message.from;
-
-    if (text.startsWith('/start')) {
-      const parts = text.split(/\s+/);
-      const startParam = parts[1]?.trim(); // e.g. ulp_XXXXX
-
-      const fullName = [from.first_name, from.last_name].filter(Boolean).join(' ') || from.username || 'Ученик';
-      const userId = `tg_${from.id}`;
-      
-      const isVip = isVipUser(from.username, from.id, fullName);
-      let tier: 'free' | 'pro' | 'admin' = isVip ? 'pro' : 'free';
-      let expiresAt: number | null = isVip ? VIP_EXPIRES_AT : null;
-      let gender: 'male' | 'female' = 'female';
-      let fontStyle: 'print' | 'cursive' = 'print';
-
-      await initDatabase();
-      const db = getDbPool();
-
-      if (db) {
-        // 1. Создаем или обновляем пользователя в базе
-        const existing = await db.query('SELECT * FROM ulpana_users WHERE telegram_id = $1 OR id = $2', [from.id, userId]);
-        if (existing.rows.length > 0) {
-          const row = existing.rows[0];
-          tier = isVip ? 'pro' : ((row.subscription_tier as any) || 'free');
-          expiresAt = isVip ? VIP_EXPIRES_AT : (row.subscription_expires_at ? Number(row.subscription_expires_at) : null);
-          gender = row.gender || 'female';
-          fontStyle = row.font_style || 'print';
-
-          await db.query(
-            'UPDATE ulpana_users SET name = $1, username = $2, subscription_tier = $3, subscription_expires_at = $4, updated_at = NOW() WHERE id = $5',
-            [fullName, from.username || null, tier, expiresAt, userId]
-          );
-        } else {
-          await db.query(
-            'INSERT INTO ulpana_users (id, telegram_id, name, username, gender, font_style, subscription_tier, subscription_expires_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
-            [userId, from.id, fullName, from.username || null, gender, fontStyle, tier, expiresAt]
-          );
-        }
-
-        // 2. Если передан токен авторизации (ulp_...) - подтверждаем веб-сессию
-        if (startParam && startParam.startsWith('ulp_')) {
-          await db.query(
-            `UPDATE ulpana_auth_tokens
-             SET status = 'completed',
-                 user_data = $1
-             WHERE token = $2`,
-            [
-              JSON.stringify({
-                id: from.id,
-                first_name: from.first_name,
-                last_name: from.last_name,
-                username: from.username,
-                subscriptionTier: tier,
-                subscriptionExpiresAt: expiresAt,
-                gender,
-                fontStyle,
-              }),
-              startParam,
-            ]
-          );
-        }
-      }
-
-      // Создаем подписанный токен для входа в браузере (Magic Link)
-      const session: UserSession = {
-        id: userId,
-        telegramId: from.id,
-        username: from.username,
-        name: fullName,
-        subscriptionTier: tier,
-        subscriptionExpiresAt: expiresAt,
-      };
-      const sessionJwt = await createSessionToken(session);
-      const browserUrl = `https://ulpana-hebrew.vercel.app/?login_token=${sessionJwt}`;
-
-      // Отправляем красивый ответ в Telegram
-      try {
-        await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            chat_id: message.chat.id,
-            text: `🇮🇱 *Добро пожаловать в Ульпану Иврит!*\n\n✅ *Авторизация успешна!*\nВы вошли как *${fullName}*.\n\n👇 Нажмите кнопку ниже, чтобы начать обучение:`,
-            parse_mode: 'Markdown',
-            reply_markup: {
-              inline_keyboard: [
-                [
-                  {
-                    text: '🚀 Открыть в Telegram (Приложение)',
-                    web_app: { url: 'https://ulpana-hebrew.vercel.app' },
-                  },
-                ],
-                [
-                  {
-                    text: '🌐 Открыть в браузере (Safari / Chrome)',
-                    url: browserUrl,
-                  },
-                ],
-              ],
-            },
-          }),
-        });
-      } catch (tgErr) {
-        console.error('[Webhook TG reply] Error:', tgErr);
-      }
-    }
-
+    const db = getDbPool();
+    if (!db) return NextResponse.json({ error: 'Login service unavailable' }, { status: 503 });
+    await initDatabase();
+    const fullName = [from.first_name, from.last_name].filter(v => typeof v === 'string').join(' ').slice(0, 200) || 'Ученик';
+    const isVip = isVipUser(null, from.id, null);
+    const saved = await db.query(
+      `INSERT INTO ulpana_users(id, telegram_id, name, username, subscription_tier, subscription_expires_at)
+       VALUES ($1, $2, $3, $4, $5, $6)
+       ON CONFLICT (telegram_id) DO UPDATE SET
+         name = EXCLUDED.name, username = EXCLUDED.username,
+         subscription_tier = CASE WHEN $7 THEN EXCLUDED.subscription_tier ELSE ulpana_users.subscription_tier END,
+         subscription_expires_at = CASE WHEN $7 THEN EXCLUDED.subscription_expires_at ELSE ulpana_users.subscription_expires_at END,
+         updated_at = NOW()
+       RETURNING *`,
+      [`tg_${from.id}`, from.id, fullName, from.username || null, isVip ? 'pro' : 'free', isVip ? VIP_EXPIRES_AT : null, isVip],
+    );
+    const row = saved.rows[0];
+    const userData: TokenUserData = {
+      purpose: 'magic_link', id: row.id, telegramId: from.id, username: from.username,
+      name: fullName, subscriptionTier: row.subscription_tier || 'free',
+      subscriptionExpiresAt: row.subscription_expires_at ? Number(row.subscription_expires_at) : null,
+      gender: row.gender || 'female', fontStyle: row.font_style || 'print',
+    };
+    const startParam = message.text.trim().split(/\s+/)[1];
+    if (isValidPollingToken(startParam)) await confirmPollingSession(db, startParam, userData);
+    const magicToken = await createMagicLinkSession(db, userData);
+    const appUrl = new URL(process.env.APP_URL || 'https://ulpana-hebrew.vercel.app');
+    if (appUrl.protocol !== 'https:' && !['127.0.0.1', 'localhost'].includes(appUrl.hostname)) throw new Error('Invalid app URL');
+    appUrl.searchParams.set('login_token', magicToken);
+    const sent = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, signal: AbortSignal.timeout(10000),
+      body: JSON.stringify({
+        chat_id: message.chat.id,
+        text: `🇮🇱 Привет, ${fullName}! Ссылка для входа в Ульпану действует 10 минут и подходит для одного входа. Если вы начали вход на сайте, вернитесь в ту вкладку.`,
+        reply_markup: { inline_keyboard: [[{ text: 'Войти в Ульпану', url: appUrl.toString() }]] },
+      }),
+    });
+    if (!sent.ok || !(await sent.json()).ok) throw new Error('Telegram delivery failed');
     return NextResponse.json({ ok: true });
   } catch (error) {
-    console.error('[Telegram Webhook] Error:', error);
-    return NextResponse.json({ ok: true }); // Always return 200 to Telegram
+    if (error instanceof RequestBodyError) return NextResponse.json({ error: error.message }, { status: error.status });
+    // A retryable response lets Telegram retry temporary database/delivery failures.
+    console.error('[Telegram webhook] Login or delivery failed');
+    return NextResponse.json({ error: 'Login temporarily unavailable' }, { status: 503 });
   }
 }
 
-// GET-запрос для проверки и регистрации Webhook
 export async function GET(req: NextRequest) {
+  const webhookSecret = process.env.TELEGRAM_WEBHOOK_SECRET?.trim();
+  const botToken = process.env.TELEGRAM_BOT_TOKEN?.trim();
+  if (!webhookSecret || !botToken) return NextResponse.json({ error: 'Webhook not configured' }, { status: 503 });
+  if (req.nextUrl.searchParams.has('secret')) return NextResponse.json({ error: 'Use the secret header' }, { status: 400 });
+  if (req.headers.get('x-telegram-bot-api-secret-token') !== webhookSecret) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if ((req.nextUrl.searchParams.get('action') || 'info') !== 'info') return NextResponse.json({ error: 'Unsupported action' }, { status: 400 });
   try {
-    const { searchParams } = new URL(req.url);
-    const action = searchParams.get('action') || 'info';
-    const secret = searchParams.get('secret');
-    const webhookSecret = process.env.TELEGRAM_WEBHOOK_SECRET;
-
-    // Если задан TELEGRAM_WEBHOOK_SECRET, проверяем секрет
-    if (webhookSecret && secret !== webhookSecret) {
-      return NextResponse.json({ error: 'Forbidden: Invalid secret' }, { status: 403 });
-    }
-
-    if (action === 'info') {
-      const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/getWebhookInfo`);
-      const data = await res.json();
-      return NextResponse.json(data);
-    }
-
-    if (action === 'set') {
-      const webhookUrl = 'https://ulpana-hebrew.vercel.app/api/auth/telegram/webhook';
-      const setUrl = webhookSecret
-        ? `https://api.telegram.org/bot${BOT_TOKEN}/setWebhook?url=${encodeURIComponent(webhookUrl)}&secret_token=${encodeURIComponent(webhookSecret)}&drop_pending_updates=true`
-        : `https://api.telegram.org/bot${BOT_TOKEN}/setWebhook?url=${encodeURIComponent(webhookUrl)}&drop_pending_updates=true`;
-      const res = await fetch(setUrl);
-      const data = await res.json();
-      return NextResponse.json(data);
-    }
-
-    return NextResponse.json({ ok: true });
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    const response = await fetch(`https://api.telegram.org/bot${botToken}/getWebhookInfo`, { signal: AbortSignal.timeout(10000), cache: 'no-store' });
+    if (!response.ok) throw new Error('Status unavailable');
+    return NextResponse.json(await response.json(), { headers: { 'Cache-Control': 'no-store' } });
+  } catch {
+    return NextResponse.json({ error: 'Webhook status unavailable' }, { status: 503 });
   }
 }

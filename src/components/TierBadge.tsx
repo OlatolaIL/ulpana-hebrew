@@ -33,7 +33,7 @@ export const TierBadge: React.FC<TierBadgeProps> = ({
         title="Открыто в рамках открытого бета-тестирования • В релизе станет частью PRO"
       >
         {showIcon && <Crown className="w-3 h-3 text-amber-600 dark:text-amber-400 shrink-0" />}
-        <span>{customLabel || 'PRO БЕТА'}</span>
+        <span>{customLabel || 'БЕТА'}</span>
       </span>
     );
   }

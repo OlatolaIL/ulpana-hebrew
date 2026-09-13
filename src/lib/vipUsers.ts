@@ -5,40 +5,20 @@ export const ADMIN_TELEGRAM_IDS: number[] = [
   8215851, // Telegram ID backup
 ];
 
-export const ADMIN_USERNAMES: string[] = [
-  'osa_il',
-  'olatola',
-  'azrie',
-];
-
 export const VIP_EXPIRES_AT = 2088000000000; // 2036 year (~10 years)
 
 /**
  * Строгая проверка прав администратора/VIP
- * Проверяется числовой Telegram ID либо точный username/имя
+ * Только неизменяемый Telegram ID. Имена и usernames пользователь может менять.
  */
 export function isVipUser(
-  username?: string | null,
+  _username?: string | null,
   telegramId?: number | string | null,
-  name?: string | null
+  _name?: string | null
 ): boolean {
   if (telegramId !== undefined && telegramId !== null) {
-    const numericId = typeof telegramId === 'number' ? telegramId : parseInt(String(telegramId).trim(), 10);
-    if (!isNaN(numericId) && ADMIN_TELEGRAM_IDS.includes(numericId)) {
-      return true;
-    }
-  }
-
-  if (username) {
-    const clean = username.toLowerCase().replace(/^@/, '').trim();
-    if (ADMIN_USERNAMES.includes(clean)) {
-      return true;
-    }
-  }
-
-  if (name) {
-    const cleanName = name.toLowerCase().replace(/^@/, '').trim();
-    if (ADMIN_USERNAMES.includes(cleanName)) {
+    const numericId = typeof telegramId === 'number' ? telegramId : Number(telegramId);
+    if (Number.isSafeInteger(numericId) && ADMIN_TELEGRAM_IDS.includes(numericId)) {
       return true;
     }
   }

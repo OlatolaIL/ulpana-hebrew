@@ -76,7 +76,7 @@ export async function POST(req: NextRequest) {
     const fullName =
       [validatedUser.first_name, validatedUser.last_name].filter(Boolean).join(' ') ||
       (cleanUsername ? `@${cleanUsername}` : `Telegram ID: ${numericId}`);
-    const userId = `tg_${numericId}`;
+    let userId = `tg_${numericId}`;
 
     // Строгая проверка VIP/Admin по числовому ID и username
     const isVip = isVipUser(cleanUsername, numericId);
@@ -87,6 +87,7 @@ export async function POST(req: NextRequest) {
 
     await initDatabase();
     const db = getDbPool();
+    if (!db) return NextResponse.json({ error: 'Вход временно недоступен: база данных не подключена.' }, { status: 503 });
 
     if (db) {
       const existingUser = await db.query(
@@ -96,6 +97,7 @@ export async function POST(req: NextRequest) {
 
       if (existingUser.rows.length > 0) {
         const row = existingUser.rows[0];
+        userId = row.id;
         tier = isVip ? 'pro' : ((row.subscription_tier as any) || 'free');
         expiresAt = isVip
           ? VIP_EXPIRES_AT

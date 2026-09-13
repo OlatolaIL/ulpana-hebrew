@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifySessionToken } from '@/lib/auth';
-import { getDbPool } from '@/lib/db';
+import { getDbPool, initDatabase } from '@/lib/db';
+import { randomUUID } from 'crypto';
 import { Word } from '@/types';
 import { normalizeHebrewWord, sanitizePersonalVocabulary } from '@/lib/storage';
+import { readBoundedJson, RequestBodyError } from '@/lib/requestBody';
+import { parseProfileSnapshot } from '@/lib/profileSnapshot';
 
 export async function GET(req: NextRequest) {
   try {
@@ -16,10 +19,14 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid session' }, { status: 401 });
     }
 
-    const db = getDbPool();
-    if (!db) {
-      return NextResponse.json({ lessonProgress: {}, personalVocabulary: [] });
+    const pool = getDbPool();
+    if (!pool) {
+      return NextResponse.json({ error: 'Cloud storage unavailable' }, { status: 503 });
     }
+    await initDatabase();
+    const db = await pool.connect();
+    try {
+      await db.query('BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY');
 
     // 1. Получаем прогресс уроков
     const progressRes = await db.query(
@@ -59,14 +66,25 @@ export async function GET(req: NextRequest) {
     const personalVocabulary: Word[] = sanitizePersonalVocabulary(rawList);
 
     // 3. Получаем прогресс карточек (SM-2 интервалы)
-    const userRes = await db.query('SELECT flashcard_stats FROM ulpana_users WHERE id = $1', [session.id]);
+    const userRes = await db.query('SELECT flashcard_stats, sync_revision FROM ulpana_users WHERE id = $1', [session.id]);
+    if (!userRes.rows.length) {
+      await db.query('ROLLBACK');
+      return NextResponse.json({ error: 'Account not found' }, { status: 401 });
+    }
     const flashcardStats = userRes.rows[0]?.flashcard_stats || {};
 
+    await db.query('COMMIT');
     return NextResponse.json({
       lessonProgress,
       personalVocabulary,
       flashcardStats,
+      userId: session.id,
+      revision: Number(userRes.rows[0].sync_revision),
     });
+    } catch (error) {
+      await db.query('ROLLBACK');
+      throw error;
+    } finally { db.release(); }
   } catch (error) {
     console.error('[API User Sync GET] Error:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
@@ -85,8 +103,28 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid session' }, { status: 401 });
     }
 
-    const { lessonProgress, personalVocabulary, flashcardStats, gender, fontStyle } = await req.json();
-    const db = getDbPool();
+    const body = await readBoundedJson(req, 2_000_000);
+    if (body.expectedUserId !== session.id) return NextResponse.json({ error: 'Account changed' }, { status: 409 });
+    const { lessonProgress, personalVocabulary, flashcardStats, gender, fontStyle, expectedUserId, expectedRevision } = parseProfileSnapshot(body);
+    if (expectedUserId !== session.id) return NextResponse.json({ error: 'Account changed' }, { status: 409 });
+    if (!Number.isSafeInteger(expectedRevision) || expectedRevision < 0 ||
+        !lessonProgress || typeof lessonProgress !== 'object' || Array.isArray(lessonProgress) ||
+        Object.keys(lessonProgress).length > 100 || !Array.isArray(personalVocabulary) || personalVocabulary.length > 10000 ||
+        !flashcardStats || typeof flashcardStats !== 'object' || Array.isArray(flashcardStats) ||
+        !['male', 'female'].includes(gender) || !['print', 'cursive'].includes(fontStyle)) {
+      return NextResponse.json({ error: 'Invalid profile snapshot' }, { status: 400 });
+    }
+    const pool = getDbPool();
+    if (!pool) return NextResponse.json({ error: 'Cloud storage unavailable' }, { status: 503 });
+    await initDatabase();
+    const db = await pool.connect();
+    try {
+      await db.query('BEGIN');
+      const current = await db.query('SELECT sync_revision FROM ulpana_users WHERE id = $1 FOR UPDATE', [session.id]);
+      if (!current.rows.length || Number(current.rows[0].sync_revision) !== expectedRevision) {
+        await db.query('ROLLBACK');
+        return NextResponse.json({ error: 'Profile changed on another device' }, { status: 409 });
+      }
 
     if (db) {
       // Обновляем настройки пользователя и прогресс карточек
@@ -103,7 +141,7 @@ export async function POST(req: NextRequest) {
         updateValues.push(fontStyle);
       }
       if (flashcardStats && typeof flashcardStats === 'object') {
-        updateFields.push(`flashcard_stats = COALESCE(flashcard_stats, '{}'::jsonb) || $${paramIdx++}::jsonb`);
+        updateFields.push(`flashcard_stats = $${paramIdx++}::jsonb`);
         updateValues.push(JSON.stringify(flashcardStats));
       }
 
@@ -119,7 +157,10 @@ export async function POST(req: NextRequest) {
       if (lessonProgress && typeof lessonProgress === 'object') {
         for (const [lessonIdStr, prog] of Object.entries(lessonProgress as Record<string, any>)) {
           const lessonId = parseInt(lessonIdStr, 10);
-          if (isNaN(lessonId)) continue;
+          if (!Number.isInteger(lessonId) || lessonId < 1 || lessonId > 100 || !prog || !Array.isArray(prog.completedTabs) ||
+              prog.completedTabs.some((tab: unknown) => typeof tab !== 'string' || !['theory', 'vocab', 'exercises', 'essay', 'chat', 'phone'].includes(tab))) {
+            throw new Error('Invalid lesson progress');
+          }
 
           await db.query(
             `INSERT INTO ulpana_lesson_progress (user_id, lesson_id, completed_tabs, is_completed, score, last_visited, essay, updated_at)
@@ -191,7 +232,7 @@ export async function POST(req: NextRequest) {
               [session.id, plain, word.hebrew, keepId]
             );
           } else {
-            const wordId = word.id || `w_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+            const wordId = randomUUID();
             await db.query(
               `INSERT INTO ulpana_vocabulary (id, user_id, hebrew, hebrew_plain, transcription, translation, part_of_speech, root, lesson_id)
                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
@@ -219,8 +260,19 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    return NextResponse.json({ success: true });
+      await db.query('DELETE FROM ulpana_lesson_progress WHERE user_id = $1 AND NOT (lesson_id = ANY($2::int[]))',
+        [session.id, Object.keys(lessonProgress).map(Number)]);
+      await db.query('DELETE FROM ulpana_vocabulary WHERE user_id = $1 AND NOT (hebrew_plain = ANY($2::text[]))',
+        [session.id, sanitizePersonalVocabulary(personalVocabulary).map(w => normalizeHebrewWord(w.hebrewPlain || w.hebrew))]);
+      await db.query('UPDATE ulpana_users SET sync_revision = sync_revision + 1 WHERE id = $1', [session.id]);
+      await db.query('COMMIT');
+      return NextResponse.json({ success: true, userId: session.id, revision: expectedRevision + 1 });
+    } catch (error) {
+      await db.query('ROLLBACK');
+      throw error;
+    } finally { db.release(); }
   } catch (error) {
+    if (error instanceof RequestBodyError) return NextResponse.json({ error: error.message }, { status: error.status });
     console.error('[API User Sync POST] Error:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }

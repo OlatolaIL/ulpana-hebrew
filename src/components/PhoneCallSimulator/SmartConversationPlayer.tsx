@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Play, Pause, RotateCcw, Volume2, Bot, User, CheckCircle } from 'lucide-react';
+import { Play, Pause, RotateCcw, Bot, User } from 'lucide-react';
 import { speakHebrew, stopSpeech } from '@/lib/speech';
 
 export interface SmartPlayerMessage {
@@ -39,7 +39,8 @@ export const SmartConversationPlayer: React.FC<SmartConversationPlayerProps> = (
   const isPlayingRef = useRef(false);
   const currentIndexRef = useRef(0);
   const userAudioPlayerRef = useRef<HTMLAudioElement | null>(null);
-  const nextTimerRef = useRef<NodeJS.Timeout | any>(null);
+  const nextTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const playTurnRef = useRef<(index: number) => Promise<void>>(() => Promise.resolve());
 
   const cleanStop = useCallback(() => {
     isPlayingRef.current = false;
@@ -93,7 +94,7 @@ export const SmartConversationPlayer: React.FC<SmartConversationPlayerProps> = (
             audio.onended = () => {
               if (!isPlayingRef.current) return;
               nextTimerRef.current = setTimeout(() => {
-                playTurn(index + 1);
+                playTurnRef.current(index + 1);
               }, 450);
             };
 
@@ -101,7 +102,7 @@ export const SmartConversationPlayer: React.FC<SmartConversationPlayerProps> = (
               console.warn('[SmartPlayer] User audio play failed, moving next');
               if (!isPlayingRef.current) return;
               nextTimerRef.current = setTimeout(() => {
-                playTurn(index + 1);
+                playTurnRef.current(index + 1);
               }, 400);
             };
 
@@ -110,7 +111,7 @@ export const SmartConversationPlayer: React.FC<SmartConversationPlayerProps> = (
             console.warn('[SmartPlayer] Audio play exception:', err);
             if (!isPlayingRef.current) return;
             nextTimerRef.current = setTimeout(() => {
-              playTurn(index + 1);
+              playTurnRef.current(index + 1);
             }, 500);
           }
         } else {
@@ -120,7 +121,7 @@ export const SmartConversationPlayer: React.FC<SmartConversationPlayerProps> = (
           } catch {}
           if (!isPlayingRef.current) return;
           nextTimerRef.current = setTimeout(() => {
-            playTurn(index + 1);
+            playTurnRef.current(index + 1);
           }, 450);
         }
       } else {
@@ -133,12 +134,16 @@ export const SmartConversationPlayer: React.FC<SmartConversationPlayerProps> = (
 
         if (!isPlayingRef.current) return;
         nextTimerRef.current = setTimeout(() => {
-          playTurn(index + 1);
+          playTurnRef.current(index + 1);
         }, 500);
       }
     },
     [messages, speechRate, onActiveMessageChange, cleanStop]
   );
+
+  useEffect(() => {
+    playTurnRef.current = playTurn;
+  }, [playTurn]);
 
   const handleTogglePlay = () => {
     if (isPlaying) {
@@ -173,7 +178,7 @@ export const SmartConversationPlayer: React.FC<SmartConversationPlayerProps> = (
         isPlaying
           ? 'bg-gradient-to-r from-blue-50/90 via-indigo-50/70 to-emerald-50/80 dark:from-blue-950/40 dark:via-indigo-950/30 dark:to-emerald-950/30 border-blue-300 dark:border-blue-700 shadow-md'
           : 'bg-zinc-50 dark:bg-zinc-800/60 border-zinc-200 dark:border-zinc-700/80'
-      } p-3 sm:p-4 ${className}`}
+      } ${compact ? 'p-2 sm:p-3' : 'p-3 sm:p-4'} ${className}`}
     >
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         {/* Левая часть: кнопка Play + Инфо */}

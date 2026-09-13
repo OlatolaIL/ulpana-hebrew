@@ -65,6 +65,9 @@ export const ScriptedDialogueTrainer: React.FC<ScriptedDialogueTrainerProps> = (
     showHint,
     setShowHint,
     lastEvaluation,
+    evaluationError,
+    retryEvaluation,
+    savedTurnAudio,
     turnHistory,
     showSituationModal,
     setShowSituationModal,
@@ -190,6 +193,9 @@ export const ScriptedDialogueTrainer: React.FC<ScriptedDialogueTrainerProps> = (
           evaluatingPhase={evaluatingPhase}
           spokenText={spokenText}
           lastEvaluation={lastEvaluation}
+          evaluationError={evaluationError}
+          retryEvaluation={retryEvaluation}
+          savedTurnAudio={savedTurnAudio}
           speechRate={speechRate}
           userAudioPlayerRef={userAudioPlayerRef}
           isFinalTurn={isFinalTurn}

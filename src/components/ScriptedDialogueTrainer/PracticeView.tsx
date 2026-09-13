@@ -56,6 +56,9 @@ interface PracticeViewProps {
   evaluatingPhase: 'idle' | 'transcribing' | 'evaluating';
   spokenText: string;
   lastEvaluation: DialogueEvaluationResult | null;
+  evaluationError: string | null;
+  retryEvaluation: () => void;
+  savedTurnAudio: Record<number, string>;
   speechRate: number;
   userAudioPlayerRef: React.RefObject<HTMLAudioElement | null>;
   isFinalTurn: boolean;
@@ -92,6 +95,9 @@ export const PracticeView: React.FC<PracticeViewProps> = ({
   evaluatingPhase,
   spokenText,
   lastEvaluation,
+  evaluationError,
+  retryEvaluation,
+  savedTurnAudio,
   speechRate,
   userAudioPlayerRef,
   isFinalTurn,
@@ -170,9 +176,9 @@ export const PracticeView: React.FC<PracticeViewProps> = ({
                     >
                       <Volume2 className="w-3.5 h-3.5" />
                     </button>
-                  ) : turnHistory[idx]?.userAudioUrl || (idx === practiceTurnIndex && userAudioUrl) ? (
+                  ) : turnHistory[idx]?.userAudioUrl || savedTurnAudio[idx] || (idx === practiceTurnIndex && userAudioUrl) ? (
                     (() => {
-                      const thisAudioUrl = turnHistory[idx]?.userAudioUrl || userAudioUrl || undefined;
+                      const thisAudioUrl = turnHistory[idx]?.userAudioUrl || savedTurnAudio[idx] || (idx === practiceTurnIndex ? userAudioUrl : undefined) || undefined;
                       const isThisPlaying = Boolean(playingAudioUrl && thisAudioUrl && playingAudioUrl === thisAudioUrl);
                       return (
                         <button
@@ -351,11 +357,11 @@ export const PracticeView: React.FC<PracticeViewProps> = ({
                   <p className="text-xs sm:text-sm font-bold text-blue-950 dark:text-blue-100">
                     {evaluatingPhase === 'transcribing'
                       ? 'ИИ слушает и расшифровывает вашу речь...'
-                      : 'ИИ оценивает смысл, грамматику и произношение...'}
+                      : 'Проверяем смысл и грамматику распознанной фразы...'}
                   </p>
                   <p className="text-[11px] text-blue-700/80 dark:text-blue-300/80">
                     {evaluatingPhase === 'transcribing'
-                      ? 'Обработка аудиодорожки через нейросеть Whisper...'
+                      ? 'Преобразуем вашу запись в текст...'
                       : 'Сверка ответа с контекстом диалога...'}
                   </p>
                 </div>
@@ -386,7 +392,17 @@ export const PracticeView: React.FC<PracticeViewProps> = ({
             </div>
           )}
 
-          {/* Результат семантической и фонетической проверки ИИ */}
+          {evaluationError && !isEvaluating && (
+            <div role="alert" className="p-3 rounded-xl border border-amber-300 bg-amber-50 dark:bg-amber-950/40 text-sm space-y-2">
+              <p className="font-bold">Проверка недоступна</p>
+              <p>{evaluationError}</p>
+              <button type="button" onClick={retryEvaluation} className="px-3 py-2 rounded-lg bg-blue-600 text-white font-semibold">
+                Повторить проверку
+              </button>
+            </div>
+          )}
+
+          {/* Результат проверки распознанного текста */}
           {lastEvaluation && (
             <div
               ref={evaluationRef}

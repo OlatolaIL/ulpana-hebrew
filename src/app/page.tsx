@@ -12,10 +12,13 @@ import { SettingsModal } from '@/components/SettingsModal';
 import { AuthModal, AuthModalReason } from '@/components/AuthModal';
 import { SubscriptionModal } from '@/components/SubscriptionModal';
 import { SectionGuideDrawer } from '@/components/SectionGuideDrawer';
+import { useGuidePreference } from '@/lib/useGuidePreference';
 import { FeedbackDrawer } from '@/components/FeedbackDrawer';
 import { FeedbackButton } from '@/components/FeedbackButton';
 import { UserProfile, Word, UserSession, ThematicDeck } from '@/types';
 import {
+  createGuestProfile,
+  loadAccountProfile,
   loadUserProfile,
   saveUserProfile,
   resetLessonProgress,
@@ -23,6 +26,7 @@ import {
   sanitizePersonalVocabulary,
   LessonStageTab,
 } from '@/lib/storage';
+import { hydrateAccount, syncProfile, resetSyncSession, finishPendingSync, resolveSyncConflict } from '@/lib/profileSync';
 import { initHebrewVoices } from '@/lib/speech';
 import { DETAILED_LESSONS, getLessonById } from '@/data/lessonsData';
 import { isVipUser, VIP_EXPIRES_AT, applyVipProfileEnhancements } from '@/lib/vipUsers';
@@ -30,11 +34,13 @@ import { useModalHistory } from '@/lib/useHistoryState';
 import { isLessonLockedForUser, isLessonAuthRequired } from '@/lib/config';
 
 type ViewMode = 'map' | 'lesson' | 'flashcards' | 'dictionary' | 'alphabet';
+type TelegramWindow = Window & { Telegram?: { WebApp?: { initData?: string; isVersionAtLeast?: (version: string) => boolean; BackButton?: { hide: () => void; show: () => void; onClick: (fn: () => void) => void; offClick: (fn: () => void) => void } } } };
+
 
 function getTelegramInitData(): string | null {
   if (typeof window === 'undefined') return null;
 
-  const tg = (window as any).Telegram?.WebApp;
+  const tg = (window as TelegramWindow).Telegram?.WebApp;
   if (tg?.initData) {
     return tg.initData;
   }
@@ -57,59 +63,9 @@ function getTelegramInitData(): string | null {
   return null;
 }
 
-function getTelegramUser(): any | null {
-  if (typeof window === 'undefined') return null;
-
-  // 1. Из window.Telegram.WebApp
-  const tg = (window as any).Telegram?.WebApp;
-  if (tg) {
-    try {
-      tg.ready();
-      tg.expand();
-      if (typeof tg.disableVerticalSwipes === 'function') {
-        tg.disableVerticalSwipes();
-      }
-      document.documentElement.classList.add('in-telegram');
-      document.body.classList.add('in-telegram');
-    } catch {}
-    if (tg.initDataUnsafe?.user) {
-      return tg.initDataUnsafe.user;
-    }
-  }
-
-  // 2. Из window.location.hash (tgWebAppData)
-  try {
-    const hash = window.location.hash.slice(1);
-    if (hash) {
-      const params = new URLSearchParams(hash);
-      const tgWebAppData = params.get('tgWebAppData');
-      if (tgWebAppData) {
-        const dataParams = new URLSearchParams(tgWebAppData);
-        const userStr = dataParams.get('user');
-        if (userStr) {
-          return JSON.parse(decodeURIComponent(userStr));
-        }
-      }
-    }
-  } catch {}
-
-  // 3. Из window.location.search
-  try {
-    const searchParams = new URLSearchParams(window.location.search);
-    const tgWebAppData = searchParams.get('tgWebAppData');
-    if (tgWebAppData) {
-      const dataParams = new URLSearchParams(tgWebAppData);
-      const userStr = dataParams.get('user');
-      if (userStr) {
-        return JSON.parse(decodeURIComponent(userStr));
-      }
-    }
-  } catch {}
-
-  return null;
-}
-
 export default function Home() {
+  const [syncError, setSyncError] = useState<string | null>(null);
+  const [syncBusy, setSyncBusy] = useState(false);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [currentView, setCurrentView] = useState<ViewMode>('map');
   const [activeLessonId, setActiveLessonId] = useState<number>(1);
@@ -129,6 +85,7 @@ export default function Home() {
   const [authModalReason, setAuthModalReason] = useState<AuthModalReason | null>(null);
   const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState(false);
   const [isGuideDrawerOpen, setIsGuideDrawerOpen] = useState(false);
+  const [autoShowGuides] = useGuidePreference();
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
   const [feedbackLessonTab, setFeedbackLessonTab] = useState<string | undefined>(undefined);
   const [showFloatingFeedback, setShowFloatingFeedback] = useState(() => {
@@ -157,184 +114,115 @@ export default function Home() {
   useModalHistory(isGuideDrawerOpen, () => setIsGuideDrawerOpen(false), 'guide-drawer');
   useModalHistory(isMultiLessonSetupOpen, () => setIsMultiLessonSetupOpen(false), 'setup-modal');
 
-  // Синхронизация данных с облаком
   const syncToCloud = useCallback(async (updated: UserProfile) => {
-    if (updated.isLoggedIn) {
-      try {
-        await fetch('/api/user/sync', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            lessonProgress: updated.lessonProgress,
-            personalVocabulary: updated.personalVocabulary,
-            flashcardStats: updated.flashcardStats,
-            gender: updated.gender,
-            fontStyle: updated.fontStyle,
-          }),
-        });
-      } catch (e) {
-        console.warn('[Sync] Cloud sync failed:', e);
-      }
-    }
+    if (!updated.isLoggedIn) return;
+    try { await syncProfile(updated); setSyncError(null); }
+    catch (error) { setSyncError(error instanceof Error ? error.message : 'Ошибка облачного сохранения'); }
   }, []);
 
-  const handleUpdateProfile = useCallback(
-    (updated: UserProfile) => {
-      setProfile(updated);
-      saveUserProfile(updated);
-      syncToCloud(updated);
-    },
-    [syncToCloud]
-  );
+  const handleUpdateProfile = useCallback((updated: UserProfile) => {
+    const pending = { ...updated, cloudSyncPending: Boolean(updated.isLoggedIn) };
+    setProfile(pending);
+    saveUserProfile(pending);
+    void syncToCloud(pending);
+  }, [syncToCloud]);
+
+  const initializeNavigation = useCallback((verifiedProfile: UserProfile) => {
+    // Первичная инициализация состояния из hash
+    const initialHash = window.location.hash;
+    let initialView: ViewMode = 'map';
+    let initialLessonId = 1;
+    let initialTab: LessonStageTab = 'theory';
+
+    if (initialHash.startsWith('#lesson-')) {
+      const num = parseInt(initialHash.replace('#lesson-', ''), 10);
+      const userProf = verifiedProfile;
+      if (!isNaN(num) && num >= 1 && num <= 100) {
+        if (isLessonAuthRequired(num, Boolean(userProf.isLoggedIn))) {
+          setPendingLessonId(num);
+          setAuthModalReason({
+            lessonId: num,
+            title: `Урок ${num} доступен после бесплатной регистрации`,
+            description: `Уроки 1 и 2 открыты всем гостям. Чтобы перейти к уроку ${num} и сохранять прогресс — войдите бесплатно в 1 клик.`,
+          });
+          setIsAuthModalOpen(true);
+          initialView = 'map';
+        } else {
+          initialView = 'lesson';
+          initialLessonId = num;
+          initialTab = getFirstIncompleteLessonTab(num, userProf);
+        }
+      }
+    } else if (initialHash === '#flashcards') {
+      initialView = 'flashcards';
+    } else if (initialHash === '#dictionary') {
+      initialView = 'dictionary';
+    } else if (initialHash === '#alphabet') {
+      initialView = 'alphabet';
+    }
+
+    if (initialView !== 'map') {
+      setCurrentView(initialView);
+      setActiveLessonId(initialLessonId);
+      setLessonInitialTab(initialTab);
+    }
+
+    window.history.replaceState(
+      { view: initialView, lessonId: initialLessonId, tab: initialTab },
+      '',
+      initialHash || '#map'
+    );
+
+  }, []);
 
   useEffect(() => {
-    let p = loadUserProfile();
-    p = applyVipProfileEnhancements(p);
-    setProfile(p);
+    let cancelled = false;
     initHebrewVoices();
-
-    const handleTgUserFound = (u: any, initData?: string | null) => {
-      const fullName = [u.first_name, u.last_name].filter(Boolean).join(' ') || (u.username ? `@${u.username}` : 'Ученик');
-      const instantProfile: UserProfile = applyVipProfileEnhancements({
-        ...p,
-        id: `tg_${u.id}`,
-        telegramId: u.id,
-        username: u.username || fullName,
-        name: fullName,
-        avatarUrl: u.photo_url,
-        isLoggedIn: true,
-      });
-      setProfile(instantProfile);
-      saveUserProfile(instantProfile);
-
-      if (initData) {
-        fetch('/api/auth/telegram', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ initData }),
-        }).catch((err) => console.warn('[WebApp Auth BG] Error:', err));
-      }
-    };
-
-    // 1. Проверяем Telegram WebApp немедленно или с повторными попытками
-    const initialTgUser = getTelegramUser();
-    const initialInitData = getTelegramInitData();
-    if (initialTgUser) {
-      handleTgUserFound(initialTgUser, initialInitData);
-    } else {
-      let attempts = 0;
-      const tgInterval = setInterval(() => {
-        attempts++;
-        const delayedTgUser = getTelegramUser();
-        const delayedInitData = getTelegramInitData();
-        if (delayedTgUser) {
-          clearInterval(tgInterval);
-          handleTgUserFound(delayedTgUser, delayedInitData);
-        } else if (attempts >= 20) {
-          clearInterval(tgInterval);
-        }
-      }, 100);
-    }
-
     const initAuth = async () => {
-      // 0. Проверяем токен в URL (Magic Link из Telegram-бота для браузера)
+      const cached = loadUserProfile();
       try {
-        const urlParams = new URLSearchParams(window.location.search);
-        const loginToken = urlParams.get('login_token');
+        const url = new URL(window.location.href);
+        const loginToken = url.searchParams.get('login_token');
+        const initData = getTelegramInitData();
         if (loginToken) {
-          const tokenRes = await fetch('/api/auth/token-login', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+          url.searchParams.delete('login_token');
+          window.history.replaceState({}, '', url.pathname + url.search + url.hash);
+          const login = await fetch('/api/auth/token-login', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ token: loginToken }),
           });
-          const tokenData = await tokenRes.json();
-          if (tokenRes.ok && tokenData.success && tokenData.user) {
-            window.history.replaceState({}, '', window.location.pathname);
-
-            const syncRes = await fetch('/api/user/sync');
-            const syncData = await syncRes.json();
-
-            const merged: UserProfile = applyVipProfileEnhancements({
-              ...p,
-              id: tokenData.user.id,
-              telegramId: tokenData.user.telegramId,
-              username: tokenData.user.username,
-              name: tokenData.user.name,
-              avatarUrl: tokenData.user.avatarUrl,
-              isLoggedIn: true,
-              subscriptionTier: tokenData.user.subscriptionTier,
-              subscriptionExpiresAt: tokenData.user.subscriptionExpiresAt,
-              gender: tokenData.gender || p.gender,
-              fontStyle: tokenData.fontStyle || p.fontStyle,
-              lessonProgress: {
-                ...p.lessonProgress,
-                ...(syncData.lessonProgress || {}),
-              },
-              personalVocabulary: sanitizePersonalVocabulary(
-                syncData.personalVocabulary && syncData.personalVocabulary.length > 0
-                  ? syncData.personalVocabulary
-                  : p.personalVocabulary
-              ),
-              flashcardStats: {
-                ...(p.flashcardStats || {}),
-                ...(syncData.flashcardStats || {}),
-              },
-            });
-
-            setProfile(merged);
-            saveUserProfile(merged);
-            return;
-          }
-        }
-      } catch (err) {
-        console.warn('[Magic Link] Auth failed:', err);
-      }
-
-      // 2. Проверяем обычную сессию cookie на сервере
-      try {
-        const meRes = await fetch('/api/auth/me');
-        const data = await meRes.json();
-        if (data.authenticated && data.user) {
-          const syncRes = await fetch('/api/user/sync');
-          const syncData = await syncRes.json();
-
-          const mergedProfile: UserProfile = applyVipProfileEnhancements({
-            ...p,
-            id: data.user.id,
-            telegramId: data.user.telegramId,
-            username: data.user.username,
-            name: data.user.name,
-            avatarUrl: data.user.avatarUrl,
-            isLoggedIn: true,
-            subscriptionTier: data.user.subscriptionTier,
-            subscriptionExpiresAt: data.user.subscriptionExpiresAt,
-            gender: data.gender || p.gender,
-            fontStyle: data.fontStyle || p.fontStyle,
-            lessonProgress: {
-              ...p.lessonProgress,
-              ...(syncData.lessonProgress || {}),
-            },
-            personalVocabulary: sanitizePersonalVocabulary(
-              syncData.personalVocabulary && syncData.personalVocabulary.length > 0
-                ? syncData.personalVocabulary
-                : p.personalVocabulary
-            ),
-            flashcardStats: {
-              ...(p.flashcardStats || {}),
-              ...(syncData.flashcardStats || {}),
-            },
+          if (!login.ok) throw new Error('Ссылка для входа недействительна. Войдите снова.');
+        } else if (initData) {
+          const login = await fetch('/api/auth/telegram', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ initData }),
           });
-
-          setProfile(mergedProfile);
-          saveUserProfile(mergedProfile);
+          if (!login.ok) throw new Error('Не удалось подтвердить вход через Telegram.');
         }
-      } catch (err) {
-        console.log('[Auth] Guest mode active:', err);
+        const response = await fetch('/api/auth/me', { cache: 'no-store' });
+        if (!response.ok) throw new Error('Не удалось проверить сессию.');
+        const data = await response.json();
+        if (data.authenticated && data.user) {
+          const loaded = await hydrateAccount(data.user);
+          if (cancelled) return;
+          const updated = applyVipProfileEnhancements({ ...loaded, gender: data.gender || loaded.gender, fontStyle: data.fontStyle || loaded.fontStyle });
+          setProfile(updated); saveUserProfile(updated); initializeNavigation(updated);
+          if (updated.cloudSyncPending) void syncToCloud(updated);
+        } else if (!cancelled) {
+          if (cached.id) saveUserProfile(cached);
+          const guest = cached.id ? createGuestProfile() : cached;
+          setProfile(guest); saveUserProfile(guest); initializeNavigation(guest);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          const offline = { ...cached, isLoggedIn: false };
+          setProfile(offline); initializeNavigation(offline);
+          setSyncError(error instanceof Error ? error.message : 'Не удалось загрузить профиль.');
+        }
       }
     };
-
-    initAuth();
-  }, []);
+    void initAuth();
+    return () => { cancelled = true; };
+  }, [syncToCloud, initializeNavigation]);
 
   // Навигация с сохранением в историю браузера (для свайпов назад и кнопок Back)
   const navigateTo = useCallback(
@@ -406,51 +294,6 @@ export default function Home() {
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    // Первичная инициализация состояния из hash
-    const initialHash = window.location.hash;
-    let initialView: ViewMode = 'map';
-    let initialLessonId = 1;
-    let initialTab: LessonStageTab = 'theory';
-
-    if (initialHash.startsWith('#lesson-')) {
-      const num = parseInt(initialHash.replace('#lesson-', ''), 10);
-      const userProf = loadUserProfile();
-      if (!isNaN(num) && num >= 1 && num <= 100) {
-        if (isLessonAuthRequired(num, Boolean(userProf.isLoggedIn))) {
-          setPendingLessonId(num);
-          setAuthModalReason({
-            lessonId: num,
-            title: `Урок ${num} доступен после бесплатной регистрации`,
-            description: `Уроки 1 и 2 открыты всем гостям. Чтобы перейти к уроку ${num} и сохранять прогресс — войдите бесплатно в 1 клик.`,
-          });
-          setIsAuthModalOpen(true);
-          initialView = 'map';
-        } else {
-          initialView = 'lesson';
-          initialLessonId = num;
-          initialTab = getFirstIncompleteLessonTab(num, userProf);
-        }
-      }
-    } else if (initialHash === '#flashcards') {
-      initialView = 'flashcards';
-    } else if (initialHash === '#dictionary') {
-      initialView = 'dictionary';
-    } else if (initialHash === '#alphabet') {
-      initialView = 'alphabet';
-    }
-
-    if (initialView !== 'map') {
-      setCurrentView(initialView);
-      setActiveLessonId(initialLessonId);
-      setLessonInitialTab(initialTab);
-    }
-
-    window.history.replaceState(
-      { view: initialView, lessonId: initialLessonId, tab: initialTab },
-      '',
-      initialHash || '#map'
-    );
-
     const handlePopState = (event: PopStateEvent) => {
       // 1. Если открыты глобальные модалки - закрываем модалку в первую очередь
       if (isSettingsOpen) {
@@ -505,9 +348,20 @@ export default function Home() {
     return () => window.removeEventListener('popstate', handlePopState);
   }, [isSettingsOpen, isAuthModalOpen, isSubscriptionModalOpen, isMultiLessonSetupOpen]);
 
+  const handleCloseFlashcards = useCallback(() => {
+    if (flashcardSourceLessonId) {
+      navigateTo('lesson', { lessonId: flashcardSourceLessonId });
+    } else {
+      navigateTo('dictionary');
+    }
+  }, [flashcardSourceLessonId, navigateTo]);
+  const handleCloseLesson = useCallback(() => {
+    navigateTo('map');
+  }, [navigateTo]);
+
   // Интеграция с Telegram WebApp BackButton
   useEffect(() => {
-    const tg = (window as any).Telegram?.WebApp;
+    const tg = (window as TelegramWindow).Telegram?.WebApp;
     const isBackButtonSupported = Boolean(
       tg &&
       typeof tg.isVersionAtLeast === 'function' &&
@@ -525,9 +379,9 @@ export default function Home() {
     const isRoot = currentView === 'map' && !isModalOpen;
 
     if (isRoot) {
-      tg.BackButton.hide();
+      tg!.BackButton!.hide();
     } else {
-      tg.BackButton.show();
+      tg!.BackButton!.show();
       const handleTgBack = () => {
         if (isSettingsOpen) { setIsSettingsOpen(false); return; }
         if (isAuthModalOpen) { setIsAuthModalOpen(false); return; }
@@ -541,29 +395,31 @@ export default function Home() {
           window.history.back();
         }
       };
-      tg.BackButton.onClick(handleTgBack);
+      tg!.BackButton!.onClick(handleTgBack);
       return () => {
-        tg.BackButton.offClick(handleTgBack);
+        tg!.BackButton!.offClick(handleTgBack);
       };
     }
-  }, [currentView, isSettingsOpen, isAuthModalOpen, isSubscriptionModalOpen, isMultiLessonSetupOpen]);
+  }, [currentView, isSettingsOpen, isAuthModalOpen, isSubscriptionModalOpen, isMultiLessonSetupOpen, handleCloseFlashcards, handleCloseLesson]);
 
   // Автоматический показ шторки-подсказки при первом посещении раздела
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    const autoShowAllowed = localStorage.getItem('ulpana_auto_show_guides') !== 'false';
-    if (!autoShowAllowed) return;
+    if (!autoShowGuides) return;
+    if (!profile || isSettingsOpen || isAuthModalOpen || isSubscriptionModalOpen ||
+        isMultiLessonSetupOpen || isFeedbackOpen || isGuideDrawerOpen) return;
 
     const seenKey = `ulpana_seen_guide_${currentView}`;
     const alreadySeen = localStorage.getItem(seenKey);
     if (!alreadySeen) {
-      localStorage.setItem(seenKey, 'true');
       const timer = setTimeout(() => {
+        localStorage.setItem(seenKey, 'true');
         setIsGuideDrawerOpen(true);
       }, 700);
       return () => clearTimeout(timer);
     }
-  }, [currentView]);
+  }, [currentView, autoShowGuides, profile, isSettingsOpen, isAuthModalOpen, isSubscriptionModalOpen,
+      isMultiLessonSetupOpen, isFeedbackOpen, isGuideDrawerOpen]);
 
   if (!profile) {
     return (
@@ -650,13 +506,7 @@ export default function Home() {
     });
   };
 
-  const handleCloseFlashcards = () => {
-    if (flashcardSourceLessonId) {
-      navigateTo('lesson', { lessonId: flashcardSourceLessonId });
-    } else {
-      navigateTo('dictionary');
-    }
-  };
+
 
   const handleContinueLessonFromFlashcards = (
     lessonId: number,
@@ -680,21 +530,19 @@ export default function Home() {
     gender?: 'male' | 'female',
     fontStyle?: 'print' | 'cursive'
   ) => {
-    const updated: UserProfile = {
-      ...profile,
-      id: session.id,
-      telegramId: session.telegramId,
-      username: session.username,
-      name: session.name,
-      avatarUrl: session.avatarUrl,
-      isLoggedIn: true,
-      subscriptionTier: session.subscriptionTier,
-      subscriptionExpiresAt: session.subscriptionExpiresAt,
-      gender: gender || profile.gender,
-      fontStyle: fontStyle || profile.fontStyle,
-    };
-
-    handleUpdateProfile(updated);
+    resetSyncSession();
+    let updated: UserProfile;
+    try {
+      updated = await hydrateAccount(session);
+      updated = { ...updated, gender: gender || updated.gender, fontStyle: fontStyle || updated.fontStyle };
+      setSyncError(null);
+    } catch (error) {
+      updated = { ...loadAccountProfile(session.id), ...session, isLoggedIn: true };
+      setSyncError(error instanceof Error ? error.message : 'Не удалось загрузить профиль.');
+    }
+    setProfile(updated);
+    saveUserProfile(updated);
+    if (updated.cloudSyncPending && updated.cloudRevision !== undefined) void syncToCloud(updated);
 
     // Если перед авторизацией был выбран урок 3+ — сразу открываем его
     if (pendingLessonId) {
@@ -715,40 +563,33 @@ export default function Home() {
       }
     }
 
-    // Сразу загружаем в облако локальный прогресс
-    try {
-      await fetch('/api/user/sync', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          lessonProgress: updated.lessonProgress,
-          personalVocabulary: updated.personalVocabulary,
-          flashcardStats: updated.flashcardStats,
-          gender: updated.gender,
-          fontStyle: updated.fontStyle,
-        }),
-      });
-    } catch (e) {
-      console.warn('[Sync] Initial push failed:', e);
-    }
   };
 
   const handleLogout = async () => {
+    await finishPendingSync();
     try {
-      await fetch('/api/auth/logout', { method: 'POST' });
-    } catch {}
-    const guestProfile: UserProfile = {
-      ...profile,
-      id: undefined,
-      telegramId: undefined,
-      username: undefined,
-      avatarUrl: undefined,
-      isLoggedIn: false,
-      subscriptionTier: 'free',
-      subscriptionExpiresAt: null,
-      name: 'Ученик',
-    };
-    handleUpdateProfile(guestProfile);
+      const response = await fetch('/api/auth/logout', { method: 'POST' });
+      if (!response.ok) throw new Error('Не удалось выйти. Повторите попытку.');
+    } catch {
+      setSyncError('Не удалось выйти из аккаунта. Проверьте подключение и повторите попытку.');
+      return;
+    }
+    saveUserProfile(loadUserProfile());
+    resetSyncSession();
+    const guest = createGuestProfile();
+    setProfile(guest); saveUserProfile(guest); setSyncError(null);
+    navigateTo('map');
+  };
+
+  const handleSyncChoice = async (choice: 'local' | 'cloud') => {
+    const message = choice === 'local'
+      ? 'Заменить облачный прогресс версией из этого браузера? Предыдущие версии будут сохранены локально как резервная копия.'
+      : 'Загрузить облачный прогресс? Текущая версия останется в локальной резервной копии.';
+    if (!window.confirm(message)) return;
+    setSyncBusy(true);
+    try { const updated = await resolveSyncConflict(choice); setProfile(updated); setSyncError(null); }
+    catch (error) { setSyncError(error instanceof Error ? error.message : 'Ошибка синхронизации'); }
+    finally { setSyncBusy(false); }
   };
 
   const handlePromoActivated = (updatedSession: UserSession) => {
@@ -760,9 +601,7 @@ export default function Home() {
     handleUpdateProfile(updated);
   };
 
-  const handleCloseLesson = () => {
-    navigateTo('map');
-  };
+
 
   const handleOpenFeedback = (tab?: string) => {
     setFeedbackLessonTab(tab);
@@ -784,6 +623,15 @@ export default function Home() {
         currentView === 'lesson' ? 'h-[100dvh] max-h-[100dvh] overflow-hidden' : 'min-h-screen'
       }`}
     >
+      {syncError && (
+        <div role="alert" className="shrink-0 bg-amber-50 text-amber-950 border-b border-amber-200 px-4 py-3 text-sm">
+          <p>{syncError}</p>
+          {profile.isLoggedIn && <div className="flex flex-wrap gap-3 mt-2">
+            <button disabled={syncBusy} onClick={() => handleSyncChoice('local')} className="underline">Сохранить мою версию в облаке</button>
+            <button disabled={syncBusy} onClick={() => handleSyncChoice('cloud')} className="underline">Загрузить облачную версию</button>
+          </div>}
+        </div>
+      )}
       {/* Навбар */}
       <Navbar
         currentView={currentView}
@@ -796,7 +644,10 @@ export default function Home() {
         }}
         userProfile={profile}
         onOpenSettings={() => setIsSettingsOpen(true)}
-        onOpenGuide={() => setIsGuideDrawerOpen(true)}
+        onOpenGuide={() => {
+          localStorage.setItem(`ulpana_seen_guide_${currentView}`, 'true');
+          setIsGuideDrawerOpen(true);
+        }}
         onOpenFeedback={() => handleOpenFeedback()}
         onToggleFontStyle={handleToggleFontStyle}
         onOpenAuth={() => setIsAuthModalOpen(true)}
@@ -941,11 +792,10 @@ export default function Home() {
       />
 
       {/* Плавающая кнопка сообщения об ошибке / обратной связи (можно скрыть) */}
-      {showFloatingFeedback && (
+      {showFloatingFeedback && currentView !== 'lesson' && currentView !== 'flashcards' && (
         <FeedbackButton
           onClick={() => handleOpenFeedback()}
           onDismiss={() => handleToggleFloatingFeedback(false)}
-          isLessonMode={currentView === 'lesson'}
         />
       )}
 
@@ -962,12 +812,7 @@ export default function Home() {
         isOpen={isGuideDrawerOpen}
         onClose={() => setIsGuideDrawerOpen(false)}
         activeSection={currentView}
-        onNavigateSection={(view) => {
-          setIsGuideDrawerOpen(false);
-          navigateTo(view);
-        }}
       />
     </div>
   );
 }
-

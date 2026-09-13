@@ -22,7 +22,7 @@ export const CompletedView: React.FC<CompletedViewProps> = ({
   onBackToListen,
 }) => {
   const scores = Object.values(turnHistory)
-    .map((t) => t.pronunciationScore)
+    .map((t) => t.score)
     .filter((s): s is number => typeof s === 'number');
   const avgScore = scores.length > 0 ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : null;
 
@@ -35,7 +35,7 @@ export const CompletedView: React.FC<CompletedViewProps> = ({
       <div className="max-w-md space-y-2">
         <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 text-xs font-black uppercase tracking-wider mb-1">
           <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-          <span>Этап 4/5 (Диалог) успешно зачтён!</span>
+          <span>Этап 5/6 (Диалог) успешно зачтён!</span>
         </div>
 
         <h3 className="text-xl sm:text-2xl font-black text-zinc-900 dark:text-zinc-100">
@@ -48,7 +48,7 @@ export const CompletedView: React.FC<CompletedViewProps> = ({
 
         {avgScore !== null && (
           <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-900 text-xs font-bold text-blue-700 dark:text-blue-300 shadow-2xs">
-            <span>🎙️ Чёткость произношения в диалоге:</span>
+            <span>Средняя оценка ответов:</span>
             <span className="text-sm">{avgScore}%</span>
           </div>
         )}
@@ -56,7 +56,7 @@ export const CompletedView: React.FC<CompletedViewProps> = ({
 
       {/* Главные кнопки действий */}
       <div className="max-w-sm w-full space-y-2.5 pt-2">
-        {/* ГЛАВНАЯ КНОПКА: Переход к 5 этапу (Звонок) */}
+        {/* ГЛАВНАЯ КНОПКА: Переход к этапу 6 (Звонок) */}
         {onGoToNextTab && (
           <button
             type="button"
@@ -64,7 +64,7 @@ export const CompletedView: React.FC<CompletedViewProps> = ({
             className="w-full py-3.5 px-6 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold text-sm sm:text-base flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/25 transition active:scale-95 cursor-pointer"
           >
             <CheckCircle2 className="w-5 h-5 text-emerald-200" />
-            <span>Перейти к этапу 5: Звонок →</span>
+            <span>Перейти к этапу 6: Звонок →</span>
           </button>
         )}
 

@@ -25,6 +25,18 @@ const DEFAULT_PROFILE: UserProfile = {
   flashcardDirection: 'he-ru',
 };
 
+export function createGuestProfile(): UserProfile {
+  return structuredClone(DEFAULT_PROFILE);
+}
+
+export function loadAccountProfile(userId: string): UserProfile {
+  if (typeof window === 'undefined') return createGuestProfile();
+  try {
+    const saved = JSON.parse(localStorage.getItem(`${STORAGE_KEY}:${userId}`) || 'null');
+    return saved?.id === userId ? { ...createGuestProfile(), ...saved } : createGuestProfile();
+  } catch { return createGuestProfile(); }
+}
+
 /**
  * Каноническая нормализация иврита для надёжной дедупликации:
  * 1. Снимает огласовки (ניקוד)
@@ -96,11 +108,11 @@ export function sanitizePersonalVocabulary(vocab: Word[]): Word[] {
 }
 
 export function loadUserProfile(): UserProfile {
-  if (typeof window === 'undefined') return DEFAULT_PROFILE;
+  if (typeof window === 'undefined') return createGuestProfile();
   try {
     const data = localStorage.getItem(STORAGE_KEY);
-    if (!data) return DEFAULT_PROFILE;
-    const profile: UserProfile = { ...DEFAULT_PROFILE, ...JSON.parse(data) };
+    if (!data) return createGuestProfile();
+    const profile: UserProfile = { ...createGuestProfile(), ...JSON.parse(data) };
 
     // Синхронизация статистики карточек между обоими свойствами
     if (!profile.flashcardStats) {
@@ -144,7 +156,7 @@ export function loadUserProfile(): UserProfile {
     return profile;
   } catch (e) {
     console.error('Failed to load profile from localStorage', e);
-    return DEFAULT_PROFILE;
+    return createGuestProfile();
   }
 }
 
@@ -159,6 +171,7 @@ export function saveUserProfile(profile: UserProfile): void {
       profile.personalVocabulary = sanitizePersonalVocabulary(profile.personalVocabulary);
     }
     localStorage.setItem(STORAGE_KEY, JSON.stringify(profile));
+    if (profile.id) localStorage.setItem(`${STORAGE_KEY}:${profile.id}`, JSON.stringify(profile));
   } catch (e) {
     console.error('Failed to save profile to localStorage', e);
   }

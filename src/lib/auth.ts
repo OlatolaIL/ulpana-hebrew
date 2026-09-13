@@ -2,9 +2,13 @@ import crypto from 'crypto';
 import { SignJWT, jwtVerify, createRemoteJWKSet } from 'jose';
 import { UserSession } from '@/types';
 
-const JWT_SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET || 'ulpana_hebrew_super_secret_jwt_key_2026'
-);
+function sessionSecret(): Uint8Array {
+  const secret = process.env.JWT_SECRET?.trim();
+  if (!secret || Buffer.byteLength(secret, 'utf8') < 32) {
+    throw new Error('JWT_SECRET must contain at least 32 bytes');
+  }
+  return new TextEncoder().encode(secret);
+}
 
 export interface TelegramAuthData {
   id: number;
@@ -24,7 +28,7 @@ export function verifyTelegramAuth(data: TelegramAuthData, botToken: string): bo
 
   // Проверяем срок давности (не старше 24 часов)
   const now = Math.floor(Date.now() / 1000);
-  if (now - data.auth_date > 86400) {
+  if (!Number.isSafeInteger(data.auth_date) || data.auth_date <= 0 || data.auth_date > now + 60 || now - data.auth_date > 86400) {
     return false;
   }
 
@@ -120,7 +124,7 @@ export function verifyTelegramWebAppData(initData: string, botToken: string): Te
     const authDateStr = params.get('auth_date');
     const authDate = authDateStr ? parseInt(authDateStr, 10) : 0;
     const now = Math.floor(Date.now() / 1000);
-    if (authDate > 0 && now - authDate > 172800) {
+    if (!Number.isSafeInteger(authDate) || authDate <= 0 || authDate > now + 60 || now - authDate > 172800) {
       return { isValid: false };
     }
 
@@ -151,7 +155,7 @@ export async function createSessionToken(session: UserSession): Promise<string> 
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
     .setExpirationTime('30d')
-    .sign(JWT_SECRET);
+    .sign(sessionSecret());
 }
 
 /**
@@ -159,7 +163,8 @@ export async function createSessionToken(session: UserSession): Promise<string> 
  */
 export async function verifySessionToken(token: string): Promise<UserSession | null> {
   try {
-    const { payload } = await jwtVerify(token, JWT_SECRET);
+    const { payload } = await jwtVerify(token, sessionSecret(), { algorithms: ['HS256'] });
+    if (typeof payload.id !== 'string' || !payload.id || !payload.exp) return null;
     return payload as unknown as UserSession;
   } catch {
     return null;
@@ -193,13 +198,14 @@ export async function verifyGoogleIdToken(
       process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ||
       process.env.GOOGLE_CLIENT_ID;
     const clientId = rawClientId?.trim();
+    if (!clientId) return null;
 
     const { payload } = await jwtVerify(idToken, GOOGLE_JWKS, {
       issuer: ['https://accounts.google.com', 'accounts.google.com'],
-      audience: clientId || undefined,
+      audience: clientId,
     });
 
-    if (!payload || !payload.sub || !payload.email) {
+    if (!payload || !payload.sub || !payload.email || payload.email_verified !== true) {
       return null;
     }
 
@@ -223,19 +229,31 @@ export async function verifyGoogleIdToken(
  */
 export async function fetchGoogleUserInfo(accessToken: string): Promise<GoogleTokenPayload | null> {
   try {
+    const clientId = (process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || process.env.GOOGLE_CLIENT_ID)?.trim();
+    if (!clientId || !accessToken || accessToken.length > 16000) return null;
+    // UserInfo alone does not establish which OAuth client obtained the token.
+    const infoResponse = await fetch(`https://www.googleapis.com/oauth2/v2/tokeninfo?access_token=${encodeURIComponent(accessToken)}`, {
+      method: 'POST', cache: 'no-store', signal: AbortSignal.timeout(10000),
+    });
+    if (!infoResponse.ok) return null;
+    const tokenInfo = await infoResponse.json();
+    if (tokenInfo.issued_to !== clientId || tokenInfo.audience !== clientId ||
+        !Number.isFinite(Number(tokenInfo.expires_in)) || Number(tokenInfo.expires_in) <= 0 ||
+        typeof tokenInfo.user_id !== 'string' || tokenInfo.verified_email !== true) return null;
     const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
       headers: {
         Authorization: `Bearer ${accessToken}`,
       },
+      cache: 'no-store', signal: AbortSignal.timeout(10000),
     });
 
     if (!res.ok) {
-      console.error('[fetchGoogleUserInfo] Failed to fetch Google userinfo:', res.status, await res.text());
+      console.error('[fetchGoogleUserInfo] Google userinfo rejected the request:', res.status);
       return null;
     }
 
     const data = await res.json();
-    if (!data.sub || !data.email) {
+    if (!data.sub || data.sub !== tokenInfo.user_id || !data.email || data.email_verified !== true) {
       return null;
     }
 
@@ -248,8 +266,8 @@ export async function fetchGoogleUserInfo(accessToken: string): Promise<GoogleTo
       given_name: data.given_name,
       family_name: data.family_name,
     };
-  } catch (error) {
-    console.error('[fetchGoogleUserInfo] Error fetching user info:', error);
+  } catch {
+    console.error('[fetchGoogleUserInfo] Google verification unavailable');
     return null;
   }
 }

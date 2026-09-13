@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifySessionToken } from '@/lib/auth';
 import { getDbPool, initDatabase } from '@/lib/db';
+import { isVipUser } from '@/lib/vipUsers';
 
 export async function GET(req: NextRequest) {
   try {
@@ -11,7 +12,14 @@ export async function GET(req: NextRequest) {
 
     const token = req.cookies.get('ulpana_session')?.value;
     const session = token ? await verifySessionToken(token) : null;
-    const userId = queryUserId || session?.id || 'guest';
+    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (queryUserId && queryUserId !== session.id && !isVipUser(null, session.telegramId)) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+    if (!Number.isInteger(lessonId) || lessonId < 1 || lessonId > 100 || !['phone', 'chat'].includes(stage)) {
+      return NextResponse.json({ error: 'Invalid recording metadata' }, { status: 400 });
+    }
+    const userId = queryUserId || session.id;
 
     const db = getDbPool();
     if (!db) {
