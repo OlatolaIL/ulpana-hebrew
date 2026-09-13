@@ -41,8 +41,8 @@ export function normalizeTranscription(transcription: string): string {
   if (!transcription) return '';
   let res = transcription.trim();
 
-  // 1. Союз «ו» в современном разговорном иврите всегда звучит как «вэ-», заменяем архаичное книжное «у-»
-  res = res.replace(/(^|[\s"«(—\[])у-([а-яёА-ЯЁa-zA-Z])/gi, '$1вэ-$2');
+  // 1. Нормативное произношение союза «ו» как «у-» (перед буквами בומ״פ и перед שווא)
+  // сохраняется в соответствии со стандартом Академии языка иврит и не подменяется на «вэ-».
 
   // 2. «בַּבֹּקֶר» (бабóкер): предлог בְּ + артикль הַ дает сильный дагеш во второй ב ([б], а не [в])
   res = res.replace(/(^|[\s"«(—\[])(?:б[аá]вокер|б[аá]-вокер|б[эеé]вокер|б[эеé]-вокер)(?=$|[\s.,!?;:"»)—\]])/gi, '$1бабóкер');
@@ -103,8 +103,8 @@ export function generateHebrewTranscription(text: string): string {
             (i === w.length - 1 || nextIdx === w.length) && !dagesh ? '' : 'h';
         else if (char === 'ו') {
           if (i === 0 && dagesh && nextIdx < w.length) {
-            // Союз "וּ" в начале слова: в современном разговорном иврите произносится как "вэ-"
-            consonant = 'вэ-';
+            // Союз «וּ» (шурук) в начале слова перед שווא и согласными בומ״פ: нормативное произношение «у-»
+            consonant = 'у-';
           } else if (dagesh) consonant = 'у';
           else if (vowels.includes(0x05b9) || vowels.includes(0x05ba))
             consonant = 'о';
