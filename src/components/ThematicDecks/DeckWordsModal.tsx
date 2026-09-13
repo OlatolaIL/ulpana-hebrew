@@ -2,7 +2,6 @@ import React, { useState, useMemo } from 'react';
 import {
   Check,
   Copy,
-  Download,
   X,
   Search,
   LayoutGrid,
@@ -17,7 +16,7 @@ import {
   Play,
 } from 'lucide-react';
 import { ThematicDeck, UserProfile, Word, LinguisticTip } from '@/types';
-import { getDeckWordsAsText, exportDeckToTsv } from '@/data/thematicDecks';
+import { getDeckWordsAsText } from '@/data/thematicDecks';
 import { speakHebrew } from '@/lib/speech';
 import { stripNikkud, getWordTranscription } from '@/lib/transcription';
 import { detectLinguisticTip } from '@/lib/linguisticTips';
@@ -96,19 +95,6 @@ export const DeckWordsModal: React.FC<DeckWordsModalProps> = ({
       setCopiedNotification(true);
       setTimeout(() => setCopiedNotification(false), 2000);
     }
-  };
-
-  const handleDownloadTsv = (targetDeck: ThematicDeck) => {
-    const tsvContent = exportDeckToTsv(targetDeck.id);
-    const blob = new Blob([tsvContent], { type: 'text/tab-separated-values;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `deck_${targetDeck.id}.tsv`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
   };
 
   const toggleSelectWord = (id: string) => {
@@ -204,7 +190,7 @@ export const DeckWordsModal: React.FC<DeckWordsModalProps> = ({
             </div>
           </div>
 
-          {/* Действия шапки: Копировать слова, Экспорт TSV, Закрыть */}
+          {/* Действия шапки: Копировать слова, Закрыть */}
           <div className="flex items-center gap-1 sm:gap-2 shrink-0">
             <button
               onClick={() => handleCopyList(deck)}
@@ -226,15 +212,6 @@ export const DeckWordsModal: React.FC<DeckWordsModalProps> = ({
                   <span className="hidden md:inline">Копировать список</span>
                 </>
               )}
-            </button>
-
-            <button
-              onClick={() => handleDownloadTsv(deck)}
-              className="p-1.5 sm:px-3 sm:py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-100 text-xs font-semibold flex items-center gap-1.5 text-slate-700 dark:text-slate-300 transition"
-              title="Экспорт в Anki / TSV"
-            >
-              <Download className="w-3.5 h-3.5" />
-              <span className="hidden md:inline">TSV (Anki)</span>
             </button>
 
             <button
