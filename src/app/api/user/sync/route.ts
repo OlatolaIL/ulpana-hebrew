@@ -130,7 +130,10 @@ export async function POST(req: NextRequest) {
                is_completed = EXCLUDED.is_completed,
                score = EXCLUDED.score,
                last_visited = EXCLUDED.last_visited,
-               essay = COALESCE(EXCLUDED.essay, ulpana_lesson_progress.essay),
+               essay = CASE
+                 WHEN NOT ('essay' = ANY(EXCLUDED.completed_tabs)) THEN NULL
+                 ELSE COALESCE(EXCLUDED.essay, ulpana_lesson_progress.essay)
+               END,
                updated_at = NOW()`,
             [
               session.id,

@@ -394,6 +394,24 @@ export function saveLessonEssay(
   return profile;
 }
 
+/**
+ * Сброс написанного сочинения и отмена завершения этапа 'essay' для возможности переписать его заново
+ */
+export function resetLessonEssay(lessonId: number): UserProfile {
+  const profile = loadUserProfile();
+  if (profile.lessonProgress && profile.lessonProgress[lessonId]) {
+    const current = profile.lessonProgress[lessonId];
+    current.completedTabs = (current.completedTabs || []).filter((t) => t !== 'essay');
+    current.isCompleted = false;
+    delete current.essay;
+    delete current.score;
+    profile.completedLessons = (profile.completedLessons || []).filter((id) => id !== lessonId);
+    profile.lessonProgress[lessonId] = current;
+    saveUserProfile(profile);
+  }
+  return profile;
+}
+
 export type LessonStageTab = 'theory' | 'vocab' | 'exercises' | 'essay' | 'chat' | 'phone';
 
 export const LESSON_STAGES_ORDER: LessonStageTab[] = [

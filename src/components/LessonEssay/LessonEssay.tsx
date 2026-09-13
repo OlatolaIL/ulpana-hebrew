@@ -15,7 +15,7 @@ import { Lesson, UserProfile, EssayEvaluationResult } from '@/types';
 import { getLessonEssayPrompt } from '@/data/essayTopics';
 import { VirtualHebrewKeyboard } from './VirtualHebrewKeyboard';
 import { EssayEvaluationView } from './EssayEvaluationView';
-import { saveLessonEssay } from '@/lib/storage';
+import { saveLessonEssay, resetLessonEssay } from '@/lib/storage';
 import { stripNikkud } from '@/lib/transcription';
 
 // Соответствие стандартной израильской раскладки клавиатуры (QWERTY -> עברית)
@@ -101,7 +101,8 @@ export const LessonEssay: React.FC<LessonEssayProps> = ({
   onUpdateProfile,
 }) => {
   const prompt = getLessonEssayPrompt(lesson.id);
-  const savedEssay = userProfile.lessonProgress[lesson.id]?.essay;
+  const isEssayCompleted = userProfile.lessonProgress[lesson.id]?.completedTabs?.includes('essay');
+  const savedEssay = isEssayCompleted ? userProfile.lessonProgress[lesson.id]?.essay : undefined;
 
   const [text, setText] = useState<string>(() => savedEssay?.text || '');
   const [loading, setLoading] = useState<boolean>(false);
@@ -332,13 +333,25 @@ export const LessonEssay: React.FC<LessonEssayProps> = ({
     }
   };
 
+  // Сброс этапа сочинения: сброс зачёта этапа в профиле, очистка поля и рецензии
+  const handleTryAgain = () => {
+    const updatedProfile = resetLessonEssay(lesson.id);
+    onUpdateProfile(updatedProfile);
+    setText('');
+    setEvaluation(null);
+    setErrorMessage(null);
+    requestAnimationFrame(() => {
+      textareaRef.current?.focus();
+    });
+  };
+
   // Если результат уже получен — отображаем экран рецензии
   if (evaluation) {
     return (
       <EssayEvaluationView
         evaluation={evaluation}
         userEssay={text}
-        onTryAgain={() => setEvaluation(null)}
+        onTryAgain={handleTryAgain}
         onContinue={onCompleted}
       />
     );
@@ -476,15 +489,30 @@ export const LessonEssay: React.FC<LessonEssayProps> = ({
             )}
           </div>
 
-          <span
-            className={`font-bold transition ${
-              isMinWordsReached
-                ? 'text-emerald-600 dark:text-emerald-400'
-                : 'text-amber-600 dark:text-amber-400'
-            }`}
-          >
-            Слов: {wordCount} / {prompt.minWords} {isMinWordsReached ? '✓' : ''}
-          </span>
+          <div className="flex items-center gap-2">
+            {text.length > 0 && !loading && (
+              <button
+                type="button"
+                onClick={() => {
+                  setText('');
+                  textareaRef.current?.focus();
+                }}
+                className="text-[11px] text-zinc-400 hover:text-rose-500 transition px-1.5 py-0.5 rounded cursor-pointer select-none"
+                title="Очистить поле сочинения"
+              >
+                Очистить
+              </button>
+            )}
+            <span
+              className={`font-bold transition ${
+                isMinWordsReached
+                  ? 'text-emerald-600 dark:text-emerald-400'
+                  : 'text-amber-600 dark:text-amber-400'
+              }`}
+            >
+              Слов: {wordCount} / {prompt.minWords} {isMinWordsReached ? '✓' : ''}
+            </span>
+          </div>
         </div>
 
         {/* Текстовое поле: на ПК и смартфонах с четко видимым синим курсором и навигацией */}
