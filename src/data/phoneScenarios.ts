@@ -735,12 +735,12 @@ export function getLessonPhoneScenario(lesson: Lesson, gender: UserGender): Phon
 
   // 1. Проверяем кастомный сценарий внутри самого объекта урока
   if (lesson.phoneScenario) {
-    return adaptGenderInScenario(lesson.phoneScenario, isFemale);
+    return adaptGenderInScenario(lesson.phoneScenario, isFemale, lesson.number);
   }
 
   // 2. Проверяем словарь готовых сценариев
   if (BESPOKE_PHONE_SCENARIOS[lesson.number]) {
-    return adaptGenderInScenario(BESPOKE_PHONE_SCENARIOS[lesson.number], isFemale);
+    return adaptGenderInScenario(BESPOKE_PHONE_SCENARIOS[lesson.number], isFemale, lesson.number);
   }
 
   // 3. Системный автоматический генератор для ВСЕХ остальных уроков (1-100)
@@ -944,7 +944,11 @@ ${isIncoming
   };
 }
 
-function adaptGenderInScenario(scenario: PhoneScenario, isFemale: boolean): PhoneScenario {
+export function adaptGenderInScenario(
+  scenario: PhoneScenario,
+  isFemale: boolean,
+  lessonNumber?: number
+): PhoneScenario {
   const copy: PhoneScenario = JSON.parse(JSON.stringify(scenario));
   if (isFemale) {
     copy.initialGreeting.hebrew = copy.initialGreeting.hebrew
@@ -965,6 +969,71 @@ function adaptGenderInScenario(scenario: PhoneScenario, isFemale: boolean): Phon
     if (copy.initialGreeting.translation) {
       copy.initialGreeting.translation = copy.initialGreeting.translation
         .replace(/ты прислал/g, 'ты прислала');
+    }
+
+    if (lessonNumber === 2) {
+      if (copy.suggestedReplies?.[0]) {
+        copy.suggestedReplies[0].hebrew = copy.suggestedReplies[0].hebrew.replace('אֲנִי רוֹצֶה', 'אֲנִי רוֹצָה');
+        copy.suggestedReplies[0].transcription = copy.suggestedReplies[0].transcription.replace('анӣ роцé', 'анӣ роцá');
+      }
+      if (copy.completionCondition) {
+        copy.completionCondition = copy.completionCondition.replace(
+          'Ученик сделал заказ кофе и узнал',
+          'Ученица сделала заказ кофе и узнала'
+        );
+      }
+    } else if (lessonNumber === 3) {
+      if (copy.studentObjective) {
+        copy.studentObjective = copy.studentObjective.replace('אֲנִי גָּר בְּ...', 'אֲנִי גָּרָה בְּ...');
+      }
+      if (copy.completionCondition) {
+        copy.completionCondition = copy.completionCondition.replace('Ученик назвал', 'Ученица назвала');
+      }
+      if (copy.goals) {
+        copy.goals = copy.goals.map((g) => g.replace('אֲנִי גָּר בְּדִירָה 5', 'אֲנִי גָּרָה בְּדִירָה 5'));
+      }
+      if (copy.suggestedReplies?.[1]) {
+        copy.suggestedReplies[1].hebrew = copy.suggestedReplies[1].hebrew.replace('אֲנִי גָּר בְּדִירָה 4', 'אֲנִי גָּרָה בְּדִירָה 4');
+        copy.suggestedReplies[1].transcription = copy.suggestedReplies[1].transcription.replace('анӣ гар бэ-дирá', 'анӣ гарá бэ-дирá');
+      }
+    } else if (lessonNumber === 4) {
+      if (copy.completionCondition) {
+        copy.completionCondition = copy.completionCondition.replace('Ученик назвал', 'Ученица назвала');
+      }
+      if (copy.suggestedReplies?.[1]) {
+        copy.suggestedReplies[1].hebrew = copy.suggestedReplies[1].hebrew.replace('אֲנִי גָּר בְּתֵל אָבִיב', 'אֲנִי גָּרָה בְּתֵל אָבִיב');
+        copy.suggestedReplies[1].transcription = copy.suggestedReplies[1].transcription.replace('анӣ гар бэ-Тэль Авӣв', 'анӣ гарá бэ-Тэль Авӣв');
+      }
+      if (copy.suggestedReplies?.[2]) {
+        copy.suggestedReplies[2].hebrew = copy.suggestedReplies[2].hebrew.replace('אֲנִי מְדַבֵּר רוּסִית', 'אֲנִי מְדַבֶּרֶת רוּסִית');
+        copy.suggestedReplies[2].transcription = copy.suggestedReplies[2].transcription.replace('анӣ мэдабэ́р русӣт', 'анӣ мэдабэ́рэт русӣт');
+      }
+    } else if (lessonNumber === 5) {
+      if (copy.studentObjective) {
+        copy.studentObjective = copy.studentObjective.replace('«אֲנִי יוֹרֵד עַכְשָׁו»', '«אֲנִי יוֹרֶדֶת עַכְשָׁו»');
+      }
+      if (copy.completionCondition) {
+        copy.completionCondition = copy.completionCondition
+          .replace('Пассажир сообщил, что спускается («אני יורד»)', 'Пассажирка сообщила, что спускается («אני יורדת»)')
+          .replace('попросил подождать', 'попросила подождать');
+      }
+      if (copy.suggestedReplies?.[0]) {
+        copy.suggestedReplies[0].hebrew = copy.suggestedReplies[0].hebrew.replace('אֲנִי יוֹרֵד עַכְשָׁו', 'אֲנִי יוֹרֶדֶת עַכְשָׁו');
+        copy.suggestedReplies[0].transcription = copy.suggestedReplies[0].transcription.replace('анӣ йорéд ахшáв', 'анӣ йорéдэт ахшáв');
+      }
+      if (copy.usefulWords) {
+        copy.usefulWords = copy.usefulWords.map((word) => {
+          if (word.hebrew === 'אֲנִי מְחַכֶּה לְךָ') {
+            return {
+              ...word,
+              hebrew: 'אֲנִי מְחַכָּה לְךָ',
+              transcription: 'анӣ мэхакá лэхá',
+              translation: 'я жду тебя (от женщины к мужчине)',
+            };
+          }
+          return word;
+        });
+      }
     }
   }
   return copy;

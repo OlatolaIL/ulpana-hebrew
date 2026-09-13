@@ -26,6 +26,16 @@ import {
   findFirstIncompleteIndex,
 } from '@/lib/exerciseResults';
 
+export function getExerciseQuestionDisplay(
+  exercise: Exercise,
+  isAnswered: boolean
+): string {
+  if (exercise.type === 'listening' && !isAnswered) {
+    return 'Послушайте аудиозапись и выберите верный перевод:';
+  }
+  return exercise.question;
+}
+
 interface LessonExercisesProps {
   lesson: Lesson;
   userProfile: UserProfile;
@@ -604,7 +614,7 @@ export const LessonExercises: React.FC<LessonExercisesProps> = ({
         )}
 
         <h3 className="text-base sm:text-lg font-bold text-zinc-900 dark:text-zinc-100 leading-relaxed">
-          {renderFormattedQuestion(currentEx.question, isCursive)}
+          {renderFormattedQuestion(getExerciseQuestionDisplay(currentEx, isAnswered), isCursive)}
         </h3>
 
         {/* Для типа listening: кнопка прослушивания аудио */}
