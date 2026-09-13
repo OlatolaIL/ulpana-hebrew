@@ -110,15 +110,15 @@ export const LessonEssay: React.FC<LessonEssayProps> = ({
   const [isAutoHebrew, setIsAutoHebrew] = useState<boolean>(true);
   const [showVirtualKeyboard, setShowVirtualKeyboard] = useState<boolean>(false);
   const [isMobileDevice, setIsMobileDevice] = useState<boolean>(false);
+  const [mobileKeyboardMode, setMobileKeyboardMode] = useState<'virtual' | 'native'>('virtual');
   const [showCheatSheet, setShowCheatSheet] = useState<boolean>(false);
 
-  // Определение мобильного устройства: на телефонах блокируем системную клавиатуру
+  // Определение мобильного устройства (по ширине экрана или сигнатуре смартфона)
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const isMobile =
         window.innerWidth < 768 ||
-        /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
-        window.matchMedia('(pointer: coarse)').matches;
+        /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
       setIsMobileDevice(isMobile);
       if (isMobile) {
         setShowVirtualKeyboard(true);
@@ -129,7 +129,14 @@ export const LessonEssay: React.FC<LessonEssayProps> = ({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const keyboardRef = useRef<HTMLDivElement>(null);
 
-  // Скролл к экранной клавиатуре на мобильных устройствах
+  // Автоматический фокус поля при открытии на компьютере, чтобы курсор был виден сразу
+  useEffect(() => {
+    if (!isMobileDevice && textareaRef.current) {
+      textareaRef.current.focus();
+    }
+  }, [isMobileDevice]);
+
+  // Скролл к экранной клавиатуре на мобильных устройствах при необходимости
   const handleScrollToKeyboard = () => {
     if (isMobileDevice) {
       if (!showVirtualKeyboard) {
@@ -167,10 +174,7 @@ export const LessonEssay: React.FC<LessonEssayProps> = ({
     setErrorMessage(null);
 
     requestAnimationFrame(() => {
-      // На мобильных устройствах не вызываем focus(), чтобы браузер не открывал нативную клавиатуру
-      if (!isMobileDevice) {
-        textarea.focus();
-      }
+      textarea.focus();
       const nextPos = start + char.length;
       textarea.setSelectionRange(nextPos, nextPos);
     });
@@ -192,18 +196,14 @@ export const LessonEssay: React.FC<LessonEssayProps> = ({
       const nextText = text.slice(0, start) + text.slice(end);
       setText(nextText);
       requestAnimationFrame(() => {
-        if (!isMobileDevice) {
-          textarea.focus();
-        }
+        textarea.focus();
         textarea.setSelectionRange(start, start);
       });
     } else if (start > 0) {
       const nextText = text.slice(0, start - 1) + text.slice(start);
       setText(nextText);
       requestAnimationFrame(() => {
-        if (!isMobileDevice) {
-          textarea.focus();
-        }
+        textarea.focus();
         textarea.setSelectionRange(start - 1, start - 1);
       });
     }
@@ -405,6 +405,7 @@ export const LessonEssay: React.FC<LessonEssayProps> = ({
                     <button
                       key={idx}
                       type="button"
+                      onMouseDown={(e) => e.preventDefault()}
                       onClick={() => {
                         const cleanWord = stripNikkud(item.hebrew.split('/')[0].trim());
                         handleChar(cleanWord + ' ');
@@ -437,11 +438,26 @@ export const LessonEssay: React.FC<LessonEssayProps> = ({
               Ваш текст на иврите
             </span>
 
-            {/* На смартфонах показываем бейдж "Экранная клавиатура (без подсказок)" */}
+            {/* На смартфонах переключатель между экранной клавиатурой и системной клавиатурой */}
             {isMobileDevice ? (
-              <span className="text-[10px] px-2 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 font-bold border border-emerald-200/80 dark:border-emerald-800/60">
-                Экранная клавиатура (без подсказок)
-              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  const nextMode = mobileKeyboardMode === 'virtual' ? 'native' : 'virtual';
+                  setMobileKeyboardMode(nextMode);
+                  setShowVirtualKeyboard(nextMode === 'virtual');
+                  setTimeout(() => textareaRef.current?.focus(), 50);
+                }}
+                className="px-2.5 py-1 rounded-lg text-[11px] font-bold flex items-center gap-1.5 transition cursor-pointer bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800"
+                title="Переключить между экранными клавишами и системной клавиатурой телефона"
+              >
+                <Keyboard className="w-3.5 h-3.5" />
+                <span>
+                  {mobileKeyboardMode === 'virtual'
+                    ? 'Клавиатура: Экранная'
+                    : 'Клавиатура: Телефона'}
+                </span>
+              </button>
             ) : (
               <>
                 {/* Переключатель авто-раскладки для ПК */}
@@ -487,7 +503,7 @@ export const LessonEssay: React.FC<LessonEssayProps> = ({
           </span>
         </div>
 
-        {/* Текстовое поле: на ПК редактируемое с клавиатуры, на телефонах ввод с экранных клавиш со скроллом */}
+        {/* Текстовое поле: на ПК и смартфонах с четко видимым синим курсором и навигацией */}
         <textarea
           ref={textareaRef}
           dir="rtl"
@@ -496,21 +512,17 @@ export const LessonEssay: React.FC<LessonEssayProps> = ({
             setText(e.target.value);
             setErrorMessage(null);
           }}
-          onClick={handleScrollToKeyboard}
-          onTouchStart={handleScrollToKeyboard}
           onKeyDown={handleKeyDown}
-          inputMode={isMobileDevice ? 'none' : undefined}
-          readOnly={isMobileDevice}
+          inputMode={isMobileDevice && mobileKeyboardMode === 'virtual' ? 'none' : undefined}
           placeholder={
-            isMobileDevice
-              ? 'Нажмите здесь, чтобы перейти к экранной клавиатуре и составить сочинение...'
+            isMobileDevice && mobileKeyboardMode === 'virtual'
+              ? 'Составляйте сочинение буквами на экранных клавишах внизу...'
               : 'Печатайте текст сочинения на иврите с клавиатуры компьютера...'
           }
           rows={5}
           disabled={loading}
-          className={`w-full min-h-[130px] max-h-[250px] p-3.5 sm:p-4 rounded-xl bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 font-hebrew text-lg sm:text-xl text-zinc-900 dark:text-zinc-50 leading-relaxed focus:outline-none focus:ring-2 focus:ring-blue-500/50 resize-y placeholder:text-zinc-400 dark:placeholder:text-zinc-600 placeholder:font-sans placeholder:text-xs sm:placeholder:text-sm placeholder:italic ${
-            isMobileDevice ? 'cursor-pointer hover:border-blue-300 dark:hover:border-blue-800 active:ring-2 active:ring-blue-500/30' : ''
-          }`}
+          style={{ caretColor: '#2563eb' }}
+          className="w-full min-h-[130px] max-h-[250px] p-3.5 sm:p-4 rounded-xl bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 font-hebrew text-lg sm:text-xl text-zinc-900 dark:text-zinc-50 leading-relaxed focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-400 dark:focus:border-blue-600 caret-blue-600 dark:caret-blue-400 resize-y placeholder:text-zinc-400 dark:placeholder:text-zinc-600 placeholder:font-sans placeholder:text-xs sm:placeholder:text-sm placeholder:italic"
         />
 
         {errorMessage && (
