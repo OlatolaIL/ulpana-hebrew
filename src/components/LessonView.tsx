@@ -217,12 +217,12 @@ export const LessonView: React.FC<LessonViewProps> = ({
           })}
         </div>
 
-        {/* Справа: Шрифт דפוס/כתב + Предыдущий / Следующий урок */}
+        {/* Справа: Шрифт דפוס/כתב + Сброс + Предыдущий / Следующий урок */}
         <div className="flex items-center gap-1 shrink-0">
           <button
             type="button"
             onClick={handleToggleFont}
-            className={`px-2 py-1 rounded-xl border text-xs font-hebrew font-bold transition cursor-pointer select-none shrink-0 ${
+            className={`hidden sm:inline-flex px-2 py-1 rounded-xl border text-xs font-hebrew font-bold transition cursor-pointer select-none shrink-0 ${
               userProfile.fontStyle === 'cursive'
                 ? 'bg-amber-100 dark:bg-amber-950/60 border-amber-300 dark:border-amber-800 text-amber-900 dark:text-amber-200'
                 : 'border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800'
@@ -266,7 +266,7 @@ export const LessonView: React.FC<LessonViewProps> = ({
             <button
               type="button"
               onClick={() => onSelectLesson(prevLesson)}
-              className="p-1.5 rounded-xl border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition cursor-pointer shrink-0"
+              className="hidden sm:inline-flex p-1.5 rounded-xl border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition cursor-pointer shrink-0"
               title={`Предыдущий урок ${prevLesson}`}
             >
               <ArrowLeft className="w-3.5 h-3.5" />
@@ -277,7 +277,7 @@ export const LessonView: React.FC<LessonViewProps> = ({
             <button
               type="button"
               onClick={() => onSelectLesson(nextLesson)}
-              className="p-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white transition cursor-pointer shrink-0 shadow-xs"
+              className="hidden sm:inline-flex p-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white transition cursor-pointer shrink-0 shadow-xs"
               title={`Следующий урок ${nextLesson}`}
             >
               <ArrowRight className="w-3.5 h-3.5" />
