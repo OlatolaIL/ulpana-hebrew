@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Volume2, RotateCw, ArrowLeft, RotateCcw, Sparkles } from 'lucide-react';
 import { Word, UserProfile } from '@/types';
 import { getHebrewPictogram } from '@/lib/pictograms';
 import { getWordTranscription } from '@/lib/transcription';
 import { detectLinguisticTip } from '@/lib/linguisticTips';
 import { LinguisticTipDrawer } from '@/components/ThematicDecks/LinguisticTipDrawer';
+import { extractVerbTriad } from '@/lib/verbTriad';
+import { VerbTriadBlock } from '../VerbTriadBlock';
 
 interface FlipCardModeProps {
   currentWord: Word;
@@ -36,6 +38,20 @@ export const FlipCardMode: React.FC<FlipCardModeProps> = ({
   const isCursive = userProfile.fontStyle === 'cursive';
   const [isTipOpen, setIsTipOpen] = useState(false);
   const tip = detectLinguisticTip(currentWord);
+
+  const triad = useMemo(() => {
+    if (
+      currentWord.partOfSpeech === 'verb' ||
+      currentWord.hebrew.startsWith('לִ') ||
+      currentWord.hebrew.startsWith('לְ') ||
+      currentWord.hebrew.startsWith('לַ') ||
+      currentWord.hebrew.startsWith('לָ') ||
+      Boolean(currentWord.root)
+    ) {
+      return extractVerbTriad(currentWord);
+    }
+    return null;
+  }, [currentWord]);
 
   return (
     <div className="space-y-3 sm:space-y-4">
@@ -82,13 +98,21 @@ export const FlipCardMode: React.FC<FlipCardModeProps> = ({
           isCurrentCardFrontRussian ? (
             /* Лицевая сторона: Русский → Иврит (обратный режим) */
             <div className="space-y-3 sm:space-y-4">
-              <div className="flex items-center justify-center gap-2">
+              <div className="flex items-center justify-center gap-2 flex-wrap">
                 <span className="text-[11px] uppercase tracking-wider font-semibold text-zinc-400">
                   Русский (вспомните иврит)
                 </span>
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950/70 text-amber-800 dark:text-amber-300 border border-amber-300/60">
                   Русский → Иврит
                 </span>
+                {triad?.prepositionInfo && (
+                  <span
+                    className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/70 text-emerald-800 dark:text-emerald-300 border border-emerald-300/60 shadow-2xs"
+                    title={`Управление: ${triad.prepositionInfo.ruleRu}`}
+                  >
+                    + {triad.prepositionInfo.preposition}
+                  </span>
+                )}
               </div>
 
               {getHebrewPictogram(currentWord.hebrew) && (() => {
@@ -121,9 +145,19 @@ export const FlipCardMode: React.FC<FlipCardModeProps> = ({
           ) : (
             /* Лицевая сторона: Иврит → Русский (прямой режим) */
             <div className="space-y-2 sm:space-y-3">
-              <span className="text-[11px] uppercase tracking-wider font-semibold text-zinc-400">
-                Иврит (нажмите для перевода)
-              </span>
+              <div className="flex items-center justify-center gap-2 flex-wrap">
+                <span className="text-[11px] uppercase tracking-wider font-semibold text-zinc-400">
+                  Иврит (нажмите для перевода)
+                </span>
+                {triad?.prepositionInfo && (
+                  <span
+                    className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/70 text-emerald-800 dark:text-emerald-300 border border-emerald-300/60 shadow-2xs"
+                    title={`Управление: ${triad.prepositionInfo.ruleRu}`}
+                  >
+                    + {triad.prepositionInfo.preposition}
+                  </span>
+                )}
+              </div>
 
               {getHebrewPictogram(currentWord.hebrew) && (() => {
                 const icon = getHebrewPictogram(currentWord.hebrew)!;
@@ -205,35 +239,44 @@ export const FlipCardMode: React.FC<FlipCardModeProps> = ({
               {currentWord.translation}
             </div>
 
-            {currentWord.root && (
-              <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-xs font-semibold bg-amber-100 dark:bg-amber-950/80 text-amber-800 dark:text-amber-300 border border-amber-300/40">
-                <span>Шореш:</span>
-                <span dir="rtl" className="font-bold">
-                  {currentWord.root}
-                </span>
-              </div>
-            )}
+            {triad ? (
+              <VerbTriadBlock
+                triad={triad}
+                onSpeakHebrew={onSpeakHebrew}
+                onOpenPealim={() => onOpenPealim(currentWord)}
+              />
+            ) : (
+              <>
+                {currentWord.root && (
+                  <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-xs font-semibold bg-amber-100 dark:bg-amber-950/80 text-amber-800 dark:text-amber-300 border border-amber-300/40">
+                    <span>Шореш:</span>
+                    <span dir="rtl" className="font-bold">
+                      {currentWord.root}
+                    </span>
+                  </div>
+                )}
 
-            {/* Кнопка ПЕАЛИМ для глаголов */}
-            {(currentWord.partOfSpeech === 'verb' ||
-              currentWord.hebrew.startsWith('לִ') ||
-              currentWord.hebrew.startsWith('לְ') ||
-              currentWord.hebrew.startsWith('לַ') ||
-              currentWord.hebrew.startsWith('לָ') ||
-              Boolean(currentWord.root)) && (
-              <div className="pt-0.5">
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onOpenPealim(currentWord);
-                  }}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-50 dark:bg-purple-950/80 hover:bg-purple-100 text-purple-700 dark:text-purple-300 text-xs font-bold border border-purple-300/60 dark:border-purple-800 shadow-sm transition active:scale-95 cursor-pointer"
-                >
-                  <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                  <span>Пеалим (спряжения и семья корня)</span>
-                </button>
-              </div>
+                {(currentWord.partOfSpeech === 'verb' ||
+                  currentWord.hebrew.startsWith('לִ') ||
+                  currentWord.hebrew.startsWith('לְ') ||
+                  currentWord.hebrew.startsWith('לַ') ||
+                  currentWord.hebrew.startsWith('לָ') ||
+                  Boolean(currentWord.root)) && (
+                  <div className="pt-0.5">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onOpenPealim(currentWord);
+                      }}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-50 dark:bg-purple-950/80 hover:bg-purple-100 text-purple-700 dark:text-purple-300 text-xs font-bold border border-purple-300/60 dark:border-purple-800 shadow-sm transition active:scale-95 cursor-pointer"
+                    >
+                      <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                      <span>Пеалим (спряжения и семья корня)</span>
+                    </button>
+                  </div>
+                )}
+              </>
             )}
 
             {/* Кнопка лингвистической подсказки */}
@@ -295,35 +338,44 @@ export const FlipCardMode: React.FC<FlipCardModeProps> = ({
                 [{getWordTranscription(currentWord)}]
               </p>
             )}
-            {currentWord.root && (
-              <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-xs font-semibold bg-amber-100 dark:bg-amber-950/80 text-amber-800 dark:text-amber-300 border border-amber-300/40">
-                <span>Шореш:</span>
-                <span dir="rtl" className="font-bold">
-                  {currentWord.root}
-                </span>
-              </div>
-            )}
+            {triad ? (
+              <VerbTriadBlock
+                triad={triad}
+                onSpeakHebrew={onSpeakHebrew}
+                onOpenPealim={() => onOpenPealim(currentWord)}
+              />
+            ) : (
+              <>
+                {currentWord.root && (
+                  <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-xs font-semibold bg-amber-100 dark:bg-amber-950/80 text-amber-800 dark:text-amber-300 border border-amber-300/40">
+                    <span>Шореш:</span>
+                    <span dir="rtl" className="font-bold">
+                      {currentWord.root}
+                    </span>
+                  </div>
+                )}
 
-            {/* Кнопка ПЕАЛИМ для глаголов */}
-            {(currentWord.partOfSpeech === 'verb' ||
-              currentWord.hebrew.startsWith('לִ') ||
-              currentWord.hebrew.startsWith('לְ') ||
-              currentWord.hebrew.startsWith('לַ') ||
-              currentWord.hebrew.startsWith('לָ') ||
-              Boolean(currentWord.root)) && (
-              <div className="pt-0.5">
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onOpenPealim(currentWord);
-                  }}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-50 dark:bg-purple-950/80 hover:bg-purple-100 text-purple-700 dark:text-purple-300 text-xs font-bold border border-purple-300/60 dark:border-purple-800 shadow-sm transition active:scale-95 cursor-pointer"
-                >
-                  <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                  <span>Пеалим (спряжения и семья корня)</span>
-                </button>
-              </div>
+                {(currentWord.partOfSpeech === 'verb' ||
+                  currentWord.hebrew.startsWith('לִ') ||
+                  currentWord.hebrew.startsWith('לְ') ||
+                  currentWord.hebrew.startsWith('לַ') ||
+                  currentWord.hebrew.startsWith('לָ') ||
+                  Boolean(currentWord.root)) && (
+                  <div className="pt-0.5">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onOpenPealim(currentWord);
+                      }}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-50 dark:bg-purple-950/80 hover:bg-purple-100 text-purple-700 dark:text-purple-300 text-xs font-bold border border-purple-300/60 dark:border-purple-800 shadow-sm transition active:scale-95 cursor-pointer"
+                    >
+                      <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                      <span>Пеалим (спряжения и семья корня)</span>
+                    </button>
+                  </div>
+                )}
+              </>
             )}
 
             {/* Кнопка лингвистической подсказки */}

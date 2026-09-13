@@ -15,7 +15,7 @@ import {
 import { stripNikkud } from '@/lib/transcription';
 import { findOfflineVerbConjugation } from '@/lib/verbConjugations';
 import { useModalHistory } from '@/lib/useHistoryState';
-import { TrainerMode, Tile, FlashcardTrainerProps } from './types';
+import { TrainerMode, Tile, FlashcardTrainerProps, VerbAudioTarget } from './types';
 import { splitWordsIntoParts, getCleanHebrewTarget, generateCarouselDirections } from './helpers';
 import { TrainerHeader } from './TrainerHeader';
 import { TrainerVictoryModal } from './TrainerVictoryModal';
@@ -23,6 +23,8 @@ import { FlipCardMode } from './modes/FlipCardMode';
 import { BuilderMode } from './modes/BuilderMode';
 import { ListeningMode } from './modes/ListeningMode';
 import { AutoAudioMode } from './modes/AutoAudioMode';
+import { ConjugationMode } from './modes/ConjugationMode';
+import { extractVerbTriad } from '@/lib/verbTriad';
 import { PealimModal } from './PealimModal';
 
 export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
@@ -78,6 +80,19 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
   const [autoCountdown, setAutoCountdown] = useState(0);
   const [isAutoLooping, setIsAutoLooping] = useState(true);
   const [autoLoopCount, setAutoLoopCount] = useState(1);
+  const [verbAudioTarget, setVerbAudioTarget] = useState<VerbAudioTarget>('standard');
+
+  const hasVerbs = useMemo(() => {
+    return words.some(
+      (w) =>
+        w.partOfSpeech === 'verb' ||
+        w.hebrew.startsWith('לִ') ||
+        w.hebrew.startsWith('לְ') ||
+        w.hebrew.startsWith('לַ') ||
+        w.hebrew.startsWith('לָ') ||
+        Boolean(w.root)
+    );
+  }, [words]);
 
   const handleShuffleWords = () => {
     setCarouselDirections(generateCarouselDirections(words.length));
@@ -344,39 +359,108 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
       const targetWord = words[currentIndex];
       if (!targetWord) return;
 
-      const promptIsRussian = isCurrentCardFrontRussian;
+      const triad = extractVerbTriad(targetWord);
+      const isVerbSpecialMode = Boolean(triad && verbAudioTarget !== 'standard');
 
-      setAutoPhase('prompt');
-      if (promptIsRussian) {
-        await speakRussian(targetWord.translation);
+      if (isVerbSpecialMode && triad) {
+        if (verbAudioTarget === 'triad') {
+          // Триада: последовательно озвучивает инфинитив -> настоящее -> прошедшее
+          setAutoPhase('prompt');
+          await speakHebrew(triad.infinitive.hebrew);
+          if (isCancelled) return;
+          await new Promise((r) => setTimeout(r, 400));
+          if (isCancelled) return;
+          await speakHebrew(triad.presentMasc.hebrew);
+          if (isCancelled) return;
+          await new Promise((r) => setTimeout(r, 400));
+          if (isCancelled) return;
+          await speakHebrew(triad.pastHe.hebrew);
+          if (isCancelled) return;
+
+          setAutoPhase('pause');
+          setAutoCountdown(autoPauseSec);
+          let count = autoPauseSec;
+          await new Promise<void>((resolve) => {
+            countdownInterval = setInterval(() => {
+              count -= 1;
+              if (count <= 0) {
+                if (countdownInterval) clearInterval(countdownInterval);
+                resolve();
+              } else {
+                setAutoCountdown(count);
+              }
+            }, 1000);
+          });
+          if (isCancelled) return;
+
+          setAutoPhase('reveal');
+          await speakRussian(targetWord.translation);
+          if (isCancelled) return;
+        } else if (verbAudioTarget === 'bridge') {
+          // Мостик: настоящее время -> пауза (вспомнить прошедшее) -> форма он вчера + перевод
+          setAutoPhase('prompt');
+          await speakHebrew(triad.presentMasc.hebrew);
+          if (isCancelled) return;
+
+          setAutoPhase('pause');
+          setAutoCountdown(autoPauseSec);
+          let count = autoPauseSec;
+          await new Promise<void>((resolve) => {
+            countdownInterval = setInterval(() => {
+              count -= 1;
+              if (count <= 0) {
+                if (countdownInterval) clearInterval(countdownInterval);
+                resolve();
+              } else {
+                setAutoCountdown(count);
+              }
+            }, 1000);
+          });
+          if (isCancelled) return;
+
+          setAutoPhase('reveal');
+          await speakHebrew(triad.pastHe.hebrew);
+          if (isCancelled) return;
+          await new Promise((r) => setTimeout(r, 400));
+          if (isCancelled) return;
+          await speakRussian(targetWord.translation);
+          if (isCancelled) return;
+        }
       } else {
-        await speakHebrew(targetWord.hebrew);
-      }
-      if (isCancelled) return;
+        const promptIsRussian = isCurrentCardFrontRussian;
 
-      setAutoPhase('pause');
-      setAutoCountdown(autoPauseSec);
-      let count = autoPauseSec;
-      await new Promise<void>((resolve) => {
-        countdownInterval = setInterval(() => {
-          count -= 1;
-          if (count <= 0) {
-            if (countdownInterval) clearInterval(countdownInterval);
-            resolve();
-          } else {
-            setAutoCountdown(count);
-          }
-        }, 1000);
-      });
-      if (isCancelled) return;
+        setAutoPhase('prompt');
+        if (promptIsRussian) {
+          await speakRussian(targetWord.translation);
+        } else {
+          await speakHebrew(targetWord.hebrew);
+        }
+        if (isCancelled) return;
 
-      setAutoPhase('reveal');
-      if (promptIsRussian) {
-        await speakHebrew(targetWord.hebrew);
-      } else {
-        await speakRussian(targetWord.translation);
+        setAutoPhase('pause');
+        setAutoCountdown(autoPauseSec);
+        let count = autoPauseSec;
+        await new Promise<void>((resolve) => {
+          countdownInterval = setInterval(() => {
+            count -= 1;
+            if (count <= 0) {
+              if (countdownInterval) clearInterval(countdownInterval);
+              resolve();
+            } else {
+              setAutoCountdown(count);
+            }
+          }, 1000);
+        });
+        if (isCancelled) return;
+
+        setAutoPhase('reveal');
+        if (promptIsRussian) {
+          await speakHebrew(targetWord.hebrew);
+        } else {
+          await speakRussian(targetWord.translation);
+        }
+        if (isCancelled) return;
       }
-      if (isCancelled) return;
 
       await new Promise((resolve) => {
         timer = setTimeout(resolve, 1500);
@@ -413,6 +497,7 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
     isAutoLooping,
     autoLoopCount,
     isCurrentCardFrontRussian,
+    verbAudioTarget,
   ]);
 
   const handleAutoStart = () => {
@@ -831,6 +916,7 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
     <div className="max-w-xl mx-auto space-y-4">
       <TrainerHeader
         displayTitle={displayTitle}
+        hasVerbs={hasVerbs}
         isSplitMode={isSplitMode}
         canSplit={canSplit}
         activePartIndex={activePartIndex}
@@ -911,6 +997,18 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
         />
       )}
 
+      {mode === 'conjugation' && (
+        <ConjugationMode
+          currentWord={currentWord}
+          userProfile={userProfile}
+          currentIndex={currentIndex}
+          wordsLength={words.length}
+          onAdvanceNext={handleAdvanceNext}
+          onSpeakHebrew={speakHebrew}
+          onOpenPealim={handleOpenPealim}
+        />
+      )}
+
       {mode === 'auto_audio' && (
         <AutoAudioMode
           currentWord={currentWord}
@@ -924,6 +1022,8 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
           autoPhase={autoPhase}
           autoCountdown={autoCountdown}
           autoPauseSec={autoPauseSec}
+          verbAudioTarget={verbAudioTarget}
+          onSetVerbAudioTarget={setVerbAudioTarget}
           onToggleAutoLooping={() => setIsAutoLooping((prev) => !prev)}
           onSetAutoPauseSec={setAutoPauseSec}
           onAutoStart={handleAutoStart}

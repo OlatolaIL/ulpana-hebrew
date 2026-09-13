@@ -1,5 +1,5 @@
 export { FlashcardTrainer, FlashcardTrainer as default } from './FlashcardTrainer';
-export type { FlashcardTrainerProps, TrainerMode, Tile } from './types';
+export type { FlashcardTrainerProps, TrainerMode, Tile, VerbAudioTarget } from './types';
 export { splitWordsIntoParts, getCleanHebrewTarget } from './helpers';
 export { TrainerHeader } from './TrainerHeader';
 export { TrainerVictoryModal } from './TrainerVictoryModal';
@@ -7,4 +7,6 @@ export { FlipCardMode } from './modes/FlipCardMode';
 export { BuilderMode } from './modes/BuilderMode';
 export { ListeningMode } from './modes/ListeningMode';
 export { AutoAudioMode } from './modes/AutoAudioMode';
+export { ConjugationMode } from './modes/ConjugationMode';
+export { VerbTriadBlock } from './VerbTriadBlock';
 export { PealimModal } from './PealimModal';

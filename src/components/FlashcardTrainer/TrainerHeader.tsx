@@ -11,6 +11,7 @@ import {
   ArrowRight,
   CheckCircle2,
   Sparkles,
+  GitBranch,
 } from 'lucide-react';
 import { Word, UserProfile } from '@/types';
 import { stripNikkud } from '@/lib/transcription';
@@ -19,6 +20,7 @@ import { TrainerMode } from './types';
 
 interface TrainerHeaderProps {
   displayTitle?: string;
+  hasVerbs?: boolean;
   isSplitMode: boolean;
   canSplit: boolean;
   activePartIndex: number;
@@ -45,6 +47,7 @@ interface TrainerHeaderProps {
 
 export const TrainerHeader: React.FC<TrainerHeaderProps> = ({
   displayTitle,
+  hasVerbs,
   isSplitMode,
   canSplit,
   activePartIndex,
@@ -156,6 +159,21 @@ export const TrainerHeader: React.FC<TrainerHeaderProps> = ({
             <Play className="w-3.5 h-3.5 fill-current flex-shrink-0" />
             <span className="hidden sm:inline">Авто</span>
           </button>
+          {/* Спряжения (Трансформация времён) */}
+          {hasVerbs && (
+            <button
+              onClick={() => onSetMode('conjugation')}
+              title="Спряжения (Трансформация времён)"
+              className={`flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+                mode === 'conjugation'
+                  ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-sm'
+                  : 'text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300'
+              }`}
+            >
+              <GitBranch className="w-3.5 h-3.5 flex-shrink-0" />
+              <span className="hidden sm:inline">Спряжения</span>
+            </button>
+          )}
         </div>
 
         <div className="flex items-center justify-between sm:justify-end gap-2 sm:gap-3 w-full sm:w-auto flex-wrap sm:flex-nowrap">
