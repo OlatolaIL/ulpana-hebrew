@@ -495,11 +495,11 @@ export const FlipCardMode: React.FC<FlipCardModeProps> = ({
         userProfile={userProfile}
       />
 
-      {/* Модальное окно слова из семьи корня */}
+      {/* Всплывающая карточка разбора однокоренного слова */}
       {selectedLookupWord && (
         <WordLookupModal
-          isOpen={!!selectedLookupWord}
           word={selectedLookupWord}
+          isOpen={Boolean(selectedLookupWord)}
           onClose={() => setSelectedLookupWord(null)}
           userProfile={userProfile}
         />
