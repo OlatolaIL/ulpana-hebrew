@@ -77,7 +77,7 @@ test('essay evaluation outbound request separates present tense gender agreement
 
     // CRITICAL: Ensure present tense requires female gender agreement and flags male present verbs as error
     assert.ok(
-      femaleSystemPrompt.includes('НАСТОЯЩЕЕ ВРЕМЯ') &&
+      femaleSystemPrompt.includes('Настоящее время:') &&
       femaleSystemPrompt.includes('רוֹצָה') &&
       femaleSystemPrompt.includes('גָּרָה'),
       'System prompt must require female agreement for first-person present tense verbs'
@@ -85,10 +85,30 @@ test('essay evaluation outbound request separates present tense gender agreement
 
     // CRITICAL: Ensure past tense 1st person is documented as common to both genders and NOT an error for female author
     assert.ok(
-      femaleSystemPrompt.includes('ПРОШЕДШЕЕ ВРЕМЯ') &&
-      femaleSystemPrompt.includes('גַּרְתִּי') &&
+      femaleSystemPrompt.includes('Прошедшее время:') &&
+      femaleSystemPrompt.includes('גרתי') &&
       (femaleSystemPrompt.includes('одинаково') || femaleSystemPrompt.includes('едина') || femaleSystemPrompt.includes('НЕ различается')),
       'System prompt must explicitly state that first-person past tense (גרתי) has no gender distinction and is not an error'
+    );
+
+    // CRITICAL: Verify precise past tense distinctions (3rd sing vs 3rd plur, 1st plur)
+    assert.ok(
+      femaleSystemPrompt.includes('3-м лице единственного числа (גר / גרה)'),
+      'System prompt must specify that gender distinction in past tense applies to 3rd person singular'
+    );
+    assert.ok(
+      femaleSystemPrompt.includes('3-м лице множественного числа форма общая (גרו для обоих родов)'),
+      'System prompt must specify that 3rd person plural past form (גרו) is common for both genders'
+    );
+    assert.ok(
+      femaleSystemPrompt.includes('1-го лица множественного числа «גרנו»'),
+      'System prompt must specify that 1st person plural past form (גרנו) is common for both genders'
+    );
+
+    // CRITICAL: Verify adjective agreement is separate from verb tense
+    assert.ok(
+      femaleSystemPrompt.includes('Согласование прилагательных: прилагательное всегда согласуется с существительным в роде и числе'),
+      'System prompt must state adjective agreement separately without binding to verb tense'
     );
 
     // 2. Male author request
@@ -127,7 +147,7 @@ test('essay evaluation outbound request separates present tense gender agreement
 
     // CRITICAL: Ensure present tense requires male gender agreement
     assert.ok(
-      maleSystemPrompt.includes('НАСТОЯЩЕЕ ВРЕМЯ') &&
+      maleSystemPrompt.includes('Настоящее время:') &&
       maleSystemPrompt.includes('רוֹצֶה') &&
       maleSystemPrompt.includes('גָּר'),
       'System prompt must require male agreement for first-person present tense verbs'
