@@ -264,3 +264,97 @@ export function alignTranscriptToVocabulary(transcript: string, vocabulary?: str
   return changed ? alignedWords.join(' ') : transcript;
 }
 
+/**
+ * Преобразование латинской транслитерации иврита (например, "shalom boker tov")
+ * в каноническую русскоязычную транскрипцию по стандарту ульпана (буква 'h' для ה).
+ */
+export function convertLatinHebrewTranscriptionToCyrillic(text: string): string {
+  if (!text) return '';
+
+  let s = text;
+
+  // Многобуквенные сочетания
+  s = s.replace(/sh/gi, 'ш');
+  s = s.replace(/kh/gi, 'х');
+  s = s.replace(/ch/gi, 'х');
+  s = s.replace(/tz/gi, 'ц');
+  s = s.replace(/ts/gi, 'ц');
+  s = s.replace(/zh/gi, 'ж');
+  s = s.replace(/ee/gi, 'и');
+  s = s.replace(/oo/gi, 'у');
+
+  // Гласные и дифтонги с y
+  s = s.replace(/ya/gi, 'я');
+  s = s.replace(/ye/gi, 'е');
+  s = s.replace(/yo/gi, 'йо');
+  s = s.replace(/yu/gi, 'ю');
+
+  // Отдельные буквы
+  const singleCharMap: Record<string, string> = {
+    'b': 'б', 'B': 'Б',
+    'v': 'в', 'V': 'В',
+    'g': 'г', 'G': 'Г',
+    'd': 'д', 'D': 'Д',
+    'z': 'з', 'Z': 'З',
+    'k': 'к', 'K': 'К',
+    'l': 'л', 'L': 'Л',
+    'm': 'м', 'M': 'М',
+    'n': 'н', 'N': 'Н',
+    's': 'с', 'S': 'С',
+    'p': 'п', 'P': 'П',
+    'f': 'ф', 'F': 'Ф',
+    't': 'т', 'T': 'Т',
+    'r': 'р', 'R': 'Р',
+    'y': 'й', 'Y': 'Й',
+    'a': 'а', 'A': 'А',
+    'e': 'э', 'E': 'Э',
+    'i': 'и', 'I': 'И',
+    'o': 'о', 'O': 'О',
+    'u': 'у', 'U': 'У',
+    'w': 'в', 'W': 'В',
+    'c': 'к', 'C': 'К',
+    'j': 'дж', 'J': 'Дж',
+    'q': 'к', 'Q': 'К',
+    'x': 'кс', 'X': 'Кс',
+  };
+
+  // Букву 'h' сохраняем как 'h' по стандарту ульпана (легкий выдох)
+  s = s.replace(/[a-gi-zA-GI-Z]/g, (ch) => singleCharMap[ch] || ch);
+
+  return normalizeTranscription(s);
+}
+
+/**
+ * Гарантирует, что транскрипция написана на русской кириллице (с 'h' для ה),
+ * а не на английской/латинской транслитерации от LLM.
+ */
+export function ensureCyrillicHebrewTranscription(
+  transcription: string,
+  hebrewText?: string
+): string {
+  if (!transcription && !hebrewText) return '';
+
+  // Если транскрипции нет, пробуем сгенерировать из огласованного иврита
+  if (!transcription && hebrewText) {
+    return generateHebrewTranscription(hebrewText);
+  }
+
+  // Проверяем наличие латинских букв (кроме допустимой буквы 'h'/'H' для ה)
+  const hasLatinLetters = /[a-gi-zA-GI-Z]/.test(transcription);
+
+  if (!hasLatinLetters) {
+    return normalizeTranscription(transcription);
+  }
+
+  // Если есть огласованный иврит, генерируем чистую транскрипцию из него
+  if (hebrewText && /[\u0591-\u05BD\u05BF\u05C1-\u05C2\u05C4-\u05C5\u05C7]/.test(hebrewText)) {
+    const generated = generateHebrewTranscription(hebrewText);
+    if (generated && generated.length >= 3) {
+      return generated;
+    }
+  }
+
+  // Если огласовок нет или генерация не удалась, транслитерируем латиницу в русскую кириллицу
+  return convertLatinHebrewTranscriptionToCyrillic(transcription);
+}
+

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifySessionToken } from '@/lib/auth';
-import { stripNikkud } from '@/lib/transcription';
+import { stripNikkud, ensureCyrillicHebrewTranscription } from '@/lib/transcription';
 import { FREE_GUEST_LESSONS_LIMIT } from '@/lib/config';
 import {
   EssayEvaluationResult,
@@ -279,7 +279,10 @@ function evaluateHeuristicEssay(
     },
     correctedVersion: {
       hebrew: prompt.sampleEssay?.hebrew || userEssay,
-      transcription: prompt.sampleEssay?.transcription || '',
+      transcription: ensureCyrillicHebrewTranscription(
+        prompt.sampleEssay?.transcription || '',
+        prompt.sampleEssay?.hebrew || userEssay
+      ),
       translation: prompt.sampleEssay?.translation || 'Эталонный вариант на иврите.',
     },
     valuableTipsRu: [
@@ -404,7 +407,8 @@ export async function POST(req: NextRequest) {
 
 6. ОБРАЗЦОВАЯ ВЕРСИЯ (כְּתִיבָה מוֹפְתִית):
    - Напиши естественный, красивый вариант текста на живом иврите с полными огласовками (ניקוד).
-   - Транскрипция на русском языке по стандарту ульпана (буква 'h' для ה, ударения знаками акцента).
+   - Транскрипция СТРОГО русскими буквами (кириллицей) по стандарту ульпана (буква 'h' для ה, ударения знаками акцента).
+   - КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО писать транскрипцию на английском/латинице! Пиши только по-русски (например: «шалóм, анӣ роцé...», а НЕ «shalom, ani rotze...»).
    - Литературный русский перевод.
 
 7. БАЛЛ И СТАТУС (score, rating):
@@ -487,7 +491,7 @@ ${detectedGrammar.length > 0 ? `ПРЕДВАРИТЕЛЬНЫЙ ДЕТЕКТОР 
   },
   "correctedVersion": {
     "hebrew": "Эталонный связный текст на живом иврите с полной огласовкой (ניקוד)",
-    "transcription": "Транскрипция русскими буквами по стандарту ульпана (h для ה)",
+    "transcription": "Транскрипция СТРОГО русскими буквами (кириллицей! напр. шалóм, анӣ... Никакой латиницы!)",
     "translation": "Литературный перевод на русский язык"
   },
   "valuableTipsRu": [
@@ -631,7 +635,10 @@ ${detectedGrammar.length > 0 ? `ПРЕДВАРИТЕЛЬНЫЙ ДЕТЕКТОР 
         },
         correctedVersion: {
           hebrew: parsed.correctedVersion?.hebrew || trimmedEssay,
-          transcription: parsed.correctedVersion?.transcription || '',
+          transcription: ensureCyrillicHebrewTranscription(
+            parsed.correctedVersion?.transcription || '',
+            parsed.correctedVersion?.hebrew || trimmedEssay
+          ),
           translation: parsed.correctedVersion?.translation || 'Эталонный вариант.',
         },
         valuableTipsRu: Array.isArray(parsed.valuableTipsRu) && parsed.valuableTipsRu.length > 0

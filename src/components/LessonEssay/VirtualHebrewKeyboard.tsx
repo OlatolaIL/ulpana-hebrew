@@ -83,7 +83,7 @@ export const VirtualHebrewKeyboard: React.FC<VirtualHebrewKeyboardProps> = ({
             type="button"
             disabled={disabled}
             onClick={() => onChar(p)}
-            className="w-7 sm:w-9 h-10 sm:h-11 bg-zinc-200/80 dark:bg-zinc-700/80 text-zinc-700 dark:text-zinc-200 font-bold text-sm sm:text-base rounded-xl border border-zinc-300/80 dark:border-zinc-600 hover:bg-zinc-300 dark:hover:bg-zinc-600 active:scale-95 transition cursor-pointer flex items-center justify-center disabled:opacity-50"
+            className="w-7 sm:w-9 h-11 sm:h-12 bg-zinc-200/80 dark:bg-zinc-700/80 text-zinc-700 dark:text-zinc-200 font-bold text-sm sm:text-base rounded-xl border border-zinc-300/80 dark:border-zinc-600 hover:bg-zinc-300 dark:hover:bg-zinc-600 active:scale-95 transition cursor-pointer flex items-center justify-center disabled:opacity-50"
           >
             {p}
           </button>
@@ -94,7 +94,7 @@ export const VirtualHebrewKeyboard: React.FC<VirtualHebrewKeyboardProps> = ({
           type="button"
           disabled={disabled}
           onClick={onSpace}
-          className="flex-1 min-w-[90px] sm:min-w-[130px] h-10 sm:h-11 bg-white dark:bg-zinc-700 text-zinc-700 dark:text-zinc-200 font-medium text-xs sm:text-sm rounded-xl border border-zinc-300 dark:border-zinc-600 shadow-2xs hover:bg-zinc-50 dark:hover:bg-zinc-650 active:scale-98 transition cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50"
+          className="flex-1 min-w-[90px] sm:min-w-[130px] h-11 sm:h-12 bg-white dark:bg-zinc-700 text-zinc-700 dark:text-zinc-200 font-medium text-xs sm:text-sm rounded-xl border border-zinc-300 dark:border-zinc-600 shadow-2xs hover:bg-zinc-50 dark:hover:bg-zinc-650 active:scale-98 transition cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50"
           title="Пробел"
         >
           <span>רווח</span>
@@ -106,7 +106,7 @@ export const VirtualHebrewKeyboard: React.FC<VirtualHebrewKeyboardProps> = ({
           type="button"
           disabled={disabled}
           onClick={onBackspace}
-          className="w-11 sm:w-14 h-10 sm:h-11 bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-900/60 rounded-xl border border-rose-200 dark:border-rose-800 active:scale-95 transition cursor-pointer flex items-center justify-center disabled:opacity-50"
+          className="w-11 sm:w-14 h-11 sm:h-12 bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-900/60 rounded-xl border border-rose-200 dark:border-rose-800 active:scale-95 transition cursor-pointer flex items-center justify-center disabled:opacity-50"
           title="Удалить последний символ"
           aria-label="Удалить"
         >
@@ -118,7 +118,7 @@ export const VirtualHebrewKeyboard: React.FC<VirtualHebrewKeyboardProps> = ({
           type="button"
           disabled={disabled}
           onClick={onEnter}
-          className="w-10 sm:w-12 h-10 sm:h-11 bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/60 rounded-xl border border-blue-200 dark:border-blue-800 active:scale-95 transition cursor-pointer flex items-center justify-center disabled:opacity-50"
+          className="w-10 sm:w-12 h-11 sm:h-12 bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/60 rounded-xl border border-blue-200 dark:border-blue-800 active:scale-95 transition cursor-pointer flex items-center justify-center disabled:opacity-50"
           title="Перенос строки"
           aria-label="Перенос строки"
         >

@@ -123,6 +123,21 @@ export const LessonEssay: React.FC<LessonEssayProps> = ({
   }, []);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const keyboardRef = useRef<HTMLDivElement>(null);
+
+  // Скролл к экранной клавиатуре на мобильных устройствах
+  const handleScrollToKeyboard = () => {
+    if (isMobileDevice) {
+      if (!showVirtualKeyboard) {
+        setShowVirtualKeyboard(true);
+      }
+      setTimeout(() => {
+        if (keyboardRef.current) {
+          keyboardRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' });
+        }
+      }, 100);
+    }
+  };
 
   // Считаем слова на иврите
   const words = text.trim().split(/\s+/).filter(Boolean);
@@ -412,7 +427,7 @@ export const LessonEssay: React.FC<LessonEssayProps> = ({
           </span>
         </div>
 
-        {/* Текстовое поле: на ПК редактируемое с клавиатуры, на телефонах readOnly с вводом с экранных клавиш (без всплытия мобильной клавиатуры) */}
+        {/* Текстовое поле: на ПК редактируемое с клавиатуры, на телефонах ввод с экранных клавиш со скроллом */}
         <textarea
           ref={textareaRef}
           dir="rtl"
@@ -421,17 +436,21 @@ export const LessonEssay: React.FC<LessonEssayProps> = ({
             setText(e.target.value);
             setErrorMessage(null);
           }}
+          onClick={handleScrollToKeyboard}
+          onTouchStart={handleScrollToKeyboard}
           onKeyDown={handleKeyDown}
           inputMode={isMobileDevice ? 'none' : undefined}
           readOnly={isMobileDevice}
           placeholder={
             isMobileDevice
-              ? 'Нажимайте буквы на экранной клавиатуре внизу, чтобы составить сочинение...'
+              ? 'Нажмите здесь, чтобы перейти к экранной клавиатуре и составить сочинение...'
               : 'Печатайте текст сочинения на иврите с клавиатуры компьютера...'
           }
           rows={5}
           disabled={loading}
-          className="w-full min-h-[140px] max-h-[260px] p-3.5 sm:p-4 rounded-xl bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 font-hebrew text-lg sm:text-xl text-zinc-900 dark:text-zinc-50 leading-relaxed focus:outline-none focus:ring-2 focus:ring-blue-500/50 resize-y placeholder:text-zinc-400 dark:placeholder:text-zinc-600 placeholder:font-sans placeholder:text-xs sm:placeholder:text-sm placeholder:italic"
+          className={`w-full min-h-[130px] max-h-[250px] p-3.5 sm:p-4 rounded-xl bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 font-hebrew text-lg sm:text-xl text-zinc-900 dark:text-zinc-50 leading-relaxed focus:outline-none focus:ring-2 focus:ring-blue-500/50 resize-y placeholder:text-zinc-400 dark:placeholder:text-zinc-600 placeholder:font-sans placeholder:text-xs sm:placeholder:text-sm placeholder:italic ${
+            isMobileDevice ? 'cursor-pointer hover:border-blue-300 dark:hover:border-blue-800 active:ring-2 active:ring-blue-500/30' : ''
+          }`}
         />
 
         {errorMessage && (
@@ -440,11 +459,46 @@ export const LessonEssay: React.FC<LessonEssayProps> = ({
             <span>{errorMessage}</span>
           </div>
         )}
+
+        {/* Кнопка отправки на проверку ИИ: расположена НАД клавиатурой (под текстом), чтобы не нажимать её случайно вместо пробела! */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 pt-2 border-t border-zinc-100 dark:border-zinc-800">
+          <div className="text-xs text-zinc-500 dark:text-zinc-400 flex items-center gap-1.5">
+            <Info className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+            <span>
+              {wordCount < prompt.minWords
+                ? `Рекомендуемый объём: от ${prompt.minWords} слов (написано ${wordCount})`
+                : 'Отличный объём! Сочинение готово к отправке на проверку.'}
+            </span>
+          </div>
+
+          <button
+            type="button"
+            disabled={loading || wordCount < 3}
+            onClick={handleSubmit}
+            className={`px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition shadow-xs flex items-center justify-center gap-2 cursor-pointer active:scale-95 disabled:opacity-40 disabled:pointer-events-none ${
+              isMinWordsReached
+                ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/20'
+                : 'bg-blue-600 hover:bg-blue-700 text-white'
+            }`}
+          >
+            {loading ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>ИИ проверяет сочинение...</span>
+              </>
+            ) : (
+              <>
+                <Send className="w-4 h-4" />
+                <span>Проверить сочинение с ИИ</span>
+              </>
+            )}
+          </button>
+        </div>
       </div>
 
-      {/* 3. Экранная клавиатура иврита (Virtual Hebrew Keyboard) - открывается на мобильных или по кнопке */}
+      {/* 3. Экранная клавиатура иврита (Virtual Hebrew Keyboard) - внизу, под кнопкой отправки */}
       {showVirtualKeyboard && (
-        <div className="space-y-2 animate-in fade-in duration-200">
+        <div ref={keyboardRef} id="essay-virtual-keyboard" className="space-y-2 animate-in fade-in duration-200">
           <VirtualHebrewKeyboard
             onChar={handleChar}
             onBackspace={handleBackspace}
@@ -454,32 +508,6 @@ export const LessonEssay: React.FC<LessonEssayProps> = ({
           />
         </div>
       )}
-
-      {/* 4. Кнопка отправки на проверку ИИ */}
-      <div className="flex items-center justify-between gap-3 pt-1">
-        <div className="text-xs text-zinc-400 hidden sm:block">
-          ИИ детально проверит орфографию, порядок слов, род и даст полезные советы
-        </div>
-
-        <button
-          type="button"
-          disabled={loading || text.trim().length === 0}
-          onClick={handleSubmit}
-          className="flex-1 sm:flex-initial px-6 py-3 rounded-2xl bg-blue-600 hover:bg-blue-700 active:scale-98 disabled:opacity-50 disabled:pointer-events-none text-white text-xs sm:text-sm font-bold transition shadow-xs flex items-center justify-center gap-2 cursor-pointer ml-auto"
-        >
-          {loading ? (
-            <>
-              <Loader2 className="w-4 h-4 animate-spin" />
-              <span>ИИ проверяет сочинение...</span>
-            </>
-          ) : (
-            <>
-              <Send className="w-4 h-4" />
-              <span>Проверить сочинение с ИИ</span>
-            </>
-          )}
-        </button>
-      </div>
     </div>
   );
 };

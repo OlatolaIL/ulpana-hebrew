@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { EssayEvaluationResult } from '@/types';
 import { speakHebrew } from '@/lib/speech';
+import { ensureCyrillicHebrewTranscription } from '@/lib/transcription';
 
 interface EssayEvaluationViewProps {
   evaluation: EssayEvaluationResult;
@@ -369,7 +370,7 @@ export const EssayEvaluationView: React.FC<EssayEvaluationViewProps> = ({
         {/* Транскрипция и перевод */}
         {evaluation.correctedVersion.transcription && (
           <div className="text-xs sm:text-sm font-serif italic text-blue-900 dark:text-blue-200/90 pl-1">
-            [{evaluation.correctedVersion.transcription}]
+            [{ensureCyrillicHebrewTranscription(evaluation.correctedVersion.transcription, evaluation.correctedVersion.hebrew)}]
           </div>
         )}
 
