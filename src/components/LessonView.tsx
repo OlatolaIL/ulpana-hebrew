@@ -17,6 +17,7 @@ import {
   X,
   PenTool,
   LogIn,
+  RotateCcw,
 } from 'lucide-react';
 import { Lesson, UserProfile, Word } from '@/types';
 import { LessonTheory } from './LessonTheory';
@@ -32,6 +33,7 @@ import {
   getFirstIncompleteLessonTab,
   normalizeHebrewWord,
   sanitizePersonalVocabulary,
+  resetLessonProgress,
 } from '@/lib/storage';
 import { isStageAlwaysFree } from '@/lib/permissions';
 import { TierBadge } from './TierBadge';
@@ -57,6 +59,7 @@ interface LessonViewProps {
   onSelectLesson: (id: number) => void;
   onStartFlashcards: (words: Word[], lessonId?: number) => void;
   onUpdateProfile: (profile: UserProfile) => void;
+  onResetLessonProgress?: (lessonId: number) => void;
   onOpenFeedback?: (tab?: LessonTab) => void;
   onOpenAuth?: () => void;
 }
@@ -69,6 +72,7 @@ export const LessonView: React.FC<LessonViewProps> = ({
   onSelectLesson,
   onStartFlashcards,
   onUpdateProfile,
+  onResetLessonProgress,
   onOpenFeedback,
   onOpenAuth,
 }) => {
@@ -93,7 +97,25 @@ export const LessonView: React.FC<LessonViewProps> = ({
 
   const progress = userProfile.lessonProgress[lessonId];
   const completedTabs = progress?.completedTabs || [];
+  const isCompleted = userProfile.completedLessons.includes(lessonId);
+  const hasProgress = isCompleted || completedTabs.length > 0;
   const isAuthReq = isLessonAuthRequired(lessonId, Boolean(userProfile.isLoggedIn));
+
+  const handleResetLesson = () => {
+    if (!lesson) return;
+    const confirmed = window.confirm(
+      `Сбросить прогресс урока ${lesson.number} («${lesson.titleRussian}»)?\n\nВсе пройденные этапы этого урока будут сброшены, и вы сможете пройти его заново.`
+    );
+    if (!confirmed) return;
+
+    if (onResetLessonProgress) {
+      onResetLessonProgress(lessonId);
+    } else {
+      const updated = resetLessonProgress(lessonId);
+      onUpdateProfile(updated);
+    }
+    setActiveTab('theory');
+  };
 
   const handleToggleFont = () => {
     const nextStyle: 'print' | 'cursive' = userProfile.fontStyle === 'cursive' ? 'print' : 'cursive';
@@ -212,6 +234,21 @@ export const LessonView: React.FC<LessonViewProps> = ({
             ) : (
               <span>דפוס</span>
             )}
+          </button>
+
+          {/* Кнопка сброса прогресса урока */}
+          <button
+            type="button"
+            onClick={handleResetLesson}
+            className={`p-1.5 rounded-xl border transition cursor-pointer shrink-0 active:scale-95 ${
+              hasProgress
+                ? 'border-zinc-200 dark:border-zinc-700 text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 hover:border-rose-200 dark:border-rose-800'
+                : 'border-zinc-200/60 dark:border-zinc-800/60 text-zinc-400/60 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40'
+            }`}
+            title={`Сбросить прогресс урока ${lesson.number}`}
+            aria-label={`Сбросить прогресс урока ${lesson.number}`}
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
           </button>
 
           {onOpenFeedback && (

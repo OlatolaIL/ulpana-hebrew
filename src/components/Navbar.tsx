@@ -45,7 +45,6 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenSubscription,
   onLogout,
 }) => {
-  const dictCount = userProfile.personalVocabulary?.length || 0;
   const isPro = userProfile.subscriptionTier === 'pro' || userProfile.subscriptionTier === 'admin';
   const isAdmin = isVipUser(userProfile.username, userProfile.telegramId, userProfile.name);
 
@@ -112,11 +111,6 @@ export const Navbar: React.FC<NavbarProps> = ({
             >
               <Sparkles className="w-4 h-4 text-amber-500" />
               <span>Словарик</span>
-              {dictCount > 0 && (
-                <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-200">
-                  {dictCount}
-                </span>
-              )}
             </button>
           </nav>
 
@@ -137,14 +131,13 @@ export const Navbar: React.FC<NavbarProps> = ({
             {/* Кнопка подписки PRO / Бета */}
             <button
               onClick={onOpenSubscription}
-              className={`h-9 sm:h-10 px-2 sm:px-3 rounded-xl border text-xs font-bold flex items-center gap-1 sm:gap-1.5 shadow-xs transition active:scale-95 shrink-0 ${
+              className={`h-9 sm:h-10 px-2 sm:px-3 rounded-xl border text-xs font-bold flex items-center justify-center shadow-xs transition active:scale-95 shrink-0 ${
                 isPro
                   ? 'border-amber-400/80 bg-gradient-to-r from-amber-500 to-yellow-400 text-white shadow-amber-500/20'
                   : 'border-amber-300/80 dark:border-amber-900/60 bg-amber-50/80 dark:bg-amber-950/30 text-amber-800 dark:text-amber-300 hover:bg-amber-100'
               }`}
               title="Статус открытого бета-тестирования и доступ PRO"
             >
-              <span className="text-sm leading-none">👑</span>
               <span className="tracking-wide">{isPro ? 'PRO' : 'PRO БЕТА'}</span>
             </button>
 
@@ -285,11 +278,6 @@ export const Navbar: React.FC<NavbarProps> = ({
           >
             <div className="relative mb-0.5">
               <Sparkles className="w-5 h-5 text-amber-500" />
-              {dictCount > 0 && (
-                <span className="absolute -top-1 -right-2 px-1 min-w-[14px] h-[14px] flex items-center justify-center rounded-full text-[9px] font-bold bg-amber-500 text-white">
-                  {dictCount}
-                </span>
-              )}
             </div>
             <span className="text-[11px] leading-tight">
               Словарик

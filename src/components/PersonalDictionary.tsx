@@ -300,15 +300,6 @@ export const PersonalDictionary: React.FC<PersonalDictionaryProps> = ({
           <Layers className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
           <span className="hidden sm:inline">Карточки уроков</span>
           <span className="sm:hidden truncate">Уроки</span>
-          <span
-            className={`absolute -top-2 right-1 sm:-top-2.5 sm:right-2 text-[9px] sm:text-[10px] font-black px-1.5 min-w-[17px] h-[17px] rounded-full flex items-center justify-center leading-none shadow-xs border transition-colors ${
-              activeTab === 'lessons'
-                ? 'bg-white text-blue-700 border-blue-200 shadow-blue-900/10'
-                : 'bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300 border-blue-300/60 dark:border-blue-800'
-            }`}
-          >
-            100
-          </span>
         </button>
 
         {/* 3. Мой словарик */}
@@ -326,15 +317,6 @@ export const PersonalDictionary: React.FC<PersonalDictionaryProps> = ({
           <BookOpen className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
           <span className="hidden sm:inline">Мой словарик</span>
           <span className="sm:hidden truncate">Словарик</span>
-          <span
-            className={`absolute -top-2 right-1 sm:-top-2.5 sm:right-2 text-[9px] sm:text-[10px] font-black px-1.5 min-w-[17px] h-[17px] rounded-full flex items-center justify-center leading-none shadow-xs border transition-colors ${
-              activeTab === 'personal'
-                ? 'bg-white text-emerald-700 border-emerald-200 shadow-emerald-900/10'
-                : 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 border-slate-300/80 dark:border-slate-600'
-            }`}
-          >
-            {words.length}
-          </span>
         </button>
       </div>
 

@@ -839,6 +839,7 @@ export default function Home() {
               )
             }
             onUpdateProfile={handleUpdateProfile}
+            onResetLessonProgress={handleResetLessonProgress}
             onOpenFeedback={(tab) => handleOpenFeedback(tab)}
           />
         )}

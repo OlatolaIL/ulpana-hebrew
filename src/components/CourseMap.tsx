@@ -206,14 +206,14 @@ export const CourseMap: React.FC<CourseMapProps> = ({
           <div className="min-w-0 flex-1 space-y-1">
             {/* Метка урока и этапы */}
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="px-2 py-0.5 rounded-md text-[11px] font-bold bg-white/20 text-white backdrop-blur">
+              <span className="px-2 py-0.5 rounded-md text-[11px] font-bold bg-white/20 text-white backdrop-blur whitespace-nowrap">
                 Урок {currentLesson.number}
               </span>
-              <span className="text-[11px] font-medium text-blue-100">
+              <span className="text-[11px] font-medium text-blue-100 whitespace-nowrap">
                 Текущий урок
               </span>
               {currentCompletedTabs > 0 && !isCurrentCompleted && (
-                <span className="text-[10px] font-semibold text-emerald-300 bg-black/20 px-1.5 py-0.5 rounded">
+                <span className="text-[10px] font-semibold text-emerald-300 bg-black/20 px-1.5 py-0.5 rounded whitespace-nowrap">
                   {currentCompletedTabs}/{TOTAL_STAGES}
                 </span>
               )}
@@ -229,7 +229,7 @@ export const CourseMap: React.FC<CourseMapProps> = ({
             {/* Тема урока */}
             <div
               dir="rtl"
-              className="text-lg sm:text-2xl font-black font-hebrew text-white tracking-wide leading-snug truncate"
+              className="text-lg sm:text-2xl font-black font-hebrew text-white tracking-wide leading-snug truncate text-left"
             >
               {userProfile.showNikkud ? currentLesson.titleHebrew : stripNikkud(currentLesson.titleHebrew)}
             </div>
@@ -336,11 +336,6 @@ export const CourseMap: React.FC<CourseMapProps> = ({
             >
               <span className="font-hebrew text-base font-black leading-none">א</span>
               <span>Алеф</span>
-              <span className={`text-[10px] px-1 py-0.2 rounded-md font-semibold ${
-                selectedLevel === 'alef' ? 'bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300' : 'text-zinc-400'
-              }`}>
-                {alefCompleted}/50
-              </span>
             </button>
 
             <button
@@ -353,11 +348,6 @@ export const CourseMap: React.FC<CourseMapProps> = ({
             >
               <span className="font-hebrew text-base font-black leading-none">ב</span>
               <span>Бет</span>
-              <span className={`text-[10px] px-1 py-0.2 rounded-md font-semibold ${
-                selectedLevel === 'bet' ? 'bg-purple-100 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300' : 'text-zinc-400'
-              }`}>
-                {betCompleted}/50
-              </span>
             </button>
           </div>
 
@@ -492,7 +482,7 @@ export const CourseMap: React.FC<CourseMapProps> = ({
                 <div className="min-w-0 flex-1 space-y-0.5">
                   <div className="flex items-center gap-2">
                     <span
-                      className={`px-2 py-0.5 rounded-md text-[11px] font-bold ${
+                      className={`px-2 py-0.5 rounded-md text-[11px] font-bold whitespace-nowrap ${
                         isCurrent
                           ? 'bg-blue-600 text-white'
                           : isCompleted
@@ -504,13 +494,13 @@ export const CourseMap: React.FC<CourseMapProps> = ({
                     </span>
 
                     {isCurrent && (
-                      <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400">
+                      <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 whitespace-nowrap">
                         Текущий
                       </span>
                     )}
 
                     {!isCompleted && completedTabsCount > 0 && (
-                      <span className="text-[10px] font-semibold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 px-1.5 py-0.2 rounded">
+                      <span className="text-[10px] font-semibold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 px-1.5 py-0.2 rounded whitespace-nowrap">
                         {completedTabsCount}/{TOTAL_STAGES}
                       </span>
                     )}
@@ -527,7 +517,7 @@ export const CourseMap: React.FC<CourseMapProps> = ({
                   {/* Тема урока на иврите */}
                   <div
                     dir="rtl"
-                    className="text-base sm:text-lg font-bold font-hebrew text-zinc-900 dark:text-zinc-50 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition leading-snug truncate"
+                    className="text-base sm:text-lg font-bold font-hebrew text-zinc-900 dark:text-zinc-50 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition leading-snug truncate text-left"
                   >
                     {userProfile.showNikkud ? lesson.titleHebrew : stripNikkud(lesson.titleHebrew)}
                   </div>
@@ -540,12 +530,12 @@ export const CourseMap: React.FC<CourseMapProps> = ({
 
                 {/* Статус урока: зеленая галочка / замок / вход / стрелка */}
                 <div className="shrink-0 flex items-center gap-1.5 sm:gap-2">
-                  {/* Кнопка сброса (десктоп, по ховеру, чтобы не захламлять мобильный экран) */}
+                  {/* Кнопка сброса прогресса */}
                   {hasProgress && onResetLessonProgress && (
                     <button
                       type="button"
                       onClick={handleReset}
-                      className="hidden md:inline-flex opacity-0 group-hover:opacity-100 p-1.5 rounded-lg text-zinc-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition active:scale-90"
+                      className="inline-flex p-1.5 rounded-lg text-zinc-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition active:scale-90"
                       title={`Сбросить прогресс урока ${lesson.number}`}
                       aria-label={`Сбросить прогресс урока ${lesson.number}`}
                     >
