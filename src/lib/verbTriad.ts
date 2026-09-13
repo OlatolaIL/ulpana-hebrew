@@ -1,4 +1,4 @@
-import { Word, VerbConjugation, ConjugationForm } from '@/types';
+import { Word, VerbConjugation, ConjugationForm, RootRelatedWord } from '@/types';
 import { findOfflineVerbConjugation } from './verbConjugations';
 import { stripNikkud } from './transcription';
 import { getVerbPrepositionInfo, VerbPrepositionInfo } from './verbPrepositions';
@@ -20,6 +20,7 @@ export interface VerbTriadInfo {
   root: string;
   prepositionInfo: VerbPrepositionInfo | null;
   conjugation: VerbConjugation;
+  relatedWords: RootRelatedWord[];
 }
 
 function cleanBinyanName(rawBinyan: string): string {
@@ -78,6 +79,20 @@ export function extractVerbTriad(wordOrText: Word | string): VerbTriadInfo | nul
 
   const prepInfo = getVerbPrepositionInfo(infHebrew);
 
+  const rawCleanInf = stripNikkud(infHebrew);
+  const rawCleanPres = stripNikkud(presentForm.hebrew);
+  const rawCleanPast = stripNikkud(pastForm.hebrew);
+
+  const relatedWords = (conjugation.rootFamily || [])
+    .filter((w) => {
+      if (w.partOfSpeech === 'verb') return false;
+      const clean = stripNikkud(w.hebrew);
+      if (!clean) return false;
+      if (clean === rawCleanInf || clean === rawCleanPres || clean === rawCleanPast) return false;
+      return true;
+    })
+    .slice(0, 3);
+
   return {
     infinitive: {
       hebrew: infHebrew,
@@ -105,5 +120,6 @@ export function extractVerbTriad(wordOrText: Word | string): VerbTriadInfo | nul
     root: conjugation.root,
     prepositionInfo: prepInfo,
     conjugation,
+    relatedWords,
   };
 }

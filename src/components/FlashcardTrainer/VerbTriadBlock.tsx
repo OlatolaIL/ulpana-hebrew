@@ -1,25 +1,28 @@
 import React from 'react';
-import { Volume2, Sparkles, HelpCircle } from 'lucide-react';
+import { Volume2, Sparkles } from 'lucide-react';
 import { VerbTriadInfo } from '@/lib/verbTriad';
+import { RootRelatedWord } from '@/types';
 
 interface VerbTriadBlockProps {
   triad: VerbTriadInfo;
   onSpeakHebrew: (text: string) => void;
   onOpenPealim?: () => void;
+  onSelectRelatedWord?: (word: RootRelatedWord) => void;
 }
 
 export const VerbTriadBlock: React.FC<VerbTriadBlockProps> = ({
   triad,
   onSpeakHebrew,
   onOpenPealim,
+  onSelectRelatedWord,
 }) => {
   return (
     <div
       onClick={(e) => e.stopPropagation()}
-      className="mt-3 w-full max-w-md mx-auto bg-gradient-to-br from-blue-50/80 to-indigo-50/50 dark:from-blue-950/40 dark:to-indigo-950/30 rounded-2xl p-3 sm:p-3.5 border border-blue-200/80 dark:border-blue-800/60 shadow-xs text-left select-text"
+      className="mt-2.5 w-full max-w-md mx-auto bg-gradient-to-br from-blue-50/80 to-indigo-50/50 dark:from-blue-950/40 dark:to-indigo-950/30 rounded-2xl p-2.5 sm:p-3 border border-blue-200/80 dark:border-blue-800/60 shadow-xs text-left select-text"
     >
       {/* Шапка: Биньян, Корень, Предлог управления */}
-      <div className="flex items-center justify-between gap-1.5 flex-wrap pb-2 mb-2.5 border-b border-blue-200/60 dark:border-blue-800/50 text-[11px]">
+      <div className="flex items-center justify-between gap-1.5 flex-wrap pb-2 mb-2 border-b border-blue-200/60 dark:border-blue-800/50 text-[11px]">
         <div className="flex items-center gap-1.5 flex-wrap">
           <span className="font-bold px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/80 text-blue-800 dark:text-blue-200 shadow-2xs">
             {triad.binyanClean || triad.binyan}
@@ -44,45 +47,16 @@ export const VerbTriadBlock: React.FC<VerbTriadBlockProps> = ({
         )}
       </div>
 
-      {/* Триада: 3 слота (Инфинитив | Настоящее | Прошедшее) */}
-      <div className="grid grid-cols-3 gap-1.5 sm:gap-2 text-center">
-        {/* 1. Инфинитив */}
-        <div className="bg-white/90 dark:bg-zinc-900/90 p-2 rounded-xl border border-blue-100 dark:border-blue-900/50 flex flex-col justify-between shadow-2xs">
-          <span className="text-[9px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">
-            Инфинитив
-          </span>
-          <div
-            dir="rtl"
-            className="text-sm sm:text-base font-bold font-hebrew text-zinc-900 dark:text-zinc-100 my-0.5 leading-snug"
-          >
-            {triad.infinitive.hebrew}
-          </div>
-          {triad.infinitive.transcription && (
-            <div className="text-[10px] text-blue-600 dark:text-blue-400 font-medium truncate">
-              {triad.infinitive.transcription}
-            </div>
-          )}
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onSpeakHebrew(triad.infinitive.hebrew);
-            }}
-            className="mt-1 p-1 mx-auto rounded-lg text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/50 transition cursor-pointer"
-            title="Озвучить инфинитив"
-          >
-            <Volume2 className="w-3.5 h-3.5" />
-          </button>
-        </div>
-
-        {/* 2. Настоящее (Он) */}
-        <div className="bg-white/90 dark:bg-zinc-900/90 p-2 rounded-xl border border-blue-100 dark:border-blue-900/50 flex flex-col justify-between shadow-2xs">
+      {/* 2 Слотовые формы: Настоящее (он) и Прошедшее (он) — инфинитив уже есть выше на главной карточке */}
+      <div className="grid grid-cols-2 gap-2 text-center">
+        {/* 1. Настоящее (Он) */}
+        <div className="bg-white/90 dark:bg-zinc-900/90 p-2 sm:p-2.5 rounded-xl border border-blue-100 dark:border-blue-900/50 flex flex-col justify-between shadow-2xs">
           <span className="text-[9px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">
             Настоящее (он)
           </span>
           <div
             dir="rtl"
-            className="text-sm sm:text-base font-bold font-hebrew text-zinc-900 dark:text-zinc-100 my-0.5 leading-snug"
+            className="text-base sm:text-lg font-bold font-hebrew text-zinc-900 dark:text-zinc-100 my-0.5 leading-snug"
           >
             {triad.presentMasc.hebrew}
           </div>
@@ -104,14 +78,14 @@ export const VerbTriadBlock: React.FC<VerbTriadBlockProps> = ({
           </button>
         </div>
 
-        {/* 3. Прошедшее (Он вчера) */}
-        <div className="bg-white/90 dark:bg-zinc-900/90 p-2 rounded-xl border border-blue-100 dark:border-blue-900/50 flex flex-col justify-between shadow-2xs">
+        {/* 2. Прошедшее (Он вчера) */}
+        <div className="bg-white/90 dark:bg-zinc-900/90 p-2 sm:p-2.5 rounded-xl border border-blue-100 dark:border-blue-900/50 flex flex-col justify-between shadow-2xs">
           <span className="text-[9px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">
             Прошедшее (он)
           </span>
           <div
             dir="rtl"
-            className="text-sm sm:text-base font-bold font-hebrew text-zinc-900 dark:text-zinc-100 my-0.5 leading-snug"
+            className="text-base sm:text-lg font-bold font-hebrew text-zinc-900 dark:text-zinc-100 my-0.5 leading-snug"
           >
             {triad.pastHe.hebrew}
           </div>
@@ -136,7 +110,7 @@ export const VerbTriadBlock: React.FC<VerbTriadBlockProps> = ({
 
       {/* Пояснение по управлению предлогом (если есть) */}
       {triad.prepositionInfo && (
-        <div className="mt-2.5 pt-2 border-t border-blue-200/60 dark:border-blue-800/40 flex items-center justify-between text-[11px] text-zinc-600 dark:text-zinc-400 px-1 flex-wrap gap-1">
+        <div className="mt-2 pt-1.5 border-t border-blue-200/60 dark:border-blue-800/40 flex items-center justify-between text-[11px] text-zinc-600 dark:text-zinc-400 px-1 flex-wrap gap-1">
           <span>
             Управление:{' '}
             <strong className="text-emerald-700 dark:text-emerald-400 font-semibold">
@@ -152,9 +126,50 @@ export const VerbTriadBlock: React.FC<VerbTriadBlockProps> = ({
         </div>
       )}
 
+      {/* Однокоренные слова: существительные / прилагательные (до 3 штук) с всплывающими карточками */}
+      {triad.relatedWords && triad.relatedWords.length > 0 && (
+        <div className="mt-2 pt-2 border-t border-blue-200/60 dark:border-blue-800/40 space-y-1.5">
+          <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 px-0.5">
+            <span>Семья корня (нажмите для карточки):</span>
+            <span className="text-[9px] font-medium lowercase text-blue-600 dark:text-blue-400">
+              {triad.relatedWords.length}{' '}
+              {triad.relatedWords.length === 1 ? 'слово' : 'слова'}
+            </span>
+          </div>
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {triad.relatedWords.map((rw, idx) => (
+              <button
+                key={`rw-${idx}-${rw.hebrew}`}
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (onSelectRelatedWord) {
+                    onSelectRelatedWord(rw);
+                  } else {
+                    onSpeakHebrew(rw.hebrew);
+                  }
+                }}
+                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-white/95 dark:bg-zinc-800/90 hover:bg-blue-50 dark:hover:bg-blue-900/40 border border-blue-200/80 dark:border-blue-800/60 text-xs font-semibold shadow-2xs transition active:scale-95 cursor-pointer group"
+                title={`Открыть карточку слова: ${rw.translation}`}
+              >
+                <span
+                  dir="rtl"
+                  className="font-hebrew font-bold text-zinc-900 dark:text-zinc-100 group-hover:text-blue-600 dark:group-hover:text-blue-400"
+                >
+                  {rw.hebrew}
+                </span>
+                <span className="text-[10px] text-zinc-500 dark:text-zinc-400 truncate max-w-[120px]">
+                  · {rw.translation}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Кнопка перехода в подробные таблицы Pealim */}
       {onOpenPealim && (
-        <div className="mt-2.5 pt-2 border-t border-blue-200/50 dark:border-blue-800/30 flex justify-center">
+        <div className="mt-2 pt-1.5 border-t border-blue-200/50 dark:border-blue-800/30 flex justify-center">
           <button
             type="button"
             onClick={(e) => {
