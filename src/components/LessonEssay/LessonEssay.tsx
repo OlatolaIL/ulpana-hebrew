@@ -8,12 +8,15 @@ import {
   AlertCircle,
   Info,
   Keyboard,
+  Lightbulb,
+  ChevronDown,
 } from 'lucide-react';
 import { Lesson, UserProfile, EssayEvaluationResult } from '@/types';
 import { getLessonEssayPrompt } from '@/data/essayTopics';
 import { VirtualHebrewKeyboard } from './VirtualHebrewKeyboard';
 import { EssayEvaluationView } from './EssayEvaluationView';
 import { saveLessonEssay } from '@/lib/storage';
+import { stripNikkud } from '@/lib/transcription';
 
 // Соответствие стандартной израильской раскладки клавиатуры (QWERTY -> עברית)
 // Знаки препинания (. , ! ? и т.д.) НЕ маппятся в буквы, чтобы точка и запятая всегда оставались пунктуацией
@@ -107,6 +110,7 @@ export const LessonEssay: React.FC<LessonEssayProps> = ({
   const [isAutoHebrew, setIsAutoHebrew] = useState<boolean>(true);
   const [showVirtualKeyboard, setShowVirtualKeyboard] = useState<boolean>(false);
   const [isMobileDevice, setIsMobileDevice] = useState<boolean>(false);
+  const [showCheatSheet, setShowCheatSheet] = useState<boolean>(false);
 
   // Определение мобильного устройства: на телефонах блокируем системную клавиатуру
   useEffect(() => {
@@ -360,11 +364,67 @@ export const LessonEssay: React.FC<LessonEssayProps> = ({
           {prompt.situationRu}
         </p>
 
-        {/* Фокус на грамматику (чисто методическое пояснение на русском БЕЗ готовых слов на иврите) */}
-        {prompt.grammarFocusRu && (
-          <div className="p-2.5 rounded-xl bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200/80 dark:border-amber-800/50 text-xs text-amber-900 dark:text-amber-200 flex items-start gap-2">
-            <Info className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-            <span className="leading-snug">{prompt.grammarFocusRu}</span>
+        {/* Кнопка раскрытия полезной шпаргалки к уроку (правило + опорные слова) */}
+        {(prompt.grammarFocusRu || (prompt.suggestedWords && prompt.suggestedWords.length > 0)) && (
+          <div className="pt-0.5">
+            <button
+              type="button"
+              onClick={() => setShowCheatSheet(!showCheatSheet)}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition active:scale-95 cursor-pointer ${
+                showCheatSheet
+                  ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-900 dark:text-amber-200 border border-amber-300 dark:border-amber-800'
+                  : 'bg-amber-50/80 dark:bg-amber-950/30 text-amber-800 dark:text-amber-300 hover:bg-amber-100 border border-amber-200/80 dark:border-amber-800/50'
+              }`}
+            >
+              <Lightbulb className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
+              <span>{showCheatSheet ? 'Скрыть шпаргалку к уроку' : 'Шпаргалка к уроку (правило и слова)'}</span>
+              <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${showCheatSheet ? 'rotate-180' : ''}`} />
+            </button>
+          </div>
+        )}
+
+        {/* Раскрывающийся блок шпаргалки: грамматика урока + опорные слова */}
+        {showCheatSheet && (
+          <div className="p-3 sm:p-3.5 rounded-xl bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200/80 dark:border-amber-800/50 space-y-2.5 animate-in fade-in duration-200">
+            {/* Грамматический фокус урока */}
+            {prompt.grammarFocusRu && (
+              <div className="flex items-start gap-2 text-xs text-amber-950 dark:text-amber-100 leading-snug">
+                <span className="font-bold shrink-0 text-amber-700 dark:text-amber-400">Фокус урока:</span>
+                <span>{prompt.grammarFocusRu}</span>
+              </div>
+            )}
+
+            {/* Опорные слова урока */}
+            {prompt.suggestedWords && prompt.suggestedWords.length > 0 && (
+              <div className="space-y-1.5 pt-1.5 border-t border-amber-200/60 dark:border-amber-800/40">
+                <div className="text-[11px] font-bold text-amber-800 dark:text-amber-300">
+                  Полезные слова урока (нажмите, чтобы вставить):
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {prompt.suggestedWords.map((item, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => {
+                        const cleanWord = stripNikkud(item.hebrew.split('/')[0].trim());
+                        handleChar(cleanWord + ' ');
+                      }}
+                      className="px-2 py-1 rounded-lg bg-white dark:bg-zinc-800 hover:bg-amber-100 dark:hover:bg-amber-900/50 text-zinc-800 dark:text-zinc-100 text-xs border border-amber-200/80 dark:border-zinc-700 shadow-2xs transition active:scale-95 flex items-center gap-1.5 cursor-pointer"
+                      title="Нажмите, чтобы вставить слово в текст"
+                    >
+                      <span className="font-hebrew font-bold text-sm text-blue-700 dark:text-blue-300" dir="rtl">
+                        {item.hebrew}
+                      </span>
+                      {item.translation && (
+                        <span className="text-[10px] text-zinc-500 dark:text-zinc-400 font-sans">
+                          ({item.translation})
+                        </span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
