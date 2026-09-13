@@ -5,6 +5,7 @@ import { getHebrewPictogram } from '@/lib/pictograms';
 import { getWordTranscription } from '@/lib/transcription';
 import { detectLinguisticTip } from '@/lib/linguisticTips';
 import { LinguisticTipDrawer } from '@/components/ThematicDecks/LinguisticTipDrawer';
+import { WordLookupModal } from '@/components/WordLookupModal';
 import { extractVerbTriad } from '@/lib/verbTriad';
 import { VerbTriadBlock } from '../VerbTriadBlock';
 
@@ -37,6 +38,7 @@ export const FlipCardMode: React.FC<FlipCardModeProps> = ({
 }) => {
   const isCursive = userProfile.fontStyle === 'cursive';
   const [isTipOpen, setIsTipOpen] = useState(false);
+  const [selectedLookupWord, setSelectedLookupWord] = useState<string | null>(null);
   const tip = detectLinguisticTip(currentWord);
 
   const triad = useMemo(() => {
@@ -244,6 +246,7 @@ export const FlipCardMode: React.FC<FlipCardModeProps> = ({
                 triad={triad}
                 onSpeakHebrew={onSpeakHebrew}
                 onOpenPealim={() => onOpenPealim(currentWord)}
+                onSelectRelatedWord={(rw) => setSelectedLookupWord(rw.hebrewPlain || rw.hebrew)}
               />
             ) : (
               <>
@@ -343,6 +346,7 @@ export const FlipCardMode: React.FC<FlipCardModeProps> = ({
                 triad={triad}
                 onSpeakHebrew={onSpeakHebrew}
                 onOpenPealim={() => onOpenPealim(currentWord)}
+                onSelectRelatedWord={(rw) => setSelectedLookupWord(rw.hebrewPlain || rw.hebrew)}
               />
             ) : (
               <>
@@ -490,6 +494,16 @@ export const FlipCardMode: React.FC<FlipCardModeProps> = ({
         tip={tip}
         userProfile={userProfile}
       />
+
+      {/* Модальное окно слова из семьи корня */}
+      {selectedLookupWord && (
+        <WordLookupModal
+          isOpen={!!selectedLookupWord}
+          word={selectedLookupWord}
+          onClose={() => setSelectedLookupWord(null)}
+          userProfile={userProfile}
+        />
+      )}
     </div>
   );
 };
