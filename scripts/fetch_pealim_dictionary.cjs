@@ -15,6 +15,7 @@ const path = require('path');
 
 const repoRoot = path.join(__dirname, '..');
 const outputFile = path.join(repoRoot, 'src/data/pealimMasterDictionary.json');
+const catalogIndexFile = path.join(repoRoot, 'src/data/pealimCatalogIndex.json');
 
 function cleanText(html) {
   if (!html) return '';
@@ -38,10 +39,20 @@ function stripNikkud(text) {
 // Convert Pealim Latin transcription (e.g. "lehamlíts", "hамлац<b>а</b>") to project Cyrillic standard ("леhамлӣц")
 function pealimTransToCyrillic(text) {
   if (!text) return '';
-  let s = cleanText(text);
+  let s = text
+    .replace(/&amp;/g, '&')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&#128266;/g, '') // speaker icon
+    .trim();
 
-  // Bold syllable in Pealim marks stress: replace with acute
-  s = s.replace(/<b>([^<]+)<\/b>/gi, '$1\u0301');
+  // Strip bold tags (Pealim marks stress with <b>) without inserting spaces!
+  s = s.replace(/<\/?b>/gi, '');
+  // Strip any remaining html tags
+  s = s.replace(/<[^>]+>/g, ' ');
+  s = s.replace(/\s+/g, ' ').trim();
 
   // Multi-char combinations
   s = s.replace(/sh/gi, 'ш');
@@ -308,6 +319,9 @@ function parsePealimHtml(html, dictPath) {
     };
   }
 
+  const audioMatch = html.match(/class="audio-play"[^>]*data-audio="([^"]+)"/i);
+  const audio = audioMatch ? audioMatch[1] : null;
+
   return {
     hebrew: pointed,
     hebrewPlain: plain,
@@ -318,9 +332,10 @@ function parsePealimHtml(html, dictPath) {
     binyan,
     gender,
     plural,
-    rootFamily: rootFamily.slice(0, 8),
+    rootFamily: rootFamily.slice(0, 15),
     conjugation,
     pealimPath: dictPath,
+    audio,
   };
 }
 
@@ -443,7 +458,103 @@ function collectAllCourseWords() {
   return Array.from(wordsMap.values());
 }
 
+const MULTI_WORD_TRANSCRIPTION_FIXES = {
+  'ארוחת בוקר': 'арухат бокер',
+  'ארוחת ערב': 'арухат эрев',
+  'בית ספר': 'бейт сефер',
+  'בית גידול': 'бейт гидуль',
+  'בית זיקוק': 'бейт зикук',
+  'בית כנסת': 'бейт кнесет',
+  'חדר אוכל': 'хедер охель',
+  'חדר אמבטיה': 'хедер амбатъя',
+  'חדר כושר': 'хадар кошер',
+  'חדר שינה': 'хадар шена',
+  'ארוחת צוהריים': 'арухат цоhорайим',
+  'ארוחת צהריים': 'арухат цоhорайим',
+  'בשר בקר': 'бсар бакар',
+  'משקפי שמש': 'мишкефей шемеш',
+  'ראשי תיבות': 'рашей тевот',
+  'על פני': 'аль пней',
+  'רב עוצמה': 'рав оцма',
+  'אומנות לחימה': 'оманут лехима',
+  'אמנות לחימה': 'оманут лехима',
+  'כן ציור': 'кан циюр',
+  'נטילת ידיים': 'нетилат ядайим',
+  'על יד': 'аль яд',
+  'על ידי': 'аль йедей',
+  'על גב': 'аль гав',
+  'על גבי': 'аль габей',
+  'חסר רסן': 'хасар ресен',
+  'חסר תועלת': 'хасар тоэлет',
+  'קוצר ראייה': 'коцер реия',
+  'קוצר ראיה': 'коцер реия'
+};
+
+function cleanTranscriptionArtifacts(hebrew, transcription) {
+  if (!hebrew || !transcription) return transcription;
+  const cleanHeb = stripNikkud(hebrew).trim();
+  if (MULTI_WORD_TRANSCRIPTION_FIXES[cleanHeb]) {
+    return MULTI_WORD_TRANSCRIPTION_FIXES[cleanHeb];
+  }
+  // If single word without spaces, slashes, or hyphens, remove internal artifact spaces
+  if (!cleanHeb.includes(' ') && !cleanHeb.includes('/') && !cleanHeb.includes('-')) {
+    if (transcription.includes(' ')) {
+      return transcription.replace(/\s+/g, '');
+    }
+  }
+  return transcription;
+}
+
+function normalizeTranscriptionSpaces(save = true) {
+  if (!fs.existsSync(outputFile)) {
+    console.error(`Файл ${outputFile} не найден!`);
+    return 0;
+  }
+  console.log(`Нормализация транскрипций в ${outputFile}...`);
+  const masterDict = JSON.parse(fs.readFileSync(outputFile, 'utf8'));
+  let fixedCount = 0;
+
+  for (const [k, v] of Object.entries(masterDict)) {
+    const fixedRootTr = cleanTranscriptionArtifacts(v.hebrew, v.transcription);
+    if (fixedRootTr !== v.transcription) {
+      v.transcription = fixedRootTr;
+      fixedCount++;
+    }
+    if (Array.isArray(v.rootFamily)) {
+      for (const rf of v.rootFamily) {
+        const fixedRfTr = cleanTranscriptionArtifacts(rf.hebrew, rf.transcription);
+        if (fixedRfTr !== rf.transcription) {
+          rf.transcription = fixedRfTr;
+          fixedCount++;
+        }
+      }
+    }
+    if (v.conjugation) {
+      for (const tense of ['present', 'past', 'future', 'imperative']) {
+        if (Array.isArray(v.conjugation[tense])) {
+          for (const item of v.conjugation[tense]) {
+            const fixedConjTr = cleanTranscriptionArtifacts(item.hebrew, item.transcription);
+            if (fixedConjTr !== item.transcription) {
+              item.transcription = fixedConjTr;
+              fixedCount++;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  if (save && fixedCount > 0) {
+    fs.writeFileSync(outputFile, JSON.stringify(masterDict, null, 2), 'utf8');
+    console.log(`[normalize] Успешно исправлено ${fixedCount} транскрипций в ${outputFile}`);
+  } else {
+    console.log(`[normalize] Все транскрипции уже в норме (${fixedCount} изменений).`);
+  }
+  return fixedCount;
+}
+
 function syncVerbDatabase() {
+  normalizeTranscriptionSpaces(true);
   const dbPath = path.join(repoRoot, 'src/lib/verbConjugations/database.ts');
   const masterDict = JSON.parse(fs.readFileSync(outputFile, 'utf8'));
 
@@ -512,15 +623,337 @@ export const VERB_CONJUGATIONS_DATABASE: Record<string, VerbConjugation> = {\n`;
   console.log(`[sync-db] Успешно сгенерирован ${dbPath} (${verbsMap.size} глаголов).`);
 }
 
+async function fetchCatalogPage(pageNum) {
+  const url = `https://www.pealim.com/ru/dict/?page=${pageNum}`;
+  const text = await fetchWithRetry(url);
+  const rowRegex = /<tr onclick=[\s\S]*?location=(?:&quot;|['\x22])(\/ru\/dict\/(\d+-[^\/]+)\/)(?:&quot;|['\x22])[\s\S]*?<\/tr>/gi;
+  let match;
+  const items = [];
+  while ((match = rowRegex.exec(text)) !== null) {
+    const rowHtml = match[0];
+    const fullPath = match[1];
+    const slug = match[2];
+    const id = parseInt(slug.split('-')[0], 10);
+    const audioMatch = rowHtml.match(/data-audio=[\x22']([^'\x22]+)[\x22']/);
+    const lemmaMatch = rowHtml.match(/<span class=[\x22']menukad[\x22']>([\s\S]*?)<\/span>/);
+    const transMatch = rowHtml.match(/<span class=[\x22']dict-transcription[\x22']>([\s\S]*?)<\/span>/);
+    const rootMatch = rowHtml.match(/<a href=[\x22']\/ru\/dict\/\?num-radicals=[^>]+>([\s\S]*?)<\/a>/);
+    const meaningMatch = rowHtml.match(/<td class=[\x22']dict-meaning[\x22']>([\s\S]*?)<\/td>/);
+    const posMatch = rowHtml.match(/<\/td><td>([\s\S]*?)<\/td><td class=[\x22']dict-meaning[\x22']/);
+
+    let rawPos = posMatch ? cleanText(posMatch[1]) : '';
+    let partOfSpeech = 'other';
+    let binyan = null;
+    let gender = null;
+
+    if (/Глагол/i.test(rawPos)) {
+      partOfSpeech = 'verb';
+      const bm = rawPos.match(/(пааль|пиэль|hифъиль|hитпаэль|нифъаль|пуаль|hуфъаль|hуф'аль)/i);
+      if (bm) binyan = bm[1];
+    } else if (/Существительное/i.test(rawPos)) {
+      partOfSpeech = 'noun';
+      if (/мужской/i.test(rawPos)) gender = 'm';
+      if (/женский/i.test(rawPos)) gender = 'f';
+    } else if (/Прилагательное/i.test(rawPos)) {
+      partOfSpeech = 'adjective';
+    } else if (/Предлог/i.test(rawPos)) {
+      partOfSpeech = 'preposition';
+    } else if (/Числительное/i.test(rawPos)) {
+      partOfSpeech = 'numeral';
+    }
+
+    const pointed = lemmaMatch ? cleanText(lemmaMatch[1]) : '';
+    let transcription = '';
+    if (transMatch) {
+      transcription = transMatch[1]
+        .replace(/<b>([^<]+)<\/b>/gi, '$1\u0301')
+        .replace(/<[^>]+>/g, '')
+        .trim();
+    }
+    const root = rootMatch ? cleanText(rootMatch[1]).replace(/\s+/g, ' ').trim().replace(/\s*-\s*/g, '-') : null;
+    const meaning = meaningMatch ? cleanText(meaningMatch[1]) : '';
+
+    items.push({
+      id,
+      slug,
+      path: fullPath,
+      hebrew: pointed,
+      hebrewPlain: stripNikkud(pointed),
+      transcription,
+      audio: audioMatch ? audioMatch[1] : null,
+      partOfSpeech,
+      binyan,
+      gender,
+      root,
+      meaning,
+    });
+  }
+  return items;
+}
+
+async function crawlCatalog(options = {}) {
+  const startPage = options.startPage || 1;
+  const endPage = options.endPage || 622;
+  const concurrency = options.concurrency || 4;
+  const delayMs = options.delayMs || 120;
+  const force = options.force || false;
+
+  console.log(`\n=== Индексация каталога Pealim (страницы ${startPage}..${endPage}) ===`);
+
+  let catalogMap = new Map();
+
+  if (!force && fs.existsSync(catalogIndexFile)) {
+    try {
+      const existing = JSON.parse(fs.readFileSync(catalogIndexFile, 'utf8'));
+      for (const item of existing) {
+        catalogMap.set(item.slug, item);
+      }
+      console.log(`Найден существующий индекс каталога: ${catalogMap.size} слов.`);
+      if (catalogMap.size >= 9300 && !options.startPage) {
+        console.log(`Каталог уже полностью проиндексирован (${catalogMap.size} слов). Для перезапуска используйте --force.`);
+        return Array.from(catalogMap.values()).sort((a, b) => a.id - b.id);
+      }
+    } catch (e) {
+      catalogMap = new Map();
+    }
+  }
+
+  const pagesToFetch = [];
+  for (let p = startPage; p <= endPage; p++) {
+    pagesToFetch.push(p);
+  }
+
+  let completedPages = 0;
+  for (let i = 0; i < pagesToFetch.length; i += concurrency) {
+    const batch = pagesToFetch.slice(i, i + concurrency);
+    const batchResults = await Promise.all(
+      batch.map(async (pageNum) => {
+        try {
+          const items = await fetchCatalogPage(pageNum);
+          return { pageNum, items, error: null };
+        } catch (err) {
+          return { pageNum, items: [], error: err.message };
+        }
+      })
+    );
+
+    for (const res of batchResults) {
+      completedPages++;
+      if (res.error) {
+        console.warn(`\n[Каталог] Стр. ${res.pageNum} ошибка: ${res.error}`);
+      } else {
+        for (const it of res.items) {
+          catalogMap.set(it.slug, it);
+        }
+      }
+    }
+
+    process.stdout.write(`\r[Каталог] Обработано страниц: ${completedPages}/${pagesToFetch.length} | Уникальных слов в индексе: ${catalogMap.size}   `);
+
+    if (completedPages % 20 === 0 || completedPages === pagesToFetch.length) {
+      const arr = Array.from(catalogMap.values()).sort((a, b) => a.id - b.id);
+      fs.writeFileSync(catalogIndexFile, JSON.stringify(arr, null, 2), 'utf8');
+    }
+
+    await new Promise((r) => setTimeout(r, delayMs));
+  }
+
+  const finalCatalog = Array.from(catalogMap.values()).sort((a, b) => a.id - b.id);
+  fs.writeFileSync(catalogIndexFile, JSON.stringify(finalCatalog, null, 2), 'utf8');
+
+  const verbsCount = finalCatalog.filter((w) => w.partOfSpeech === 'verb').length;
+  const nounsCount = finalCatalog.filter((w) => w.partOfSpeech === 'noun').length;
+  const adjCount = finalCatalog.filter((w) => w.partOfSpeech === 'adjective').length;
+  const rootsCount = new Set(finalCatalog.map((w) => w.root).filter(Boolean)).size;
+
+  console.log(`\n\n=== Индексация каталога завершена! ===`);
+  console.log(`Всего слов сохранено: ${finalCatalog.length}`);
+  console.log(`Глаголов: ${verbsCount} | Существительных: ${nounsCount} | Прилагательных: ${adjCount}`);
+  console.log(`Уникальных корней: ${rootsCount}`);
+  console.log(`Файл индекса: ${catalogIndexFile}`);
+
+  return finalCatalog;
+}
+
+async function scrapeAllWords(options = {}) {
+  const verbsOnly = options.verbsOnly || false;
+  const concurrency = options.concurrency || 3;
+  const delayMs = options.delayMs || 250;
+  const limit = options.limit || Infinity;
+  const syncDb = options.syncDb !== false;
+
+  console.log('=== Полная выгрузка базы Pealim ===');
+
+  let catalog = [];
+  if (fs.existsSync(catalogIndexFile)) {
+    try {
+      catalog = JSON.parse(fs.readFileSync(catalogIndexFile, 'utf8'));
+    } catch (e) {
+      catalog = [];
+    }
+  }
+  if (!catalog || catalog.length < 9000) {
+    catalog = await crawlCatalog({ concurrency: 4, delayMs: 120 });
+  }
+
+  let masterDict = {};
+  if (fs.existsSync(outputFile)) {
+    try {
+      masterDict = JSON.parse(fs.readFileSync(outputFile, 'utf8'));
+      console.log(`Загружен существующий мастер-словарь: ${Object.keys(masterDict).length} записей.`);
+    } catch (e) {
+      masterDict = {};
+    }
+  }
+
+  // Prepopulate master dictionary with catalog entries if missing
+  let initialNew = 0;
+  for (const item of catalog) {
+    const key = item.hebrewPlain;
+    if (!masterDict[key]) {
+      masterDict[key] = {
+        hebrew: item.hebrew,
+        hebrewPlain: item.hebrewPlain,
+        transcription: item.transcription,
+        translation: item.meaning,
+        partOfSpeech: item.partOfSpeech,
+        binyan: item.binyan || null,
+        gender: item.gender || null,
+        root: item.root || null,
+        audio: item.audio || null,
+        slug: item.slug,
+        pealimPath: item.path,
+        rootFamily: [],
+        conjugation: null,
+        source: 'pealim_catalog',
+      };
+      initialNew++;
+    } else {
+      if (!masterDict[key].audio && item.audio) masterDict[key].audio = item.audio;
+      if (!masterDict[key].pealimPath && item.path) masterDict[key].pealimPath = item.path;
+      if (!masterDict[key].root && item.root) masterDict[key].root = item.root;
+      if (!masterDict[key].binyan && item.binyan) masterDict[key].binyan = item.binyan;
+    }
+  }
+  if (initialNew > 0) {
+    fs.writeFileSync(outputFile, JSON.stringify(masterDict, null, 2), 'utf8');
+    console.log(`Базовый индекс синхронизирован: добавлено ${initialNew} новых словарных записей.`);
+  }
+
+  let wordsToFetch = catalog;
+  if (verbsOnly) {
+    wordsToFetch = catalog.filter((w) => w.partOfSpeech === 'verb');
+  }
+
+  const pendingItems = wordsToFetch.filter((item) => {
+    const entry = masterDict[item.hebrewPlain];
+    if (!entry) return true;
+    if (item.partOfSpeech === 'verb' && !entry.conjugation) return true;
+    if (entry.source === 'pealim_catalog' && item.partOfSpeech === 'verb') return true;
+    return false;
+  });
+
+  console.log(`\nОчередь на подробную выгрузку карточек: ${pendingItems.length} (ограничение: ${limit === Infinity ? 'нет' : limit})`);
+
+  let processed = 0;
+  let successCount = 0;
+  let errorCount = 0;
+
+  for (let i = 0; i < pendingItems.length && processed < limit; i += concurrency) {
+    const batch = pendingItems.slice(i, Math.min(i + concurrency, pendingItems.length));
+    const batchPromises = batch.map(async (item) => {
+      if (processed >= limit) return null;
+      processed++;
+      const wordKey = item.hebrewPlain;
+      const dictPath = item.path.startsWith('/ru/') ? item.path : `/ru${item.path}`;
+
+      try {
+        const pageHtml = await fetchWithRetry('https://www.pealim.com' + dictPath);
+        const parsed = parsePealimHtml(pageHtml, dictPath);
+
+        masterDict[wordKey] = {
+          ...masterDict[wordKey],
+          ...parsed,
+          audio: item.audio || parsed.audio || masterDict[wordKey]?.audio,
+          source: 'pealim',
+        };
+        successCount++;
+        return { item, parsed, error: null };
+      } catch (err) {
+        errorCount++;
+        return { item, parsed: null, error: err.message };
+      }
+    });
+
+    const results = await Promise.all(batchPromises);
+    for (const r of results) {
+      if (!r) continue;
+      if (r.error) {
+        console.log(`\n❌ [${processed}/${pendingItems.length}] ${r.item.hebrewPlain}: ${r.error}`);
+      } else {
+        const rootStr = r.parsed.root ? `[${r.parsed.root}]` : '';
+        const rfStr = r.parsed.rootFamily.length > 0 ? `[семья: ${r.parsed.rootFamily.length}]` : '';
+        const conjStr = r.parsed.conjugation ? `[спряжения: да]` : '';
+        process.stdout.write(`\r[${processed}/${pendingItems.length}] ${r.parsed.hebrew} (${r.parsed.transcription}) ${rootStr} ${rfStr} ${conjStr}        `);
+      }
+    }
+
+    if (processed % 25 === 0 || processed >= pendingItems.length) {
+      fs.writeFileSync(outputFile, JSON.stringify(masterDict, null, 2), 'utf8');
+      console.log(`\n[Checkpoint] Сохранено в ${outputFile} (обработано: ${processed})`);
+    }
+
+    await new Promise((r) => setTimeout(r, delayMs));
+  }
+
+  fs.writeFileSync(outputFile, JSON.stringify(masterDict, null, 2), 'utf8');
+  console.log(`\n=== Подробная выгрузка завершена! ===`);
+  console.log(`Успешно обработано: ${successCount}`);
+  console.log(`Ошибок: ${errorCount}`);
+  console.log(`Всего слов в словаре: ${Object.keys(masterDict).length}`);
+
+  if (syncDb) {
+    console.log(`Синхронизация verbConjugations/database.ts...`);
+    syncVerbDatabase();
+  }
+}
+
 async function main() {
   const args = process.argv.slice(2);
+  if (args.includes('--fix-spaces')) {
+    normalizeTranscriptionSpaces(true);
+    syncVerbDatabase();
+    return;
+  }
   if (args.includes('--sync-db')) {
     syncVerbDatabase();
     return;
   }
-  const verbsOnly = args.includes('--verbs-only');
+
   const limitIndex = args.indexOf('--limit');
   const limit = limitIndex !== -1 ? parseInt(args[limitIndex + 1], 10) : Infinity;
+
+  const concurrencyIndex = args.indexOf('--concurrency');
+  const concurrency = concurrencyIndex !== -1 ? parseInt(args[concurrencyIndex + 1], 10) : 4;
+
+  const startPageIndex = args.indexOf('--start-page');
+  const startPage = startPageIndex !== -1 ? parseInt(args[startPageIndex + 1], 10) : 1;
+
+  const endPageIndex = args.indexOf('--end-page');
+  const endPage = endPageIndex !== -1 ? parseInt(args[endPageIndex + 1], 10) : 622;
+
+  const force = args.includes('--force');
+  const verbsOnly = args.includes('--verbs-only');
+
+  if (args.includes('--crawl-catalog')) {
+    await crawlCatalog({ startPage, endPage, concurrency, force });
+    return;
+  }
+
+  if (args.includes('--scrape-all')) {
+    await scrapeAllWords({ verbsOnly, concurrency, limit, syncDb: true });
+    return;
+  }
 
   console.log('=== Ульпан Алеф: Загрузчик базы слов и спряжений Pealim ===');
 
