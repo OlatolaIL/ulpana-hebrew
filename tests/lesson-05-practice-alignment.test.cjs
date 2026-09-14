@@ -1,31 +1,10 @@
-// Stub canvas-confetti before components import it
-const confettiPath = require.resolve('canvas-confetti');
-const dummyConfetti = () => Promise.resolve();
-dummyConfetti.reset = () => {};
-dummyConfetti.create = () => dummyConfetti;
-dummyConfetti.shapeFromPath = () => {};
-dummyConfetti.shapeFromText = () => {};
-dummyConfetti.default = dummyConfetti;
-require.cache[confettiPath] = {
-  id: confettiPath,
-  filename: confettiPath,
-  loaded: true,
-  exports: dummyConfetti,
-};
-
+/* eslint-disable @typescript-eslint/no-require-imports */
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const React = require('react');
-const { createRoot } = require('react-dom/client');
-const { act } = require('react');
-const { JSDOM } = require('jsdom');
-const speechModule = require('../src/lib/speech.ts');
 const { DETAILED_LESSONS } = require('../src/data/lessonsData.ts');
 const { getLessonPhoneScenario, BESPOKE_PHONE_SCENARIOS } = require('../src/data/phoneScenarios.ts');
 const { getExerciseSentence } = require('../src/lib/exerciseSentence.ts');
 const { areWordsEqual } = require('../src/lib/sentenceParser.ts');
-const { LessonExercises } = require('../src/components/LessonExercises.tsx');
-const { createGuestProfile } = require('../src/lib/storage.ts');
 
 test('Lesson 5: grammar tables and rules provide normative numeral support', () => {
   const lesson5 = DETAILED_LESSONS[5];
@@ -135,95 +114,210 @@ test('Lesson 5: all 12 exercises have unique IDs, selectable answers and solvabl
   const ex5_9 = lesson5.exercises.find(e => e.id === 'ex5-9');
   assert.equal(ex5_9.type, 'listening');
   assert.equal(ex5_9.hebrewSnippet, 'לֶחֶם');
-
 });
 
-test('Lesson 5 interactive mechanics in jsdom: ex5-2, ex5-6, ex5-7 negative & positive answers with state verification', async () => {
-  const dom = new JSDOM('<!doctype html><html><body><div id="root"></div></body></html>');
-  global.window = dom.window;
-  global.document = dom.window.document;
-  global.navigator = dom.window.navigator;
-  global.HTMLElement = dom.window.HTMLElement;
-  global.Element = dom.window.Element;
-  global.Node = dom.window.Node;
-  global.IS_REACT_ACT_ENVIRONMENT = true;
-  global.addEventListener = dom.window.addEventListener.bind(dom.window);
-  global.removeEventListener = dom.window.removeEventListener.bind(dom.window);
-  dom.window.Element.prototype.scrollIntoView = () => {};
-  dom.window.scrollTo = () => {};
-  speechModule.speakHebrew = () => {};
+test('Lesson 5 interactive mechanics in jsdom: ex5-2, ex5-6, ex5-7 negative & positive answers with state verification', async (t) => {
+  // Tracked globals for rigorous restoration
+  const trackedGlobals = [
+    'window',
+    'document',
+    'navigator',
+    'HTMLElement',
+    'Element',
+    'Node',
+    'HTMLTextAreaElement',
+    'IS_REACT_ACT_ENVIRONMENT',
+    'addEventListener',
+    'removeEventListener',
+    'requestAnimationFrame',
+    'cancelAnimationFrame',
+  ];
 
-  const container = dom.window.document.getElementById('root');
-  const root = createRoot(container);
-  const lesson5 = DETAILED_LESSONS[5];
-  const ex5_2 = lesson5.exercises.find(e => e.id === 'ex5-2');
-  const ex5_6 = lesson5.exercises.find(e => e.id === 'ex5-6');
-  const ex5_7 = lesson5.exercises.find(e => e.id === 'ex5-7');
+  const savedGlobalDescriptors = {};
+  for (const key of trackedGlobals) {
+    savedGlobalDescriptors[key] = Object.getOwnPropertyDescriptor(global, key);
+  }
 
-  await act(async () => {
-    root.render(
-      React.createElement(LessonExercises, {
-        lesson: { ...lesson5, exercises: [ex5_2, ex5_6, ex5_7] },
-        userProfile: createGuestProfile(),
-      })
-    );
-  });
+  const confettiPath = require.resolve('canvas-confetti');
+  const exercisesPath = require.resolve('../src/components/LessonExercises.tsx');
+  const savedConfettiEntry = require.cache[confettiPath];
+  const savedExercisesEntry = require.cache[exercisesPath];
 
-  const getButtons = () => Array.from(container.querySelectorAll('button'));
+  const speechModule = require('../src/lib/speech.ts');
+  const origSpeakHebrew = speechModule.speakHebrew;
 
-  // --- Step 1: ex5-2 (Preposition merger: בַּשּׁוּק vs בְּשׁוּק) ---
-  const wrongBtn = getButtons().find(b => b.textContent && b.textContent.trim() === 'בְּשׁוּק');
-  assert.ok(wrongBtn, 'Wrong button בְּשׁוּק must exist');
-  await act(async () => { wrongBtn.click(); });
-  assert.ok(container.textContent.includes('Почти получилось! Обратите внимание:'), 'Must show error header for wrong answer');
-  const retryBtn = getButtons().find(b => b.textContent && b.textContent.includes('Попробовать ещё раз'));
-  assert.ok(retryBtn, 'Retry button must exist after wrong answer');
+  let dom = null;
+  let root = null;
 
-  await act(async () => { retryBtn.click(); });
-  assert.ok(!container.textContent.includes('Почти получилось'), 'Error header must disappear after retry');
+  const cleanup = async () => {
+    if (root) {
+      try {
+        const { act } = require('react');
+        await act(async () => {
+          root.unmount();
+        });
+      } catch {
+        // ignore unmount errors
+      }
+      root = null;
+    }
 
-  const correctBtn = getButtons().find(b => b.textContent && b.textContent.trim() === 'בַּשּׁוּק');
-  assert.ok(correctBtn, 'Correct button בַּשּׁוּק must exist');
-  await act(async () => { correctBtn.click(); });
-  assert.ok(container.textContent.includes('Верно! Отличный ответ.'), 'Must show success message');
+    if (dom && dom.window) {
+      try {
+        dom.window.close();
+      } catch {
+        // ignore close errors
+      }
+      dom = null;
+    }
 
-  let nextBtn = getButtons().find(b => b.textContent && b.textContent.includes('Следующий вопрос'));
-  assert.ok(nextBtn, 'Next button must exist after correct answer');
-  await act(async () => { nextBtn.click(); });
+    for (const key of trackedGlobals) {
+      const desc = savedGlobalDescriptors[key];
+      if (desc) {
+        Object.defineProperty(global, key, desc);
+      } else {
+        delete global[key];
+      }
+    }
 
-  // --- Step 2: ex5-6 (Feminine numeral agreement: שָׁלוֹשׁ עַגְבָנִיּוֹת vs שְׁלוֹשָׁה עַגְבָנִיּוֹת) ---
-  const wrongBtn6 = getButtons().find(b => b.textContent && b.textContent.trim() === 'שְׁלוֹשָׁה עַגְבָנִיּוֹת');
-  assert.ok(wrongBtn6, 'Wrong button שְׁלוֹשָׁה עַגְבָנִיּוֹת must exist');
-  await act(async () => { wrongBtn6.click(); });
-  assert.ok(container.textContent.includes('Почти получилось! Обратите внимание:'), 'Must show error header for ex5-6 wrong');
-  const retryBtn6 = getButtons().find(b => b.textContent && b.textContent.includes('Попробовать ещё раз'));
-  assert.ok(retryBtn6, 'Retry button must exist after ex5-6 error');
-  await act(async () => { retryBtn6.click(); });
+    speechModule.speakHebrew = origSpeakHebrew;
 
-  const correctBtn6 = getButtons().find(b => b.textContent && b.textContent.trim() === 'שָׁלוֹשׁ עַגְבָנִיּוֹת');
-  assert.ok(correctBtn6, 'Correct button שָׁלוֹשׁ עַגְבָנִיּוֹת must exist');
-  await act(async () => { correctBtn6.click(); });
-  assert.ok(container.textContent.includes('Верно! Отличный ответ.'), 'Must show success for ex5-6');
-  nextBtn = getButtons().find(b => b.textContent && b.textContent.includes('Следующий вопрос'));
-  assert.ok(nextBtn, 'Next button must exist after ex5-6 correct');
-  await act(async () => { nextBtn.click(); });
+    if (savedConfettiEntry) {
+      require.cache[confettiPath] = savedConfettiEntry;
+    } else {
+      delete require.cache[confettiPath];
+    }
 
-  // --- Step 3: ex5-7 (Masculine numeral agreement: עֲשָׂרָה vs עֶשֶׂר) ---
-  const wrongBtn7 = getButtons().find(b => b.textContent && b.textContent.trim() === 'עֶשֶׂר');
-  assert.ok(wrongBtn7, 'Wrong button עֶשֶׂר must exist');
-  await act(async () => { wrongBtn7.click(); });
-  assert.ok(container.textContent.includes('Почти получилось! Обратите внимание:'), 'Must show error header for ex5-7 wrong');
-  const retryBtn7 = getButtons().find(b => b.textContent && b.textContent.includes('Попробовать ещё раз'));
-  assert.ok(retryBtn7, 'Retry button must exist after ex5-7 error');
-  await act(async () => { retryBtn7.click(); });
+    if (savedExercisesEntry) {
+      require.cache[exercisesPath] = savedExercisesEntry;
+    } else {
+      delete require.cache[exercisesPath];
+    }
+  };
 
-  const correctBtn7 = getButtons().find(b => b.textContent && b.textContent.trim() === 'עֲשָׂרָה');
-  assert.ok(correctBtn7, 'Correct button עֲשָׂרָה must exist');
-  await act(async () => { correctBtn7.click(); });
-  assert.ok(container.textContent.includes('Верно! Отличный ответ.'), 'Must show success for ex5-7');
+  t.after(cleanup);
 
-  await act(async () => { root.unmount(); });
-  dom.window.close();
+  try {
+    // Dummy confetti stub
+    const dummyConfetti = () => Promise.resolve();
+    dummyConfetti.reset = () => {};
+    dummyConfetti.create = () => dummyConfetti;
+    dummyConfetti.shapeFromPath = () => {};
+    dummyConfetti.shapeFromText = () => {};
+    dummyConfetti.default = dummyConfetti;
+
+    require.cache[confettiPath] = {
+      id: confettiPath,
+      filename: confettiPath,
+      loaded: true,
+      exports: dummyConfetti,
+    };
+
+    // Ensure LessonExercises is loaded with dummyConfetti
+    delete require.cache[exercisesPath];
+
+    const { JSDOM } = require('jsdom');
+    dom = new JSDOM('<!doctype html><html><body><div id="root"></div></body></html>', {
+      url: 'http://localhost',
+      pretendToBeVisual: true,
+    });
+
+    global.window = dom.window;
+    global.document = dom.window.document;
+    global.navigator = dom.window.navigator;
+    global.HTMLElement = dom.window.HTMLElement;
+    global.Element = dom.window.Element;
+    global.Node = dom.window.Node;
+    global.HTMLTextAreaElement = dom.window.HTMLTextAreaElement;
+    global.IS_REACT_ACT_ENVIRONMENT = true;
+    global.addEventListener = dom.window.addEventListener.bind(dom.window);
+    global.removeEventListener = dom.window.removeEventListener.bind(dom.window);
+    dom.window.requestAnimationFrame = (cb) => setTimeout(cb, 0);
+    dom.window.cancelAnimationFrame = (id) => clearTimeout(id);
+    global.requestAnimationFrame = dom.window.requestAnimationFrame;
+    global.cancelAnimationFrame = dom.window.cancelAnimationFrame;
+    dom.window.Element.prototype.scrollIntoView = () => {};
+    dom.window.scrollTo = () => {};
+
+    speechModule.speakHebrew = () => {};
+
+    const React = require('react');
+    const { createRoot } = require('react-dom/client');
+    const { act } = require('react');
+    const { LessonExercises } = require('../src/components/LessonExercises.tsx');
+    const { createGuestProfile } = require('../src/lib/storage.ts');
+
+    const container = dom.window.document.getElementById('root');
+    root = createRoot(container);
+    const lesson5 = DETAILED_LESSONS[5];
+    const ex5_2 = lesson5.exercises.find(e => e.id === 'ex5-2');
+    const ex5_6 = lesson5.exercises.find(e => e.id === 'ex5-6');
+    const ex5_7 = lesson5.exercises.find(e => e.id === 'ex5-7');
+
+    await act(async () => {
+      root.render(
+        React.createElement(LessonExercises, {
+          lesson: { ...lesson5, exercises: [ex5_2, ex5_6, ex5_7] },
+          userProfile: createGuestProfile(),
+        })
+      );
+    });
+
+    const getButtons = () => Array.from(container.querySelectorAll('button'));
+
+    // --- Step 1: ex5-2 (Preposition merger: בַּשּׁוּק vs בְּשׁוּק) ---
+    const wrongBtn = getButtons().find(b => b.textContent && b.textContent.trim() === 'בְּשׁוּק');
+    assert.ok(wrongBtn, 'Wrong button בְּשׁוּק must exist');
+    await act(async () => { wrongBtn.click(); });
+    assert.ok(container.textContent.includes('Почти получилось! Обратите внимание:'), 'Must show error header for wrong answer');
+    const retryBtn = getButtons().find(b => b.textContent && b.textContent.includes('Попробовать ещё раз'));
+    assert.ok(retryBtn, 'Retry button must exist after wrong answer');
+
+    await act(async () => { retryBtn.click(); });
+    assert.ok(!container.textContent.includes('Почти получилось'), 'Error header must disappear after retry');
+
+    const correctBtn = getButtons().find(b => b.textContent && b.textContent.trim() === 'בַּשּׁוּק');
+    assert.ok(correctBtn, 'Correct button בַּשּׁוּק must exist');
+    await act(async () => { correctBtn.click(); });
+    assert.ok(container.textContent.includes('Верно! Отличный ответ.'), 'Must show success message');
+
+    let nextBtn = getButtons().find(b => b.textContent && b.textContent.includes('Следующий вопрос'));
+    assert.ok(nextBtn, 'Next button must exist after correct answer');
+    await act(async () => { nextBtn.click(); });
+
+    // --- Step 2: ex5-6 (Feminine numeral agreement: שָׁלוֹשׁ עַגְבָנִיּוֹת vs שְׁלוֹשָׁה עַגְבָנִיּוֹת) ---
+    const wrongBtn6 = getButtons().find(b => b.textContent && b.textContent.trim() === 'שְׁלוֹשָׁה עַגְבָנִיּוֹת');
+    assert.ok(wrongBtn6, 'Wrong button שְׁלוֹשָׁה עַגְבָנִיּוֹת must exist');
+    await act(async () => { wrongBtn6.click(); });
+    assert.ok(container.textContent.includes('Почти получилось! Обратите внимание:'), 'Must show error header for ex5-6 wrong');
+    const retryBtn6 = getButtons().find(b => b.textContent && b.textContent.includes('Попробовать ещё раз'));
+    assert.ok(retryBtn6, 'Retry button must exist after ex5-6 error');
+    await act(async () => { retryBtn6.click(); });
+
+    const correctBtn6 = getButtons().find(b => b.textContent && b.textContent.trim() === 'שָׁלוֹשׁ עַגְבָנִיּוֹת');
+    assert.ok(correctBtn6, 'Correct button שָׁלוֹשׁ עַגְבָנִיּוֹת must exist');
+    await act(async () => { correctBtn6.click(); });
+    assert.ok(container.textContent.includes('Верно! Отличный ответ.'), 'Must show success for ex5-6');
+    nextBtn = getButtons().find(b => b.textContent && b.textContent.includes('Следующий вопрос'));
+    assert.ok(nextBtn, 'Next button must exist after ex5-6 correct');
+    await act(async () => { nextBtn.click(); });
+
+    // --- Step 3: ex5-7 (Masculine numeral agreement: עֲשָׂרָה vs עֶשֶׂר) ---
+    const wrongBtn7 = getButtons().find(b => b.textContent && b.textContent.trim() === 'עֶשֶׂר');
+    assert.ok(wrongBtn7, 'Wrong button עֶשֶׂר must exist');
+    await act(async () => { wrongBtn7.click(); });
+    assert.ok(container.textContent.includes('Почти получилось! Обратите внимание:'), 'Must show error header for ex5-7 wrong');
+    const retryBtn7 = getButtons().find(b => b.textContent && b.textContent.includes('Попробовать ещё раз'));
+    assert.ok(retryBtn7, 'Retry button must exist after ex5-7 error');
+    await act(async () => { retryBtn7.click(); });
+
+    const correctBtn7 = getButtons().find(b => b.textContent && b.textContent.trim() === 'עֲשָׂרָה');
+    assert.ok(correctBtn7, 'Correct button עֲשָׂרָה must exist');
+    await act(async () => { correctBtn7.click(); });
+    assert.ok(container.textContent.includes('Верно! Отличный ответ.'), 'Must show success for ex5-7');
+  } finally {
+    await cleanup();
+  }
 });
 
 test('Lesson 5 phone scenario: grocery store seller David for male and female students', () => {
