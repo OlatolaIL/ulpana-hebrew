@@ -164,7 +164,7 @@ export async function POST(req: NextRequest) {
 
           await db.query(
             `INSERT INTO ulpana_lesson_progress (user_id, lesson_id, completed_tabs, is_completed, score, last_visited, essay, updated_at)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
+             VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb, NOW())
              ON CONFLICT (user_id, lesson_id)
              DO UPDATE SET
                completed_tabs = EXCLUDED.completed_tabs,

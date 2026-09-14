@@ -65,16 +65,49 @@ export function syncProfile(profile: UserProfile): Promise<void> {
     if (generation !== startedGeneration || loadUserProfile().id !== userId) return;
     const expectedRevision = revisions.get(userId) ?? snapshot.cloudRevision;
     if (expectedRevision === undefined) throw new Error('Сначала загрузите облачный профиль. Локальные изменения сохранены.');
+    const validTabs = ['theory', 'vocab', 'exercises', 'essay', 'chat', 'phone'];
+    const sanitizedLessonProgress: Record<string, any> = {};
+    if (snapshot.lessonProgress && typeof snapshot.lessonProgress === 'object') {
+      for (const [idStr, prog] of Object.entries(snapshot.lessonProgress)) {
+        if (!prog || typeof prog !== 'object') continue;
+        sanitizedLessonProgress[idStr] = {
+          ...prog,
+          completedTabs: Array.from(new Set((prog.completedTabs || []).filter((t: string) => validTabs.includes(t)))),
+          isCompleted: Boolean(prog.isCompleted),
+          lastVisited: Number(prog.lastVisited) || Date.now(),
+          score: typeof prog.score === 'number' && Number.isFinite(prog.score) ? Math.round(prog.score) : 0,
+        };
+      }
+    }
+
+    const sanitizedVocabulary = Array.isArray(snapshot.personalVocabulary)
+      ? snapshot.personalVocabulary.map((w) => ({
+          ...w,
+          lessonId: typeof w.lessonId === 'number' ? w.lessonId : 0,
+          root: typeof w.root === 'string' && w.root ? w.root : undefined,
+          transcription: typeof w.transcription === 'string' ? w.transcription : '',
+          partOfSpeech: typeof w.partOfSpeech === 'string' ? w.partOfSpeech : 'other',
+        }))
+      : [];
+
     const response = await fetch('/api/user/sync', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         expectedUserId: userId, expectedRevision,
-        lessonProgress: snapshot.lessonProgress, personalVocabulary: snapshot.personalVocabulary,
-        flashcardStats: snapshot.flashcardStats, gender: snapshot.gender, fontStyle: snapshot.fontStyle,
+        lessonProgress: sanitizedLessonProgress, personalVocabulary: sanitizedVocabulary,
+        flashcardStats: snapshot.flashcardStats || {}, gender: snapshot.gender, fontStyle: snapshot.fontStyle,
       }),
     });
     if (response.status === 409) throw new Error('Профиль изменён на другом устройстве. Выберите, какую версию сохранить.');
-    if (!response.ok) throw new Error('Не удалось сохранить в облаке. Изменения остаются в этом браузере.');
+    if (!response.ok) {
+      let serverError = '';
+      try {
+        const errorData = await response.json();
+        if (errorData?.error) serverError = `: ${errorData.error}`;
+      } catch {}
+      console.error('[profileSync] POST /api/user/sync failed:', response.status, serverError);
+      throw new Error(`Не удалось сохранить в облаке${serverError}. Изменения остаются в этом браузере.`);
+    }
     const result = await response.json();
     if (result.userId !== userId || !Number.isSafeInteger(result.revision)) throw new Error('Не удалось подтвердить сохранение.');
     revisions.set(userId, result.revision);

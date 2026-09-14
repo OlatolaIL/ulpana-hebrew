@@ -17,24 +17,76 @@ export function parseProfileSnapshot(body: Record<string, unknown>): ProfileSnap
       !record(lessonProgress) || Object.keys(lessonProgress).length > 100 ||
       !Array.isArray(personalVocabulary) || personalVocabulary.length > 10000 ||
       !record(flashcardStats) || Object.keys(flashcardStats).length > 20000) fail();
+
+  const cleanLessonProgress: Record<string, any> = {};
   for (const [id, progress] of Object.entries(lessonProgress as Record<string, unknown>)) {
     if (!/^(?:[1-9][0-9]?|100)$/.test(id) || !record(progress)) fail();
     const p = progress as Record<string, unknown>;
-    if (!Array.isArray(p.completedTabs) || p.completedTabs.length > 6 || new Set(p.completedTabs).size !== p.completedTabs.length ||
-        p.completedTabs.some(t => !tabs.includes(t)) || typeof p.isCompleted !== 'boolean' ||
-        (p.score !== undefined && !number(p.score, 0, 100)) || !number(p.lastVisited)) fail();
-    if (p.essay !== undefined && p.essay !== null && (!record(p.essay) || !text(p.essay.text, 20000) || !number(p.essay.updatedAt) || !record(p.essay.evaluation))) fail();
+    const completedTabsRaw = p.completedTabs;
+    if (!Array.isArray(completedTabsRaw)) fail();
+    const cleanTabs = Array.from(new Set((completedTabsRaw as unknown[]).filter((t: unknown): t is string => typeof t === 'string' && tabs.includes(t))));
+    if (cleanTabs.length > 6) fail();
+
+    if (p.score !== undefined && p.score !== null && !number(p.score, 0, 100)) fail();
+    const score = p.score !== undefined && p.score !== null ? Number(p.score) : 0;
+    const lastVisited = number(p.lastVisited) ? Number(p.lastVisited) : Date.now();
+    const isCompleted = typeof p.isCompleted === 'boolean' ? p.isCompleted : cleanTabs.length === 6;
+
+    if (p.essay !== undefined && p.essay !== null && (!record(p.essay) || !text(p.essay.text, 20000) || (p.essay.updatedAt !== undefined && !number(p.essay.updatedAt)) || !record(p.essay.evaluation))) fail();
+
+    cleanLessonProgress[id] = {
+      completedTabs: cleanTabs,
+      isCompleted,
+      score,
+      lastVisited,
+      ...(p.essay ? { essay: p.essay } : {}),
+    };
   }
-  for (const word of personalVocabulary as unknown[]) {
-    if (!record(word) || !text(word.hebrew) || !text(word.translation) ||
-        ['hebrewPlain', 'transcription', 'root', 'partOfSpeech'].some(key => word[key] !== undefined && !text(word[key])) ||
-        (word.lessonId !== undefined && (!Number.isInteger(word.lessonId) || !number(word.lessonId, 0, 100)))) fail();
+
+  const cleanVocabulary: any[] = [];
+  for (const rawWord of personalVocabulary as unknown[]) {
+    if (!record(rawWord) || !text(rawWord.hebrew) || !text(rawWord.translation)) fail();
+    const w: Record<string, any> = { ...(rawWord as Record<string, unknown>) };
+    if (w.root === null) delete w.root;
+    if (w.lessonId === null || w.lessonId === undefined) w.lessonId = 0;
+    if (w.transcription === null) w.transcription = '';
+    if (w.partOfSpeech === null) w.partOfSpeech = 'other';
+    if (w.hebrewPlain === null) delete w.hebrewPlain;
+
+    if (['hebrewPlain', 'transcription', 'root', 'partOfSpeech'].some(key => w[key] !== undefined && !text(w[key])) ||
+        (!Number.isInteger(w.lessonId) || !number(w.lessonId, 0, 100))) fail();
+    cleanVocabulary.push(w);
   }
+
+  const cleanFlashcards: Record<string, unknown> = {};
   for (const [id, stat] of Object.entries(flashcardStats as Record<string, unknown>)) {
-    if (id.length > 256 || !record(stat)) fail();
+    if (id.length > 256 || !record(stat)) continue;
     const s = stat as Record<string, unknown>;
-    if (!text(s.wordId, 256) || ['interval', 'easeFactor', 'repetitions', 'nextReviewDate', 'lastReviewDate'].some(key => !number(s[key])) ||
-        !Array.isArray(s.history) || s.history.some(v => !number(v, 0, 5))) fail();
+    const wordId = text(s.wordId, 256) ? String(s.wordId) : id;
+    const interval = number(s.interval) ? Number(s.interval) : 1;
+    const easeFactor = number(s.easeFactor) ? Number(s.easeFactor) : 2.5;
+    const repetitions = number(s.repetitions) ? Number(s.repetitions) : 0;
+    const nextReviewDate = number(s.nextReviewDate) ? Number(s.nextReviewDate) : Date.now();
+    const lastReviewDate = number(s.lastReviewDate) ? Number(s.lastReviewDate) : Date.now();
+    const history = Array.isArray(s.history) ? s.history.filter(v => number(v, 0, 5)) : [];
+    cleanFlashcards[id] = {
+      wordId,
+      interval,
+      easeFactor,
+      repetitions,
+      nextReviewDate,
+      lastReviewDate,
+      history,
+    };
   }
-  return body as ProfileSnapshot;
+
+  return {
+    expectedUserId: String(body.expectedUserId),
+    expectedRevision: Number(body.expectedRevision),
+    gender: body.gender as 'male' | 'female',
+    fontStyle: body.fontStyle as 'print' | 'cursive',
+    lessonProgress: cleanLessonProgress,
+    personalVocabulary: cleanVocabulary,
+    flashcardStats: cleanFlashcards,
+  } as ProfileSnapshot;
 }

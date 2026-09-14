@@ -135,6 +135,12 @@ export function loadUserProfile(): UserProfile {
           tabs.includes('phone');
 
         prog.isCompleted = isFullyDone;
+        if (!prog.lastVisited) {
+          prog.lastVisited = Date.now();
+        }
+        if (prog.score !== undefined && !Number.isFinite(prog.score)) {
+          delete prog.score;
+        }
         if (isFullyDone) {
           actualCompleted.push(id);
         }
@@ -416,6 +422,7 @@ export function resetLessonEssay(lessonId: number): UserProfile {
     const current = profile.lessonProgress[lessonId];
     current.completedTabs = (current.completedTabs || []).filter((t) => t !== 'essay');
     current.isCompleted = false;
+    current.lastVisited = Date.now();
     delete current.essay;
     delete current.score;
     profile.completedLessons = (profile.completedLessons || []).filter((id) => id !== lessonId);
@@ -466,6 +473,7 @@ export function unmarkLessonTabCompleted(
     const current = profile.lessonProgress[lessonId];
     current.completedTabs = (current.completedTabs || []).filter((t) => t !== tab);
     current.isCompleted = false;
+    current.lastVisited = Date.now();
     profile.completedLessons = (profile.completedLessons || []).filter((id) => id !== lessonId);
     profile.lessonProgress[lessonId] = current;
     saveUserProfile(profile);

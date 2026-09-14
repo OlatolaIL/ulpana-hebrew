@@ -45,3 +45,7 @@ public/demo/*.webm
 public/demo/*.wav
 public/demo/audio_cache/
 *.mp3
+
+# scrapers and indexes
+src/data/pealimCatalogIndex.json
+
