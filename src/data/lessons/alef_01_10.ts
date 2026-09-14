@@ -147,7 +147,7 @@ export const ALEF_LESSONS_01_10: Record<number, Lesson> = {
       },
       {
         "id": "w1-4",
-        "hebrew": "תוֹדָה",
+        "hebrew": "תּוֹדָה",
         "hebrewPlain": "תודה",
         "transcription": "тодá",
         "translation": "спасибо",
@@ -290,7 +290,7 @@ export const ALEF_LESSONS_01_10: Record<number, Lesson> = {
         "נָעִים מְאוֹד",
         "קוֹרְאִים לִי",
         "הַכֹּל בְּסֵדֶר",
-        "תוֹדָה"
+        "תּוֹדָה"
       ]
     },
     "exercises": [
@@ -312,7 +312,7 @@ export const ALEF_LESSONS_01_10: Record<number, Lesson> = {
         "type": "word_match",
         "question": "Как переводится «доброе утро» на иврит?",
         "options": [
-          "תוֹדָה",
+          "תּוֹדָה",
           "שָׁלוֹם",
           "בּוֹקֶר טוֹב",
           "עֶרֶב טוֹב"
@@ -371,11 +371,11 @@ export const ALEF_LESSONS_01_10: Record<number, Lesson> = {
         "options": [
           "עֶרֶב טוֹב",
           "שָׁלוֹם",
-          "תוֹדָה",
+          "תּוֹדָה",
           "בּוֹקֶר טוֹב"
         ],
-        "correctAnswer": "תוֹדָה",
-        "explanation": "Слово «תוֹדָה» (тодá) переводится как «спасибо»."
+        "correctAnswer": "תּוֹדָה",
+        "explanation": "Слово «תּוֹדָה» (тодá) переводится как «спасибо»."
       },
       {
         "id": "ex1-7",
@@ -689,7 +689,7 @@ export const ALEF_LESSONS_01_10: Record<number, Lesson> = {
         "קָפֶה עִם חָלָב",
         "עוּגָה",
         "חֶשְׁבּוֹן",
-        "תוֹדָה רַבָּה"
+        "תּוֹדָה רַבָּה"
       ]
     },
     "exercises": [
@@ -904,7 +904,7 @@ export const ALEF_LESSONS_01_10: Record<number, Lesson> = {
               [
                 "Женский род ед.ч.",
                 "גָּרָה",
-                "гáра",
+                "гарá",
                 "живет / живу (ж.р.)"
               ],
               [
@@ -953,7 +953,7 @@ export const ALEF_LESSONS_01_10: Record<number, Lesson> = {
         "id": "w3-3",
         "hebrew": "גָּר / גָּרָה",
         "hebrewPlain": "גר",
-        "transcription": "гар / гáра",
+        "transcription": "гар / гарá",
         "translation": "живет (м.р. / ж.р.)",
         "partOfSpeech": "verb",
         "root": "ג-ו-ר",
@@ -1173,7 +1173,7 @@ export const ALEF_LESSONS_01_10: Record<number, Lesson> = {
           "откуда (лит.)"
         ],
         "correctAnswer": "живет (м.р. / ж.р.)",
-        "explanation": "«גָּר / גָּרָה» (гар / гáра) означает «живет (м.р. / ж.р.)»."
+        "explanation": "«גָּר / גָּרָה» (гар / гарá) означает «живет (м.р. / ж.р.)»."
       },
       {
         "id": "ex3-6",
@@ -2104,7 +2104,7 @@ export const ALEF_LESSONS_01_10: Record<number, Lesson> = {
       "userRole": "Покупатель на шуке",
       "initialMessage": {
         "hebrew": "שָׁלוֹם אֲחִי! יֵשׁ לָנוּ עַגְבָנִיּוֹת וּמְלָפְפֹנִים מְצוּיָנִים הַיּוֹם. מָה תִּרְצֶה לִקְנוֹת?",
-        "transcription": "шалóм ахӣ! йеш лáну агванийóт вэ-млафэфонӣм мэцуянӣм hайóм. ма тирцé ликнóт?",
+        "transcription": "шалóм ахӣ! йеш лáну агванийóт у-млафэфонӣм мэцуянӣм hайóм. ма тирцé ликнóт?",
         "translation": "Привет, друг! У нас сегодня отличные помидоры и огурцы. Что ты хочешь купить?"
       },
       "goals": [
@@ -2116,7 +2116,7 @@ export const ALEF_LESSONS_01_10: Record<number, Lesson> = {
         "כַּמָּה עוֹלֶה קִילוֹ?",
         "אֲנִי רוֹצֶה שְׁנֵי קִילוֹ",
         "אֶפְשָׁר שַׂקִּית?",
-        "תוֹדָה רַבָּה"
+        "תּוֹדָה רַבָּה"
       ],
       "usefulWords": [
         { "hebrew": "כַּמָּה", "transcription": "кáма", "translation": "сколько", "explanation": "ударение на первый слог: кáма!" },
@@ -2142,7 +2142,7 @@ export const ALEF_LESSONS_01_10: Record<number, Lesson> = {
           "targetWords": ["רוצה", "עגבניות", "מלפפונים", "כמה", "עולה", "קילו"],
           "sampleAnswers": [
             { "hebrew": "אֲנִי רוֹצֶה עַגְבָנִיּוֹת, בְּבַקָּשָׁה.", "transcription": "анӣ роцé агванийóт, бэвакашá.", "translation": "Я хочу помидоры, пожалуйста." },
-            { "hebrew": "אֲנִי רוֹצֶה עַגְבָנִיּוֹת וּמְלָפְפֹנִים.", "transcription": "анӣ роцé агванийóт вэ-млафэфонӣм.", "translation": "Я хочу помидоры и огурцы." },
+            { "hebrew": "אֲנִי רוֹצֶה עַגְבָנִיּוֹת וּמְלָפְפֹנִים.", "transcription": "анӣ роцé агванийóт у-млафэфонӣм.", "translation": "Я хочу помидоры и огурцы." },
             { "hebrew": "סְלִיחָה, כַּמָּה עוֹלֶה קִילוֹ עַגְבָנִיּוֹת?", "transcription": "слихá, кáма олé кӣло агванийóт?", "translation": "Извините, сколько стоит килограмм помидоров?" },
             { "hebrew": "כַּמָּה עוֹלֶה קִילוֹ מְלָפְפֹנִים?", "transcription": "кáма олé кӣло млафэфонӣм?", "translation": "Сколько стоит килограмм огурцов?" }
           ]
