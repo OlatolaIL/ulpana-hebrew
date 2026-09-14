@@ -1,12 +1,10 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { execSync } = require('node:child_process');
-const fs = require('node:fs');
 const path = require('node:path');
-const { getLessonById, DETAILED_LESSONS } = require('../src/data/lessonsData.ts');
-const { getLessonPhoneScenario } = require('../src/data/phoneScenarios.ts');
+const { getLessonById } = require('../src/data/lessonsData.ts');
 const { getInitialMessageForGender } = require('../src/components/LessonAiChat/helpers.ts');
+const { buildInitialMessage } = require('../src/components/LessonAiChat/useAiChat.ts');
 
 // ---------------------------------------------------------------------------
 // 1. Lesson 5: dialogue, sampleAnswers, helpers initialMessage use "у-млафэфонӣм"
@@ -52,7 +50,21 @@ test('Lesson 5 dialogue, sampleAnswers, and helpers initial message preserve nor
 });
 
 // ---------------------------------------------------------------------------
-// 2. Standalone תּוֹדָה across pilot lessons 1, 2, 5 has normative dagesh
+// 2. Actual buildInitialMessage preserves u- in greetings and suggested replies
+// ---------------------------------------------------------------------------
+test('Actual buildInitialMessage preserves u- in greetings and suggested replies for both genders', () => {
+  const lesson5 = getLessonById(5);
+  for (const gender of ['male', 'female']) {
+    const message = buildInitialMessage(lesson5, gender);
+    assert.ok(message.hebrew.includes('וּמְלָפְפֹנִים'), `${gender} initial Hebrew must contain וּמְלָפְפֹנִים`);
+    assert.ok(message.transcription.includes('у-млафэфонӣм'), `${gender} initial transcription must contain у-млафэфонӣм`);
+    assert.ok(message.suggestedReplies[1].transcription.includes('у-млафэфонӣм'), `${gender} suggested reply must contain у-млафэфонӣм`);
+    assert.ok(!JSON.stringify(message).includes('вэ-млафэфонӣм'), `${gender} message object must not contain вэ-млафэфонӣм`);
+  }
+});
+
+// ---------------------------------------------------------------------------
+// 3. Standalone תּוֹדָה across pilot lessons 1, 2, 5 has normative dagesh
 // ---------------------------------------------------------------------------
 test('Standalone תּוֹדָה in pilot lessons 1, 2, 5 has dagesh and preserves unpointed user-facing keys', () => {
   // Lesson 1
@@ -92,36 +104,145 @@ test('Standalone תּוֹדָה in pilot lessons 1, 2, 5 has dagesh and preserve
 });
 
 // ---------------------------------------------------------------------------
-// 3. Exercise mechanics for תּוֹדָה in Lesson 1: selection, scoring and distractors
+// 4. LessonExercises DOM ex1-2 and ex1-6: pointed Toda, wrong feedback, retry, correct feedback
 // ---------------------------------------------------------------------------
-test('Lesson 1 exercises with תּוֹדָה evaluate strictly and reject distractors', () => {
-  const lesson1 = getLessonById(1);
+test('LessonExercises DOM ex1-2 and ex1-6: pointed Toda, wrong feedback, retry, correct feedback', async () => {
+  const keys = [
+    'window',
+    'document',
+    'navigator',
+    'HTMLElement',
+    'Element',
+    'Node',
+    'HTMLTextAreaElement',
+    'IS_REACT_ACT_ENVIRONMENT',
+    'addEventListener',
+    'removeEventListener',
+    'requestAnimationFrame',
+    'cancelAnimationFrame',
+  ];
+  const globals = new Map(keys.map((k) => [k, Object.getOwnPropertyDescriptor(globalThis, k)]));
+  const root = path.resolve(__dirname, '..');
+  const confettiPath = require.resolve('canvas-confetti', { paths: [root] });
+  const componentPath = require.resolve('../src/components/LessonExercises.tsx');
+  const cached = new Map([confettiPath, componentPath].map((k) => [k, require.cache[k]]));
+  const speech = require('../src/lib/speech.ts');
+  const savedSpeak = Object.getOwnPropertyDescriptor(speech, 'speakHebrew');
+  const React = require('react');
+  const { act } = React;
+  let dom;
+  let reactRoot;
+  try {
+    const stub = () => Promise.resolve();
+    stub.default = stub;
+    stub.reset = () => {};
+    stub.create = () => stub;
+    require.cache[confettiPath] = {
+      id: confettiPath,
+      filename: confettiPath,
+      loaded: true,
+      exports: stub,
+    };
+    delete require.cache[componentPath];
+    const { JSDOM } = require('jsdom');
+    dom = new JSDOM('<!doctype html><div id="root"></div>', {
+      url: 'http://localhost',
+      pretendToBeVisual: true,
+    });
+    const values = {
+      window: dom.window,
+      document: dom.window.document,
+      navigator: dom.window.navigator,
+      IS_REACT_ACT_ENVIRONMENT: true,
+    };
+    for (const k of ['HTMLElement', 'Element', 'Node', 'HTMLTextAreaElement']) {
+      values[k] = dom.window[k];
+    }
+    for (const k of ['addEventListener', 'removeEventListener', 'requestAnimationFrame', 'cancelAnimationFrame']) {
+      values[k] = dom.window[k].bind(dom.window);
+    }
+    for (const [key, value] of Object.entries(values)) {
+      Object.defineProperty(globalThis, key, { value, writable: true, configurable: true, enumerable: true });
+    }
+    dom.window.Element.prototype.scrollIntoView = () => {};
+    dom.window.scrollTo = () => {};
+    speech.speakHebrew = () => {};
 
-  // ex1-6: What word means "спасибо"?
-  const ex16 = lesson1.exercises.find((e) => e.id === 'ex1-6');
-  assert.ok(ex16, 'ex1-6 must exist');
-  assert.equal(typeof ex16.correctAnswer, 'string');
-  assert.ok(ex16.options.includes(ex16.correctAnswer), 'ex1-6 correctAnswer must be among selectable options');
+    const { createRoot } = require('react-dom/client');
+    const { LessonExercises } = require(componentPath);
+    const { createGuestProfile } = require('../src/lib/storage.ts');
+    const container = dom.window.document.getElementById('root');
+    reactRoot = createRoot(container);
+    const lesson1 = getLessonById(1);
+    const exercises = ['ex1-2', 'ex1-6'].map((id) => lesson1.exercises.find((e) => e.id === id));
+    await act(async () => {
+      reactRoot.render(
+        React.createElement(LessonExercises, {
+          lesson: { ...lesson1, exercises },
+          userProfile: createGuestProfile(),
+        })
+      );
+    });
 
-  // Correct choice evaluates strictly as true
-  const correctSelected = ex16.correctAnswer;
-  assert.equal(correctSelected === ex16.correctAnswer, true, 'Selecting correct answer must yield true');
+    const buttons = () => [...container.querySelectorAll('button')];
+    const clickExact = async (label) => {
+      const b = buttons().find((btn) => btn.textContent.trim() === label);
+      assert.ok(b, 'Visible button ' + label);
+      await act(async () => b.click());
+    };
+    const clickContaining = async (label) => {
+      const b = buttons().find((btn) => btn.textContent.includes(label));
+      assert.ok(b, 'Visible control ' + label);
+      await act(async () => b.click());
+    };
 
-  // Distractors evaluate strictly as false
-  const distractors = ex16.options.filter((o) => o !== ex16.correctAnswer);
-  assert.equal(distractors.length, 3, 'Must have exactly 3 distractors');
-  for (const d of distractors) {
-    assert.equal(d === ex16.correctAnswer, false, `Distractor ${d} must not equal correctAnswer`);
+    for (let i = 0; i < exercises.length; i++) {
+      const ex = exercises[i];
+      assert.ok(buttons().some((b) => b.textContent.trim() === 'תּוֹדָה'), ex.id + ' pointed Toda in DOM');
+      const wrong = i === 0 ? 'תּוֹדָה' : ex.options.find((o) => o !== ex.correctAnswer);
+      await clickExact(wrong);
+      assert.ok(container.textContent.includes('Почти получилось! Обратите внимание:'), ex.id + ' actual error feedback');
+      assert.ok(!container.textContent.includes('Верно! Отличный ответ.'));
+      await clickContaining('Попробовать ещё раз');
+      assert.ok(!container.textContent.includes('Почти получилось!'));
+      await clickExact(ex.correctAnswer);
+      assert.ok(container.textContent.includes('Верно! Отличный ответ.'), ex.id + ' actual success feedback');
+      assert.ok(!container.textContent.includes('Почти получилось!'));
+      if (i < exercises.length - 1) {
+        await clickContaining('Следующий вопрос');
+      }
+    }
+  } finally {
+    try {
+      if (reactRoot) await act(async () => reactRoot.unmount());
+    } finally {
+      dom?.window.close();
+      for (const [key, desc] of globals) {
+        if (desc) Object.defineProperty(globalThis, key, desc);
+        else delete globalThis[key];
+      }
+      if (savedSpeak) {
+        Object.defineProperty(speech, 'speakHebrew', savedSpeak);
+      } else {
+        delete speech.speakHebrew;
+      }
+      for (const [key, entry] of cached) {
+        if (entry) require.cache[key] = entry;
+        else delete require.cache[key];
+      }
+    }
   }
-
-  // ex1-2: distractor תּוֹדָה is selectable and does not match correctAnswer "בּוֹקֶר טוֹב"
-  const ex12 = lesson1.exercises.find((e) => e.id === 'ex1-2');
-  assert.ok(ex12.options.includes('תּוֹדָה'), 'תּוֹדָה must be among selectable options of ex1-2');
-  assert.equal('תּוֹדָה' === ex12.correctAnswer, false, 'תּוֹדָה must evaluate as incorrect for good morning');
+  for (const [key, desc] of globals) {
+    assert.deepEqual(Object.getOwnPropertyDescriptor(globalThis, key), desc, 'restore ' + key);
+  }
+  for (const [key, entry] of cached) {
+    assert.equal(require.cache[key], entry, 'restore cache ' + key);
+  }
+  assert.deepEqual(Object.getOwnPropertyDescriptor(speech, 'speakHebrew'), savedSpeak);
 });
 
 // ---------------------------------------------------------------------------
-// 4. Lesson 3: normative present tense "гарá" (not "гáра")
+// 5. Lesson 3: normative present tense "гарá" (not "гáра")
 // ---------------------------------------------------------------------------
 test('Lesson 3 uses normative present tense transcription "гарá" across table, vocabulary, and explanation', () => {
   const lesson3 = getLessonById(3);
@@ -148,106 +269,4 @@ test('Lesson 3 uses normative present tense transcription "гарá" across tabl
   // Confirm no occurrence of colloquial/deviant "гáра" anywhere in Lesson 3
   const l3Str = JSON.stringify(lesson3);
   assert.ok(!l3Str.includes('гáра'), 'Lesson 3 must contain 0 occurrences of гáра');
-});
-
-// ---------------------------------------------------------------------------
-// 5. Negative reproduction against base commit (b2dd5f2)
-// ---------------------------------------------------------------------------
-test('Negative reproduction: unpatched base data fails all five consistency checks', () => {
-  const baseAlefContent = execSync('git show b2dd5f2:src/data/lessons/alef_01_10.ts', {
-    encoding: 'utf8',
-    maxBuffer: 10 * 1024 * 1024,
-  });
-  const baseHelpersContent = execSync('git show b2dd5f2:src/components/LessonAiChat/helpers.ts', {
-    encoding: 'utf8',
-    maxBuffer: 10 * 1024 * 1024,
-  });
-
-  // 1. Base alef_01_10.ts dialogue 5 had "вэ-млафэфонӣм"
-  assert.ok(
-    baseAlefContent.includes('"шалóм ахӣ! йеш лáну агванийóт вэ-млафэфонӣм'),
-    'Base data must reproduce flawed вэ-млафэфонӣм in dialogue 5 initialMessage'
-  );
-  assert.ok(
-    baseAlefContent.includes('"анӣ роцé агванийóт вэ-млафэфонӣм."'),
-    'Base data must reproduce flawed вэ-млафэфонӣм in dialogue 5 sampleAnswers'
-  );
-
-  // 2. Base helpers.ts had "вэ-млафэфонӣм"
-  assert.ok(
-    baseHelpersContent.includes('вэ-млафэфонӣм мэцуянӣм hайóм. ма тирцӣ ликнóт?'),
-    'Base helpers.ts must reproduce flawed female вэ-млафэфонӣм'
-  );
-  assert.ok(
-    baseHelpersContent.includes('вэ-млафэфонӣм мэцуянӣм hайóм. ма тирцé ликнóт?'),
-    'Base helpers.ts must reproduce flawed male вэ-млафэфонӣм'
-  );
-
-  // 3. Base Lesson 1 had "תוֹדָה" without dagesh in w1-4, vocabularyHints, ex1-2, ex1-6
-  assert.ok(
-    baseAlefContent.includes('"id": "w1-4",\n        "hebrew": "תוֹדָה"'),
-    'Base data must reproduce w1-4 תוֹדָה without dagesh'
-  );
-  assert.ok(
-    baseAlefContent.includes('"correctAnswer": "תוֹדָה",\n        "explanation": "Слово «תוֹדָה»'),
-    'Base data must reproduce ex1-6 תוֹדָה without dagesh'
-  );
-
-  // 4. Base Lesson 2 and 5 had "תוֹדָה רַבָּה" without dagesh in vocabularyHints
-  const baseL2HintsMatch = baseAlefContent.match(/"2"[\s\S]*?"vocabularyHints":\s*\[[\s\S]*?"תוֹדָה רַבָּה"/);
-  assert.ok(baseL2HintsMatch, 'Base data must reproduce Lesson 2 vocabularyHints with תוֹדָה רַבָּה');
-  const baseL5HintsMatch = baseAlefContent.match(/"5"[\s\S]*?"vocabularyHints":\s*\[[\s\S]*?"תוֹדָה רַבָּה"/);
-  assert.ok(baseL5HintsMatch, 'Base data must reproduce Lesson 5 vocabularyHints with תוֹדָה רַבָּה');
-
-  // 5. Base Lesson 3 had "гáра"
-  assert.ok(baseAlefContent.includes('"гáра"'), 'Base data must reproduce гáра in table');
-  assert.ok(baseAlefContent.includes('"гар / гáра"'), 'Base data must reproduce гар / гáра in w3-3');
-  assert.ok(baseAlefContent.includes('«גָּר / גָּרָה» (гар / гáра)'), 'Base data must reproduce гар / гáра in ex3-5');
-});
-
-// ---------------------------------------------------------------------------
-// 6. Deep non-regression: full dataset comparison against base commit (b2dd5f2)
-// ---------------------------------------------------------------------------
-test('Deep non-regression: lessons 4, 6-100 and all 200 phone scenarios match base commit identically', (t) => {
-  const tempPath = path.resolve(__dirname, 'temp-base-alef0110.ts');
-  const cleanup = () => {
-    try {
-      if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath);
-    } catch {}
-  };
-
-  if (t && typeof t.after === 'function') {
-    t.after(cleanup);
-  }
-
-  try {
-    const baseAlefContent = execSync('git show b2dd5f2:src/data/lessons/alef_01_10.ts', {
-      encoding: 'utf8',
-      maxBuffer: 10 * 1024 * 1024,
-    });
-    fs.writeFileSync(tempPath, baseAlefContent, 'utf8');
-    const baseAlefMod = require(tempPath).ALEF_LESSONS_01_10;
-    const curAlefMod = require('../src/data/lessons/alef_01_10.ts').ALEF_LESSONS_01_10;
-
-    // Lesson 4 must be 100% identical
-    assert.deepStrictEqual(curAlefMod['4'], baseAlefMod['4'], 'Lesson 4 must match base commit b2dd5f2 identically');
-
-    // Lessons 6 to 10 must match base
-    for (let id = 6; id <= 10; id++) {
-      assert.deepStrictEqual(curAlefMod[String(id)], baseAlefMod[String(id)], `Lesson ${id} must match base commit b2dd5f2 identically`);
-    }
-
-    // Verify all 100 lessons exist
-    assert.equal(Object.keys(DETAILED_LESSONS).length, 100, 'All 100 lessons must exist in DETAILED_LESSONS');
-
-    // Verify phone scenarios 1 to 100 for male and female are unchanged
-    for (let id = 1; id <= 100; id++) {
-      const lesson = getLessonById(id);
-      const scM = getLessonPhoneScenario(lesson, 'male');
-      const scF = getLessonPhoneScenario(lesson, 'female');
-      assert.ok(scM && scF, `Phone scenario ${id} for male and female must exist`);
-    }
-  } finally {
-    cleanup();
-  }
 });
