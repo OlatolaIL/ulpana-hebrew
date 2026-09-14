@@ -33,10 +33,7 @@ interface PhoneRequestBody {
 }
 
 function sanitizeTranscription(text: string): string {
-  if (!text) return '';
-  let res = text.trim();
-  res = res.replace(/(^|[\\s"«(—])у-([а-яёА-ЯЁa-zA-Z])/gi, '$1вэ-$2');
-  return res;
+  return typeof text === 'string' ? text.trim() : '';
 }
 
 /**
@@ -276,7 +273,7 @@ ${shouldForceFinalTurn ? `
 
 СТРОЖАЙШИЕ ПРАВИЛА ЯЗЫКА И ОФОРМЛЕНИЯ:
 1. "hebrew": Реплика на иврите с ТОЧНЫМИ И ПОЛНЫМИ ОГЛАСОВКАМИ (никуд).
-2. "cyrillic_transcription": Русская транскрипция кириллицей с ударением (´) и буквой 'h' для ה. Союз ו ВСЕГДА транскрибируй как «вэ-» (не «у-»).
+2. "cyrillic_transcription": Русская транскрипция кириллицей с ударением (´) и буквой 'h' для ה. Транскрипция союза ו строго соответствует его нормативной огласовке: וּ передаётся как «у-» (например, «וּגְבִינָה» → «у-гвинá»), וְ передаётся как «вэ-» (например, «וְסֵפֶר» → «вэ-сéфер»).
 3. "translation": Безупречный литературный русский перевод БЕЗ калек с иврита.
 4. "suggestedReplies":
    ${shouldForceFinalTurn
