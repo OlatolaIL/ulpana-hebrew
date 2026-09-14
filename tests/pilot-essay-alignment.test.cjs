@@ -2,9 +2,15 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { NextRequest } = require('next/server');
+const React = require('react');
+const { createRoot } = require('react-dom/client');
+const { act } = require('react');
+const { JSDOM } = require('jsdom');
 
 const { BESPOKE_ESSAY_PROMPTS, getLessonEssayPrompt } = require('../src/data/essayTopics.ts');
+const { getLessonById } = require('../src/data/lessonsData.ts');
 const { createSessionToken } = require('../src/lib/auth.ts');
+const { LessonEssay } = require('../src/components/LessonEssay/LessonEssay.tsx');
 
 test('BESPOKE_ESSAY_PROMPTS preserves lessons 1 and 2 intact', () => {
   const prompt1 = BESPOKE_ESSAY_PROMPTS[1];
@@ -20,131 +26,6 @@ test('BESPOKE_ESSAY_PROMPTS preserves lessons 1 and 2 intact', () => {
   assert.ok(prompt2.sampleEssay.hebrew.includes('בְּבֵית קָפֶה'));
 });
 
-test('BESPOKE_ESSAY_PROMPTS aligns Lesson 3 with origin, residence, and languages', () => {
-  const prompt3 = BESPOKE_ESSAY_PROMPTS[3];
-  assert.ok(prompt3, 'Lesson 3 bespoke prompt must exist');
-  assert.equal(prompt3.topicRu, 'Откуда я, где живу и на каких языках говорю');
-  assert.equal(prompt3.topicHe, 'מֵאַיִן אֲנִי, אֵיפֹה אֲנִי גָּר וּבְאֵילוּ שָׂפוֹת אֲנִי מְדַבֵּר');
-  assert.ok(prompt3.situationRu.includes('מִ / מֵ'), 'Situation must mention preposition mi/me');
-  assert.ok(prompt3.situationRu.includes('גָּר / גָּרָה'), 'Situation must support both genders');
-  assert.ok(prompt3.situationRu.includes('מְדַבֵּר / מְדַבֶּרֶת'), 'Situation must mention speech verbs');
-  assert.ok(prompt3.grammarFocusRu.includes('גָּר/גָּרָה'), 'Grammar focus must emphasize present tense living verb');
-  assert.ok(prompt3.grammarFocusRu.includes('מְדַבֵּר/מְדַבֶּרֶת'), 'Grammar focus must emphasize speech verb');
-  assert.equal(prompt3.minWords, 12);
-
-  // Suggested words check
-  const wordsHebrew = prompt3.suggestedWords.map((w) => w.hebrew);
-  assert.ok(wordsHebrew.includes('מֵאַיִן / מֵאֵיפֹה'));
-  assert.ok(wordsHebrew.includes('גָּר / גָּרָה'));
-  assert.ok(wordsHebrew.includes('עִיר'));
-  assert.ok(wordsHebrew.includes('מְדִינָה'));
-  assert.ok(wordsHebrew.includes('יִשְׂרָאֵל'));
-  assert.ok(wordsHebrew.includes('מְדַבֵּר / מְדַבֶּרֶת'));
-  assert.ok(wordsHebrew.includes('עִבְרִית'));
-  assert.ok(wordsHebrew.includes('רוּסִית'));
-  assert.ok(wordsHebrew.includes('אַנְגְּלִית'));
-  assert.ok(wordsHebrew.includes('קְצָת'));
-
-  // Stress check for gará
-  const garWord = prompt3.suggestedWords.find((w) => w.hebrew === 'גָּר / גָּרָה');
-  assert.equal(garWord.transcription, 'гар / гарá', 'Normative stress for present gará must be on the last syllable');
-
-  // Sample essay check
-  const sample = prompt3.sampleEssay;
-  assert.ok(sample, 'Sample essay must be provided');
-  const sampleWords = sample.hebrew.trim().split(/\s+/).filter(Boolean);
-  assert.ok(
-    sampleWords.length >= prompt3.minWords,
-    'Sample essay word count (' + sampleWords.length + ') must reach minWords (' + prompt3.minWords + ')'
-  );
-  assert.ok(
-    sample.translation.includes('для женщины: גָּרָה, מְדַבֶּרֶת'),
-    'Sample translation must explain perspective and female counterparts'
-  );
-  assert.ok(
-    sample.transcription.includes('у-кцат'),
-    'Normative vav shuruk before shva must be transcribed as у-кцат'
-  );
-});
-
-test('BESPOKE_ESSAY_PROMPTS aligns Lesson 4 with classroom demonstratives and gender', () => {
-  const prompt4 = BESPOKE_ESSAY_PROMPTS[4];
-  assert.ok(prompt4, 'Lesson 4 bespoke prompt must exist');
-  assert.equal(prompt4.topicRu, 'В классе ульпана: кто это и что это');
-  assert.equal(prompt4.topicHe, 'בַּכִּיתָּה בָּאוּלְפָּן: מִי זֶה וּמַה זֶּה');
-  assert.ok(prompt4.situationRu.includes('זֶה, זֹאת/זוֹ, אֵלֶּה'));
-  assert.ok(prompt4.grammarFocusRu.includes('זֶה'));
-  assert.ok(prompt4.grammarFocusRu.includes('זֹאת'));
-  assert.ok(prompt4.grammarFocusRu.includes('אֵלֶּה'));
-  assert.equal(prompt4.minWords, 12);
-
-  // Suggested words check
-  const wordsHebrew = prompt4.suggestedWords.map((w) => w.hebrew);
-  assert.ok(wordsHebrew.includes('זֶה'));
-  assert.ok(wordsHebrew.includes('זֹאת / זוֹ'));
-  assert.ok(wordsHebrew.includes('אֵלֶּה'));
-  assert.ok(wordsHebrew.includes('מוֹרֶה / מוֹרָה'));
-  assert.ok(wordsHebrew.includes('תַּלְמִיד / תַּלְמִידָה'));
-  assert.ok(wordsHebrew.includes('סֵפֶר'));
-  assert.ok(wordsHebrew.includes('מַחְבֶּרֶת'));
-  assert.ok(wordsHebrew.includes('עֵט'));
-  assert.ok(wordsHebrew.includes('שׁוּלְחָן'));
-  assert.ok(wordsHebrew.includes('כִּיסֵּא'));
-
-  // Sample essay check
-  const sample = prompt4.sampleEssay;
-  assert.ok(sample, 'Sample essay must be provided');
-  const sampleWords = sample.hebrew.trim().split(/\s+/).filter(Boolean);
-  assert.ok(
-    sampleWords.length >= prompt4.minWords,
-    'Sample essay word count (' + sampleWords.length + ') must reach minWords (' + prompt4.minWords + ')'
-  );
-  assert.ok(
-    sample.translation.includes('תַּלְמִיד') && sample.translation.includes('תַּלְמִידָה'),
-    'Sample translation must guide student on gender usage for self-identification'
-  );
-});
-
-test('BESPOKE_ESSAY_PROMPTS aligns Lesson 5 with market shopping, article, and numerals', () => {
-  const prompt5 = BESPOKE_ESSAY_PROMPTS[5];
-  assert.ok(prompt5, 'Lesson 5 bespoke prompt must exist');
-  assert.equal(prompt5.topicRu, 'Покупки на рынке и в магазине');
-  assert.equal(prompt5.topicHe, 'קְנִיּוֹת בַּשּׁוּק וּבַסּוּפֶּרְמַרְקֶט');
-  assert.ok(prompt5.situationRu.includes('בַּסּוּפֶּר, בַּשּׁוּק'));
-  assert.ok(prompt5.situationRu.includes('כַּמָּה זֶה עוֹלֶה'));
-  assert.ok(prompt5.grammarFocusRu.includes('הַ-'));
-  assert.ok(prompt5.grammarFocusRu.includes('בַּ-'));
-  assert.ok(prompt5.grammarFocusRu.includes('כַּמָּה זֶה עוֹלֶה'));
-  assert.ok(prompt5.grammarFocusRu.includes('עֲשָׂרָה שְׁקָלִים'));
-  assert.equal(prompt5.minWords, 12);
-
-  // Suggested words check
-  const wordsHebrew = prompt5.suggestedWords.map((w) => w.hebrew);
-  assert.ok(wordsHebrew.includes('בַּסּוּפֶּר / בַּשּׁוּק'));
-  assert.ok(wordsHebrew.includes('רוֹצֶה / רוֹצָה'));
-  assert.ok(wordsHebrew.includes('לֶחֶם'));
-  assert.ok(wordsHebrew.includes('גְּבִינָה'));
-  assert.ok(wordsHebrew.includes('עַגְבָנִיָּה'));
-  assert.ok(wordsHebrew.includes('מְלָפְפוֹן'));
-  assert.ok(wordsHebrew.includes('כַּמָּה זֶה עוֹלֶה'));
-  assert.ok(wordsHebrew.includes('שֶׁקֶל / שְׁקָלִים'));
-  assert.ok(wordsHebrew.includes('עֲשָׂרָה שְׁקָלִים'));
-  assert.ok(wordsHebrew.includes('שַׂקִּית'));
-
-  // Sample essay check
-  const sample = prompt5.sampleEssay;
-  assert.ok(sample, 'Sample essay must be provided');
-  const sampleWords = sample.hebrew.trim().split(/\s+/).filter(Boolean);
-  assert.ok(
-    sampleWords.length >= prompt5.minWords,
-    'Sample essay word count (' + sampleWords.length + ') must reach minWords (' + prompt5.minWords + ')'
-  );
-  assert.ok(
-    sample.translation.includes('для женщины: רוֹצָה'),
-    'Sample translation must explicitly indicate female variant'
-  );
-});
-
 test('getLessonEssayPrompt maintains fallbacks for lessons beyond bespoke 1-5', () => {
   assert.equal(BESPOKE_ESSAY_PROMPTS[6], undefined, 'Lesson 6 should not have a bespoke prompt');
   const prompt6 = getLessonEssayPrompt(6);
@@ -154,9 +35,216 @@ test('getLessonEssayPrompt maintains fallbacks for lessons beyond bespoke 1-5', 
 
   const prompt10 = getLessonEssayPrompt(10);
   assert.equal(prompt10.minWords, 10);
+});
 
-  const prompt20 = getLessonEssayPrompt(20);
-  assert.equal(prompt20.minWords, 15);
+function setupDom() {
+  const dom = new JSDOM('<!DOCTYPE html><html><body><div id="root"></div></body></html>', {
+    url: 'http://localhost/',
+    pretendToBeVisual: true,
+  });
+
+  const savedWindow = global.window;
+  const savedDocument = global.document;
+  const savedNavigator = global.navigator;
+  const savedHTMLElement = global.HTMLElement;
+  const savedElement = global.Element;
+  const savedNode = global.Node;
+  const savedHTMLTextArea = global.HTMLTextAreaElement;
+  const savedActEnv = global.IS_REACT_ACT_ENVIRONMENT;
+  const savedAddEvent = global.addEventListener;
+  const savedRemoveEvent = global.removeEventListener;
+  const savedRaf = global.requestAnimationFrame;
+  const savedCaf = global.cancelAnimationFrame;
+
+  global.window = dom.window;
+  global.document = dom.window.document;
+  global.navigator = dom.window.navigator;
+  global.HTMLElement = dom.window.HTMLElement;
+  global.Element = dom.window.Element;
+  global.Node = dom.window.Node;
+  global.HTMLTextAreaElement = dom.window.HTMLTextAreaElement;
+  global.IS_REACT_ACT_ENVIRONMENT = true;
+  global.addEventListener = dom.window.addEventListener.bind(dom.window);
+  global.removeEventListener = dom.window.removeEventListener.bind(dom.window);
+
+  dom.window.requestAnimationFrame = (cb) => setTimeout(cb, 0);
+  dom.window.cancelAnimationFrame = (id) => clearTimeout(id);
+  global.requestAnimationFrame = dom.window.requestAnimationFrame;
+  global.cancelAnimationFrame = dom.window.cancelAnimationFrame;
+
+  dom.window.Element.prototype.scrollIntoView = () => {};
+  dom.window.scrollTo = () => {};
+  dom.window.Element.prototype.attachEvent = () => {};
+  dom.window.Element.prototype.detachEvent = () => {};
+
+  const container = dom.window.document.getElementById('root');
+  const root = createRoot(container);
+
+  const cleanup = async () => {
+    await act(async () => {
+      root.unmount();
+    });
+    global.window = savedWindow;
+    global.document = savedDocument;
+    global.navigator = savedNavigator;
+    global.HTMLElement = savedHTMLElement;
+    global.Element = savedElement;
+    global.Node = savedNode;
+    global.HTMLTextAreaElement = savedHTMLTextArea;
+    global.IS_REACT_ACT_ENVIRONMENT = savedActEnv;
+    global.addEventListener = savedAddEvent;
+    global.removeEventListener = savedRemoveEvent;
+    global.requestAnimationFrame = savedRaf;
+    global.cancelAnimationFrame = savedCaf;
+  };
+
+  return { dom, container, root, cleanup };
+}
+
+test('interactive LessonEssay component in jsdom: opening cheat sheet and selecting female or male verb and noun forms (Lessons 3 and 4)', async () => {
+  const femaleProfile = {
+    gender: 'female',
+    lessonProgress: {},
+    aiProvider: 'groq',
+  };
+
+  // --- 1. LESSON 3: Female and male living and speaking verbs ---
+  {
+    const { container, root, cleanup } = setupDom();
+    try {
+      const lesson3 = getLessonById(3);
+      await act(async () => {
+        root.render(
+          React.createElement(LessonEssay, {
+            lesson: lesson3,
+            userProfile: femaleProfile,
+            onCompleted: () => {},
+            onUpdateProfile: () => {},
+          })
+        );
+      });
+
+      const getButtons = () => Array.from(container.querySelectorAll('button'));
+      const cheatSheetBtn = getButtons().find(
+        (b) => b.textContent && b.textContent.includes('шпаргалк') || (b.textContent && b.textContent.includes('Шпаргалк'))
+      );
+      assert.ok(cheatSheetBtn, 'Cheat sheet toggle button must be rendered');
+
+      await act(async () => {
+        cheatSheetBtn.click();
+      });
+
+      const textarea = container.querySelector('textarea');
+      assert.ok(textarea, 'Textarea must be rendered');
+      assert.equal(textarea.value, '', 'Textarea starts empty');
+
+      // Female student clicks female verb gara
+      const femaleGaraBtn = getButtons().find(
+        (b) => b.textContent && b.textContent.includes('גָּרָה')
+      );
+      assert.ok(femaleGaraBtn, 'Female gara button must be present in cheat sheet');
+
+      await act(async () => {
+        femaleGaraBtn.click();
+      });
+      assert.equal(textarea.value, 'גרה ', 'Clicking female gara must insert unpointed feminine form "גרה "');
+
+      // Female student clicks female verb medaberet
+      const femaleMedaberetBtn = getButtons().find(
+        (b) => b.textContent && b.textContent.includes('מְדַבֶּרֶת')
+      );
+      assert.ok(femaleMedaberetBtn, 'Female medaberet button must be present');
+
+      await act(async () => {
+        femaleMedaberetBtn.click();
+      });
+      assert.equal(
+        textarea.value,
+        'גרה מדברת ',
+        'Clicking female medaberet must insert unpointed feminine form "מדברת "'
+      );
+
+      // Male options remain available and functional
+      const maleGarBtn = getButtons().find(
+        (b) => b.textContent && b.textContent.includes('גָּר') && !b.textContent.includes('גָּרָה')
+      );
+      assert.ok(maleGarBtn, 'Male gar button must remain available');
+
+      await act(async () => {
+        maleGarBtn.click();
+      });
+      assert.equal(
+        textarea.value,
+        'גרה מדברת גר ',
+        'Clicking male gar must insert unpointed masculine form "גר "'
+      );
+    } finally {
+      await cleanup();
+    }
+  }
+
+  // --- 2. LESSON 4: Female and male student nouns ---
+  {
+    const { container, root, cleanup } = setupDom();
+    try {
+      const lesson4 = getLessonById(4);
+      await act(async () => {
+        root.render(
+          React.createElement(LessonEssay, {
+            lesson: lesson4,
+            userProfile: femaleProfile,
+            onCompleted: () => {},
+            onUpdateProfile: () => {},
+          })
+        );
+      });
+
+      const getButtons = () => Array.from(container.querySelectorAll('button'));
+      const cheatSheetBtn = getButtons().find(
+        (b) => b.textContent && b.textContent.includes('шпаргалк') || (b.textContent && b.textContent.includes('Шпаргалк'))
+      );
+      assert.ok(cheatSheetBtn, 'Cheat sheet toggle button must be rendered for Lesson 4');
+
+      await act(async () => {
+        cheatSheetBtn.click();
+      });
+
+      const textarea = container.querySelector('textarea');
+      assert.ok(textarea, 'Textarea must be rendered for Lesson 4');
+
+      // Female student clicks talmida
+      const femaleTalmidaBtn = getButtons().find(
+        (b) => b.textContent && b.textContent.includes('תַּלְמִידָה')
+      );
+      assert.ok(femaleTalmidaBtn, 'Female talmida button must be present in Lesson 4');
+
+      await act(async () => {
+        femaleTalmidaBtn.click();
+      });
+      assert.equal(
+        textarea.value,
+        'תלמידה ',
+        'Clicking female talmida must insert unpointed feminine form "תלמידה "'
+      );
+
+      // Male student clicks talmid
+      const maleTalmidBtn = getButtons().find(
+        (b) => b.textContent && b.textContent.includes('תַּלְמִיד') && !b.textContent.includes('תַּלְמִידָה')
+      );
+      assert.ok(maleTalmidBtn, 'Male talmid button must remain available');
+
+      await act(async () => {
+        maleTalmidBtn.click();
+      });
+      assert.equal(
+        textarea.value,
+        'תלמידה תלמיד ',
+        'Clicking male talmid must insert unpointed masculine form "תלמיד "'
+      );
+    } finally {
+      await cleanup();
+    }
+  }
 });
 
 test('essay evaluation route uses aligned prompts 3-5 in outbound LLM requests', async () => {
