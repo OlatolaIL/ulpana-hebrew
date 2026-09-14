@@ -413,28 +413,79 @@ export const LessonEssay: React.FC<LessonEssayProps> = ({
                   Полезные слова урока (нажмите, чтобы вставить):
                 </div>
                 <div className="flex flex-wrap gap-1.5">
-                  {prompt.suggestedWords.map((item, idx) => (
-                    <button
-                      key={idx}
-                      type="button"
-                      onMouseDown={(e) => e.preventDefault()}
-                      onClick={() => {
-                        const cleanWord = stripNikkud(item.hebrew.split('/')[0].trim());
-                        handleChar(cleanWord + ' ');
-                      }}
-                      className="px-2 py-1 rounded-lg bg-white dark:bg-zinc-800 hover:bg-amber-100 dark:hover:bg-amber-900/50 text-zinc-800 dark:text-zinc-100 text-xs border border-amber-200/80 dark:border-zinc-700 shadow-2xs transition active:scale-95 flex items-center gap-1.5 cursor-pointer"
-                      title="Нажмите, чтобы вставить слово в текст"
-                    >
-                      <span className="font-hebrew font-bold text-sm text-blue-700 dark:text-blue-300" dir="rtl">
-                        {item.hebrew}
-                      </span>
-                      {item.translation && (
-                        <span className="text-[10px] text-zinc-500 dark:text-zinc-400 font-sans">
-                          ({item.translation})
+                  {prompt.suggestedWords.map((item, idx) => {
+                    const variants = item.hebrew
+                      .split('/')
+                      .map((v) => v.trim())
+                      .filter(Boolean);
+
+                    if (variants.length > 1) {
+                      return (
+                        <div
+                          key={idx}
+                          className="inline-flex flex-wrap items-center rounded-lg bg-white dark:bg-zinc-800 border border-amber-200/80 dark:border-zinc-700 shadow-2xs text-xs text-zinc-800 dark:text-zinc-100 p-0.5 gap-1 max-w-full"
+                        >
+                          <div className="inline-flex flex-wrap items-center rounded-md bg-amber-50/70 dark:bg-zinc-900/60 p-0.5 gap-0.5 max-w-full">
+                            {variants.map((v, vIdx) => {
+                              const cleanWord = stripNikkud(v);
+                              return (
+                                <React.Fragment key={vIdx}>
+                                  {vIdx > 0 && (
+                                    <span
+                                      className="text-zinc-300 dark:text-zinc-600 text-xs select-none px-0.5"
+                                      aria-hidden="true"
+                                    >
+                                      /
+                                    </span>
+                                  )}
+                                  <button
+                                    type="button"
+                                    onMouseDown={(e) => e.preventDefault()}
+                                    onClick={() => {
+                                      handleChar(cleanWord + ' ');
+                                    }}
+                                    className="px-2 py-0.5 rounded hover:bg-amber-100 dark:hover:bg-amber-900/50 active:scale-95 text-blue-700 dark:text-blue-300 font-hebrew font-bold text-sm transition cursor-pointer text-right focus-visible:ring-1.5 focus-visible:ring-amber-500 focus-visible:outline-none"
+                                    dir="rtl"
+                                    title={`Вставить: ${cleanWord}`}
+                                  >
+                                    {v}
+                                  </button>
+                                </React.Fragment>
+                              );
+                            })}
+                          </div>
+                          {item.translation && (
+                            <span className="text-[10px] text-zinc-500 dark:text-zinc-400 font-sans px-1 leading-tight break-words text-left">
+                              ({item.translation})
+                            </span>
+                          )}
+                        </div>
+                      );
+                    }
+
+                    const cleanWord = stripNikkud(item.hebrew.trim());
+                    return (
+                      <button
+                        key={idx}
+                        type="button"
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => {
+                          handleChar(cleanWord + ' ');
+                        }}
+                        className="px-2 py-1 rounded-lg bg-white dark:bg-zinc-800 hover:bg-amber-100 dark:hover:bg-amber-900/50 text-zinc-800 dark:text-zinc-100 text-xs border border-amber-200/80 dark:border-zinc-700 shadow-2xs transition active:scale-95 inline-flex flex-wrap items-center gap-1.5 cursor-pointer max-w-full text-left focus-visible:ring-1.5 focus-visible:ring-amber-500 focus-visible:outline-none"
+                        title={`Нажмите, чтобы вставить «${cleanWord}»`}
+                      >
+                        <span className="font-hebrew font-bold text-sm text-blue-700 dark:text-blue-300" dir="rtl">
+                          {item.hebrew}
                         </span>
-                      )}
-                    </button>
-                  ))}
+                        {item.translation && (
+                          <span className="text-[10px] text-zinc-500 dark:text-zinc-400 font-sans break-words text-left">
+                            ({item.translation})
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             )}
