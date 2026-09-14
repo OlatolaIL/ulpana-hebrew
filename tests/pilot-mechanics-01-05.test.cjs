@@ -133,49 +133,61 @@ test('phone scenario female adaptation in Lesson 4 adapts female verbs while pre
   );
 });
 
-test('phone scenario female adaptation in Lesson 5 adapts student replies and preserves male address לְךָ to driver', () => {
+test('phone scenario female adaptation in Lesson 5 adapts student replies and preserves male address לְךָ to seller David', () => {
   const lesson5 = findLesson(5);
   const femaleScenario = getLessonPhoneScenario(lesson5, 'female');
   const maleScenario = getLessonPhoneScenario(lesson5, 'male');
 
+  // Both scenarios share seller David
+  assert.equal(femaleScenario.callerName, 'דָּוִד');
+  assert.equal(maleScenario.callerName, 'דָּוִד');
+  assert.equal(femaleScenario.avatarEmoji, '🛒');
+  assert.equal(maleScenario.avatarEmoji, '🛒');
+
   // Female student checks
-  assert.ok(femaleScenario.studentObjective.includes('«אֲנִי יוֹרֶדֶת עַכְשָׁו»'));
-  assert.ok(!femaleScenario.studentObjective.includes('«אֲנִי יוֹרֵד עַכְשָׁו»'));
+  assert.ok(femaleScenario.studentObjective.includes('«אֲנִי רוֹצָה לֶחֶם וּגְבִינָה»'));
+  assert.ok(!femaleScenario.studentObjective.includes('«אֲנִי רוֹצֶה לֶחֶם וּגְבִינָה»'));
   assert.equal(
     femaleScenario.completionCondition,
-    'Пассажирка сообщила, что спускается («אני יורדת»), попросила подождать («עוד שתי דקות», «רגע») или спросила о машине.'
+    'Покупательница назвала нужные продукты («רוצה לחם/גבינה/עגבניות»), уточнила количество или спросила цену («כמה זה עולה»).'
   );
-  assert.ok(!/(^|\s)сообщил(\s|,|$)/.test(femaleScenario.completionCondition));
-  assert.ok(!/(^|\s)попросил(\s|,|$)/.test(femaleScenario.completionCondition));
+  assert.ok(!/(^|\s)назвал(\s|,|$)/.test(femaleScenario.completionCondition));
+  assert.ok(!/(^|\s)уточнил(\s|,|$)/.test(femaleScenario.completionCondition));
   assert.ok(!/(^|\s)спросил(\s|,|$)/.test(femaleScenario.completionCondition));
   assert.equal(
     femaleScenario.suggestedReplies[0].hebrew,
-    'שָׁלוֹם! אֲנִי יוֹרֶדֶת עַכְשָׁו, עוֹד שְׁתֵּי דַּקּוֹת אֲנִי שָׁם.'
+    'שָׁלוֹם דָּוִד! אֲנִי רוֹצָה לֶחֶם, גְּבִינָה וְקִילוֹ עַגְבָנִיּוֹת.'
   );
   assert.equal(
     femaleScenario.suggestedReplies[0].transcription,
-    'шалóм! анӣ йорéдэт ахшáв, од штэй дакóт анӣ шам.'
+    'шалóм Давӣд! анӣ роцá лэ́хем, гвинá вэ-кӣло агванийóт.'
   );
-  // Crucial: student is speaking to male driver Eli, so לְךָ must NOT become לָךְ
-  assert.equal(femaleScenario.suggestedReplies[1].hebrew, 'רֶגַע, אֵיזֶה רֶכֶב יֵשׁ לְךָ?');
-  assert.equal(femaleScenario.suggestedReplies[1].transcription, 'рéга, э́йзе рéхев йеш лэхá?');
+  // Crucial: student is speaking to male seller David, so לְךָ must NOT become לָךְ
+  assert.equal(femaleScenario.suggestedReplies[1].hebrew, 'כַּמָּה זֶה עוֹלֶה? אֶפְשָׁר גַּם שַׂקִּית, בְּבַקָּשָׁה? תּוֹדָה רַבָּה לְךָ!');
+  assert.equal(femaleScenario.suggestedReplies[1].transcription, 'кáма зэ олé? эфшáр гам сакӣт, бэвакашá? тодá рабá лэхá!');
 
-  // Useful word adapted for female speaker to male driver
-  const femaleWaitWord = femaleScenario.usefulWords.find((w) => w.hebrew.includes('מְחַכָּה'));
-  assert.ok(femaleWaitWord, 'useful word for female student waiting for male driver should be אֲנִי מְחַכָּה לְךָ');
-  assert.equal(femaleWaitWord.hebrew, 'אֲנִי מְחַכָּה לְךָ');
-  assert.equal(femaleWaitWord.transcription, 'анӣ мэхакá лэхá');
+  // Useful word adapted for female speaker
+  const femaleWantWord = femaleScenario.usefulWords.find((w) => w.hebrew === 'אֲנִי רוֹצָה');
+  assert.ok(femaleWantWord, 'useful word for female student should be אֲנִי רוֹצָה');
+  assert.equal(femaleWantWord.hebrew, 'אֲנִי רוֹצָה');
+  assert.equal(femaleWantWord.transcription, 'анӣ роцá');
+
+  // Address to male seller remains לְךָ
+  const thanksWord = femaleScenario.usefulWords.find((w) => w.hebrew.includes('תּוֹדָה רַבָּה לְךָ'));
+  assert.ok(thanksWord, 'useful word for thanking male seller should be תּוֹדָה רַבָּה לְךָ');
+  assert.equal(thanksWord.hebrew, 'תּוֹדָה רַבָּה לְךָ');
+  assert.equal(thanksWord.transcription, 'тодá рабá лэхá');
 
   // Male student checks
-  assert.ok(maleScenario.studentObjective.includes('«אֲנִי יוֹרֵד עַכְשָׁו»'));
-  assert.ok(maleScenario.completionCondition.includes('Пассажир сообщил, что спускается («אני יורד»)'));
+  assert.ok(maleScenario.studentObjective.includes('«אֲנִי רוֹצֶה לֶחֶם וּגְבִינָה»'));
+  assert.ok(maleScenario.completionCondition.includes('Покупатель назвал нужные продукты («רוצה לחם/גבינה/עגבניות»)'));
   assert.equal(
     maleScenario.suggestedReplies[0].hebrew,
-    'שָׁלוֹם! אֲנִי יוֹרֵד עַכְשָׁו, עוֹד שְׁתֵּי דַּקּוֹת אֲנִי שָׁם.'
+    'שָׁלוֹם דָּוִד! אֲנִי רוֹצֶה לֶחֶם, גְּבִינָה וְקִילוֹ עַגְבָנִיּוֹת.'
   );
   assert.equal(
     maleScenario.suggestedReplies[0].transcription,
-    'шалóм! анӣ йорéд ахшáв, од штэй дакóт анӣ шам.'
+    'шалóм Давӣд! анӣ роцé лэ́хем, гвинá вэ-кӣло агванийóт.'
   );
 });
 
