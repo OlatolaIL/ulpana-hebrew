@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { UserProfile, PhoneScenario, ChatMessage } from '@/types';
 import { speakHebrew } from '@/lib/speech';
+import { tokenizeText, stripNikkud, TextToken } from '@/lib/transcription';
 
 interface ActiveCallViewProps {
   scenario: PhoneScenario;
@@ -41,6 +42,12 @@ interface ActiveCallViewProps {
   setShowTextInput: React.Dispatch<React.SetStateAction<boolean>>;
   onToggleMute: () => void;
   onEndCall: () => void;
+  onWordClick?: (
+    token: TextToken,
+    fullSentence: string,
+    sentenceTranslation?: string,
+    sentenceTranscription?: string
+  ) => void;
 }
 
 export const ActiveCallView: React.FC<ActiveCallViewProps> = ({
@@ -68,6 +75,7 @@ export const ActiveCallView: React.FC<ActiveCallViewProps> = ({
   setShowTextInput,
   onToggleMute,
   onEndCall,
+  onWordClick,
 }) => {
   return (
     <div className="bg-gradient-to-b from-zinc-900 via-zinc-900 to-zinc-950 text-white rounded-3xl border border-zinc-800 shadow-2xl overflow-hidden flex flex-col min-h-[580px]">
@@ -264,11 +272,38 @@ export const ActiveCallView: React.FC<ActiveCallViewProps> = ({
                 : ''
             }`}
           >
-            <div className="flex items-center justify-center gap-2 text-lg sm:text-xl font-bold font-hebrew text-white mb-1">
-              <span>{latestAiMessage.hebrew}</span>
+            <div className="flex items-center justify-center gap-2 text-lg sm:text-xl font-bold font-hebrew text-white mb-1 flex-wrap">
+              <div dir="rtl" className="flex flex-wrap items-center justify-center gap-x-1">
+                {tokenizeText(latestAiMessage.hebrew).map((token) => {
+                  const displayWord = userProfile.showNikkud
+                    ? token.text
+                    : stripNikkud(token.text);
+
+                  if (token.isHebrew && onWordClick) {
+                    return (
+                      <span
+                        key={token.id}
+                        onClick={() =>
+                          onWordClick(
+                            token,
+                            latestAiMessage.hebrew,
+                            latestAiMessage.translation,
+                            latestAiMessage.transcription
+                          )
+                        }
+                        className="inline-block px-1 py-0.5 rounded-md hover:text-blue-300 hover:bg-zinc-700/80 hover:underline cursor-pointer transition active:scale-95 select-text"
+                        title="Нажмите для перевода и словарика"
+                      >
+                        {displayWord}
+                      </span>
+                    );
+                  }
+                  return <span key={token.id}>{token.text}</span>;
+                })}
+              </div>
               <button
                 onClick={() => speakHebrew(latestAiMessage.hebrew)}
-                className="p-1 rounded-lg hover:bg-zinc-700 text-blue-400 transition cursor-pointer"
+                className="p-1 rounded-lg hover:bg-zinc-700 text-blue-400 transition cursor-pointer shrink-0"
                 title="Повторить фразу"
               >
                 <Volume2 className="w-4 h-4" />

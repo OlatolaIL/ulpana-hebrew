@@ -117,3 +117,10 @@ test('getWordTranscription returns manual /u/ when present and generates /u/ whe
   assert.equal(getWordTranscription(undefined), '');
   assert.equal(getWordTranscription({}), '');
 });
+
+test('ensureCyrillicHebrewTranscription cleans up Latin letters and keeps stress marks', () => {
+  const result = convertLatinHebrewTranscriptionToCyrillic('hacéфер');
+  assert.equal(result, 'hасéфер');
+  assert.ok(!result.includes('c'), 'must not contain Latin c');
+});
+

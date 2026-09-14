@@ -517,7 +517,7 @@ export const VERB_PREPOSITIONS: Record<string, VerbPrepositionInfo> = {
     preposition: 'עַל...',
     prepositionPlain: 'על',
     ruleRu: 'рекомендовать что-то',
-    exampleHe: 'מַמְלִיץ עַל הַסֵּפֶר הַזֹּאת',
+    exampleHe: 'מַמְלִיץ עַל הַמִּסְעָדָה הַזֹּאת',
     exampleRu: 'рекомендует этот ресторан',
   },
 

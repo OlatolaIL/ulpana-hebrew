@@ -19,7 +19,7 @@ import {
 } from 'lucide-react';
 import { UserProfile, PhoneScenario, ChatMessage, Word, PhoneDebriefReport } from '@/types';
 import { speakHebrew, stopSpeech } from '@/lib/speech';
-import { stripNikkud } from '@/lib/transcription';
+import { stripNikkud, tokenizeText, TextToken } from '@/lib/transcription';
 import { isWordInPersonalDict } from '@/lib/storage';
 import { SmartConversationPlayer } from './SmartConversationPlayer';
 
@@ -38,6 +38,12 @@ interface DialogueReviewModalProps {
   onAddWord: (w: Word) => void;
   onStartCall: () => void;
   mounted: boolean;
+  onWordClick?: (
+    token: TextToken,
+    fullSentence: string,
+    sentenceTranslation?: string,
+    sentenceTranscription?: string
+  ) => void;
 }
 
 export const DialogueReviewModal: React.FC<DialogueReviewModalProps> = ({
@@ -55,6 +61,7 @@ export const DialogueReviewModal: React.FC<DialogueReviewModalProps> = ({
   onAddWord,
   onStartCall,
   mounted,
+  onWordClick,
 }) => {
   const [activeHighlightIndex, setActiveHighlightIndex] = useState<number | null>(null);
   const [playingTurnAudioUrl, setPlayingTurnAudioUrl] = useState<string | null>(null);
@@ -336,7 +343,32 @@ export const DialogueReviewModal: React.FC<DialogueReviewModalProps> = ({
                       isCursive ? 'font-cursive text-xl text-blue-600 dark:text-blue-400' : ''
                     }`}
                   >
-                    {userProfile.showNikkud ? msg.hebrew : stripNikkud(msg.hebrew)}
+                    {tokenizeText(msg.hebrew).map((token) => {
+                      const displayWord = userProfile.showNikkud
+                        ? token.text
+                        : stripNikkud(token.text);
+
+                      if (token.isHebrew && onWordClick) {
+                        return (
+                          <span
+                            key={token.id}
+                            onClick={() =>
+                              onWordClick(
+                                token,
+                                msg.hebrew,
+                                msg.translation,
+                                msg.transcription
+                              )
+                            }
+                            className="inline-block px-1 py-0.5 rounded-md hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-100/70 dark:hover:bg-blue-900/50 hover:underline active:scale-95 transition cursor-pointer select-text"
+                            title="Нажмите для перевода и словарика"
+                          >
+                            {displayWord}
+                          </span>
+                        );
+                      }
+                      return <span key={token.id}>{token.text}</span>;
+                    })}
                   </div>
 
                   {/* Транскрипция кириллицей */}
@@ -460,9 +492,34 @@ export const DialogueReviewModal: React.FC<DialogueReviewModalProps> = ({
                             </div>
                             <div
                               dir="rtl"
-                              className="text-sm font-hebrew font-bold text-purple-950 dark:text-purple-100 leading-snug"
+                              className="text-sm font-hebrew font-bold text-purple-950 dark:text-purple-100 leading-snug flex flex-wrap gap-x-1"
                             >
-                              {turnReview.betterAlternative}
+                              {tokenizeText(turnReview.betterAlternative).map((token) => {
+                                const displayWord = userProfile.showNikkud
+                                  ? token.text
+                                  : stripNikkud(token.text);
+
+                                if (token.isHebrew && onWordClick) {
+                                  return (
+                                    <span
+                                      key={token.id}
+                                      onClick={() =>
+                                        onWordClick(
+                                          token,
+                                          turnReview.betterAlternative!,
+                                          'Естественная альтернатива носителя',
+                                          undefined
+                                        )
+                                      }
+                                      className="inline-block px-0.5 rounded hover:text-purple-600 hover:underline hover:bg-purple-200/60 dark:hover:bg-purple-900/50 cursor-pointer transition active:scale-95"
+                                      title="Нажмите для перевода и словарика"
+                                    >
+                                      {displayWord}
+                                    </span>
+                                  );
+                                }
+                                return <span key={token.id}>{token.text}</span>;
+                              })}
                             </div>
                           </div>
                           <button

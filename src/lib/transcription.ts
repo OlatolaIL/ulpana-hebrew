@@ -302,7 +302,10 @@ export function convertLatinHebrewTranscriptionToCyrillic(text: string): string 
   s = s.replace(/yo/gi, 'йо');
   s = s.replace(/yu/gi, 'ю');
 
-  // Отдельные буквы
+  // Мягкое 'c' перед e, i, y и их акцентированными формами
+  s = s.replace(/c(?=[eiyéíēī])/gi, (m) => (m === 'C' ? 'С' : 'с'));
+
+  // Отдельные буквы и акцентированные латинские гласные
   const singleCharMap: Record<string, string> = {
     'b': 'б', 'B': 'Б',
     'v': 'в', 'V': 'В',
@@ -329,6 +332,16 @@ export function convertLatinHebrewTranscriptionToCyrillic(text: string): string 
     'j': 'дж', 'J': 'Дж',
     'q': 'к', 'Q': 'К',
     'x': 'кс', 'X': 'Кс',
+    'á': 'а́', 'Á': 'А́',
+    'é': 'е́', 'É': 'Е́',
+    'í': 'ӣ', 'Í': 'Ӣ',
+    'ó': 'о́', 'Ó': 'О́',
+    'ú': 'ӯ', 'Ú': 'Ӯ',
+    'ā': 'а', 'Ā': 'А',
+    'ē': 'э', 'Ē': 'Э',
+    'ī': 'ӣ', 'Ī': 'Ӣ',
+    'ō': 'о', 'Ō': 'О',
+    'ū': 'ӯ', 'Ū': 'Ӯ',
   };
 
   // Букву 'h' сохраняем как 'h' по стандарту ульпана (легкий выдох)

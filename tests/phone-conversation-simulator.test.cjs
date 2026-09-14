@@ -1,4 +1,4 @@
-﻿/* eslint-disable @typescript-eslint/no-require-imports */
+/* eslint-disable @typescript-eslint/no-require-imports */
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { NextRequest } = require('next/server');
@@ -7,6 +7,7 @@ const { createSessionToken } = require('../src/lib/auth.ts');
 const { POST: phonePOST } = require('../src/app/api/ai/phone/route.ts');
 const { getLessonPhoneScenario } = require('../src/data/phoneScenarios.ts');
 const { DETAILED_LESSONS } = require('../src/data/lessonsData.ts');
+const { tokenizeText } = require('../src/lib/transcription.ts');
 
 function snapshotGlobalProperties(keys) {
   const descriptors = new Map();
@@ -364,4 +365,25 @@ test('All 100 lessons: getLessonPhoneScenario generates valid scenarios with non
       assert.equal(scenario.initialGreeting.hebrew.includes('${'), false, 'Lesson ' + lessonNum + ' greeting must not contain unresolved templates');
     }
   }
+});
+
+test('Phone simulator interactive word lookup: tokenizing Hebrew speech correctly identifies clickable tokens', () => {
+  const samplePhrase = 'שָׁלוֹם, מָה נִשְׁמַע? אֲנִי רוֹצֶה לְהַזְמִין קָפֶה!';
+  const tokens = tokenizeText(samplePhrase);
+
+  const hebrewTokens = tokens.filter((t) => t.isHebrew);
+  assert.ok(hebrewTokens.length >= 7, 'Should extract at least 7 Hebrew word tokens');
+
+  // Check specific clean tokens
+  assert.equal(hebrewTokens[0].cleanText, 'שלום');
+  assert.equal(hebrewTokens[1].cleanText, 'מה');
+  assert.equal(hebrewTokens[2].cleanText, 'נשמע');
+  assert.equal(hebrewTokens[3].cleanText, 'אני');
+  assert.equal(hebrewTokens[4].cleanText, 'רוצה');
+  assert.equal(hebrewTokens[5].cleanText, 'להזמין');
+  assert.equal(hebrewTokens[6].cleanText, 'קפה');
+
+  // Verify non-Hebrew punctuation/spacing tokens are preserved for layout
+  const allText = tokens.map((t) => t.text).join('');
+  assert.equal(allText, samplePhrase, 'Full text reconstruction must match original phrase exactly');
 });

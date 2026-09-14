@@ -2,9 +2,11 @@ import React from 'react';
 import { Volume2, Sparkles } from 'lucide-react';
 import { VerbTriadInfo } from '@/lib/verbTriad';
 import { RootRelatedWord } from '@/types';
+import { stripNikkud } from '@/lib/transcription';
 
 interface VerbTriadBlockProps {
   triad: VerbTriadInfo;
+  showNikkud?: boolean;
   onSpeakHebrew: (text: string) => void;
   onOpenPealim?: () => void;
   onSelectRelatedWord?: (word: RootRelatedWord) => void;
@@ -12,6 +14,7 @@ interface VerbTriadBlockProps {
 
 export const VerbTriadBlock: React.FC<VerbTriadBlockProps> = ({
   triad,
+  showNikkud = true,
   onSpeakHebrew,
   onOpenPealim,
   onSelectRelatedWord,
@@ -58,7 +61,7 @@ export const VerbTriadBlock: React.FC<VerbTriadBlockProps> = ({
             dir="rtl"
             className="text-base sm:text-lg font-bold font-hebrew text-zinc-900 dark:text-zinc-100 my-0.5 leading-snug"
           >
-            {triad.presentMasc.hebrew}
+            {showNikkud ? triad.presentMasc.hebrew : stripNikkud(triad.presentMasc.hebrew)}
           </div>
           {triad.presentMasc.transcription && (
             <div className="text-[10px] text-blue-600 dark:text-blue-400 font-medium truncate">
@@ -87,7 +90,7 @@ export const VerbTriadBlock: React.FC<VerbTriadBlockProps> = ({
             dir="rtl"
             className="text-base sm:text-lg font-bold font-hebrew text-zinc-900 dark:text-zinc-100 my-0.5 leading-snug"
           >
-            {triad.pastHe.hebrew}
+            {showNikkud ? triad.pastHe.hebrew : stripNikkud(triad.pastHe.hebrew)}
           </div>
           {triad.pastHe.transcription && (
             <div className="text-[10px] text-blue-600 dark:text-blue-400 font-medium truncate">
@@ -121,7 +124,7 @@ export const VerbTriadBlock: React.FC<VerbTriadBlockProps> = ({
             dir="rtl"
             className="font-hebrew font-bold text-zinc-800 dark:text-zinc-200"
           >
-            {triad.prepositionInfo.exampleHe} ({triad.prepositionInfo.exampleRu})
+            {showNikkud ? triad.prepositionInfo.exampleHe : stripNikkud(triad.prepositionInfo.exampleHe)} ({triad.prepositionInfo.exampleRu})
           </span>
         </div>
       )}
@@ -156,7 +159,7 @@ export const VerbTriadBlock: React.FC<VerbTriadBlockProps> = ({
                   dir="rtl"
                   className="font-hebrew font-bold text-zinc-900 dark:text-zinc-100 group-hover:text-blue-600 dark:group-hover:text-blue-400"
                 >
-                  {rw.hebrew}
+                  {showNikkud ? rw.hebrew : (rw.hebrewPlain || stripNikkud(rw.hebrew))}
                 </span>
                 <span className="text-[10px] text-zinc-500 dark:text-zinc-400 truncate max-w-[120px]">
                   · {rw.translation}

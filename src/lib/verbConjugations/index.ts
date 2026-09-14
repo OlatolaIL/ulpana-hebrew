@@ -1,12 +1,9 @@
 import { VerbConjugation, RootRelatedWord } from '@/types';
 import { stripNikkud } from '@/lib/transcription';
 import { findWordsByRoot } from '@/lib/ulpanDictionary';
-import { COMPREHENSIVE_ROOT_FAMILIES } from '@/lib/rootFamiliesData';
 import { VERB_CONJUGATIONS_DATABASE } from './database';
-import { ROOT_FAMILIES_PRESETS } from './rootPresets';
 
 export { VERB_CONJUGATIONS_DATABASE } from './database';
-export { ROOT_FAMILIES_PRESETS } from './rootPresets';
 
 /**
  * Получение всех однокоренных слов (Семья корня / Pealim Root Family)
@@ -17,7 +14,6 @@ export function getRootFamilyWords(
   currentVerb?: VerbConjugation
 ): RootRelatedWord[] {
   if (!root) return explicitList || [];
-  const cleanRootKey = root.replace(/[^א-ת]/g, '');
 
   const results: RootRelatedWord[] = [];
   const seen = new Set<string>();
@@ -61,22 +57,15 @@ export function getRootFamilyWords(
     results.push(w);
   };
 
-  // 1. Явный список из параметров
+  // 1. Явный список из параметров или текущего глагола (Pealim root family)
   if (explicitList) {
     explicitList.forEach(addWord);
   }
-
-  // 2. Всеобъемлющая база семей корней (богатый набор существительных, прилагательных, выражений)
-  if (COMPREHENSIVE_ROOT_FAMILIES[cleanRootKey]) {
-    COMPREHENSIVE_ROOT_FAMILIES[cleanRootKey].forEach(addWord);
+  if (currentVerb?.rootFamily) {
+    currentVerb.rootFamily.forEach(addWord);
   }
 
-  // 3. Старые пресеты
-  if (ROOT_FAMILIES_PRESETS[cleanRootKey]) {
-    ROOT_FAMILIES_PRESETS[cleanRootKey].forEach(addWord);
-  }
-
-  // 4. Поиск по словарю и урокам (в первую очередь существительные, прилагательные и выражения)
+  // 2. Поиск по словарю и урокам (существительные, прилагательные, выражения)
   const dictMatches = findWordsByRoot(root);
   for (const m of dictMatches) {
     const pos = m.partOfSpeech || 'other';

@@ -12,6 +12,8 @@ import { CallDebriefView } from './CallDebriefView';
 import { CallDrawer } from './CallDrawer';
 import { DialogueReviewModal } from './DialogueReviewModal';
 import { AudioHelpModal } from './AudioHelpModal';
+import { WordLookupModal } from '@/components/WordLookupModal';
+import { TextToken } from '@/lib/transcription';
 
 export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
   lesson,
@@ -68,6 +70,24 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
     onWordAdded,
   });
 
+  const [selectedLookupWord, setSelectedLookupWord] = React.useState<string | null>(null);
+  const [lookupContext, setLookupContext] = React.useState<string | undefined>(undefined);
+  const [lookupSentenceTranslation, setLookupSentenceTranslation] = React.useState<string | undefined>(undefined);
+  const [lookupSentenceTranscription, setLookupSentenceTranscription] = React.useState<string | undefined>(undefined);
+
+  const handleWordClick = (
+    token: TextToken,
+    fullSentence: string,
+    sentenceTranslation?: string,
+    sentenceTranscription?: string
+  ) => {
+    if (!token.isHebrew || !token.cleanText) return;
+    setSelectedLookupWord(token.cleanText);
+    setLookupContext(fullSentence);
+    setLookupSentenceTranslation(sentenceTranslation);
+    setLookupSentenceTranscription(sentenceTranscription);
+  };
+
   return (
     <div className="space-y-4">
       {/* 1. СОСТОЯНИЕ: ДО ЗВОНКА (IDLE) */}
@@ -122,6 +142,7 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
           setShowTextInput={setShowTextInput}
           onToggleMute={toggleMute}
           onEndCall={handleEndCall}
+          onWordClick={handleWordClick}
         />
       )}
 
@@ -191,6 +212,7 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
         onAddWord={handleAddWord}
         onStartCall={handleStartCall}
         mounted={mounted}
+        onWordClick={handleWordClick}
       />
 
       {/* 8. МОДАЛЬНОЕ ОКНО ПОМОЩИ: НЕ СЛЫШНО СОБЕСЕДНИКА */}
@@ -202,6 +224,21 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
         setAudioHelpUnlocked={setAudioHelpUnlocked}
         mounted={mounted}
       />
+
+      {/* 9. МОДАЛЬНОЕ ОКНО РАЗБОРА СЛОВА ПО КЛИКУ И ДОБАВЛЕНИЯ В СЛОВАРЬ */}
+      {selectedLookupWord && (
+        <WordLookupModal
+          word={selectedLookupWord}
+          context={lookupContext}
+          sentenceTranslation={lookupSentenceTranslation}
+          sentenceTranscription={lookupSentenceTranscription}
+          isOpen={Boolean(selectedLookupWord)}
+          onClose={() => setSelectedLookupWord(null)}
+          userProfile={userProfile}
+          lessonId={lesson.id}
+          onWordAdded={handleAddWord}
+        />
+      )}
     </div>
   );
 };

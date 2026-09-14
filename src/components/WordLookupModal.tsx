@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { Volume2, Plus, Check, X, Loader2, Sparkles, BookOpen } from 'lucide-react';
 import { UserProfile, Word, VerbConjugation } from '@/types';
 import { speakHebrew } from '@/lib/speech';
@@ -35,6 +36,11 @@ export const WordLookupModal: React.FC<WordLookupModalProps> = ({
   onWordAdded,
   lessonId,
 }) => {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const [loading, setLoading] = useState(false);
   const [viewMode, setViewMode] = useState<'summary' | 'conjugation'>('summary');
   const [conjugationData, setConjugationData] = useState<VerbConjugation | null>(null);
@@ -239,10 +245,14 @@ export const WordLookupModal: React.FC<WordLookupModalProps> = ({
     Boolean(conjugationData) ||
     Boolean(findOfflineVerbConjugation(wordData?.hebrew || word));
 
-  return (
+  if (!isOpen || !mounted || typeof document === 'undefined') {
+    return null;
+  }
+
+  return createPortal(
     <div
       onClick={onClose}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-3 sm:p-4 animate-in fade-in cursor-default"
+      className="fixed inset-0 z-[10001] flex items-center justify-center bg-black/60 backdrop-blur-sm p-3 sm:p-4 animate-in fade-in cursor-default"
     >
       <div
         onClick={(e) => e.stopPropagation()}
@@ -457,6 +467,7 @@ export const WordLookupModal: React.FC<WordLookupModalProps> = ({
           </>
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };

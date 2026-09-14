@@ -4,19 +4,49 @@ import { NextRequest, NextResponse } from 'next/server';
 import { lookupOfflineWord } from '@/lib/ulpanDictionary';
 import { DETAILED_LESSONS } from '@/data/lessonsData';
 import { HANDCRAFTED_DIALOGUES } from '@/data/dialogueLessons';
-import { stripNikkud } from '@/lib/transcription';
+import { stripNikkud, ensureCyrillicHebrewTranscription } from '@/lib/transcription';
 import { verifySessionToken } from '@/lib/auth';
 import { checkRateLimit } from '@/lib/rateLimit';
 
 function normalizeLookup(parsed: any, defaultWord: string) {
+  const hebrewWord = parsed.hebrew || defaultWord;
+  const rawTranscription =
+    parsed.cyrillic_transcription ||
+    parsed.russian_transcription ||
+    parsed.transcription_ru ||
+    parsed.transcription ||
+    '';
+
+  const cleanTranscription = ensureCyrillicHebrewTranscription(rawTranscription, hebrewWord) || defaultWord;
+
+  let exampleSentence = null;
+  if (
+    parsed.exampleSentence &&
+    (parsed.exampleSentence.hebrew ||
+      parsed.exampleSentence.translation ||
+      parsed.exampleSentence.russian_translation)
+  ) {
+    const exHebrew = parsed.exampleSentence.hebrew || '';
+    const exRawTranscription =
+      parsed.exampleSentence.cyrillic_transcription ||
+      parsed.exampleSentence.russian_transcription ||
+      parsed.exampleSentence.transcription ||
+      '';
+    const exCleanTranscription = ensureCyrillicHebrewTranscription(exRawTranscription, exHebrew);
+
+    exampleSentence = {
+      hebrew: exHebrew,
+      transcription: exCleanTranscription,
+      translation:
+        parsed.exampleSentence.russian_translation ||
+        parsed.exampleSentence.translation ||
+        '',
+    };
+  }
+
   return {
-    hebrew: parsed.hebrew || defaultWord,
-    transcription:
-      parsed.cyrillic_transcription ||
-      parsed.russian_transcription ||
-      parsed.transcription_ru ||
-      parsed.transcription ||
-      defaultWord,
+    hebrew: hebrewWord,
+    transcription: cleanTranscription,
     translation:
       parsed.russian_translation ||
       parsed.translation_ru ||
@@ -24,20 +54,7 @@ function normalizeLookup(parsed: any, defaultWord: string) {
       '',
     root: parsed.root || null,
     partOfSpeech: parsed.partOfSpeech || 'other',
-    exampleSentence: parsed.exampleSentence
-      ? {
-          hebrew: parsed.exampleSentence.hebrew || '',
-          transcription:
-            parsed.exampleSentence.cyrillic_transcription ||
-            parsed.exampleSentence.russian_transcription ||
-            parsed.exampleSentence.transcription ||
-            '',
-          translation:
-            parsed.exampleSentence.russian_translation ||
-            parsed.exampleSentence.translation ||
-            '',
-        }
-      : null,
+    exampleSentence,
   };
 }
 
@@ -143,10 +160,14 @@ ${sentenceTranscription ? `ОФИЦИАЛЬНАЯ РУССКАЯ ТРАНСКР�
 0. СТРОГО СВЕРЯЙСЯ С ПЕРЕВОДОМ ПРЕДЛОЖЕНИЯ:
 ${sentenceTranslation ? `   - В предложении уже дан официальный русский перевод: "${sentenceTranslation}". Поле "russian_translation" ОБЯЗАНО строго соответствовать значению слова в этом переводе! Категорически запрещено выдумывать ложные омонимы или значения, противоречащие смыслу предложения (например, если в предложении "איזה רהוט אתה צריך?" перевод "Какая мебель вам нужна?", то слово "רהוט" переводится ИСКЛЮЧИТЕЛЬНО как "мебель, обстановка", а НЕ "просторный" или "беглый"!).` : '   - Обязательно учитывай контекст всего предложения, не выдумывай ложных значений, опирайся на реальный современный иврит.'}
 ${sentenceTranscription ? `   - Русская транскрипция слова "cyrillic_transcription" ДОЛЖНА точно соответствовать официальной транскрипции предложения ("${sentenceTranscription}").` : ''}
-   - Букву ה (хей) ВСЕГДА передавать в транскрипции как латинскую "h" (например "hа-бáйит", "риhӯт", "hу", "hи", "мэруhэ́тет").
-   - Буквы ח и כ — как русское "х".
-1. "hebrew": исходная или словарная форма слова с точными огласовками (נִקּוּד).
-2. "cyrillic_transcription": русская транскрипция с ударением (´) и буквой "h" для ה.
+1. ТРАНСКРИПЦИЯ: СТРОГО НА РУССКОЙ КИРИЛЛИЦЕ!
+   - Категорически запрещено использовать буквы английского/латинского алфавита (c, a, e, i, o, p, k, x, y, v, s и т.д.)!
+   - Единственное исключение — буква "h" для передачи звука буквы ה (например: "hа-ба́йит", "риhӯт", "hу").
+   - Все остальные буквы ДОЛЖНЫ БЫТЬ русскими кириллическими буквами: "сéфер" (не "cefer"), "лекра" (не "lekra"), "мумлáц" (не "mumlatz").
+   - Буквы ח и כ — строго как русское "х".
+2. СОВРЕМЕННОЕ НАПИСАНИЕ (כתיב מלא) И ОГЛАСОВКИ:
+   - В поле "hebrew": исходная словарная форма слова ОБЯЗАНА содержать точные огласовки (נִקּוּד) и отражать современную норму (например, "מוּמְלָץ", а не усеченное "ממלץ").
+   - В поле "exampleSentence": предложение пишется на естественном современном иврите (в полном написании כתיב מלא с огласовками). Категорически запрещено опускать буквы вав и йод без огласовок (например, писать "ממלץ" вместо "מוּמְלָץ" — грубая ошибка).
 3. "russian_translation": точный перевод на русский язык (согласованный с официальным переводом предложения).
 4. "root": корень слова из 3-4 букв через дефис (например "כ-ת-ב" или "ר-ה-ט") если применимо, иначе null.
 5. "partOfSpeech": одно из: 'noun', 'verb', 'adjective', 'preposition', 'expression', 'pronoun', 'other'.
@@ -186,16 +207,17 @@ ${sentenceTranscription ? `   - Русская транскрипция слов
               ],
               response_format: { type: 'json_object' },
               temperature: 0.1,
-              max_tokens: 1500,
             }),
           });
 
           if (groqRes.ok) {
             const data = await groqRes.json();
-            const contentStr = data.choices[0]?.message?.content || '{}';
-            const parsed = JSON.parse(contentStr);
-            const normalized = normalizeLookup(parsed, word);
-            return NextResponse.json(normalized);
+            const content = data.choices?.[0]?.message?.content;
+            if (content) {
+              const parsed = JSON.parse(content);
+              const normalized = normalizeLookup(parsed, word);
+              return NextResponse.json(normalized);
+            }
           }
         } catch (groqErr) {
           console.error(`Groq lookup error with model ${groqModel}:`, groqErr);
@@ -236,8 +258,8 @@ ${sentenceTranscription ? `   - Русская транскрипция слов
     // 5. Если ИИ недоступен и слово не в оффлайн-базе
     return NextResponse.json({
       hebrew: word,
-      transcription: word,
-      translation: 'Слово на иврите (в словарике ульпана)',
+      transcription: ensureCyrillicHebrewTranscription(word),
+      translation: 'Перевод временно недоступен (сбой сети/ИИ)',
       root: null,
       partOfSpeech: 'other',
       exampleSentence: null,

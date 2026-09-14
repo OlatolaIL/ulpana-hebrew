@@ -244,6 +244,7 @@ export const FlipCardMode: React.FC<FlipCardModeProps> = ({
             {triad ? (
               <VerbTriadBlock
                 triad={triad}
+                showNikkud={userProfile.showNikkud}
                 onSpeakHebrew={onSpeakHebrew}
                 onOpenPealim={() => onOpenPealim(currentWord)}
                 onSelectRelatedWord={(rw) => setSelectedLookupWord(rw.hebrewPlain || rw.hebrew)}
@@ -344,6 +345,7 @@ export const FlipCardMode: React.FC<FlipCardModeProps> = ({
             {triad ? (
               <VerbTriadBlock
                 triad={triad}
+                showNikkud={userProfile.showNikkud}
                 onSpeakHebrew={onSpeakHebrew}
                 onOpenPealim={() => onOpenPealim(currentWord)}
                 onSelectRelatedWord={(rw) => setSelectedLookupWord(rw.hebrewPlain || rw.hebrew)}
