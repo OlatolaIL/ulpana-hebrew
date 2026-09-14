@@ -3033,6 +3033,18 @@ export const ALEF_LESSONS_01_10: Record<number, Lesson> = {
         "partOfSpeech": "preposition",
         "root": "י-ד-ד",
         "lessonId": 7
+      },
+      {
+        "id": "w7-13",
+        "hebrew": "שׁוּלְחָן",
+        "hebrewPlain": "שולחן",
+        "transcription": "шульхáн",
+        "translation": "стол",
+        "partOfSpeech": "noun",
+        "root": "ש-ל-ח",
+        "gender": "m",
+        "plural": "שׁוּלְחָנוֹת (шульханóт - искл.!)",
+        "lessonId": 7
       }
     ],
     "basicSentences": [
@@ -3066,6 +3078,7 @@ export const ALEF_LESSONS_01_10: Record<number, Lesson> = {
       "situation": "Арендодатель Эли расспрашивает вас, какую квартиру вы ищете в аренду.",
       "aiRole": "Арендодатель Эли",
       "userRole": "Арендатор",
+      "callType": "outgoing",
       "initialMessage": {
         "hebrew": "שָׁלוֹם! יֵשׁ לִי כַּמָּה דִּירוֹת מְצוּיָנוֹת לְהַשְׂכָּרָה בַּמֶּרְכָּז. כַּמָּה חֲדָרִים אַתָּה מְחַפֵּשׂ?",
         "transcription": "шалóм! йеш ли кáма дирóт мэцуянóт лэ-hаскарá ба-меркáз. кáма хадарӣм атá мэхапэ́с?",

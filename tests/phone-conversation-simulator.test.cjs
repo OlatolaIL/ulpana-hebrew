@@ -1,0 +1,367 @@
+﻿/* eslint-disable @typescript-eslint/no-require-imports */
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const { NextRequest } = require('next/server');
+
+const { createSessionToken } = require('../src/lib/auth.ts');
+const { POST: phonePOST } = require('../src/app/api/ai/phone/route.ts');
+const { getLessonPhoneScenario } = require('../src/data/phoneScenarios.ts');
+const { DETAILED_LESSONS } = require('../src/data/lessonsData.ts');
+
+function snapshotGlobalProperties(keys) {
+  const descriptors = new Map();
+  for (const key of keys) {
+    descriptors.set(key, Object.getOwnPropertyDescriptor(globalThis, key));
+  }
+  return () => {
+    for (const key of keys) {
+      const desc = descriptors.get(key);
+      if (desc === undefined) {
+        delete globalThis[key];
+      } else {
+        Object.defineProperty(globalThis, key, desc);
+      }
+    }
+  };
+}
+
+function setupTestEnv(t) {
+  const restoreFetch = snapshotGlobalProperties(['fetch']);
+  const envNames = [
+    'NODE_ENV',
+    'JWT_SECRET',
+    'DATABASE_URL',
+    'POSTGRES_URL',
+    'GROQ_API_KEY',
+    'GEMINI_API_KEY',
+    'GROQ_FALLBACK_MODEL',
+  ];
+  const envBefore = new Map(
+    envNames.map((k) => [k, { exists: Object.hasOwn(process.env, k), value: process.env[k] }])
+  );
+
+  process.env.NODE_ENV = 'test';
+  delete process.env.DATABASE_URL;
+  delete process.env.POSTGRES_URL;
+  process.env.GROQ_API_KEY = 'synthetic-phone-test-groq-key';
+  delete process.env.GEMINI_API_KEY;
+  delete process.env.GROQ_FALLBACK_MODEL;
+  process.env.JWT_SECRET = 'synthetic-phone-simulator-test-secret-32-bytes!';
+
+  const calls = [];
+
+  const mockAiFetch = (provider, handler) => {
+    global.fetch = async (url, options) => {
+      const body = JSON.parse(options.body);
+      calls.push({ provider, body, url: String(url) });
+
+      let mockContent;
+      if (typeof handler === 'function') {
+        mockContent = handler(body);
+      } else {
+        mockContent = handler;
+      }
+
+      const contentStr = JSON.stringify(mockContent);
+      const responsePayload =
+        provider === 'groq'
+          ? { choices: [{ message: { content: contentStr } }] }
+          : { candidates: [{ content: { parts: [{ text: contentStr }] } }] };
+
+      return new Response(JSON.stringify(responsePayload), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      });
+    };
+  };
+
+  const cleanup = () => {
+    restoreFetch();
+    for (const [key, entry] of envBefore) {
+      if (!entry.exists) {
+        delete process.env[key];
+      } else {
+        process.env[key] = entry.value;
+      }
+    }
+  };
+
+  if (t && typeof t.after === 'function') {
+    t.after(cleanup);
+  }
+
+  return { calls, mockAiFetch, cleanup };
+}
+
+// ---------------------------------------------------------------------------
+// 1. Lesson 7 bespoke scenario & prompt integrity
+// ---------------------------------------------------------------------------
+test('Lesson 7 bespoke scenario: Eli is landlord, student is tenant, call is outgoing', () => {
+  const l7 = DETAILED_LESSONS[7];
+  assert.ok(l7, 'Lesson 7 must exist in DETAILED_LESSONS');
+  assert.equal(l7.dialogue.callType, 'outgoing', 'Lesson 7 dialogue callType must be outgoing');
+  assert.equal(l7.dialogue.aiRole, 'Арендодатель Эли');
+  assert.equal(l7.dialogue.userRole, 'Арендатор');
+
+  const maleScenario = getLessonPhoneScenario(l7, 'male');
+  assert.equal(maleScenario.callType, 'outgoing');
+  assert.equal(maleScenario.callerRole, 'Арендодатель (сдаёт квартиры в центре)');
+  assert.ok(maleScenario.initialGreeting.hebrew.includes('מְחַפֵּשׂ'), 'Male greeting must use מְחַפֵּשׂ');
+  assert.ok(maleScenario.systemPromptAddition.includes('АРЕНДОДАТЕЛЬ ЭЛИ'));
+  assert.ok(maleScenario.systemPromptAddition.includes('רֶגַע, אֲנִי בַּעַל הַדִּירָה, אֲנִי מַשְׂכִּיר'));
+
+  // Useful words should include שׁוּלְחָן and מְקָרֵר
+  const usefulHebrew = maleScenario.usefulWords.map((w) => w.hebrew);
+  assert.ok(usefulHebrew.includes('שׁוּלְחָן'), 'Lesson 7 useful words must include שׁוּלְחָן');
+  assert.ok(usefulHebrew.includes('מְקָרֵר'), 'Lesson 7 useful words must include מְקָרֵר');
+
+  // Female scenario adaptation
+  const femaleScenario = getLessonPhoneScenario(l7, 'female');
+  assert.ok(femaleScenario.initialGreeting.hebrew.includes('מְחַפֶּשֶׂת'), 'Female greeting must use מְחַפֶּשֶׂת');
+  assert.equal(femaleScenario.initialGreeting.transcription.includes('мэхапэ́сэт'), true);
+});
+
+// ---------------------------------------------------------------------------
+// 2. Multi-turn dialogue simulations for Lesson 7 (Student Personas)
+// ---------------------------------------------------------------------------
+test('Phone simulator: Multi-turn Persona 1 (Ideal Student) maintains role and completes dialogue', async (t) => {
+  const env = setupTestEnv(t);
+
+  const token = await createSessionToken({
+    id: 'test-student-ideal',
+    name: 'Ideal Student',
+    subscriptionTier: 'free',
+  });
+
+  env.mockAiFetch('groq', (body) => {
+    const messages = body.messages || [];
+    const lastUserMsg = [...messages].reverse().find((m) => m.role === 'user')?.content || '';
+
+    if (lastUserMsg.includes('שְׁלוֹשָׁה חֲדָרִים')) {
+      return {
+        hebrew: 'מְעֻלֶּה! יֵשׁ לִי דִּירָה שֶׁל שְׁלוֹשָׁה חֲדָרִים בְּדִיזֶנְגּוֹף. יֵשׁ שָׁם מְקָרֵר וּמִיטָּה. אַתָּה צָרִיךְ רִיהוּט?',
+        transcription: 'мэулé! йеш ли дирá шель шлошá хадарӣм бэ-Дӣзенгоф. йеш шам мэкарэ́р у-митá. атá царӣх риhӯт?',
+        translation: 'Отлично! У меня есть трёхкомнатная квартира на Дизенгоф. Там есть холодильник и кровать. Вам нужна мебель?',
+        isCompleted: false,
+        shouldHangUp: false,
+        suggestedReplies: [],
+      };
+    }
+
+    if (lastUserMsg.includes('עוֹלֶה') || lastUserMsg.includes('רִיהוּט')) {
+      return {
+        hebrew: 'הִיא עוֹלָה 6,000 שֶׁקֶל. כָּל הָרִיהוּט שָׁם! רוֹצֶה לִרְאוֹת אֶת הַדִּירָה הַיּוֹם?',
+        transcription: 'hи олá 6,000 шéкель. коль hа-риhӯт шам! роцé лиръóт эт hа-дирá hайóм?',
+        translation: 'Она стоит 6,000 шекелей. Вся мебель там! Хотите посмотреть квартиру сегодня?',
+        isCompleted: false,
+        shouldHangUp: false,
+        suggestedReplies: [],
+      };
+    }
+
+    return {
+      hebrew: 'יוֹפִי, נִתְרָאֶה הַיּוֹם בְּשֶׁבַע! תּוֹדָה וּלְהִתְרָאוֹת!',
+      transcription: 'йóфи, нитраé hайóм бэ-шéва! тодá у-лэhитраóт!',
+      translation: 'Отлично, увидимся сегодня в семь! Спасибо и до свидания!',
+      isCompleted: true,
+      shouldHangUp: true,
+      suggestedReplies: [],
+    };
+  });
+
+  const lesson = DETAILED_LESSONS[7];
+  const scenario = getLessonPhoneScenario(lesson, 'male');
+
+  const turn1Req = new NextRequest('http://localhost/api/ai/phone', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', cookie: `ulpana_session=${token}` },
+    body: JSON.stringify({
+      lessonNumber: 7,
+      level: 'alef',
+      userGender: 'male',
+      provider: 'groq',
+      messages: [
+        { role: 'assistant', content: scenario.initialGreeting.hebrew },
+        { role: 'user', content: 'שָׁלוֹם אֵלִי, אֲנִי מְחַפֵּשׂ דִּירָה שֶׁל שְׁלוֹשָׁה חֲדָרִים בַּמֶּרְכָּז.' },
+      ],
+      callType: 'outgoing',
+    }),
+  });
+
+  const res1 = await phonePOST(turn1Req);
+  assert.equal(res1.status, 200);
+  const json1 = await res1.json();
+  assert.equal(json1.isCompleted, false);
+  assert.equal(json1.shouldHangUp, false);
+  assert.ok(json1.hebrew.includes('שְׁלוֹשָׁה חֲדָרִים') || json1.hebrew.includes('דִיזֶנְגּוֹף'));
+
+  const outgoingPrompt = env.calls[0].body.messages[0].content;
+  assert.ok(outgoingPrompt.includes('АРЕНДОДАТЕЛЬ ЭЛИ'));
+  assert.ok(outgoingPrompt.includes('Ученик (Арендатор) сам звонит тебе'));
+  assert.ok(outgoingPrompt.includes('НИКОГДА НЕ ПОВТОРЯЙ ФРАЗЫ ОТ ПЕРВОГО ЛИЦА'));
+
+  const turn2Req = new NextRequest('http://localhost/api/ai/phone', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', cookie: `ulpana_session=${token}` },
+    body: JSON.stringify({
+      lessonNumber: 7,
+      level: 'alef',
+      userGender: 'male',
+      provider: 'groq',
+      messages: [
+        { role: 'assistant', content: scenario.initialGreeting.hebrew },
+        { role: 'user', content: 'שָׁלוֹם אֵלִי, אֲנִי מְחַפֵּשׂ דִּירָה שֶׁל שְׁלוֹשָׁה חֲדָרִים בַּמֶּרְכָּז.' },
+        { role: 'assistant', content: json1.hebrew },
+        { role: 'user', content: 'כֵּן, כַּמָּה זֶה עוֹלֶה וְיֵשׁ שָׁם רִיהוּט?' },
+      ],
+      callType: 'outgoing',
+    }),
+  });
+
+  const res2 = await phonePOST(turn2Req);
+  assert.equal(res2.status, 200);
+  const json2 = await res2.json();
+  assert.equal(json2.isCompleted, false);
+  assert.equal(json2.shouldHangUp, false);
+
+  const turn3Req = new NextRequest('http://localhost/api/ai/phone', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', cookie: `ulpana_session=${token}` },
+    body: JSON.stringify({
+      lessonNumber: 7,
+      level: 'alef',
+      userGender: 'male',
+      provider: 'groq',
+      messages: [
+        { role: 'assistant', content: scenario.initialGreeting.hebrew },
+        { role: 'user', content: 'שָׁלוֹם אֵלִי, אֲנִי מְחַפֵּשׂ דִּירָה שֶׁל שְׁלוֹשָׁה חֲדָרִים בַּמֶּרְכָּז.' },
+        { role: 'assistant', content: json1.hebrew },
+        { role: 'user', content: 'כֵּן, כַּמָּה זֶה עוֹלֶה וְיֵשׁ שָׁם רִיהוּט?' },
+        { role: 'assistant', content: json2.hebrew },
+        { role: 'user', content: 'מְעֻלֶּה, נִתְרָאֶה הַיּוֹם בְּשֶׁבַע! תּוֹדָה רַבָּה!' },
+      ],
+      callType: 'outgoing',
+    }),
+  });
+
+  const res3 = await phonePOST(turn3Req);
+  assert.equal(res3.status, 200);
+  const json3 = await res3.json();
+  assert.equal(json3.isCompleted, true);
+  assert.equal(json3.shouldHangUp, true);
+});
+
+test('Phone simulator: Role-confusion provocation is caught in system prompt guardrails', async (t) => {
+  const env = setupTestEnv(t);
+
+  const token = await createSessionToken({
+    id: 'test-student-confused',
+    name: 'Confused Student',
+    subscriptionTier: 'free',
+  });
+
+  env.mockAiFetch('groq', () => ({
+    hebrew: 'רֶגַע, אֲנִי בַּעַל הַדִּירָה, אֲנִי מַשְׂכִּיר! אַתָּה רוֹצֶה לִשְׂכֹּר דִּירָה?',
+    transcription: 'рéга, анӣ бáаль hа-дирá, анӣ маскӣр! атá роцé лискóр дирá?',
+    translation: 'Минутку, я владелец квартиры, я сдаю! Ты хочешь снять квартиру?',
+    isCompleted: false,
+    shouldHangUp: false,
+    suggestedReplies: [],
+  }));
+
+  const l7 = DETAILED_LESSONS[7];
+  const scenario = getLessonPhoneScenario(l7, 'male');
+
+  const req = new NextRequest('http://localhost/api/ai/phone', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', cookie: `ulpana_session=${token}` },
+    body: JSON.stringify({
+      lessonNumber: 7,
+      level: 'alef',
+      userGender: 'male',
+      provider: 'groq',
+      messages: [
+        { role: 'assistant', content: scenario.initialGreeting.hebrew },
+        { role: 'user', content: 'שָׁלוֹם, אֲנִי מַשְׂכִּיר דִּירָה שֶׁל שְׁנֵי חֲדָרִים.' },
+      ],
+      callType: 'outgoing',
+    }),
+  });
+
+  const res = await phonePOST(req);
+  assert.equal(res.status, 200);
+  const json = await res.json();
+
+  const prompt = env.calls[0].body.messages[0].content;
+  assert.ok(prompt.includes('Если ученик путает роли (например, говорит «אני משכיר דירה» вместо «שוכר»)'));
+  assert.ok(prompt.includes('רגע, אני בעל הדירה, אני משכיר!'));
+  assert.ok(json.hebrew.includes('בַּעַל הַדִּירָה') || json.hebrew.includes('מַשְׂכִּיר'));
+});
+
+test('Phone simulator: Female student receives feminine prompt and gender agreement', async (t) => {
+  const env = setupTestEnv(t);
+
+  const token = await createSessionToken({
+    id: 'test-student-female',
+    name: 'Female Student',
+    subscriptionTier: 'free',
+  });
+
+  env.mockAiFetch('groq', () => ({
+    hebrew: 'מְעֻלֶּה! כַּמָּה חֲדָרִים אַתְּ צְרִיכָה?',
+    transcription: 'мэулé! кáма хадарӣм ат црихá?',
+    translation: 'Отлично! Сколько комнат вам нужно?',
+    isCompleted: false,
+    shouldHangUp: false,
+    suggestedReplies: [],
+  }));
+
+  const l7 = DETAILED_LESSONS[7];
+  const femaleScenario = getLessonPhoneScenario(l7, 'female');
+
+  const req = new NextRequest('http://localhost/api/ai/phone', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', cookie: `ulpana_session=${token}` },
+    body: JSON.stringify({
+      lessonNumber: 7,
+      level: 'alef',
+      userGender: 'female',
+      provider: 'groq',
+      messages: [
+        { role: 'assistant', content: femaleScenario.initialGreeting.hebrew },
+        { role: 'user', content: 'שָׁלוֹם, אֲנִי מְחַפֶּשֶׂת דִּירָה שֶׁל שְׁנֵי חֲדָרִים.' },
+      ],
+      callType: 'outgoing',
+    }),
+  });
+
+  const res = await phonePOST(req);
+  assert.equal(res.status, 200);
+
+  const prompt = env.calls[0].body.messages[0].content;
+  assert.ok(prompt.includes('Женский (обращайся к ней на «אַתְּ»'));
+  assert.ok(prompt.includes('אַתְּ מְחַפֶּשֶׂת?'));
+});
+
+// ---------------------------------------------------------------------------
+// 3. Scalability: All 100 lessons scenario contract and role integrity
+// ---------------------------------------------------------------------------
+test('All 100 lessons: getLessonPhoneScenario generates valid scenarios with non-inverted roles', () => {
+  for (let lessonNum = 1; lessonNum <= 100; lessonNum++) {
+    const lesson = DETAILED_LESSONS[lessonNum];
+    assert.ok(lesson, 'Lesson ' + lessonNum + ' must exist in DETAILED_LESSONS');
+
+    for (const gender of ['male', 'female']) {
+      const scenario = getLessonPhoneScenario(lesson, gender);
+
+      assert.ok(scenario, 'Lesson ' + lessonNum + ' (' + gender + ') scenario must be generated');
+      assert.ok(scenario.callerRole && scenario.callerRole.trim().length > 0, 'Lesson ' + lessonNum + ' (' + gender + ') callerRole must not be empty');
+      assert.ok(scenario.initialGreeting && scenario.initialGreeting.hebrew && scenario.initialGreeting.hebrew.trim().length > 0, 'Lesson ' + lessonNum + ' (' + gender + ') initialGreeting.hebrew must not be empty');
+      assert.ok(scenario.initialGreeting && scenario.initialGreeting.transcription && scenario.initialGreeting.transcription.trim().length > 0, 'Lesson ' + lessonNum + ' (' + gender + ') initialGreeting.transcription must not be empty');
+      assert.ok(scenario.initialGreeting && scenario.initialGreeting.translation && scenario.initialGreeting.translation.trim().length > 0, 'Lesson ' + lessonNum + ' (' + gender + ') initialGreeting.translation must not be empty');
+      assert.ok(['incoming', 'outgoing'].includes(scenario.callType), 'Lesson ' + lessonNum + ' (' + gender + ') callType must be incoming or outgoing');
+      assert.ok(Array.isArray(scenario.goals) && scenario.goals.length > 0, 'Lesson ' + lessonNum + ' (' + gender + ') goals must be non-empty');
+      assert.equal(scenario.initialGreeting.hebrew.includes('${'), false, 'Lesson ' + lessonNum + ' greeting must not contain unresolved templates');
+    }
+  }
+});

@@ -325,49 +325,7 @@ export const ActiveCallView: React.FC<ActiveCallViewProps> = ({
         )}
       </div>
 
-      {/* Подсказки, что сказать — можно сказать вслух или нажать */}
-      {latestAiMessage?.suggestedReplies &&
-        latestAiMessage.suggestedReplies.length > 0 &&
-        !isAiHangingUp && (
-          <div className="px-4 py-2.5 bg-zinc-900/90 border-t border-zinc-800/80">
-            <div className="flex items-center justify-between mb-1.5 font-hebrew text-[11px]">
-              <span className="font-bold text-zinc-400 flex items-center gap-1.5">
-                <Sparkles className="w-3 h-3 text-purple-400" />
-                <span>
-                  Подсказка — скажите вслух или нажмите:
-                </span>
-              </span>
-              <span className="text-[10px] text-zinc-500">
-                Говорите в микрофон 🎙️
-              </span>
-            </div>
-            <div className="flex flex-wrap gap-1.5">
-              {latestAiMessage.suggestedReplies.map((reply, idx) => (
-                <button
-                  key={idx}
-                  type="button"
-                  onClick={() => {
-                    if (!isAiSpeaking && !loadingAi && !isAiHangingUp) {
-                      onSendMessage(reply.hebrew, {
-                        translation: reply.translation,
-                        transcription: reply.transcription,
-                      });
-                    }
-                  }}
-                  className="px-3 py-1.5 rounded-xl bg-zinc-800/90 hover:bg-zinc-700/90 active:scale-95 border border-zinc-700/70 hover:border-blue-500/60 text-xs text-zinc-200 flex flex-col transition cursor-pointer text-right group"
-                  title="Скажите вслух или нажмите для быстрой отправки"
-                >
-                  <span className="font-bold font-hebrew text-white group-hover:text-blue-200">
-                    {reply.hebrew}
-                  </span>
-                  {reply.translation && (
-                    <span className="text-[10px] text-zinc-400">{reply.translation}</span>
-                  )}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
+
 
       {/* Текстовый ввод (только как скрытый резерв для случаев без микрофона) */}
       {showTextInput && (
