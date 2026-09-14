@@ -8,7 +8,7 @@ export function resolveAiKeys(provider: string, customKey?: unknown) {
 }
 
 export function groqModels(): string[] {
-  const primary = process.env.GROQ_MODEL?.trim() || 'llama-3.3-70b-versatile';
+  const primary = process.env.GROQ_MODEL?.trim() || 'openai/gpt-oss-120b';
   const fallback = process.env.GROQ_FALLBACK_MODEL?.trim();
   return [...new Set([primary, fallback].filter((model): model is string => Boolean(model)))].slice(0, 2);
 }
