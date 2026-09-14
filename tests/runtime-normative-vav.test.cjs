@@ -10,6 +10,23 @@ const { POST: chatPOST } = require('../src/app/api/ai/chat/route.ts');
 
 const FORCED_VE_REGEX = /ВСЕГДА.*вэ-|ЗАПРЕЩЕНО.*у-|союзом "вэ-"/;
 
+function snapshotGlobalProperties(keys) {
+  const descriptors = new Map();
+  for (const key of keys) {
+    descriptors.set(key, Object.getOwnPropertyDescriptor(globalThis, key));
+  }
+  return () => {
+    for (const key of keys) {
+      const desc = descriptors.get(key);
+      if (desc === undefined) {
+        delete globalThis[key];
+      } else {
+        Object.defineProperty(globalThis, key, desc);
+      }
+    }
+  };
+}
+
 // ---------------------------------------------------------------------------
 // 1. cleanHebrewForSpeech: preservation of normative vav and root vav
 // ---------------------------------------------------------------------------
@@ -49,13 +66,22 @@ test('cleanHebrewForSpeech preserves normative vav and root-vav words without fo
 });
 
 // ---------------------------------------------------------------------------
-// 2. speakHebrew: transmission to all 3 synthesis sinks
+// 2. speakHebrew: transmission to all 3 synthesis sinks with strict isolation
 // ---------------------------------------------------------------------------
-test('speakHebrew transmits normative text across native TTS, unsupported synthesis, and error fallback', async () => {
-  const savedWindow = global.window;
-  const savedUtterance = global.SpeechSynthesisUtterance;
-  const savedAudio = global.Audio;
-  const savedLocalStorage = global.localStorage;
+test('speakHebrew transmits normative text across native TTS, unsupported synthesis, and error fallback', async (t) => {
+  const restoreGlobals = snapshotGlobalProperties([
+    'window',
+    'SpeechSynthesisUtterance',
+    'Audio',
+    'localStorage',
+  ]);
+
+  if (t && typeof t.after === 'function') {
+    t.after(() => {
+      stopSpeech();
+      restoreGlobals();
+    });
+  }
 
   const sinks = [];
 
@@ -89,7 +115,7 @@ test('speakHebrew transmits normative text across native TTS, unsupported synthe
     };
 
     // Sink 1: Native browser SpeechSynthesis
-    global.window = { 
+    global.window = {
       speechSynthesis: {
         getVoices: () => [],
         cancel() {},
@@ -165,27 +191,27 @@ test('speakHebrew transmits normative text across native TTS, unsupported synthe
     stopSpeech();
   } finally {
     stopSpeech();
-    global.window = savedWindow;
-    global.SpeechSynthesisUtterance = savedUtterance;
-    global.Audio = savedAudio;
-    global.localStorage = savedLocalStorage;
+    restoreGlobals();
   }
 });
 
 // ---------------------------------------------------------------------------
-// Helper for intercepted AI route tests
+// Helper for intercepted AI route tests with descriptor/env restoration
 // ---------------------------------------------------------------------------
-function setupAiRouteEnv() {
-  const savedFetch = global.fetch;
-  const savedEnv = {
-    NODE_ENV: process.env.NODE_ENV,
-    DATABASE_URL: process.env.DATABASE_URL,
-    POSTGRES_URL: process.env.POSTGRES_URL,
-    GROQ_API_KEY: process.env.GROQ_API_KEY,
-    GEMINI_API_KEY: process.env.GEMINI_API_KEY,
-    GROQ_FALLBACK_MODEL: process.env.GROQ_FALLBACK_MODEL,
-    JWT_SECRET: process.env.JWT_SECRET,
-  };
+function setupAiRouteEnv(t) {
+  const restoreFetch = snapshotGlobalProperties(['fetch']);
+  const envNames = [
+    'NODE_ENV',
+    'JWT_SECRET',
+    'DATABASE_URL',
+    'POSTGRES_URL',
+    'GROQ_API_KEY',
+    'GEMINI_API_KEY',
+    'GROQ_FALLBACK_MODEL',
+  ];
+  const envBefore = new Map(
+    envNames.map((k) => [k, { exists: Object.hasOwn(process.env, k), value: process.env[k] }])
+  );
 
   process.env.NODE_ENV = 'test';
   delete process.env.DATABASE_URL;
@@ -221,15 +247,19 @@ function setupAiRouteEnv() {
   };
 
   const cleanup = () => {
-    global.fetch = savedFetch;
-    for (const [key, val] of Object.entries(savedEnv)) {
-      if (val === undefined) {
+    restoreFetch();
+    for (const [key, entry] of envBefore) {
+      if (!entry.exists) {
         delete process.env[key];
       } else {
-        process.env[key] = val;
+        process.env[key] = entry.value;
       }
     }
   };
+
+  if (t && typeof t.after === 'function') {
+    t.after(cleanup);
+  }
 
   return { calls, mockAiFetch, cleanup };
 }
@@ -237,8 +267,8 @@ function setupAiRouteEnv() {
 // ---------------------------------------------------------------------------
 // 3. POST /api/ai/phone: preserves normative transcription for Groq & Gemini
 // ---------------------------------------------------------------------------
-test('POST /api/ai/phone preserves normative "у-" transcription and provides positive prompt rules (Groq and Gemini)', async () => {
-  const env = setupAiRouteEnv();
+test('POST /api/ai/phone preserves normative "у-" transcription and provides positive prompt rules (Groq and Gemini)', async (t) => {
+  const env = setupAiRouteEnv(t);
 
   try {
     const token = await createSessionToken({
@@ -344,8 +374,8 @@ test('POST /api/ai/phone preserves normative "у-" transcription and provides po
 // ---------------------------------------------------------------------------
 // 4. POST /api/ai/phone: preserves standard "вэ-" without reverse conversion and trims
 // ---------------------------------------------------------------------------
-test('POST /api/ai/phone preserves standard "вэ-" and trims surrounding whitespace', async () => {
-  const env = setupAiRouteEnv();
+test('POST /api/ai/phone preserves standard "вэ-" and trims surrounding whitespace', async (t) => {
+  const env = setupAiRouteEnv(t);
 
   try {
     const token = await createSessionToken({
@@ -401,8 +431,8 @@ test('POST /api/ai/phone preserves standard "вэ-" and trims surrounding whites
 // ---------------------------------------------------------------------------
 // 5. POST /api/ai/chat: preserves normative transcription for Groq & Gemini
 // ---------------------------------------------------------------------------
-test('POST /api/ai/chat preserves normative "у-" transcription and provides positive prompt rules (Groq and Gemini)', async () => {
-  const env = setupAiRouteEnv();
+test('POST /api/ai/chat preserves normative "у-" transcription and provides positive prompt rules (Groq and Gemini)', async (t) => {
+  const env = setupAiRouteEnv(t);
 
   try {
     const token = await createSessionToken({
@@ -507,8 +537,8 @@ test('POST /api/ai/chat preserves normative "у-" transcription and provides pos
 // ---------------------------------------------------------------------------
 // 6. POST /api/ai/chat: preserves standard "вэ-" and trims whitespace
 // ---------------------------------------------------------------------------
-test('POST /api/ai/chat preserves standard "вэ-" and trims surrounding whitespace', async () => {
-  const env = setupAiRouteEnv();
+test('POST /api/ai/chat preserves standard "вэ-" and trims surrounding whitespace', async (t) => {
+  const env = setupAiRouteEnv(t);
 
   try {
     const token = await createSessionToken({
