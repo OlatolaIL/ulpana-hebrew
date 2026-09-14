@@ -17,6 +17,30 @@ const repoRoot = path.join(__dirname, '..');
 const outputFile = path.join(repoRoot, 'src/data/pealimMasterDictionary.json');
 const catalogIndexFile = path.join(repoRoot, 'src/data/pealimCatalogIndex.json');
 
+function safeWriteJson(filepath, data, retries = 5) {
+  const tmpFile = `${filepath}.tmp`;
+  const str = typeof data === 'string' ? data : JSON.stringify(data, null, 2);
+  for (let i = 0; i < retries; i++) {
+    try {
+      fs.writeFileSync(tmpFile, str, 'utf8');
+      try {
+        fs.renameSync(tmpFile, filepath);
+      } catch (renameErr) {
+        fs.copyFileSync(tmpFile, filepath);
+        try { fs.unlinkSync(tmpFile); } catch {}
+      }
+      return;
+    } catch (err) {
+      if (i === retries - 1) {
+        console.warn(`\n[safeWriteJson] Warning writing ${filepath}: ${err.message}. Continuing...`);
+        return;
+      }
+      const start = Date.now();
+      while (Date.now() - start < 500) {}
+    }
+  }
+}
+
 function cleanText(html) {
   if (!html) return '';
   return html
@@ -836,7 +860,7 @@ async function scrapeAllWords(options = {}) {
     }
   }
   if (initialNew > 0) {
-    fs.writeFileSync(outputFile, JSON.stringify(masterDict, null, 2), 'utf8');
+    safeWriteJson(outputFile, masterDict);
     console.log(`Базовый индекс синхронизирован: добавлено ${initialNew} новых словарных записей.`);
   }
 
@@ -898,15 +922,15 @@ async function scrapeAllWords(options = {}) {
       }
     }
 
-    if (processed % 25 === 0 || processed >= pendingItems.length) {
-      fs.writeFileSync(outputFile, JSON.stringify(masterDict, null, 2), 'utf8');
+    if (processed % 50 === 0 || processed >= pendingItems.length) {
+      safeWriteJson(outputFile, masterDict);
       console.log(`\n[Checkpoint] Сохранено в ${outputFile} (обработано: ${processed})`);
     }
 
     await new Promise((r) => setTimeout(r, delayMs));
   }
 
-  fs.writeFileSync(outputFile, JSON.stringify(masterDict, null, 2), 'utf8');
+  safeWriteJson(outputFile, masterDict);
   console.log(`\n=== Подробная выгрузка завершена! ===`);
   console.log(`Успешно обработано: ${successCount}`);
   console.log(`Ошибок: ${errorCount}`);
