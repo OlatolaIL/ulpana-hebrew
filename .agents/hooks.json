@@ -1,0 +1,25 @@
+{
+  "ulpana-pre-flight-reminder": {
+    "PreInvocation": [
+      {
+        "type": "command",
+        "command": "node .agents/scripts/pre-flight-hook.js",
+        "timeout": 5
+      }
+    ]
+  },
+  "ulpana-secrets-guard": {
+    "PreToolUse": [
+      {
+        "matcher": "run_command",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node .agents/scripts/secrets-guard.js",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}
