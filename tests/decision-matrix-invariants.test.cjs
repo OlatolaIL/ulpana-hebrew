@@ -9,12 +9,16 @@ const matrixPath = path.join(repoRoot, 'DECISION_MATRIX.md');
 const dictPath = path.join(repoRoot, 'src/data/pealimMasterDictionary.json');
 const dbPath = path.join(repoRoot, 'src/lib/verbConjugations/database.ts');
 
-test('R-00: DECISION_MATRIX.md exists and contains all required blocks and rules', () => {
+test('R-00: DECISION_MATRIX.md exists and contains all required blocks, versioning, and rules', () => {
   assert.ok(fs.existsSync(matrixPath), 'DECISION_MATRIX.md must exist in repo root');
   const matrixContent = fs.readFileSync(matrixPath, 'utf8');
 
+  // Check versioning
+  assert.ok(matrixContent.includes('Версия:'), 'DECISION_MATRIX.md must include versioning header');
+  assert.ok(matrixContent.includes('Дата обновления:'), 'DECISION_MATRIX.md must include update date');
+
   // Check required rule anchors
-  const expectedRules = ['R-01', 'R-02', 'R-03', 'R-04', 'R-05', 'R-07', 'R-08', 'R-10', 'R-11', 'R-13', 'R-14', 'R-15'];
+  const expectedRules = ['R-01', 'R-02', 'R-03', 'R-04', 'R-05', 'R-07', 'R-08', 'R-10', 'R-11', 'R-13', 'R-14', 'R-15', 'R-16'];
   for (const rule of expectedRules) {
     assert.ok(matrixContent.includes(rule), `DECISION_MATRIX.md must define rule ${rule}`);
   }
@@ -84,8 +88,14 @@ test('R-04 & R-05: Master dictionary adheres to ktiv male (full spelling) and re
   assert.ok(fs.existsSync(dictPath), 'pealimMasterDictionary.json must exist');
   const dict = JSON.parse(fs.readFileSync(dictPath, 'utf8'));
 
-  // Critical modern ktiv male headwords that must be present in full form
-  const requiredKtivMaleWords = ['מושלם', 'תוכנית', 'אישה', 'להישאר', 'חשבון'];
+  // Critical modern ktiv male headwords that must be present in full form (expanded 25-word canary suite)
+  const requiredKtivMaleWords = [
+    'מושלם', 'תוכנית', 'אישה', 'להישאר', 'חשבון',
+    'ביטחון', 'שיחה', 'קניון', 'סופרמרקט', 'כרטיס',
+    'מונית', 'שולחן', 'מקרר', 'שירות', 'בניין',
+    'חופשה', 'אוניברסיטה', 'הזמנה', 'מפתח', 'מלון',
+    'מטבח', 'חוזה', 'תרופה', 'רופא', 'דירה'
+  ];
   for (const word of requiredKtivMaleWords) {
     assert.ok(
       dict[word],
@@ -94,11 +104,41 @@ test('R-04 & R-05: Master dictionary adheres to ktiv male (full spelling) and re
   }
 
   // Archaic defective unpointed spellings that must NEVER be registered as unpointed headwords
-  const forbiddenDefectiveUnpointed = ['ממלץ', 'בתכנית'];
+  const forbiddenDefectiveUnpointed = ['ממלץ', 'בתכנית', 'בטחון'];
   for (const word of forbiddenDefectiveUnpointed) {
     assert.ok(
       !dict[word],
       `Archaic unpointed defective form "${word}" is prohibited in master dictionary (violates R-05)`
     );
+  }
+});
+
+test('R-16: Secrets, PAT, and sensitive API keys must not be hardcoded or committed to source files', () => {
+  // Check critical files for hardcoded secrets or exposed PAT tokens
+  const filesToCheck = [
+    'package.json',
+    'DECISION_MATRIX.md',
+    'src/lib/db.ts',
+    'src/lib/auth.ts',
+    'src/lib/aiModels.ts',
+  ];
+
+  const sensitivePatterns = [
+    /ghp_[a-zA-Z0-9]{30,}/,
+    /github_pat_[a-zA-Z0-9]{20,}/,
+    /sk-ant-[a-zA-Z0-9]{20,}/,
+  ];
+
+  for (const relFile of filesToCheck) {
+    const fullPath = path.join(repoRoot, relFile);
+    if (!fs.existsSync(fullPath)) continue;
+    const content = fs.readFileSync(fullPath, 'utf8');
+
+    for (const pattern of sensitivePatterns) {
+      assert.ok(
+        !pattern.test(content),
+        `Sensitive token pattern detected in ${relFile}! Secrets must only be stored in env vars (R-16).`
+      );
+    }
   }
 });

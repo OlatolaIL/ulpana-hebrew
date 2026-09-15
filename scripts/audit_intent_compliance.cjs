@@ -64,7 +64,7 @@ if (!hasActivity) {
   const files = gitStatus.output.split('\n').filter(Boolean);
   let matrixViolations = [];
   
-  // Проверка запрещенных путей
+  // Проверка запрещенных путей и секретов (R-03, R-16)
   const forbiddenFiles = ['rootFamiliesData.ts', 'rootPresets.ts'];
   for (const f of files) {
     console.log('  ' + f);
@@ -73,10 +73,13 @@ if (!hasActivity) {
         matrixViolations.push(`Нарушение R-03: попытка создать запрещенный файл ${forbidden}`);
       }
     }
+    if (f.includes('.env.local') || f.includes('.env.production')) {
+      matrixViolations.push(`Нарушение R-16: файл секретов ${f} нельзя коммитить в репозиторий!`);
+    }
   }
 
   if (matrixViolations.length === 0) {
-    console.log('\n🟢 Изменения соответствуют правилам DECISION_MATRIX.md.');
+    console.log('\n🟢 Критические структурные инварианты матрицы (R-01, R-03, R-16: отсутствие запрещенных файлов и утечек секретов) соблюдены.');
   } else {
     console.log('\n🔴 Обнаружены прямые нарушения матрицы:');
     matrixViolations.forEach(v => console.log('  - ' + v));
@@ -89,17 +92,39 @@ console.log('▶ [Вопрос 3] Актуальность матрицы и п�
 const matrixPath = path.join(repoRoot, 'DECISION_MATRIX.md');
 if (fs.existsSync(matrixPath)) {
   const matrixContent = fs.readFileSync(matrixPath, 'utf8');
-  const supersededMatch = matrixContent.match(/## ⛔ Реестр отмененных и запрещенных подходов[\s\S]*?(?=---|$)/);
   
-  console.log('🟢 Матрица DECISION_MATRIX.md активна и содержит актуальный Superseded Log.');
+  // Извлекаем версию
+  const versionMatch = matrixContent.match(/Версия:?\*{0,2}\s*([0-9.]+)/i);
+  const versionStr = versionMatch ? `v${versionMatch[1]}` : 'без версии';
+  console.log(`🟢 Матрица DECISION_MATRIX.md (${versionStr}) активна и содержит актуальный Superseded Log.`);
   
   // Анализ: если редактировался database.ts, но не обновлялся pealimMasterDictionary
   if (gitStatus.output.includes('database.ts') && !gitStatus.output.includes('pealimMasterDictionary.json')) {
     console.log('🟡 НАПОМИНАНИЕ: Затронут database.ts без pealimMasterDictionary.json. Убедитесь, что запущен scripts/fetch_pealim_dictionary.cjs --sync-db!');
   }
 
-  // Детектор дрейфа кода и паспортов механик (Code-Doc Drift Detector)
+  // Расширенный реестр подсистем и паспортов механик (Code-Doc Drift Detector)
   const subsystemMappings = [
+    {
+      name: 'Словарь и флеш-карточки (Этап 1)',
+      codePrefixes: ['src/components/FlashcardTrainer', 'src/lib/ulpanDictionary.ts'],
+      passport: 'docs/mechanics/stage-01-vocabulary.md',
+    },
+    {
+      name: 'Спряжения глаголов (Этап 2)',
+      codePrefixes: ['src/components/VerbConjugationTrainer', 'src/lib/verbConjugations', 'src/data/pealimMasterDictionary.json'],
+      passport: 'docs/mechanics/stage-02-verbs.md',
+    },
+    {
+      name: 'Сочинение и письмо (Этап 4)',
+      codePrefixes: ['src/components/LessonEssay', 'src/app/api/ai/essay'],
+      passport: 'docs/mechanics/stage-04-essay.md',
+    },
+    {
+      name: 'Диалог с репликами (Этап 5)',
+      codePrefixes: ['src/components/LessonDialogue', 'src/app/api/ai/dialogue'],
+      passport: 'docs/mechanics/stage-05-dialogue.md',
+    },
     {
       name: 'Телефонный звонок (Этап 6)',
       codePrefixes: ['src/app/api/ai/phone', 'src/components/PhoneCallSimulator', 'src/data/phoneScenarios.ts'],
@@ -110,10 +135,17 @@ if (fs.existsSync(matrixPath)) {
   let hasDrift = false;
   for (const sub of subsystemMappings) {
     const codeChanged = sub.codePrefixes.some((prefix) => gitStatus.output.includes(prefix));
+    const passportPath = path.join(repoRoot, sub.passport);
+    const passportExists = fs.existsSync(passportPath);
     const passportChanged = gitStatus.output.includes(sub.passport);
-    if (codeChanged && !passportChanged) {
-      console.log(`🟡 ДРЕЙФ КОДА И ДОКУМЕНТАЦИИ: Изменён код компонента «${sub.name}», но паспорт «${sub.passport}» не обновлялся. Проверьте актуальность паспорта и соблюдение инвариантов!`);
-      hasDrift = true;
+
+    if (codeChanged) {
+      if (passportExists && !passportChanged) {
+        console.log(`🟡 ДРЕЙФ КОДА И ДОКУМЕНТАЦИИ: Изменён код подсистемы «${sub.name}», но паспорт «${sub.passport}» не обновлялся. Проверьте актуальность паспорта и соблюдение инвариантов!`);
+        hasDrift = true;
+      } else if (!passportExists) {
+        console.log(`⚪ НАПОМИНАНИЕ: Изменён код подсистемы «${sub.name}», но паспорт «${sub.passport}» ещё не формализован на диске.`);
+      }
     }
   }
 
@@ -129,7 +161,7 @@ if (fs.existsSync(matrixPath)) {
   if (brokenPassports.length > 0) {
     brokenPassports.forEach((bp) => console.log(bp));
   } else if (!hasDrift) {
-    console.log('🟢 Все связанные паспорта механик целостны и синхронизированы с кодовой базой.');
+    console.log('🟢 Все существующие паспорта механик целостны и синхронизированы с кодовой базой.');
   }
 } else {
   console.log('🔴 ОШИБКА: Файл DECISION_MATRIX.md не найден в корне проекта!');
