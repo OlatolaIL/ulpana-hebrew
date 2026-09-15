@@ -252,3 +252,196 @@ test('essay evaluation parses valid synthetic provider response and preserves au
     else process.env.GEMINI_API_KEY = savedGemini;
   }
 });
+
+test('generateHebrewTranscription and ensureCyrillicHebrewTranscription never output consonant soup on unvocalized text', () => {
+  const { generateHebrewTranscription, ensureCyrillicHebrewTranscription } = require('../src/lib/transcription.ts');
+  const unvocalizedText = 'בוקר תוב! קאורים לי סרגיי! נעים מאוד. להיתגאת.';
+
+  // 1. generateHebrewTranscription must return empty string for unpointed text
+  const result = generateHebrewTranscription(unvocalizedText);
+  assert.equal(result, '', 'generateHebrewTranscription must return empty string when there is no nikkud');
+  assert.ok(!result.includes('ввкр'), 'Must never emit "ввкр"');
+  assert.ok(!result.includes('твв'), 'Must never emit "твв"');
+
+  // 2. ensureCyrillicHebrewTranscription with empty transcription and unpointed text
+  const ensured = ensureCyrillicHebrewTranscription('', unvocalizedText);
+  assert.equal(ensured, '', 'ensureCyrillicHebrewTranscription must return empty string when text has no nikkud');
+
+  // 3. Pointed text works properly and produces real vowels
+  const pointed = 'בֹּקֶר טוֹב';
+  const pointedTrans = generateHebrewTranscription(pointed);
+  assert.ok(pointedTrans.includes('о'), `Pointed text must have vowels: ${pointedTrans}`);
+});
+
+test('essay evaluation route eliminates typos from correctedVersion and enriches with nikkud', async () => {
+  const { POST } = require('../src/app/api/ai/essay/evaluate/route.ts');
+  const savedFetch = global.fetch;
+  const savedGroq = process.env.GROQ_API_KEY;
+
+  process.env.GROQ_API_KEY = 'test-key';
+
+  try {
+    const modelOutputWithEchoedTypos = {
+      score: 75,
+      rating: 'good',
+      summaryRu: 'Хорошее сочинение, но есть орфографические ошибки.',
+      taskCompliance: { isRelevant: true, score: 80, topicCommentRu: 'Тема раскрыта.', levelCommentRu: 'Нормально.' },
+      spellingFeedback: {
+        hasErrors: true,
+        items: [
+          { wrongWord: 'תוב', correctWord: 'טוֹב', explanationRu: 'Пишется ט' },
+          { wrongWord: 'קאורים', correctWord: 'קוֹרְאִים', explanationRu: 'Пишется קוראים' },
+        ],
+        generalAdviceRu: 'Проверяйте созвучные буквы.',
+      },
+      wordOrderFeedback: { hasErrors: false, items: [], generalAdviceRu: '' },
+      grammarFeedback: { items: [], genderAgreementRu: '' },
+      vocabularyAnalysis: { usedLessonWords: [], count: 0, commentRu: '' },
+      correctedVersion: {
+        hebrew: 'בוקר תוב! קאורים לי סרגיי!',
+        transcription: '',
+        translation: 'Доброе утро! Меня зовут Сергей!',
+      },
+    };
+
+    global.fetch = async () =>
+      new Response(
+        JSON.stringify({
+          choices: [{ message: { content: JSON.stringify(modelOutputWithEchoedTypos) } }],
+        }),
+        { status: 200, headers: { 'content-type': 'application/json' } }
+      );
+
+    const req = new NextRequest('http://localhost/api/ai/essay/evaluate', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        lessonId: 1,
+        userEssay: 'בוקר תוב! קאורים לי סרגיי!',
+        userGender: 'male',
+      }),
+    });
+
+    const res = await POST(req);
+    assert.equal(res.status, 200);
+    const data = await res.json();
+
+    assert.ok(!data.correctedVersion.hebrew.includes('תוב'), 'correctedVersion must not contain typo תוב');
+    assert.ok(!data.correctedVersion.hebrew.includes('קאורים'), 'correctedVersion must not contain typo קאורים');
+    assert.ok(data.correctedVersion.hebrew.includes('טוֹב') || data.correctedVersion.hebrew.includes('טוב'), 'Must contain corrected word טוב');
+    assert.ok(!data.correctedVersion.transcription.includes('ввкр'), 'Transcription must not be consonant soup');
+    assert.ok(!data.correctedVersion.transcription.includes('твв'), 'Transcription must not be consonant soup');
+  } finally {
+    global.fetch = savedFetch;
+    if (savedGroq !== undefined) process.env.GROQ_API_KEY = savedGroq;
+    else delete process.env.GROQ_API_KEY;
+  }
+});
+
+test('EssayEvaluationView respects showNikkud for display while preserving pointed Hebrew for speech', async () => {
+  const React = require('react');
+  const { createRoot } = require('react-dom/client');
+  const { act } = require('react');
+  const { JSDOM } = require('jsdom');
+  const { stripNikkud } = require('../src/lib/transcription.ts');
+  const { EssayEvaluationView } = require('../src/components/LessonEssay/EssayEvaluationView.tsx');
+
+  const dom = new JSDOM('<!DOCTYPE html><html><body><div id="root"></div></body></html>', {
+    url: 'http://localhost/',
+    pretendToBeVisual: true,
+  });
+
+  const savedWindow = global.window;
+  const savedDocument = global.document;
+  const savedNavigator = global.navigator;
+  const savedHTMLElement = global.HTMLElement;
+  const savedElement = global.Element;
+  const savedNode = global.Node;
+  const savedActEnv = global.IS_REACT_ACT_ENVIRONMENT;
+
+  global.window = dom.window;
+  global.document = dom.window.document;
+  global.navigator = dom.window.navigator;
+  global.HTMLElement = dom.window.HTMLElement;
+  global.Element = dom.window.Element;
+  global.Node = dom.window.Node;
+  global.IS_REACT_ACT_ENVIRONMENT = true;
+
+  const mockEvaluation = {
+    score: 90,
+    rating: 'excellent',
+    summaryRu: 'Отлично!',
+    taskCompliance: { isRelevant: true, score: 90, topicCommentRu: 'Тема раскрыта.', levelCommentRu: '' },
+    spellingFeedback: { hasErrors: false, items: [], generalAdviceRu: '' },
+    wordOrderFeedback: { hasErrors: false, items: [], generalAdviceRu: '' },
+    grammarFeedback: { items: [], genderAgreementRu: '' },
+    vocabularyAnalysis: { usedLessonWords: [], count: 0, commentRu: '' },
+    correctedVersion: {
+      hebrew: 'בֹּקֶר טוֹב! קוֹרְאִים לִי דָּנִיאֵל.',
+      transcription: 'бóкер тов! коръӣм ли Даниэ́ль.',
+      translation: 'Доброе утро! Меня зовут Даниэль.',
+    },
+    valuableTipsRu: ['Совет 1'],
+  };
+
+  const container = dom.window.document.getElementById('root');
+  const root = createRoot(container);
+
+  try {
+    const profileNoNikkud = {
+      showNikkud: false,
+      showTranscription: true,
+      speechRate: 0.75,
+    };
+
+    await act(async () => {
+      root.render(
+        React.createElement(EssayEvaluationView, {
+          evaluation: mockEvaluation,
+          userEssay: 'בוקר טוב',
+          userProfile: profileNoNikkud,
+          onTryAgain: () => {},
+          onContinue: () => {},
+        })
+      );
+    });
+
+    const renderedHtml = container.innerHTML;
+    const cleanHebrew = stripNikkud(mockEvaluation.correctedVersion.hebrew);
+    assert.ok(renderedHtml.includes(cleanHebrew), `Rendered HTML must contain clean unpointed Hebrew: ${cleanHebrew}`);
+    assert.ok(!renderedHtml.includes('בֹּקֶר'), 'When showNikkud=false, display must not show nikkud');
+
+    const profileWithNikkud = {
+      showNikkud: true,
+      showTranscription: false,
+      speechRate: 0.75,
+    };
+
+    await act(async () => {
+      root.render(
+        React.createElement(EssayEvaluationView, {
+          evaluation: mockEvaluation,
+          userEssay: 'בוקר טוב',
+          userProfile: profileWithNikkud,
+          onTryAgain: () => {},
+          onContinue: () => {},
+        })
+      );
+    });
+
+    const renderedHtml2 = container.innerHTML;
+    assert.ok(renderedHtml2.includes('בֹּקֶר'), 'When showNikkud=true, display must show nikkud');
+    assert.ok(!renderedHtml2.includes('коръӣм'), 'When showTranscription=false, transcription must be hidden');
+  } finally {
+    await act(async () => {
+      root.unmount();
+    });
+    global.window = savedWindow;
+    global.document = savedDocument;
+    global.navigator = savedNavigator;
+    global.HTMLElement = savedHTMLElement;
+    global.Element = savedElement;
+    global.Node = savedNode;
+    global.IS_REACT_ACT_ENVIRONMENT = savedActEnv;
+  }
+});

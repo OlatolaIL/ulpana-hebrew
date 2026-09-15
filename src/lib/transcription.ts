@@ -63,6 +63,13 @@ export function normalizeTranscription(transcription: string): string {
  */
 export function generateHebrewTranscription(text: string): string {
   if (!text) return '';
+  // Проверяем: есть ли в тексте знаки огласовок (ניקוד).
+  // Без никуда фонетическую транскрипцию построить невозможно:
+  // отсутствие гласных приведёт к бессмысленной консонантной каше (ב -> в, ו -> в, ת -> т => «ввкр твв»).
+  if (!/[\u0591-\u05BD\u05BF\u05C1-\u05C2\u05C4-\u05C5\u05C7]/.test(text)) {
+    return '';
+  }
+
   const cleanTokens = text.trim().split(/\s+/);
 
   const rawTranscription = cleanTokens

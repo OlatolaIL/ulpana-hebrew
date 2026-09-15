@@ -14,13 +14,14 @@ import {
   PenLine,
   Target,
 } from 'lucide-react';
-import { EssayEvaluationResult } from '@/types';
+import { EssayEvaluationResult, UserProfile } from '@/types';
 import { speakHebrew } from '@/lib/speech';
-import { ensureCyrillicHebrewTranscription } from '@/lib/transcription';
+import { ensureCyrillicHebrewTranscription, stripNikkud } from '@/lib/transcription';
 
 interface EssayEvaluationViewProps {
   evaluation: EssayEvaluationResult;
   userEssay: string;
+  userProfile?: UserProfile;
   onTryAgain: () => void;
   onContinue: () => void;
 }
@@ -28,16 +29,19 @@ interface EssayEvaluationViewProps {
 export const EssayEvaluationView: React.FC<EssayEvaluationViewProps> = ({
   evaluation,
   userEssay,
+  userProfile,
   onTryAgain,
   onContinue,
 }) => {
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
 
   const handlePlayAudio = async () => {
-    if (!evaluation.correctedVersion?.hebrew || isPlayingAudio) return;
+    // ВСЕГДА передаем текст с огласовками (ניקוד) для правильного произношения и ударений синтезатором речи!
+    const audioText = evaluation.correctedVersion?.hebrew;
+    if (!audioText || isPlayingAudio) return;
     setIsPlayingAudio(true);
     try {
-      await speakHebrew(evaluation.correctedVersion.hebrew, { rate: 0.75 });
+      await speakHebrew(audioText, { rate: userProfile?.speechRate || 0.75 });
     } catch (e) {
       console.warn('Speech error:', e);
     } finally {
@@ -359,16 +363,18 @@ export const EssayEvaluationView: React.FC<EssayEvaluationViewProps> = ({
           </button>
         </div>
 
-        {/* Иврит с огласовками */}
+        {/* Иврит: огласовки скрыты, если showNikkud === false, но показываются при showNikkud === true */}
         <div
           dir="rtl"
           className="p-3 sm:p-4 rounded-xl bg-white dark:bg-zinc-800/90 border border-blue-100 dark:border-zinc-700 font-hebrew text-lg sm:text-xl font-bold text-zinc-900 dark:text-zinc-50 leading-relaxed shadow-2xs"
         >
-          {evaluation.correctedVersion.hebrew}
+          {userProfile?.showNikkud !== false
+            ? evaluation.correctedVersion.hebrew
+            : stripNikkud(evaluation.correctedVersion.hebrew)}
         </div>
 
-        {/* Транскрипция и перевод */}
-        {evaluation.correctedVersion.transcription && (
+        {/* Транскрипция и перевод: транскрипция только если включена у пользователя */}
+        {userProfile?.showTranscription !== false && evaluation.correctedVersion.transcription && (
           <div className="text-xs sm:text-sm font-serif italic text-blue-900 dark:text-blue-200/90 pl-1">
             [{ensureCyrillicHebrewTranscription(evaluation.correctedVersion.transcription, evaluation.correctedVersion.hebrew)}]
           </div>

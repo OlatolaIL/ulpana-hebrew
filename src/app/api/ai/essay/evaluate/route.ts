@@ -219,6 +219,39 @@ function detectHebrewSpellingErrors(
 }
 
 /**
+ * Обогащение текста огласовками (ניקוד) по словарю урока и оффлайн-словарю ульпана
+ */
+function vocalizeTextFromDictionary(
+  text: string,
+  suggestedWords?: { hebrew: string }[]
+): string {
+  if (!text) return '';
+  const tokens = text.split(/([\s,.;:!?«»"()־-]+)/);
+  return tokens
+    .map((token) => {
+      const clean = stripNikkud(token).trim();
+      if (!clean || !/[\u0590-\u05FF]/.test(clean)) return token;
+
+      // 1. Поиск в рекомендованных словах текущего урока
+      if (suggestedWords) {
+        const match = suggestedWords.find((w) => stripNikkud(w.hebrew).trim() === clean);
+        if (match && /[\u0591-\u05BD\u05BF\u05C1-\u05C2\u05C4-\u05C5\u05C7]/.test(match.hebrew)) {
+          return match.hebrew;
+        }
+      }
+
+      // 2. Поиск в оффлайн-словаре Ульпана
+      const dictMatch = lookupOfflineWord(clean);
+      if (dictMatch?.hebrew && /[\u0591-\u05BD\u05BF\u05C1-\u05C2\u05C4-\u05C5\u05C7]/.test(dictMatch.hebrew)) {
+        return dictMatch.hebrew;
+      }
+
+      return token;
+    })
+    .join('');
+}
+
+/**
  * Локальная эвристическая оценка сочинения на случай сбоя внешнего LLM
  */
 function evaluateHeuristicEssay(
@@ -462,11 +495,12 @@ export async function POST(req: NextRequest) {
    - "count": их количество.
    - "commentRu": комментарий учителя по лексике.
 
-6. ОБРАЗЦОВАЯ ВЕРСИЯ (כְּתִיבָה מוֹפְתִית):
-   - Напиши естественный, красивый вариант текста на живом иврите с полными огласовками (ניקוד).
-   - Транскрипция СТРОГО русскими буквами (кириллицей) по стандарту ульпана (буква 'h' для ה, ударения знаками акцента).
-   - КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО писать транскрипцию на английском/латинице! Пиши только по-русски (например: «шалóм, анӣ роцé...», а НЕ «shalom, ani rotze...»).
-   - Литературный русский перевод.
+6. ОБРАЗЦОВАЯ ВЕРСИЯ (כְּתִיבָה מוֹפְתִית — correctedVersion):
+   - В поле "hebrew" ОБЯЗАТЕЛЬНО напиши ПОЛНОСТЬЮ ИСПРАВЛЕННЫЙ эталонный вариант текста на живом иврите с ПОЛНЫМИ ОГЛАСОВКАМИ (ניקוד).
+   - КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО копировать ошибки и опечатки ученика в "correctedVersion"! Все ошибочные слова (например: «תוב», «קאורים», «להיתגאת») должны быть исправлены на грамотный литературный иврит носителя («בּוֹקֶר טוֹב», «קוֹרְאִים», «לְהִתְרָאוֹת»).
+   - Поле "transcription" должно содержать полную фонетическую транскрипцию исправленного текста СТРОГО русскими буквами (кириллицей! напр. «бо́кер тов...», никакой латиницы!) по стандарту ульпана (буква 'h' для ה, ударения знаками акцента).
+   - КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО писать транскрипцию на английском/латинице!
+   - Литературный русский перевод ("translation") исправленного варианта.
 
 7. БАЛЛ И СТАТУС (score, rating):
    - Оценка 0-100:
@@ -548,9 +582,9 @@ ${detectedGrammar.length > 0 ? `ПРЕДВАРИТЕЛЬНЫЙ ДЕТЕКТОР 
     "commentRu": "Оценка использования словарного запаса урока"
   },
   "correctedVersion": {
-    "hebrew": "Эталонный связный текст на живом иврите с полной огласовкой (ניקוד)",
-    "transcription": "Транскрипция СТРОГО русскими буквами (кириллицей! напр. шалóм, анӣ... Никакой латиницы!)",
-    "translation": "Литературный перевод на русский язык"
+    "hebrew": "Полностью исправленный связный текст БЕЗ ошибок ученика с полными огласовками (ניקוד)",
+    "transcription": "Фонетическая транскрипция исправленного текста СТРОГО русскими буквами (кириллицей! напр. бóкер тов... Никакой латиницы!)",
+    "translation": "Литературный перевод исправленного варианта на русский язык"
   },
   "valuableTipsRu": [
     "Первый полезный совет для живой речи в Израиле",
@@ -696,14 +730,70 @@ ${detectedGrammar.length > 0 ? `ПРЕДВАРИТЕЛЬНЫЙ ДЕТЕКТОР 
           count: typeof parsed.vocabularyAnalysis?.count === 'number' ? parsed.vocabularyAnalysis.count : usedWordsList.length,
           commentRu: parsed.vocabularyAnalysis?.commentRu || 'Используйте больше изученной лексики.',
         },
-        correctedVersion: {
-          hebrew: parsed.correctedVersion?.hebrew || trimmedEssay,
-          transcription: ensureCyrillicHebrewTranscription(
-            parsed.correctedVersion?.transcription || '',
-            parsed.correctedVersion?.hebrew || trimmedEssay
-          ),
-          translation: parsed.correctedVersion?.translation || 'Эталонный вариант.',
-        },
+        correctedVersion: (() => {
+          const rawCorrected = parsed.correctedVersion || parsed.corrected_version || parsed.correctVersion;
+
+          let correctedHebrew = (typeof rawCorrected?.hebrew === 'string' ? rawCorrected.hebrew : '').trim();
+          const cleanCorrected = stripNikkud(correctedHebrew);
+          const cleanEssay = stripNikkud(trimmedEssay);
+
+          // 1. Если исправленный иврит отсутствует или полностью повторяет текст ученика с ошибками:
+          if (!correctedHebrew || (cleanCorrected === cleanEssay && spellingItems.length > 0)) {
+            let fixed = trimmedEssay;
+            for (const sp of spellingItems) {
+              if (sp.wrongWord && sp.correctWord) {
+                const escaped = sp.wrongWord.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                fixed = fixed.replace(new RegExp(escaped, 'g'), stripNikkud(sp.correctWord));
+              }
+            }
+            correctedHebrew = fixed;
+          }
+
+          // 2. Гарантированно заменяем в correctedHebrew любые остаточные опечатки ученика
+          for (const sp of spellingItems) {
+            if (sp.wrongWord && sp.correctWord) {
+              const escaped = sp.wrongWord.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+              correctedHebrew = correctedHebrew.replace(new RegExp(escaped, 'g'), sp.correctWord);
+            }
+          }
+
+          // 3. Обогащаем огласовками из словаря, если текст остался без никуда
+          if (correctedHebrew && !/[\u0591-\u05BD\u05BF\u05C1-\u05C2\u05C4-\u05C5\u05C7]/.test(correctedHebrew)) {
+            correctedHebrew = vocalizeTextFromDictionary(correctedHebrew, essayPrompt.suggestedWords);
+          }
+
+          // 4. Если исправленный текст все еще пуст, берем эталонное сочинение темы урока
+          if (!correctedHebrew && essayPrompt.sampleEssay?.hebrew) {
+            correctedHebrew = essayPrompt.sampleEssay.hebrew;
+          } else if (!correctedHebrew) {
+            correctedHebrew = trimmedEssay;
+          }
+
+          // Перевод: берем перевод модели или эталон темы урока
+          const correctedTranslation =
+            (typeof rawCorrected?.translation === 'string' && rawCorrected.translation.trim()) ||
+            essayPrompt.sampleEssay?.translation ||
+            'Эталонный вариант на иврите.';
+
+          // Транскрипция: модель -> эталон темы урока -> чистая генерация из огласованного текста
+          let correctedTranscription =
+            (typeof rawCorrected?.transcription === 'string' && rawCorrected.transcription.trim()) ||
+            (essayPrompt.sampleEssay?.hebrew && stripNikkud(essayPrompt.sampleEssay.hebrew) === stripNikkud(correctedHebrew)
+              ? essayPrompt.sampleEssay.transcription
+              : '') ||
+            '';
+
+          correctedTranscription = ensureCyrillicHebrewTranscription(
+            correctedTranscription,
+            correctedHebrew
+          );
+
+          return {
+            hebrew: correctedHebrew,
+            transcription: correctedTranscription,
+            translation: correctedTranslation,
+          };
+        })(),
         valuableTipsRu: Array.isArray(parsed.valuableTipsRu) && parsed.valuableTipsRu.length > 0
           ? parsed.valuableTipsRu
           : [

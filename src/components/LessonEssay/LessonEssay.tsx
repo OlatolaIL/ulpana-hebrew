@@ -351,6 +351,7 @@ export const LessonEssay: React.FC<LessonEssayProps> = ({
       <EssayEvaluationView
         evaluation={evaluation}
         userEssay={text}
+        userProfile={userProfile}
         onTryAgain={handleTryAgain}
         onContinue={onCompleted}
       />
