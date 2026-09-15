@@ -55,6 +55,20 @@ export function normalizeTranscription(transcription: string): string {
     return match.replace(/рáба/i, 'рабá');
   });
 
+  // 5. Защита от частых фонетических галлюцинаций LLM при транскрипции
+  // «בַּדִּירָה» -> «ба-дирá» (нейросеть часто генерирует искажённое «бадара»)
+  res = res.replace(/(^|[\s"«(—\[])(?:бад[аá]ра|ба-д[аá]ра)(?=$|[\s.,!?;:"»)—\]])/gi, '$1ба-дирá');
+  // «עֶזְרָה» -> «эзрá» (нейросеть часто подставляет ашкеназское «эзрэ»)
+  res = res.replace(/(^|[\s"«(—\[])эзр[эеé](?=$|[\s.,!?;:"»)—\]])/gi, '$1эзрá');
+  // «מְאוֹד» -> «мэóд» (нейросеть ошибочно читает шва как «а»: «маод»)
+  res = res.replace(/(^|[\s"«(—\[])м[аá]од(?=$|[\s.,!?;:"»)—\]])/gi, '$1мэóд');
+  // «הַכֹּל» -> «hакóль» (нейросеть пишет «хакол» без 'h' и без мягкого знака)
+  res = res.replace(/(^|[\s"«(—\[])х[аá]-?к[оо́]л(?=$|[\s.,!?;:"»)—\]])/gi, '$1hакóль');
+  // «בְּמַשֶּׁהוּ» -> «бэ-мáшеhу»
+  res = res.replace(/(^|[\s"«(—\[])(?:б[эе]м[аá]шеу|б[эе]-м[аá]шеу)(?=$|[\s.,!?;:"»)—\]])/gi, '$1бэ-мáшеhу');
+  // «צָרִיךְ» -> «царӣх»
+  res = res.replace(/(^|[\s"«(—\[])цар[ии́]х(?=$|[\s.,!?;:"»)—\]])/gi, '$1царӣх');
+
   return res;
 }
 
@@ -105,9 +119,11 @@ export function generateHebrewTranscription(text: string): string {
         else if (char === 'ב') consonant = dagesh ? 'б' : 'в';
         else if (char === 'ג') consonant = 'г';
         else if (char === 'ד') consonant = 'д';
-        else if (char === 'ה')
+        else if (char === 'ה') {
+          const isRemainingOnlyPunctuation = !/[\u0590-\u05FF]/.test(w.slice(nextIdx));
           consonant =
-            (i === w.length - 1 || nextIdx === w.length) && !dagesh ? '' : 'h';
+            (i === w.length - 1 || nextIdx === w.length || isRemainingOnlyPunctuation) && !dagesh ? '' : 'h';
+        }
         else if (char === 'ו') {
           if (i === 0 && dagesh && nextIdx < w.length) {
             // Союз «וּ» (шурук) в начале слова перед שווא и согласными בומ״פ: нормативное произношение «у-»
@@ -358,8 +374,105 @@ export function convertLatinHebrewTranscriptionToCyrillic(text: string): string 
 }
 
 /**
+ * Канонические кириллические транскрипции ключевых слов и корней для верификации вывода LLM
+ */
+const CANONICAL_WORDS: Record<string, string> = {
+  'דירה': 'дирá',
+  'בדירה': 'ба-дирá',
+  'מדירה': 'ми-дирá',
+  'לדירה': 'ла-дирá',
+  'עזרה': 'эзрá',
+  'בעזרה': 'бэ-эзрá',
+  'מאוד': 'мэóд',
+  'הכל': 'hакóль',
+  'בסדר': 'бэсэ́дер',
+  'שלום': 'шалóм',
+  'בוקר': 'бóкер',
+  'ערב': 'э́рев',
+  'טוב': 'тов',
+  'תודה': 'тодá',
+  'רבה': 'рабá',
+  'בבקשה': 'бэвакашá',
+  'נעים': 'наӣм',
+  'יופי': 'йóфи',
+  'סליחה': 'слихá',
+  'להתראות': 'лэhитраóт',
+  'ביי': 'бай',
+  'איך': 'эйх',
+  'קוראים': 'коръӣм',
+  'לך': 'лэхá',
+  'לי': 'ли',
+  'שם': 'шем',
+  'צריך': 'царӣх',
+  'צריכה': 'црихá',
+  'משהו': 'мáшеhу',
+  'במשהו': 'бэ-мáшеhу',
+  'רוצה': 'роцэ́',
+  'ארבע': 'арбá',
+  'חמש': 'хамéш',
+  'שלוש': 'шалóш',
+  'שתיים': 'штáим',
+  'אחת': 'ахáт',
+  'גר': 'гар',
+  'גרה': 'гарá',
+  'איפה': 'э́йфо',
+  'באיזו': 'бэ-э́зо',
+  'איזו': 'э́зо',
+};
+
+/**
+ * Валидация и защита от галлюцинаций транскрипции от LLM (например, «бадара» вместо «ба-дира», «эзрэ» вместо «эзра»).
+ * Сопоставляет транскрипцию с огласованным текстом на иврите и исправляет искаженные токены.
+ */
+export function validateAndCorrectHebrewTranscription(
+  transcription: string,
+  hebrewText?: string
+): string {
+  if (!transcription) {
+    return hebrewText ? generateHebrewTranscription(hebrewText) : '';
+  }
+
+  const normalized = normalizeTranscription(transcription);
+  if (!hebrewText || !/[\u0590-\u05FF]/.test(hebrewText)) {
+    return normalized;
+  }
+
+  const hWords = hebrewText.trim().split(/\s+/);
+  const tWords = normalized.trim().split(/\s+/);
+
+  if (hWords.length === tWords.length) {
+    const corrected = tWords.map((tWord, idx) => {
+      const hWord = hWords[idx];
+      const cleanH = stripNikkud(hWord).replace(/^[.,!?;:"'״׳()[\]{}—\-]+|[.,!?;:"'״׳()[\]{}—\-]+$/g, '');
+      const leadMatch = tWord.match(/^[.,!?;:"'״׳()[\]{}—\-]+/);
+      const trailMatch = tWord.match(/[.,!?;:"'״׳()[\]{}—\-]+$/);
+      const lead = leadMatch ? leadMatch[0] : '';
+      const trail = trailMatch ? trailMatch[0] : '';
+
+      const plainKey = cleanH.toLowerCase();
+      if (CANONICAL_WORDS[plainKey]) {
+        return `${lead}${CANONICAL_WORDS[plainKey]}${trail}`;
+      }
+
+      // Если в огласованном слове есть хирик (ִ), а модель в транскрипции потеряла звук [и/i] (напр. «бадара» вместо «дира»)
+      const cleanT = tWord.replace(/[.,!?;:"'״׳()[\]{}—\-]+/g, '').toLowerCase().replace(/[\u0300-\u036f]/g, '');
+      if (/[\u05b4]/.test(hWord) && !/[иӣií]/i.test(cleanT)) {
+        const generated = generateHebrewTranscription(hWord);
+        if (generated) return `${lead}${generated}${trail}`;
+      }
+
+      return tWord;
+    });
+
+    return corrected.join(' ');
+  }
+
+  return normalized;
+}
+
+/**
  * Гарантирует, что транскрипция написана на русской кириллице (с 'h' для ה),
- * а не на английской/латинской транслитерации от LLM.
+ * защищена от галлюцинаций LLM и согласована со стандартом ульпана.
  */
 export function ensureCyrillicHebrewTranscription(
   transcription: string,
@@ -367,27 +480,25 @@ export function ensureCyrillicHebrewTranscription(
 ): string {
   if (!transcription && !hebrewText) return '';
 
-  // Если транскрипции нет, пробуем сгенерировать из огласованного иврита
+  // Если транскрипции нет, генерируем из огласованного иврита
   if (!transcription && hebrewText) {
-    return generateHebrewTranscription(hebrewText);
+    return validateAndCorrectHebrewTranscription(generateHebrewTranscription(hebrewText), hebrewText);
   }
 
   // Проверяем наличие латинских букв (кроме допустимой буквы 'h'/'H' для ה)
   const hasLatinLetters = /[a-gi-zA-GI-Z]/.test(transcription);
 
-  if (!hasLatinLetters) {
-    return normalizeTranscription(transcription);
-  }
-
-  // Если есть огласованный иврит, генерируем чистую транскрипцию из него
-  if (hebrewText && /[\u0591-\u05BD\u05BF\u05C1-\u05C2\u05C4-\u05C5\u05C7]/.test(hebrewText)) {
-    const generated = generateHebrewTranscription(hebrewText);
-    if (generated && generated.length >= 3) {
-      return generated;
+  let cyrillic = transcription;
+  if (hasLatinLetters) {
+    if (hebrewText && /[\u0591-\u05BD\u05BF\u05C1-\u05C2\u05C4-\u05C5\u05C7]/.test(hebrewText)) {
+      const generated = generateHebrewTranscription(hebrewText);
+      if (generated && generated.length >= 3) {
+        return validateAndCorrectHebrewTranscription(generated, hebrewText);
+      }
     }
+    cyrillic = convertLatinHebrewTranscriptionToCyrillic(transcription);
   }
 
-  // Если огласовок нет или генерация не удалась, транслитерируем латиницу в русскую кириллицу
-  return convertLatinHebrewTranscriptionToCyrillic(transcription);
+  return validateAndCorrectHebrewTranscription(cyrillic, hebrewText);
 }
 

@@ -36,6 +36,7 @@ export const BESPOKE_PHONE_SCENARIOS: Record<number, PhoneScenario> = {
     callerName: 'נוֹעַם',
     callerNameRu: 'Ноам (сосед по дому)',
     callerRole: 'Новый сосед из квартиры напротив',
+    callerGender: 'male',
     avatarEmoji: '👋',
     situationSummary: 'Вам звонит новый сосед из квартиры напротив, чтобы познакомиться.',
     callerObjective: 'Познакомиться с новым соседом, узнать как дела и как его зовут.',
@@ -43,9 +44,9 @@ export const BESPOKE_PHONE_SCENARIOS: Record<number, PhoneScenario> = {
     completionCondition: 'Ученик ответил на приветствие и назвал имя.',
     targetTurns: 3,
     initialGreeting: {
-      hebrew: 'הַלּוֹ? שָׁלוֹם! זֶה נוֹעַם מִדִּירָה 4. מָה נִשְׁמַע?',
-      transcription: 'hалó? шалóм! зэ Нóам ми-дирá 4. ма нишмá?',
-      translation: 'Алло? Привет! Это Ноам из 4 квартиры. Как дела?',
+      hebrew: 'הַלּוֹ? שָׁלוֹם! זֶה נוֹעַם מִדִּירָה אַרְבַּע. מָה נִשְׁמַע?',
+      transcription: 'hалó? шалóм! зэ Нóам ми-дирá арбá. ма нишмá?',
+      translation: 'Алло? Привет! Это Ноам из квартиры 4. Как дела?',
     },
     goals: [
       'Поздороваться в ответ (שָׁלוֹם / בּוֹקֶר טוֹב)',
@@ -985,12 +986,15 @@ export function getLessonPhoneScenario(lesson: Lesson, gender: UserGender): Phon
   }
 
   const firstVocabWord = lesson.vocabulary?.[0]?.hebrew || '';
+  const isFemaleRole = /שרה|גלית|מרים|רחל|דנה|מיכל|רונית|אורית|יעל|хозяйка|секретарь|продавщица|официантка|подруга/i.test(aiRole);
+  const scenarioCallerGender: 'male' | 'female' = isFemaleRole ? 'female' : 'male';
 
   return {
     callType,
     callerName: aiRole,
     callerNameRu: aiRole,
     callerRole: aiRole,
+    callerGender: scenarioCallerGender,
     userRole: userRole,
     avatarEmoji: getEmojiForCategory(lesson.category),
     situationSummary,

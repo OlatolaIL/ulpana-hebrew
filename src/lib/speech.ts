@@ -122,6 +122,24 @@ export function cleanHebrewForSpeech(text: string): string {
     .replace(/\([^)]*\)/g, ' ')
     // Удаляем кавычки, скобки и стрелки
     .replace(/["'«»[\]{}()<>→]/g, ' ')
+    // Заменяем цифры 0-10 на ивритские числительные (женский род: номера квартир, домов, даты),
+    // чтобы синтезатор речи произносил их, а не пропускал
+    .replace(/(^|[^\d])(10|[0-9])(?=[^\d]|$)/g, (_m, p1, d) => {
+      const digitsMap: Record<string, string> = {
+        '0': 'אֶפֶס',
+        '1': 'אַחַת',
+        '2': 'שְׁתַּיִם',
+        '3': 'שָׁלוֹשׁ',
+        '4': 'אַרְבַּע',
+        '5': 'חָמֵשׁ',
+        '6': 'שֵׁשׁ',
+        '7': 'שֶׁבַע',
+        '8': 'שְׁמוֹנֶה',
+        '9': 'תֵּשַׁע',
+        '10': 'עֶשֶׂר',
+      };
+      return `${p1} ${digitsMap[d] || d} `;
+    })
     // Сохраняем символы иврита (\u0590-\u05FF), дефис, пробелы и ЗНАКИ ПРЕПИНАНИЯ (.,!?:;)
     // чтобы голосовой движок выдерживал паузы между предложениями и делал вопросительную интонацию
     .replace(/[^\u0590-\u05FF\s.,!?:;-]/g, ' ')
@@ -222,7 +240,7 @@ export function playFallbackAudio(
  */
 export function speakHebrew(
   text: string,
-  options: { rate?: number; pitch?: number } = {}
+  options: { rate?: number; pitch?: number; gender?: 'male' | 'female' } = {}
 ): Promise<void> {
   return new Promise((resolve) => {
     if (typeof window === 'undefined') {
@@ -299,16 +317,27 @@ export function speakHebrew(
       activeUtterance = utterance;
       utterance.lang = 'he-IL';
       utterance.rate = rate;
-      utterance.pitch = options.pitch ?? 1.0;
+      const defaultPitch = options.gender === 'male' ? 0.85 : (options.gender === 'female' ? 1.05 : 1.0);
+      utterance.pitch = options.pitch ?? defaultPitch;
 
-      if (preferredHebrewVoice) {
+      const voices = window.speechSynthesis.getVoices();
+      const heVoices = voices.filter(
+        (voice) => voice.lang === 'he-IL' || voice.lang === 'he' || (voice.lang && voice.lang.toLowerCase().startsWith('he'))
+      );
+
+      let matchedVoice: SpeechSynthesisVoice | null = null;
+      if (options.gender === 'male') {
+        matchedVoice = heVoices.find((v) => /asaf|guy|david|male|גבר/i.test(v.name)) || null;
+      } else if (options.gender === 'female') {
+        matchedVoice = heVoices.find((v) => /hila|sara|carmit|female|אישה/i.test(v.name)) || null;
+      }
+
+      if (matchedVoice) {
+        utterance.voice = matchedVoice;
+      } else if (preferredHebrewVoice) {
         utterance.voice = preferredHebrewVoice;
-      } else {
-        const voices = window.speechSynthesis.getVoices();
-        const v = voices.find(
-          (voice) => voice.lang === 'he-IL' || voice.lang === 'he' || (voice.lang && voice.lang.toLowerCase().startsWith('he'))
-        );
-        if (v) utterance.voice = v;
+      } else if (heVoices.length > 0) {
+        utterance.voice = heVoices[0];
       }
 
       utterance.onend = () => {

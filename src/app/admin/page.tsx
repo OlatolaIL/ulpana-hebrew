@@ -1271,6 +1271,7 @@ export default function AdminPage() {
                               <SmartConversationPlayer
                                 messages={call.transcript}
                                 callerName={call.caller_name}
+                                callerGender={/שרה|גלית|מרים|רחל|דנה|михал|хозяйка|секретарь/i.test(call.caller_name || '') ? 'female' : 'male'}
                                 userName={call.user_name || 'Ученик'}
                                 onActiveMessageChange={setActiveAdminTranscriptIdx}
                                 className="mb-2"
@@ -1326,7 +1327,15 @@ export default function AdminPage() {
                                           ) : (
                                             <button
                                               type="button"
-                                              onClick={() => speakHebrew(msg.hebrew)}
+                                              onClick={() =>
+                                                speakHebrew(msg.hebrew, {
+                                                  gender: isUser
+                                                    ? undefined
+                                                    : /שרה|גלית|מרים|רחל|דנה|михал|хозяйка|секретарь/i.test(call.caller_name || '')
+                                                    ? 'female'
+                                                    : 'male',
+                                                })
+                                              }
                                               className="p-1 rounded-md text-zinc-400 hover:text-blue-600 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition cursor-pointer"
                                               title="Озвучить реплику"
                                             >

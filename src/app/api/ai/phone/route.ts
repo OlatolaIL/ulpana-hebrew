@@ -3,7 +3,7 @@ import { readAiJson, fetchAi, aiErrorResponse } from '@/lib/aiRequest';
 import { NextRequest, NextResponse } from 'next/server';
 import { verifySessionToken } from '@/lib/auth';
 import { checkRateLimit } from '@/lib/rateLimit';
-import { stripNikkud } from '@/lib/transcription';
+import { stripNikkud, ensureCyrillicHebrewTranscription } from '@/lib/transcription';
 import { IS_EARLY_ACCESS_FREE, FREE_LESSONS_LIMIT, FREE_GUEST_LESSONS_LIMIT } from '@/lib/config';
 import { sanitizeRussianTranslation } from '@/lib/russianTranslation';
 import { cleanGrammarJargon, BESPOKE_PHONE_SCENARIOS, getLessonPhoneScenario } from '@/data/phoneScenarios';
@@ -188,7 +188,11 @@ ${situationHints.length > 0 ? `\nКлючевые слова: ${situationHints.j
 5. Внимательно читай сообщения ученика: если он УЖЕ назвал деталь (сахар, размер, комнаты, имя, адрес), НЕ ПЕРЕСПРАШИВАЙ ЕЁ!
 6. Реплика: 1-2 коротких живых предложения (~5-12 слов). ${level === 'alef' ? 'Уровень Алеф: простая разговорная лексика.' : 'Уровень Бет.'}
 7. ${grammarGuidance}
-8. КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО: спрашивать «איך אומרים», проверять правила или учить языку. Ты обычный человек в роли ${finalCallerRole}!
+8. БАЛАНС СЛОВАРЯ И ПРОСТОТА РЕЧИ:
+   - Опирайся на пройденный словарный запас (уроки 1..${lessonNumber}).
+   - Естественные разговорные связки и этикетные частицы разрешены: «כֵּן», «לֹא», «בְּסֵדֶר», «יוֹפִי», «טוֹב», «אָה», «תּוֹדָה», «בְּבַקָּשָׁה», «שָׁלוֹם», «לְהִתְרָאוֹת», «בַּיי», «שֶׁיִּהְיֶה יוֹם טוֹב».
+   ${lessonNumber <= 3 ? `- ДЛЯ НАЧАЛЬНЫХ УРОКОВ (Урок ${lessonNumber}): КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО использовать сложные незнакомые слова и модальные конструкции (например: «צָרִיךְ», «עֶזְרָה», «בְּמַשֶּׁהוּ», «יָכוֹל», «בְּעָיָה», «דִּירָה»). Диалог первого урока — это строго знакомство и вежливость: приветствие, имя («אֵיךְ קוֹרְאִים לְךָ / לָךְ?»), «נָעִים מְאוֹד» и доброе пожелание.` : ''}
+9. КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО: спрашивать «איך אומרים», проверять правила или учить языку. Ты обычный человек в роли ${finalCallerRole}!
 
 ${isFinal ? `ЭТО ФИНАЛЬНЫЙ РАУНД ЗВОНКА (раунд ${userTurnsCount} из ${finalTargetTurns} или ученик попрощался):
 - Коротко и тепло заверши разговор («בְּסֵדֶר גָּמוּר! תּוֹדָה רַבָּה וְיוֹם טוֹב!»).
@@ -248,13 +252,23 @@ ${isFinal ? `ЭТО ФИНАЛЬНЫЙ РАУНД ЗВОНКА (раунд ${use
 
             const isDone = shouldForceFinalTurn;
 
+            const safeHebrew = (parsed.hebrew || '').trim();
+            const rawTranscription = sanitizeTranscription(parsed.transcription || parsed.cyrillic_transcription || '');
+            const safeTranscription = ensureCyrillicHebrewTranscription(rawTranscription, safeHebrew);
+
             const parsedReplies = Array.isArray(parsed.suggestedReplies) ? parsed.suggestedReplies : [];
             const safeReplies = parsedReplies.length > 0
-              ? parsedReplies.map((r: any) => ({
-                  hebrew: r.hebrew || '',
-                  transcription: sanitizeTranscription(r.transcription || r.cyrillic_transcription || ''),
-                  translation: sanitizeRussianTranslation(r.translation || r.russian_translation || ''),
-                }))
+              ? parsedReplies.map((r: any) => {
+                  const replyHeb = (r.hebrew || '').trim();
+                  return {
+                    hebrew: replyHeb,
+                    transcription: ensureCyrillicHebrewTranscription(
+                      sanitizeTranscription(r.transcription || r.cyrillic_transcription || ''),
+                      replyHeb
+                    ),
+                    translation: sanitizeRussianTranslation(r.translation || r.russian_translation || ''),
+                  };
+                })
               : [
                   {
                     hebrew: 'כֵּן, נָכוֹן.',
@@ -269,8 +283,8 @@ ${isFinal ? `ЭТО ФИНАЛЬНЫЙ РАУНД ЗВОНКА (раунд ${use
                 ];
 
             return NextResponse.json({
-              hebrew: (parsed.hebrew || '').trim(),
-              transcription: sanitizeTranscription(parsed.transcription || parsed.cyrillic_transcription || ''),
+              hebrew: safeHebrew,
+              transcription: safeTranscription,
               translation: sanitizeRussianTranslation(parsed.translation || parsed.russian_translation || ''),
               isCompleted: isDone,
               shouldHangUp: isDone,
@@ -356,13 +370,23 @@ ${isFinal ? `ЭТО ФИНАЛЬНЫЙ РАУНД ЗВОНКА (раунд ${use
             const parsed = JSON.parse(text);
             const isDone = shouldForceFinalTurn;
 
+            const safeHebrew = (parsed.hebrew || '').trim();
+            const rawTranscription = sanitizeTranscription(parsed.transcription || parsed.cyrillic_transcription || '');
+            const safeTranscription = ensureCyrillicHebrewTranscription(rawTranscription, safeHebrew);
+
             const parsedReplies = Array.isArray(parsed.suggestedReplies) ? parsed.suggestedReplies : [];
             const safeReplies = parsedReplies.length > 0
-              ? parsedReplies.map((r: any) => ({
-                  hebrew: r.hebrew || '',
-                  transcription: sanitizeTranscription(r.transcription || r.cyrillic_transcription || ''),
-                  translation: sanitizeRussianTranslation(r.translation || r.russian_translation || ''),
-                }))
+              ? parsedReplies.map((r: any) => {
+                  const replyHeb = (r.hebrew || '').trim();
+                  return {
+                    hebrew: replyHeb,
+                    transcription: ensureCyrillicHebrewTranscription(
+                      sanitizeTranscription(r.transcription || r.cyrillic_transcription || ''),
+                      replyHeb
+                    ),
+                    translation: sanitizeRussianTranslation(r.translation || r.russian_translation || ''),
+                  };
+                })
               : [
                   {
                     hebrew: 'כֵּן, נָכוֹן.',
@@ -377,8 +401,8 @@ ${isFinal ? `ЭТО ФИНАЛЬНЫЙ РАУНД ЗВОНКА (раунд ${use
                 ];
 
             return NextResponse.json({
-              hebrew: (parsed.hebrew || '').trim(),
-              transcription: sanitizeTranscription(parsed.transcription || parsed.cyrillic_transcription || ''),
+              hebrew: safeHebrew,
+              transcription: safeTranscription,
               translation: sanitizeRussianTranslation(parsed.translation || parsed.russian_translation || ''),
               isCompleted: isDone,
               shouldHangUp: isDone,

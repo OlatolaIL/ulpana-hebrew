@@ -16,6 +16,7 @@ export interface SmartPlayerMessage {
 interface SmartConversationPlayerProps {
   messages: SmartPlayerMessage[];
   callerName?: string;
+  callerGender?: 'male' | 'female';
   userName?: string;
   speechRate?: number;
   onActiveMessageChange?: (index: number | null) => void;
@@ -26,6 +27,7 @@ interface SmartConversationPlayerProps {
 export const SmartConversationPlayer: React.FC<SmartConversationPlayerProps> = ({
   messages,
   callerName = 'Собеседник',
+  callerGender = 'male',
   userName = 'Ученик',
   speechRate = 0.75,
   onActiveMessageChange,
@@ -127,7 +129,7 @@ export const SmartConversationPlayer: React.FC<SmartConversationPlayerProps> = (
       } else {
         // Воспроизведение реплики собеседника через синтезатор речи
         try {
-          await speakHebrew(msg.hebrew, { rate: speechRate });
+          await speakHebrew(msg.hebrew, { rate: speechRate, gender: callerGender });
         } catch (e) {
           console.warn('[SmartPlayer] TTS failed:', e);
         }

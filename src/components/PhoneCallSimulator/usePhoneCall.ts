@@ -354,7 +354,10 @@ export function usePhoneCall({
     lastAiSpokenTextRef.current = stripNikkud(text).trim().toLowerCase();
 
     try {
-      await speakHebrew(text, { rate: userProfile.speechRate || 0.75 });
+      await speakHebrew(text, {
+        rate: userProfile.speechRate || 0.75,
+        gender: scenario.callerGender || 'male',
+      });
     } catch (e) {
       console.error('Speech error:', e);
     } finally {

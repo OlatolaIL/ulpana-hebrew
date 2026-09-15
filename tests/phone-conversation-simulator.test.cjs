@@ -7,7 +7,8 @@ const { createSessionToken } = require('../src/lib/auth.ts');
 const { POST: phonePOST } = require('../src/app/api/ai/phone/route.ts');
 const { getLessonPhoneScenario } = require('../src/data/phoneScenarios.ts');
 const { DETAILED_LESSONS } = require('../src/data/lessonsData.ts');
-const { tokenizeText } = require('../src/lib/transcription.ts');
+const { tokenizeText, ensureCyrillicHebrewTranscription, validateAndCorrectHebrewTranscription } = require('../src/lib/transcription.ts');
+const { cleanHebrewForSpeech } = require('../src/lib/speech.ts');
 
 function snapshotGlobalProperties(keys) {
   const descriptors = new Map();
@@ -542,4 +543,34 @@ test('P-06 & P-04: Answering machine fallback in route.ts is gender agreed and s
   assert.ok(femaleJson.hebrew.includes('אַתְּ רוֹצָה'), 'Female fallback must use אַתְּ רוֹצָה');
   assert.equal(femaleJson.hebrew.includes('תִּרְצֶה') || femaleJson.hebrew.includes('תִּרְצִי'), false, 'Female fallback must not use future tense');
   assert.ok(femaleJson.transcription.includes('ат роцá'));
+});
+
+// ---------------------------------------------------------------------------
+// 9. Hallucination guard & apartment numeral tests
+// ---------------------------------------------------------------------------
+test('Transcription guard corrects LLM hallucinations (бадара -> ба-дира, эзрэ -> эзра, хакол -> hаколь)', () => {
+  const h = '?נָעִים מְאוֹד! הַכֹּל בְּסֵדֶר בַּדִּירָה? צָרִיךְ עֶזְרָה בְּמַשֶּׁהוּ?';
+  const t = 'на́им ма́од! ха́кол бэсэ́дэр бада́ра? цари́х эзрэ́ бэма́шеу?';
+
+  const fixed = ensureCyrillicHebrewTranscription(t, h);
+  assert.ok(fixed.includes('ба-дирá?'), `Must correct бада́ра to ба-дирá?, got: ${fixed}`);
+  assert.ok(fixed.includes('эзрá'), `Must correct эзрэ́ to эзрá, got: ${fixed}`);
+  assert.ok(fixed.includes('мэóд!'), `Must correct ма́од! to мэóд!, got: ${fixed}`);
+  assert.ok(fixed.includes('hакóль'), `Must correct ха́кол to hакóль, got: ${fixed}`);
+  assert.ok(fixed.includes('бэ-мáшеhу?'), `Must correct бэма́шеу? to бэ-мáшеhу?, got: ${fixed}`);
+});
+
+test('cleanHebrewForSpeech converts numerals 0-10 to Hebrew words so numbers are spoken', () => {
+  const phrase = 'הַלּוֹ? שָׁלוֹם! זֶה נוֹעַם מִדִּירָה 4. מָה נִשְׁמַע?';
+  const speechReady = cleanHebrewForSpeech(phrase);
+  assert.ok(speechReady.includes('אַרְבַּע'), `Must convert 4 to אַרְבַּע, got: ${speechReady}`);
+  assert.ok(!speechReady.includes('4'), `Must not retain raw digit 4, got: ${speechReady}`);
+});
+
+test('Lesson 1 scenario uses אַרְבַּע for apartment number and specifies callerGender male', () => {
+  const lesson1 = DETAILED_LESSONS[1];
+  const scenario = getLessonPhoneScenario(lesson1, 'male');
+  assert.equal(scenario.callerGender, 'male');
+  assert.ok(scenario.initialGreeting.hebrew.includes('אַרְבַּע'));
+  assert.ok(scenario.initialGreeting.transcription.includes('арбá'));
 });

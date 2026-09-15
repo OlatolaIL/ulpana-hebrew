@@ -314,6 +314,7 @@ export interface PhoneScenario {
   callerName: string; // 'דני - שליח וולט'
   callerNameRu: string; // 'Дани (курьер Wolt)'
   callerRole: string; // 'Курьер доставки'
+  callerGender?: 'male' | 'female'; // Пол собеседника для корректного выбора голоса (мужской/женский)
   userRole?: string; // 'Посетитель' / 'Арендатор' / 'Покупатель' / 'Ученик'
   avatarEmoji: string; // '🛵'
   situationSummary: string; // Краткое описание ситуации перед звонком
