@@ -1,0 +1,557 @@
+{
+  "capturedAt": "2026-09-13T23:31:54.427Z",
+  "commit": "8c0cc22e3e354d4d653f925d9db3381b26fdf90a",
+  "method": "Actual getLessonEssayPrompt outputs; no UI or model judgment claimed",
+  "snapshots": [
+    {
+      "lessonId": 1,
+      "sha256": "1d760a0d13c0e558c7562afb308615f10e6825953a202457020415e7c84054f2"
+    },
+    {
+      "lessonId": 2,
+      "sha256": "6bf628a26faefb33712e818a9e0c29ff1bdd3a852f7d28032c099760f9977451"
+    },
+    {
+      "lessonId": 3,
+      "sha256": "c19f3536e2f54f260ff4df1171664a91097889c043c84163e310181beccece30",
+      "value": {
+        "topicRu": "Моя семья и фотографии",
+        "topicHe": "הַמִּשְׁפָּחָה שֶׁלִּי",
+        "situationRu": "Расскажите о своей семье, показывая фотографии: кто ваши родители, есть ли у вас братья или сестры, какая у вас семья (большая или дружная).",
+        "grammarFocusRu": "Указательные слова и согласование: Обратите внимание на выбор указательного местоимения в зависимости от мужского или женского рода предмета/лица. Прилагательное всегда следует после существительного.",
+        "minWords": 12,
+        "suggestedWords": [
+          {
+            "hebrew": "מִשְׁפָּחָה",
+            "translation": "семья",
+            "transcription": "мишпахá"
+          },
+          {
+            "hebrew": "אַבָּא",
+            "translation": "папа",
+            "transcription": "áба"
+          },
+          {
+            "hebrew": "אִמָּא",
+            "translation": "мама",
+            "transcription": "ӣма"
+          },
+          {
+            "hebrew": "אָח",
+            "translation": "брат",
+            "transcription": "ах"
+          },
+          {
+            "hebrew": "אָחוֹת",
+            "translation": "сестра",
+            "transcription": "ахóт"
+          },
+          {
+            "hebrew": "זֶה / זֹאת",
+            "translation": "это (м.р. / ж.р.)",
+            "transcription": "зэ / зот"
+          },
+          {
+            "hebrew": "גָּדוֹל / גְּדוֹלָה",
+            "translation": "большой / большая",
+            "transcription": "гадóль / гдолá"
+          }
+        ],
+        "sampleEssay": {
+          "hebrew": "זֹאת הַמִּשְׁפָּחָה שֶׁלִּי. זֶה אַבָּא שֶׁלִּי וְזֹאת אִמָּא שֶׁלִּי. יֵשׁ לִי אָח גָּדוֹל וְאָחוֹת קְטַנָּה. זֹאת מִשְׁפָּחָה יָפָה וּנְחְמָדָה מְאוֹד.",
+          "transcription": "зот hа-мишпахá шелӣ. зэ áба шелӣ вэ-зот ӣма шелӣ. йеш ли ах гадóль вэ-ахóт ктанá. зот мишпахá яфá у-нэхмадá мэóд.",
+          "translation": "Это моя семья. Это мой папа, а это моя мама. У меня есть старший брат и младшая сестра. Это красивая и очень приятная семья."
+        }
+      },
+      "sampleWordCount": 20
+    },
+    {
+      "lessonId": 4,
+      "sha256": "4c9fa08f72bafcc101b9574b8728576f4561fa7ee99a4a13bd0e6fefdf6b1154",
+      "value": {
+        "topicRu": "Мой город и моя квартира",
+        "topicHe": "הָעִיר שֶׁלִּי וְהַדִּירָה שֶׁלִּי",
+        "situationRu": "Опишите город, в котором вы живёте, вашу улицу и квартиру: уютная ли она, что находится рядом.",
+        "grammarFocusRu": "Слитные предлоги и род: Не забывайте слитный предлог направления и места «в». Помните о грамматическом роде слов «город» и «квартира» при согласовании с прилагательными.",
+        "minWords": 12,
+        "suggestedWords": [
+          {
+            "hebrew": "גָּר / גָּרָה",
+            "translation": "живу (м.р. / ж.р.)",
+            "transcription": "гар / гáра"
+          },
+          {
+            "hebrew": "עִיר",
+            "translation": "город (ж.р.!)",
+            "transcription": "ир"
+          },
+          {
+            "hebrew": "דִּירָה",
+            "translation": "квартира (ж.р.)",
+            "transcription": "дирá"
+          },
+          {
+            "hebrew": "רְחוֹב",
+            "translation": "улица (м.р.)",
+            "transcription": "рэхóв"
+          },
+          {
+            "hebrew": "יָפֶה / יָפָה",
+            "translation": "красивый / красивая",
+            "transcription": "яфэ́ / яфá"
+          },
+          {
+            "hebrew": "קָטָן / קְטַנָּה",
+            "translation": "маленький / маленькая",
+            "transcription": "катáн / ктанá"
+          },
+          {
+            "hebrew": "נֶחְמָד / נֶחְמָדָה",
+            "translation": "симпатичный / милая",
+            "transcription": "нэхмáд / нэхмадá"
+          }
+        ],
+        "sampleEssay": {
+          "hebrew": "אֲנִי גָּר בְּתֵל אָבִיב. תֵּל אָבִיב זֹאת עִיר יָפָה מְאוֹד. יֵשׁ לִי דִּירָה קְטַנָּה בִּרְחוֹב נֶחְמָד וְשֶׁקֶט.",
+          "transcription": "анӣ гар бэ-Тель Авӣв. Тель Авӣв зот ир яфá мэóд. йеш ли дирá ктанá би-рхóв нэхмáд вэ-шэ́кет.",
+          "translation": "Я живу в Тель-Авиве. Тель-Авив — это очень красивый город. У меня есть маленькая квартира на приятной и тихой улице."
+        }
+      },
+      "sampleWordCount": 17
+    },
+    {
+      "lessonId": 5,
+      "sha256": "6d067a2314ffefd12406a2c168a9b4845d80621e35bf38ba7bdff4c09ab7c251",
+      "value": {
+        "topicRu": "Учёба в ульпане и языки",
+        "topicHe": "לִמּוּדִים בָּאוּלְפָּן וּשְׂפוֹת",
+        "situationRu": "Расскажите о своих занятиях в ульпане: на каких языках вы говорите, почему вы учите иврит и нравится ли вам класс.",
+        "grammarFocusRu": "Управление глаголов речи: Название языка употребляется сразу после глагола речи без лишних предлогов. Отрицание ставьте перед глаголом. Помните о грамматическом роде слова «язык».",
+        "minWords": 14,
+        "suggestedWords": [
+          {
+            "hebrew": "לוֹמֵד / לוֹמֶדֶת",
+            "translation": "учу / учусь",
+            "transcription": "ломэ́д / ломэ́дэт"
+          },
+          {
+            "hebrew": "מְדַבֵּר / מְדַבֶּרֶת",
+            "translation": "говорю",
+            "transcription": "мэдабэ́р / мэдабэ́рэт"
+          },
+          {
+            "hebrew": "עִבְרִית",
+            "translation": "иврит",
+            "transcription": "иврӣт"
+          },
+          {
+            "hebrew": "רוּסִית",
+            "translation": "русский язык",
+            "transcription": "русӣт"
+          },
+          {
+            "hebrew": "אַנְגְּלִית",
+            "translation": "английский язык",
+            "transcription": "англӣт"
+          },
+          {
+            "hebrew": "שָׂפָה",
+            "translation": "язык (ж.р.)",
+            "transcription": "сафá"
+          },
+          {
+            "hebrew": "כִּיתָּה",
+            "translation": "класс / аудитория",
+            "transcription": "китá"
+          }
+        ],
+        "sampleEssay": {
+          "hebrew": "אֲנִי מְדַבֵּר רוּסִית וְאַנְגְּלִית, וְעַכְשָׁו אֲנִי לוֹמֵד עִבְרִית בָּאוּלְפָּן. עִבְרִית זֹאת שָׂפָה מְעַנְיֶנֶת וְיָפָה. יֵשׁ לָנוּ מוֹרֶה מְצֻיָּן בַּכִּיתָּה.",
+          "transcription": "анӣ мэдабэ́р русӣт вэ-англӣт, вэ-ахшáв анӣ ломэ́д иврӣт ба-ульпáн. иврӣт зот сафá мэаньенэт вэ-яфá. йеш лáну морé мэцуян ба-китá.",
+          "translation": "Я говорю по-русски и по-английски, а сейчас учу иврит в ульпане. Иврит — это интересный и красивый язык. У нас отличный учитель в классе."
+        }
+      },
+      "sampleWordCount": 19
+    },
+    {
+      "lessonId": 6,
+      "sha256": "5146398289726a43dbff633e313893a15b4397aed259aba1fd234a88475b9a59"
+    },
+    {
+      "lessonId": 7,
+      "sha256": "7d1571385e42b7fb5bb26f12b37d6728883959d829f776337908363bc69c3951"
+    },
+    {
+      "lessonId": 8,
+      "sha256": "20a83145a9ef6e25d3f0ec70b3ffc4ae6f0c232184a61b82c4e71c4ae3af41a9"
+    },
+    {
+      "lessonId": 9,
+      "sha256": "c4eb5cfde4871b2cf1d6d6833e2967d8078536f847af908fa9ed4ffe3d967759"
+    },
+    {
+      "lessonId": 10,
+      "sha256": "2bd9dbbe7a474cd17fe85d41d8a94e0608060f3e27afc59d21a77447c2a3ed29"
+    },
+    {
+      "lessonId": 11,
+      "sha256": "decf9b301e92bf6c63e415691b1a5f34ba431a0c8a44b09659c4934342f3de95"
+    },
+    {
+      "lessonId": 12,
+      "sha256": "50226602c35e6d768b634b5ace1b376c88de9a4373db7103fa764bbd80aeb1aa"
+    },
+    {
+      "lessonId": 13,
+      "sha256": "b7bd059dd004d9e64e2f6c88fc2997a455c1e394db57e9bd46ba9e07884f746e"
+    },
+    {
+      "lessonId": 14,
+      "sha256": "b00ec441127156699eba4b167034e376ae1427808d145cc7f8929175766e4039"
+    },
+    {
+      "lessonId": 15,
+      "sha256": "3056f246dbd79c56450d2da938eb56dfe9fcc3d3bf4afedc40b43c1750fdcfdc"
+    },
+    {
+      "lessonId": 16,
+      "sha256": "d2ddfda511d476a37153e64918ba1ade14c2425c5b7e36c2a50e65c9274dd9bb"
+    },
+    {
+      "lessonId": 17,
+      "sha256": "aa706fc4ce82712c4823e49d9b310cdc0dd3aeea7b2a0364a659b664d5b66e4a"
+    },
+    {
+      "lessonId": 18,
+      "sha256": "5a3a9b93a6fb2005e87c39943539a8be96188066363347174e9684bd1aa62e00"
+    },
+    {
+      "lessonId": 19,
+      "sha256": "78b4889e323f6112f29dd022b4210396dcc8333eb1cf60279d6f3337c86435d1"
+    },
+    {
+      "lessonId": 20,
+      "sha256": "2db8d289ca22877abc7decc97ef8dced2ba7384e6f7af289b0af1b2755b6dbf9"
+    },
+    {
+      "lessonId": 21,
+      "sha256": "a1b1619928aaf7f1f03ac42b60bb12c5f83eb50ee5c237a6272d0a392dd78098"
+    },
+    {
+      "lessonId": 22,
+      "sha256": "28fb974df95d702c22384a324ca0481a829e9e56ddbf66c742fac7eeec35fb0c"
+    },
+    {
+      "lessonId": 23,
+      "sha256": "6e6a65a6f13c6f008d68ddee30bf9cb7043d76c5787519781d5bb345097362c0"
+    },
+    {
+      "lessonId": 24,
+      "sha256": "21d941b56e5c630834477aebddd6a0ac8109e09ec25fdfc7f27883dcd0b55c15"
+    },
+    {
+      "lessonId": 25,
+      "sha256": "37cf2411ee2cff177be8ca0827bf79306bc4038afd10a48c5c2a67320f145f8a"
+    },
+    {
+      "lessonId": 26,
+      "sha256": "1d3dff7661400faf02ca524e3192dab2a7592e6e07b70c91af697715c9f00c64"
+    },
+    {
+      "lessonId": 27,
+      "sha256": "1398e2413e4e78b7f3494389f71156e6e0219b07d980b4d634031d69c9310661"
+    },
+    {
+      "lessonId": 28,
+      "sha256": "41645ddc7bdba0bebc630e5c107cf9cc955677f662f4be7b5ecb681de1407f59"
+    },
+    {
+      "lessonId": 29,
+      "sha256": "8a8189b82476d3c9faceece8960c54c1db662a22bd7267be46f28375e3117d1c"
+    },
+    {
+      "lessonId": 30,
+      "sha256": "9787b119609939ffbe06711537bc8af90c1df5e6cb86de3a278ccc3243f80d8e"
+    },
+    {
+      "lessonId": 31,
+      "sha256": "fe2b7558ce1ae826a2b64f0b13c085d1981dc3433e8c7e922b2b088c89ee43cb"
+    },
+    {
+      "lessonId": 32,
+      "sha256": "ea11dc333999c2abe181d20718f4b4ece57945ca8dc69e09fbaa90ff811f65d7"
+    },
+    {
+      "lessonId": 33,
+      "sha256": "5fcf3756eaed253cddb6811c3534a80d2e1e6f3750864de10cb55b80d0903a48"
+    },
+    {
+      "lessonId": 34,
+      "sha256": "6c18edb73251770a4d6ab6801e5fa411a4b9f97a42fa0fc90c5d8eba9f1dd013"
+    },
+    {
+      "lessonId": 35,
+      "sha256": "706ca130d8020cd46d6d219da20c9c8c0c865b4f1e3c1c70c3f967a6ae055537"
+    },
+    {
+      "lessonId": 36,
+      "sha256": "8652440891ae8a8d225c557ae51c23fe733e336849c029c7343e04ecd60267b4"
+    },
+    {
+      "lessonId": 37,
+      "sha256": "5baa34b01478038552ca8c0738720b4b394f82f37add09e48f0082e3161fa0cc"
+    },
+    {
+      "lessonId": 38,
+      "sha256": "207bfe9831ac39047fc7c3ffc2938b9e8a96241797ef960704caf599976e9b6f"
+    },
+    {
+      "lessonId": 39,
+      "sha256": "fa24bab226a3a9d1140434cbe35d5acb65e1457436a2860d3f6aa01cbe7bdc1d"
+    },
+    {
+      "lessonId": 40,
+      "sha256": "e85cb925ff8687d116f9ed650b665f023cdbf1625a56d3baed3cb1053fdae2a0"
+    },
+    {
+      "lessonId": 41,
+      "sha256": "ab474eb418fa962f9c8e36d59286706c7891dcd04e5a9b4276eaa20d50d4aae1"
+    },
+    {
+      "lessonId": 42,
+      "sha256": "8f9901a70f00a17af168e5ca3fc122371178585617ac81f6ba214710f9b3d2f3"
+    },
+    {
+      "lessonId": 43,
+      "sha256": "09eabcd30c440e1cb6e7652c023c4196b1552408a7af0a8b92788747a09a02d5"
+    },
+    {
+      "lessonId": 44,
+      "sha256": "3bc5e2080ef8cfa273e03f46874d212349fc88e9ad1c626c4504af006ded6f25"
+    },
+    {
+      "lessonId": 45,
+      "sha256": "fed7f1d577da663395dc59b9d2661f66a2271c34339aeaa1b7b60a56146288b5"
+    },
+    {
+      "lessonId": 46,
+      "sha256": "13c83230533c201758faee02068cf6cce2e721ce6470e745bd4b32994294e60a"
+    },
+    {
+      "lessonId": 47,
+      "sha256": "41d8717ed09b618513764ffaf663db1242094feea4505c7f535f2ba9e62c5c35"
+    },
+    {
+      "lessonId": 48,
+      "sha256": "41cf7d6b0c9dd2f6abbb9fcdf577da3fffb6e7534cc791fb9bdbd33fb10382ce"
+    },
+    {
+      "lessonId": 49,
+      "sha256": "741b57c2d18c0c15104efcdf14581788840217550092c45eef248092d9269ed0"
+    },
+    {
+      "lessonId": 50,
+      "sha256": "25ba4c89e3f526e857c77a584bc4024205bb0a7b518485178f33098b216c0031"
+    },
+    {
+      "lessonId": 51,
+      "sha256": "d83ec360e030b7f797e6f966dff99dd135c627a755303e9633c4db7816175822"
+    },
+    {
+      "lessonId": 52,
+      "sha256": "7bf4cd86952c6ae92bc663c4b0496460ebacf4180fc63f1b60099939f6d11813"
+    },
+    {
+      "lessonId": 53,
+      "sha256": "3e46e70a297d256a91cae4c12526e827901df2e8d44cbf1ce0d629b58f524d09"
+    },
+    {
+      "lessonId": 54,
+      "sha256": "6d039fcd4c93c1aa4ca1cb92e661992b5c79ebdfba1a2cc5aaacfdc47314bdb6"
+    },
+    {
+      "lessonId": 55,
+      "sha256": "f2b762c546bc6306377be902c24b5d30ce4efe9597180127f3c9b4846e8b87c2"
+    },
+    {
+      "lessonId": 56,
+      "sha256": "0eebd5e74a8286ddc0beea59a46f3d55aaf230d43a1ef416e96d1f75d35cf64e"
+    },
+    {
+      "lessonId": 57,
+      "sha256": "d85d5be33df6daf8fcfeff1c51d6b0de1bfd6da41754b70a3478c01a77c944a4"
+    },
+    {
+      "lessonId": 58,
+      "sha256": "1d1761c320b48977b03553ca435376992b53c78c45fcd834d34f17a092aec9d4"
+    },
+    {
+      "lessonId": 59,
+      "sha256": "1b771aee6616bb769e37e4bee6229f32f4eac0ead0d64b96723b986c2d0e85fc"
+    },
+    {
+      "lessonId": 60,
+      "sha256": "ecb115b58e1591cbf921516850802272955687984b8687ee8d40a11abd7e1f3a"
+    },
+    {
+      "lessonId": 61,
+      "sha256": "7d2fe639f91fa5182043e6bbde91cf49e44e1db9ea761f49c306e4a02379ff2f"
+    },
+    {
+      "lessonId": 62,
+      "sha256": "15102daa6e72d779393a68337dd48f5deb9c26238dda5ab4e0d3534a44ae6fea"
+    },
+    {
+      "lessonId": 63,
+      "sha256": "8c391d4af749eb5016881d9da7d18dd145018c8b29f63fbcff6a937b6715551d"
+    },
+    {
+      "lessonId": 64,
+      "sha256": "4af5252a6a6202874dcb9a03b615b70f06c7206a9dc00b1ce8b871f1a53c2487"
+    },
+    {
+      "lessonId": 65,
+      "sha256": "ae43ae44a44ab8388db7bb53274745476a4e4fbe1854f71699ab8cce30bd1c58"
+    },
+    {
+      "lessonId": 66,
+      "sha256": "6753e0db2baf68665c40b9533b8922cdca92111844879928e02ac06192bc09ef"
+    },
+    {
+      "lessonId": 67,
+      "sha256": "6a8ed23e743f0fb4f3a1d613005c26eeff27b495285847258b8ad5ffcf9dd930"
+    },
+    {
+      "lessonId": 68,
+      "sha256": "851af77efc84ec531ec434352d9d06ad681109471b50d25e99c82cf6c9f6f86c"
+    },
+    {
+      "lessonId": 69,
+      "sha256": "7eaab6821bf3ebf50be1586fa0ef5757a0809814b18794e45cada9def6a6f09c"
+    },
+    {
+      "lessonId": 70,
+      "sha256": "0ec06cb08a0096d0460d52dfc80373316e68f415b6c8a8886d68ebc180b7298e"
+    },
+    {
+      "lessonId": 71,
+      "sha256": "7a5608468c9ec075cca1cdd78ecdcdc27fdc22ca78d08687a41444708592c375"
+    },
+    {
+      "lessonId": 72,
+      "sha256": "c8fa1fbcaa29cdfd0ff75f67ee0b90e29733ea473b4419e34e7e2e9dd0477c7b"
+    },
+    {
+      "lessonId": 73,
+      "sha256": "a6df08d4f794ab1b2d2bd9290583b72fb095cf57083ae5481bab2958b857ba10"
+    },
+    {
+      "lessonId": 74,
+      "sha256": "6ae3cfa6ed2043c5cf31840cccc31b0d8e9e2127a31754afe5d3710a6c9478b9"
+    },
+    {
+      "lessonId": 75,
+      "sha256": "be50fca950d9ce2cf186a22d4fa77e25d926f28ccf89535913070ff888d9687e"
+    },
+    {
+      "lessonId": 76,
+      "sha256": "0dd29e64f3db83d68663cab7373399c61292b1aaee9c268a3fb6d91b43db7223"
+    },
+    {
+      "lessonId": 77,
+      "sha256": "af87975acad4c08e7e1b38fac58032128636cb0880aa4a334e38491d4908f00e"
+    },
+    {
+      "lessonId": 78,
+      "sha256": "427a1e28dca1164a225ef71518b4fa5b49eeb4302922e73f74836a96c4f2ce0a"
+    },
+    {
+      "lessonId": 79,
+      "sha256": "480fd15d163e4b3ad35d55df15da2f46d17a09bab72d0249472a4e0cf4bdf61d"
+    },
+    {
+      "lessonId": 80,
+      "sha256": "cb3f6296d01d268035c7f4db685b3740ed554825f422b3d9f502a9a787412460"
+    },
+    {
+      "lessonId": 81,
+      "sha256": "beba4a03427e213fd1e335a097e514fc3ac01fc74e8943f151d1ba347e87cc80"
+    },
+    {
+      "lessonId": 82,
+      "sha256": "867cf23c876b441458ed8df625991a9d90cf34c4d63659bc184c4e8b9f491d93"
+    },
+    {
+      "lessonId": 83,
+      "sha256": "57bcd42aa56d3ff1aa94ccd1adc59fe8196c7e336dffcf62e50c98613260c22a"
+    },
+    {
+      "lessonId": 84,
+      "sha256": "f4b14db02e15229d01519041c4088385ff738882e587791b08ea8974b4c2370f"
+    },
+    {
+      "lessonId": 85,
+      "sha256": "ece58dd0365ff72d1e7fd67d06d15ddabbf30b420e86e21a788a334858be041c"
+    },
+    {
+      "lessonId": 86,
+      "sha256": "6b48cd1c2c936324e5632aee5a2d9025dcbc18be3b0f5fcd4dd4b10bbafcb3e9"
+    },
+    {
+      "lessonId": 87,
+      "sha256": "0aaee373b06f8900f6e710878141388374a62e58c7cbdd7e24c3465a4ddf13a3"
+    },
+    {
+      "lessonId": 88,
+      "sha256": "265f69570607344f42ba3c22e918137f621c4fa7dfb7ecd93ff40d26c35aadc2"
+    },
+    {
+      "lessonId": 89,
+      "sha256": "a79e96354e180e9f1074cef6c23455f86272c17e1ca1ba878cde8f18914741fc"
+    },
+    {
+      "lessonId": 90,
+      "sha256": "90dd974dc53d4373f8e47e6f4490f369111e6ab454cc1944155713431a2a746d"
+    },
+    {
+      "lessonId": 91,
+      "sha256": "7f7e22057cdc4bc0854aaaba7e8cda7f629fa0c58f2913bb3cc9befecf69c12b"
+    },
+    {
+      "lessonId": 92,
+      "sha256": "b107f06f0d1d6e05d9372935b889f6b2295abe253c85f025455f00fd66d519bf"
+    },
+    {
+      "lessonId": 93,
+      "sha256": "e261863ac919873d060eb753d71015b07c7684b52c27dfdd7487c82726833f60"
+    },
+    {
+      "lessonId": 94,
+      "sha256": "9d443cd5b674ecc658d58040df58b5b8368a638f49bdbab09f7f23dd0479039b"
+    },
+    {
+      "lessonId": 95,
+      "sha256": "a3c6de5c7d7f08fd5977de81fb5a1ef381ac07413abd5c5d445312f76e764abd"
+    },
+    {
+      "lessonId": 96,
+      "sha256": "de83eb03e051e011d4a8ee112247892ae0bcc027bee9ef1d126939ebf98069c8"
+    },
+    {
+      "lessonId": 97,
+      "sha256": "60510a43fbd8b42cbac20a314ca43fb7c8d766a67b3492e13c188c5786890cad"
+    },
+    {
+      "lessonId": 98,
+      "sha256": "2ed830433470446f4c1d1cc6dcfdadd3828f7e8cabba86a522eb8169b60f987f"
+    },
+    {
+      "lessonId": 99,
+      "sha256": "d4244cf4a113b57132c3c9876d29cc775b3377e2bd40420b0adce7807d38d290"
+    },
+    {
+      "lessonId": 100,
+      "sha256": "23fe32ff0d15c9824ef2ecf956e73230411120f64bf17e9f61ed072cf97a2e33"
+    }
+  ]
+}

@@ -179,3 +179,20 @@ test('R-17: DECISION_MATRIX.md defines Блок 7 with user profile settings rul
   assert.ok(matrixContent.includes('fontStyle'), 'R-17 must reference fontStyle');
   assert.ok(matrixContent.includes('Блок 7'), 'DECISION_MATRIX.md must have Блок 7');
 });
+
+test('R-19: DECISION_MATRIX.md defines R-19 server Whisper engine with button-only submit and offline fallback', () => {
+  const matrixContent = fs.readFileSync(matrixPath, 'utf8');
+  assert.ok(matrixContent.includes('R-19'), 'DECISION_MATRIX.md must define R-19');
+  assert.ok(matrixContent.includes('Whisper'), 'R-19 must mention Whisper');
+  assert.ok(matrixContent.includes('/api/ai/transcribe'), 'R-19 must mention /api/ai/transcribe');
+  assert.ok(matrixContent.includes('по кнопке'), 'R-19 must specify button-only submit');
+  assert.ok(matrixContent.includes('фолбэк'), 'R-19 must specify fallback');
+
+  // Verify that useScriptedDialogue implements audio fallback to /api/ai/transcribe
+  const scriptedDialogueHookPath = path.join(repoRoot, 'src/components/ScriptedDialogueTrainer/useScriptedDialogue.ts');
+  assert.ok(fs.existsSync(scriptedDialogueHookPath), 'useScriptedDialogue.ts must exist');
+  const code = fs.readFileSync(scriptedDialogueHookPath, 'utf8');
+  assert.ok(code.includes('/api/ai/transcribe'), 'useScriptedDialogue.ts must implement /api/ai/transcribe audio fallback');
+  assert.ok(code.includes('disableAutoSilenceStop'), 'useScriptedDialogue.ts must disable auto silence stop');
+});
+

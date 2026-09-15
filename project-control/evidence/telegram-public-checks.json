@@ -1,0 +1,41 @@
+{
+  "checkedAt": "2026-09-13T20:59:54.047Z",
+  "results": [
+    {
+      "method": "POST",
+      "path": "/api/auth/telegram",
+      "status": 401,
+      "error": "Missing or invalid cryptographic signature",
+      "success": false,
+      "hasPollingToken": false,
+      "botName": null
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/telegram/token",
+      "status": 503,
+      "error": "Служба авторизации недоступна",
+      "success": false,
+      "hasPollingToken": false,
+      "botName": null
+    },
+    {
+      "method": "GET",
+      "path": "/api/auth/telegram/token",
+      "status": 400,
+      "error": "Токен не передан",
+      "success": false,
+      "hasPollingToken": false,
+      "botName": null
+    },
+    {
+      "method": "GET",
+      "path": "/api/auth/telegram/webhook",
+      "status": 503,
+      "error": "Webhook not configured",
+      "success": false,
+      "hasPollingToken": false,
+      "botName": null
+    }
+  ]
+}

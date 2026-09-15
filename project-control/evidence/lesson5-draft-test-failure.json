@@ -1,0 +1,17 @@
+{
+  "observedAt": "2026-09-14T01:19:17Z",
+  "scope": "Uncommitted Gemini lesson-05-practice-alignment.test.cjs draft on e8148cc; not a final commit verification",
+  "command": "node --require ./tests/register.cjs --test --test-timeout=15000 tests/lesson-05-practice-alignment.test.cjs",
+  "worktree": "C:/Users/azrie/Documents/antigravity/goofy-maxwell-lesson5-practice",
+  "execSessionId": 17028,
+  "exitCode": 1,
+  "passedBeforeFailure": 2,
+  "failure": "JavaScript heap out of memory; test file failed after approximately 29 seconds",
+  "secondaryObservation": "A concurrent read-only PowerShell command could not initialize CoreCLR: 0x8007000E",
+  "confirmedIncorrectAssertion": "nextEx2BtnWrong compared with undefined although actual component shows next button whenever isAnswered",
+  "memoryCauseStatus": "Hypothesis: formatting a failed assertion involving a large DOM object. Not independently isolated yet.",
+  "architectProcess": "Completed with exit code 1; no running architect diagnostic session remains",
+  "developerFeedbackSentIsrael": "2026-09-14 04:22",
+  "dispatchProof": "User message visible in Antigravity, editor empty, Gemini opened review and edited tests",
+  "review": "project-control/results/lesson-05-test-harness-review.md"
+}

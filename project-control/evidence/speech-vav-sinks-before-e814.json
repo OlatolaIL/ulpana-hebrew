@@ -1,0 +1,24 @@
+{
+  "recordedAt": "2026-09-14T01:18:04.476Z",
+  "commit": "e8148cc0ec2d107b76b5db53908f3aa0e6202b34",
+  "input": "לֶחֶם וּגְבִינָה",
+  "sinks": [
+    {
+      "sink": "browser-tts",
+      "text": "לֶחֶם וֶגְבִינָה",
+      "lang": "he-IL",
+      "rate": 0.8
+    },
+    {
+      "sink": "fallback-audio",
+      "text": "לֶחֶם וֶגְבִינָה",
+      "rate": 0.8
+    },
+    {
+      "sink": "fallback-audio",
+      "text": "לֶחֶם וֶגְבִינָה",
+      "rate": 0.8
+    }
+  ],
+  "method": "Actual speakHebrew through native synthesis, unsupported synthesis and error fallback; synthetic browser endpoints, no network or physical audio"
+}

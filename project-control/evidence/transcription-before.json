@@ -1,0 +1,90 @@
+{
+  "capturedAt": "2026-09-13T22:06:51.254Z",
+  "baseCommit": "ec4d66349bc79c2b00a7fdc4547eb727a7cf60b0",
+  "scope": "Actual exported transcription functions; observations only, not acceptance of all generated letters or stresses",
+  "cases": [
+    {
+      "method": "normalizeTranscription",
+      "input": [
+        "у-гвинá"
+      ],
+      "output": "вэ-гвинá"
+    },
+    {
+      "method": "normalizeTranscription",
+      "input": [
+        "вэ-гвинá"
+      ],
+      "output": "вэ-гвинá"
+    },
+    {
+      "method": "convertLatinHebrewTranscriptionToCyrillic",
+      "input": [
+        "u-gvina"
+      ],
+      "output": "вэ-гвина"
+    },
+    {
+      "method": "generateHebrewTranscription",
+      "input": [
+        "וּמֵאָה"
+      ],
+      "output": "вэ-меа"
+    },
+    {
+      "method": "generateHebrewTranscription",
+      "input": [
+        "וּשְׁנַיִם"
+      ],
+      "output": "вэ-шнаим"
+    },
+    {
+      "method": "generateHebrewTranscription",
+      "input": [
+        "וּגְבִינָה"
+      ],
+      "output": "вэ-гвина"
+    },
+    {
+      "method": "ensureCyrillicHebrewTranscription",
+      "input": [
+        "у-гвинá",
+        "וּגְבִינָה"
+      ],
+      "output": "вэ-гвинá"
+    },
+    {
+      "method": "getWordTranscription",
+      "input": [
+        {
+          "hebrew": "וּגְבִינָה",
+          "transcription": "у-гвинá"
+        }
+      ],
+      "output": "у-гвинá"
+    },
+    {
+      "method": "getWordTranscription",
+      "input": [
+        {
+          "hebrew": "וּגְבִינָה"
+        }
+      ],
+      "output": "вэ-гвина"
+    },
+    {
+      "method": "normalizeTranscription",
+      "input": [
+        ""
+      ],
+      "output": ""
+    },
+    {
+      "method": "generateHebrewTranscription",
+      "input": [
+        ""
+      ],
+      "output": ""
+    }
+  ]
+}

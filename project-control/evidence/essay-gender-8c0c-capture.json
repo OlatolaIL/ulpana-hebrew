@@ -1,0 +1,82 @@
+{
+  "capturedAt": "2026-09-13T23:15:57.894Z",
+  "commit": "8c0cc22e3e354d4d653f925d9db3381b26fdf90a",
+  "method": "Actual POST, synthetic external fetch only; database disabled; no external network calls",
+  "runs": [
+    {
+      "provider": "groq",
+      "gender": "female",
+      "interceptedRequests": 1,
+      "status": 503,
+      "hasScore": false,
+      "canonicalTopicPreserved": true,
+      "canonicalSituationPreserved": true,
+      "grammarFocusPreserved": true,
+      "commonPastFormRulePresent": true,
+      "authorRule": "- Пол автора текста: ЖЕНСКИЙ (נקבה)."
+    },
+    {
+      "provider": "groq",
+      "gender": "male",
+      "interceptedRequests": 1,
+      "status": 503,
+      "hasScore": false,
+      "canonicalTopicPreserved": true,
+      "canonicalSituationPreserved": true,
+      "grammarFocusPreserved": true,
+      "commonPastFormRulePresent": true,
+      "authorRule": "- Пол автора текста: МУЖСКОЙ (זכר)."
+    },
+    {
+      "provider": "gemini",
+      "gender": "female",
+      "interceptedRequests": 1,
+      "status": 503,
+      "hasScore": false,
+      "canonicalTopicPreserved": true,
+      "canonicalSituationPreserved": true,
+      "grammarFocusPreserved": true,
+      "commonPastFormRulePresent": true,
+      "authorRule": "- Пол автора текста: ЖЕНСКИЙ (נקבה)."
+    },
+    {
+      "provider": "gemini",
+      "gender": "male",
+      "interceptedRequests": 1,
+      "status": 503,
+      "hasScore": false,
+      "canonicalTopicPreserved": true,
+      "canonicalSituationPreserved": true,
+      "grammarFocusPreserved": true,
+      "commonPastFormRulePresent": true,
+      "authorRule": "- Пол автора текста: МУЖСКОЙ (זכר)."
+    }
+  ],
+  "baselineLint": {
+    "commit": "6b397f67253ecbb8776bc8ec74126f6be0902663",
+    "status": 1,
+    "errorCount": 1,
+    "warningCount": 2,
+    "messages": [
+      {
+        "line": 224,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "severity": 1,
+        "message": "'evaluateHeuristicEssay' is defined but never used."
+      },
+      {
+        "line": 227,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "severity": 1,
+        "message": "'userGender' is assigned a value but never used."
+      },
+      {
+        "line": 592,
+        "ruleId": "@typescript-eslint/no-explicit-any",
+        "severity": 2,
+        "message": "Unexpected any. Specify a different type."
+      }
+    ]
+  },
+  "limitation": "Prompt and routing contract checked. No actual model judgment or language score was measured."
+}

@@ -1,0 +1,52 @@
+{
+  "checkedAt": "2026-09-14T00:45:58.402Z",
+  "commit": "e8148cc0ec2d107b76b5db53908f3aa0e6202b34",
+  "sourceSha256": "c4a1124a319a99da6641f4be2f8fda862b1e71dd762f74884b536685502a411b",
+  "label": "e814",
+  "method": "Actual local Next app in Chromium; only authentication and cloud endpoints mocked; all AI and external browser requests blocked",
+  "scenarios": [
+    {
+      "lessonId": 8,
+      "width": 390,
+      "overflows": [],
+      "screenshot": "C:\\Users\\azrie\\Documents\\Codex\\2026-09-13\\referenced-chatgpt-conversation-this-is-an\\work\\hints-e814-8-390.png"
+    },
+    {
+      "lessonId": 8,
+      "width": 320,
+      "overflows": [],
+      "screenshot": "C:\\Users\\azrie\\Documents\\Codex\\2026-09-13\\referenced-chatgpt-conversation-this-is-an\\work\\hints-e814-8-320.png"
+    },
+    {
+      "lessonId": 59,
+      "width": 390,
+      "overflows": [],
+      "screenshot": "C:\\Users\\azrie\\Documents\\Codex\\2026-09-13\\referenced-chatgpt-conversation-this-is-an\\work\\hints-e814-59-390.png"
+    },
+    {
+      "lessonId": 59,
+      "width": 320,
+      "overflows": [],
+      "screenshot": "C:\\Users\\azrie\\Documents\\Codex\\2026-09-13\\referenced-chatgpt-conversation-this-is-an\\work\\hints-e814-59-320.png"
+    },
+    {
+      "lessonId": 82,
+      "width": 390,
+      "overflows": [],
+      "screenshot": "C:\\Users\\azrie\\Documents\\Codex\\2026-09-13\\referenced-chatgpt-conversation-this-is-an\\work\\hints-e814-82-390.png"
+    },
+    {
+      "lessonId": 82,
+      "width": 320,
+      "overflows": [],
+      "screenshot": "C:\\Users\\azrie\\Documents\\Codex\\2026-09-13\\referenced-chatgpt-conversation-this-is-an\\work\\hints-e814-82-320.png"
+    }
+  ],
+  "pageErrors": [],
+  "keyboard": {
+    "lessonId": 8,
+    "femaleClick": "לומדת ",
+    "maleEnterInMiddle": "שלום לומד עולם",
+    "cursor": 10
+  }
+}

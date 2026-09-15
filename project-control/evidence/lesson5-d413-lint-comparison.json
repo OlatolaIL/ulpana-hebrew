@@ -1,0 +1,265 @@
+{
+  "commit": "d413f9489f144599c4c95bd8321c9613b01a78db",
+  "checks": [
+    {
+      "filename": "src/data/lessons/alef_01_10.ts",
+      "before": [],
+      "after": [],
+      "sameFindingsIgnoringLocation": true
+    },
+    {
+      "filename": "src/data/phoneScenarios.ts",
+      "before": [
+        {
+          "ruleId": "@typescript-eslint/no-unused-vars",
+          "severity": 1,
+          "line": 752,
+          "column": 9,
+          "message": "'titleLower' is assigned a value but never used."
+        },
+        {
+          "ruleId": "@typescript-eslint/no-unused-vars",
+          "severity": 1,
+          "line": 753,
+          "column": 9,
+          "message": "'catLower' is assigned a value but never used."
+        }
+      ],
+      "after": [
+        {
+          "ruleId": "@typescript-eslint/no-unused-vars",
+          "severity": 1,
+          "line": 748,
+          "column": 9,
+          "message": "'titleLower' is assigned a value but never used."
+        },
+        {
+          "ruleId": "@typescript-eslint/no-unused-vars",
+          "severity": 1,
+          "line": 749,
+          "column": 9,
+          "message": "'catLower' is assigned a value but never used."
+        }
+      ],
+      "sameFindingsIgnoringLocation": true
+    },
+    {
+      "filename": "tests/pilot-mechanics-01-05.test.cjs",
+      "before": [
+        {
+          "ruleId": "@typescript-eslint/no-require-imports",
+          "severity": 2,
+          "line": 1,
+          "column": 14,
+          "message": "A `require()` style import is forbidden."
+        },
+        {
+          "ruleId": "@typescript-eslint/no-require-imports",
+          "severity": 2,
+          "line": 2,
+          "column": 16,
+          "message": "A `require()` style import is forbidden."
+        },
+        {
+          "ruleId": "@typescript-eslint/no-unused-vars",
+          "severity": 1,
+          "line": 3,
+          "column": 7,
+          "message": "'fs' is assigned a value but never used."
+        },
+        {
+          "ruleId": "@typescript-eslint/no-require-imports",
+          "severity": 2,
+          "line": 3,
+          "column": 12,
+          "message": "A `require()` style import is forbidden."
+        },
+        {
+          "ruleId": "@typescript-eslint/no-require-imports",
+          "severity": 2,
+          "line": 4,
+          "column": 15,
+          "message": "A `require()` style import is forbidden."
+        },
+        {
+          "ruleId": "@typescript-eslint/no-require-imports",
+          "severity": 2,
+          "line": 5,
+          "column": 17,
+          "message": "A `require()` style import is forbidden."
+        },
+        {
+          "ruleId": "@typescript-eslint/no-require-imports",
+          "severity": 2,
+          "line": 6,
+          "column": 24,
+          "message": "A `require()` style import is forbidden."
+        },
+        {
+          "ruleId": "@typescript-eslint/no-require-imports",
+          "severity": 2,
+          "line": 7,
+          "column": 34,
+          "message": "A `require()` style import is forbidden."
+        },
+        {
+          "ruleId": "@typescript-eslint/no-require-imports",
+          "severity": 2,
+          "line": 8,
+          "column": 19,
+          "message": "A `require()` style import is forbidden."
+        },
+        {
+          "ruleId": "@typescript-eslint/no-require-imports",
+          "severity": 2,
+          "line": 10,
+          "column": 18,
+          "message": "A `require()` style import is forbidden."
+        },
+        {
+          "ruleId": "@typescript-eslint/no-require-imports",
+          "severity": 2,
+          "line": 11,
+          "column": 22,
+          "message": "A `require()` style import is forbidden."
+        },
+        {
+          "ruleId": "@typescript-eslint/no-require-imports",
+          "severity": 2,
+          "line": 12,
+          "column": 36,
+          "message": "A `require()` style import is forbidden."
+        },
+        {
+          "ruleId": "@typescript-eslint/no-require-imports",
+          "severity": 2,
+          "line": 13,
+          "column": 57,
+          "message": "A `require()` style import is forbidden."
+        },
+        {
+          "ruleId": "@typescript-eslint/no-require-imports",
+          "severity": 2,
+          "line": 14,
+          "column": 32,
+          "message": "A `require()` style import is forbidden."
+        },
+        {
+          "ruleId": "@typescript-eslint/no-require-imports",
+          "severity": 2,
+          "line": 15,
+          "column": 30,
+          "message": "A `require()` style import is forbidden."
+        }
+      ],
+      "after": [
+        {
+          "ruleId": "@typescript-eslint/no-require-imports",
+          "severity": 2,
+          "line": 1,
+          "column": 14,
+          "message": "A `require()` style import is forbidden."
+        },
+        {
+          "ruleId": "@typescript-eslint/no-require-imports",
+          "severity": 2,
+          "line": 2,
+          "column": 16,
+          "message": "A `require()` style import is forbidden."
+        },
+        {
+          "ruleId": "@typescript-eslint/no-unused-vars",
+          "severity": 1,
+          "line": 3,
+          "column": 7,
+          "message": "'fs' is assigned a value but never used."
+        },
+        {
+          "ruleId": "@typescript-eslint/no-require-imports",
+          "severity": 2,
+          "line": 3,
+          "column": 12,
+          "message": "A `require()` style import is forbidden."
+        },
+        {
+          "ruleId": "@typescript-eslint/no-require-imports",
+          "severity": 2,
+          "line": 4,
+          "column": 15,
+          "message": "A `require()` style import is forbidden."
+        },
+        {
+          "ruleId": "@typescript-eslint/no-require-imports",
+          "severity": 2,
+          "line": 5,
+          "column": 17,
+          "message": "A `require()` style import is forbidden."
+        },
+        {
+          "ruleId": "@typescript-eslint/no-require-imports",
+          "severity": 2,
+          "line": 6,
+          "column": 24,
+          "message": "A `require()` style import is forbidden."
+        },
+        {
+          "ruleId": "@typescript-eslint/no-require-imports",
+          "severity": 2,
+          "line": 7,
+          "column": 34,
+          "message": "A `require()` style import is forbidden."
+        },
+        {
+          "ruleId": "@typescript-eslint/no-require-imports",
+          "severity": 2,
+          "line": 8,
+          "column": 19,
+          "message": "A `require()` style import is forbidden."
+        },
+        {
+          "ruleId": "@typescript-eslint/no-require-imports",
+          "severity": 2,
+          "line": 10,
+          "column": 18,
+          "message": "A `require()` style import is forbidden."
+        },
+        {
+          "ruleId": "@typescript-eslint/no-require-imports",
+          "severity": 2,
+          "line": 11,
+          "column": 22,
+          "message": "A `require()` style import is forbidden."
+        },
+        {
+          "ruleId": "@typescript-eslint/no-require-imports",
+          "severity": 2,
+          "line": 12,
+          "column": 36,
+          "message": "A `require()` style import is forbidden."
+        },
+        {
+          "ruleId": "@typescript-eslint/no-require-imports",
+          "severity": 2,
+          "line": 13,
+          "column": 57,
+          "message": "A `require()` style import is forbidden."
+        },
+        {
+          "ruleId": "@typescript-eslint/no-require-imports",
+          "severity": 2,
+          "line": 14,
+          "column": 32,
+          "message": "A `require()` style import is forbidden."
+        },
+        {
+          "ruleId": "@typescript-eslint/no-require-imports",
+          "severity": 2,
+          "line": 15,
+          "column": 30,
+          "message": "A `require()` style import is forbidden."
+        }
+      ],
+      "sameFindingsIgnoringLocation": true
+    }
+  ]
+}

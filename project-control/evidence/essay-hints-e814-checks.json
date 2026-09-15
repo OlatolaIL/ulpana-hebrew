@@ -1,0 +1,84 @@
+{
+  "checkedAt": "2026-09-14T00:51:12.538Z",
+  "commit": "e8148cc0ec2d107b76b5db53908f3aa0e6202b34",
+  "base": "502d06584145f42cdabdb73377e1cec93ffe3e28",
+  "checkedBy": "ChatGPT architect",
+  "logs": [
+    {
+      "command": "npm test",
+      "log": "C:\\Users\\azrie\\Documents\\Codex\\2026-09-13\\referenced-chatgpt-conversation-this-is-an\\work\\hints-e814-tests.log",
+      "exitCode": 0,
+      "sha256": "8df17fc014c5667841fa1fa276763d587fc1dc45383ad1943197307d55ae3e7d"
+    },
+    {
+      "command": "npm run typecheck",
+      "log": "C:\\Users\\azrie\\Documents\\Codex\\2026-09-13\\referenced-chatgpt-conversation-this-is-an\\work\\hints-e814-types.log",
+      "exitCode": 0,
+      "sha256": "cdc80e91db9d0966b3a6ffdee4f6d9e586784d5e90f891b038c070140512e2c1"
+    },
+    {
+      "command": "npm audit --audit-level=high --fetch-timeout=15000 --fetch-retries=0",
+      "log": "C:\\Users\\azrie\\Documents\\Codex\\2026-09-13\\referenced-chatgpt-conversation-this-is-an\\work\\hints-e814-audit.log",
+      "exitCode": 0,
+      "sha256": "4b02d4a3c23d969c46bd2041360f80bfcb1fe760d9db864009acdd710f9de601"
+    },
+    {
+      "command": "eslint three mandatory components",
+      "log": "C:\\Users\\azrie\\Documents\\Codex\\2026-09-13\\referenced-chatgpt-conversation-this-is-an\\work\\hints-e814-critical-lint.log",
+      "exitCode": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "command": "eslint changed component and test",
+      "log": "C:\\Users\\azrie\\Documents\\Codex\\2026-09-13\\referenced-chatgpt-conversation-this-is-an\\work\\hints-e814-lint.json",
+      "exitCode": 1,
+      "sha256": "1bd638bd6e94e267b8aa80d7d76b3e8d8da14c7fa08c7a7fb7aec9ed2a598559"
+    },
+    {
+      "command": "actual baseline component overlaid in memory",
+      "log": "C:\\Users\\azrie\\Documents\\Codex\\2026-09-13\\referenced-chatgpt-conversation-this-is-an\\work\\hints-e814-baseline.log",
+      "exitCode": 1,
+      "sha256": "0e9ba3d70c214c444831bab5cb802ded3bf2db5e9ee8f8e512206d8c9321beb9"
+    },
+    {
+      "command": "npm run build in developer checkout, two CSS warnings",
+      "log": "C:\\Users\\azrie\\Documents\\Codex\\2026-09-13\\referenced-chatgpt-conversation-this-is-an\\work\\hints-e814-build.log",
+      "exitCode": 0,
+      "sha256": "8fa3f9dd245edd93a9ff87e256c0ca2ee7ac4649a0d3e546d7da28a9ca385452"
+    },
+    {
+      "command": "npm run build in clean detached review checkout, no CSS warnings",
+      "log": "C:\\Users\\azrie\\Documents\\Codex\\2026-09-13\\referenced-chatgpt-conversation-this-is-an\\work\\hints-e814-clean-build.log",
+      "exitCode": 0,
+      "sha256": "200c015c554ebd65b0b43f58b6074e137cf343cfef1a60913fd3b67e2307b7b8"
+    }
+  ],
+  "tests": {
+    "passed": 80,
+    "failed": 0
+  },
+  "negative": {
+    "passed": 1,
+    "failed": 3
+  },
+  "browser": {
+    "file": "essay-hints-e814-browser.json",
+    "engine": "installed Microsoft Edge via Playwright",
+    "scenarios": 6,
+    "overflows": 0,
+    "pageErrors": 0
+  },
+  "lint": {
+    "existingErrors": 2,
+    "existingWarnings": 1,
+    "comparison": "essay-hints-e814-lint-comparison.json"
+  },
+  "dependencies": "package and lock unchanged; existing installed dependency directory shared by junction for clean build; no repeat npm ci",
+  "developerReportSha256": "309d67ea3a505f351adc9ce997074e78a43a912fd9e078b0e4c2b70fa5216f90",
+  "limitations": [
+    "Only selected UI lessons 8/59/82 and widths 320/390",
+    "No real auth, database, AI or physical audio",
+    "No full lesson linguistic acceptance",
+    "Developer report misattributes draft CSS overflow to 502d065"
+  ]
+}

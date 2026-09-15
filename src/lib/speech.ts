@@ -805,6 +805,7 @@ export interface SpeechRecognizerOptions {
   onAudioLevel?: (level: number) => void;
   onSilenceDetected?: (transcript: string, audioBlob?: Blob | null, audioUrl?: string | null) => void;
   onAudioRecorded?: (audioBlob: Blob, audioUrl: string) => void;
+  disableAutoSilenceStop?: boolean; // R-19: Отправка строго по кнопке, без отсечки по паузе
 }
 
 /**
@@ -1091,7 +1092,7 @@ export class HebrewSpeechRecognizer {
           }
         } else {
           speechFrames = Math.max(0, speechFrames - 1);
-          if (this.hasDetectedSpeech && !this.isProcessingSilence) {
+          if (this.hasDetectedSpeech && !this.isProcessingSilence && !this.currentOptions.disableAutoSilenceStop) {
             if (!this.silenceStartTime) {
               this.silenceStartTime = Date.now();
             } else {
@@ -1161,6 +1162,9 @@ export class HebrewSpeechRecognizer {
 
   private async transcribeAudioBlob(audioBlob: Blob, mimeType: string): Promise<string | null> {
     try {
+      if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+        return null;
+      }
       const formData = new FormData();
       const ext = mimeType.includes('mp4') ? 'm4a' : mimeType.includes('aac') ? 'aac' : 'webm';
       formData.append('file', audioBlob, `speech.${ext}`);

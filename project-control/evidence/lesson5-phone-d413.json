@@ -1,0 +1,120 @@
+{
+  "recordedAt": "2026-09-14T01:41:18.793Z",
+  "commit": "d413f9489f144599c4c95bd8321c9613b01a78db",
+  "method": "Actual phone POST, real server scenario; local synthetic JWT and provider data, all fetch intercepted, no database or network",
+  "limitations": "No live conversation or audio assessment. Completion remains existing two-user-turn behavior, not proof of all learning objectives. User-role label is sourced from ordinary dialogue before phone scenario.",
+  "checks": [
+    {
+      "gender": "male",
+      "provider": "groq",
+      "turns": 1,
+      "status": 200,
+      "canonicalScenarioUsed": true,
+      "staleClientIgnored": true,
+      "completed": false,
+      "scenarioUserRole": "Покупатель",
+      "runtimeRoleLines": [
+        "ТВОЙ СОБЕСЕДНИК (УЧЕНИК): Покупатель на шуке.",
+        "КТО ТВОЙ СОБЕСЕДНИК: Ученик — Покупатель на шуке. Ты сам позвонил ему."
+      ]
+    },
+    {
+      "gender": "male",
+      "provider": "groq",
+      "turns": 2,
+      "status": 200,
+      "canonicalScenarioUsed": true,
+      "staleClientIgnored": true,
+      "completed": true,
+      "scenarioUserRole": "Покупатель",
+      "runtimeRoleLines": [
+        "ТВОЙ СОБЕСЕДНИК (УЧЕНИК): Покупатель на шуке.",
+        "КТО ТВОЙ СОБЕСЕДНИК: Ученик — Покупатель на шуке. Ты сам позвонил ему."
+      ]
+    },
+    {
+      "gender": "male",
+      "provider": "gemini",
+      "turns": 1,
+      "status": 200,
+      "canonicalScenarioUsed": true,
+      "staleClientIgnored": true,
+      "completed": false,
+      "scenarioUserRole": "Покупатель",
+      "runtimeRoleLines": [
+        "ТВОЙ СОБЕСЕДНИК (УЧЕНИК): Покупатель на шуке.",
+        "КТО ТВОЙ СОБЕСЕДНИК: Ученик — Покупатель на шуке. Ты сам позвонил ему."
+      ]
+    },
+    {
+      "gender": "male",
+      "provider": "gemini",
+      "turns": 2,
+      "status": 200,
+      "canonicalScenarioUsed": true,
+      "staleClientIgnored": true,
+      "completed": true,
+      "scenarioUserRole": "Покупатель",
+      "runtimeRoleLines": [
+        "ТВОЙ СОБЕСЕДНИК (УЧЕНИК): Покупатель на шуке.",
+        "КТО ТВОЙ СОБЕСЕДНИК: Ученик — Покупатель на шуке. Ты сам позвонил ему."
+      ]
+    },
+    {
+      "gender": "female",
+      "provider": "groq",
+      "turns": 1,
+      "status": 200,
+      "canonicalScenarioUsed": true,
+      "staleClientIgnored": true,
+      "completed": false,
+      "scenarioUserRole": "Покупательница",
+      "runtimeRoleLines": [
+        "ТВОЙ СОБЕСЕДНИК (УЧЕНИК): Покупатель на шуке.",
+        "КТО ТВОЙ СОБЕСЕДНИК: Ученик — Покупатель на шуке. Ты сам позвонил ему."
+      ]
+    },
+    {
+      "gender": "female",
+      "provider": "groq",
+      "turns": 2,
+      "status": 200,
+      "canonicalScenarioUsed": true,
+      "staleClientIgnored": true,
+      "completed": true,
+      "scenarioUserRole": "Покупательница",
+      "runtimeRoleLines": [
+        "ТВОЙ СОБЕСЕДНИК (УЧЕНИК): Покупатель на шуке.",
+        "КТО ТВОЙ СОБЕСЕДНИК: Ученик — Покупатель на шуке. Ты сам позвонил ему."
+      ]
+    },
+    {
+      "gender": "female",
+      "provider": "gemini",
+      "turns": 1,
+      "status": 200,
+      "canonicalScenarioUsed": true,
+      "staleClientIgnored": true,
+      "completed": false,
+      "scenarioUserRole": "Покупательница",
+      "runtimeRoleLines": [
+        "ТВОЙ СОБЕСЕДНИК (УЧЕНИК): Покупатель на шуке.",
+        "КТО ТВОЙ СОБЕСЕДНИК: Ученик — Покупатель на шуке. Ты сам позвонил ему."
+      ]
+    },
+    {
+      "gender": "female",
+      "provider": "gemini",
+      "turns": 2,
+      "status": 200,
+      "canonicalScenarioUsed": true,
+      "staleClientIgnored": true,
+      "completed": true,
+      "scenarioUserRole": "Покупательница",
+      "runtimeRoleLines": [
+        "ТВОЙ СОБЕСЕДНИК (УЧЕНИК): Покупатель на шуке.",
+        "КТО ТВОЙ СОБЕСЕДНИК: Ученик — Покупатель на шуке. Ты сам позвонил ему."
+      ]
+    }
+  ]
+}

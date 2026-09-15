@@ -1,6 +1,6 @@
 import { Word, UserProfile } from '@/types';
 
-export type TrainerMode = 'flip' | 'builder' | 'listening' | 'auto_audio' | 'conjugation';
+export type TrainerMode = 'flip' | 'builder' | 'listening' | 'auto_audio' | 'conjugation' | 'complex';
 
 export type VerbAudioTarget = 'standard' | 'triad' | 'bridge';
 

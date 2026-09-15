@@ -1,0 +1,81 @@
+{
+  "checkedAt": "2026-09-14T00:07:25.307Z",
+  "commit": "502d06584145f42cdabdb73377e1cec93ffe3e28",
+  "base": "8c0cc22e3e354d4d653f925d9db3381b26fdf90a",
+  "checkedBy": "ChatGPT architect",
+  "logs": [
+    {
+      "command": "npm test",
+      "log": "C:\\Users\\azrie\\Documents\\Codex\\2026-09-13\\referenced-chatgpt-conversation-this-is-an\\work\\essay-alignment-502d-tests.log",
+      "exitCode": 0,
+      "sha256": "b6662495777f1cadd110a5657d0360c8a83911b7ffc81f29281fe8b157abb0f0"
+    },
+    {
+      "command": "npm run typecheck",
+      "log": "C:\\Users\\azrie\\Documents\\Codex\\2026-09-13\\referenced-chatgpt-conversation-this-is-an\\work\\essay-alignment-502d-types.log",
+      "exitCode": 0,
+      "sha256": "cdc80e91db9d0966b3a6ffdee4f6d9e586784d5e90f891b038c070140512e2c1"
+    },
+    {
+      "command": "npm run build",
+      "log": "C:\\Users\\azrie\\Documents\\Codex\\2026-09-13\\referenced-chatgpt-conversation-this-is-an\\work\\essay-alignment-502d-build.log",
+      "exitCode": 0,
+      "sha256": "a9582e0e0ae8dbe69c5a897fe2f2f3cf97228ef7bc898b1a7a6f5f6dcccfc9fd"
+    },
+    {
+      "command": "npm audit --audit-level=high --fetch-timeout=15000 --fetch-retries=0",
+      "log": "C:\\Users\\azrie\\Documents\\Codex\\2026-09-13\\referenced-chatgpt-conversation-this-is-an\\work\\essay-alignment-audit.log",
+      "exitCode": 0,
+      "sha256": "4b02d4a3c23d969c46bd2041360f80bfcb1fe760d9db864009acdd710f9de601"
+    },
+    {
+      "command": "npx eslint critical three components, essayTopics.ts and pilot-essay-alignment.test.cjs",
+      "log": "C:\\Users\\azrie\\Documents\\Codex\\2026-09-13\\referenced-chatgpt-conversation-this-is-an\\work\\essay-alignment-502d-lint.log",
+      "exitCode": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "command": "new developer tests with 256c essay data overlaid in memory",
+      "log": "C:\\Users\\azrie\\Documents\\Codex\\2026-09-13\\referenced-chatgpt-conversation-this-is-an\\work\\essay-alignment-502d-baseline.log",
+      "exitCode": 1,
+      "sha256": "c4a03a2ca6411db77dc8cbfe7c9d1a8517e1d8c47dbb9514c5ed82966897a1a2"
+    }
+  ],
+  "tests": {
+    "passed": 76,
+    "failed": 0
+  },
+  "buildPages": 33,
+  "negative": {
+    "passed": 3,
+    "failed": 1,
+    "reason": "Actual female hint inserts גר instead of גרה with old data"
+  },
+  "component": {
+    "file": "essay-hints-502d.json",
+    "clicks": 26,
+    "profiles": [
+      "male",
+      "female"
+    ],
+    "browserErrors": 0
+  },
+  "context": {
+    "file": "essay-alignment-502d-contract.json",
+    "requests": 12,
+    "changedLessons": [
+      3,
+      4,
+      5
+    ],
+    "otherUnchanged": 97
+  },
+  "dependencies": "package.json and package-lock.json unchanged from 8c0cc22; no repeat npm ci",
+  "developerReportSha256": "fd6286d9ab35e4fa3132588c121057ca936729c25d9db19539766bacfba7b849",
+  "limitations": [
+    "No live model quality",
+    "No real browser layout measurement",
+    "No complete academic validation of all lesson text",
+    "N4 outside lessons 3–5 remains open"
+  ]
+}

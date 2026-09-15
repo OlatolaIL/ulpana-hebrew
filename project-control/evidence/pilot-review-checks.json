@@ -1,0 +1,74 @@
+{
+  "checkedAt": "2026-09-13T20:57:50.083Z",
+  "exerciseCount": 60,
+  "failures": [],
+  "duplicateChecks": [
+    {
+      "id": "ex4-4",
+      "target": [
+        "מָה",
+        "זֶה",
+        "זֶה",
+        "סֵפֶר",
+        "עִבְרִית"
+      ],
+      "swappedIdenticalTilesAccepted": true
+    },
+    {
+      "id": "ex4-8",
+      "target": [
+        "מָה",
+        "זֹאת",
+        "זֹאת",
+        "מַחְבֶּרֶת",
+        "שֶׁלִּי"
+      ],
+      "swappedIdenticalTilesAccepted": true
+    }
+  ],
+  "listening": [
+    {
+      "id": "ex1-9",
+      "question": "Послушайте аудиозапись и определите перевод слова «בְּבַקָּשָׁה»:",
+      "answer": "пожалуйста"
+    },
+    {
+      "id": "ex2-9",
+      "question": "Послушайте аудиозапись и определите перевод слова «תֵּה»:",
+      "answer": "чай"
+    },
+    {
+      "id": "ex3-9",
+      "question": "Послушайте аудиозапись и определите перевод слова «מְדִינָה»:",
+      "answer": "страна, государство"
+    },
+    {
+      "id": "ex4-9",
+      "question": "Послушайте аудиозапись и определите перевод слова «מָה»:",
+      "answer": "что"
+    },
+    {
+      "id": "ex5-9",
+      "question": "Послушайте аудиозапись и определите перевод слова «לֶחֶם»:",
+      "answer": "хлеб"
+    }
+  ],
+  "normalization": {
+    "input": "у-гвинá",
+    "output": "вэ-гвинá"
+  },
+  "phone1Objective": "Поздороваться, сказать что всё отлично, и назвать своё имя.",
+  "phone1SuggestedReplies": [
+    {
+      "hebrew": "הַלּוֹ נוֹעַם, שָׁלוֹם! הַכֹּל טוֹב, תּוֹדָה.",
+      "transcription": "hалó Нóам, шалóм! hакóль тов, тодá.",
+      "translation": "Алло Ноам, привет! Все хорошо, спасибо."
+    },
+    {
+      "hebrew": "נָעִים מְאוֹד, אֲנִי דָּוִד מִדִּירָה 5.",
+      "transcription": "наӣм мэóд, анӣ Давӣд ми-дирá 5.",
+      "translation": "Очень приятно, я Давид из 5 квартиры."
+    }
+  ],
+  "limits": "Static data and actual parser/comparison functions; not a browser, audio, live AI, or pedagogical acceptance test."
+}

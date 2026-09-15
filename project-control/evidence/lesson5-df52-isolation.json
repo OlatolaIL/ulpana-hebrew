@@ -1,0 +1,14 @@
+{
+  "leakedGlobals": [
+    "window",
+    "document",
+    "HTMLElement",
+    "Element",
+    "Node",
+    "IS_REACT_ACT_ENVIRONMENT",
+    "addEventListener",
+    "removeEventListener"
+  ],
+  "speechReplaced": true,
+  "confettiCacheReplaced": true
+}

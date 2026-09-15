@@ -1,0 +1,25 @@
+{
+  "capturedAt": "2026-09-13T22:49:54.939Z",
+  "sourceCommit": "0674b160c23f38004347833f2edf5172ba3c7058",
+  "method": "Actual POST handler; external fetch stub only; no database and no network",
+  "source": "src/app/api/ai/essay/evaluate/route.ts:437",
+  "languageSource": "https://www.pealim.com/ru/dict/4-lagur/",
+  "finding": "System prompt incorrectly requires first-person past verbs to vary by author gender",
+  "limitation": "This reproduces the instruction sent to AI; no real model grading was measured",
+  "runs": [
+    {
+      "gender": "female",
+      "responseStatus": 503,
+      "interceptedProviderCalls": 1,
+      "genderInstruction": "- Пол автора текста: ЖЕНСКИЙ (נקבה). Глаголы настоящего и прошедшего времени от первого лица (אני) ДОЛЖНЫ быть в женском роде (רוֹצָה, שׁוֹתָה, גָּרָה, לוֹמֶדֶת) или мужском роде (רוֹצֶה, שׁוֹתֶה, גָּר, לוֹמֵד).",
+      "userGenderContext": "- Пол ученика: Женский (נקבה)"
+    },
+    {
+      "gender": "male",
+      "responseStatus": 503,
+      "interceptedProviderCalls": 1,
+      "genderInstruction": "- Пол автора текста: МУЖСКОЙ (זכר). Глаголы настоящего и прошедшего времени от первого лица (אני) ДОЛЖНЫ быть в женском роде (רוֹצָה, שׁוֹתָה, גָּרָה, לוֹמֶדֶת) или мужском роде (רוֹצֶה, שׁוֹתֶה, גָּר, לוֹמֵד).",
+      "userGenderContext": "- Пол ученика: Мужской (זכר)"
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "checkedAt": "2026-09-13T21:39:00Z",
+  "checkedBy": "ChatGPT architect",
+  "sources": [
+    {
+      "url": "https://meyda.education.gov.il/files/Pop/0files/ivrit_habaah_lashon/pedagogia/shem-mispar.pdf",
+      "publisher": "Israel Ministry of Education; page credits Academy of the Hebrew Language",
+      "page": 41,
+      "method": "Public HTTP download, pypdf text extraction, pdfplumber page render inspected",
+      "sha256": "3612a43afbfe4ccf75f92f1b34e71cdab98f9736dd7ca4e36fa3948364dee178",
+      "finding": "Conjunction vav before sheva and BUMAF takes shuruk /u/; unconditional u-to-ve conversion conflicts with this rule.",
+      "limitation": "This page does not specify every exception or certify the application transcription generator."
+    },
+    {
+      "url": "https://www.pealim.com/ru/dict/4-lagur/",
+      "publisher": "Pealim",
+      "method": "Web page read and public HTML inspected for the AP-fs present feminine singular cell, preserving stress markup",
+      "sha256": "b1e5efb0c6b61f34ed931e22e732e21a16489d20cd1fb9fb9f66b2e7310a0220",
+      "finding": "Primary present feminine form stresses final a; colloquial alternative stresses initial a. Architect withdrew initial suspicion against gara with final stress.",
+      "limitation": "Do not generalize present-tense stress to past tense or mass-replace all occurrences."
+    }
+  ]
+}

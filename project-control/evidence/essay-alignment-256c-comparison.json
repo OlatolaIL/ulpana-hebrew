@@ -1,0 +1,671 @@
+{
+  "capturedAt": "2026-09-13T23:43:22.689Z",
+  "before": "8c0cc22e3e354d4d653f925d9db3381b26fdf90a",
+  "after": "256c437ea767cb9e397662a3ab556db8cfe1bec6",
+  "changedLessons": [
+    3,
+    4,
+    5
+  ],
+  "unchangedLessons": 97,
+  "method": "SHA-256 of actual complete getLessonEssayPrompt outputs",
+  "outsideScopePairs": [
+    {
+      "lessonId": 8,
+      "hebrew": "לוֹמֵד / לוֹמֶדֶת",
+      "insertedByCurrentHandler": "לומד",
+      "otherChoices": [
+        "לומדת"
+      ]
+    },
+    {
+      "lessonId": 8,
+      "hebrew": "כּוֹתֵב / כּוֹתֶבֶת",
+      "insertedByCurrentHandler": "כותב",
+      "otherChoices": [
+        "כותבת"
+      ]
+    },
+    {
+      "lessonId": 8,
+      "hebrew": "קוֹרֵא / קוֹרֵאת",
+      "insertedByCurrentHandler": "קורא",
+      "otherChoices": [
+        "קוראת"
+      ]
+    },
+    {
+      "lessonId": 8,
+      "hebrew": "הוֹלֵךְ / הוֹלֶכֶת",
+      "insertedByCurrentHandler": "הולך",
+      "otherChoices": [
+        "הולכת"
+      ]
+    },
+    {
+      "lessonId": 8,
+      "hebrew": "עוֹבֵד / עוֹבֶדֶת",
+      "insertedByCurrentHandler": "עובד",
+      "otherChoices": [
+        "עובדת"
+      ]
+    },
+    {
+      "lessonId": 8,
+      "hebrew": "שׁוֹמֵעַ / שׁוֹמַעַת",
+      "insertedByCurrentHandler": "שומע",
+      "otherChoices": [
+        "שומעת"
+      ]
+    },
+    {
+      "lessonId": 11,
+      "hebrew": "אוֹכֵל / אוֹכֶלֶת",
+      "insertedByCurrentHandler": "אוכל",
+      "otherChoices": [
+        "אוכלת"
+      ]
+    },
+    {
+      "lessonId": 14,
+      "hebrew": "רוֹפֵא / רוֹפְאָה",
+      "insertedByCurrentHandler": "רופא",
+      "otherChoices": [
+        "רופאה"
+      ]
+    },
+    {
+      "lessonId": 14,
+      "hebrew": "בָּרִיא / בְּרִיאָה",
+      "insertedByCurrentHandler": "בריא",
+      "otherChoices": [
+        "בריאה"
+      ]
+    },
+    {
+      "lessonId": 14,
+      "hebrew": "כּוֹאֵב / כּוֹאֶבֶת",
+      "insertedByCurrentHandler": "כואב",
+      "otherChoices": [
+        "כואבת"
+      ]
+    },
+    {
+      "lessonId": 16,
+      "hebrew": "רֶכֶב / מְכוֹנִית",
+      "insertedByCurrentHandler": "רכב",
+      "otherChoices": [
+        "מכונית"
+      ]
+    },
+    {
+      "lessonId": 17,
+      "hebrew": "מְתַכְנֵת / מְתַכְנֶתֶת",
+      "insertedByCurrentHandler": "מתכנת",
+      "otherChoices": [
+        "מתכנתת"
+      ]
+    },
+    {
+      "lessonId": 17,
+      "hebrew": "מְנַהֵל / מְנַהֶלֶת",
+      "insertedByCurrentHandler": "מנהל",
+      "otherChoices": [
+        "מנהלת"
+      ]
+    },
+    {
+      "lessonId": 18,
+      "hebrew": "הוֹבִּי / תַּחְבִּיב",
+      "insertedByCurrentHandler": "הובי",
+      "otherChoices": [
+        "תחביב"
+      ]
+    },
+    {
+      "lessonId": 18,
+      "hebrew": "אוֹהֵב / אוֹהֶבֶת",
+      "insertedByCurrentHandler": "אוהב",
+      "otherChoices": [
+        "אוהבת"
+      ]
+    },
+    {
+      "lessonId": 20,
+      "hebrew": "מְדַבֵּר / מְדַבֶּרֶת",
+      "insertedByCurrentHandler": "מדבר",
+      "otherChoices": [
+        "מדברת"
+      ]
+    },
+    {
+      "lessonId": 20,
+      "hebrew": "מְבַקֵּשׁ / מְבַקֶּשֶׁת",
+      "insertedByCurrentHandler": "מבקש",
+      "otherChoices": [
+        "מבקשת"
+      ]
+    },
+    {
+      "lessonId": 20,
+      "hebrew": "מְסַדֵּר / מְסַדֶּרֶת",
+      "insertedByCurrentHandler": "מסדר",
+      "otherChoices": [
+        "מסדרת"
+      ]
+    },
+    {
+      "lessonId": 20,
+      "hebrew": "מְסַפֵּר / מְסַפֶּרֶת",
+      "insertedByCurrentHandler": "מספר",
+      "otherChoices": [
+        "מספרת"
+      ]
+    },
+    {
+      "lessonId": 20,
+      "hebrew": "מְבַשֵּׁל / מְבַשֶּׁלֶת",
+      "insertedByCurrentHandler": "מבשל",
+      "otherChoices": [
+        "מבשלת"
+      ]
+    },
+    {
+      "lessonId": 20,
+      "hebrew": "מְטַיֵּל / מְטַיֶּלֶת",
+      "insertedByCurrentHandler": "מטיל",
+      "otherChoices": [
+        "מטילת"
+      ]
+    },
+    {
+      "lessonId": 21,
+      "hebrew": "מַתְחִיל / מַתְחִילָה",
+      "insertedByCurrentHandler": "מתחיל",
+      "otherChoices": [
+        "מתחילה"
+      ]
+    },
+    {
+      "lessonId": 21,
+      "hebrew": "מַזְמִין / מַזְמִינָה",
+      "insertedByCurrentHandler": "מזמין",
+      "otherChoices": [
+        "מזמינה"
+      ]
+    },
+    {
+      "lessonId": 21,
+      "hebrew": "מַרְגִּישׁ / מַרְגִּישָׁה",
+      "insertedByCurrentHandler": "מרגיש",
+      "otherChoices": [
+        "מרגישה"
+      ]
+    },
+    {
+      "lessonId": 21,
+      "hebrew": "מַכִּיר / מַכִּירָה",
+      "insertedByCurrentHandler": "מכיר",
+      "otherChoices": [
+        "מכירה"
+      ]
+    },
+    {
+      "lessonId": 21,
+      "hebrew": "מַגִּיעַ / מַגִּיעָה",
+      "insertedByCurrentHandler": "מגיע",
+      "otherChoices": [
+        "מגיעה"
+      ]
+    },
+    {
+      "lessonId": 21,
+      "hebrew": "מַקְשִׁיב / מַקְשִׁיבָה",
+      "insertedByCurrentHandler": "מקשיב",
+      "otherChoices": [
+        "מקשיבה"
+      ]
+    },
+    {
+      "lessonId": 22,
+      "hebrew": "מִתְלַבֵּשׁ / מִתְלַבֶּשֶׁת",
+      "insertedByCurrentHandler": "מתלבש",
+      "otherChoices": [
+        "מתלבשת"
+      ]
+    },
+    {
+      "lessonId": 22,
+      "hebrew": "מִתְרַחֵץ / מִתְרַחֶצֶת",
+      "insertedByCurrentHandler": "מתרחץ",
+      "otherChoices": [
+        "מתרחצת"
+      ]
+    },
+    {
+      "lessonId": 22,
+      "hebrew": "מִתְרַגֵּשׁ / מִתְרַגֶּשֶׁת",
+      "insertedByCurrentHandler": "מתרגש",
+      "otherChoices": [
+        "מתרגשת"
+      ]
+    },
+    {
+      "lessonId": 22,
+      "hebrew": "מִצְטַעֵר / מִצְטַעֶרֶת",
+      "insertedByCurrentHandler": "מצטער",
+      "otherChoices": [
+        "מצטערת"
+      ]
+    },
+    {
+      "lessonId": 22,
+      "hebrew": "מִתְפַּלֵּל / מִתְפַּלֶּלֶת",
+      "insertedByCurrentHandler": "מתפלל",
+      "otherChoices": [
+        "מתפללת"
+      ]
+    },
+    {
+      "lessonId": 22,
+      "hebrew": "מִתְחַתֵּן / מִתְחַתֶּנֶת",
+      "insertedByCurrentHandler": "מתחתן",
+      "otherChoices": [
+        "מתחתנת"
+      ]
+    },
+    {
+      "lessonId": 23,
+      "hebrew": "אִיתּוֹ / אִיתָּהּ",
+      "insertedByCurrentHandler": "איתו",
+      "otherChoices": [
+        "איתה"
+      ]
+    },
+    {
+      "lessonId": 24,
+      "hebrew": "שָׂמֵחַ / שְׂמֵחָה",
+      "insertedByCurrentHandler": "שמח",
+      "otherChoices": [
+        "שמחה"
+      ]
+    },
+    {
+      "lessonId": 28,
+      "hebrew": "גָּבוֹהַּ / גְּבוֹהָה",
+      "insertedByCurrentHandler": "גבוה",
+      "otherChoices": [
+        "גבוהה"
+      ]
+    },
+    {
+      "lessonId": 28,
+      "hebrew": "נָמוּךְ / נְמוּכָה",
+      "insertedByCurrentHandler": "נמוך",
+      "otherChoices": [
+        "נמוכה"
+      ]
+    },
+    {
+      "lessonId": 28,
+      "hebrew": "נֶחְמָד / נֶחְמָדָה",
+      "insertedByCurrentHandler": "נחמד",
+      "otherChoices": [
+        "נחמדה"
+      ]
+    },
+    {
+      "lessonId": 28,
+      "hebrew": "חָכָם / חֲכָמָה",
+      "insertedByCurrentHandler": "חכם",
+      "otherChoices": [
+        "חכמה"
+      ]
+    },
+    {
+      "lessonId": 28,
+      "hebrew": "צָעִיר / צְעִירָה",
+      "insertedByCurrentHandler": "צעיר",
+      "otherChoices": [
+        "צעירה"
+      ]
+    },
+    {
+      "lessonId": 29,
+      "hebrew": "מָלוֹן / בֵּית מָלוֹן",
+      "insertedByCurrentHandler": "מלון",
+      "otherChoices": [
+        "בית מלון"
+      ]
+    },
+    {
+      "lessonId": 29,
+      "hebrew": "נוֹפֶשׁ / חוּפְשָׁה",
+      "insertedByCurrentHandler": "נופש",
+      "otherChoices": [
+        "חופשה"
+      ]
+    },
+    {
+      "lessonId": 30,
+      "hebrew": "פּוֹגֵשׁ / פּוֹגֶשֶׁת",
+      "insertedByCurrentHandler": "פוגש",
+      "otherChoices": [
+        "פוגשת"
+      ]
+    },
+    {
+      "lessonId": 30,
+      "hebrew": "זוֹכֵר / זוֹכֶרֶת",
+      "insertedByCurrentHandler": "זוכר",
+      "otherChoices": [
+        "זוכרת"
+      ]
+    },
+    {
+      "lessonId": 30,
+      "hebrew": "שׁוֹכֵחַ / שׁוֹכַחַת",
+      "insertedByCurrentHandler": "שוכח",
+      "otherChoices": [
+        "שוכחת"
+      ]
+    },
+    {
+      "lessonId": 30,
+      "hebrew": "מוֹצֵא / מוֹצֵאת",
+      "insertedByCurrentHandler": "מוצא",
+      "otherChoices": [
+        "מוצאת"
+      ]
+    },
+    {
+      "lessonId": 31,
+      "hebrew": "רוֹקֵחַ / רוֹקַחַת",
+      "insertedByCurrentHandler": "רוקח",
+      "otherChoices": [
+        "רוקחת"
+      ]
+    },
+    {
+      "lessonId": 33,
+      "hebrew": "נוֹסֵעַ / נוֹסַעַת",
+      "insertedByCurrentHandler": "נוסע",
+      "otherChoices": [
+        "נוסעת"
+      ]
+    },
+    {
+      "lessonId": 35,
+      "hebrew": "רִאשׁוֹן / רִאשׁוֹנָה",
+      "insertedByCurrentHandler": "ראשון",
+      "otherChoices": [
+        "ראשונה"
+      ]
+    },
+    {
+      "lessonId": 35,
+      "hebrew": "שֵׁנִי / שְׁנִיָּה",
+      "insertedByCurrentHandler": "שני",
+      "otherChoices": [
+        "שניה"
+      ]
+    },
+    {
+      "lessonId": 35,
+      "hebrew": "שְׁלִישִׁי / שְׁלִישִׁית",
+      "insertedByCurrentHandler": "שלישי",
+      "otherChoices": [
+        "שלישית"
+      ]
+    },
+    {
+      "lessonId": 35,
+      "hebrew": "רְבִיעִי / רְבִיעִית",
+      "insertedByCurrentHandler": "רביעי",
+      "otherChoices": [
+        "רביעית"
+      ]
+    },
+    {
+      "lessonId": 35,
+      "hebrew": "חֲמִישִׁי / חֲמִישִׁית",
+      "insertedByCurrentHandler": "חמישי",
+      "otherChoices": [
+        "חמישית"
+      ]
+    },
+    {
+      "lessonId": 36,
+      "hebrew": "אָמָּן / אָמָּנִית",
+      "insertedByCurrentHandler": "אמן",
+      "otherChoices": [
+        "אמנית"
+      ]
+    },
+    {
+      "lessonId": 39,
+      "hebrew": "כֶּלֶב / כַּלְבָּה",
+      "insertedByCurrentHandler": "כלב",
+      "otherChoices": [
+        "כלבה"
+      ]
+    },
+    {
+      "lessonId": 39,
+      "hebrew": "חָתוּל / חֲתוּלָה",
+      "insertedByCurrentHandler": "חתול",
+      "otherChoices": [
+        "חתולה"
+      ]
+    },
+    {
+      "lessonId": 42,
+      "hebrew": "כָּתַב / כָּתְבָה",
+      "insertedByCurrentHandler": "כתב",
+      "otherChoices": [
+        "כתבה"
+      ]
+    },
+    {
+      "lessonId": 42,
+      "hebrew": "לָמַד / לָמְדָה",
+      "insertedByCurrentHandler": "למד",
+      "otherChoices": [
+        "למדה"
+      ]
+    },
+    {
+      "lessonId": 42,
+      "hebrew": "עָבַד / עָבְדָה",
+      "insertedByCurrentHandler": "עבד",
+      "otherChoices": [
+        "עבדה"
+      ]
+    },
+    {
+      "lessonId": 44,
+      "hebrew": "קָנָה / קָנְתָה",
+      "insertedByCurrentHandler": "קנה",
+      "otherChoices": [
+        "קנתה"
+      ]
+    },
+    {
+      "lessonId": 48,
+      "hebrew": "פְּקִיד / פְּקִידָה",
+      "insertedByCurrentHandler": "פקיד",
+      "otherChoices": [
+        "פקידה"
+      ]
+    },
+    {
+      "lessonId": 49,
+      "hebrew": "קַל / קַלָּה",
+      "insertedByCurrentHandler": "קל",
+      "otherChoices": [
+        "קלה"
+      ]
+    },
+    {
+      "lessonId": 52,
+      "hebrew": "תִּלְמַד / תִּלְמְדִי",
+      "insertedByCurrentHandler": "תלמד",
+      "otherChoices": [
+        "תלמדי"
+      ]
+    },
+    {
+      "lessonId": 52,
+      "hebrew": "תִּשְׁמַע / תִּשְׁמְעִי",
+      "insertedByCurrentHandler": "תשמע",
+      "otherChoices": [
+        "תשמעי"
+      ]
+    },
+    {
+      "lessonId": 52,
+      "hebrew": "תַּעֲבוֹד / תַּעַבְדִי",
+      "insertedByCurrentHandler": "תעבוד",
+      "otherChoices": [
+        "תעבדי"
+      ]
+    },
+    {
+      "lessonId": 54,
+      "hebrew": "תָּבוֹא / תָּבוֹאִי",
+      "insertedByCurrentHandler": "תבוא",
+      "otherChoices": [
+        "תבואי"
+      ]
+    },
+    {
+      "lessonId": 59,
+      "hebrew": "אַל תִּדְאַג / אַל תִּדְאֲגִי",
+      "insertedByCurrentHandler": "אל תדאג",
+      "otherChoices": [
+        "אל תדאגי"
+      ]
+    },
+    {
+      "lessonId": 61,
+      "hebrew": "מְרַאְיֵן / מְרַאְיֶנֶת",
+      "insertedByCurrentHandler": "מראין",
+      "otherChoices": [
+        "מראינת"
+      ]
+    },
+    {
+      "lessonId": 66,
+      "hebrew": "נִמְצָא / נִמְצֵאת",
+      "insertedByCurrentHandler": "נמצא",
+      "otherChoices": [
+        "נמצאת"
+      ]
+    },
+    {
+      "lessonId": 68,
+      "hebrew": "מְסוּדָּר / מְסוּדֶּרֶת",
+      "insertedByCurrentHandler": "מסודר",
+      "otherChoices": [
+        "מסודרת"
+      ]
+    },
+    {
+      "lessonId": 68,
+      "hebrew": "מוּזְמָן / מוּזְמֶנֶת",
+      "insertedByCurrentHandler": "מוזמן",
+      "otherChoices": [
+        "מוזמנת"
+      ]
+    },
+    {
+      "lessonId": 76,
+      "hebrew": "עִתּוֹנַאי / עִתּוֹנָאִית",
+      "insertedByCurrentHandler": "עתונאי",
+      "otherChoices": [
+        "עתונאית"
+      ]
+    },
+    {
+      "lessonId": 77,
+      "hebrew": "יָזָם / יַזֶּמֶת",
+      "insertedByCurrentHandler": "יזם",
+      "otherChoices": [
+        "יזמת"
+      ]
+    },
+    {
+      "lessonId": 81,
+      "hebrew": "קָצִין / קְצִינָה",
+      "insertedByCurrentHandler": "קצין",
+      "otherChoices": [
+        "קצינה"
+      ]
+    },
+    {
+      "lessonId": 85,
+      "hebrew": "שַׂחְקָן / שַׂחְקָנִית",
+      "insertedByCurrentHandler": "שחקן",
+      "otherChoices": [
+        "שחקנית"
+      ]
+    },
+    {
+      "lessonId": 85,
+      "hebrew": "בַּמַּאי / בַּמָּאִית",
+      "insertedByCurrentHandler": "במאי",
+      "otherChoices": [
+        "במאית"
+      ]
+    },
+    {
+      "lessonId": 89,
+      "hebrew": "מִתְנַדֵּב / מִתְנַדֶּבֶת",
+      "insertedByCurrentHandler": "מתנדב",
+      "otherChoices": [
+        "מתנדבת"
+      ]
+    },
+    {
+      "lessonId": 91,
+      "hebrew": "פַּרְשָׁן / פַּרְשָׁנִית",
+      "insertedByCurrentHandler": "פרשן",
+      "otherChoices": [
+        "פרשנית"
+      ]
+    },
+    {
+      "lessonId": 92,
+      "hebrew": "חַקְלַאי / חַקְלָאִית",
+      "insertedByCurrentHandler": "חקלאי",
+      "otherChoices": [
+        "חקלאית"
+      ]
+    },
+    {
+      "lessonId": 93,
+      "hebrew": "חוֹקֵר / חוֹקֶרֶת",
+      "insertedByCurrentHandler": "חוקר",
+      "otherChoices": [
+        "חוקרת"
+      ]
+    },
+    {
+      "lessonId": 98,
+      "hebrew": "מְצוֹרָף / מְצוֹרֶפֶת",
+      "insertedByCurrentHandler": "מצורף",
+      "otherChoices": [
+        "מצורפת"
+      ]
+    },
+    {
+      "lessonId": 100,
+      "hebrew": "בּוֹגֵר / בּוֹגֶרֶת",
+      "insertedByCurrentHandler": "בוגר",
+      "otherChoices": [
+        "בוגרת"
+      ]
+    }
+  ],
+  "limitation": "Pair insertion limitation outside 3–5 identified by actual data and shared handler; no independent UI pass of those lessons"
+}

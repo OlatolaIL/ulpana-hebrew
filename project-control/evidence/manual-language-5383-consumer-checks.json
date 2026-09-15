@@ -1,0 +1,34 @@
+{
+  "commit": "53830cbc0bf72fad7b6dea145da519ee24344e22",
+  "base": "b2dd5f21eaace35604285d011e889350f1729679",
+  "positive": {
+    "exit_code": 0,
+    "passed": 3,
+    "failed": 0,
+    "chunk_id": "efc4e8",
+    "scope": "Independent reviewer consumer probe with named global/env guard"
+  },
+  "negative": {
+    "status": "fulfilled",
+    "value": {
+      "chunk_id": "f988aa",
+      "wall_time_seconds": 2.024559,
+      "exit_code": 1,
+      "original_token_count": 817,
+      "output": "✖ Actual buildInitialMessage preserves u- in greetings and suggested replies for both genders (236.2455ms)\n✖ Normative present feminine gara agrees across lesson 3 table, word and explanation (0.5554ms)\n✖ LessonExercises DOM ex1-2 and ex1-6: pointed Toda, wrong feedback, retry, correct feedback (1019.5147ms)\nISOLATION {\"leakedGlobals\":[],\"leakedEnvKeys\":[],\"scope\":\"Named global property descriptors and environment keys; no secret values recorded\"}\nℹ tests 3\nℹ suites 0\nℹ pass 0\nℹ fail 3\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 2019.5421\n\n✖ failing tests:\n\ntest at ..\\..\\Codex\\2026-09-13\\referenced-chatgpt-conversation-this-is-an\\work\\manual-language-consumer-review.test.cjs:6:1\n✖ Actual buildInitialMessage preserves u- in greetings and suggested replies for both genders (236.2455ms)\n  AssertionError [ERR_ASSERTION]: male initial transcription\n      at TestContext.<anonymous> (C:\\Users\\azrie\\Documents\\Codex\\2026-09-13\\referenced-chatgpt-conversation-this-is-an\\work\\manual-language-consumer-review.test.cjs:11:12)\n      at Test.runInAsyncScope (node:async_hooks:227:14)\n      at Test.run (node:internal/test_runner/test:1382:25)\n      at Test.start (node:internal/test_runner/test:1242:17)\n      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {\n    generatedMessage: false,\n    code: 'ERR_ASSERTION',\n    actual: false,\n    expected: true,\n    operator: '==',\n    diff: 'simple'\n  }\n\ntest at ..\\..\\Codex\\2026-09-13\\referenced-chatgpt-conversation-this-is-an\\work\\manual-language-consumer-review.test.cjs:16:1\n✖ Normative present feminine gara agrees across lesson 3 table, word and explanation (0.5554ms)\n  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n  \n  'гáра' !== 'гарá'\n  \n      at TestContext.<anonymous> (C:\\Users\\azrie\\Documents\\Codex\\2026-09-13\\referenced-chatgpt-conversation-this-is-an\\work\\manual-language-consumer-review.test.cjs:18:10)\n      at Test.runInAsyncScope (node:async_hooks:227:14)\n      at Test.run (node:internal/test_runner/test:1382:25)\n      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)\n      at Test.postRun (node:internal/test_runner/test:1522:19)\n      at Test.run (node:internal/test_runner/test:1447:12)\n      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {\n    generatedMessage: true,\n    code: 'ERR_ASSERTION',\n    actual: 'гáра',\n    expected: 'гарá',\n    operator: 'strictEqual',\n    diff: 'simple'\n  }\n\ntest at ..\\..\\Codex\\2026-09-13\\referenced-chatgpt-conversation-this-is-an\\work\\manual-language-consumer-review.test.cjs:22:1\n✖ LessonExercises DOM ex1-2 and ex1-6: pointed Toda, wrong feedback, retry, correct feedback (1019.5147ms)\n  AssertionError [ERR_ASSERTION]: ex1-2 pointed Toda in DOM\n      at TestContext.<anonymous> (C:\\Users\\azrie\\Documents\\Codex\\2026-09-13\\referenced-chatgpt-conversation-this-is-an\\work\\manual-language-consumer-review.test.cjs:56:14)\n      at async Test.run (node:internal/test_runner/test:1389:7)\n      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {\n    generatedMessage: false,\n    code: 'ERR_ASSERTION',\n    actual: false,\n    expected: true,\n    operator: '==',\n    diff: 'simple'\n  }\n"
+    }
+  },
+  "oldHelperOnly": {
+    "status": "fulfilled",
+    "value": {
+      "chunk_id": "16dd54",
+      "wall_time_seconds": 2.2346236,
+      "exit_code": 1,
+      "original_token_count": 364,
+      "output": "✖ Actual buildInitialMessage preserves u- in greetings and suggested replies for both genders (196.7232ms)\n✔ Normative present feminine gara agrees across lesson 3 table, word and explanation (0.2794ms)\n✔ LessonExercises DOM ex1-2 and ex1-6: pointed Toda, wrong feedback, retry, correct feedback (1001.4648ms)\nISOLATION {\"leakedGlobals\":[],\"leakedEnvKeys\":[],\"scope\":\"Named global property descriptors and environment keys; no secret values recorded\"}\nℹ tests 3\nℹ suites 0\nℹ pass 2\nℹ fail 1\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 1891.3206\n\n✖ failing tests:\n\ntest at ..\\..\\Codex\\2026-09-13\\referenced-chatgpt-conversation-this-is-an\\work\\manual-language-consumer-review.test.cjs:6:1\n✖ Actual buildInitialMessage preserves u- in greetings and suggested replies for both genders (196.7232ms)\n  AssertionError [ERR_ASSERTION]: male initial transcription\n      at TestContext.<anonymous> (C:\\Users\\azrie\\Documents\\Codex\\2026-09-13\\referenced-chatgpt-conversation-this-is-an\\work\\manual-language-consumer-review.test.cjs:11:12)\n      at Test.runInAsyncScope (node:async_hooks:227:14)\n      at Test.run (node:internal/test_runner/test:1382:25)\n      at Test.start (node:internal/test_runner/test:1242:17)\n      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {\n    generatedMessage: false,\n    code: 'ERR_ASSERTION',\n    actual: false,\n    expected: true,\n    operator: '==',\n    diff: 'simple'\n  }\n"
+    }
+  },
+  "sourceMutation": false,
+  "acceptance": "pending developer test/report corrections",
+  "delivery": "not sent; native window activation failed twice"
+}

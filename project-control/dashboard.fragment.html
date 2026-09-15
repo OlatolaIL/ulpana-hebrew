@@ -1,0 +1,103 @@
+<div id="ulpan-project-control">
+  <style>
+    #ulpan-project-control { color:var(--foreground); }
+    #ulpan-project-control .up-heading { display:flex; align-items:baseline; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+    #ulpan-project-control .up-stages { display:grid; grid-template-columns:repeat(auto-fit,minmax(125px,1fr)); gap:8px; margin:18px 0; }
+    #ulpan-project-control .up-stage-item { display:flex; flex-direction:column; gap:5px; min-width:0; }
+    #ulpan-project-control .up-layout { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:18px; }
+    #ulpan-project-control dl { display:grid; grid-template-columns:minmax(95px,0.3fr) minmax(0,1fr); gap:9px 14px; margin:12px 0; }
+    #ulpan-project-control dt { color:var(--muted-foreground); }
+    #ulpan-project-control dd { margin:0; overflow-wrap:anywhere; }
+    #ulpan-project-control .up-task { border-bottom:1px solid var(--border); padding:11px 0; }
+    #ulpan-project-control summary { cursor:pointer; }
+    #ulpan-project-control .up-task summary { display:flex; align-items:baseline; justify-content:space-between; gap:12px; }
+    #ulpan-project-control .up-task-name { min-width:0; }
+    #ulpan-project-control .up-state { flex-shrink:0; }
+    #ulpan-project-control .up-section { margin-top:18px; }
+    #ulpan-project-control .up-meta { margin:8px 0; }
+    #ulpan-project-control .up-evidence { padding:12px 0 2px; }
+    #ulpan-project-control .up-decision { padding:9px 0; border-bottom:1px solid var(--border); }
+    #ulpan-project-control .up-decision dt { color:var(--foreground); font-weight:500; }
+    #ulpan-project-control .up-decision dd { padding-top:4px; }
+    @media(max-width:580px) { #ulpan-project-control .up-layout { grid-template-columns:1fr; } }
+    @media(max-width:400px) { #ulpan-project-control dl { grid-template-columns:1fr; gap:4px; } #ulpan-project-control dd { margin-bottom:8px; } #ulpan-project-control .up-task summary { flex-wrap:wrap; gap:4px; } }
+  </style>
+  <div class="up-heading">
+    <h2>Ульпан Алеф</h2>
+    <span class="text-small text-muted" id="up-date"></span>
+  </div>
+  <dl>
+    <dt>Цель</dt><dd id="up-goal"></dd>
+    <dt>Сейчас</dt><dd id="up-focus"></dd>
+    <dt>Готовность к продаже</dt><dd id="up-ready"></dd>
+  </dl>
+  <div class="up-stages" id="up-stages" role="group" aria-label="Этапы проекта"></div>
+  <section aria-labelledby="up-stage-title">
+    <div class="up-heading"><h3 id="up-stage-title"></h3><span class="viz-badge" id="up-stage-status"></span></div>
+    <div class="up-layout">
+      <dl><dt>Результат</dt><dd id="up-outcome"></dd><dt>Условие перехода</dt><dd id="up-gate"></dd></dl>
+      <dl><dt>Ответственный</dt><dd id="up-owner"></dd><dt>Следующий шаг</dt><dd id="up-next"></dd></dl>
+    </div>
+    <h3>Задачи этапа</h3>
+    <div id="up-tasks"></div>
+    <div id="up-selected-announcement" class="sr-only" aria-live="polite"></div>
+  </section>
+  <div class="up-section">
+    <details>
+      <summary>Решения и контроль курса</summary>
+      <div id="up-decisions"></div>
+      <h3>Контроль выполнения</h3><ul id="up-control"></ul>
+    </details>
+  </div>
+  <hr>
+  <div class="text-small text-muted up-meta" id="up-source"></div>
+  <div class="text-small text-muted" id="up-plan-status"></div>
+  <script type="application/json" id="up-data">__PROJECT_STATE_JSON__</script>
+  <script>
+  (() => {
+    const root = document.getElementById('ulpan-project-control');
+    const data = JSON.parse(root.querySelector('#up-data').textContent);
+    const statusNames = {accepted:'Принято',planned:'В очереди',paused:'На паузе',review:'На проверке',active:'В работе',blocked:'Заблокировано'};
+    const byId = new Map(data.tasks.map(task => [task.id, task]));
+    const set = (id, text) => { root.querySelector('#'+id).textContent = text; };
+    const element = (tag, text, className) => { const el = document.createElement(tag); if(text) el.textContent=text; if(className) el.className=className; return el; };
+    const addPair = (dl,label,value) => { dl.append(element('dt',label),element('dd',value)); };
+    set('up-date','Снимок · '+new Intl.DateTimeFormat('ru-RU',{day:'numeric',month:'long',year:'numeric',timeZone:'UTC'}).format(new Date(data.updatedAt+'T12:00:00Z')));
+    set('up-goal',data.goal); set('up-focus',data.currentFocus); set('up-ready',data.releaseReadiness);
+    set('up-source','Источник: project-control/state.json в репозитории. Обновление — после зафиксированных результатов; автоматической синхронизации нет.');
+    set('up-plan-status',data.planStatus);
+    const buttons = new Map();
+    const selectStage = id => {
+      const stage = data.stages.find(value => value.id===id);
+      if(!stage) return;
+      for(const [key,button] of buttons) button.setAttribute('aria-pressed',String(key===id));
+      set('up-stage-title',stage.number+'. '+stage.title); set('up-stage-status',stage.status);
+      set('up-outcome',stage.outcome); set('up-gate',stage.gate); set('up-owner',stage.owner); set('up-next',stage.next);
+      const list = root.querySelector('#up-tasks'); list.replaceChildren();
+      const tasks = data.tasks.filter(task=>task.stage===id);
+      tasks.forEach(task=>{
+        const details=element('details','', 'up-task');
+        const summary=element('summary');
+        summary.append(element('span',task.title,'up-task-name'),element('span',statusNames[task.status],'text-small up-state'));
+        const dl=element('dl','', 'up-evidence');
+        addPair(dl,'Ответственный',task.owner); addPair(dl,'Приёмка',task.acceptance);
+        addPair(dl,'Доказательство',task.evidence); addPair(dl,'Источник',task.source);
+        if(task.dependsOn.length) addPair(dl,'Зависит от',task.dependsOn.map(key=>byId.get(key).title).join('; '));
+        details.append(summary,dl); list.append(details);
+      });
+      set('up-selected-announcement',stage.title+'. '+stage.status+'. Задач: '+tasks.length);
+    };
+    data.stages.forEach(stage=>{
+      const item=element('div','', 'up-stage-item');
+      const button=element('button',stage.number+'. '+stage.title,'btn'); button.type='button'; button.setAttribute('aria-pressed','false');
+      button.addEventListener('click',()=>selectStage(stage.id)); buttons.set(stage.id,button);
+      item.append(button,element('span',stage.status,'text-small text-muted')); root.querySelector('#up-stages').append(item);
+    });
+    data.decisions.forEach(decision=>{
+      const dl=element('dl','', 'up-decision'); addPair(dl,decision.title,decision.value); root.querySelector('#up-decisions').append(dl);
+    });
+    data.control.forEach(rule=>root.querySelector('#up-control').append(element('li',rule)));
+    selectStage(data.defaultStage);
+  })();
+  </script>
+</div>

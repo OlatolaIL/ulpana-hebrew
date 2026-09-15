@@ -1,0 +1,221 @@
+{
+  "capturedAt": "2026-09-13T23:56:59.340Z",
+  "commit": "256c437ea767cb9e397662a3ab556db8cfe1bec6",
+  "overlay": "256c437ea767cb9e397662a3ab556db8cfe1bec6",
+  "method": "Actual LessonEssay, actual hint button clicks, jsdom; no network, no live model, no layout claim",
+  "browserErrors": [],
+  "rows": [
+    {
+      "lessonId": 3,
+      "form": "גָּר",
+      "expected": "גר ",
+      "gender": "female",
+      "pass": false,
+      "reason": "Requested form has no individually selectable button"
+    },
+    {
+      "lessonId": 3,
+      "form": "גָּרָה",
+      "expected": "גרה ",
+      "gender": "female",
+      "pass": false,
+      "reason": "Requested form has no individually selectable button"
+    },
+    {
+      "lessonId": 3,
+      "form": "מְדַבֵּר",
+      "expected": "מדבר ",
+      "gender": "female",
+      "pass": false,
+      "reason": "Requested form has no individually selectable button"
+    },
+    {
+      "lessonId": 3,
+      "form": "מְדַבֶּרֶת",
+      "expected": "מדברת ",
+      "gender": "female",
+      "pass": false,
+      "reason": "Requested form has no individually selectable button"
+    },
+    {
+      "lessonId": 4,
+      "form": "תַּלְמִיד",
+      "expected": "תלמיד ",
+      "gender": "female",
+      "pass": false,
+      "reason": "Requested form has no individually selectable button"
+    },
+    {
+      "lessonId": 4,
+      "form": "תַּלְמִידָה",
+      "expected": "תלמידה ",
+      "gender": "female",
+      "pass": false,
+      "reason": "Requested form has no individually selectable button"
+    },
+    {
+      "lessonId": 4,
+      "form": "זֹאת",
+      "expected": "זאת ",
+      "gender": "female",
+      "pass": false,
+      "reason": "Requested form has no individually selectable button"
+    },
+    {
+      "lessonId": 4,
+      "form": "זוֹ",
+      "expected": "זו ",
+      "gender": "female",
+      "pass": false,
+      "reason": "Requested form has no individually selectable button"
+    },
+    {
+      "lessonId": 5,
+      "form": "בַּסּוּפֶּר",
+      "expected": "בסופר ",
+      "gender": "female",
+      "pass": false,
+      "reason": "Requested form has no individually selectable button"
+    },
+    {
+      "lessonId": 5,
+      "form": "בַּשּׁוּק",
+      "expected": "בשוק ",
+      "gender": "female",
+      "pass": false,
+      "reason": "Requested form has no individually selectable button"
+    },
+    {
+      "lessonId": 5,
+      "form": "שֶׁקֶל",
+      "expected": "שקל ",
+      "gender": "female",
+      "pass": false,
+      "reason": "Requested form has no individually selectable button"
+    },
+    {
+      "lessonId": 5,
+      "form": "שְׁקָלִים",
+      "expected": "שקלים ",
+      "gender": "female",
+      "pass": false,
+      "reason": "Requested form has no individually selectable button"
+    },
+    {
+      "lessonId": 5,
+      "form": "לֶחֶם",
+      "expected": "לחם ",
+      "gender": "female",
+      "label": "לֶחֶם(хлеб)",
+      "inserted": "לחם ",
+      "cursor": 4,
+      "pass": true
+    },
+    {
+      "lessonId": 3,
+      "form": "גָּר",
+      "expected": "גר ",
+      "gender": "male",
+      "pass": false,
+      "reason": "Requested form has no individually selectable button"
+    },
+    {
+      "lessonId": 3,
+      "form": "גָּרָה",
+      "expected": "גרה ",
+      "gender": "male",
+      "pass": false,
+      "reason": "Requested form has no individually selectable button"
+    },
+    {
+      "lessonId": 3,
+      "form": "מְדַבֵּר",
+      "expected": "מדבר ",
+      "gender": "male",
+      "pass": false,
+      "reason": "Requested form has no individually selectable button"
+    },
+    {
+      "lessonId": 3,
+      "form": "מְדַבֶּרֶת",
+      "expected": "מדברת ",
+      "gender": "male",
+      "pass": false,
+      "reason": "Requested form has no individually selectable button"
+    },
+    {
+      "lessonId": 4,
+      "form": "תַּלְמִיד",
+      "expected": "תלמיד ",
+      "gender": "male",
+      "pass": false,
+      "reason": "Requested form has no individually selectable button"
+    },
+    {
+      "lessonId": 4,
+      "form": "תַּלְמִידָה",
+      "expected": "תלמידה ",
+      "gender": "male",
+      "pass": false,
+      "reason": "Requested form has no individually selectable button"
+    },
+    {
+      "lessonId": 4,
+      "form": "זֹאת",
+      "expected": "זאת ",
+      "gender": "male",
+      "pass": false,
+      "reason": "Requested form has no individually selectable button"
+    },
+    {
+      "lessonId": 4,
+      "form": "זוֹ",
+      "expected": "זו ",
+      "gender": "male",
+      "pass": false,
+      "reason": "Requested form has no individually selectable button"
+    },
+    {
+      "lessonId": 5,
+      "form": "בַּסּוּפֶּר",
+      "expected": "בסופר ",
+      "gender": "male",
+      "pass": false,
+      "reason": "Requested form has no individually selectable button"
+    },
+    {
+      "lessonId": 5,
+      "form": "בַּשּׁוּק",
+      "expected": "בשוק ",
+      "gender": "male",
+      "pass": false,
+      "reason": "Requested form has no individually selectable button"
+    },
+    {
+      "lessonId": 5,
+      "form": "שֶׁקֶל",
+      "expected": "שקל ",
+      "gender": "male",
+      "pass": false,
+      "reason": "Requested form has no individually selectable button"
+    },
+    {
+      "lessonId": 5,
+      "form": "שְׁקָלִים",
+      "expected": "שקלים ",
+      "gender": "male",
+      "pass": false,
+      "reason": "Requested form has no individually selectable button"
+    },
+    {
+      "lessonId": 5,
+      "form": "לֶחֶם",
+      "expected": "לחם ",
+      "gender": "male",
+      "label": "לֶחֶם(хлеб)",
+      "inserted": "לחם ",
+      "cursor": 4,
+      "pass": true
+    }
+  ]
+}

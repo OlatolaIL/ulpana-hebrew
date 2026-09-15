@@ -24,6 +24,7 @@ import { BuilderMode } from './modes/BuilderMode';
 import { ListeningMode } from './modes/ListeningMode';
 import { AutoAudioMode } from './modes/AutoAudioMode';
 import { ConjugationMode } from './modes/ConjugationMode';
+import { ComplexVerbMode } from './modes/ComplexVerbMode';
 import { extractVerbTriad } from '@/lib/verbTriad';
 import { PealimModal } from './PealimModal';
 
@@ -967,7 +968,7 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
   const displayTitle = customTitle;
 
   return (
-    <div className="max-w-xl mx-auto space-y-4">
+    <div className="w-full max-w-3xl mx-auto space-y-4">
       <TrainerHeader
         displayTitle={displayTitle}
         hasVerbs={hasVerbs}
@@ -986,6 +987,7 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
         wordsLength={words.length}
         masterWordsLength={masterWords.length}
         onSetMode={(m) => {
+          stopSpeech();
           if (mode === 'auto_audio') handleAutoStop();
           setMode(m);
           if (m === 'auto_audio') setIsAutoPlaying(true);
@@ -1060,6 +1062,18 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
           onAdvanceNext={handleAdvanceNext}
           onSpeakHebrew={speakHebrew}
           onOpenPealim={handleOpenPealim}
+        />
+      )}
+
+      {mode === 'complex' && (
+        <ComplexVerbMode
+          currentWord={currentWord}
+          userProfile={userProfile}
+          currentIndex={currentIndex}
+          wordsLength={words.length}
+          onPrevWord={handlePrevWord}
+          onAdvanceNext={handleAdvanceNext}
+          onSpeakHebrew={speakHebrew}
         />
       )}
 

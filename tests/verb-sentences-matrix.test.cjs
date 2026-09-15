@@ -97,3 +97,31 @@ test('4. All sentences in verbSentencesData.ts must adhere to the 3-4 words rule
     assert.ok(minLesson >= 1 && minLesson <= 50, `minLesson ${minLesson} outside Alef scope`);
   });
 });
+
+test('5. TrainerMode, TrainerHeader, and ComplexVerbMode integration', () => {
+  const typesPath = path.join(rootDir, 'src', 'components', 'FlashcardTrainer', 'types.ts');
+  const headerPath = path.join(rootDir, 'src', 'components', 'FlashcardTrainer', 'TrainerHeader.tsx');
+  const trainerPath = path.join(rootDir, 'src', 'components', 'FlashcardTrainer', 'FlashcardTrainer.tsx');
+  const complexModePath = path.join(rootDir, 'src', 'components', 'FlashcardTrainer', 'modes', 'ComplexVerbMode.tsx');
+
+  assert.ok(fs.existsSync(typesPath), 'types.ts missing');
+  assert.ok(fs.existsSync(headerPath), 'TrainerHeader.tsx missing');
+  assert.ok(fs.existsSync(trainerPath), 'FlashcardTrainer.tsx missing');
+  assert.ok(fs.existsSync(complexModePath), 'ComplexVerbMode.tsx missing');
+
+  const typesContent = fs.readFileSync(typesPath, 'utf-8');
+  assert.ok(typesContent.includes("'complex'"), "TrainerMode union in types.ts must include 'complex'");
+
+  const headerContent = fs.readFileSync(headerPath, 'utf-8');
+  assert.ok(headerContent.includes("onSetMode('complex')"), "TrainerHeader must have a button to select 'complex' mode");
+  assert.ok(headerContent.includes("Комплекс"), "TrainerHeader must display 'Комплекс' tab title");
+
+  const trainerContent = fs.readFileSync(trainerPath, 'utf-8');
+  assert.ok(trainerContent.includes("mode === 'complex'"), "FlashcardTrainer must render ComplexVerbMode when mode === 'complex'");
+
+  const complexModeContent = fs.readFileSync(complexModePath, 'utf-8');
+  assert.ok(complexModeContent.includes("getVerbDrillSentences"), "ComplexVerbMode must retrieve sentences from getVerbDrillSentences");
+  assert.ok(complexModeContent.includes("speakHebrew"), "ComplexVerbMode must play Hebrew audio");
+  assert.ok(complexModeContent.includes("speakRussian"), "ComplexVerbMode must play Russian explanation");
+  assert.ok(complexModeContent.includes("pauseDurationSec"), "ComplexVerbMode must support pause duration configuration");
+});

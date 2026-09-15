@@ -1,0 +1,91 @@
+{
+  "recordedAt": "2026-09-13T23:00:47.496Z",
+  "commit": "6b397f67253ecbb8776bc8ec74126f6be0902663",
+  "accepted": true,
+  "scope": "Preserve specified /u/ in normalizer and initial vocalized vav in generator",
+  "mainFastForwardFrom": "0674b160c23f38004347833f2edf5172ba3c7058",
+  "published": false,
+  "tests": {
+    "passed": 70,
+    "failed": 0,
+    "skipped": 0
+  },
+  "dependencyLockChanged": false,
+  "ownWorktreeDependencies": true,
+  "independentNpmCiRepeated": false,
+  "negativeRuns": {
+    "base": {
+      "pass": 0,
+      "fail": 5
+    },
+    "normalizerOnly": {
+      "pass": 2,
+      "fail": 3
+    },
+    "generatorOnly": {
+      "pass": 0,
+      "fail": 5
+    }
+  },
+  "mutationMethod": "Actual source transformed in memory in isolated Node processes; original base module read from Git",
+  "build": {
+    "exitCode": 0,
+    "pages": 33,
+    "directory": ".next"
+  },
+  "limitations": [
+    "Full generator accuracy and stress not certified",
+    "Consumers traced in code; no full UI pass of every consumer",
+    "Physical TTS and actual model grading not checked"
+  ],
+  "logs": [
+    {
+      "file": "C:\\Users\\azrie\\Documents\\Codex\\2026-09-13\\referenced-chatgpt-conversation-this-is-an\\work\\transcription-6b39-test.log",
+      "exitCode": 0,
+      "bytes": 9583,
+      "sha256": "b49997d585ae57ce4a795b063b9378feb40809783483de333b236993d115f22c"
+    },
+    {
+      "file": "C:\\Users\\azrie\\Documents\\Codex\\2026-09-13\\referenced-chatgpt-conversation-this-is-an\\work\\transcription-6b39-typecheck.log",
+      "exitCode": 0,
+      "bytes": 130,
+      "sha256": "cdc80e91db9d0966b3a6ffdee4f6d9e586784d5e90f891b038c070140512e2c1"
+    },
+    {
+      "file": "C:\\Users\\azrie\\Documents\\Codex\\2026-09-13\\referenced-chatgpt-conversation-this-is-an\\work\\transcription-6b39-audit.log",
+      "exitCode": 0,
+      "bytes": 25,
+      "sha256": "4b02d4a3c23d969c46bd2041360f80bfcb1fe760d9db864009acdd710f9de601"
+    },
+    {
+      "file": "C:\\Users\\azrie\\Documents\\Codex\\2026-09-13\\referenced-chatgpt-conversation-this-is-an\\work\\transcription-6b39-lint.log",
+      "exitCode": 0,
+      "bytes": 233,
+      "sha256": "74cbd5c0461bf071459bbc65095202c1b72530f57a95e8a517454cece85ae02f"
+    },
+    {
+      "file": "C:\\Users\\azrie\\Documents\\Codex\\2026-09-13\\referenced-chatgpt-conversation-this-is-an\\work\\transcription-6b39-build.log",
+      "exitCode": 0,
+      "bytes": 1586,
+      "sha256": "0c52a5658bea635254c6b9b5e55c019491628639249735fd905b7812511e12e3"
+    },
+    {
+      "file": "C:\\Users\\azrie\\Documents\\Codex\\2026-09-13\\referenced-chatgpt-conversation-this-is-an\\work\\transcription-6b39-base.log",
+      "exitCode": 1,
+      "bytes": 5629,
+      "sha256": "2aa2f7e4387ef7b8e1e7cc368c1a4199ce6cc4612a0d6c4a55743722ecfea6b0"
+    },
+    {
+      "file": "C:\\Users\\azrie\\Documents\\Codex\\2026-09-13\\referenced-chatgpt-conversation-this-is-an\\work\\transcription-6b39-normalizer-only.log",
+      "exitCode": 1,
+      "bytes": 3633,
+      "sha256": "5fb346555efa7e3df1d07f5e59a8a60a4ada14f94ced745808f03ab97bf0a183"
+    },
+    {
+      "file": "C:\\Users\\azrie\\Documents\\Codex\\2026-09-13\\referenced-chatgpt-conversation-this-is-an\\work\\transcription-6b39-generator-only.log",
+      "exitCode": 1,
+      "bytes": 5639,
+      "sha256": "2fd6f5601d957898dc22eacda8f54cc9a73e09fa575236a9cb59d136784b0062"
+    }
+  ]
+}

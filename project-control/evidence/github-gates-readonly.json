@@ -1,0 +1,90 @@
+{
+  "capturedAt": "2026-09-14T03:02:54.994Z",
+  "localHead": "b2dd5f21eaace35604285d011e889350f1729679",
+  "remoteContainsCredential": true,
+  "requests": [
+    {
+      "endpoint": "/repos/OlatolaIL/ulpana-hebrew",
+      "status": 200,
+      "data": {
+        "full_name": "OlatolaIL/ulpana-hebrew",
+        "private": false,
+        "default_branch": "main",
+        "archived": false,
+        "permissions": {
+          "admin": true,
+          "maintain": true,
+          "push": true,
+          "triage": true,
+          "pull": true
+        }
+      }
+    },
+    {
+      "endpoint": "/repos/OlatolaIL/ulpana-hebrew/branches/main",
+      "status": 200,
+      "data": {
+        "name": "main",
+        "sha": "ec4d66349bc79c2b00a7fdc4547eb727a7cf60b0",
+        "protected": false,
+        "protection": {
+          "enabled": false,
+          "required_status_checks": {
+            "enforcement_level": "off",
+            "contexts": [],
+            "checks": []
+          }
+        }
+      }
+    },
+    {
+      "endpoint": "/repos/OlatolaIL/ulpana-hebrew/branches/main/protection",
+      "status": 403,
+      "error": "forbidden"
+    },
+    {
+      "endpoint": "/repos/OlatolaIL/ulpana-hebrew/rules/branches/main",
+      "status": 200,
+      "data": []
+    },
+    {
+      "endpoint": "/repos/OlatolaIL/ulpana-hebrew/actions/workflows",
+      "status": 200,
+      "data": {
+        "total_count": 0,
+        "workflows": []
+      }
+    },
+    {
+      "endpoint": "/repos/OlatolaIL/ulpana-hebrew/actions/runs?per_page=5",
+      "status": 200,
+      "data": {
+        "total_count": 0,
+        "runs": []
+      }
+    },
+    {
+      "endpoint": "/repos/OlatolaIL/ulpana-hebrew/contents/.github/workflows/beta-checks.yml?ref=main",
+      "status": 404,
+      "error": "not found or not visible"
+    },
+    {
+      "endpoint": "/repos/actions/checkout/git/ref/tags/v7",
+      "status": 200,
+      "data": {
+        "ref": "refs/tags/v7",
+        "sha": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+        "type": "commit"
+      }
+    },
+    {
+      "endpoint": "/repos/actions/setup-node/git/ref/tags/v7",
+      "status": 200,
+      "data": {
+        "ref": "refs/tags/v7",
+        "sha": "820762786026740c76f36085b0efc47a31fe5020",
+        "type": "commit"
+      }
+    }
+  ]
+}

@@ -1,0 +1,75 @@
+{
+  "checkedAt": "2026-09-14T00:18:04.807Z",
+  "commit": "502d06584145f42cdabdb73377e1cec93ffe3e28",
+  "sourceSha256": "e9c6e6c8c1e7deca75f6d3bb6f2a7738639922f05cd042cde5d4ee75b477e1e2",
+  "label": "draft",
+  "method": "Actual local Next app in Chromium; only authentication and cloud endpoints mocked; all AI and external browser requests blocked",
+  "scenarios": [
+    {
+      "lessonId": 8,
+      "width": 390,
+      "overflows": [],
+      "screenshot": "C:\\Users\\azrie\\Documents\\Codex\\2026-09-13\\referenced-chatgpt-conversation-this-is-an\\work\\hints-draft-8-390.png"
+    },
+    {
+      "lessonId": 8,
+      "width": 320,
+      "overflows": [],
+      "screenshot": "C:\\Users\\azrie\\Documents\\Codex\\2026-09-13\\referenced-chatgpt-conversation-this-is-an\\work\\hints-draft-8-320.png"
+    },
+    {
+      "lessonId": 59,
+      "width": 390,
+      "overflows": [],
+      "screenshot": "C:\\Users\\azrie\\Documents\\Codex\\2026-09-13\\referenced-chatgpt-conversation-this-is-an\\work\\hints-draft-59-390.png"
+    },
+    {
+      "lessonId": 59,
+      "width": 320,
+      "overflows": [],
+      "screenshot": "C:\\Users\\azrie\\Documents\\Codex\\2026-09-13\\referenced-chatgpt-conversation-this-is-an\\work\\hints-draft-59-320.png"
+    },
+    {
+      "lessonId": 82,
+      "width": 390,
+      "overflows": [
+        {
+          "text": "לְתִפְאֶרֶת מְדִינַת יִשְׂרָאֵל!(Во славу Государства Израиль! (традиционная формула зажжения факела))",
+          "x": 34,
+          "right": 352,
+          "width": 316,
+          "scrollWidth": 493
+        }
+      ],
+      "screenshot": "C:\\Users\\azrie\\Documents\\Codex\\2026-09-13\\referenced-chatgpt-conversation-this-is-an\\work\\hints-draft-82-390.png"
+    },
+    {
+      "lessonId": 82,
+      "width": 320,
+      "overflows": [
+        {
+          "text": "יוֹם הַזִּיכָּרוֹן(День памяти павших воинов и жертв террора)",
+          "x": 34,
+          "right": 282,
+          "width": 246,
+          "scrollWidth": 289
+        },
+        {
+          "text": "לְתִפְאֶרֶת מְדִינַת יִשְׂרָאֵל!(Во славу Государства Израиль! (традиционная формула зажжения факела))",
+          "x": 34,
+          "right": 282,
+          "width": 246,
+          "scrollWidth": 493
+        }
+      ],
+      "screenshot": "C:\\Users\\azrie\\Documents\\Codex\\2026-09-13\\referenced-chatgpt-conversation-this-is-an\\work\\hints-draft-82-320.png"
+    }
+  ],
+  "pageErrors": [],
+  "keyboard": {
+    "lessonId": 8,
+    "femaleClick": "לומדת ",
+    "maleEnterInMiddle": "שלום לומד עולם",
+    "cursor": 10
+  }
+}

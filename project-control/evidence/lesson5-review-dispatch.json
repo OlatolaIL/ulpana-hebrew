@@ -1,0 +1,17 @@
+{
+  "recordedAt": "2026-09-14T01:08:42.226Z",
+  "baseCommit": "e8148cc0ec2d107b76b5db53908f3aa0e6202b34",
+  "fullObjects": {
+    "lessons": 100,
+    "phoneScenarios": 200
+  },
+  "snapshotSha256": "c102bfe1fdcce027c4eab486491a687b36e10cfe9af6bb42ccb0af88983f842b",
+  "generator": "lesson5-snapshot.cjs",
+  "purpose": "Compare full objects after final developer commit; not acceptance of current draft",
+  "sentAtIsrael": "2026-09-14 04:07",
+  "observed": [
+    "User message in Antigravity history",
+    "Message editor empty",
+    "Gemini opened lesson-05-practice-draft-review.md"
+  ]
+}

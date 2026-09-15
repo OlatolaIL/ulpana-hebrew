@@ -1,0 +1,35 @@
+{
+  "capturedAt": "2026-09-13T23:39:57.706Z",
+  "commit": "256c437ea767cb9e397662a3ab556db8cfe1bec6",
+  "method": "Real LessonEssay component in jsdom; actual cheat-sheet and hint clicks; no network or model",
+  "browserErrors": [],
+  "rows": [
+    {
+      "lessonId": 3,
+      "label": "גָּר / גָּרָה",
+      "intendedFemale": "גרה",
+      "gender": "female",
+      "visibleButton": "גָּר / גָּרָה(живу (м.р. / ж.р.))",
+      "textBefore": "",
+      "inserted": "גר "
+    },
+    {
+      "lessonId": 3,
+      "label": "מְדַבֵּר / מְדַבֶּרֶת",
+      "intendedFemale": "מדברת",
+      "gender": "female",
+      "visibleButton": "מְדַבֵּר / מְדַבֶּרֶת(говорю (м.р. / ж.р.))",
+      "textBefore": "",
+      "inserted": "מדבר "
+    },
+    {
+      "lessonId": 4,
+      "label": "תַּלְמִיד / תַּלְמִידָה",
+      "intendedFemale": "תלמידה",
+      "gender": "female",
+      "visibleButton": "תַּלְמִיד / תַּלְמִידָה(ученик / ученица)",
+      "textBefore": "",
+      "inserted": "תלמיד "
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+const fs = require('node:fs');
+const path = require('node:path');
+const cp = require('node:child_process');
+const crypto = require('node:crypto');
+const root = path.resolve(process.argv[2]);
+const output = path.resolve(process.argv[3]);
+require(path.join(root,'tests/register.cjs'));
+const { getLessonById } = require(path.join(root,'src/data/lessonsData.ts'));
+const { getLessonPhoneScenario } = require(path.join(root,'src/data/phoneScenarios.ts'));
+const hash = v => crypto.createHash('sha256').update(JSON.stringify(v)).digest('hex');
+const lessons=Array.from({length:100},(_,i)=>{
+  const id=i+1;
+  const lesson=getLessonById(id);
+  const male=getLessonPhoneScenario(lesson,'male');
+  const female=getLessonPhoneScenario(lesson,'female');
+  return {id,lesson,phone:{male,female},hashes:{lesson:hash(lesson),male:hash(male),female:hash(female)}};
+});
+const commit=cp.execFileSync('git',['rev-parse','HEAD'],{cwd:root,encoding:'utf8'}).trim();
+fs.writeFileSync(output,JSON.stringify({capturedAt:new Date().toISOString(),root,commit,lessons},null,2)+'\n');
+console.log(JSON.stringify({commit,lessons:lessons.length,phoneScenarios:lessons.length*2,output,lesson5Keys:Object.keys(lessons[4].lesson)}));

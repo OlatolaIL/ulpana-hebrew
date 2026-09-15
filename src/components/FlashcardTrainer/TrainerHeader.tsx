@@ -105,223 +105,244 @@ export const TrainerHeader: React.FC<TrainerHeaderProps> = ({
       )}
 
       {/* Шапка тренировки и выбор режима */}
-      <div className="bg-white dark:bg-zinc-900 p-3 sm:p-4 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3">
-        <div className="flex items-center gap-1 w-full sm:w-auto bg-zinc-100 dark:bg-zinc-800 rounded-xl p-0.5">
+      <div className="bg-white dark:bg-zinc-900 p-3 sm:p-4 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm flex flex-col gap-3">
+        {/* Верхняя строка: Табы режимов тренажёра */}
+        <div className="flex items-center gap-1 w-full bg-zinc-100 dark:bg-zinc-800/80 rounded-xl p-1 overflow-x-auto scrollbar-none">
           {/* Флип */}
           <button
             onClick={() => onSetMode('flip')}
-            title="Флип"
-            className={`flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+            title="Флип (Классические карточки)"
+            className={`flex-1 min-w-[65px] flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
               mode === 'flip'
-                ? 'bg-blue-600 text-white shadow-sm'
-                : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200'
+                ? 'bg-blue-600 text-white shadow-xs'
+                : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200'
             }`}
           >
             <Layers className="w-3.5 h-3.5 flex-shrink-0" />
-            <span className="hidden sm:inline">Флип</span>
+            <span>Флип</span>
           </button>
           {/* Конструктор */}
           <button
             onClick={() => onSetMode('builder')}
-            title="Конструктор"
-            className={`flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+            title="Конструктор (Сборка слова)"
+            className={`flex-1 min-w-[85px] flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
               mode === 'builder'
-                ? 'bg-blue-600 text-white shadow-sm'
-                : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200'
+                ? 'bg-blue-600 text-white shadow-xs'
+                : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200'
             }`}
           >
             <Hammer className="w-3.5 h-3.5 flex-shrink-0" />
-            <span className="hidden sm:inline">Конструктор</span>
+            <span>Конструктор</span>
           </button>
           {/* На слух */}
           <button
             onClick={() => onSetMode('listening')}
-            title="На слух"
-            className={`flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+            title="На слух (Викторина по аудио)"
+            className={`flex-1 min-w-[70px] flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
               mode === 'listening'
-                ? 'bg-blue-600 text-white shadow-sm'
-                : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200'
+                ? 'bg-blue-600 text-white shadow-xs'
+                : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200'
             }`}
           >
             <Headphones className="w-3.5 h-3.5 flex-shrink-0" />
-            <span className="hidden sm:inline">На слух</span>
+            <span>На слух</span>
           </button>
           {/* Авто на слух */}
           <button
             onClick={() => onSetMode('auto_audio')}
-            title="Авто на слух"
-            className={`flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+            title="Авто на слух (Пассивный плеер)"
+            className={`flex-1 min-w-[65px] flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
               mode === 'auto_audio'
-                ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-sm'
-                : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200'
+                ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-xs'
+                : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200'
             }`}
           >
             <Play className="w-3.5 h-3.5 fill-current flex-shrink-0" />
-            <span className="hidden sm:inline">Авто</span>
+            <span>Авто</span>
           </button>
           {/* Спряжения (Трансформация времён) */}
           {hasVerbs && (
             <button
               onClick={() => onSetMode('conjugation')}
               title="Спряжения (Трансформация времён)"
-              className={`flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+              className={`flex-1 min-w-[85px] flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
                 mode === 'conjugation'
-                  ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-sm'
+                  ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-xs'
                   : 'text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300'
               }`}
             >
               <GitBranch className="w-3.5 h-3.5 flex-shrink-0" />
-              <span className="hidden sm:inline">Спряжения</span>
+              <span>Спряжения</span>
+            </button>
+          )}
+          {/* Комплекс (Слуховой тренажер с активной паузой) */}
+          {hasVerbs && (
+            <button
+              onClick={() => onSetMode('complex')}
+              title="Комплекс (Фразы 3–4 слова, активная пауза, аудиоразбор и инфинитив)"
+              className={`flex-1 min-w-[85px] flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
+                mode === 'complex'
+                  ? 'bg-gradient-to-r from-amber-500 to-orange-600 text-white shadow-xs'
+                  : 'text-amber-600 dark:text-amber-400 hover:text-amber-700 dark:hover:text-amber-300'
+              }`}
+            >
+              <Sparkles className="w-3.5 h-3.5 flex-shrink-0" />
+              <span>Комплекс</span>
             </button>
           )}
         </div>
 
-        <div className="flex items-center justify-between sm:justify-end gap-2 sm:gap-3 w-full sm:w-auto flex-wrap sm:flex-nowrap">
-          {/* Кнопка деления на части (По частям), если в колоде > 12 слов */}
-          {canSplit && (
+        {/* Нижняя строка: Управление тренировкой и пагинация */}
+        <div className="flex items-center justify-between gap-2 sm:gap-3 flex-wrap pt-1 border-t border-zinc-100 dark:border-zinc-800">
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Кнопка деления на части (По частям), если в колоде > 12 слов */}
+            {canSplit && (
+              <button
+                type="button"
+                onClick={onToggleSplitMode}
+                className={`px-2.5 py-1.5 rounded-xl border text-xs font-semibold flex items-center gap-1.5 shadow-xs transition active:scale-95 cursor-pointer ${
+                  isSplitMode
+                    ? 'bg-blue-50 dark:bg-blue-950/60 border-blue-400 dark:border-blue-600 text-blue-700 dark:text-blue-300 ring-2 ring-blue-400/30'
+                    : 'border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800'
+                }`}
+                title={
+                  isSplitMode
+                    ? 'Отключить режим частей'
+                    : 'Разбить колоду на части по 7–10 слов'
+                }
+              >
+                <Columns2
+                  className={`w-3.5 h-3.5 ${
+                    isSplitMode ? 'text-blue-600 dark:text-blue-400' : 'text-zinc-500 dark:text-zinc-400'
+                  }`}
+                />
+                <span className="hidden sm:inline">
+                  {isSplitMode ? 'По частям' : 'Поделить'}
+                </span>
+                <span className="sm:hidden">Части</span>
+                <span
+                  className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                    isSplitMode
+                      ? 'bg-blue-200 dark:bg-blue-800 text-blue-800 dark:text-blue-200'
+                      : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500'
+                  }`}
+                >
+                  {parts.length}
+                </span>
+              </button>
+            )}
+
+            {/* Переключатель направления карточек (Иврит ↔ Русский ↔ Карусель) */}
             <button
               type="button"
-              onClick={onToggleSplitMode}
-              className={`px-2.5 py-1.5 rounded-xl border text-xs font-semibold flex items-center gap-1.5 shadow-sm transition active:scale-95 cursor-pointer ${
-                isSplitMode
-                  ? 'bg-blue-50 dark:bg-blue-950/60 border-blue-400 dark:border-blue-600 text-blue-700 dark:text-blue-300 ring-2 ring-blue-400/30'
+              onClick={onToggleDirection}
+              className={`px-2.5 py-1.5 rounded-xl border text-xs font-semibold flex items-center gap-1.5 shadow-xs transition active:scale-95 cursor-pointer ${
+                cardDirection === 'ru-he'
+                  ? 'bg-amber-50 dark:bg-amber-950/60 border-amber-300 dark:border-amber-700 text-amber-900 dark:text-amber-200'
+                  : cardDirection === 'carousel'
+                  ? 'bg-purple-50 dark:bg-purple-950/60 border-purple-300 dark:border-purple-700 text-purple-900 dark:text-purple-200'
                   : 'border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800'
               }`}
               title={
-                isSplitMode
-                  ? 'Отключить режим частей'
-                  : 'Разбить колоду на части по 7–10 слов'
+                cardDirection === 'ru-he'
+                  ? 'Обратный: Русский → Иврит. Нажмите для режима Карусель'
+                  : cardDirection === 'carousel'
+                  ? 'Карусель: случайный/чередующийся порядок (то иврит, то русский). Нажмите для Иврит → Русский'
+                  : 'Прямой: Иврит → Русский. Нажмите для режима Русский → Иврит'
               }
             >
-              <Columns2
+              <ArrowLeftRight
                 className={`w-3.5 h-3.5 ${
-                  isSplitMode ? 'text-blue-600 dark:text-blue-400' : 'text-zinc-500 dark:text-zinc-400'
+                  cardDirection === 'ru-he'
+                    ? 'text-amber-600 dark:text-amber-400'
+                    : cardDirection === 'carousel'
+                    ? 'text-purple-600 dark:text-purple-400'
+                    : 'text-blue-600 dark:text-blue-400'
+                }`}
+              />
+              <span className="font-bold flex items-center gap-1">
+                {cardDirection === 'ru-he' ? (
+                  <>
+                    <span className="text-amber-700 dark:text-amber-300 font-extrabold">
+                      Рус
+                    </span>
+                    <span className="text-zinc-400">→</span>
+                    <span>Ивр</span>
+                  </>
+                ) : cardDirection === 'carousel' ? (
+                  <>
+                    <span className="text-purple-600 dark:text-purple-400 font-extrabold">🔀</span>
+                    <span className="text-purple-700 dark:text-purple-300">Карусель</span>
+                  </>
+                ) : (
+                  <>
+                    <span className="text-blue-600 dark:text-blue-400 font-extrabold">
+                      Ивр
+                    </span>
+                    <span className="text-zinc-400">→</span>
+                    <span>Рус</span>
+                  </>
+                )}
+              </span>
+              <span className="hidden sm:inline text-[10px] text-zinc-500 dark:text-zinc-400 font-normal">
+                {cardDirection === 'ru-he' ? '(обратный)' : cardDirection === 'carousel' ? '(микс)' : ''}
+              </span>
+            </button>
+
+            {/* Кнопка перемешивания слов (Shuffle) */}
+            <button
+              type="button"
+              onClick={onShuffleWords}
+              className={`px-2.5 py-1.5 rounded-xl border text-xs font-semibold flex items-center gap-1.5 shadow-xs transition active:scale-95 cursor-pointer ${
+                shuffleToast
+                  ? 'bg-purple-100 dark:bg-purple-950/80 border-purple-400 dark:border-purple-600 text-purple-800 dark:text-purple-200 ring-2 ring-purple-400/50'
+                  : isShuffled
+                  ? 'bg-purple-50 dark:bg-purple-950/40 border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300 hover:bg-purple-100'
+                  : 'border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800'
+              }`}
+              title="Перемешать слова (случайный порядок)"
+            >
+              <Shuffle
+                className={`w-3.5 h-3.5 transition-transform duration-300 ${
+                  shuffleToast
+                    ? 'rotate-180 text-purple-600 dark:text-purple-400'
+                    : isShuffled
+                    ? 'text-purple-600 dark:text-purple-400'
+                    : 'text-zinc-500'
                 }`}
               />
               <span className="hidden sm:inline">
-                {isSplitMode ? 'По частям' : 'Поделить'}
-              </span>
-              <span className="sm:hidden">Части</span>
-              <span
-                className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
-                  isSplitMode
-                    ? 'bg-blue-200 dark:bg-blue-800 text-blue-800 dark:text-blue-200'
-                    : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500'
-                }`}
-              >
-                {parts.length}
+                {shuffleToast ? 'Перемешано!' : 'Вразброс'}
               </span>
             </button>
-          )}
 
-          {/* Переключатель направления карточек (Иврит ↔ Русский ↔ Карусель) */}
-          <button
-            type="button"
-            onClick={onToggleDirection}
-            className={`px-2.5 py-1.5 rounded-xl border text-xs font-semibold flex items-center gap-1.5 shadow-sm transition active:scale-95 cursor-pointer ${
-              cardDirection === 'ru-he'
-                ? 'bg-amber-50 dark:bg-amber-950/60 border-amber-300 dark:border-amber-700 text-amber-900 dark:text-amber-200'
-                : cardDirection === 'carousel'
-                ? 'bg-purple-50 dark:bg-purple-950/60 border-purple-300 dark:border-purple-700 text-purple-900 dark:text-purple-200'
-                : 'border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800'
-            }`}
-            title={
-              cardDirection === 'ru-he'
-                ? 'Обратный: Русский → Иврит. Нажмите для режима Карусель'
-                : cardDirection === 'carousel'
-                ? 'Карусель: случайный/чередующийся порядок (то иврит, то русский). Нажмите для Иврит → Русский'
-                : 'Прямой: Иврит → Русский. Нажмите для режима Русский → Иврит'
-            }
-          >
-            <ArrowLeftRight
-              className={`w-3.5 h-3.5 ${
-                cardDirection === 'ru-he'
-                  ? 'text-amber-600 dark:text-amber-400'
-                  : cardDirection === 'carousel'
-                  ? 'text-purple-600 dark:text-purple-400'
-                  : 'text-blue-600 dark:text-blue-400'
-              }`}
-            />
-            <span className="font-bold flex items-center gap-1">
-              {cardDirection === 'ru-he' ? (
+            {/* Переключатель шрифта */}
+            <button
+              type="button"
+              onClick={onToggleFontStyle}
+              className="px-2.5 py-1.5 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-xs text-xs font-semibold flex items-center gap-1.5 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition cursor-pointer"
+              title="Переключить шрифт карточек: Печатный / Рукописный"
+            >
+              {userProfile.fontStyle === 'cursive' ? (
                 <>
-                  <span className="text-amber-700 dark:text-amber-300 font-extrabold">
-                    Рус
+                  <span className="font-cursive font-bold text-base text-blue-600 dark:text-blue-400 leading-none">
+                    כתב
                   </span>
-                  <span className="text-zinc-400">→</span>
-                  <span>Ивр</span>
-                </>
-              ) : cardDirection === 'carousel' ? (
-                <>
-                  <span className="text-purple-600 dark:text-purple-400 font-extrabold">🔀</span>
-                  <span className="text-purple-700 dark:text-purple-300">Карусель</span>
+                  <span className="text-zinc-700 dark:text-zinc-300">Рукописный</span>
                 </>
               ) : (
                 <>
-                  <span className="text-blue-600 dark:text-blue-400 font-extrabold">
-                    Ивр
+                  <span className="font-hebrew font-bold text-xs text-zinc-700 dark:text-zinc-300 leading-none">
+                    דפוס
                   </span>
-                  <span className="text-zinc-400">→</span>
-                  <span>Рус</span>
+                  <span className="text-zinc-700 dark:text-zinc-300">Печатный</span>
                 </>
               )}
-            </span>
-            <span className="hidden sm:inline text-[10px] text-zinc-500 dark:text-zinc-400 font-normal">
-              {cardDirection === 'ru-he' ? '(обратный)' : cardDirection === 'carousel' ? '(микс)' : ''}
-            </span>
-          </button>
+            </button>
+          </div>
 
-          {/* Кнопка перемешивания слов (Shuffle) */}
-          <button
-            type="button"
-            onClick={onShuffleWords}
-            className={`px-2.5 py-1.5 rounded-xl border text-xs font-semibold flex items-center gap-1.5 shadow-sm transition active:scale-95 cursor-pointer ${
-              shuffleToast
-                ? 'bg-purple-100 dark:bg-purple-950/80 border-purple-400 dark:border-purple-600 text-purple-800 dark:text-purple-200 ring-2 ring-purple-400/50'
-                : isShuffled
-                ? 'bg-purple-50 dark:bg-purple-950/40 border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300 hover:bg-purple-100'
-                : 'border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800'
-            }`}
-            title="Перемешать слова (случайный порядок)"
-          >
-            <Shuffle
-              className={`w-3.5 h-3.5 transition-transform duration-300 ${
-                shuffleToast
-                  ? 'rotate-180 text-purple-600 dark:text-purple-400'
-                  : isShuffled
-                  ? 'text-purple-600 dark:text-purple-400'
-                  : 'text-zinc-500'
-              }`}
-            />
-            <span className="hidden sm:inline">
-              {shuffleToast ? 'Перемешано!' : 'Вразброс'}
-            </span>
-          </button>
-
-          <button
-            type="button"
-            onClick={onToggleFontStyle}
-            className="px-2.5 py-1.5 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-sm text-xs font-semibold flex items-center gap-1.5 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition cursor-pointer"
-            title="Переключить шрифт карточек: Печатный / Рукописный"
-          >
-            {userProfile.fontStyle === 'cursive' ? (
-              <>
-                <span className="font-cursive font-bold text-base text-blue-600 dark:text-blue-400 leading-none">
-                  כתב
-                </span>
-                <span className="text-zinc-700 dark:text-zinc-300">Рукописный</span>
-              </>
-            ) : (
-              <>
-                <span className="font-hebrew font-bold text-xs text-zinc-700 dark:text-zinc-300 leading-none">
-                  דפוס
-                </span>
-                <span className="text-zinc-700 dark:text-zinc-300">Печатный</span>
-              </>
-            )}
-          </button>
-
-          <div className="flex items-center gap-1 bg-zinc-100 dark:bg-zinc-800 p-1 rounded-xl border border-zinc-200/60 dark:border-zinc-700/60">
+          {/* Пагинация */}
+          <div className="flex items-center gap-1 bg-zinc-100 dark:bg-zinc-800 p-1 rounded-xl border border-zinc-200/60 dark:border-zinc-700/60 ml-auto sm:ml-0">
             <button
               type="button"
               disabled={currentIndex === 0}

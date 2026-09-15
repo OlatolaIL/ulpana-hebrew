@@ -1,0 +1,144 @@
+{
+  "kind": "inventory-only-not-quality-audit",
+  "capturedAt": "2026-09-14T02:51:30.0767268Z",
+  "commit": "b2dd5f21eaace35604285d011e889350f1729679",
+  "snapshot": "manual-language-full-before-b2dd.json",
+  "snapshotSha256": "143af0696a04a6c2f9ecafe50631e687f4a8e53e7c4d5efdd9587f9d432f6b26",
+  "lessons": [
+    {
+      "lessonId": 1,
+      "title": "Приветствие и знакомство",
+      "words": 12,
+      "basicSentences": 5,
+      "exercises": 12,
+      "exerciseTypes": [
+        {
+          "Name": "build_sentence",
+          "Count": 3
+        },
+        {
+          "Name": "fill_blank",
+          "Count": 3
+        },
+        {
+          "Name": "listening",
+          "Count": 1
+        },
+        {
+          "Name": "word_match",
+          "Count": 5
+        }
+      ],
+      "authoredChatSteps": 0,
+      "scriptedTurns": 6
+    },
+    {
+      "lessonId": 2,
+      "title": "В кафе: заказы и напитки",
+      "words": 12,
+      "basicSentences": 4,
+      "exercises": 12,
+      "exerciseTypes": [
+        {
+          "Name": "build_sentence",
+          "Count": 3
+        },
+        {
+          "Name": "fill_blank",
+          "Count": 3
+        },
+        {
+          "Name": "listening",
+          "Count": 1
+        },
+        {
+          "Name": "word_match",
+          "Count": 5
+        }
+      ],
+      "authoredChatSteps": 0,
+      "scriptedTurns": 6
+    },
+    {
+      "lessonId": 3,
+      "title": "Откуда ты? Страны, города и языки",
+      "words": 12,
+      "basicSentences": 4,
+      "exercises": 12,
+      "exerciseTypes": [
+        {
+          "Name": "build_sentence",
+          "Count": 3
+        },
+        {
+          "Name": "fill_blank",
+          "Count": 3
+        },
+        {
+          "Name": "listening",
+          "Count": 1
+        },
+        {
+          "Name": "word_match",
+          "Count": 5
+        }
+      ],
+      "authoredChatSteps": 0,
+      "scriptedTurns": 6
+    },
+    {
+      "lessonId": 4,
+      "title": "Кто это и что это? Указательные местоимения и род",
+      "words": 12,
+      "basicSentences": 4,
+      "exercises": 12,
+      "exerciseTypes": [
+        {
+          "Name": "build_sentence",
+          "Count": 3
+        },
+        {
+          "Name": "fill_blank",
+          "Count": 3
+        },
+        {
+          "Name": "listening",
+          "Count": 1
+        },
+        {
+          "Name": "word_match",
+          "Count": 5
+        }
+      ],
+      "authoredChatSteps": 3,
+      "scriptedTurns": 6
+    },
+    {
+      "lessonId": 5,
+      "title": "В супермаркете и на рынке: артикль и счет 1–10",
+      "words": 12,
+      "basicSentences": 4,
+      "exercises": 12,
+      "exerciseTypes": [
+        {
+          "Name": "build_sentence",
+          "Count": 3
+        },
+        {
+          "Name": "fill_blank",
+          "Count": 3
+        },
+        {
+          "Name": "listening",
+          "Count": 1
+        },
+        {
+          "Name": "word_match",
+          "Count": 5
+        }
+      ],
+      "authoredChatSteps": 3,
+      "scriptedTurns": 6
+    }
+  ]
+}

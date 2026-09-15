@@ -1,0 +1,269 @@
+{
+  "capturedAt": "2026-09-14T00:00:35.358Z",
+  "commit": "502d06584145f42cdabdb73377e1cec93ffe3e28",
+  "overlay": null,
+  "method": "Actual LessonEssay, actual hint button clicks, jsdom; no network, no live model, no layout claim",
+  "browserErrors": [],
+  "rows": [
+    {
+      "lessonId": 3,
+      "form": "גָּר",
+      "expected": "גר ",
+      "gender": "female",
+      "label": "גָּר(живу (м.р.))",
+      "inserted": "גר ",
+      "cursor": 3,
+      "pass": true
+    },
+    {
+      "lessonId": 3,
+      "form": "גָּרָה",
+      "expected": "גרה ",
+      "gender": "female",
+      "label": "גָּרָה(живу (ж.р.))",
+      "inserted": "גרה ",
+      "cursor": 4,
+      "pass": true
+    },
+    {
+      "lessonId": 3,
+      "form": "מְדַבֵּר",
+      "expected": "מדבר ",
+      "gender": "female",
+      "label": "מְדַבֵּר(говорю (м.р.))",
+      "inserted": "מדבר ",
+      "cursor": 5,
+      "pass": true
+    },
+    {
+      "lessonId": 3,
+      "form": "מְדַבֶּרֶת",
+      "expected": "מדברת ",
+      "gender": "female",
+      "label": "מְדַבֶּרֶת(говорю (ж.р.))",
+      "inserted": "מדברת ",
+      "cursor": 6,
+      "pass": true
+    },
+    {
+      "lessonId": 4,
+      "form": "תַּלְמִיד",
+      "expected": "תלמיד ",
+      "gender": "female",
+      "label": "תַּלְמִיד(ученик (м.р.))",
+      "inserted": "תלמיד ",
+      "cursor": 6,
+      "pass": true
+    },
+    {
+      "lessonId": 4,
+      "form": "תַּלְמִידָה",
+      "expected": "תלמידה ",
+      "gender": "female",
+      "label": "תַּלְמִידָה(ученица (ж.р.))",
+      "inserted": "תלמידה ",
+      "cursor": 7,
+      "pass": true
+    },
+    {
+      "lessonId": 4,
+      "form": "זֹאת",
+      "expected": "זאת ",
+      "gender": "female",
+      "label": "זֹאת(это (ж.р.))",
+      "inserted": "זאת ",
+      "cursor": 4,
+      "pass": true
+    },
+    {
+      "lessonId": 4,
+      "form": "זוֹ",
+      "expected": "זו ",
+      "gender": "female",
+      "label": "זוֹ(это (ж.р., вариант))",
+      "inserted": "זו ",
+      "cursor": 3,
+      "pass": true
+    },
+    {
+      "lessonId": 5,
+      "form": "בַּסּוּפֶּר",
+      "expected": "בסופר ",
+      "gender": "female",
+      "label": "בַּסּוּפֶּר(в супермаркете)",
+      "inserted": "בסופר ",
+      "cursor": 6,
+      "pass": true
+    },
+    {
+      "lessonId": 5,
+      "form": "בַּשּׁוּק",
+      "expected": "בשוק ",
+      "gender": "female",
+      "label": "בַּשּׁוּק(на рынке)",
+      "inserted": "בשוק ",
+      "cursor": 5,
+      "pass": true
+    },
+    {
+      "lessonId": 5,
+      "form": "שֶׁקֶל",
+      "expected": "שקל ",
+      "gender": "female",
+      "label": "שֶׁקֶל(шекель (ед.ч.))",
+      "inserted": "שקל ",
+      "cursor": 4,
+      "pass": true
+    },
+    {
+      "lessonId": 5,
+      "form": "שְׁקָלִים",
+      "expected": "שקלים ",
+      "gender": "female",
+      "label": "שְׁקָלִים(шекели (мн.ч.))",
+      "inserted": "שקלים ",
+      "cursor": 6,
+      "pass": true
+    },
+    {
+      "lessonId": 5,
+      "form": "לֶחֶם",
+      "expected": "לחם ",
+      "gender": "female",
+      "label": "לֶחֶם(хлеб)",
+      "inserted": "לחם ",
+      "cursor": 4,
+      "pass": true
+    },
+    {
+      "lessonId": 3,
+      "form": "גָּר",
+      "expected": "גר ",
+      "gender": "male",
+      "label": "גָּר(живу (м.р.))",
+      "inserted": "גר ",
+      "cursor": 3,
+      "pass": true
+    },
+    {
+      "lessonId": 3,
+      "form": "גָּרָה",
+      "expected": "גרה ",
+      "gender": "male",
+      "label": "גָּרָה(живу (ж.р.))",
+      "inserted": "גרה ",
+      "cursor": 4,
+      "pass": true
+    },
+    {
+      "lessonId": 3,
+      "form": "מְדַבֵּר",
+      "expected": "מדבר ",
+      "gender": "male",
+      "label": "מְדַבֵּר(говорю (м.р.))",
+      "inserted": "מדבר ",
+      "cursor": 5,
+      "pass": true
+    },
+    {
+      "lessonId": 3,
+      "form": "מְדַבֶּרֶת",
+      "expected": "מדברת ",
+      "gender": "male",
+      "label": "מְדַבֶּרֶת(говорю (ж.р.))",
+      "inserted": "מדברת ",
+      "cursor": 6,
+      "pass": true
+    },
+    {
+      "lessonId": 4,
+      "form": "תַּלְמִיד",
+      "expected": "תלמיד ",
+      "gender": "male",
+      "label": "תַּלְמִיד(ученик (м.р.))",
+      "inserted": "תלמיד ",
+      "cursor": 6,
+      "pass": true
+    },
+    {
+      "lessonId": 4,
+      "form": "תַּלְמִידָה",
+      "expected": "תלמידה ",
+      "gender": "male",
+      "label": "תַּלְמִידָה(ученица (ж.р.))",
+      "inserted": "תלמידה ",
+      "cursor": 7,
+      "pass": true
+    },
+    {
+      "lessonId": 4,
+      "form": "זֹאת",
+      "expected": "זאת ",
+      "gender": "male",
+      "label": "זֹאת(это (ж.р.))",
+      "inserted": "זאת ",
+      "cursor": 4,
+      "pass": true
+    },
+    {
+      "lessonId": 4,
+      "form": "זוֹ",
+      "expected": "זו ",
+      "gender": "male",
+      "label": "זוֹ(это (ж.р., вариант))",
+      "inserted": "זו ",
+      "cursor": 3,
+      "pass": true
+    },
+    {
+      "lessonId": 5,
+      "form": "בַּסּוּפֶּר",
+      "expected": "בסופר ",
+      "gender": "male",
+      "label": "בַּסּוּפֶּר(в супермаркете)",
+      "inserted": "בסופר ",
+      "cursor": 6,
+      "pass": true
+    },
+    {
+      "lessonId": 5,
+      "form": "בַּשּׁוּק",
+      "expected": "בשוק ",
+      "gender": "male",
+      "label": "בַּשּׁוּק(на рынке)",
+      "inserted": "בשוק ",
+      "cursor": 5,
+      "pass": true
+    },
+    {
+      "lessonId": 5,
+      "form": "שֶׁקֶל",
+      "expected": "שקל ",
+      "gender": "male",
+      "label": "שֶׁקֶל(шекель (ед.ч.))",
+      "inserted": "שקל ",
+      "cursor": 4,
+      "pass": true
+    },
+    {
+      "lessonId": 5,
+      "form": "שְׁקָלִים",
+      "expected": "שקלים ",
+      "gender": "male",
+      "label": "שְׁקָלִים(шекели (мн.ч.))",
+      "inserted": "שקלים ",
+      "cursor": 6,
+      "pass": true
+    },
+    {
+      "lessonId": 5,
+      "form": "לֶחֶם",
+      "expected": "לחם ",
+      "gender": "male",
+      "label": "לֶחֶם(хлеб)",
+      "inserted": "לחם ",
+      "cursor": 4,
+      "pass": true
+    }
+  ]
+}

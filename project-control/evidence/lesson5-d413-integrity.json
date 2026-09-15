@@ -1,0 +1,21 @@
+{
+  "before": "e8148cc0ec2d107b76b5db53908f3aa0e6202b34",
+  "after": "d413f9489f144599c4c95bd8321c9613b01a78db",
+  "changed": [
+    {
+      "id": 5,
+      "field": "lesson"
+    },
+    {
+      "id": 5,
+      "field": "male"
+    },
+    {
+      "id": 5,
+      "field": "female"
+    }
+  ],
+  "otherLessonsUnchanged": 99,
+  "otherPhoneScenariosUnchanged": 198,
+  "lesson5DialogueUnchanged": true
+}

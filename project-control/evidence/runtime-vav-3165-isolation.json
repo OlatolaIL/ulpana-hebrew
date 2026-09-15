@@ -1,0 +1,10 @@
+{
+  "leakedGlobals": [
+    "window",
+    "SpeechSynthesisUtterance",
+    "Audio",
+    "localStorage"
+  ],
+  "leakedEnvKeys": [],
+  "scope": "Named global property descriptors and environment keys; no secret values recorded"
+}

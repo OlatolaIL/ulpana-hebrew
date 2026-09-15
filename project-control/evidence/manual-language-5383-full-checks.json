@@ -1,0 +1,75 @@
+{
+  "commit": "53830cbc0bf72fad7b6dea145da519ee24344e22",
+  "base": "b2dd5f21eaace35604285d011e889350f1729679",
+  "capturedAt": "2026-09-14 03:35:35 UTC",
+  "node": "24.19.0",
+  "tests": {
+    "status": "fulfilled",
+    "value": {
+      "chunk_id": "620d3d",
+      "wall_time_seconds": 7.3240758,
+      "exit_code": 0,
+      "original_token_count": 3130,
+      "output": "Warning: truncated output (original token count: 3130)\nTotal output lines: 136\n\n\n> ulpana-hebrew@0.1.0 test\n> node --require ./tests/register.cjs --test --test-isolation=none tests/*.test.cjs\n\n✔ validateAiChatResponse throws when res.ok is false and never awards completion (4.7869ms)\n✔ validateAiChatResponse throws when response payload is malformed or missing hebrew (0.8348ms)\n✔ validateAiChatResponse normalizes valid successful responses (0.5939ms)\n✔ createChatSession generates distinct unique identifiers and timestamps for each session (18.1784ms)\n✔ isChatResponseApplicable rejects late AI responses when lessonId has changed (0.4017ms)\n✔ isChatResponseApplicable rejects late AI responses when gender has changed (0.529ms)\n✔ isChatResponseApplicable rejects late AI responses when component is unmounted or activeSession is null (0.3386ms)\n✔ shouldAwardChatCompletion requires a valid response and never awards completion on failed or partial turns (0.6144ms)\n✔ formatChatTranscript creates safe transcripts without inventing pronunciation or leaking metadata (1.5077ms)\n✔ buildInitialMessage is pure and generates gendered greeting (0.6454ms)\nDebrief Groq error: Error: Invalid debrief\n    at POST (C:\\Users\\azrie\\Documents\\antigravity\\goofy-maxwell-manual-language\\src\\app\\api\\ai\\phone\\debrief\\route.ts:165:35)\n    at async TestContext.<anonymous> (C:\\Users\\azrie\\Documents\\antigravity\\goofy-maxwell-manual-language\\tests\\ai-evaluation.test.cjs:20:21)\n    at async Test.run (node:internal/test_runner/test:1389:7)\n    at async Test.processPendingSubtests (node:internal/test_runner/test:960:7)\nDebrief Groq error: Error: Incomplete debrief\n    at normalizeReport (C:\\Users\\azrie\\Documents\\antigravity\\goofy-maxwell-manual-language\\src\\app\\api\\ai\\phone\\debrief\\route.ts:17:15)\n    at POST (C:\\Users\\azrie\\Documents\\antigravity\\goofy-maxwell-manual-language\\src\\app\\api\\ai\\phone\\debrief\\route.ts:166:95)\n    at async TestContext.<anonymous> (C:\\Users\\azrie\\Documents\\antigravity\\goofy-maxwell-manual-language\\tests\\ai-evaluation.test.cjs:20:21)\n    at async Test.run (node:internal/test_runner/test:1389:7)\n    at async Test.processPendingSubtests (node:internal/test_runner/test:960:7)\nDebrief Groq error: Error: Incomplete debrief\n    at normalizeReport (C:\\Users\\azrie\\Documents\\antigravity\\goofy-maxwell-manual-language\\src\\app\\api\\ai\\phone\\debrief\\route.ts:17:15)\n    at POST (C:\\Users\\azrie\\Documents\\antigravity\\goofy-maxwell-manual-language\\src\\app\\api\\ai\\phone\\debrief\\route.ts:166:95)\n    at async TestContext.<anonymous> (C:\\Users\\azrie\\Documents\\antigravity\\goofy-maxwell-manual-language\\tests\\ai-evaluation.test.cjs:20:21)\n    at async Test.run (node:internal/test_runner/test:1389:7)\n    at async Test.processPendingSubtests (node:internal/test_runner/test:960:7)\n✔ phone review rejects incomplete model reports and never boosts a low grammar score (58.4442ms)\n✔ AI access for lessons beyond the guest preview requires login on the server (23.8427ms)\n✔ transcripts cannot receive pronunciation scores, including individual turns (0.2407ms)\n✔ common thanks phrases are legitimate spoken lesson answers (0.3429ms)\n✔ dialogue outage and partial answers cannot earn a fabricated passing grade (5.8237ms)\n✔ exact reference answers can be checked locally without inventing pronunciation (1.1102ms)\n✔ malformed, oversized and invalid lesson requests fail before evaluation (3.0459ms)\n✔ phone review outage returns an error wit…1430 tokens truncated… (0.4741ms)\n✔ listening exercise question hiding applies globally beyond the pilot (Lesson 6 and Lesson 10) (0.3229ms)\n✔ non-listening exercises always display their question regardless of isAnswered state (0.2987ms)\n✔ LessonExercises component renders hidden prompt without leaking Hebrew snippet prior to answer (3.9178ms)\nNot implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package\n✔ interactive component workflow via createRoot and jsdom: audio, error debrief, retry, correct, skip/return (Lesson 2 pilot) (53.6755ms)\n✔ interactive component workflow via createRoot and jsdom: audio, error debrief, retry, correct, skip/return (Lesson 6 beyond pilot) (61.6056ms)\n✔ guest profiles do not share mutable progress (0.2972ms)\n✔ switching accounts keeps each profile isolated and accepts an empty cloud dictionary (1.4809ms)\n✔ a cloud response for a different account is rejected (0.199ms)\n✔ pending edits survive reopening even when the cloud is empty (1.0889ms)\n✔ rapid edits are serialized and use the latest acknowledged server revision (1.53ms)\n✔ conflict does not overwrite local changes or pretend that they were saved (0.5066ms)\n✔ chunked bodies are rejected by actual bytes even without content-length (0.976ms)\n✔ malformed JSON and multipart receive input errors, valid audio form is preserved (6.7035ms)\n✔ profile validation rejects ambiguous lesson IDs, impossible scores and malformed dictionary entries (1.2724ms)\n✔ cleanHebrewForSpeech preserves normative vav and root-vav words without forced segol substitution (1.3684ms)\n✔ speakHebrew transmits normative text across native TTS, unsupported synthesis, and error fallback (56.5049ms)\n✔ POST /api/ai/phone preserves normative \"у-\" transcription and provides positive prompt rules (Groq and Gemini) (11.2161ms)\n✔ POST /api/ai/phone preserves standard \"вэ-\" and trims surrounding whitespace (3.3455ms)\n✔ POST /api/ai/chat preserves normative \"у-\" transcription and provides positive prompt rules (Groq and Gemini) (4.5117ms)\n✔ POST /api/ai/chat preserves standard \"вэ-\" and trims surrounding whitespace (2.309ms)\n✔ editable profile names and malformed IDs never grant admin privileges (0.2326ms)\n✔ session signing fails closed and signatures are checked (1.4412ms)\n✔ Google login fails before a network request when audience is not configured (0.3884ms)\n✔ recording endpoints reject an anonymous caller before reading a body or database (30.199ms)\n✔ authenticated students cannot read another student recording or profile metadata (3.9661ms)\n✔ recording storage refuses traversal and legacy public paths (0.4271ms)\n✔ Google access tokens must belong to this app and the returned user (3.1021ms)\n✔ normalizeTranscription preserves manual canonical /u/ prefix and does not force \"вэ-\" (0.8421ms)\n✔ convertLatinHebrewTranscriptionToCyrillic preserves initial /u/ for Latin input (2.2044ms)\n✔ generateHebrewTranscription renders initial shuruk vav (וּ) as /u/ and does not emit initial \"вэ\" (0.6017ms)\n✔ ensureCyrillicHebrewTranscription preserves manual /u/ and generates /u/ for missing transcription (0.5088ms)\n✔ getWordTranscription returns manual /u/ when present and generates /u/ when absent (0.295ms)\nℹ tests 97\nℹ suites 0\nℹ pass 97\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 6177.6235\n"
+    }
+  },
+  "typecheck": {
+    "status": "fulfilled",
+    "value": {
+      "chunk_id": "46720f",
+      "wall_time_seconds": 6.5442827999999995,
+      "exit_code": 0,
+      "original_token_count": 31,
+      "output": "\n> ulpana-hebrew@0.1.0 typecheck\n> next typegen && tsc --noEmit\n\nGenerating route types...\n✓ Types generated successfully\n"
+    }
+  },
+  "lint": {
+    "status": "fulfilled",
+    "value": {
+      "chunk_id": "ff7ebe",
+      "wall_time_seconds": 6.985958,
+      "exit_code": 0,
+      "original_token_count": 0,
+      "output": ""
+    }
+  },
+  "auditCompletion": {
+    "status": "fulfilled",
+    "value": {
+      "chunk_id": "651bb4",
+      "wall_time_seconds": 0.0000026,
+      "exit_code": 0,
+      "original_token_count": 6,
+      "output": "found 0 vulnerabilities\n"
+    }
+  },
+  "buildStart": {
+    "status": "fulfilled",
+    "value": {
+      "chunk_id": "acd94c",
+      "wall_time_seconds": 10.0115939,
+      "session_id": 32028,
+      "original_token_count": 56,
+      "output": "\n> ulpana-hebrew@0.1.0 build\n> next build --webpack\n\n▲ Next.js 16.3.5 (webpack)\n✓ Running next.config.ts took 30ms\n\n  Creating an optimized production build ...\n✓ Compiled successfully in 4.3s\n  Running TypeScript ...\n"
+    }
+  },
+  "buildCompletion": {
+    "status": "fulfilled",
+    "value": {
+      "chunk_id": "b805e2",
+      "wall_time_seconds": 0.0000063,
+      "exit_code": 0,
+      "original_token_count": 327,
+      "output": "  Finished TypeScript in 2.4s ...\n  Collecting page data using 7 workers ...\n  Generating static pages using 7 workers (0/33) ...\n  Generating static pages using 7 workers (8/33) \r\n  Generating static pages using 7 workers (16/33) \r\n  Generating static pages using 7 workers (24/33) \r\n✓ Generating static pages using 7 workers (33/33) in 1590ms\n  Finalizing page optimization ...\n  Collecting build traces ...\n\nRoute (app)\n┌ ○ /\n├ ○ /_not-found\n├ ○ /admin\n├ ƒ /api/admin/calls\n├ ƒ /api/admin/promos\n├ ƒ /api/admin/stats\n├ ƒ /api/admin/users\n├ ƒ /api/ai/chat\n├ ƒ /api/ai/conjugate\n├ ƒ /api/ai/dialogue/evaluate\n├ ƒ /api/ai/essay/evaluate\n├ ƒ /api/ai/lookup\n├ ƒ /api/ai/phone\n├ ƒ /api/ai/phone/debrief\n├ ƒ /api/ai/transcribe\n├ ƒ /api/audio/file\n├ ƒ /api/audio/recording\n├ ƒ /api/audio/upload\n├ ƒ /api/auth/google\n├ ƒ /api/auth/logout\n├ ƒ /api/auth/me\n├ ƒ /api/auth/telegram\n├ ƒ /api/auth/telegram/token\n├ ƒ /api/auth/telegram/webhook\n├ ƒ /api/auth/token-login\n├ ƒ /api/calls/log\n├ ƒ /api/essays/log\n├ ƒ /api/feedback\n├ ƒ /api/subscription/promo\n├ ƒ /api/user/link/google\n├ ƒ /api/user/link/telegram\n└ ƒ /api/user/sync\n\n\n○  (Static)   prerendered as static content\nƒ  (Dynamic)  server-rendered on demand\n\n"
+    }
+  },
+  "dependencies": "package.json and package-lock.json unchanged from accepted base; npm ci not repeated",
+  "scope": "Independent technical verification of candidate. 97 passed includes developer tests with three unresolved evidence/coverage defects; not acceptance.",
+  "unverified": [
+    "actual remote CI",
+    "database integration in this run",
+    "full src lint in this run",
+    "live AI",
+    "physical audio"
+  ]
+}

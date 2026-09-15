@@ -1,0 +1,96 @@
+{
+  "recordedAt": "2026-09-13T22:44:13.540Z",
+  "commit": "0674b160c23f38004347833f2edf5172ba3c7058",
+  "accepted": true,
+  "scope": "Female phone prompts 2–5; listening prompt visibility and actual component interactions",
+  "reviewedIn": "C:/Users/azrie/Documents/antigravity/goofy-maxwell-mechanics",
+  "localMainFastForward": {
+    "from": "ec4d66349bc79c2b00a7fdc4547eb727a7cf60b0",
+    "to": "0674b160c23f38004347833f2edf5172ba3c7058"
+  },
+  "published": false,
+  "tests": {
+    "passed": 65,
+    "failed": 0,
+    "skipped": 0
+  },
+  "mutationMethod": "Actual source transformed in memory in isolated Node processes; disk source unchanged",
+  "negativeChecks": {
+    "audio": "2 expected missing speech failures",
+    "retry": "2 expected hidden prompt failures"
+  },
+  "build": {
+    "previousDirectory": "failed with stale lucide icon reference",
+    "freshDirectory": "work/architect-build-0674",
+    "freshExit": 0,
+    "pages": 33
+  },
+  "limitations": [
+    "Physical TTS untested",
+    "Full browser flow remains a release check",
+    "Full course language acceptance incomplete",
+    "Telegram still blocked by Vercel access"
+  ],
+  "logs": [
+    {
+      "file": "C:\\Users\\azrie\\Documents\\Codex\\2026-09-13\\referenced-chatgpt-conversation-this-is-an\\work\\mechanics-0674-npm-ci.log",
+      "exitCode": 0,
+      "bytes": 609,
+      "sha256": "fc667e54704757262269748dbe784178480e5b1f0fb9311c62633c44ebf3ef2f"
+    },
+    {
+      "file": "C:\\Users\\azrie\\Documents\\Codex\\2026-09-13\\referenced-chatgpt-conversation-this-is-an\\work\\mechanics-0674-test.log",
+      "exitCode": 0,
+      "bytes": 9005,
+      "sha256": "603370a2b61b704896a097447efa9d5030e918341db6ee0a735490f8dc1400eb"
+    },
+    {
+      "file": "C:\\Users\\azrie\\Documents\\Codex\\2026-09-13\\referenced-chatgpt-conversation-this-is-an\\work\\mechanics-0674-typecheck.log",
+      "exitCode": 0,
+      "bytes": 130,
+      "sha256": "cdc80e91db9d0966b3a6ffdee4f6d9e586784d5e90f891b038c070140512e2c1"
+    },
+    {
+      "file": "C:\\Users\\azrie\\Documents\\Codex\\2026-09-13\\referenced-chatgpt-conversation-this-is-an\\work\\mechanics-0674-audit.log",
+      "exitCode": 0,
+      "bytes": 25,
+      "sha256": "4b02d4a3c23d969c46bd2041360f80bfcb1fe760d9db864009acdd710f9de601"
+    },
+    {
+      "file": "C:\\Users\\azrie\\Documents\\Codex\\2026-09-13\\referenced-chatgpt-conversation-this-is-an\\work\\mechanics-0674-lint.log",
+      "exitCode": 0,
+      "bytes": 338,
+      "sha256": "a5f0b439bc7a73119f49d46a4970a3af7363c874d4725a39f767bbd9d6d05a61"
+    },
+    {
+      "file": "C:\\Users\\azrie\\Documents\\Codex\\2026-09-13\\referenced-chatgpt-conversation-this-is-an\\work\\mechanics-0674-build.log",
+      "exitCode": 1,
+      "bytes": 635,
+      "sha256": "8cc26f151defdf30e6c1194a620ccfc1180d9a8f379e7aa083cddb4f22e089f2"
+    },
+    {
+      "file": "C:\\Users\\azrie\\Documents\\Codex\\2026-09-13\\referenced-chatgpt-conversation-this-is-an\\work\\mechanics-0674-build-fresh.log",
+      "exitCode": 0,
+      "bytes": 1964,
+      "sha256": "186aa760f540fe77a0edf6af4e85c36f02a845d0e08baa69d25fbfaa344ca217"
+    },
+    {
+      "file": "C:\\Users\\azrie\\Documents\\Codex\\2026-09-13\\referenced-chatgpt-conversation-this-is-an\\work\\mechanics-0674-mutation-audio.log",
+      "exitCode": 1,
+      "bytes": 2195,
+      "sha256": "56008e38336572dd21a96f7c1e8a52fddbe0a38a8092070f3071b3268a8f3c35"
+    },
+    {
+      "file": "C:\\Users\\azrie\\Documents\\Codex\\2026-09-13\\referenced-chatgpt-conversation-this-is-an\\work\\mechanics-0674-mutation-retry.log",
+      "exitCode": 1,
+      "bytes": 3101,
+      "sha256": "dd6bf07f9b8c683703c0353784d1da65dbfe3afaca67e3df7d7b03e229a26580"
+    },
+    {
+      "file": "C:\\Users\\azrie\\Documents\\Codex\\2026-09-13\\referenced-chatgpt-conversation-this-is-an\\work\\main-0674-npm-ci.log",
+      "exitCode": 0,
+      "bytes": 609,
+      "sha256": "6ad858cce3bb97e6cf0a9a6df61a6d21a1fb4a2eff764cb41df1be03cd2c4b32"
+    }
+  ]
+}

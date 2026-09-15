@@ -29,6 +29,7 @@ import { stripNikkud } from '@/lib/transcription';
 import { phoneAudio } from '@/lib/phoneAudio';
 import { TrainerMode } from './types';
 import { isDialoguePracticeComplete, requestDialogueEvaluation } from '@/lib/dialoguePractice';
+import { isWhisperSilenceHallucination } from '@/lib/speechTranscription';
 
 interface UseScriptedDialogueProps {
   lesson: Lesson;
@@ -94,6 +95,7 @@ export function useScriptedDialogue({
   const isPlayingUserAudio = Boolean(playingAudioUrl);
   const userAudioPlayerRef = useRef<HTMLAudioElement | null>(null);
   const evaluationSafetyTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const lastAudioBlobRef = useRef<Blob | null>(null);
 
   // 8. Состояние шторки словаря
   const [isWordsDrawerOpen, setIsWordsDrawerOpen] = useState<boolean>(false);
@@ -409,7 +411,8 @@ export function useScriptedDialogue({
       setUserAudioUrl(finalAudioUrl);
     }
 
-    if (!text) {
+    const blob = audioBlob || lastAudioBlobRef.current;
+    if (!text && !blob) {
       setIsRecording(false);
       setIsEvaluating(false);
       setEvaluatingPhase('idle');
@@ -425,9 +428,11 @@ export function useScriptedDialogue({
     setIsRecording(false);
     setIsEvaluating(true);
     setEvaluatingPhase('evaluating');
-    setSpokenText(text);
-    spokenTextRef.current = text;
-    evaluateStudentResponse(text, finalAudioUrl, audioBlob);
+    if (text) {
+      setSpokenText(text);
+      spokenTextRef.current = text;
+    }
+    evaluateStudentResponse(text, finalAudioUrl, blob);
   };
 
   const startVoiceRecording = () => {
@@ -449,6 +454,7 @@ export function useScriptedDialogue({
 
     setSpokenText('');
     spokenTextRef.current = '';
+    lastAudioBlobRef.current = null;
     setUserAudioUrl(null);
     setLastEvaluation(null);
     setEvaluationError(null);
@@ -457,6 +463,9 @@ export function useScriptedDialogue({
     setIsRecording(true);
     setIsEvaluating(false);
     setEvaluatingPhase('idle');
+
+    const currentTurn = dialogue.turns[practiceTurnIndex];
+    const variant = currentTurn ? getTurnText(currentTurn) : null;
 
     const recognizer = new HebrewSpeechRecognizer();
     recognizerRef.current = recognizer;
@@ -480,13 +489,14 @@ export function useScriptedDialogue({
       },
       (finalTranscript, audioBlob, audioUrl) => {
         if (!isCurrent()) return;
+        const blob = audioBlob || lastAudioBlobRef.current;
         const text = (finalTranscript && finalTranscript.trim()) || spokenTextRef.current.trim();
         const finalUrl = audioUrl || userAudioUrl;
         if (finalUrl) {
           setUserAudioUrl(finalUrl);
         }
-        if (text) {
-          handleFinalSpeechResult(text, audioBlob, finalUrl);
+        if (text || blob) {
+          handleFinalSpeechResult(text, blob, finalUrl);
         } else {
           setIsRecording(false);
           setIsEvaluating(false);
@@ -495,9 +505,16 @@ export function useScriptedDialogue({
       },
       {
         continuous: true,
-        silenceDurationMs: 30000,
+        disableAutoSilenceStop: true, // R-19: Отправка строго по кнопке, без отсечки по паузе
+        vocabulary: [
+          ...(currentTurn?.acceptableKeywords || []),
+          variant?.hebrew || '',
+        ].filter(Boolean),
         onAudioRecorded: (audioBlob, audioUrl) => {
           if (!isCurrent()) return;
+          if (audioBlob) {
+            lastAudioBlobRef.current = audioBlob;
+          }
           if (audioUrl) {
             setUserAudioUrl(audioUrl);
           }
@@ -521,8 +538,9 @@ export function useScriptedDialogue({
     evaluationSafetyTimerRef.current = setTimeout(() => {
       if (evaluatingTurnRef.current !== practiceTurnIndex) {
         const text = spokenTextRef.current.trim();
-        if (text) {
-          handleFinalSpeechResult(text, null, userAudioUrl);
+        const blob = lastAudioBlobRef.current;
+        if (text || blob) {
+          handleFinalSpeechResult(text, blob, userAudioUrl);
         } else {
           setIsEvaluating(false);
           setEvaluatingPhase('idle');
@@ -588,8 +606,56 @@ export function useScriptedDialogue({
     const variant = getTurnText(currentTurn);
 
     try {
-      const evalResult = await requestDialogueEvaluation({
-          userSpokenHebrew: recognizedHebrew,
+      let finalEvalResult: DialogueEvaluationResult | null = null;
+      let textToEvaluate = '';
+
+      const isOnline = typeof navigator === 'undefined' || navigator.onLine !== false;
+
+      // R-19: 1. ОСНОВНОЙ ДВИЖОК — Серверный Whisper-large-v3 через /api/ai/transcribe с контекстной подсказкой урока
+      if (isOnline && audioBlob && audioBlob.size > 500 && isCurrent()) {
+        try {
+          const form = new FormData();
+          const mime = audioBlob.type || 'audio/webm';
+          const ext = mime.includes('mp4') ? 'm4a' : mime.includes('aac') ? 'aac' : 'webm';
+          form.append('file', audioBlob, `speech.${ext}`);
+          const vocabPrompt = [
+            ...(currentTurn.acceptableKeywords || []),
+            variant.hebrew,
+          ].filter(Boolean).join(', ');
+          if (vocabPrompt) {
+            form.append('prompt', vocabPrompt);
+          }
+
+          const transcribeRes = await fetch('/api/ai/transcribe', {
+            method: 'POST',
+            body: form,
+            signal: controller.signal,
+          });
+
+          if (transcribeRes.ok && isCurrent()) {
+            const data = await transcribeRes.json();
+            const whisperText = (data.text || '').trim();
+            if (whisperText && !isWhisperSilenceHallucination(whisperText)) {
+              textToEvaluate = whisperText;
+              setSpokenText(whisperText);
+              spokenTextRef.current = whisperText;
+            }
+          }
+        } catch (transcribeErr) {
+          console.warn('[ScriptedDialogue] Whisper transcribe error, fallback to device speech:', transcribeErr);
+        }
+      }
+
+      // R-19: 2. РЕЗЕРВНЫЙ ФОЛБЭК — Распознавание на устройстве (Web Speech API) только если офлайн или Whisper не ответил
+      if (!textToEvaluate && recognizedHebrew.trim()) {
+        textToEvaluate = recognizedHebrew.trim();
+        setSpokenText(textToEvaluate);
+        spokenTextRef.current = textToEvaluate;
+      }
+
+      if (textToEvaluate && isCurrent()) {
+        finalEvalResult = await requestDialogueEvaluation({
+          userSpokenHebrew: textToEvaluate,
           targetIntentRu: currentTurn.intentRu,
           referenceHebrew: variant.hebrew,
           acceptableKeywords: currentTurn.acceptableKeywords,
@@ -599,18 +665,26 @@ export function useScriptedDialogue({
           lessonNumber: lesson.number,
           level: lesson.level,
         }, AbortSignal.any([controller.signal, AbortSignal.timeout(70000)]));
-      if (isCurrent()) {
-        if (audioUrl) {
-          evalResult.userAudioUrl = audioUrl;
-        }
-        setLastEvaluation(evalResult);
-        setTurnHistory((prev) => ({ ...prev, [practiceTurnIndex]: evalResult }));
+      }
 
-        if (evalResult.isCorrect) {
+      if (isCurrent() && finalEvalResult) {
+        if (audioUrl) {
+          finalEvalResult.userAudioUrl = audioUrl;
+        }
+        setLastEvaluation(finalEvalResult);
+        setTurnHistory((prev) => ({ ...prev, [practiceTurnIndex]: finalEvalResult! }));
+
+        if (finalEvalResult.isCorrect) {
           try {
             phoneAudio.playSuccessChime();
           } catch {}
         }
+      } else if (isCurrent() && !finalEvalResult) {
+        setEvaluationError(
+          !isOnline
+            ? 'Нет подключения к интернету. Проверьте соединение и повторите запись.'
+            : 'Не удалось распознать речь. Попробуйте сказать фразу ещё раз.'
+        );
       }
     } catch {
       if (isCurrent()) setEvaluationError('Проверка сейчас недоступна. Ответ не оценён. Можно повторить проверку этой фразы или записать новую.');

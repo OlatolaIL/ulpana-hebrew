@@ -1,0 +1,122 @@
+{
+  "capturedAt": "2026-09-14T00:02:44.097Z",
+  "commit": "502d06584145f42cdabdb73377e1cec93ffe3e28",
+  "method": "Actual POST with synthetic provider failure, no external network or database; actual full prompt snapshots",
+  "changedLessons": [
+    3,
+    4,
+    5
+  ],
+  "unchangedLessons": 97,
+  "runs": [
+    {
+      "lessonId": 3,
+      "gender": "female",
+      "mode": "client-topic",
+      "status": 503,
+      "canonicalContextPreserved": true,
+      "sampleNotSent": true,
+      "fabricatedScore": false
+    },
+    {
+      "lessonId": 3,
+      "gender": "female",
+      "mode": "canonical-fallback",
+      "status": 503,
+      "canonicalContextPreserved": true,
+      "sampleNotSent": true,
+      "fabricatedScore": false
+    },
+    {
+      "lessonId": 3,
+      "gender": "male",
+      "mode": "client-topic",
+      "status": 503,
+      "canonicalContextPreserved": true,
+      "sampleNotSent": true,
+      "fabricatedScore": false
+    },
+    {
+      "lessonId": 3,
+      "gender": "male",
+      "mode": "canonical-fallback",
+      "status": 503,
+      "canonicalContextPreserved": true,
+      "sampleNotSent": true,
+      "fabricatedScore": false
+    },
+    {
+      "lessonId": 4,
+      "gender": "female",
+      "mode": "client-topic",
+      "status": 503,
+      "canonicalContextPreserved": true,
+      "sampleNotSent": true,
+      "fabricatedScore": false
+    },
+    {
+      "lessonId": 4,
+      "gender": "female",
+      "mode": "canonical-fallback",
+      "status": 503,
+      "canonicalContextPreserved": true,
+      "sampleNotSent": true,
+      "fabricatedScore": false
+    },
+    {
+      "lessonId": 4,
+      "gender": "male",
+      "mode": "client-topic",
+      "status": 503,
+      "canonicalContextPreserved": true,
+      "sampleNotSent": true,
+      "fabricatedScore": false
+    },
+    {
+      "lessonId": 4,
+      "gender": "male",
+      "mode": "canonical-fallback",
+      "status": 503,
+      "canonicalContextPreserved": true,
+      "sampleNotSent": true,
+      "fabricatedScore": false
+    },
+    {
+      "lessonId": 5,
+      "gender": "female",
+      "mode": "client-topic",
+      "status": 503,
+      "canonicalContextPreserved": true,
+      "sampleNotSent": true,
+      "fabricatedScore": false
+    },
+    {
+      "lessonId": 5,
+      "gender": "female",
+      "mode": "canonical-fallback",
+      "status": 503,
+      "canonicalContextPreserved": true,
+      "sampleNotSent": true,
+      "fabricatedScore": false
+    },
+    {
+      "lessonId": 5,
+      "gender": "male",
+      "mode": "client-topic",
+      "status": 503,
+      "canonicalContextPreserved": true,
+      "sampleNotSent": true,
+      "fabricatedScore": false
+    },
+    {
+      "lessonId": 5,
+      "gender": "male",
+      "mode": "canonical-fallback",
+      "status": 503,
+      "canonicalContextPreserved": true,
+      "sampleNotSent": true,
+      "fabricatedScore": false
+    }
+  ],
+  "limitation": "No live model quality, browser layout or complete linguistic certification measured"
+}

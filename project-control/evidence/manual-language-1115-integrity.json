@@ -1,0 +1,119 @@
+{
+  "base": "b2dd5f21eaace35604285d011e889350f1729679",
+  "commit": "11151c569a699921a8beedffb7494cedea38df66",
+  "unchangedBeyondPilot": 95,
+  "unchangedPhoneScenarios": 200,
+  "unchangedEssays": 100,
+  "unchangedScriptedDialogues": 100,
+  "lesson4Unchanged": true,
+  "groupChanges": [
+    {
+      "id": 1,
+      "field": "lesson"
+    },
+    {
+      "id": 2,
+      "field": "lesson"
+    },
+    {
+      "id": 3,
+      "field": "lesson"
+    },
+    {
+      "id": 5,
+      "field": "lesson"
+    },
+    {
+      "id": 5,
+      "field": "initial"
+    }
+  ],
+  "changesCount": 17,
+  "changes": [
+    {
+      "path": "lesson1.lesson.vocabulary.3.hebrew",
+      "before": "תוֹדָה",
+      "after": "תּוֹדָה"
+    },
+    {
+      "path": "lesson1.lesson.dialogue.vocabularyHints.4",
+      "before": "תוֹדָה",
+      "after": "תּוֹדָה"
+    },
+    {
+      "path": "lesson1.lesson.exercises.1.options.0",
+      "before": "תוֹדָה",
+      "after": "תּוֹדָה"
+    },
+    {
+      "path": "lesson1.lesson.exercises.5.options.2",
+      "before": "תוֹדָה",
+      "after": "תּוֹדָה"
+    },
+    {
+      "path": "lesson1.lesson.exercises.5.correctAnswer",
+      "before": "תוֹדָה",
+      "after": "תּוֹדָה"
+    },
+    {
+      "path": "lesson1.lesson.exercises.5.explanation",
+      "before": "Слово «תוֹדָה» (тодá) переводится как «спасибо».",
+      "after": "Слово «תּוֹדָה» (тодá) переводится как «спасибо»."
+    },
+    {
+      "path": "lesson2.lesson.dialogue.vocabularyHints.4",
+      "before": "תוֹדָה רַבָּה",
+      "after": "תּוֹדָה רַבָּה"
+    },
+    {
+      "path": "lesson3.lesson.grammar.0.tables.0.rows.1.2",
+      "before": "гáра",
+      "after": "гарá"
+    },
+    {
+      "path": "lesson3.lesson.vocabulary.2.transcription",
+      "before": "гар / гáра",
+      "after": "гар / гарá"
+    },
+    {
+      "path": "lesson3.lesson.exercises.4.explanation",
+      "before": "«גָּר / גָּרָה» (гар / гáра) означает «живет (м.р. / ж.р.)».",
+      "after": "«גָּר / גָּרָה» (гар / гарá) означает «живет (м.р. / ж.р.)»."
+    },
+    {
+      "path": "lesson5.lesson.dialogue.initialMessage.transcription",
+      "before": "шалóм ахӣ! йеш лáну агванийóт вэ-млафэфонӣм мэцуянӣм hайóм. ма тирцé ликнóт?",
+      "after": "шалóм ахӣ! йеш лáну агванийóт у-млафэфонӣм мэцуянӣм hайóм. ма тирцé ликнóт?"
+    },
+    {
+      "path": "lesson5.lesson.dialogue.vocabularyHints.3",
+      "before": "תוֹדָה רַבָּה",
+      "after": "תּוֹדָה רַבָּה"
+    },
+    {
+      "path": "lesson5.lesson.dialogue.steps.0.sampleAnswers.1.transcription",
+      "before": "анӣ роцé агванийóт вэ-млафэфонӣм.",
+      "after": "анӣ роцé агванийóт у-млафэфонӣм."
+    },
+    {
+      "path": "lesson5.initial.male.transcription",
+      "before": "шалóм ахӣ! йеш лáну агванийóт вэ-млафэфонӣм мэцуянӣм hайóм. ма тирцé ликнóт?",
+      "after": "шалóм ахӣ! йеш лáну агванийóт у-млафэфонӣм мэцуянӣм hайóм. ма тирцé ликнóт?"
+    },
+    {
+      "path": "lesson5.initial.male.suggestedReplies.1.transcription",
+      "before": "анӣ роцé агванийóт вэ-млафэфонӣм.",
+      "after": "анӣ роцé агванийóт у-млафэфонӣм."
+    },
+    {
+      "path": "lesson5.initial.female.transcription",
+      "before": "шалóм ахотӣ! йеш лáну агванийóт вэ-млафэфонӣм мэцуянӣм hайóм. ма тирцӣ ликнóт?",
+      "after": "шалóм ахотӣ! йеш лáну агванийóт у-млафэфонӣм мэцуянӣм hайóм. ма тирцӣ ликнóт?"
+    },
+    {
+      "path": "lesson5.initial.female.suggestedReplies.1.transcription",
+      "before": "анӣ роцé агванийóт вэ-млафэфонӣм.",
+      "after": "анӣ роцé агванийóт у-млафэфонӣм."
+    }
+  ]
+}
