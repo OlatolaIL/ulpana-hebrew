@@ -562,7 +562,7 @@ export const LessonVocabulary: React.FC<LessonVocabularyProps> = ({
                             <button
                               type="button"
                               onClick={() =>
-                                speakHebrew(currentWord.exampleSentence!.hebrew)
+                                speakHebrew(currentWord.exampleSentence!.hebrew, { rate: userProfile.speechRate || 0.7 })
                               }
                               className="p-1 rounded-lg text-zinc-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-zinc-800 transition shrink-0"
                               title="Озвучить пример"
@@ -907,7 +907,7 @@ export const LessonVocabulary: React.FC<LessonVocabularyProps> = ({
                             <button
                               type="button"
                               onClick={() =>
-                                speakHebrew(word.exampleSentence!.hebrew)
+                                speakHebrew(word.exampleSentence!.hebrew, { rate: userProfile.speechRate || 0.7 })
                               }
                               className="p-1 text-zinc-400 hover:text-blue-600 transition"
                             >

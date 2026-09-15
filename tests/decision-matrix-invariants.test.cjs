@@ -18,7 +18,7 @@ test('R-00: DECISION_MATRIX.md exists and contains all required blocks, versioni
   assert.ok(matrixContent.includes('Дата обновления:'), 'DECISION_MATRIX.md must include update date');
 
   // Check required rule anchors
-  const expectedRules = ['R-01', 'R-02', 'R-03', 'R-04', 'R-05', 'R-07', 'R-08', 'R-10', 'R-11', 'R-13', 'R-14', 'R-15', 'R-16'];
+  const expectedRules = ['R-01', 'R-02', 'R-03', 'R-04', 'R-05', 'R-07', 'R-08', 'R-10', 'R-11', 'R-13', 'R-14', 'R-15', 'R-16', 'R-17'];
   for (const rule of expectedRules) {
     assert.ok(matrixContent.includes(rule), `DECISION_MATRIX.md must define rule ${rule}`);
   }
@@ -141,4 +141,41 @@ test('R-16: Secrets, PAT, and sensitive API keys must not be hardcoded or commit
       );
     }
   }
+});
+
+test('R-17: speakHebrew calls must pass speechRate from userProfile (no bare speakHebrew calls without rate)', () => {
+  // Scan key TTS-heavy files: bare speakHebrew(text) without { rate: ... } is a R-17 violation
+  const filesToScan = [
+    'src/components/LessonAiChat/useAiChat.ts',
+    'src/components/LessonVocabulary.tsx',
+    'src/components/LessonTheory.tsx',
+    'src/components/PhoneCallSimulator/usePhoneCall.ts',
+    'src/components/VerbConjugationView.tsx',
+    'src/components/LessonEssay/EssayEvaluationView.tsx',
+  ];
+
+  for (const relFile of filesToScan) {
+    const fullPath = path.join(repoRoot, relFile);
+    if (!fs.existsSync(fullPath)) continue;
+    const content = fs.readFileSync(fullPath, 'utf8');
+
+    // Find all speakHebrew invocations — each must be followed by { rate: ... }
+    const bareCallPattern = /speakHebrew\([^)]+\)(?!\s*;?\s*\/\/)/g;
+    const allCalls = content.match(/speakHebrew\(/g) || [];
+    const callsWithRate = content.match(/speakHebrew\([^)]+\{\s*rate:/g) || [];
+
+    assert.ok(
+      allCalls.length === callsWithRate.length,
+      `R-17 violation in ${relFile}: ${allCalls.length - callsWithRate.length} speakHebrew call(s) missing { rate: ... } from userProfile.speechRate`
+    );
+  }
+});
+
+test('R-17: DECISION_MATRIX.md defines Блок 7 with user profile settings rule', () => {
+  const matrixContent = fs.readFileSync(matrixPath, 'utf8');
+  assert.ok(matrixContent.includes('R-17'), 'DECISION_MATRIX.md must define R-17');
+  assert.ok(matrixContent.includes('showNikkud'), 'R-17 must reference showNikkud');
+  assert.ok(matrixContent.includes('speechRate'), 'R-17 must reference speechRate');
+  assert.ok(matrixContent.includes('fontStyle'), 'R-17 must reference fontStyle');
+  assert.ok(matrixContent.includes('Блок 7'), 'DECISION_MATRIX.md must have Блок 7');
 });
