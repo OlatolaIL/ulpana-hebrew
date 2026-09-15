@@ -645,6 +645,53 @@ export const VERB_CONJUGATIONS_DATABASE: Record<string, VerbConjugation> = {\n`;
 
   fs.writeFileSync(dbPath, out, 'utf8');
   console.log(`[sync-db] Успешно сгенерирован ${dbPath} (${verbsMap.size} глаголов).`);
+  syncMasterLexicon();
+}
+
+function syncMasterLexicon() {
+  const masterDict = JSON.parse(fs.readFileSync(outputFile, 'utf8'));
+  const lexiconPath = path.join(repoRoot, 'src/data/pealimMasterLexicon.json');
+  const rootsPath = path.join(repoRoot, 'src/data/pealimRootsIndex.json');
+
+  const lexicon = {};
+  const rootIndex = {};
+
+  for (const [key, entry] of Object.entries(masterDict)) {
+    const plain = entry.hebrewPlain || stripNikkud(entry.hebrew || key).trim();
+    const cleanKey = stripNikkud(key).trim();
+
+    const item = {
+      hebrew: entry.hebrew || key,
+      hebrewPlain: plain,
+      transcription: entry.transcription || '',
+      translation: entry.courseTranslation || entry.translation || '',
+      partOfSpeech: entry.partOfSpeech || 'other',
+      root: entry.root || null,
+      binyan: entry.binyan || null,
+      gender: entry.gender || null,
+      ...(entry.plural ? { plural: entry.plural } : {}),
+      ...(entry.audio ? { audio: entry.audio } : {}),
+    };
+
+    if (plain) lexicon[plain] = item;
+    if (cleanKey) lexicon[cleanKey] = item;
+    if (entry.hebrew) lexicon[entry.hebrew] = item;
+    if (key) lexicon[key] = item;
+
+    if (entry.root) {
+      const cleanRoot = entry.root.replace(/[^א-ת]/g, '');
+      if (cleanRoot) {
+        if (!rootIndex[cleanRoot]) rootIndex[cleanRoot] = [];
+        if (!rootIndex[cleanRoot].includes(plain)) {
+          rootIndex[cleanRoot].push(plain);
+        }
+      }
+    }
+  }
+
+  safeWriteJson(lexiconPath, JSON.stringify(lexicon));
+  safeWriteJson(rootsPath, JSON.stringify(rootIndex));
+  console.log(`[sync-lexicon] Успешно сгенерирован ${lexiconPath} (${Object.keys(lexicon).length} ключей) и ${rootsPath} (${Object.keys(rootIndex).length} корней).`);
 }
 
 async function fetchCatalogPage(pageNum) {

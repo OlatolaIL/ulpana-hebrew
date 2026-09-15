@@ -52,6 +52,7 @@ export const WordLookupModal: React.FC<WordLookupModalProps> = ({
     translation: string;
     root?: string | null;
     partOfSpeech?: string;
+    audio?: string | null;
     exampleSentence?: {
       hebrew: string;
       transcription: string;
@@ -98,6 +99,7 @@ export const WordLookupModal: React.FC<WordLookupModalProps> = ({
         translation: localMatch.translation,
         root: localMatch.root || null,
         partOfSpeech: localMatch.partOfSpeech,
+        audio: localMatch.audio || null,
         exampleSentence: localMatch.exampleSentence || null,
       });
       setIsAdded(
@@ -192,6 +194,15 @@ export const WordLookupModal: React.FC<WordLookupModalProps> = ({
   };
 
   const handleSpeak = (text: string) => {
+    if (wordData?.audio && text === (wordData.hebrew || word)) {
+      try {
+        const audio = new Audio(wordData.audio);
+        audio.play().catch(() => {
+          speakHebrew(text, { rate: userProfile.speechRate || 0.7 });
+        });
+        return;
+      } catch {}
+    }
     speakHebrew(text, { rate: userProfile.speechRate || 0.7 });
   };
 

@@ -2,6 +2,8 @@ import { stripNikkud } from './transcription';
 import { DETAILED_LESSONS } from '@/data/lessonsData';
 import { THEMATIC_DECKS } from '@/data/thematicDecks';
 import { HANDCRAFTED_DIALOGUES } from '@/data/dialogueLessons';
+import pealimLexiconRaw from '@/data/pealimMasterLexicon.json';
+import pealimRootsRaw from '@/data/pealimRootsIndex.json';
 
 export interface DictionaryEntry {
   hebrew: string;
@@ -10,12 +12,19 @@ export interface DictionaryEntry {
   translation: string;
   root?: string | null;
   partOfSpeech: string;
+  audio?: string;
+  plural?: string;
+  binyan?: string | null;
+  gender?: string | null;
   exampleSentence?: {
     hebrew: string;
     transcription: string;
     translation: string;
   } | null;
 }
+
+export const PEALIM_MASTER_LEXICON: Record<string, DictionaryEntry> = pealimLexiconRaw as any;
+export const PEALIM_ROOTS_INDEX: Record<string, string[]> = pealimRootsRaw as any;
 
 export const ULPAN_OFFLINE_DICTIONARY: DictionaryEntry[] = [
   {
@@ -910,7 +919,23 @@ export function lookupOfflineWord(rawQuery: string): DictionaryEntry | null {
     return null;
   };
 
-  // ЭТАП 1: Точный поиск слова по всем базам
+  // ЭТАП 0: Мгновенный поиск по мастер-лексикону Pealim (10 286 слов)
+  const trimmed = rawQuery.trim();
+  const pealimDirect = PEALIM_MASTER_LEXICON[clean] || PEALIM_MASTER_LEXICON[trimmed];
+  if (pealimDirect) {
+    // Обогащаем примером из уроков, если он есть
+    const withExample = searchInSources(exactMatchesHebrew, clean);
+    const hasPealimNikkud = /[\u0591-\u05BD\u05BF\u05C1-\u05C2\u05C4-\u05C5\u05C7]/.test(pealimDirect.hebrew);
+    const hasLessonNikkud = Boolean(withExample?.hebrew && /[\u0591-\u05BD\u05BF\u05C1-\u05C2\u05C4-\u05C5\u05C7]/.test(withExample.hebrew));
+
+    return {
+      ...pealimDirect,
+      hebrew: (!hasPealimNikkud && hasLessonNikkud) ? withExample!.hebrew : pealimDirect.hebrew,
+      exampleSentence: withExample?.exampleSentence || null,
+    };
+  }
+
+  // ЭТАП 1: Точный поиск слова по всем базам уроков и колод
   const exactMatch = searchInSources(exactMatchesHebrew, clean);
   if (exactMatch) return exactMatch;
 
@@ -921,9 +946,26 @@ export function lookupOfflineWord(rawQuery: string): DictionaryEntry | null {
   for (const prefix of prefixes) {
     if (clean.startsWith(prefix) && clean.length >= 4) {
       const subClean = clean.slice(1);
+      const pealimSub = PEALIM_MASTER_LEXICON[subClean];
+      if (pealimSub) {
+        return pealimSub;
+      }
       const subMatch = searchInSources(exactMatchesHebrew, subClean);
       if (subMatch) {
         return subMatch;
+      }
+    }
+  }
+
+  // Двойные приставки (וה-, ול-, וכ-, ומ-, שה-, שב-, של-)
+  if (clean.length >= 5) {
+    const p1 = clean[0];
+    const p2 = clean[1];
+    if (['ו', 'ש'].includes(p1) && ['ה', 'ב', 'ל', 'מ', 'כ'].includes(p2)) {
+      const sub2 = clean.slice(2);
+      const pealimSub2 = PEALIM_MASTER_LEXICON[sub2];
+      if (pealimSub2) {
+        return pealimSub2;
       }
     }
   }
@@ -952,6 +994,17 @@ export function findWordsByRoot(root: string): DictionaryEntry[] {
     seenHebrews.add(plain);
     results.push(entry);
   };
+
+  // 0. Поиск в эталонном индексе корней Pealim (Single Source of Truth)
+  const pealimWords = PEALIM_ROOTS_INDEX[cleanRoot];
+  if (Array.isArray(pealimWords)) {
+    for (const w of pealimWords) {
+      const entry = PEALIM_MASTER_LEXICON[w];
+      if (entry) {
+        addIfNew(entry);
+      }
+    }
+  }
 
   // 1. Поиск в оффлайн словаре
   for (const entry of ULPAN_OFFLINE_DICTIONARY) {

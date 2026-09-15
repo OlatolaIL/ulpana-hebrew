@@ -1,4 +1,4 @@
-import { ULPAN_OFFLINE_DICTIONARY, lookupOfflineWord } from '../src/lib/ulpanDictionary';
+import { ULPAN_OFFLINE_DICTIONARY, lookupOfflineWord, PEALIM_MASTER_LEXICON } from '../src/lib/ulpanDictionary';
 import { VERB_CONJUGATIONS_DATABASE } from '../src/lib/verbConjugations/database';
 import { DETAILED_LESSONS } from '../src/data/lessonsData';
 import { THEMATIC_DECKS } from '../src/data/thematicDecks';
@@ -19,6 +19,11 @@ function registerWord(vocalized: string) {
     verifiedWords.set(plain, new Set());
   }
   verifiedWords.get(plain)!.add(vocalized.trim());
+}
+
+// Из мастер-лексикона Pealim (10 286 слов)
+for (const entry of Object.values(PEALIM_MASTER_LEXICON)) {
+  if (entry.hebrew) registerWord(entry.hebrew);
 }
 
 // Из оффлайн словаря
