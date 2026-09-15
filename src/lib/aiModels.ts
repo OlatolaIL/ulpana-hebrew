@@ -1,3 +1,5 @@
+export type AiTaskType = 'essay' | 'phone' | 'chat' | 'lookup' | 'conjugate';
+
 /** Model IDs are deployment configuration, never supplied by the browser. */
 export function resolveAiKeys(provider: string, customKey?: unknown) {
   const key = typeof customKey === 'string' ? customKey.trim() : '';
@@ -7,14 +9,26 @@ export function resolveAiKeys(provider: string, customKey?: unknown) {
   };
 }
 
-export function groqModels(): string[] {
-  const primary = process.env.GROQ_MODEL?.trim() || 'llama-3.3-70b-versatile';
+export function groqModels(task: AiTaskType = 'chat'): string[] {
+  const primary =
+    process.env.GROQ_MODEL?.trim() ||
+    (task === 'essay' ? 'openai/gpt-oss-120b' : 'qwen/qwen3.8-27b');
   const fallback = process.env.GROQ_FALLBACK_MODEL?.trim();
   return [...new Set([primary, fallback].filter((model): model is string => Boolean(model)))].slice(0, 2);
 }
 
-export function geminiModel(): string {
-  const model = process.env.GEMINI_MODEL?.trim() || 'gemini-2.0-flash';
-  if (!/^[a-zA-Z0-9._-]+$/.test(model)) throw new Error('Invalid Gemini model configuration');
-  return model;
+export function geminiModels(task: AiTaskType = 'chat'): string[] {
+  const primary =
+    process.env.GEMINI_MODEL?.trim() ||
+    (task === 'essay' ? 'gemini-3.6-flash' : 'gemini-3.5-flash-lite');
+  const fallback = process.env.GEMINI_FALLBACK_MODEL?.trim();
+  return [...new Set([primary, fallback].filter((model): model is string => Boolean(model)))].slice(0, 2);
 }
+
+export function geminiModel(task: AiTaskType = 'chat'): string {
+  const list = geminiModels(task);
+  const selected = list[0] || 'gemini-3.6-flash';
+  if (!/^[a-zA-Z0-9._-]+$/.test(selected)) throw new Error('Invalid Gemini model configuration');
+  return selected;
+}
+

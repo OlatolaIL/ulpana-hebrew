@@ -1,4 +1,4 @@
-import { groqModels as configuredGroqModels, geminiModel, resolveAiKeys } from '@/lib/aiModels';
+import { groqModels as configuredGroqModels, geminiModels, resolveAiKeys } from '@/lib/aiModels';
 import { readAiJson, fetchAi, aiErrorResponse } from '@/lib/aiRequest';
 import { NextRequest, NextResponse } from 'next/server';
 import { verifySessionToken } from '@/lib/auth';
@@ -804,9 +804,9 @@ ${detectedGrammar.length > 0 ? `ПРЕДВАРИТЕЛЬНЫЙ ДЕТЕКТОР 
       };
     };
 
-    // Попытка 1: Groq LLM
+    // Попытка 1: Groq LLM (карусель моделей для сочинений)
     if (groqKey) {
-      const groqModels = configuredGroqModels();
+      const groqModels = configuredGroqModels('essay');
       for (const groqModel of groqModels) {
         try {
           const res = await fetchAi('https://api.groq.com/openai/v1/chat/completions', {
@@ -840,36 +840,39 @@ ${detectedGrammar.length > 0 ? `ПРЕДВАРИТЕЛЬНЫЙ ДЕТЕКТОР 
       }
     }
 
-    // Попытка 2: Gemini LLM
+    // Попытка 2: Gemini LLM (карусель моделей Google)
     if (geminiKey) {
-      try {
-        const geminiRes = await fetchAi(
-          `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel()}:generateContent?key=${geminiKey}`,
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              contents: [
-                { role: 'user', parts: [{ text: `${systemPrompt}\n\n${userPrompt}` }] },
-              ],
-              generationConfig: {
-                responseMimeType: 'application/json',
-                temperature: 0.2,
-              },
-            }),
-          }
-        );
+      const geminiList = geminiModels('essay');
+      for (const gModel of geminiList) {
+        try {
+          const geminiRes = await fetchAi(
+            `https://generativelanguage.googleapis.com/v1beta/models/${gModel}:generateContent?key=${geminiKey}`,
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                contents: [
+                  { role: 'user', parts: [{ text: `${systemPrompt}\n\n${userPrompt}` }] },
+                ],
+                generationConfig: {
+                  responseMimeType: 'application/json',
+                  temperature: 0.2,
+                },
+              }),
+            }
+          );
 
-        if (geminiRes.ok) {
-          const data = await geminiRes.json();
-          const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text;
-          if (rawText) {
-            const parsed = JSON.parse(rawText);
-            return NextResponse.json(normalizeAndEnforceSafety(parsed));
+          if (geminiRes.ok) {
+            const data = await geminiRes.json();
+            const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+            if (rawText) {
+              const parsed = JSON.parse(rawText);
+              return NextResponse.json(normalizeAndEnforceSafety(parsed));
+            }
           }
+        } catch (err) {
+          console.warn(`Gemini evaluation error with model ${gModel}:`, err);
         }
-      } catch (err) {
-        console.warn('Gemini evaluation error:', err);
       }
     }
 

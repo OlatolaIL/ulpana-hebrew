@@ -301,7 +301,8 @@ export const LessonEssay: React.FC<LessonEssayProps> = ({
       });
 
       if (!res.ok) {
-        throw new Error('Ошибка сервера при проверке сочинения');
+        const errorData = await res.json().catch(() => null);
+        throw new Error(errorData?.error || 'Ошибка сервера при проверке сочинения');
       }
 
       const result: EssayEvaluationResult = await res.json();

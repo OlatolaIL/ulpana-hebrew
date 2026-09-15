@@ -1,4 +1,4 @@
-import { groqModels as configuredGroqModels, geminiModel, resolveAiKeys } from '@/lib/aiModels';
+import { groqModels as configuredGroqModels, geminiModel, geminiModels, resolveAiKeys } from '@/lib/aiModels';
 import { readAiJson, fetchAi, aiErrorResponse } from '@/lib/aiRequest';
 import { NextRequest, NextResponse } from 'next/server';
 import { verifySessionToken } from '@/lib/auth';
@@ -215,7 +215,7 @@ ${isFinal ? `ЭТО ФИНАЛЬНЫЙ РАУНД ЗВОНКА (раунд ${use
 }`;
 
     if (groqKey) {
-      const groqModels = configuredGroqModels();
+      const groqModels = configuredGroqModels('phone');
       for (const groqModel of groqModels) {
         try {
           const reqPayload: Record<string, any> = {
@@ -320,72 +320,75 @@ ${isFinal ? `ЭТО ФИНАЛЬНЫЙ РАУНД ЗВОНКА (раунд ${use
       }
     }
 
-    // 2. Попытка запроса через Gemini API
+    // 2. Попытка запроса через Gemini API (карусель быстрых моделей)
     if (geminiKey) {
-      try {
-        const geminiRes = await fetchAi(
-          `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel()}:generateContent?key=${geminiKey}`,
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              contents: [
-                {
-                  parts: [
-                    {
-                      text: `${systemPrompt}\n\nИстория звонка:\n${sanitizedMessages
-                        .map((m) => `${m.role === 'user' ? `Ученик (${finalUserRole})` : `${finalCallerNameRu} (${finalCallerRole})`}: ${m.content}`)
-                        .join('\n')}`,
-                    },
-                  ],
+      const gModels = geminiModels('phone');
+      for (const gModel of gModels) {
+        try {
+          const geminiRes = await fetchAi(
+            `https://generativelanguage.googleapis.com/v1beta/models/${gModel}:generateContent?key=${geminiKey}`,
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                contents: [
+                  {
+                    parts: [
+                      {
+                        text: `${systemPrompt}\n\nИстория звонка:\n${sanitizedMessages
+                          .map((m) => `${m.role === 'user' ? `Ученик (${finalUserRole})` : `${finalCallerNameRu} (${finalCallerRole})`}: ${m.content}`)
+                          .join('\n')}`,
+                      },
+                    ],
+                  },
+                ],
+                generationConfig: {
+                  responseMimeType: 'application/json',
+                  temperature: 0.3,
                 },
-              ],
-              generationConfig: {
-                responseMimeType: 'application/json',
-                temperature: 0.3,
-              },
-            }),
+              }),
+            }
+          );
+
+          if (geminiRes.ok) {
+            const data = await geminiRes.json();
+            const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
+            const parsed = JSON.parse(text);
+            const isDone = shouldForceFinalTurn;
+
+            const parsedReplies = Array.isArray(parsed.suggestedReplies) ? parsed.suggestedReplies : [];
+            const safeReplies = parsedReplies.length > 0
+              ? parsedReplies.map((r: any) => ({
+                  hebrew: r.hebrew || '',
+                  transcription: sanitizeTranscription(r.transcription || r.cyrillic_transcription || ''),
+                  translation: sanitizeRussianTranslation(r.translation || r.russian_translation || ''),
+                }))
+              : [
+                  {
+                    hebrew: 'כֵּן, נָכוֹן.',
+                    transcription: 'кен, нахóн.',
+                    translation: 'Да, верно.',
+                  },
+                  {
+                    hebrew: 'תּוֹדָה רַבָּה!',
+                    transcription: 'тодá рабá!',
+                    translation: 'Большое спасибо!',
+                  },
+                ];
+
+            return NextResponse.json({
+              hebrew: (parsed.hebrew || '').trim(),
+              transcription: sanitizeTranscription(parsed.transcription || parsed.cyrillic_transcription || ''),
+              translation: sanitizeRussianTranslation(parsed.translation || parsed.russian_translation || ''),
+              isCompleted: isDone,
+              shouldHangUp: isDone,
+              suggestedReplies: isDone ? [] : safeReplies,
+              engine: `Gemini (${gModel})`,
+            });
           }
-        );
-
-        if (geminiRes.ok) {
-          const data = await geminiRes.json();
-          const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
-          const parsed = JSON.parse(text);
-          const isDone = shouldForceFinalTurn;
-
-          const parsedReplies = Array.isArray(parsed.suggestedReplies) ? parsed.suggestedReplies : [];
-          const safeReplies = parsedReplies.length > 0
-            ? parsedReplies.map((r: any) => ({
-                hebrew: r.hebrew || '',
-                transcription: sanitizeTranscription(r.transcription || r.cyrillic_transcription || ''),
-                translation: sanitizeRussianTranslation(r.translation || r.russian_translation || ''),
-              }))
-            : [
-                {
-                  hebrew: 'כֵּן, נָכוֹן.',
-                  transcription: 'кен, нахóн.',
-                  translation: 'Да, верно.',
-                },
-                {
-                  hebrew: 'תּוֹדָה רַבָּה!',
-                  transcription: 'тодá рабá!',
-                  translation: 'Большое спасибо!',
-                },
-              ];
-
-          return NextResponse.json({
-            hebrew: (parsed.hebrew || '').trim(),
-            transcription: sanitizeTranscription(parsed.transcription || parsed.cyrillic_transcription || ''),
-            translation: sanitizeRussianTranslation(parsed.translation || parsed.russian_translation || ''),
-            isCompleted: isDone,
-            shouldHangUp: isDone,
-            suggestedReplies: isDone ? [] : safeReplies,
-            engine: 'Gemini (Живой звонок)',
-          });
+        } catch (geminiErr) {
+          console.warn(`Gemini phone call error with model ${gModel}:`, geminiErr);
         }
-      } catch (geminiErr) {
-        console.warn('Gemini phone call error:', geminiErr);
       }
     }
 

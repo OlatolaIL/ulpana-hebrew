@@ -189,7 +189,7 @@ ${sentenceTranscription ? `   - Русская транскрипция слов
 
     // Запрос через Groq
     if (provider === 'groq' && groqKey) {
-      const modelsToTry = configuredGroqModels();
+      const modelsToTry = configuredGroqModels('lookup');
 
       for (const groqModel of modelsToTry) {
         try {
@@ -229,7 +229,7 @@ ${sentenceTranscription ? `   - Русская транскрипция слов
     if (geminiKey) {
       try {
         const geminiRes = await fetchAi(
-          `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel()}:generateContent?key=${geminiKey}`,
+          `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel('lookup')}:generateContent?key=${geminiKey}`,
           {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
