@@ -339,7 +339,7 @@ test('Lesson 5 phone scenario: grocery store seller David for male and female st
   assert.equal(male.userRole, 'Покупатель');
   assert.ok(male.studentObjective.includes('«אֲנִי רוֹצֶה לֶחֶם וּגְבִינָה»'));
   assert.ok(male.completionCondition.includes('Покупатель назвал'));
-  assert.equal(male.initialGreeting.hebrew, 'הַלּוֹ? שָׁלוֹם! זֶה דָּוִד מֵהַסּוּפֶּרְמַרְקֶט. מָה תִּרְצֶה לִקְנוֹת?');
+  assert.equal(male.initialGreeting.hebrew, 'הַלּוֹ? שָׁלוֹם! זֶה דָּוִד מֵהַסּוּפֶּרְמַרְקֶט. מָה אַתָּה רוֹצֶה לִקְנוֹת?');
   assert.equal(male.suggestedReplies[0].hebrew, 'שָׁלוֹם דָּוִד! אֲנִי רוֹצֶה לֶחֶם, גְּבִינָה וְקִילוֹ עַגְבָנִיּוֹת.');
   assert.equal(male.suggestedReplies[1].hebrew, 'כַּמָּה זֶה עוֹלֶה? אֶפְשָׁר גַּם שַׂקִּית, בְּבַקָּשָׁה? תּוֹדָה רַבָּה לְךָ!');
   assert.ok(male.usefulWords.some(w => w.hebrew === 'אֲנִי רוֹצֶה' && w.translation.includes('м.р.')));
@@ -353,7 +353,7 @@ test('Lesson 5 phone scenario: grocery store seller David for male and female st
   assert.equal(female.userRole, 'Покупательница');
   assert.ok(female.studentObjective.includes('«אֲנִי רוֹצָה לֶחֶם וּגְבִינָה»'));
   assert.ok(female.completionCondition.includes('Покупательница назвала'));
-  assert.equal(female.initialGreeting.hebrew, 'הַלּוֹ? שָׁלוֹם! זֶה דָּוִד מֵהַסּוּפֶּרְמַרְקֶט. מָה תִּרְצִי לִקְנוֹת?');
+  assert.equal(female.initialGreeting.hebrew, 'הַלּוֹ? שָׁלוֹם! זֶה דָּוִד מֵהַסּוּפֶּרְמַרְקֶט. מָה אַתְּ רוֹצָה לִקְנוֹת?');
   assert.equal(female.suggestedReplies[0].hebrew, 'שָׁלוֹם דָּוִד! אֲנִי רוֹצָה לֶחֶם, גְּבִינָה וְקִילוֹ עַגְבָנִיּוֹת.');
   // Crucial: student is speaking to male seller David, so לְךָ must NOT become לָךְ
   assert.equal(female.suggestedReplies[1].hebrew, 'כַּמָּה זֶה עוֹלֶה? אֶפְשָׁר גַּם שַׂקִּית, בְּבַקָּשָׁה? תּוֹדָה רַבָּה לְךָ!');

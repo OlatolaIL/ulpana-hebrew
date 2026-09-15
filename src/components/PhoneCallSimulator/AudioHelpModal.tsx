@@ -1,6 +1,6 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
-import { Volume2, X, Smartphone, Headphones } from 'lucide-react';
+import { Volume2, X, Smartphone, Headphones, Mic, MessageCircle } from 'lucide-react';
 import { UserProfile } from '@/types';
 import { unlockAudio } from '@/lib/audioNotifier';
 import { phoneAudio } from '@/lib/phoneAudio';
@@ -96,6 +96,18 @@ export const AudioHelpModal: React.FC<AudioHelpModalProps> = ({
               </span>
             </div>
           </div>
+
+          <div className="flex items-start gap-3 p-3 rounded-2xl bg-zinc-800/60 border border-zinc-700/50">
+            <Mic className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+            <div>
+              <span className="font-bold text-zinc-100 block mb-0.5">
+                4. Доступ к микрофону и интернет
+              </span>
+              <span>
+                Убедитесь, что в настройках браузера разрешён доступ к микрофону для этого сайта, а интернет-соединение стабильно. Телефонный звонок — это 100% голосовой тренажёр.
+              </span>
+            </div>
+          </div>
         </div>
 
         {/* Действие: принудительная разблокировка звука в браузере */}
@@ -116,6 +128,16 @@ export const AudioHelpModal: React.FC<AudioHelpModalProps> = ({
                 : 'Включить и проверить звук в браузере 🔊'}
             </span>
           </button>
+
+          <a
+            href="https://t.me/Osa_IL?text=%D7%A9%D7%9C%D7%95%D7%9D!%20%D0%97%D0%B4%D1%80%D0%B0%D0%B2%D1%81%D1%82%D0%B2%D1%83%D0%B9%D1%82%D0%B5!%20%D0%92%D0%BE%D0%B7%D0%BD%D0%B8%D0%BA%D0%BB%D0%B0%20%D0%BF%D1%80%D0%BE%D0%B1%D0%BB%D0%B5%D0%BC%D0%B0%20%D1%81%D0%BE%20%D0%B7%D0%B2%D1%83%D0%BA%D0%BE%D0%BC/%D0%BC%D0%B8%D0%BA%D1%80%D0%BE%D1%84%D0%BE%D0%BD%D0%BE%D0%BC%20%D0%B2%20%D1%82%D0%B5%D0%BB%D0%B5%D1%84%D0%BE%D0%BD%D0%BD%D0%BE%D0%BC%20%D0%B7%D0%B2%D0%BE%D0%BD%D0%BA%D0%B5%20%D0%BD%D0%B0%20%D0%BF%D0%BB%D0%B0%D1%82%D1%84%D0%BE%D1%80%D0%BC%D0%B5%20%C2%AB%D7%A3%D7%9C%D7%A4%D7%90%D7%9F%20%D7%90%D7%9C%D7%A4%C2%BB."
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full py-2 px-3 rounded-xl border border-zinc-700 hover:border-blue-500/50 bg-zinc-800/50 hover:bg-zinc-800 text-xs font-semibold text-blue-400 hover:text-blue-300 transition flex items-center justify-center gap-1.5 cursor-pointer text-center"
+          >
+            <MessageCircle className="w-3.5 h-3.5" />
+            <span>Написать разработчику / Сообщить об ошибке</span>
+          </a>
 
           <button
             type="button"

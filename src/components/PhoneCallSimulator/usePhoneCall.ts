@@ -207,7 +207,7 @@ export function usePhoneCall({
     }
 
     if (!recognizerRef.current || !recognizerRef.current.isSupported()) {
-      setShowTextInput(true);
+      setSpeechNotice('Распознавание речи не поддерживается в этом браузере. Для звонка используйте Chrome или Safari.');
       return;
     }
 
@@ -245,8 +245,29 @@ export function usePhoneCall({
           }, silenceDelayMs);
         }
       },
-      (error) => {
+      (error: any) => {
         console.warn('Speech recognition warning:', error);
+        const errStr = typeof error === 'string' ? error : (error?.message || error?.name || String(error || ''));
+        const lower = errStr.toLowerCase();
+        if (
+          lower.includes('not-allowed') ||
+          lower.includes('permission') ||
+          lower.includes('заблокирован') ||
+          lower.includes('доступ к микрофону')
+        ) {
+          setSpeechNotice('Доступ к микрофону заблокирован. Разрешите микрофон в настройках браузера.');
+        } else if (
+          lower.includes('network') ||
+          lower.includes('сеть') ||
+          lower.includes('интернет') ||
+          lower.includes('offline')
+        ) {
+          setSpeechNotice('Сбой сети или проблемы с интернетом. Проверьте подключение.');
+        } else if (lower.includes('no-speech') || lower.includes('тишина')) {
+          // Пауза или отсутствие речи не требуют тревожных сообщений
+        } else {
+          setSpeechNotice(`Ошибка микрофона: ${errStr || 'проверьте подключение микрофона'}`);
+        }
       },
       (lastTranscript, recordedBlob, recordedUrl) => {
         // Завершение сессии распознавания: если все еще слушаем, проверяем наличие фразы

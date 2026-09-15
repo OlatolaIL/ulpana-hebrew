@@ -40,7 +40,7 @@
 | **R-07** | **Пререквизиты и доступность знаний** | 🔴 BLOCKING | Задание опирается только на уже введенные слова либо явно вводит новое в словаре урока. Запрещены непройденные слова в проверочных заданиях. | `course-solvability.test.cjs`, `pilot-mechanics-01-05.test.cjs` |
 | **R-08** | **Внутренняя согласованность урока** | 🔴 BLOCKING | Словарь, подсказки, упражнения, озвучка и транскрипция внутри урока должны быть строго согласованы по роду, числу и значению. | `pilot-manual-language-consistency.test.cjs` |
 | **R-09** | **Стандарт транскрипции** | 🟡 ADVISORY | Единый академический стандарт кириллической транскрипции Pealim (h для ה, гортанный ъ для א/ע, отсутствие артефактных пробелов). | `pealim-transcription-integrity.test.cjs` |
-| **R-15** | **Механика «Телефонный звонок» (Этап 6)** | 🔴 BLOCKING | Звонки с ИИ строго подчиняются паспорту [`docs/mechanics/stage-06-phone-call.md`](file:///c:/Users/azrie/Documents/antigravity/goofy-maxwell/docs/mechanics/stage-06-phone-call.md): инварианты P-01 (Audio Fallback), P-02 (Role Rigidity), P-03 (Slot Memory / защита от переспрашивания), P-04 (Gender Agreement), P-05 (Turn Pacing & Hang-up). | `phone-conversation-simulator.test.cjs` |
+| **R-15** | **Механика «Телефонный звонок» (Этап 6)** | 🔴 BLOCKING | Звонки с ИИ строго подчиняются паспорту [`docs/mechanics/stage-06-phone-call.md`](file:///c:/Users/azrie/Documents/antigravity/goofy-maxwell/docs/mechanics/stage-06-phone-call.md): инварианты P-01 (Speech Integrity & Diagnostics / запрет подмены звонка текстом), P-02 (Role Rigidity), P-03 (Slot Memory / защита от переспрашивания), P-04 (Gender Agreement), P-05 (Turn Pacing & Hang-up). | `phone-conversation-simulator.test.cjs` |
 
 ### Блок 4. Архитектура Next.js 15 & React 19
 

@@ -387,3 +387,159 @@ test('Phone simulator interactive word lookup: tokenizing Hebrew speech correctl
   const allText = tokens.map((t) => t.text).join('');
   assert.equal(allText, samplePhrase, 'Full text reconstruction must match original phrase exactly');
 });
+
+// ---------------------------------------------------------------------------
+// 4. Invariants P-01, P-04, P-06 compliance tests
+// ---------------------------------------------------------------------------
+test('P-06: Lessons 1-35 do not contain future tense tirce/tirci in greetings, suggested replies, or prompts', () => {
+  for (let lessonNum = 1; lessonNum <= 35; lessonNum++) {
+    const lesson = DETAILED_LESSONS[lessonNum];
+    assert.ok(lesson, 'Lesson ' + lessonNum + ' must exist');
+
+    for (const gender of ['male', 'female']) {
+      const scenario = getLessonPhoneScenario(lesson, gender);
+
+      // 1. Initial greeting
+      assert.equal(
+        scenario.initialGreeting.hebrew.includes('תִּרְצֶה') || scenario.initialGreeting.hebrew.includes('תִּרְצִי'),
+        false,
+        `Lesson ${lessonNum} (${gender}) initialGreeting.hebrew must not contain future tense tirce/tirci`
+      );
+      assert.equal(
+        scenario.initialGreeting.transcription.toLowerCase().includes('тирцé') ||
+          scenario.initialGreeting.transcription.toLowerCase().includes('тирцӣ'),
+        false,
+        `Lesson ${lessonNum} (${gender}) initialGreeting.transcription must not contain tirce/tirci`
+      );
+
+      // 2. Suggested replies
+      if (Array.isArray(scenario.suggestedReplies)) {
+        for (const reply of scenario.suggestedReplies) {
+          assert.equal(
+            reply.hebrew.includes('תִּרְצֶה') || reply.hebrew.includes('תִּרְצִי'),
+            false,
+            `Lesson ${lessonNum} (${gender}) suggestedReply must not contain future tense tirce/tirci`
+          );
+        }
+      }
+
+      // 3. System prompt addition
+      if (scenario.systemPromptAddition) {
+        assert.equal(
+          scenario.systemPromptAddition.includes('תִּרְצֶה') || scenario.systemPromptAddition.includes('תִּרְצִי'),
+          false,
+          `Lesson ${lessonNum} (${gender}) systemPromptAddition must not contain future tense tirce/tirci`
+        );
+      }
+    }
+  }
+});
+
+test('P-04: All 100 lessons for female students have no leaks of ani roce or male names in student replies', () => {
+  for (let lessonNum = 1; lessonNum <= 100; lessonNum++) {
+    const lesson = DETAILED_LESSONS[lessonNum];
+    assert.ok(lesson, 'Lesson ' + lessonNum + ' must exist');
+
+    const scenario = getLessonPhoneScenario(lesson, 'female');
+    if (Array.isArray(scenario.suggestedReplies) && scenario.suggestedReplies.length > 0) {
+      for (const reply of scenario.suggestedReplies) {
+        assert.equal(
+          reply.hebrew.includes('אֲנִי רוֹצֶה'),
+          false,
+          `Lesson ${lessonNum} female suggested reply leaked masculine אֲנִי רוֹצֶה: ${reply.hebrew}`
+        );
+        if (reply.transcription) {
+          assert.equal(
+            reply.transcription.toLowerCase().includes('анӣ роцé'),
+            false,
+            `Lesson ${lessonNum} female transcription leaked masculine анӣ роцé: ${reply.transcription}`
+          );
+        }
+        if (reply.translation) {
+          assert.equal(
+            reply.translation.includes('(м.р.)'),
+            false,
+            `Lesson ${lessonNum} female translation leaked (м.р.): ${reply.translation}`
+          );
+        }
+      }
+    }
+  }
+
+  // Lesson 1 specific checks: Sarah instead of David in student suggested reply
+  const l1Female = getLessonPhoneScenario(DETAILED_LESSONS[1], 'female');
+  assert.equal(
+    l1Female.suggestedReplies[1].hebrew.includes('דָּוִד'),
+    false,
+    'Lesson 1 female suggested reply must not contain male name דָּוִד'
+  );
+  assert.ok(
+    l1Female.suggestedReplies[1].hebrew.includes('שָׂרָה'),
+    'Lesson 1 female suggested reply must contain female name שָׂרָה'
+  );
+  assert.equal(
+    l1Female.suggestedReplies[1].transcription.includes('Давӣд'),
+    false,
+    'Lesson 1 female suggested reply transcription must not contain Давӣд'
+  );
+  assert.ok(
+    l1Female.suggestedReplies[1].transcription.includes('Сáра'),
+    'Lesson 1 female suggested reply transcription must contain Сáра'
+  );
+  assert.ok(
+    l1Female.completionCondition.includes('Ученица'),
+    'Lesson 1 female completion condition must say Ученица'
+  );
+});
+
+test('P-06 & P-04: Answering machine fallback in route.ts is gender agreed and strictly avoids future tense', async (t) => {
+  const env = setupTestEnv(t);
+  delete process.env.GROQ_API_KEY;
+  delete process.env.GEMINI_API_KEY;
+
+  const token = await createSessionToken({
+    id: 'test-fallback-student',
+    name: 'Fallback Student',
+    subscriptionTier: 'free',
+  });
+
+  // 1. Male student fallback
+  const maleReq = new NextRequest('http://localhost/api/ai/phone', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', cookie: `ulpana_session=${token}` },
+    body: JSON.stringify({
+      lessonNumber: 2,
+      level: 'alef',
+      userGender: 'male',
+      messages: [{ role: 'user', content: 'שלום' }],
+      callType: 'outgoing',
+    }),
+  });
+  const maleRes = await phonePOST(maleReq);
+  assert.equal(maleRes.status, 200);
+  const maleJson = await maleRes.json();
+  assert.equal(maleJson.engine, 'Автоответчик (Звонок)');
+  assert.ok(maleJson.hebrew.includes('אַתָּה רוֹצֶה'), 'Male fallback must use אַתָּה רוֹצֶה');
+  assert.equal(maleJson.hebrew.includes('תִּרְצֶה'), false, 'Male fallback must not use future tense תִּרְצֶה');
+  assert.ok(maleJson.transcription.includes('атá роцé'));
+
+  // 2. Female student fallback
+  const femaleReq = new NextRequest('http://localhost/api/ai/phone', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', cookie: `ulpana_session=${token}` },
+    body: JSON.stringify({
+      lessonNumber: 2,
+      level: 'alef',
+      userGender: 'female',
+      messages: [{ role: 'user', content: 'שלום' }],
+      callType: 'outgoing',
+    }),
+  });
+  const femaleRes = await phonePOST(femaleReq);
+  assert.equal(femaleRes.status, 200);
+  const femaleJson = await femaleRes.json();
+  assert.equal(femaleJson.engine, 'Автоответчик (Звонок)');
+  assert.ok(femaleJson.hebrew.includes('אַתְּ רוֹצָה'), 'Female fallback must use אַתְּ רוֹצָה');
+  assert.equal(femaleJson.hebrew.includes('תִּרְצֶה') || femaleJson.hebrew.includes('תִּרְצִי'), false, 'Female fallback must not use future tense');
+  assert.ok(femaleJson.transcription.includes('ат роцá'));
+});

@@ -35,7 +35,7 @@ test('R-15: Stage 6 phone call passport exists and specifies all core invariants
     assert.ok(content.includes(inv), `Stage 6 passport must define invariant ${inv}`);
   }
   assert.ok(content.includes('Slot Memory'), 'Must specify Slot Memory invariant');
-  assert.ok(content.includes('Audio Fallback'), 'Must specify Audio Fallback invariant');
+  assert.ok(content.includes('Speech Integrity'), 'Must specify Speech Integrity invariant');
   assert.ok(content.includes('Role Rigidity'), 'Must specify Role Rigidity invariant');
 });
 
