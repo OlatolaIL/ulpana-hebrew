@@ -217,8 +217,9 @@ export function usePhoneCall({
 
     if (silenceTimeoutRef.current) clearTimeout(silenceTimeoutRef.current);
 
-    // В первых 10 уроках пауза 1.5 секунды для комфортного темпа речи начинающих
-    const silenceDelayMs = lesson.number && lesson.number <= 10 ? 1500 : 1300;
+    // В первых 5 уроках пауза 2 сек, в уроках 6-10 — 1.5 сек, далее 1.3 сек
+    const silenceDelayMs = lesson.number && lesson.number <= 5 ? 2000
+      : lesson.number && lesson.number <= 10 ? 1500 : 1300;
 
     recognizerRef.current.start(
       (transcript) => {
