@@ -22,7 +22,7 @@ interface UsePhoneCallProps {
 }
 const subscribeToHydration = () => () => {};
 
-function buildPhoneRecognitionVocabulary(params: {
+export function buildPhoneRecognitionVocabulary(params: {
   lessonVocabulary?: string[];
   usefulWords?: string[];
   suggestedReplies?: string[];
@@ -33,25 +33,7 @@ function buildPhoneRecognitionVocabulary(params: {
 }): string[] {
   const words = new Set<string>();
 
-  // 1. Обязательные числительные 1-10 на иврите (критично для сценариев с квартирами, временем, ценами)
-  const numbers = ['אחת', 'שתיים', 'שתים', 'שלוש', 'ארבע', 'חמש', 'שש', 'שבע', 'שמונה', 'תשע', 'עשר'];
-  numbers.forEach((n) => words.add(n));
-
-  // 2. Базовые диалоговые глаголы и формулы
-  const basicFormulas = [
-    'שלום', 'בוקר טוב', 'ערב טוב', 'מה נשמע', 'נעים מאוד', 'הכל טוב', 'הכל בסדר',
-    'תודה', 'תודה רבה', 'בבקשה', 'להתראות', 'ביי', 'יום טוב',
-    'אני', 'אתה', 'את', 'גר', 'גרה', 'בדירה', 'דירה', 'ברחוב', 'רחוב', 'בבית', 'בית',
-    'קוראים לי', 'שמי', 'כן', 'לא', 'רוצה', 'מחפש', 'מחפשת'
-  ];
-  basicFormulas.forEach((f) => words.add(f));
-
-  // 3. Имя звонящего персонажа
-  if (params.callerName) {
-    words.add(stripNikkud(params.callerName).trim());
-  }
-
-  // 4. Имя ученика и его варианты транслитерации
+  // 1. Имя ученика и его варианты транслитерации (высший приоритет для Whisper, иначе искажает имена)
   if (params.studentName) {
     const rawName = params.studentName.trim();
     if (/[\u0590-\u05FF]/.test(rawName)) {
@@ -61,7 +43,6 @@ function buildPhoneRecognitionVocabulary(params: {
       if (lower.includes('сергей') || lower.includes('сергий') || lower.includes('sergey') || lower.includes('sergei')) {
         words.add('סרגיי');
         words.add('סרגי');
-        words.add('שרגי');
       } else if (lower.includes('давид') || lower.includes('david')) {
         words.add('דוד');
         words.add('דויד');
@@ -79,9 +60,14 @@ function buildPhoneRecognitionVocabulary(params: {
     }
   }
 
-  // 5. Словарь сценария и подсказок
-  (params.usefulWords || []).forEach((w) => words.add(stripNikkud(w).trim()));
+  // 2. Имя звонящего персонажа
+  if (params.callerName) {
+    words.add(stripNikkud(params.callerName).trim());
+  }
+
+  // 3. Ключевые слова сценария звонка и подсказок (то, что ожидается услышать прямо сейчас)
   (params.vocabularyHints || []).forEach((w) => words.add(stripNikkud(w).trim()));
+  (params.usefulWords || []).forEach((w) => words.add(stripNikkud(w).trim()));
 
   (params.suggestedReplies || []).forEach((rep) => {
     const tokens = stripNikkud(rep).match(/[\u0590-\u05FF]+/g);
@@ -92,11 +78,11 @@ function buildPhoneRecognitionVocabulary(params: {
     }
   });
 
-  // 6. Словарь урока и пройденные слова
+  // 4. Добираем слова текущего урока до лимита
   (params.lessonVocabulary || []).forEach((w) => words.add(stripNikkud(w).trim()));
-  (params.knownWords || []).forEach((w) => words.add(stripNikkud(w).trim()));
 
-  return Array.from(words).filter(Boolean).slice(0, 80);
+  // 5. Ограничиваемся ровно 20 ключевыми словами (гарантия < 200 символов, исключает лимит Groq Whisper 896 символов)
+  return Array.from(words).filter(Boolean).slice(0, 20);
 }
 
 export function usePhoneCall({

@@ -1195,8 +1195,9 @@ export class HebrewSpeechRecognizer {
               .filter(Boolean)
           )
         )
-          .slice(0, 80)
-          .join(', ');
+          .slice(0, 20)
+          .join(', ')
+          .slice(0, 250);
         if (cleanPrompt) {
           formData.append('prompt', cleanPrompt);
         }
