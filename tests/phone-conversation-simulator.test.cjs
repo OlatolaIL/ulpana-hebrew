@@ -649,3 +649,70 @@ test('P-03: extractClosedSlots identifies apartment number "שתיים" and coff
   assert.ok(!cleanCoffeeReply.hebrew.includes('סוּכָּר'), 'Must strip sugar question');
   assert.ok(!cleanCoffeeReply.translation.includes('сахаром'), 'Must strip sugar translation');
 });
+
+test('P-05: Lesson 2 phone call correctly concludes with isCompleted and shouldHangUp when barista finishes order', async (t) => {
+  const env = setupTestEnv(t);
+
+  const token = await createSessionToken({
+    id: 'test-student-l2',
+    name: 'Coffee Lover',
+    subscriptionTier: 'free',
+  });
+
+  env.mockAiFetch('groq', (body) => {
+    const messages = body.messages || [];
+    const lastUserMsg = [...messages].reverse().find((m) => m.role === 'user')?.content || '';
+
+    if (lastUserMsg.includes('כַּמָּה זֶה עוֹלֶה') || lastUserMsg.includes('כמה זה עולה')) {
+      return {
+        hebrew: 'זֶה 10 שְׁקָלִים. תּוֹדָה רַבָּה וְיוֹם טוֹב!',
+        transcription: 'зэ 10 шкалим. тода раба вэ-йом тов!',
+        translation: 'Это 10 шекелей. Большое спасибо и хорошего дня!',
+        isCompleted: true,
+        shouldHangUp: true,
+        suggestedReplies: [],
+      };
+    }
+
+    return {
+      hebrew: 'בְּשִׂמְחָה! וְעִם סוּכָּר?',
+      transcription: 'бэ-симхá! вэ-им сукáр?',
+      translation: 'С удовольствием! И с сахаром?',
+      isCompleted: false,
+      shouldHangUp: false,
+      suggestedReplies: [],
+    };
+  });
+
+  const lesson = DETAILED_LESSONS[2];
+  const scenario = getLessonPhoneScenario(lesson, 'male');
+
+  const turn2Req = new NextRequest('http://localhost/api/ai/phone', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', cookie: `ulpana_session=${token}` },
+    body: JSON.stringify({
+      lessonNumber: 2,
+      level: 'alef',
+      userGender: 'male',
+      provider: 'groq',
+      messages: [
+        { role: 'assistant', content: scenario.initialGreeting.hebrew },
+        { role: 'user', content: 'אֲנִי רוֹצֶה קָפֶה גָּדוֹל עִם חָלָב.' },
+        { role: 'assistant', content: 'בְּשִׂמְחָה! וְעִם סוּכָּר?' },
+        { role: 'user', content: 'בְּלִי סוּכָּר, כַּמָּה זֶה עוֹלֶה?' },
+      ],
+      callType: 'outgoing',
+    }),
+  });
+
+  const res2 = await phonePOST(turn2Req);
+  assert.equal(res2.status, 200);
+  const json2 = await res2.json();
+  assert.equal(json2.isCompleted, true, 'Turn 2 with barista farewell must be completed');
+  assert.equal(json2.shouldHangUp, true, 'Turn 2 with barista farewell must hang up');
+  assert.ok(json2.hebrew.includes('יוֹם טוֹב'), 'Barista says farewell');
+
+  // Verify prompt did not instruct apartment number for lesson 2
+  const systemPrompt = env.calls[0].body.messages[0].content;
+  assert.ok(!systemPrompt.includes('Диалог первого урока'), 'Lesson 2 prompt must not contain Lesson 1 specific text');
+});

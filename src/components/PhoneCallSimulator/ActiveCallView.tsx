@@ -404,10 +404,9 @@ export const ActiveCallView: React.FC<ActiveCallViewProps> = ({
         {/* Главная кнопка в звонке: КРАСНАЯ ТРУБКА (Положить трубку) */}
         <button
           onClick={onEndCall}
-          disabled={isAiHangingUp}
           className={`px-8 py-3.5 rounded-full font-bold shadow-lg transition flex items-center gap-2.5 font-hebrew ${
             isAiHangingUp
-              ? 'bg-rose-950/80 border border-rose-800/60 text-rose-300 opacity-90 cursor-wait animate-pulse'
+              ? 'bg-rose-950/80 border border-rose-800/60 text-rose-300 opacity-90 animate-pulse hover:bg-rose-900 cursor-pointer'
               : 'bg-rose-600 hover:bg-rose-700 active:scale-95 text-white shadow-rose-600/30 cursor-pointer'
           }`}
           title="Положить трубку"

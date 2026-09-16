@@ -156,6 +156,11 @@ export const BESPOKE_PHONE_SCENARIOS: Record<number, PhoneScenario> = {
         transcription: 'кáма зэ олé?',
         translation: 'Сколько это стоит?',
       },
+      {
+        hebrew: 'תּוֹדָה רַבָּה, יוֹם טוֹב!',
+        transcription: 'тодá рабá, йом тов!',
+        translation: 'Большое спасибо, хорошего дня!',
+      },
     ],
     vocabularyHints: ['רוֹצֶה / רוֹצָה', 'קָפֶה עִם חָלָב', 'גָּדוֹל / קָטָן', 'כַּמָּה זֶה עוֹלֶה?', 'בְּבַקָּשָׁה'],
     usefulWords: [
@@ -1122,6 +1127,13 @@ function adaptGenderInScenario(
       if (copy.suggestedReplies?.[0]) {
         copy.suggestedReplies[0].hebrew = copy.suggestedReplies[0].hebrew.replace('אֲנִי רוֹצֶה', 'אֲנִי רוֹצָה');
         copy.suggestedReplies[0].transcription = copy.suggestedReplies[0].transcription.replace('анӣ роцé', 'анӣ роцá');
+      }
+      if (copy.initialGreeting) {
+        copy.initialGreeting = {
+          ...copy.initialGreeting,
+          hebrew: copy.initialGreeting.hebrew.replace('מָה אַתָּה רוֹצֶה', 'מָה אַתְּ רוֹצָה'),
+          transcription: copy.initialGreeting.transcription.replace('ма атá роцé', 'ма ат роцá'),
+        };
       }
       if (copy.completionCondition) {
         copy.completionCondition = copy.completionCondition.replace(

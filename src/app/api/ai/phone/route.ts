@@ -142,7 +142,8 @@ export async function POST(req: NextRequest) {
       strippedLastUser.includes('יום טוב') ||
       strippedLastUser.includes('לילה טוב') ||
       strippedLastUser.includes('נשתמע') ||
-      strippedLastUser.includes('שלום ולהתראות');
+      strippedLastUser.includes('שלום ולהתראות') ||
+      (userTurnsCount >= 2 && strippedLastUser.includes('תודה') && (strippedLastUser.includes('טוב') || strippedLastUser.includes('רבה')));
 
     // Определение финального раунда
     const isTurnLimitReached = userTurnsCount >= finalTargetTurns;
@@ -199,7 +200,8 @@ ${slotPromptSection ? `\n${slotPromptSection}` : ''}
 8. БАЛАНС СЛОВАРЯ И ПРОСТОТА РЕЧИ:
    - Опирайся на пройденный словарный запас (уроки 1..${lessonNumber}).
    - Естественные разговорные связки и этикетные частицы разрешены: «כֵּן», «לֹא», «בְּסֵדֶר», «יוֹפִי», «טוֹב», «אָה», «תּוֹדָה», «בְּבַקָּשָׁה», «שָׁלוֹם», «לְהִתְרָאוֹת», «בַּיי», «שֶׁיִּהְיֶה יוֹם טוֹב».
-   ${lessonNumber <= 3 ? `- ДЛЯ НАЧАЛЬНЫХ УРОКОВ (Урок ${lessonNumber}): КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО использовать сложные незнакомые слова и модальные конструкции (например: «צָרִיךְ», «עֶזְרָה», «בְּמַשֶּׁהוּ», «יָכוֹל», «בְּעָיָה»). Диалог первого урока — это строго знакомство и вежливость: приветствие, «נָעִים מְאוֹד», номер квартиры (если имя уже названо) и доброе пожелание. НИКОГДА не спрашивай имя («איך קוראים לך»), если собеседник уже представился!` : ''}
+   ${lessonNumber === 1 ? `- ДЛЯ УРОКА 1: Диалог первого урока — это строго знакомство и вежливость: приветствие, «נָעִים מְאוֹד», номер квартиры (если имя уже названо) и доброе пожелание. НИКОГДА не спрашивай имя («איך קוראים לך»), если собеседник уже представился!` : ''}
+   ${lessonNumber <= 3 ? `- ДЛЯ НАЧАЛЬНЫХ УРОКОВ (1-3): КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО использовать сложные незнакомые слова и модальные конструкции (например: «צָרִיךְ», «עֶזְרָה», «בְּמַשֶּׁהוּ», «יָכוֹל», «בְּעָיָה»). Говори предельно просто, опираясь строго на тему урока!` : ''}
 9. КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО: спрашивать «איך אומרים», проверять правила или учить языку. Ты обычный человек в роли ${finalCallerRole}!
 10. АДАПТИВНОСТЬ И ЗАПРЕТ ДОСЛОВНОГО ЦИТИРОВАНИЯ:
    - КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО копировать примеры из сценария символ в символ, если собеседник сказал иное!
@@ -262,11 +264,23 @@ ${isFinal ? `ЭТО ФИНАЛЬНЫЙ РАУНД ЗВОНКА (раунд ${use
             const contentStr = data.choices[0]?.message?.content || '{}';
             const parsed = JSON.parse(contentStr);
 
-            const isDone = shouldForceFinalTurn;
-
             const safeHebrew = (parsed.hebrew || '').trim();
             const rawTranscription = sanitizeTranscription(parsed.transcription || parsed.cyrillic_transcription || '');
             const safeTranscription = ensureCyrillicHebrewTranscription(rawTranscription, safeHebrew);
+
+            const aiTextStripped = stripNikkud(safeHebrew).toLowerCase();
+            const isAiFarewell =
+              aiTextStripped.includes('להתראות') ||
+              aiTextStripped.includes('ביי') ||
+              aiTextStripped.includes('יום טוב') ||
+              aiTextStripped.includes('יום נפלא') ||
+              aiTextStripped.includes('יום מקסים') ||
+              aiTextStripped.includes('לילה טוב');
+
+            const isDone =
+              shouldForceFinalTurn ||
+              (userTurnsCount >= 2 && Boolean(parsed.shouldHangUp || parsed.isCompleted)) ||
+              (userTurnsCount >= 2 && isAiFarewell);
 
             const parsedReplies = Array.isArray(parsed.suggestedReplies) ? parsed.suggestedReplies : [];
             const safeReplies = parsedReplies.length > 0
@@ -344,12 +358,21 @@ ${isFinal ? `ЭТО ФИНАЛЬНЫЙ РАУНД ЗВОНКА (раунд ${use
                     },
                     closedSlots
                   );
+                  const aiRecStripped = stripNikkud(recoveredHebrew).toLowerCase();
+                  const isRecFarewell =
+                    aiRecStripped.includes('להתראות') ||
+                    aiRecStripped.includes('ביי') ||
+                    aiRecStripped.includes('יום טוב') ||
+                    aiRecStripped.includes('יום נפלא') ||
+                    aiRecStripped.includes('יום מקסים') ||
+                    aiRecStripped.includes('לילה טוב');
+                  const isRecDone = shouldForceFinalTurn || (userTurnsCount >= 2 && isRecFarewell);
                   return NextResponse.json({
                     hebrew: filtered.hebrew,
                     transcription: filtered.transcription,
                     translation: filtered.translation,
-                    isCompleted: shouldForceFinalTurn,
-                    shouldHangUp: shouldForceFinalTurn,
+                    isCompleted: isRecDone,
+                    shouldHangUp: isRecDone,
                     suggestedReplies: [],
                     engine: `Groq (${groqModel}) [auto-recovered]`,
                   });
@@ -397,11 +420,24 @@ ${isFinal ? `ЭТО ФИНАЛЬНЫЙ РАУНД ЗВОНКА (раунд ${use
             const data = await geminiRes.json();
             const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
             const parsed = JSON.parse(text);
-            const isDone = shouldForceFinalTurn;
 
             const safeHebrew = (parsed.hebrew || '').trim();
             const rawTranscription = sanitizeTranscription(parsed.transcription || parsed.cyrillic_transcription || '');
             const safeTranscription = ensureCyrillicHebrewTranscription(rawTranscription, safeHebrew);
+
+            const aiTextStripped = stripNikkud(safeHebrew).toLowerCase();
+            const isAiFarewell =
+              aiTextStripped.includes('להתראות') ||
+              aiTextStripped.includes('ביי') ||
+              aiTextStripped.includes('יום טוב') ||
+              aiTextStripped.includes('יום נפלא') ||
+              aiTextStripped.includes('יום מקסים') ||
+              aiTextStripped.includes('לילה טוב');
+
+            const isDone =
+              shouldForceFinalTurn ||
+              (userTurnsCount >= 2 && Boolean(parsed.shouldHangUp || parsed.isCompleted)) ||
+              (userTurnsCount >= 2 && isAiFarewell);
 
             const parsedReplies = Array.isArray(parsed.suggestedReplies) ? parsed.suggestedReplies : [];
             const safeReplies = parsedReplies.length > 0
