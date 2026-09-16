@@ -124,4 +124,10 @@ test('5. TrainerMode, TrainerHeader, and ComplexVerbMode integration', () => {
   assert.ok(complexModeContent.includes("speakHebrew"), "ComplexVerbMode must play Hebrew audio");
   assert.ok(complexModeContent.includes("speakRussian"), "ComplexVerbMode must play Russian explanation");
   assert.ok(complexModeContent.includes("pauseDurationSec"), "ComplexVerbMode must support pause duration configuration");
+  assert.ok(complexModeContent.includes("autoAdvance"), "ComplexVerbMode must support autoAdvance mode");
+  assert.ok(complexModeContent.includes("findOfflineVerbConjugation"), "ComplexVerbMode must retrieve root family via findOfflineVerbConjugation");
+  assert.ok(complexModeContent.includes("משפחת השורש"), "ComplexVerbMode must display root family block");
+  assert.ok(complexModeContent.includes("tokenizeText"), "ComplexVerbMode must tokenize sentence for interactive words");
+  assert.ok(complexModeContent.includes("WordLookupModal"), "ComplexVerbMode must integrate WordLookupModal for personal vocabulary");
 });
+

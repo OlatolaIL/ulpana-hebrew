@@ -1074,6 +1074,7 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
           onPrevWord={handlePrevWord}
           onAdvanceNext={handleAdvanceNext}
           onSpeakHebrew={speakHebrew}
+          onUpdateProfile={onUpdateProfile}
         />
       )}
 
