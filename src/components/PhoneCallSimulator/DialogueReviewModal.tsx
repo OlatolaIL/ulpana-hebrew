@@ -423,13 +423,13 @@ export const DialogueReviewModal: React.FC<DialogueReviewModalProps> = ({
                         </div>
                       </div>
 
-                      {/* Предупреждение об ошибках рода или порядка слов */}
+                      {/* Предупреждение об ошибках согласования */}
                       {turnReview?.grammarErrors && turnReview.grammarErrors.length > 0 && (
                         <div className="p-2.5 rounded-xl bg-amber-50/90 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 space-y-1.5">
                           <div className="flex items-center gap-1.5 text-xs font-bold text-amber-800 dark:text-amber-300">
                             <AlertCircle className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
                             <span>
-                              Внимание к роду и порядку слов:
+                              Грамматическая подсказка:
                             </span>
                           </div>
                           {turnReview.grammarErrors.map((ge, gIdx) => (
@@ -481,61 +481,76 @@ export const DialogueReviewModal: React.FC<DialogueReviewModalProps> = ({
                       )}
 
                       {/* Альтернатива носителя иврита (как сказать естественнее) */}
-                      {turnReview?.betterAlternative && (
-                        <div className="p-2.5 rounded-xl bg-purple-50/90 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800/60 text-xs flex items-start justify-between gap-2">
-                          <div className="min-w-0">
-                            <div className="font-bold text-[11px] text-purple-800 dark:text-purple-300 mb-0.5 flex items-center gap-1">
-                              <Sparkles className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
-                              <span>
-                                Как это звучит в живой речи израильтян:
-                              </span>
-                            </div>
-                            <div
-                              dir="rtl"
-                              className="text-sm font-hebrew font-bold text-purple-950 dark:text-purple-100 leading-snug flex flex-wrap gap-x-1"
-                            >
-                              {tokenizeText(turnReview.betterAlternative).map((token) => {
-                                const displayWord = userProfile.showNikkud
-                                  ? token.text
-                                  : stripNikkud(token.text);
+                      {turnReview?.betterAlternative && (() => {
+                        const rawAlt = turnReview.betterAlternative;
+                        const match = rawAlt.match(/^(.*?)(?:\s*\(([^)]+)\)\s*)$/);
+                        const hebrewPart = match ? match[1].trim() : rawAlt;
+                        const translationPart = match ? match[2].trim() : '';
 
-                                if (token.isHebrew && onWordClick) {
-                                  return (
-                                    <span
-                                      key={token.id}
-                                      onClick={() =>
-                                        onWordClick(
-                                          token,
-                                          turnReview.betterAlternative!,
-                                          'Естественная альтернатива носителя',
-                                          undefined
-                                        )
-                                      }
-                                      className="inline-block px-0.5 rounded hover:text-purple-600 hover:underline hover:bg-purple-200/60 dark:hover:bg-purple-900/50 cursor-pointer transition active:scale-95"
-                                      title="Нажмите для перевода и словарика"
-                                    >
-                                      {displayWord}
-                                    </span>
-                                  );
-                                }
-                                return <span key={token.id}>{token.text}</span>;
-                              })}
+                        return (
+                          <div className="p-2.5 rounded-xl bg-purple-50/90 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800/60 text-xs flex items-start justify-between gap-2">
+                            <div className="min-w-0 flex-1">
+                              <div className="font-bold text-[11px] text-purple-800 dark:text-purple-300 mb-0.5 flex items-center gap-1">
+                                <Sparkles className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
+                                <span>
+                                  Как это звучит в живой речи израильтян:
+                                </span>
+                              </div>
+                              <div
+                                dir="rtl"
+                                className="text-sm font-hebrew font-bold text-purple-950 dark:text-purple-100 leading-snug flex flex-wrap gap-x-1"
+                              >
+                                {tokenizeText(hebrewPart).map((token) => {
+                                  const displayWord = userProfile.showNikkud
+                                    ? token.text
+                                    : stripNikkud(token.text);
+
+                                  if (token.isHebrew && onWordClick) {
+                                    return (
+                                      <span
+                                        key={token.id}
+                                        onClick={() =>
+                                          onWordClick(
+                                            token,
+                                            hebrewPart,
+                                            translationPart || 'Естественная альтернатива носителя',
+                                            undefined
+                                          )
+                                        }
+                                        className="inline-block px-0.5 rounded hover:text-purple-600 hover:underline hover:bg-purple-200/60 dark:hover:bg-purple-900/50 cursor-pointer transition active:scale-95"
+                                        title="Нажмите для перевода и словарика"
+                                      >
+                                        {displayWord}
+                                      </span>
+                                    );
+                                  }
+                                  return <span key={token.id}>{token.text}</span>;
+                                })}
+                              </div>
+                              {translationPart && (
+                                <div
+                                  dir="ltr"
+                                  className="text-xs text-purple-800/80 dark:text-purple-300/80 font-sans mt-1"
+                                >
+                                  ({translationPart})
+                                </div>
+                              )}
                             </div>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                speakHebrew(hebrewPart, {
+                                  rate: userProfile.speechRate || 0.7,
+                                })
+                              }
+                              className="p-1 rounded-lg text-purple-600 hover:text-purple-800 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900/60 transition cursor-pointer shrink-0 mt-0.5"
+                              title="Озвучить"
+                            >
+                              <Volume2 className="w-4 h-4" />
+                            </button>
                           </div>
-                          <button
-                            type="button"
-                            onClick={() =>
-                              speakHebrew(turnReview.betterAlternative || '', {
-                                rate: userProfile.speechRate || 0.7,
-                              })
-                            }
-                            className="p-1 rounded-lg text-purple-600 hover:text-purple-800 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900/60 transition cursor-pointer shrink-0 mt-0.5"
-                            title="Озвучить"
-                          >
-                            <Volume2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      )}
+                        );
+                      })()}
                     </div>
                   )}
                 </div>

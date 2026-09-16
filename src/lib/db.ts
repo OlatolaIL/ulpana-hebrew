@@ -68,6 +68,8 @@ async function initializeDatabase() {
       );
       ALTER TABLE ulpana_users ADD COLUMN IF NOT EXISTS flashcard_stats JSONB DEFAULT '{}';
       ALTER TABLE ulpana_users ADD COLUMN IF NOT EXISTS sync_revision BIGINT NOT NULL DEFAULT 0;
+      ALTER TABLE ulpana_users ADD COLUMN IF NOT EXISTS is_channel_subscriber BOOLEAN DEFAULT FALSE;
+      ALTER TABLE ulpana_users ADD COLUMN IF NOT EXISTS channel_verified_at TIMESTAMPTZ;
     `);
 
     // 2. Таблица прогресса по урокам
@@ -159,6 +161,13 @@ async function initializeDatabase() {
         updated_at TIMESTAMPTZ DEFAULT NOW(),
         CONSTRAINT ulpana_user_lesson_stage_unique UNIQUE (user_id, lesson_id, stage)
       );
+
+      CREATE TABLE IF NOT EXISTS ulpana_audio_blobs (
+        key TEXT PRIMARY KEY,
+        data BYTEA NOT NULL,
+        content_type TEXT NOT NULL,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      );
     `);
 
     // 8. Таблица сохраненных сочинений учеников и рецензий ИИ
@@ -189,6 +198,15 @@ async function initializeDatabase() {
         PRIMARY KEY (scope, window_start)
       );
       CREATE INDEX IF NOT EXISTS ulpana_ai_usage_expiry_idx ON ulpana_ai_usage(expires_at);
+    `);
+
+    // 10. Таблица правил доступа к урокам и тренажерам
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS ulpana_access_rules (
+        id VARCHAR(50) PRIMARY KEY,
+        rules_json JSONB NOT NULL,
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+      );
     `);
 
     await db.query('COMMIT');

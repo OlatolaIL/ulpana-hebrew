@@ -32,6 +32,12 @@ import { DETAILED_LESSONS, getLessonById } from '@/data/lessonsData';
 import { isVipUser, VIP_EXPIRES_AT, applyVipProfileEnhancements } from '@/lib/vipUsers';
 import { useModalHistory } from '@/lib/useHistoryState';
 import { isLessonLockedForUser, isLessonAuthRequired } from '@/lib/config';
+import { ChannelSubscribeModal } from '@/components/ChannelSubscribeModal';
+import {
+  AccessRequirement,
+  checkContentAccess,
+  getEffectiveLessonRequirement,
+} from '@/lib/accessPolicy';
 
 type ViewMode = 'map' | 'lesson' | 'flashcards' | 'dictionary' | 'alphabet';
 type TelegramWindow = Window & { Telegram?: { WebApp?: { initData?: string; isVersionAtLeast?: (version: string) => boolean; BackButton?: { hide: () => void; show: () => void; onClick: (fn: () => void) => void; offClick: (fn: () => void) => void } } } };
@@ -84,6 +90,10 @@ export default function Home() {
   const [activeDeckId, setActiveDeckId] = useState<string | null>(null);
   const [authModalReason, setAuthModalReason] = useState<AuthModalReason | null>(null);
   const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState(false);
+  const [isChannelModalOpen, setIsChannelModalOpen] = useState(false);
+  const [channelModalLessonNumber, setChannelModalLessonNumber] = useState<number | undefined>(undefined);
+  const [accessRules, setAccessRules] = useState<Record<number, AccessRequirement> | null>(null);
+  const [isEarlyAccessFreeStatus, setIsEarlyAccessFreeStatus] = useState<boolean | undefined>(undefined);
   const [isGuideDrawerOpen, setIsGuideDrawerOpen] = useState(false);
   const [autoShowGuides] = useGuidePreference();
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
@@ -111,6 +121,7 @@ export default function Home() {
     setPendingDeckId(null);
   }, 'auth-modal');
   useModalHistory(isSubscriptionModalOpen, () => setIsSubscriptionModalOpen(false), 'subscription-modal');
+  useModalHistory(isChannelModalOpen, () => setIsChannelModalOpen(false), 'channel-modal');
   useModalHistory(isGuideDrawerOpen, () => setIsGuideDrawerOpen(false), 'guide-drawer');
   useModalHistory(isMultiLessonSetupOpen, () => setIsMultiLessonSetupOpen(false), 'setup-modal');
 
@@ -267,6 +278,20 @@ export default function Home() {
     void initAuth();
     return () => { cancelled = true; };
   }, [syncToCloud, initializeNavigation]);
+
+  useEffect(() => {
+    fetch('/api/admin/access-rules')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data && data.ok) {
+          setIsEarlyAccessFreeStatus(Boolean(data.isEarlyAccessFree));
+          if (data.lessonRules) {
+            setAccessRules(data.lessonRules);
+          }
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   // Навигация с сохранением в историю браузера (для свайпов назад и кнопок Back)
   const navigateTo = useCallback(
@@ -560,13 +585,36 @@ export default function Home() {
     id: number,
     tab?: LessonStageTab
   ) => {
-    if (isLessonAuthRequired(id, Boolean(profile.isLoggedIn))) {
-      handleRequireAuth(id);
-      return;
-    }
-    if (isLessonLockedForUser(id, isPro)) {
-      setIsSubscriptionModalOpen(true);
-      return;
+    const requirement = getEffectiveLessonRequirement(id, accessRules, isEarlyAccessFreeStatus);
+    const access = checkContentAccess(requirement, {
+      isLoggedIn: Boolean(profile.isLoggedIn),
+      isPro,
+      isChannelSubscriber: Boolean(profile.isChannelSubscriber),
+    });
+
+    if (!access.allowed) {
+      if (access.reason === 'require_auth') {
+        handleRequireAuth(id);
+        return;
+      }
+      if (access.reason === 'require_channel') {
+        setChannelModalLessonNumber(id);
+        setIsChannelModalOpen(true);
+        return;
+      }
+      if (access.reason === 'require_pro') {
+        setIsSubscriptionModalOpen(true);
+        return;
+      }
+      if (access.reason === 'require_both') {
+        if (!profile.isChannelSubscriber) {
+          setChannelModalLessonNumber(id);
+          setIsChannelModalOpen(true);
+        } else {
+          setIsSubscriptionModalOpen(true);
+        }
+        return;
+      }
     }
     const resolvedTab = tab || getFirstIncompleteLessonTab(id, profile);
     navigateTo('lesson', { lessonId: id, tab: resolvedTab });
@@ -764,7 +812,13 @@ export default function Home() {
             onSelectLesson={handleSelectLesson}
             onRequireAuth={handleRequireAuth}
             onRequirePro={() => setIsSubscriptionModalOpen(true)}
+            onRequireChannel={(lessonId) => {
+              setChannelModalLessonNumber(lessonId);
+              setIsChannelModalOpen(true);
+            }}
             onResetLessonProgress={handleResetLessonProgress}
+            accessRules={accessRules}
+            isEarlyAccessFree={isEarlyAccessFreeStatus}
           />
         )}
 
@@ -884,6 +938,38 @@ export default function Home() {
         userProfile={profile}
         onPromoActivated={handlePromoActivated}
         onOpenAuth={() => setIsAuthModalOpen(true)}
+      />
+
+      {/* Модалка проверки подписки на Telegram-канал @ulpana_il */}
+      <ChannelSubscribeModal
+        isOpen={isChannelModalOpen}
+        onClose={() => setIsChannelModalOpen(false)}
+        userProfile={profile}
+        lessonNumber={channelModalLessonNumber}
+        onOpenAuth={() => {
+          setIsChannelModalOpen(false);
+          setIsAuthModalOpen(true);
+        }}
+        onSubscriptionVerified={(isSubscriber) => {
+          if (isSubscriber) {
+            const updated = {
+              ...profile,
+              isChannelSubscriber: true,
+              channelVerifiedAt: Date.now(),
+            };
+            setProfile(updated);
+            saveUserProfile(updated);
+            if (updated.cloudSyncPending || updated.isLoggedIn) {
+              void syncToCloud(updated);
+            }
+            if (channelModalLessonNumber) {
+              const num = channelModalLessonNumber;
+              setTimeout(() => {
+                handleSelectLesson(num);
+              }, 400);
+            }
+          }
+        }}
       />
 
       {/* Плавающая кнопка сообщения об ошибке / обратной связи (можно скрыть) */}

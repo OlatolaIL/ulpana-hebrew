@@ -55,6 +55,8 @@ export async function GET(req: NextRequest) {
           email: row.email || session.email,
           subscriptionTier: tier,
           subscriptionExpiresAt: expiresAt,
+          isChannelSubscriber: Boolean(row.is_channel_subscriber),
+          channelVerifiedAt: row.channel_verified_at ? new Date(row.channel_verified_at).getTime() : null,
         };
       }
     }

@@ -32,13 +32,23 @@ import {
   MessageSquare,
   Volume2,
   Pause,
+  Lock,
+  Globe,
+  Sliders,
+  Save,
+  Send,
 } from 'lucide-react';
-import { getLessonById } from '@/data/lessonsData';
+import { getLessonById, LESSONS_CATALOG } from '@/data/lessonsData';
 import { loadLocalCallLogs } from '@/lib/storage';
 import { isVipUser } from '@/lib/vipUsers';
 import { SmartConversationPlayer } from '@/components/PhoneCallSimulator/SmartConversationPlayer';
 import { speakHebrew, stopSpeech } from '@/lib/speech';
 import { getStageNumber, getStageTitle, LESSON_STAGES } from '@/lib/config';
+import {
+  AccessRequirement,
+  getAccessRequirementLabel,
+  getDefaultLessonRequirement,
+} from '@/lib/accessPolicy';
 
 interface AdminStats {
   totalUsers: number;
@@ -137,7 +147,7 @@ interface UserDetailData {
 }
 
 export default function AdminPage() {
-  const [activeTab, setActiveTab] = useState<'stats' | 'users' | 'calls' | 'promos'>('stats');
+  const [activeTab, setActiveTab] = useState<'stats' | 'users' | 'calls' | 'promos' | 'access'>('stats');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isDbConnected, setIsDbConnected] = useState(true);
@@ -151,6 +161,17 @@ export default function AdminPage() {
   const [callTypeFilter, setCallTypeFilter] = useState<'all' | 'chat' | 'phone'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [promos, setPromos] = useState<PromoCode[]>([]);
+
+  // Access Control states
+  const [isEarlyAccessFree, setIsEarlyAccessFree] = useState(true);
+  const [lessonRules, setLessonRules] = useState<Record<number, AccessRequirement>>({});
+  const [accessRulesLoading, setAccessRulesLoading] = useState(false);
+  const [accessRulesSaving, setAccessRulesSaving] = useState(false);
+  const [accessRulesSuccess, setAccessRulesSuccess] = useState<string | null>(null);
+  const [accessRulesError, setAccessRulesError] = useState<string | null>(null);
+  const [accessSearchQuery, setAccessSearchQuery] = useState('');
+  const [accessLevelFilter, setAccessLevelFilter] = useState<'all' | 'alef' | 'bet'>('all');
+  const [accessRulesUpdatedAt, setAccessRulesUpdatedAt] = useState<string | null>(null);
 
   // User details modal
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
@@ -267,12 +288,106 @@ export default function AdminPage() {
     }
   }, []);
 
+  const fetchAccessRules = useCallback(async () => {
+    try {
+      setAccessRulesLoading(true);
+      setAccessRulesError(null);
+      const res = await fetch('/api/admin/access-rules');
+      if (res.ok) {
+        const data = await res.json();
+        setIsEarlyAccessFree(Boolean(data.isEarlyAccessFree));
+        if (data.lessonRules) {
+          const formatted: Record<number, AccessRequirement> = {};
+          for (let i = 1; i <= 100; i++) {
+            formatted[i] = data.lessonRules[i] || data.lessonRules[String(i)] || getDefaultLessonRequirement(i);
+          }
+          setLessonRules(formatted);
+        }
+        if (data.updatedAt) {
+          setAccessRulesUpdatedAt(data.updatedAt);
+        }
+      }
+    } catch (e: any) {
+      console.error(e);
+      setAccessRulesError(e.message || 'Ошибка загрузки правил доступа');
+    } finally {
+      setAccessRulesLoading(false);
+    }
+  }, []);
+
+  const handleSaveAccessRules = async () => {
+    try {
+      setAccessRulesSaving(true);
+      setAccessRulesError(null);
+      setAccessRulesSuccess(null);
+      const res = await fetch('/api/admin/access-rules', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          isEarlyAccessFree,
+          lessonRules,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        throw new Error(data.error || 'Не удалось сохранить правила');
+      }
+      setAccessRulesSuccess('Правила доступа успешно сохранены в базе данных!');
+      if (data.updatedAt) {
+        setAccessRulesUpdatedAt(data.updatedAt);
+      }
+      setTimeout(() => setAccessRulesSuccess(null), 4000);
+    } catch (e: any) {
+      setAccessRulesError(e.message || 'Ошибка сохранения правил');
+    } finally {
+      setAccessRulesSaving(false);
+    }
+  };
+
+  const applyPresetFunnel = () => {
+    setLessonRules((prev) => {
+      const updated = { ...prev };
+      for (let i = 1; i <= 5; i++) updated[i] = 'always_free';
+      for (let i = 6; i <= 10; i++) updated[i] = 'free_auth';
+      for (let i = 11; i <= 20; i++) updated[i] = 'telegram_channel';
+      for (let i = 21; i <= 100; i++) updated[i] = 'pro_only';
+      return updated;
+    });
+  };
+
+  const applyPresetStandard = () => {
+    setLessonRules((prev) => {
+      const updated = { ...prev };
+      for (let i = 1; i <= 2; i++) updated[i] = 'always_free';
+      for (let i = 3; i <= 30; i++) updated[i] = 'free_auth';
+      for (let i = 31; i <= 100; i++) updated[i] = 'pro_only';
+      return updated;
+    });
+  };
+
+  const applyBatchRange = (from: number, to: number, requirement: AccessRequirement) => {
+    setLessonRules((prev) => {
+      const updated = { ...prev };
+      for (let i = from; i <= to; i++) {
+        updated[i] = requirement;
+      }
+      return updated;
+    });
+  };
+
+  const handleLessonRuleChange = (lessonId: number, requirement: AccessRequirement) => {
+    setLessonRules((prev) => ({
+      ...prev,
+      [lessonId]: requirement,
+    }));
+  };
+
   const loadAllData = useCallback(async () => {
     setLoading(true);
     setError(null);
-    await Promise.all([fetchStats(), fetchUsers(), fetchCalls(), fetchPromos()]);
+    await Promise.all([fetchStats(), fetchUsers(), fetchCalls(), fetchPromos(), fetchAccessRules()]);
     setLoading(false);
-  }, [fetchStats, fetchUsers, fetchCalls, fetchPromos]);
+  }, [fetchStats, fetchUsers, fetchCalls, fetchPromos, fetchAccessRules]);
 
   useEffect(() => {
     loadAllData();
@@ -592,6 +707,21 @@ export default function AdminPage() {
                 {promos.length}
               </span>
             )}
+          </button>
+
+          <button
+            onClick={() => {
+              setActiveTab('access');
+              fetchAccessRules();
+            }}
+            className={`px-4 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 transition ${
+              activeTab === 'access'
+                ? 'bg-blue-600 text-white shadow-sm'
+                : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900'
+            }`}
+          >
+            <ShieldCheck className="w-4 h-4" />
+            <span>Доступ к контенту</span>
           </button>
         </div>
 
@@ -1381,6 +1511,372 @@ export default function AdminPage() {
                   })}
               </div>
             )}
+          </div>
+        )}
+
+        {/* TAB 5: CONTENT ACCESS CONTROL */}
+        {activeTab === 'access' && (
+          <div className="flex flex-col gap-6">
+            {/* Header / Save Bar */}
+            <div className="bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200 dark:border-zinc-800 p-6 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div>
+                <h2 className="text-xl font-bold text-zinc-900 dark:text-zinc-50 flex items-center gap-2">
+                  <ShieldCheck className="w-6 h-6 text-blue-600" />
+                  <span>Управление доступом к урокам</span>
+                </h2>
+                <p className="text-xs text-zinc-400 mt-1">
+                  Настройка правил раннего доступа (бета), проверки Telegram-канала @ulpana_il и PRO-тарифов для 100 уроков курса.
+                </p>
+                {accessRulesUpdatedAt && (
+                  <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-1">
+                    Последнее сохранение: {new Date(accessRulesUpdatedAt).toLocaleString('ru-RU')}
+                  </p>
+                )}
+              </div>
+
+              <div className="flex items-center gap-3 w-full sm:w-auto">
+                <button
+                  type="button"
+                  onClick={fetchAccessRules}
+                  disabled={accessRulesLoading}
+                  className="p-2.5 rounded-xl border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400 transition"
+                  title="Перезагрузить правила из базы"
+                >
+                  <RefreshCw className={`w-4 h-4 ${accessRulesLoading ? 'animate-spin' : ''}`} />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleSaveAccessRules}
+                  disabled={accessRulesSaving}
+                  className="flex-1 sm:flex-initial px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 active:scale-98 text-white font-bold text-sm flex items-center justify-center gap-2 shadow-sm transition disabled:opacity-50"
+                >
+                  <Save className="w-4 h-4" />
+                  <span>{accessRulesSaving ? 'Сохранение...' : 'Сохранить правила'}</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Notification messages */}
+            {accessRulesSuccess && (
+              <div className="p-4 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 rounded-2xl flex items-center gap-3 text-sm text-emerald-800 dark:text-emerald-300 animate-in fade-in">
+                <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                <span className="font-medium">{accessRulesSuccess}</span>
+              </div>
+            )}
+
+            {accessRulesError && (
+              <div className="p-4 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/60 rounded-2xl flex items-center gap-3 text-sm text-rose-800 dark:text-rose-300 animate-in fade-in">
+                <AlertCircle className="w-5 h-5 text-rose-600 dark:text-rose-400 shrink-0" />
+                <span className="font-medium">{accessRulesError}</span>
+              </div>
+            )}
+
+            {/* Global Early Access Switch */}
+            <div className="bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200 dark:border-zinc-800 p-6 shadow-sm flex flex-col gap-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-bold text-base text-zinc-900 dark:text-zinc-50 flex items-center gap-2">
+                    <Globe className="w-5 h-5 text-blue-500" />
+                    <span>Глобальный режим доступа платформы</span>
+                  </h3>
+                  <p className="text-xs text-zinc-400 mt-0.5">
+                    Определяет, открыт ли весь курс для бесплатного бета-тестирования или действуют правила доступа ниже.
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsEarlyAccessFree(true)}
+                  className={`p-4 rounded-2xl border text-left transition flex flex-col gap-2 ${
+                    isEarlyAccessFree
+                      ? 'border-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/20 ring-2 ring-emerald-500/20'
+                      : 'border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-sm text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+                      Бета-режим (Открытый доступ)
+                    </span>
+                    {isEarlyAccessFree && (
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 dark:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300">
+                        АКТИВЕН
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                    Все 100 уроков, словарь, тесты, ИИ-диалоги и звонки открыты бесплатно для всех учеников.
+                  </p>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setIsEarlyAccessFree(false)}
+                  className={`p-4 rounded-2xl border text-left transition flex flex-col gap-2 ${
+                    !isEarlyAccessFree
+                      ? 'border-blue-500 bg-blue-50/50 dark:bg-blue-950/20 ring-2 ring-blue-500/20'
+                      : 'border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-sm text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
+                      Боевой режим (Production)
+                    </span>
+                    {!isEarlyAccessFree && (
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300">
+                        АКТИВЕН
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                    Доступ строго регулируется правилами каждого урока (гость, авторизация, Telegram-канал, PRO).
+                  </p>
+                </button>
+              </div>
+            </div>
+
+            {/* Batch Action Presets */}
+            <div className="bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200 dark:border-zinc-800 p-6 shadow-sm flex flex-col gap-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-bold text-base text-zinc-900 dark:text-zinc-50 flex items-center gap-2">
+                    <Sliders className="w-5 h-5 text-indigo-500" />
+                    <span>Быстрые пакетные шаблоны (Presets)</span>
+                  </h3>
+                  <p className="text-xs text-zinc-400 mt-0.5">
+                    Примените готовые сценарии доступа в один клик перед сохранением:
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={applyPresetFunnel}
+                  className="px-3 py-2 rounded-xl text-xs font-bold bg-sky-50 dark:bg-sky-950/40 text-sky-700 dark:text-sky-300 border border-sky-200 dark:border-sky-900 hover:bg-sky-100 dark:hover:bg-sky-900/60 transition"
+                >
+                  🚀 Воронка: 1-5 Free | 6-10 Auth | 11-20 @ulpana_il | 21+ PRO
+                </button>
+
+                <button
+                  type="button"
+                  onClick={applyPresetStandard}
+                  className="px-3 py-2 rounded-xl text-xs font-bold bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition"
+                >
+                  🎁 Базовый стандарт: 1-2 Free | 3-30 Auth | 31+ PRO
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => applyBatchRange(1, 5, 'always_free')}
+                  className="px-3 py-2 rounded-xl text-xs font-semibold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-900 hover:bg-emerald-100 transition"
+                >
+                  Уроки 1-5: Free
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => applyBatchRange(6, 10, 'free_auth')}
+                  className="px-3 py-2 rounded-xl text-xs font-semibold bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-900 hover:bg-blue-100 transition"
+                >
+                  Уроки 6-10: Регистрация
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => applyBatchRange(11, 20, 'telegram_channel')}
+                  className="px-3 py-2 rounded-xl text-xs font-semibold bg-sky-50 dark:bg-sky-950/40 text-sky-700 dark:text-sky-300 border border-sky-200 dark:border-sky-900 hover:bg-sky-100 transition"
+                >
+                  Уроки 11-20: Канал @ulpana_il
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => applyBatchRange(21, 100, 'pro_only')}
+                  className="px-3 py-2 rounded-xl text-xs font-semibold bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-900 hover:bg-amber-100 transition"
+                >
+                  Уроки 21+: PRO
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => applyBatchRange(1, 100, 'always_free')}
+                  className="px-3 py-2 rounded-xl text-xs font-semibold bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-200 transition"
+                >
+                  Все 100 уроков: Free
+                </button>
+              </div>
+            </div>
+
+            {/* Lessons Table with Individual Selectors */}
+            <div className="bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-sm overflow-hidden flex flex-col">
+              {/* Table Toolbar */}
+              <div className="p-5 border-b border-zinc-200 dark:border-zinc-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <h3 className="font-bold text-base text-zinc-900 dark:text-zinc-50">
+                    Правила доступа для уроков
+                  </h3>
+                  <span className="text-xs text-zinc-400">Каталог (100 уроков)</span>
+                </div>
+
+                <div className="flex items-center gap-2 w-full sm:w-auto">
+                  {/* Filter by Level */}
+                  <div className="flex rounded-xl bg-zinc-100 dark:bg-zinc-800 p-1 text-xs font-medium">
+                    <button
+                      type="button"
+                      onClick={() => setAccessLevelFilter('all')}
+                      className={`px-3 py-1.5 rounded-lg transition ${
+                        accessLevelFilter === 'all'
+                          ? 'bg-white dark:bg-zinc-700 font-bold shadow-xs text-zinc-900 dark:text-zinc-50'
+                          : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
+                      }`}
+                    >
+                      Все
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setAccessLevelFilter('alef')}
+                      className={`px-3 py-1.5 rounded-lg transition ${
+                        accessLevelFilter === 'alef'
+                          ? 'bg-white dark:bg-zinc-700 font-bold shadow-xs text-zinc-900 dark:text-zinc-50'
+                          : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
+                      }`}
+                    >
+                      Алеф (1–50)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setAccessLevelFilter('bet')}
+                      className={`px-3 py-1.5 rounded-lg transition ${
+                        accessLevelFilter === 'bet'
+                          ? 'bg-white dark:bg-zinc-700 font-bold shadow-xs text-zinc-900 dark:text-zinc-50'
+                          : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
+                      }`}
+                    >
+                      Бет (51–100)
+                    </button>
+                  </div>
+
+                  {/* Search */}
+                  <div className="relative flex-1 sm:w-60">
+                    <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+                    <input
+                      type="text"
+                      placeholder="Поиск по уроку..."
+                      value={accessSearchQuery}
+                      onChange={(e) => setAccessSearchQuery(e.target.value)}
+                      className="w-full pl-9 pr-4 py-1.5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800/60 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Table */}
+              <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
+                <table className="w-full text-left text-sm">
+                  <thead className="bg-zinc-50 dark:bg-zinc-800/50 text-zinc-500 dark:text-zinc-400 text-xs uppercase font-semibold sticky top-0 z-10 backdrop-blur-sm">
+                    <tr>
+                      <th className="px-5 py-3.5 w-16">№</th>
+                      <th className="px-5 py-3.5 w-24">Уровень</th>
+                      <th className="px-5 py-3.5">Название урока</th>
+                      <th className="px-5 py-3.5 w-72">Правило доступа</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
+                    {LESSONS_CATALOG.filter((lesson) => {
+                      if (accessLevelFilter === 'alef' && lesson.id > 50) return false;
+                      if (accessLevelFilter === 'bet' && lesson.id <= 50) return false;
+                      if (accessSearchQuery.trim()) {
+                        const q = accessSearchQuery.toLowerCase();
+                        const matchNum = String(lesson.id) === q || String(lesson.number) === q;
+                        const matchRu = lesson.titleRussian.toLowerCase().includes(q);
+                        const matchHe = lesson.titleHebrew.includes(q);
+                        return matchNum || matchRu || matchHe;
+                      }
+                      return true;
+                    }).map((lesson) => {
+                      const currentRule: AccessRequirement =
+                        lessonRules[lesson.id] || getDefaultLessonRequirement(lesson.id);
+
+                      return (
+                        <tr key={lesson.id} className="hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition">
+                          <td className="px-5 py-3 font-mono font-bold text-xs text-zinc-500">
+                            #{lesson.id}
+                          </td>
+                          <td className="px-5 py-3">
+                            <span
+                              className={`px-2 py-0.5 rounded-md text-[11px] font-bold ${
+                                lesson.id <= 50
+                                  ? 'bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300'
+                                  : 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300'
+                              }`}
+                            >
+                              {lesson.level.toUpperCase()}
+                            </span>
+                          </td>
+                          <td className="px-5 py-3">
+                            <div className="font-semibold text-xs text-zinc-900 dark:text-zinc-100">
+                              {lesson.titleRussian}
+                            </div>
+                            <div className="text-[11px] text-zinc-400 font-hebrew" dir="rtl">
+                              {lesson.titleHebrew}
+                            </div>
+                          </td>
+                          <td className="px-5 py-3">
+                            <select
+                              value={currentRule}
+                              onChange={(e) =>
+                                handleLessonRuleChange(lesson.id, e.target.value as AccessRequirement)
+                              }
+                              className={`w-full py-1.5 px-3 rounded-xl text-xs font-bold border transition focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                                currentRule === 'always_free'
+                                  ? 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-300 dark:border-emerald-800 text-emerald-800 dark:text-emerald-200'
+                                  : currentRule === 'free_auth'
+                                  ? 'bg-blue-50 dark:bg-blue-950/30 border-blue-300 dark:border-blue-800 text-blue-800 dark:text-blue-200'
+                                  : currentRule === 'telegram_channel'
+                                  ? 'bg-sky-50 dark:bg-sky-950/30 border-sky-300 dark:border-sky-800 text-sky-800 dark:text-sky-200'
+                                  : currentRule === 'pro_only'
+                                  ? 'bg-amber-50 dark:bg-amber-950/30 border-amber-300 dark:border-amber-800 text-amber-800 dark:text-amber-200'
+                                  : currentRule === 'pro_or_channel'
+                                  ? 'bg-purple-50 dark:bg-purple-950/30 border-purple-300 dark:border-purple-800 text-purple-800 dark:text-purple-200'
+                                  : 'bg-indigo-50 dark:bg-indigo-950/30 border-indigo-300 dark:border-indigo-800 text-indigo-800 dark:text-indigo-200'
+                              }`}
+                            >
+                              <option value="always_free">🟢 Бесплатно для всех</option>
+                              <option value="free_auth">🔵 Нужна регистрация</option>
+                              <option value="telegram_channel">📱 Канал @ulpana_il</option>
+                              <option value="pro_only">👑 Только PRO</option>
+                              <option value="pro_or_channel">🟣 PRO или Канал @ulpana_il</option>
+                              <option value="pro_and_channel">🔷 PRO + Канал @ulpana_il</option>
+                            </select>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Bottom Sticky Save Bar */}
+              <div className="p-4 bg-zinc-50 dark:bg-zinc-800/50 border-t border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
+                <span className="text-xs text-zinc-500 dark:text-zinc-400">
+                  Не забудьте нажать «Сохранить правила», чтобы изменения вступили в силу.
+                </span>
+                <button
+                  type="button"
+                  onClick={handleSaveAccessRules}
+                  disabled={accessRulesSaving}
+                  className="px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 active:scale-98 text-white font-bold text-xs flex items-center gap-2 shadow-sm transition disabled:opacity-50"
+                >
+                  <Save className="w-4 h-4" />
+                  <span>{accessRulesSaving ? 'Сохранение...' : 'Сохранить правила'}</span>
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </main>

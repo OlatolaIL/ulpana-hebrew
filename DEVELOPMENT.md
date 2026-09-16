@@ -100,6 +100,23 @@ ChatGPT — архитектор и независимая приёмка; Gemin
 - TypeScript чист (0 ошибок). Уровень несоответствия языка также объясняется reasoning-моделью; ожидается улучшение с llama.
 - Нужно: если на боевом Vercel задан `GROQ_MODEL` — убедиться что он не `gpt-oss-120b`. Если переменная не задана — деплой подхватит новый дефолт автоматически.
 
+**16.09.2026 — Движок политик доступа, Telegram-канал @ulpana_il и управление в /admin:**
+- Реализована серверная проверка подписки на Telegram-канал @ulpana_il (`/api/auth/telegram/check-channel`) через Telegram Bot API с сохранением в БД Postgres (`ulpana_users.is_channel_subscriber`, `channel_verified_at`).
+- Создан движок политик доступа `src/lib/accessPolicy.ts` (`always_free`, `free_auth`, `telegram_channel`, `pro_only`, `pro_or_channel`, `pro_and_channel`) с безопасным fallback на `src/lib/config.ts`.
+- Реализована таблица `ulpana_access_rules` и эндпоинт `/api/admin/access-rules` (GET/POST, защита через `verifyAdminRequest` и `isVipUser`).
+- В `/admin` добавлена вкладка «Доступ к контенту» с переключателем режима (бета/боевой), пакетными кнопками (presets) и таблицей для всех 100 уроков с индивидуальными селекторами.
+- Создано модальное окно `ChannelSubscribeModal` для учеников с возможностью мгновенной верификации и обновления профиля.
+- Интегрировано в `CourseMap` и `page.tsx`.
+- Прогон: 150/150 тестов (`npm test`), `typecheck` 0 ошибок, `npm run audit:intent` 0 нарушений.
+
+**16.09.2026 — Защита разбора устной речи (P-10, R-15), Whisper и хранение аудио звонков:**
+- Устранена проблема в `src/components/PhoneCallSimulator/usePhoneCall.ts`: пауза по таймауту тишины отправляла сырой текст Web Speech API на мобильных устройствах, минуя серверный Whisper (`/api/ai/transcribe`), из-за чего фонетическое искажение ("הכל" -> "עכל") попадало в разбор как орфографическая ошибка.
+- В `/api/ai/phone/debrief` внедрено строгое правило: звонок является устной речью, запрещено критиковать орфографию, буквы, опечатки и омофоны (`ע/א/ה`, `כ/ק`, `ט/ת`, `ס/שׂ`). В `normalizeReport` добавлен фильтр, отсекающий любые галлюцинации LLM про буквы и правописание.
+- В `DialogueReviewModal.tsx` разделены RTL иврит и LTR русский перевод (устранены инверсии скобок `(!...` в BiDi).
+- В `usePhoneCall.ts` `currentMessages.forEach(async ...)` заменен на `await Promise.all(...)` перед вызовом `/api/calls/log`, что исключило сохранение временных `blob:` URL в базу данных. В Neon Postgres создана таблица `ulpana_audio_blobs` для хранения аудиозаписей звонков.
+- В паспорте `docs/mechanics/stage-06-phone-call.md` зафиксирован инвариант P-10 (Debrief Oral Protection & Audio Persistence).
+
+
 Историческая сверка 23 замечаний завершена: 11 подтверждено, 6 частично, 4 предложения, 1 опровергнуто, 1 недостаточно оснований. Ревью pilot-01-05-review.md и pilot-remediation.json сохраняют исходные вердикты отдельно от состояния исправлений; не начинать сверку заново.
 
 ### Текущий кандидат и единственный следующий шаг разработчика

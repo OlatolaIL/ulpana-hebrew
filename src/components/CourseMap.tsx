@@ -18,6 +18,11 @@ import { LESSONS_CATALOG } from '@/data/lessonsData';
 import { Level, UserProfile } from '@/types';
 import { stripNikkud } from '@/lib/transcription';
 import { isLessonLockedForUser, isLessonAuthRequired } from '@/lib/config';
+import {
+  AccessRequirement,
+  checkContentAccess,
+  getEffectiveLessonRequirement,
+} from '@/lib/accessPolicy';
 import { TierBadge } from './TierBadge';
 import { useBannerCooldown } from '@/lib/useBannerCooldown';
 import { LESSON_STAGES_ORDER } from '@/lib/storage';
@@ -29,7 +34,10 @@ interface CourseMapProps {
   onSelectLesson: (lessonId: number) => void;
   onRequirePro?: (lessonId: number) => void;
   onRequireAuth?: (lessonId: number) => void;
+  onRequireChannel?: (lessonId: number) => void;
   onResetLessonProgress?: (lessonId: number) => void;
+  accessRules?: Record<number, AccessRequirement> | null;
+  isEarlyAccessFree?: boolean;
 }
 
 interface DecadeBlock {
@@ -64,7 +72,10 @@ export const CourseMap: React.FC<CourseMapProps> = ({
   onSelectLesson,
   onRequirePro,
   onRequireAuth,
+  onRequireChannel,
   onResetLessonProgress,
+  accessRules,
+  isEarlyAccessFree,
 }) => {
   const isPro = userProfile.subscriptionTier === 'pro' || userProfile.subscriptionTier === 'admin';
   const { isVisible: isBetaBannerVisible, dismiss: dismissBetaBanner } = useBannerCooldown('course_map_beta');
@@ -439,21 +450,42 @@ export const CourseMap: React.FC<CourseMapProps> = ({
             const progress = userProfile.lessonProgress[lesson.id];
             const completedTabsCount = progress?.completedTabs?.length || 0;
             const hasProgress = isCompleted || completedTabsCount > 0;
-            const isLessonAuth = isLessonAuthRequired(lesson.id, isLoggedIn);
-            const isLessonLocked = isLessonLockedForUser(lesson.id, isPro);
+            const req = getEffectiveLessonRequirement(lesson.id, accessRules, isEarlyAccessFree);
+            const access = checkContentAccess(req, {
+              isLoggedIn,
+              isPro,
+              isChannelSubscriber: Boolean(userProfile.isChannelSubscriber),
+            });
+            const isLessonAuth = !access.allowed && access.reason === 'require_auth';
+            const isLessonChannel = !access.allowed && access.reason === 'require_channel';
+            const isLessonLocked = !access.allowed && (access.reason === 'require_pro' || access.reason === 'require_both');
             const isCurrent = lesson.id === currentLessonId;
 
             const handleCardClick = () => {
-              if (isLessonAuth) {
-                if (onRequireAuth) onRequireAuth(lesson.id);
-                else onSelectLesson(lesson.id);
-                return;
+              if (!access.allowed) {
+                if (access.reason === 'require_auth') {
+                  if (onRequireAuth) onRequireAuth(lesson.id);
+                  else onSelectLesson(lesson.id);
+                  return;
+                }
+                if (access.reason === 'require_channel') {
+                  if (onRequireChannel) onRequireChannel(lesson.id);
+                  return;
+                }
+                if (access.reason === 'require_pro') {
+                  if (onRequirePro) onRequirePro(lesson.id);
+                  return;
+                }
+                if (access.reason === 'require_both') {
+                  if (!userProfile.isChannelSubscriber && onRequireChannel) {
+                    onRequireChannel(lesson.id);
+                  } else if (onRequirePro) {
+                    onRequirePro(lesson.id);
+                  }
+                  return;
+                }
               }
-              if (isLessonLocked) {
-                if (onRequirePro) onRequirePro(lesson.id);
-              } else {
-                onSelectLesson(lesson.id);
-              }
+              onSelectLesson(lesson.id);
             };
 
             const handleReset = (e: React.MouseEvent) => {
@@ -475,6 +507,8 @@ export const CourseMap: React.FC<CourseMapProps> = ({
                     ? 'border-blue-500 dark:border-blue-400 ring-2 ring-blue-500/20 bg-blue-50/30 dark:bg-blue-950/20 shadow-sm'
                     : isLessonLocked
                     ? 'border-zinc-200 dark:border-zinc-800 bg-zinc-50/60 dark:bg-zinc-900/40 opacity-85 hover:border-amber-400'
+                    : isLessonChannel
+                    ? 'border-sky-300 dark:border-sky-800 bg-sky-50/30 dark:bg-sky-950/20 hover:border-sky-400 shadow-xs'
                     : isLessonAuth
                     ? 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 hover:border-indigo-400 dark:hover:border-indigo-500/50 shadow-xs hover:shadow-sm'
                     : 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 hover:border-blue-400 dark:hover:border-blue-500/50 shadow-xs hover:shadow-sm'
@@ -507,7 +541,12 @@ export const CourseMap: React.FC<CourseMapProps> = ({
                       </span>
                     )}
 
-                    {isLessonAuth ? (
+                    {req === 'telegram_channel' ? (
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-sky-100 dark:bg-sky-950/60 text-sky-700 dark:text-sky-300 flex items-center gap-1">
+                        <Send className="w-2.5 h-2.5" />
+                        <span>Канал @ulpana_il</span>
+                      </span>
+                    ) : isLessonAuth ? (
                       <TierBadge tier="free-registration" size="xs" customLabel="Бесплатно • Регистрация" />
                     ) : lesson.id > 30 ? (
                       <TierBadge tier="pro-beta" size="xs" />
@@ -530,7 +569,7 @@ export const CourseMap: React.FC<CourseMapProps> = ({
                   </div>
                 </div>
 
-                {/* Статус урока: зеленая галочка / замок / вход / стрелка */}
+                {/* Статус урока: зеленая галочка / замок / канал / вход / стрелка */}
                 <div className="shrink-0 flex items-center gap-1.5 sm:gap-2">
                   {/* Кнопка сброса прогресса */}
                   {hasProgress && onResetLessonProgress && (
@@ -545,7 +584,12 @@ export const CourseMap: React.FC<CourseMapProps> = ({
                     </button>
                   )}
 
-                  {isLessonLocked ? (
+                  {isLessonChannel ? (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[11px] font-bold bg-sky-100 dark:bg-sky-950/60 text-sky-800 dark:text-sky-300 border border-sky-200/70 dark:border-sky-800/60">
+                      <Send className="w-3 h-3 text-sky-600 dark:text-sky-400" />
+                      <span>Канал</span>
+                    </span>
+                  ) : isLessonLocked ? (
                     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[11px] font-bold bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300">
                       <span>🔒</span>
                       <span>PRO</span>

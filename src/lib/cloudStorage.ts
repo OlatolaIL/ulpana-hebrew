@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import type { S3Client } from '@aws-sdk/client-s3';
+import { getDbPool, initDatabase } from './db';
 
 export interface UploadOptions {
   buffer: Buffer;
@@ -101,8 +102,24 @@ export async function uploadAudioFile({ buffer, key, contentType = 'audio/webm' 
         return recordingUrl(key);
       }
     } catch (error) {
-      console.error('[Storage] Cloud upload failed:', error);
-      throw new Error('Recording storage unavailable');
+      console.error('[Storage] Cloud upload failed, trying database fallback:', error);
+    }
+  }
+
+  // 2. Fallback в PostgreSQL (Neon DB) при отсутствии или сбое S3/R2
+  const db = getDbPool();
+  if (db) {
+    try {
+      await initDatabase();
+      await db.query(
+        `INSERT INTO ulpana_audio_blobs (key, data, content_type)
+         VALUES ($1, $2, $3)
+         ON CONFLICT (key) DO UPDATE SET data = EXCLUDED.data, content_type = EXCLUDED.content_type`,
+        [key, buffer, contentType]
+      );
+      return recordingUrl(key);
+    } catch (dbErr) {
+      console.error('[Storage] Database audio save error:', dbErr);
     }
   }
 
@@ -110,7 +127,7 @@ export async function uploadAudioFile({ buffer, key, contentType = 'audio/webm' 
     throw new Error('Private cloud recording storage is required in production');
   }
 
-  // 2. Development-only private storage outside public/.
+  // 3. Development-only private storage outside public/.
   try {
     const localPath = privateAudioPath(key);
     const localDir = path.dirname(localPath);
@@ -136,6 +153,14 @@ export async function deleteAudioFile(keyOrUrl: string): Promise<boolean> {
       ? new URL(keyOrUrl, 'http://localhost').searchParams.get('key') || ''
       : keyOrUrl;
     validateAudioKey(key);
+
+    const db = getDbPool();
+    if (db) {
+      try {
+        await db.query('DELETE FROM ulpana_audio_blobs WHERE key = $1', [key]);
+      } catch {}
+    }
+
     if (!isCloudStorageConfigured() && process.env.NODE_ENV !== 'production') {
       const localPath = privateAudioPath(key);
       if (fs.existsSync(localPath)) {
@@ -168,16 +193,37 @@ export async function deleteAudioFile(keyOrUrl: string): Promise<boolean> {
 export async function readAudioFile(key: string): Promise<{ data: Uint8Array; contentType: string }> {
   validateAudioKey(key);
   if (isCloudStorageConfigured()) {
-    const client = await getS3Client();
-    if (!client) throw new Error('Recording storage unavailable');
-    const { GetObjectCommand } = await import('@aws-sdk/client-s3');
-    const result = await client.send(new GetObjectCommand({
-      Bucket: process.env.R2_BUCKET_NAME || process.env.AWS_S3_BUCKET,
-      Key: key,
-    }));
-    if (!result.Body) throw new Error('Recording not found');
-    return { data: await result.Body.transformToByteArray(), contentType: result.ContentType || 'audio/webm' };
+    try {
+      const client = await getS3Client();
+      if (client) {
+        const { GetObjectCommand } = await import('@aws-sdk/client-s3');
+        const result = await client.send(new GetObjectCommand({
+          Bucket: process.env.R2_BUCKET_NAME || process.env.AWS_S3_BUCKET,
+          Key: key,
+        }));
+        if (result.Body) {
+          return { data: await result.Body.transformToByteArray(), contentType: result.ContentType || 'audio/webm' };
+        }
+      }
+    } catch (err) {
+      console.warn('[Storage] S3 read failed, checking database fallback:', err);
+    }
   }
+
+  // Fallback в PostgreSQL
+  const db = getDbPool();
+  if (db) {
+    try {
+      await initDatabase();
+      const res = await db.query('SELECT data, content_type FROM ulpana_audio_blobs WHERE key = $1', [key]);
+      if (res.rows.length > 0) {
+        return { data: res.rows[0].data, contentType: res.rows[0].content_type || 'audio/webm' };
+      }
+    } catch (dbErr) {
+      console.warn('[Storage] Database audio read error:', dbErr);
+    }
+  }
+
   if (process.env.NODE_ENV === 'production') throw new Error('Recording storage unavailable');
   return { data: fs.readFileSync(privateAudioPath(key)), contentType: key.endsWith('.m4a') ? 'audio/mp4' : key.endsWith('.aac') ? 'audio/aac' : 'audio/webm' };
 }

@@ -412,6 +412,22 @@ export interface UserSession {
   email?: string;
   subscriptionTier: SubscriptionTier;
   subscriptionExpiresAt?: number | null;
+  isChannelSubscriber?: boolean;
+  channelVerifiedAt?: number | null;
+}
+
+export type AccessRequirement =
+  | 'always_free'
+  | 'free_auth'
+  | 'telegram_channel'
+  | 'pro_only'
+  | 'pro_or_channel'
+  | 'pro_and_channel';
+
+export interface ContentAccessRules {
+  isEarlyAccessFree: boolean;
+  lessonRules: Record<number, AccessRequirement>;
+  updatedAt?: string;
 }
 
 export interface PromoCode {
@@ -449,6 +465,8 @@ export interface UserProfile {
   isLoggedIn?: boolean;
   subscriptionTier?: SubscriptionTier;
   subscriptionExpiresAt?: number | null;
+  isChannelSubscriber?: boolean;
+  channelVerifiedAt?: number | null;
   name: string;
   gender: UserGender;
   aiProvider: AiProvider;

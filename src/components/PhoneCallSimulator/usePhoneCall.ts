@@ -228,7 +228,8 @@ export function usePhoneCall({
         setLiveTranscript(transcript);
         setSpeechNotice(null);
 
-        // Резервный таймер авто-отправки при паузе в речи (1.5 сек для уроков 1-10, 1.3 сек для остальных)
+        // Резервный таймер авто-отправки при паузе в речи:
+        // Останавливает запись, чтобы MediaRecorder сформировал blob и запустил серверный Whisper V3
         if (silenceTimeoutRef.current) clearTimeout(silenceTimeoutRef.current);
         if (transcript.trim() && !isWhisperSilenceHallucination(transcript.trim())) {
           silenceTimeoutRef.current = setTimeout(() => {
@@ -241,7 +242,11 @@ export function usePhoneCall({
               !isAiSpeakingRef.current &&
               !isMutedRef.current
             ) {
-              handleSendMessage(transcript.trim());
+              if (recognizerRef.current) {
+                recognizerRef.current.stop();
+              } else {
+                handleSendMessage(transcript.trim());
+              }
             }
           }, silenceDelayMs);
         }
@@ -662,34 +667,36 @@ export function usePhoneCall({
 
     const currentMessages = messagesRef.current;
 
-    // Фоновая выгрузка аудиозаписей реплик ученика на сервер/в облако (строго 1 последняя попытка)
-    currentMessages.forEach(async (m, idx) => {
-      if (userProfile.isLoggedIn && m.role === 'user' && m.userAudioBlob) {
-        try {
-          const form = new FormData();
-          form.append('file', m.userAudioBlob);
-          form.append('lessonId', String(lesson.id));
-          form.append('stage', 'phone');
-          form.append('turnIndex', String(idx));
-          form.append('durationSeconds', String(finalDurationSeconds));
-          if (userProfile.id) form.append('userId', userProfile.id);
+    // Выгрузка аудиозаписей реплик ученика на сервер/в облако (строго 1 последняя попытка)
+    await Promise.all(
+      currentMessages.map(async (m, idx) => {
+        if (m.role === 'user' && m.userAudioBlob) {
+          try {
+            const form = new FormData();
+            form.append('file', m.userAudioBlob);
+            form.append('lessonId', String(lesson.id));
+            form.append('stage', 'phone');
+            form.append('turnIndex', String(idx));
+            form.append('durationSeconds', String(finalDurationSeconds));
+            if (userProfile.id) form.append('userId', userProfile.id);
 
-          const upRes = await fetch('/api/audio/upload', {
-            method: 'POST',
-            body: form,
-          });
-          if (upRes.ok) {
-            const data = await upRes.json();
-            if (generation === callGenerationRef.current && data.url) {
-              m.userAudioUrl = data.url;
-              setBothMessages([...messagesRef.current]);
+            const upRes = await fetch('/api/audio/upload', {
+              method: 'POST',
+              body: form,
+            });
+            if (upRes.ok) {
+              const data = await upRes.json();
+              if (generation === callGenerationRef.current && data.url) {
+                m.userAudioUrl = data.url;
+              }
             }
+          } catch (e) {
+            console.warn('[PhoneCall] Failed to upload audio turn', idx, e);
           }
-        } catch (e) {
-          console.warn('[PhoneCall] Failed to upload audio turn', idx, e);
         }
-      }
-    });
+      })
+    );
+    setBothMessages([...messagesRef.current]);
 
     const formattedTranscript = currentMessages.map((m) => ({
       role: m.role,
