@@ -275,7 +275,8 @@ export const TrainerVictoryModal: React.FC<TrainerVictoryModalProps> = ({
             <button
               type="button"
               onClick={onRestart}
-              className="flex-1 py-3 px-4 rounded-xl border border-zinc-200 dark:border-zinc-700 font-semibold text-sm hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 transition cursor-pointer"
+              disabled={masterWordsLength === 0}
+              className="flex-1 py-3 px-4 rounded-xl border border-zinc-200 dark:border-zinc-700 font-semibold text-sm hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Повторить снова
             </button>
@@ -292,7 +293,8 @@ export const TrainerVictoryModal: React.FC<TrainerVictoryModalProps> = ({
             <button
               type="button"
               onClick={onShuffleRestart}
-              className="flex-1 py-3 px-4 rounded-xl border border-purple-200 dark:border-purple-800 bg-purple-50 dark:purple-950/40 hover:bg-purple-100 dark:hover:bg-purple-900/60 font-semibold text-sm text-purple-700 dark:text-purple-300 transition flex items-center justify-center gap-2 cursor-pointer"
+              disabled={masterWordsLength === 0}
+              className="flex-1 py-3 px-4 rounded-xl border border-purple-200 dark:border-purple-800 bg-purple-50 dark:purple-950/40 hover:bg-purple-100 dark:hover:bg-purple-900/60 font-semibold text-sm text-purple-700 dark:text-purple-300 transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Shuffle className="w-4 h-4" />
               <span>Перемешать и учить</span>

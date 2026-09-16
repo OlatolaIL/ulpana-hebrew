@@ -129,7 +129,7 @@ export default function Home() {
 
   const initializeNavigation = useCallback((verifiedProfile: UserProfile) => {
     // Первичная инициализация состояния из hash
-    const initialHash = window.location.hash;
+    let initialHash = window.location.hash;
     let initialView: ViewMode = 'map';
     let initialLessonId = 1;
     let initialTab: LessonStageTab = 'theory';
@@ -154,7 +154,51 @@ export default function Home() {
         }
       }
     } else if (initialHash === '#flashcards') {
-      initialView = 'flashcards';
+      let recoveredWords: Word[] = [];
+      let recoveredTitle = 'Тренировка карточек';
+      let recoveredMode: 'flip' | 'builder' | 'listening' | 'auto_audio' = 'flip';
+      let recoveredDirection: 'he-ru' | 'ru-he' = 'he-ru';
+      let recoveredShuffle = false;
+      let recoveredLessonId: number | null = null;
+
+      try {
+        const state = typeof window !== 'undefined' ? window.history.state : null;
+        if (state && Array.isArray(state.flashcardWords) && state.flashcardWords.length > 0) {
+          recoveredWords = state.flashcardWords;
+          if (state.flashcardTitle) recoveredTitle = state.flashcardTitle;
+          if (state.flashcardMode) recoveredMode = state.flashcardMode;
+          if (state.flashcardDirection) recoveredDirection = state.flashcardDirection;
+          if (state.flashcardShuffle !== undefined) recoveredShuffle = state.flashcardShuffle;
+          if (state.flashcardSourceLessonId !== undefined) recoveredLessonId = state.flashcardSourceLessonId;
+        } else if (typeof window !== 'undefined') {
+          const raw = sessionStorage.getItem('ulpana_active_flashcards');
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed.words) && parsed.words.length > 0) {
+              recoveredWords = parsed.words;
+              if (parsed.title) recoveredTitle = parsed.title;
+              if (parsed.mode) recoveredMode = parsed.mode;
+              if (parsed.direction) recoveredDirection = parsed.direction;
+              if (parsed.shuffle !== undefined) recoveredShuffle = parsed.shuffle;
+              if (parsed.lessonId !== undefined) recoveredLessonId = parsed.lessonId;
+            }
+          }
+        }
+      } catch {}
+
+      if (recoveredWords.length > 0) {
+        initialView = 'flashcards';
+        setFlashcardWords(recoveredWords);
+        setFlashcardTitle(recoveredTitle);
+        setFlashcardMode(recoveredMode);
+        setFlashcardDirection(recoveredDirection);
+        setFlashcardShuffle(recoveredShuffle);
+        setFlashcardSourceLessonId(recoveredLessonId);
+      } else {
+        // Нет сохраненных слов для тренировки — перенаправляем в словарик вместо зависшего экрана
+        initialView = 'dictionary';
+        initialHash = '#dictionary';
+      }
     } else if (initialHash === '#dictionary') {
       initialView = 'dictionary';
     } else if (initialHash === '#alphabet') {
@@ -270,6 +314,8 @@ export default function Home() {
         view,
         lessonId: options?.lessonId !== undefined ? options.lessonId : activeLessonId,
         tab: options?.tab || lessonInitialTab,
+        flashcardWords: options?.flashcardWords !== undefined ? options.flashcardWords : flashcardWords,
+        flashcardShuffle: options?.flashcardShuffle !== undefined ? options.flashcardShuffle : flashcardShuffle,
         flashcardSourceLessonId:
           options?.flashcardSourceLessonId !== undefined
             ? options.flashcardSourceLessonId
@@ -280,6 +326,29 @@ export default function Home() {
       };
 
       if (typeof window !== 'undefined') {
+        if (view === 'flashcards') {
+          const activeWords = options?.flashcardWords || flashcardWords;
+          if (activeWords && activeWords.length > 0) {
+            try {
+              sessionStorage.setItem(
+                'ulpana_active_flashcards',
+                JSON.stringify({
+                  words: activeWords,
+                  title: options?.flashcardTitle || flashcardTitle,
+                  mode: options?.flashcardMode || flashcardMode,
+                  direction: options?.flashcardDirection || flashcardDirection,
+                  shuffle: options?.flashcardShuffle !== undefined ? options.flashcardShuffle : flashcardShuffle,
+                  lessonId: options?.flashcardSourceLessonId !== undefined ? options.flashcardSourceLessonId : flashcardSourceLessonId,
+                })
+              );
+            } catch {}
+          }
+        } else {
+          try {
+            sessionStorage.removeItem('ulpana_active_flashcards');
+          } catch {}
+        }
+
         if (options?.replace) {
           window.history.replaceState(stateObj, '', hash);
         } else {
@@ -287,7 +356,7 @@ export default function Home() {
         }
       }
     },
-    [activeLessonId, lessonInitialTab, flashcardSourceLessonId, flashcardTitle, flashcardMode, flashcardDirection]
+    [activeLessonId, lessonInitialTab, flashcardWords, flashcardShuffle, flashcardSourceLessonId, flashcardTitle, flashcardMode, flashcardDirection]
   );
 
   // Обработка истории браузера (popstate) при свайпе назад / системной кнопке Назад
@@ -322,6 +391,7 @@ export default function Home() {
         if (state.flashcardTitle) setFlashcardTitle(state.flashcardTitle);
         if (state.flashcardMode) setFlashcardMode(state.flashcardMode);
         if (state.flashcardDirection) setFlashcardDirection(state.flashcardDirection);
+        if (state.flashcardShuffle !== undefined) setFlashcardShuffle(state.flashcardShuffle);
         if (state.flashcardSourceLessonId !== undefined) {
           setFlashcardSourceLessonId(state.flashcardSourceLessonId);
         }
@@ -333,7 +403,27 @@ export default function Home() {
           setCurrentView('lesson');
           if (!isNaN(id)) setActiveLessonId(id);
         } else if (curHash === '#flashcards') {
-          setCurrentView('flashcards');
+          let hasWords = false;
+          try {
+            const raw = sessionStorage.getItem('ulpana_active_flashcards');
+            if (raw) {
+              const parsed = JSON.parse(raw);
+              if (Array.isArray(parsed.words) && parsed.words.length > 0) {
+                setFlashcardWords(parsed.words);
+                if (parsed.title) setFlashcardTitle(parsed.title);
+                if (parsed.mode) setFlashcardMode(parsed.mode);
+                if (parsed.direction) setFlashcardDirection(parsed.direction);
+                if (parsed.shuffle !== undefined) setFlashcardShuffle(parsed.shuffle);
+                if (parsed.lessonId !== undefined) setFlashcardSourceLessonId(parsed.lessonId);
+                hasWords = true;
+              }
+            }
+          } catch {}
+          if (hasWords) {
+            setCurrentView('flashcards');
+          } else {
+            setCurrentView('dictionary');
+          }
         } else if (curHash === '#dictionary') {
           setCurrentView('dictionary');
         } else if (curHash === '#alphabet') {
@@ -349,6 +439,11 @@ export default function Home() {
   }, [isSettingsOpen, isAuthModalOpen, isSubscriptionModalOpen, isMultiLessonSetupOpen]);
 
   const handleCloseFlashcards = useCallback(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        sessionStorage.removeItem('ulpana_active_flashcards');
+      } catch {}
+    }
     if (flashcardSourceLessonId) {
       navigateTo('lesson', { lessonId: flashcardSourceLessonId });
     } else {

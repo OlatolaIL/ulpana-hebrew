@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import confetti from 'canvas-confetti';
+import { BookOpen } from 'lucide-react';
 import { Word, UserProfile, VerbConjugation } from '@/types';
 import { speakHebrew, speakRussian, stopSpeech } from '@/lib/speech';
 import {
@@ -919,6 +920,45 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
         onStartSplitMode={() => {}}
         onShuffleRestart={() => {}}
       />
+    );
+  }
+
+  // Если в наборе нет слов — показываем понятное пустое состояние с кнопками перехода, а не победный экран с 0 слов
+  if (masterWords.length === 0) {
+    return (
+      <div className="bg-white dark:bg-zinc-900 rounded-3xl p-6 sm:p-8 border border-zinc-200 dark:border-zinc-800 shadow-xl max-w-lg mx-auto text-center space-y-6 animate-in zoom-in-95">
+        <div className="w-20 h-20 mx-auto rounded-full bg-amber-100 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center shadow-inner">
+          <BookOpen className="w-10 h-10" />
+        </div>
+        <div className="space-y-2">
+          <h2 className="text-2xl font-bold text-zinc-900 dark:text-zinc-50">
+            Нет слов для тренировки
+          </h2>
+          <p className="text-sm text-zinc-600 dark:text-zinc-400">
+            В этой подборке пока нет слов. Выберите колоду в словарике или добавьте слова из уроков.
+          </p>
+        </div>
+        <div className="pt-2 flex flex-col sm:flex-row gap-3">
+          {onClose && (
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 py-3.5 px-6 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm shadow-md transition active:scale-95 cursor-pointer"
+            >
+              Перейти в словарик
+            </button>
+          )}
+          {onContinueLesson && lessonId && (
+            <button
+              type="button"
+              onClick={() => onContinueLesson(lessonId, 'vocab')}
+              className="flex-1 py-3.5 px-6 rounded-2xl border border-zinc-200 dark:border-zinc-700 font-bold text-sm hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 transition cursor-pointer"
+            >
+              К словарю урока
+            </button>
+          )}
+        </div>
+      </div>
     );
   }
 

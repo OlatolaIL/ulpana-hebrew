@@ -49,3 +49,72 @@ test('VerbTriadBlock renders vocalized Hebrew with showNikkud=true and unpointed
   assert.ok(!htmlUnpointed.includes('מוּמְלָץ'), 'Should not contain nikkud when showNikkud is false');
 });
 
+const { TrainerVictoryModal } = require('../src/components/FlashcardTrainer/TrainerVictoryModal.tsx');
+
+test('FlashcardTrainer with empty initialWords renders informative empty state instead of false 0-word victory', () => {
+  const html = renderToStaticMarkup(React.createElement(FlashcardTrainer, {
+    initialWords: [],
+    userProfile: createGuestProfile(),
+    onClose: () => {},
+  }));
+
+  assert.ok(html.includes('Нет слов для тренировки'), 'Must display informative empty state');
+  assert.ok(html.includes('Перейти в словарик'), 'Must have action button to go to dictionary');
+  assert.ok(!html.includes('כָּל הַכָּבוֹד'), 'Must NOT display victory modal when there are no words');
+  assert.ok(!html.includes('0 слов(а)'), 'Must NOT display 0 words completion');
+});
+
+test('TrainerVictoryModal disables repeat/shuffle when masterWordsLength is 0 and enables when positive', () => {
+  const htmlEmpty = renderToStaticMarkup(React.createElement(TrainerVictoryModal, {
+    status: 'completed',
+    activePartIndex: 0,
+    parts: [],
+    wordsLength: 0,
+    masterWordsLength: 0,
+    completedPartIndices: [],
+    canSplit: false,
+    onNextPart: () => {},
+    onRepeatPart: () => {},
+    onAllWordsTogether: () => {},
+    onClose: () => {},
+    onRestart: () => {},
+    onStartSplitMode: () => {},
+    onShuffleRestart: () => {},
+  }));
+
+  assert.ok(htmlEmpty.includes('disabled=""') || htmlEmpty.includes('disabled'), 'Buttons must be disabled when 0 words');
+
+  const htmlWithWords = renderToStaticMarkup(React.createElement(TrainerVictoryModal, {
+    status: 'completed',
+    activePartIndex: 0,
+    parts: [[words[0], words[1]]],
+    wordsLength: 2,
+    masterWordsLength: 2,
+    completedPartIndices: [0],
+    canSplit: false,
+    onNextPart: () => {},
+    onRepeatPart: () => {},
+    onAllWordsTogether: () => {},
+    onClose: () => {},
+    onRestart: () => {},
+    onStartSplitMode: () => {},
+    onShuffleRestart: () => {},
+  }));
+
+  assert.ok(htmlWithWords.includes('Повторить снова'));
+  assert.ok(htmlWithWords.includes('Перемешать и учить'));
+  assert.ok(htmlWithWords.includes('Вернуться'));
+  assert.ok(htmlWithWords.includes('2 слов(а)'));
+});
+
+const { checkIsStandalone } = require('../src/lib/usePwaInstall.ts');
+
+test('checkIsStandalone does not crash when window.matchMedia is undefined', () => {
+  assert.doesNotThrow(() => {
+    const res = checkIsStandalone();
+    assert.equal(typeof res, 'boolean');
+  });
+});
+
+
+

@@ -32,10 +32,10 @@ if (typeof window !== 'undefined') {
 
 export function checkIsStandalone(): boolean {
   if (typeof window === 'undefined') return false;
-  return (
-    window.matchMedia('(display-mode: standalone)').matches ||
+  return Boolean(
+    (typeof window.matchMedia === 'function' && window.matchMedia('(display-mode: standalone)').matches) ||
     (window.navigator as any).standalone === true ||
-    document.referrer.includes('android-app://')
+    (typeof document !== 'undefined' && document.referrer && document.referrer.includes('android-app://'))
   );
 }
 
