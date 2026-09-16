@@ -21,6 +21,83 @@ interface UsePhoneCallProps {
 }
 const subscribeToHydration = () => () => {};
 
+function buildPhoneRecognitionVocabulary(params: {
+  lessonVocabulary?: string[];
+  usefulWords?: string[];
+  suggestedReplies?: string[];
+  vocabularyHints?: string[];
+  callerName?: string;
+  studentName?: string;
+  knownWords?: string[];
+}): string[] {
+  const words = new Set<string>();
+
+  // 1. Обязательные числительные 1-10 на иврите (критично для сценариев с квартирами, временем, ценами)
+  const numbers = ['אחת', 'שתיים', 'שתים', 'שלוש', 'ארבע', 'חמש', 'שש', 'שבע', 'שמונה', 'תשע', 'עשר'];
+  numbers.forEach((n) => words.add(n));
+
+  // 2. Базовые диалоговые глаголы и формулы
+  const basicFormulas = [
+    'שלום', 'בוקר טוב', 'ערב טוב', 'מה נשמע', 'נעים מאוד', 'הכל טוב', 'הכל בסדר',
+    'תודה', 'תודה רבה', 'בבקשה', 'להתראות', 'ביי', 'יום טוב',
+    'אני', 'אתה', 'את', 'גר', 'גרה', 'בדירה', 'דירה', 'ברחוב', 'רחוב', 'בבית', 'בית',
+    'קוראים לי', 'שמי', 'כן', 'לא', 'רוצה', 'מחפש', 'מחפשת'
+  ];
+  basicFormulas.forEach((f) => words.add(f));
+
+  // 3. Имя звонящего персонажа
+  if (params.callerName) {
+    words.add(stripNikkud(params.callerName).trim());
+  }
+
+  // 4. Имя ученика и его варианты транслитерации
+  if (params.studentName) {
+    const rawName = params.studentName.trim();
+    if (/[\u0590-\u05FF]/.test(rawName)) {
+      words.add(stripNikkud(rawName));
+    } else {
+      const lower = rawName.toLowerCase();
+      if (lower.includes('сергей') || lower.includes('сергий') || lower.includes('sergey') || lower.includes('sergei')) {
+        words.add('סרגיי');
+        words.add('סרגי');
+        words.add('שרגי');
+      } else if (lower.includes('давид') || lower.includes('david')) {
+        words.add('דוד');
+        words.add('דויד');
+      } else if (lower.includes('михаил') || lower.includes('миша') || lower.includes('michael')) {
+        words.add('מיכאל');
+      } else if (lower.includes('анна') || lower.includes('аня') || lower.includes('anna')) {
+        words.add('אנה');
+      } else if (lower.includes('александр') || lower.includes('саша') || lower.includes('alex')) {
+        words.add('אלכס');
+        words.add('אלכסנדר');
+      } else if (lower.includes('елена') || lower.includes('лена') || lower.includes('elena')) {
+        words.add('אלנה');
+        words.add('ילנה');
+      }
+    }
+  }
+
+  // 5. Словарь сценария и подсказок
+  (params.usefulWords || []).forEach((w) => words.add(stripNikkud(w).trim()));
+  (params.vocabularyHints || []).forEach((w) => words.add(stripNikkud(w).trim()));
+
+  (params.suggestedReplies || []).forEach((rep) => {
+    const tokens = stripNikkud(rep).match(/[\u0590-\u05FF]+/g);
+    if (tokens) {
+      tokens.forEach((t) => {
+        if (t.length >= 2) words.add(t);
+      });
+    }
+  });
+
+  // 6. Словарь урока и пройденные слова
+  (params.lessonVocabulary || []).forEach((w) => words.add(stripNikkud(w).trim()));
+  (params.knownWords || []).forEach((w) => words.add(stripNikkud(w).trim()));
+
+  return Array.from(words).filter(Boolean).slice(0, 80);
+}
+
 export function usePhoneCall({
   lesson,
   userProfile,
@@ -299,12 +376,15 @@ export function usePhoneCall({
         }
       },
       {
-        vocabulary: Array.from(
-          new Set([
-            ...(lesson.vocabulary || []).map((w) => w.hebrew),
-            ...knownWords,
-          ])
-        ),
+        vocabulary: buildPhoneRecognitionVocabulary({
+          lessonVocabulary: (lesson.vocabulary || []).map((w) => w.hebrew),
+          usefulWords: (scenario.usefulWords || []).map((w) => w.hebrew),
+          suggestedReplies: (scenario.suggestedReplies || []).map((r) => r.hebrew),
+          vocabularyHints: scenario.vocabularyHints || [],
+          callerName: scenario.callerName,
+          studentName: userProfile.name,
+          knownWords,
+        }),
         apiKey: userProfile.groqApiKey || undefined,
         continuous: true,
         silenceDurationMs: silenceDelayMs,
@@ -563,6 +643,7 @@ export function usePhoneCall({
           lessonNumber: lesson.number,
           level: lesson.level,
           userGender: userProfile.gender,
+          userName: userProfile.name,
           callType: scenario.callType || 'incoming',
           callerName: scenario.callerName,
           callerNameRu: scenario.callerNameRu,

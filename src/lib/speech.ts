@@ -1170,7 +1170,18 @@ export class HebrewSpeechRecognizer {
       formData.append('file', audioBlob, `speech.${ext}`);
 
       if (this.currentOptions.vocabulary && this.currentOptions.vocabulary.length > 0) {
-        formData.append('prompt', this.currentOptions.vocabulary.slice(0, 30).join(', '));
+        const cleanPrompt = Array.from(
+          new Set(
+            this.currentOptions.vocabulary
+              .map((w) => stripNikkud(w).trim())
+              .filter(Boolean)
+          )
+        )
+          .slice(0, 80)
+          .join(', ');
+        if (cleanPrompt) {
+          formData.append('prompt', cleanPrompt);
+        }
       }
       if (this.currentOptions.apiKey) {
         formData.append('apiKey', this.currentOptions.apiKey);

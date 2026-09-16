@@ -13,7 +13,9 @@ export function groqModels(task: AiTaskType = 'chat'): string[] {
   const primary =
     process.env.GROQ_MODEL?.trim() ||
     (task === 'essay' ? 'openai/gpt-oss-120b' : 'qwen/qwen3.8-27b');
-  const fallback = process.env.GROQ_FALLBACK_MODEL?.trim();
+  const fallback =
+    process.env.GROQ_FALLBACK_MODEL?.trim() ||
+    (task === 'phone' ? 'openai/gpt-oss-20b' : undefined);
   return [...new Set([primary, fallback].filter((model): model is string => Boolean(model)))].slice(0, 2);
 }
 

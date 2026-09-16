@@ -8,12 +8,14 @@ import { IS_EARLY_ACCESS_FREE, FREE_LESSONS_LIMIT, FREE_GUEST_LESSONS_LIMIT } fr
 import { sanitizeRussianTranslation } from '@/lib/russianTranslation';
 import { cleanGrammarJargon, BESPOKE_PHONE_SCENARIOS, getLessonPhoneScenario } from '@/data/phoneScenarios';
 import { DETAILED_LESSONS } from '@/data/lessonsData';
+import { extractClosedSlots, formatSlotMemoryPrompt, filterRepeatedSlotQuestions } from '@/lib/slotMemory';
 
 interface PhoneRequestBody {
   messages: Array<{ role: 'user' | 'assistant'; content: string; hebrew?: string }>;
   lessonNumber: number;
   level: 'alef' | 'bet';
   userGender: 'male' | 'female';
+  userName?: string;
   callType: 'incoming' | 'outgoing';
   callerName?: string;
   callerNameRu?: string;
@@ -57,6 +59,7 @@ export async function POST(req: NextRequest) {
       lessonNumber = 1,
       level = 'alef',
       userGender = 'male',
+      userName,
       callType = 'incoming',
       callerName = 'Собеседник',
       callerNameRu = 'Собеседник',
@@ -167,6 +170,10 @@ export async function POST(req: NextRequest) {
     // Компактный опорный словарь (до 8 ключевых слов)
     const situationHints = (serverScenario?.vocabularyHints || body.vocabularyHints || (serverLesson?.vocabulary || []).slice(0, 6).map((w) => w.hebrew)).slice(0, 8);
 
+    // Извлечение закрытых сущностей (инвариант P-03 — Slot Memory)
+    const closedSlots = extractClosedSlots(sanitizedMessages, userName || (body.knownWords && body.knownWords[0]));
+    const slotPromptSection = formatSlotMemoryPrompt(closedSlots);
+
     const isFinal = shouldForceFinalTurn;
 
     const systemPrompt = `ТЫ — ПЕРСОНАЖ ЖИВОГО ТЕЛЕФОННОГО ЗВОНКА В ИЗРАИЛЕ.
@@ -178,6 +185,7 @@ export async function POST(req: NextRequest) {
 Задача ученика: ${cleanStudentObjective || 'Ответить на вопросы и поддержать диалог'}.
 ${finalSystemPromptAddition ? `\nЛЕГЕНДА И ИНСТРУКЦИИ СЦЕНАРИЯ:\n${finalSystemPromptAddition}` : ''}
 ${situationHints.length > 0 ? `\nКлючевые слова: ${situationHints.join(', ')}.` : ''}
+${slotPromptSection ? `\n${slotPromptSection}` : ''}
 
 ПРАВИЛА РОЛИ И ДИАЛОГА:
 1. СТРОГО соблюдай свою роль («${finalCallerRole}»)! Никогда не приписывай себе статус или желания ученика («${finalUserRole}»):
@@ -191,7 +199,7 @@ ${situationHints.length > 0 ? `\nКлючевые слова: ${situationHints.j
 8. БАЛАНС СЛОВАРЯ И ПРОСТОТА РЕЧИ:
    - Опирайся на пройденный словарный запас (уроки 1..${lessonNumber}).
    - Естественные разговорные связки и этикетные частицы разрешены: «כֵּן», «לֹא», «בְּסֵדֶר», «יוֹפִי», «טוֹב», «אָה», «תּוֹדָה», «בְּבַקָּשָׁה», «שָׁלוֹם», «לְהִתְרָאוֹת», «בַּיי», «שֶׁיִּהְיֶה יוֹם טוֹב».
-   ${lessonNumber <= 3 ? `- ДЛЯ НАЧАЛЬНЫХ УРОКОВ (Урок ${lessonNumber}): КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО использовать сложные незнакомые слова и модальные конструкции (например: «צָרִיךְ», «עֶזְרָה», «בְּמַשֶּׁהוּ», «יָכוֹל», «בְּעָיָה», «דִּירָה»). Диалог первого урока — это строго знакомство и вежливость: приветствие, имя («אֵיךְ קוֹרְאִים לְךָ / לָךְ?»), «נָעִים מְאוֹד» и доброе пожелание.` : ''}
+   ${lessonNumber <= 3 ? `- ДЛЯ НАЧАЛЬНЫХ УРОКОВ (Урок ${lessonNumber}): КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО использовать сложные незнакомые слова и модальные конструкции (например: «צָרִיךְ», «עֶזְרָה», «בְּמַשֶּׁהוּ», «יָכוֹל», «בְּעָיָה»). Диалог первого урока — это строго знакомство и вежливость: приветствие, «נָעִים מְאוֹד», номер квартиры (если имя уже названо) и доброе пожелание. НИКОГДА не спрашивай имя («איך קוראים לך»), если собеседник уже представился!` : ''}
 9. КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО: спрашивать «איך אומרים», проверять правила или учить языку. Ты обычный человек в роли ${finalCallerRole}!
 10. АДАПТИВНОСТЬ И ЗАПРЕТ ДОСЛОВНОГО ЦИТИРОВАНИЯ:
    - КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО копировать примеры из сценария символ в символ, если собеседник сказал иное!
@@ -286,10 +294,19 @@ ${isFinal ? `ЭТО ФИНАЛЬНЫЙ РАУНД ЗВОНКА (раунд ${use
                   },
                 ];
 
+            const filtered = filterRepeatedSlotQuestions(
+              {
+                hebrew: safeHebrew,
+                transcription: safeTranscription,
+                translation: sanitizeRussianTranslation(parsed.translation || parsed.russian_translation || ''),
+              },
+              closedSlots
+            );
+
             return NextResponse.json({
-              hebrew: safeHebrew,
-              transcription: safeTranscription,
-              translation: sanitizeRussianTranslation(parsed.translation || parsed.russian_translation || ''),
+              hebrew: filtered.hebrew,
+              transcription: filtered.transcription,
+              translation: filtered.translation,
               isCompleted: isDone,
               shouldHangUp: isDone,
               suggestedReplies: isDone ? [] : safeReplies,
@@ -319,10 +336,18 @@ ${isFinal ? `ЭТО ФИНАЛЬНЫЙ РАУНД ЗВОНКА (раунд ${use
                 }
 
                 if (recoveredHebrew) {
+                  const filtered = filterRepeatedSlotQuestions(
+                    {
+                      hebrew: recoveredHebrew,
+                      transcription: sanitizeTranscription(recoveredTranscription),
+                      translation: sanitizeRussianTranslation(recoveredTranslation),
+                    },
+                    closedSlots
+                  );
                   return NextResponse.json({
-                    hebrew: recoveredHebrew,
-                    transcription: sanitizeTranscription(recoveredTranscription),
-                    translation: sanitizeRussianTranslation(recoveredTranslation),
+                    hebrew: filtered.hebrew,
+                    transcription: filtered.transcription,
+                    translation: filtered.translation,
                     isCompleted: shouldForceFinalTurn,
                     shouldHangUp: shouldForceFinalTurn,
                     suggestedReplies: [],
@@ -404,10 +429,19 @@ ${isFinal ? `ЭТО ФИНАЛЬНЫЙ РАУНД ЗВОНКА (раунд ${use
                   },
                 ];
 
+            const filtered = filterRepeatedSlotQuestions(
+              {
+                hebrew: safeHebrew,
+                transcription: safeTranscription,
+                translation: sanitizeRussianTranslation(parsed.translation || parsed.russian_translation || ''),
+              },
+              closedSlots
+            );
+
             return NextResponse.json({
-              hebrew: safeHebrew,
-              transcription: safeTranscription,
-              translation: sanitizeRussianTranslation(parsed.translation || parsed.russian_translation || ''),
+              hebrew: filtered.hebrew,
+              transcription: filtered.transcription,
+              translation: filtered.translation,
               isCompleted: isDone,
               shouldHangUp: isDone,
               suggestedReplies: isDone ? [] : safeReplies,
@@ -426,14 +460,23 @@ ${isFinal ? `ЭТО ФИНАЛЬНЫЙ РАУНД ЗВОНКА (раунд ${use
       ? (isIncoming ? 'מְעֻלֶּה, תּוֹדָה רַבָּה! לְהִתְרָאוֹת!' : 'בְּסֵדֶר גָּמוּר, תּוֹדָה רַבָּה וְיוֹם טוֹב!')
       : (isIncoming ? 'אֵיזֶה יֹפִי! וּמָה עוֹד?' : (isFemale ? 'בְּסֵדֶר גָּמוּר! וּמָה אַתְּ רוֹצָה עוֹד?' : 'בְּסֵדֶר גָּמוּר! וּמָה אַתָּה רוֹצֶה עוֹד?'));
 
+    const filteredFallback = filterRepeatedSlotQuestions(
+      {
+        hebrew: fallbackHebrew,
+        transcription: isDone
+          ? (isIncoming ? 'мэцуйáн, тодá рабá! лэhитраóт!' : 'бэсэ́дер гамӯр, тодá рабá вэ-йом тов!')
+          : (isIncoming ? 'э́йзе йóфи! у-ма од?' : (isFemale ? 'бэсэ́дер гамӯр! у-ма ат роцá од?' : 'бэсэ́дер гамӯр! у-ма атá роцé од?')),
+        translation: isDone
+          ? (isIncoming ? 'Отлично, большое спасибо! До свидания!' : 'Все в порядке, большое спасибо и хорошего дня!')
+          : (isIncoming ? 'Как здорово! А что ещё?' : (isFemale ? 'Все в порядке! А что ты хочешь ещё?' : 'Все в порядке! А что ты хочешь ещё?')),
+      },
+      closedSlots
+    );
+
     return NextResponse.json({
-      hebrew: fallbackHebrew,
-      transcription: isDone
-        ? (isIncoming ? 'мэцуйáн, тодá рабá! лэhитраóт!' : 'бэсэ́дер гамӯр, тодá рабá вэ-йом тов!')
-        : (isIncoming ? 'э́йзе йóфи! у-ма од?' : (isFemale ? 'бэсэ́дер гамӯр! у-ма ат роцá од?' : 'бэсэ́дер гамӯр! у-ма атá роцé од?')),
-      translation: isDone
-        ? (isIncoming ? 'Отлично, большое спасибо! До свидания!' : 'Все в порядке, большое спасибо и хорошего дня!')
-        : (isIncoming ? 'Как здорово! А что ещё?' : (isFemale ? 'Все в порядке! А что ты хочешь ещё?' : 'Все в порядке! А что ты хочешь ещё?')),
+      hebrew: filteredFallback.hebrew,
+      transcription: filteredFallback.transcription,
+      translation: filteredFallback.translation,
       isCompleted: isDone,
       shouldHangUp: isDone,
       suggestedReplies: [],

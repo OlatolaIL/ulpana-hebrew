@@ -589,3 +589,63 @@ test('Lesson 1 scenario uses אַרְבַּע for apartment number and specifies
   assert.ok(scenario.initialGreeting.hebrew.includes('אַרְבַּע'));
   assert.ok(scenario.initialGreeting.transcription.includes('арбá'));
 });
+
+// ---------------------------------------------------------------------------
+// 10. Slot Memory & Guardrail tests (Invariant P-03)
+// ---------------------------------------------------------------------------
+test('P-03: extractClosedSlots identifies name and wellbeing from "שלום אני שרגי נעים מאוד הכל טוב"', () => {
+  const { extractClosedSlots, formatSlotMemoryPrompt, filterRepeatedSlotQuestions } = require('../src/lib/slotMemory.ts');
+
+  const messages = [
+    { role: 'assistant', content: 'הַלּוֹ? שָׁלוֹם! זֶה נוֹעַם מִדִּירָה אַרְבַּע. מָה נִשְׁמַע?' },
+    { role: 'user', content: 'שלום אני שרגי נעים מאוד הכל טוב' },
+  ];
+
+  const slots = extractClosedSlots(messages);
+  assert.equal(slots.name, 'שרגי');
+  assert.ok(slots.wellbeing);
+
+  const promptSection = formatSlotMemoryPrompt(slots);
+  assert.ok(promptSection.includes('שרגי'));
+  assert.ok(promptSection.includes('КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО спрашивать имя'));
+  assert.ok(promptSection.includes('КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО переспрашивать «מָה נִשְׁמַע?»'));
+
+  // Test guardrail stripping repeated name question
+  const badReply = {
+    hebrew: 'שָׁלוֹם שַׂרְגִּי! נָעִים מְאוֹד. אֵיךְ קוֹרְאִים לְךָ? אַתָּה בְּדִירָה חָמֵשׁ?',
+    transcription: 'шалóм сарги! наӣм мэóд. эйх коръӣм лэхá? атá ба-дирá хамéш?',
+    translation: 'Привет, Шарги! Очень приятно. Как тебя зовут? Ты в пятой квартире?',
+  };
+
+  const cleanReply = filterRepeatedSlotQuestions(badReply, slots);
+  assert.ok(!cleanReply.hebrew.includes('אֵיךְ קוֹרְאִים לְךָ'), 'Hebrew must not contain name question');
+  assert.ok(!cleanReply.transcription.includes('эйх кор'), 'Transcription must not contain name question');
+  assert.ok(!cleanReply.translation.includes('Как тебя зовут'), 'Translation must not contain name question');
+  assert.ok(cleanReply.hebrew.includes('שַׂרְגִּי'), 'Greeting by name must be preserved');
+  assert.ok(cleanReply.hebrew.includes('אַתָּה בְּדִירָה חָמֵשׁ'), 'Subsequent question must be preserved');
+});
+
+test('P-03: extractClosedSlots identifies apartment number "שתיים" and coffee sugar', () => {
+  const { extractClosedSlots, filterRepeatedSlotQuestions } = require('../src/lib/slotMemory.ts');
+
+  const messages = [
+    { role: 'user', content: 'אני גר בדירה שתיים, קוראים לי סרגיי' },
+    { role: 'user', content: 'אני רוצה קפה גדול בלי סוכר' },
+  ];
+
+  const slots = extractClosedSlots(messages);
+  assert.equal(slots.name, 'סרגיי');
+  assert.equal(slots.apartment, 'שתיים');
+  assert.equal(slots.coffee_sugar, 'בְּלִי סוּכָּר');
+  assert.equal(slots.coffee_size, 'גָּדוֹל');
+
+  const badCoffeeReply = {
+    hebrew: 'מְעוּלֶּה! וְעִם סוּכָּר?',
+    transcription: 'мэулэ! вэ-им сукáр?',
+    translation: 'Отлично! И с сахаром?',
+  };
+
+  const cleanCoffeeReply = filterRepeatedSlotQuestions(badCoffeeReply, slots);
+  assert.ok(!cleanCoffeeReply.hebrew.includes('סוּכָּר'), 'Must strip sugar question');
+  assert.ok(!cleanCoffeeReply.translation.includes('сахаром'), 'Must strip sugar translation');
+});
