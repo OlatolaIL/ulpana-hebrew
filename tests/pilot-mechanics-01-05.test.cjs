@@ -61,27 +61,27 @@ test('phone scenario female adaptation in Lesson 3 adapts studentObjective, comp
   // Female student checks
   assert.ok(femaleScenario.studentObjective.includes('אֲנִי גָּרָה בְּ...'));
   assert.ok(!femaleScenario.studentObjective.includes('אֲנִי גָּר בְּ...'));
-  assert.equal(femaleScenario.completionCondition, 'Ученица назвала страну, город или квартиру.');
+  assert.equal(femaleScenario.completionCondition, 'Ученица назвала страну или город.');
   assert.equal(
     femaleScenario.suggestedReplies[1].hebrew,
-    'שָׁלוֹם דָּנִי! הַכֹּל טוֹב. אֲנִי גָּרָה בְּדִירָה 4.'
+    'שָׁלוֹם דָּנִי! הַכֹּל טוֹב. אֲנִי גָּרָה בְּתֵל אָבִיב.'
   );
   assert.equal(
     femaleScenario.suggestedReplies[1].transcription,
-    'шалóм Дáни! hакóль тов. анӣ гарá бэ-дирá áрба.'
+    'шалóм Дáни! hакóль тов. анӣ гарá бэ-Тэль Авӣв.'
   );
-  assert.ok(femaleScenario.goals.some((g) => g.includes('אֲנִי גָּרָה בְּדִירָה 5')));
+  assert.ok(femaleScenario.goals.some((g) => g.includes('אֲנִי גָּרָה בְּתֵל אָבִיב')));
 
   // Male student checks
   assert.ok(maleScenario.studentObjective.includes('אֲנִי גָּר בְּ...'));
-  assert.equal(maleScenario.completionCondition, 'Ученик назвал страну, город или квартиру.');
+  assert.equal(maleScenario.completionCondition, 'Ученик назвал страну или город.');
   assert.equal(
     maleScenario.suggestedReplies[1].hebrew,
-    'שָׁלוֹם דָּנִי! הַכֹּל טוֹב. אֲנִי גָּר בְּדִירָה 4.'
+    'שָׁלוֹם דָּנִי! הַכֹּל טוֹב. אֲנִי גָּר בְּתֵל אָבִיב.'
   );
   assert.equal(
     maleScenario.suggestedReplies[1].transcription,
-    'шалóм Дáни! hакóль тов. анӣ гар бэ-дирá áрба.'
+    'шалóм Дáни! hакóль тов. анӣ гар бэ-Тэль Авӣв.'
   );
 });
 
@@ -197,7 +197,7 @@ test('non-regression: phone scenario for Lesson 1 and Lesson 6 female adaptation
   assert.equal(l1Female.studentObjective, 'Поздороваться, сказать что всё отлично, и назвать своё имя.');
   assert.equal(l1Female.completionCondition, 'Ученица ответила на приветствие и назвала имя.');
   assert.equal(l1Female.suggestedReplies[0].hebrew, 'הַלּוֹ נוֹעַם, שָׁלוֹם! הַכֹּל טוֹב, תּוֹדָה.');
-  assert.equal(l1Female.suggestedReplies[1].hebrew, 'נָעִים מְאוֹד, אֲנִי שָׂרָה מִדִּירָה 5.');
+  assert.equal(l1Female.suggestedReplies[1].hebrew, 'נָעִים מְאוֹד, אֲנִי שָׂרָה. יוֹם טוֹב!');
 
   const lesson6 = findLesson(6);
   const l6Female = getLessonPhoneScenario(lesson6, 'female');

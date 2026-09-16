@@ -638,6 +638,7 @@ export function usePhoneCall({
       const res = await fetch('/api/ai/phone', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        signal: AbortSignal.timeout(20000),
         body: JSON.stringify({
           messages: historyPayload,
           lessonNumber: lesson.number,
@@ -694,10 +695,15 @@ export function usePhoneCall({
 
       // Озвучиваем ответ ИИ (если willHangUp = true, после реплики ИИ сам повесит трубку)
       playAiVoice(aiMsg.hebrew, willHangUp);
-    } catch (err) {
+    } catch (err: any) {
       if (generation !== callGenerationRef.current) return;
       console.error('Phone AI Error:', err);
-      setSpeechNotice('Ответ собеседника не получен. Можно повторить фразу или завершить звонок.');
+      const isTimeout = err?.name === 'TimeoutError' || err?.name === 'AbortError';
+      setSpeechNotice(
+        isTimeout
+          ? 'Задержка сети: собеседник не ответил вовремя. Попробуйте повторить фразу или ввести текст клавиатурой.'
+          : 'Ответ собеседника не получен из-за сбоя связи. Можно повторить фразу или ввести текст.'
+      );
       setAiLoading(false);
       isSendingRef.current = false;
       setTimeout(() => {
