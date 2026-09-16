@@ -24,6 +24,7 @@ import {
   addWordToPersonalDict,
   loadUserProfile,
   normalizeHebrewWord,
+  saveLocalCallLog,
 } from '@/lib/storage';
 import { stripNikkud } from '@/lib/transcription';
 import { phoneAudio } from '@/lib/phoneAudio';
@@ -96,6 +97,7 @@ export function useScriptedDialogue({
   const userAudioPlayerRef = useRef<HTMLAudioElement | null>(null);
   const evaluationSafetyTimerRef = useRef<NodeJS.Timeout | null>(null);
   const lastAudioBlobRef = useRef<Blob | null>(null);
+  const practiceStartTimeRef = useRef<number>(Date.now());
 
   // 8. Состояние шторки словаря
   const [isWordsDrawerOpen, setIsWordsDrawerOpen] = useState<boolean>(false);
@@ -343,6 +345,7 @@ export function useScriptedDialogue({
     setTurnHistory({});
     setSpokenText('');
     setShowHint(false);
+    practiceStartTimeRef.current = Date.now();
     setMode('practice');
   };
 
@@ -356,6 +359,69 @@ export function useScriptedDialogue({
       }
       // Завершение диалога!
       confetti({ particleCount: 75, spread: 70, origin: { y: 0.6 } });
+
+      const durationSeconds = Math.max(1, Math.round((Date.now() - practiceStartTimeRef.current) / 1000));
+      const opponentSide = userRoleSide === 'a' ? 'speakerB' : 'speakerA';
+      const userSide = userRoleSide === 'a' ? 'speakerA' : 'speakerB';
+      const opponentInfo = dialogue[opponentSide]?.[opponentGender];
+      const opponentName = opponentInfo?.nameRu || lesson.dialogue?.aiRole || 'Собеседник';
+      const userCharacterName = dialogue[userSide]?.[userGender]?.nameRu || userProfile.name || 'Ученик';
+
+      const formattedTranscript = dialogue.turns.map((turn, idx) => {
+        const variant = getDialogueTurnVariant(turn, userGender, opponentGender);
+        const isUser = turn.speaker === userRoleSide;
+        const evalResult = acceptedTurnsRef.current[idx];
+        return {
+          role: isUser ? 'user' : 'assistant',
+          speaker: isUser ? 'user' : 'ai',
+          speakerName: isUser ? userCharacterName : opponentName,
+          hebrew: variant.hebrew,
+          translation: variant.translation,
+          transcription: variant.transcription,
+          userAudioUrl: savedTurnAudio[idx] || undefined,
+          spokenText: evalResult?.userSpokenHebrew || undefined,
+        };
+      });
+
+      const callLogId = `dialogue_${lesson.id}_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+
+      // 1. Локальное сохранение (для мгновенного доступа и оффлайн режима)
+      try {
+        saveLocalCallLog({
+          id: callLogId,
+          user_id: userProfile.id || userProfile.name || 'local_user',
+          user_name: userProfile.name || 'Ученик',
+          lesson_id: lesson.id,
+          caller_name: opponentName,
+          caller_role: `Диалог по ролям (Этап 4)`,
+          duration_seconds: durationSeconds,
+          messages_count: formattedTranscript.length,
+          transcript: formattedTranscript,
+          feedback: 'Диалог успешно пройден по ролям',
+          created_at: new Date().toISOString(),
+        });
+      } catch (e) {
+        console.warn('Dialogue local call log error:', e);
+      }
+
+      // 2. Отправка в базу данных PostgreSQL
+      try {
+        fetch('/api/calls/log', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id: callLogId,
+            lessonId: lesson.id,
+            callerName: opponentName,
+            callerRole: `Диалог по ролям (Этап 4)`,
+            durationSeconds,
+            transcript: formattedTranscript,
+            feedback: 'Диалог успешно пройден по ролям',
+            userName: userProfile.name || 'Ученик',
+          }),
+        }).catch(() => {});
+      } catch {}
+
       const updated = markLessonTabCompleted(lesson.id, 'chat');
       if (onUpdateProfile) {
         onUpdateProfile(updated);

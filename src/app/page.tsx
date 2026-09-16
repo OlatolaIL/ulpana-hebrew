@@ -146,7 +146,25 @@ export default function Home() {
     let initialTab: LessonStageTab = 'theory';
 
     if (initialHash.startsWith('#lesson-')) {
-      const num = parseInt(initialHash.replace('#lesson-', ''), 10);
+      const raw = initialHash.replace('#lesson-', '');
+      const slashIndex = raw.indexOf('/');
+      const num = parseInt(slashIndex === -1 ? raw : raw.slice(0, slashIndex), 10);
+      const tabSlug = slashIndex === -1 ? '' : raw.slice(slashIndex + 1).toLowerCase();
+
+      const tabMap: Record<string, LessonStageTab> = {
+        theory: 'theory',
+        vocab: 'vocab',
+        vocabulary: 'vocab',
+        exercises: 'exercises',
+        essay: 'essay',
+        chat: 'chat',
+        dialogue: 'chat',
+        dialog: 'chat',
+        phone: 'phone',
+        call: 'phone',
+      };
+      const requestedTab = tabMap[tabSlug];
+
       const userProf = verifiedProfile;
       if (!isNaN(num) && num >= 1 && num <= 100) {
         if (isLessonAuthRequired(num, Boolean(userProf.isLoggedIn))) {
@@ -161,7 +179,7 @@ export default function Home() {
         } else {
           initialView = 'lesson';
           initialLessonId = num;
-          initialTab = getFirstIncompleteLessonTab(num, userProf);
+          initialTab = requestedTab || getFirstIncompleteLessonTab(num, userProf);
         }
       }
     } else if (initialHash === '#flashcards') {
@@ -326,7 +344,10 @@ export default function Home() {
       // Генерация hash для чистого URL
       let hash = '#map';
       if (view === 'lesson') {
-        hash = `#lesson-${options?.lessonId || activeLessonId}`;
+        const targetLesson = options?.lessonId !== undefined ? options.lessonId : activeLessonId;
+        const targetTab = options?.tab || lessonInitialTab;
+        const tabSuffix = targetTab && targetTab !== 'theory' ? `/${targetTab}` : '';
+        hash = `#lesson-${targetLesson}${tabSuffix}`;
       } else if (view === 'flashcards') {
         hash = '#flashcards';
       } else if (view === 'dictionary') {

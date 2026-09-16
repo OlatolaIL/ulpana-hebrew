@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import {
   Home,
   ArrowLeft,
@@ -18,6 +19,7 @@ import {
   PenTool,
   LogIn,
   RotateCcw,
+  ExternalLink,
 } from 'lucide-react';
 import { Lesson, UserProfile, Word } from '@/types';
 import { LessonTheory } from './LessonTheory';
@@ -89,6 +91,15 @@ export const LessonView: React.FC<LessonViewProps> = ({
       setActiveTab(getFirstIncompleteLessonTab(lessonId, userProfile));
     }
   }, [initialTab, lessonId]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const stageSuffix = activeTab !== 'theory' ? `/${activeTab}` : '';
+    const newHash = `#lesson-${lessonId}${stageSuffix}`;
+    if (window.location.hash !== newHash) {
+      window.history.replaceState(null, '', newHash);
+    }
+  }, [activeTab, lessonId]);
 
   const lesson = getLessonById(lessonId);
 
@@ -450,6 +461,15 @@ export const LessonView: React.FC<LessonViewProps> = ({
                     <span>Свободный чат с ИИ</span>
                   </button>
                 </div>
+
+                <Link
+                  href={`/dialogues/${lesson.id}`}
+                  className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-zinc-500 hover:text-blue-600 dark:hover:text-blue-400 bg-zinc-100/60 dark:bg-zinc-800/60 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+                  title="Открыть этот диалог по отдельному прямому URL с возможностью поделиться"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  <span>Прямой URL</span>
+                </Link>
               </div>
 
               <div className="flex-1 min-h-0 overflow-hidden">

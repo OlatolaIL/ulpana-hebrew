@@ -37,6 +37,7 @@ import {
   Sliders,
   Save,
   Send,
+  PenTool,
 } from 'lucide-react';
 import { getLessonById, LESSONS_CATALOG } from '@/data/lessonsData';
 import { loadLocalCallLogs } from '@/lib/storage';
@@ -146,8 +147,22 @@ interface UserDetailData {
   flashcardStats?: Record<string, any>;
 }
 
+interface AdminEssay {
+  id: string;
+  user_id: string;
+  user_name: string;
+  lesson_id: number;
+  topic_title: string;
+  essay_text: string;
+  score: number;
+  rating: string;
+  evaluation: any;
+  created_at: string;
+  updated_at: string;
+}
+
 export default function AdminPage() {
-  const [activeTab, setActiveTab] = useState<'stats' | 'users' | 'calls' | 'promos' | 'access'>('stats');
+  const [activeTab, setActiveTab] = useState<'stats' | 'users' | 'calls' | 'essays' | 'promos' | 'access'>('stats');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isDbConnected, setIsDbConnected] = useState(true);
@@ -159,6 +174,10 @@ export default function AdminPage() {
   const [calls, setCalls] = useState<AdminCallLog[]>([]);
   const [selectedCall, setSelectedCall] = useState<AdminCallLog | null>(null);
   const [callTypeFilter, setCallTypeFilter] = useState<'all' | 'chat' | 'phone'>('all');
+  const [essays, setEssays] = useState<AdminEssay[]>([]);
+  const [selectedEssay, setSelectedEssay] = useState<AdminEssay | null>(null);
+  const [essayFilter, setEssayFilter] = useState<'all' | 'high' | 'mid' | 'low'>('all');
+  const [essaySearchQuery, setEssaySearchQuery] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [promos, setPromos] = useState<PromoCode[]>([]);
 
@@ -382,12 +401,24 @@ export default function AdminPage() {
     }));
   };
 
+  const fetchEssays = useCallback(async () => {
+    try {
+      const res = await fetch('/api/admin/essays');
+      if (res.ok) {
+        const data = await res.json();
+        setEssays(data.essays || []);
+      }
+    } catch (e) {
+      console.error('Failed to fetch essays:', e);
+    }
+  }, []);
+
   const loadAllData = useCallback(async () => {
     setLoading(true);
     setError(null);
-    await Promise.all([fetchStats(), fetchUsers(), fetchCalls(), fetchPromos(), fetchAccessRules()]);
+    await Promise.all([fetchStats(), fetchUsers(), fetchCalls(), fetchEssays(), fetchPromos(), fetchAccessRules()]);
     setLoading(false);
-  }, [fetchStats, fetchUsers, fetchCalls, fetchPromos, fetchAccessRules]);
+  }, [fetchStats, fetchUsers, fetchCalls, fetchEssays, fetchPromos, fetchAccessRules]);
 
   useEffect(() => {
     loadAllData();
@@ -688,6 +719,23 @@ export default function AdminPage() {
             {calls.length > 0 && (
               <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${activeTab === 'calls' ? 'bg-blue-700 text-white' : 'bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300'}`}>
                 {calls.length}
+              </span>
+            )}
+          </button>
+
+          <button
+            onClick={() => setActiveTab('essays')}
+            className={`px-4 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 transition ${
+              activeTab === 'essays'
+                ? 'bg-blue-600 text-white shadow-sm'
+                : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900'
+            }`}
+          >
+            <PenTool className="w-4 h-4" />
+            <span>Сочинения</span>
+            {essays.length > 0 && (
+              <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${activeTab === 'essays' ? 'bg-blue-700 text-white' : 'bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300'}`}>
+                {essays.length}
               </span>
             )}
           </button>
@@ -1502,6 +1550,244 @@ export default function AdminPage() {
                               <div className="p-3 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 rounded-xl text-xs text-amber-800 dark:text-amber-300 flex items-center gap-2">
                                 <AlertCircle className="w-4 h-4 shrink-0 text-amber-500" />
                                 <span>Подсказка грамматики: {call.feedback}</span>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* TAB: ESSAYS (СОЧИНЕНИЯ) */}
+        {activeTab === 'essays' && (
+          <div className="space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h2 className="text-xl font-black text-zinc-900 dark:text-zinc-50 flex items-center gap-2">
+                  <PenTool className="w-5 h-5 text-amber-500" />
+                  <span>Сочинения учеников и рецензии ИИ</span>
+                </h2>
+                <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
+                  Все тексты сочинений, оценки и разбор грамматики от ИИ по урокам ульпана.
+                </p>
+              </div>
+
+              {/* Filters */}
+              <div className="flex items-center gap-2 flex-wrap">
+                <div className="relative">
+                  <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+                  <input
+                    type="text"
+                    value={essaySearchQuery}
+                    onChange={(e) => setEssaySearchQuery(e.target.value)}
+                    placeholder="Поиск по ученику или теме..."
+                    className="pl-9 pr-4 py-1.5 text-xs bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-blue-500 w-52"
+                  />
+                </div>
+
+                <div className="inline-flex p-1 bg-zinc-100 dark:bg-zinc-800 rounded-xl text-xs font-semibold">
+                  <button
+                    type="button"
+                    onClick={() => setEssayFilter('all')}
+                    className={`px-3 py-1.5 rounded-lg transition ${
+                      essayFilter === 'all'
+                        ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 shadow-xs'
+                        : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100'
+                    }`}
+                  >
+                    Все ({essays.length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEssayFilter('high')}
+                    className={`px-3 py-1.5 rounded-lg transition ${
+                      essayFilter === 'high'
+                        ? 'bg-emerald-600 text-white shadow-xs'
+                        : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100'
+                    }`}
+                  >
+                    🌟 80+ ({essays.filter((e) => (e.score || 0) >= 80).length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEssayFilter('mid')}
+                    className={`px-3 py-1.5 rounded-lg transition ${
+                      essayFilter === 'mid'
+                        ? 'bg-blue-600 text-white shadow-xs'
+                        : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100'
+                    }`}
+                  >
+                    👍 60–79 ({essays.filter((e) => (e.score || 0) >= 60 && (e.score || 0) < 80).length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEssayFilter('low')}
+                    className={`px-3 py-1.5 rounded-lg transition ${
+                      essayFilter === 'low'
+                        ? 'bg-amber-600 text-white shadow-xs'
+                        : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100'
+                    }`}
+                  >
+                    ✏️ &lt;60 ({essays.filter((e) => (e.score || 0) < 60).length})
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {essays.length === 0 ? (
+              <div className="bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200 dark:border-zinc-800 p-12 text-center text-zinc-400 text-sm">
+                <PenTool className="w-10 h-10 mx-auto text-zinc-300 dark:text-zinc-700 mb-3" />
+                <p className="font-bold text-zinc-700 dark:text-zinc-300">Сочинений пока нет</p>
+                <p className="text-xs text-zinc-400 mt-1 max-w-sm mx-auto">
+                  Как только ученики напишут сочинение на этапе {getStageNumber('essay')} и отправят его на проверку ИИ, все тексты и рецензии появятся здесь.
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 gap-4">
+                {essays
+                  .filter((essay) => {
+                    if (essayFilter === 'high') return (essay.score || 0) >= 80;
+                    if (essayFilter === 'mid') return (essay.score || 0) >= 60 && (essay.score || 0) < 80;
+                    if (essayFilter === 'low') return (essay.score || 0) < 60;
+                    return true;
+                  })
+                  .filter((essay) => {
+                    if (!essaySearchQuery.trim()) return true;
+                    const q = essaySearchQuery.toLowerCase();
+                    return (
+                      (essay.user_name || '').toLowerCase().includes(q) ||
+                      (essay.topic_title || '').toLowerCase().includes(q) ||
+                      (essay.essay_text || '').toLowerCase().includes(q) ||
+                      String(essay.lesson_id) === q
+                    );
+                  })
+                  .map((essay) => {
+                    const isSelected = selectedEssay?.id === essay.id;
+                    const evalData = typeof essay.evaluation === 'string' ? JSON.parse(essay.evaluation || '{}') : (essay.evaluation || {});
+                    const score = essay.score || 0;
+
+                    return (
+                      <div
+                        key={essay.id}
+                        className={`bg-white dark:bg-zinc-900 rounded-2xl border transition overflow-hidden ${
+                          isSelected
+                            ? 'border-blue-500 shadow-md ring-2 ring-blue-500/10'
+                            : 'border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700'
+                        }`}
+                      >
+                        <div
+                          className="p-4 cursor-pointer flex items-center justify-between gap-4"
+                          onClick={() => setSelectedEssay(isSelected ? null : essay)}
+                        >
+                          <div className="flex items-center gap-3 min-w-0">
+                            <span className="shrink-0 px-2.5 py-1 rounded-lg text-xs font-black bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800">
+                              Урок {essay.lesson_id}
+                            </span>
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2">
+                                <span className="font-bold text-sm text-zinc-900 dark:text-zinc-100 truncate">
+                                  {essay.topic_title || 'Сочинение'}
+                                </span>
+                                <span className="text-xs text-zinc-400">•</span>
+                                <span className="text-xs text-zinc-500 dark:text-zinc-400 truncate">
+                                  {essay.user_name || 'Ученик'}
+                                </span>
+                              </div>
+                              <div className="text-[11px] text-zinc-400 mt-0.5 flex items-center gap-2">
+                                <span>{new Date(essay.updated_at || essay.created_at).toLocaleString('ru-RU')}</span>
+                                <span>•</span>
+                                <span>{essay.essay_text.length} символов</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-3 shrink-0">
+                            <span
+                              className={`px-2.5 py-1 rounded-full text-xs font-black ${
+                                score >= 80
+                                  ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300'
+                                  : score >= 60
+                                  ? 'bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300'
+                                  : 'bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300'
+                              }`}
+                            >
+                              {score} / 100
+                            </span>
+                            <ChevronRight
+                              className={`w-4 h-4 text-zinc-400 transition-transform ${isSelected ? 'rotate-90' : ''}`}
+                            />
+                          </div>
+                        </div>
+
+                        {/* Expandable details */}
+                        {isSelected && (
+                          <div className="border-t border-zinc-100 dark:border-zinc-800/80 p-5 bg-zinc-50/50 dark:bg-zinc-950/50 space-y-4">
+                            {/* Original Hebrew text */}
+                            <div>
+                              <div className="text-xs font-bold text-zinc-500 mb-1.5 flex items-center gap-1.5">
+                                <span>Текст сочинения:</span>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    speakHebrew(essay.essay_text);
+                                  }}
+                                  className="p-1 rounded hover:bg-zinc-200 dark:hover:bg-zinc-800 text-blue-600 transition"
+                                  title="Озвучить"
+                                >
+                                  <Volume2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                              <div
+                                dir="rtl"
+                                className="p-4 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-base leading-relaxed font-hebrew text-zinc-900 dark:text-zinc-50 select-text"
+                              >
+                                {essay.essay_text}
+                              </div>
+                            </div>
+
+                            {/* AI Review */}
+                            {evalData && (
+                              <div className="space-y-3">
+                                {evalData.overallFeedback && (
+                                  <div className="p-3 bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/60 rounded-xl text-xs text-blue-900 dark:text-blue-200 leading-relaxed">
+                                    <span className="font-bold">Рецензия преподавателя: </span>
+                                    {evalData.overallFeedback}
+                                  </div>
+                                )}
+
+                                {Array.isArray(evalData.corrections) && evalData.corrections.length > 0 && (
+                                  <div className="space-y-1.5">
+                                    <div className="text-xs font-bold text-zinc-500">Замечания и исправления:</div>
+                                    <div className="space-y-1.5">
+                                      {evalData.corrections.map((corr: any, cIdx: number) => (
+                                        <div
+                                          key={cIdx}
+                                          className="p-2.5 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-xs flex flex-col gap-1"
+                                        >
+                                          <div className="flex items-center gap-2">
+                                            <span className="font-hebrew text-rose-600 line-through">
+                                              {corr.original || corr.wrong}
+                                            </span>
+                                            <span>→</span>
+                                            <span className="font-hebrew font-bold text-emerald-600">
+                                              {corr.corrected || corr.correct}
+                                            </span>
+                                          </div>
+                                          {corr.explanation && (
+                                            <span className="text-zinc-500 text-[11px]">
+                                              {corr.explanation}
+                                            </span>
+                                          )}
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
                               </div>
                             )}
                           </div>
