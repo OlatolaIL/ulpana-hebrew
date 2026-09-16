@@ -3,7 +3,7 @@
 import React from 'react';
 import { useGuidePreference } from '@/lib/useGuidePreference';
 import Link from 'next/link';
-import { X, User, Volume2, Eye, CheckCircle2, ShieldCheck, MessageSquare, Download, Smartphone } from 'lucide-react';
+import { X, User, Volume2, Eye, CheckCircle2, ShieldCheck, MessageSquare, Download, Smartphone, Send, ExternalLink } from 'lucide-react';
 import { UserProfile } from '@/types';
 import { isVipUser } from '@/lib/vipUsers';
 import { speakHebrew } from '@/lib/speech';
@@ -220,6 +220,39 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 <span>{isIOS ? 'Инструкция по установке' : 'Установить на это устройство'}</span>
               </button>
             )}
+          </div>
+
+          {/* Telegram-сообщество и обсуждения */}
+          <div className="p-4 rounded-2xl border border-sky-100 dark:border-sky-900/50 bg-sky-50/50 dark:bg-sky-950/20 space-y-3">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-sky-500 text-white flex items-center justify-center shrink-0 shadow-sm shadow-sky-500/30">
+                  <Send className="w-5 h-5 ml-[-1px] mt-[1px]" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+                    <span>Телеграм-канал и клуб</span>
+                    <span className="text-[10px] bg-sky-100 dark:bg-sky-900/60 text-sky-700 dark:text-sky-300 px-2 py-0.5 rounded-full font-bold">
+                      @ulpana_il
+                    </span>
+                  </h3>
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5 leading-relaxed">
+                    Живой иврит без страха говорить: разборы реальных ситуаций в Израиле, аудио и обсуждение постов в комментариях.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <a
+              href="https://t.me/ulpana_il"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full py-2.5 px-4 rounded-xl bg-sky-500 hover:bg-sky-600 active:scale-[0.99] text-white text-xs font-bold transition flex items-center justify-center gap-2 shadow-sm shadow-sky-500/30 cursor-pointer"
+            >
+              <Send className="w-4 h-4" />
+              <span>Перейти в канал и обсуждения</span>
+              <ExternalLink className="w-3.5 h-3.5 opacity-70" />
+            </a>
           </div>
 
           <hr className="border-zinc-200 dark:border-zinc-800" />

@@ -64,8 +64,13 @@ export async function POST(req: NextRequest) {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, signal: AbortSignal.timeout(10000),
       body: JSON.stringify({
         chat_id: message.chat.id,
-        text: `🇮🇱 Привет, ${fullName}! Ссылка для входа в Ульпану действует 10 минут и подходит для одного входа. Если вы начали вход на сайте, вернитесь в ту вкладку.`,
-        reply_markup: { inline_keyboard: [[{ text: 'Войти в Ульпану', url: appUrl.toString() }]] },
+        text: `🇮🇱 Привет, ${fullName}! Ссылка для входа в Ульпану действует 10 минут и подходит для одного входа. Если вы начали вход на сайте, вернитесь в ту вкладку.\n\n📢 Присоединяйтесь к нашему каналу @ulpana_il — разбираем живые фразы и убиваем страх говорить!`,
+        reply_markup: {
+          inline_keyboard: [
+            [{ text: '🚀 Войти в Ульпану', url: appUrl.toString() }],
+            [{ text: '📢 Наш канал: Ульпана | Живой иврит', url: 'https://t.me/ulpana_il' }],
+          ],
+        },
       }),
     });
     if (!sent.ok || !(await sent.json()).ok) throw new Error('Telegram delivery failed');

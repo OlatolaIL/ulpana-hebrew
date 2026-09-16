@@ -11,6 +11,8 @@ import {
   Sparkles,
   X,
   LogIn,
+  Send,
+  ExternalLink,
 } from 'lucide-react';
 import { LESSONS_CATALOG } from '@/data/lessonsData';
 import { Level, UserProfile } from '@/types';
@@ -569,6 +571,35 @@ export const CourseMap: React.FC<CourseMapProps> = ({
           })}
         </div>
       )}
+
+      {/* 4. Карточка Telegram-сообщества и клуба */}
+      <div className="p-4 rounded-2xl border border-sky-200/80 dark:border-sky-900/60 bg-gradient-to-r from-sky-50/80 via-white to-blue-50/80 dark:from-sky-950/20 dark:via-zinc-900 dark:to-blue-950/20 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-xs">
+        <div className="flex items-center gap-3 text-center sm:text-left">
+          <div className="w-10 h-10 rounded-xl bg-sky-500 text-white flex items-center justify-center shrink-0 shadow-sm shadow-sky-500/30">
+            <Send className="w-5 h-5 ml-[-1px] mt-[1px]" />
+          </div>
+          <div>
+            <div className="text-sm font-bold text-zinc-900 dark:text-zinc-100 flex items-center justify-center sm:justify-start gap-2">
+              <span>Канал и клуб «Ульпана | Живой иврит»</span>
+              <span className="text-[10px] bg-sky-100 dark:bg-sky-900/60 text-sky-700 dark:text-sky-300 px-2 py-0.5 rounded-full font-bold">
+                @ulpana_il
+              </span>
+            </div>
+            <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
+              Разборы живых ситуаций, аудио, преодоление языкового барьера и обсуждения с учениками.
+            </p>
+          </div>
+        </div>
+        <a
+          href="https://t.me/ulpana_il"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="shrink-0 px-4 py-2 rounded-xl bg-sky-500 hover:bg-sky-600 active:scale-95 text-white text-xs font-bold transition flex items-center gap-1.5 shadow-sm shadow-sky-500/20 cursor-pointer"
+        >
+          <span>Вступить в канал</span>
+          <ExternalLink className="w-3.5 h-3.5 opacity-80" />
+        </a>
+      </div>
     </div>
   );
 };
