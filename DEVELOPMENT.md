@@ -149,6 +149,14 @@ ChatGPT — архитектор и независимая приёмка; Gemin
   6. В `src/lib/aiModels.ts` для звонков отключен сбойный фолбэк `openai/gpt-oss-20b` (падавший на Groq с 400 по JSON validation), обеспечив мгновенный прозрачный переход на сверхбыстрый Gemini `gemini-3.5-flash-lite`.
   7. Актуализирован паспорт `docs/mechanics/stage-06-phone-call.md`, добавлен модульный тест в `tests/phone-conversation-simulator.test.cjs`. Все 153 теста (`npm test`), `npm run typecheck`, `npm run audit:intent` полностью зелёные.
 
+**16.09.2026 — Ликвидация ложных срабатываний и зависания звонка (P-01, R-15, R-19):**
+- Устранены корневые причины нестабильности звонка во 2-м уроке («иногда сразу думает», «иногда зависает», дедлок микрофона):
+  1. В `src/lib/speech.ts` повышен порог детекции речи VAD (минимум 4 фрейма ~200мс или пик громкости `avg > threshold + 8`), минимальный размер аудиочанка для Whisper V3 поднят до 1500 байт (~0.3с речи), очищаются буферы шумов и галлюцинации тишины.
+  2. В `src/components/PhoneCallSimulator/usePhoneCall.ts` упразднен конкурирующий таймер `silenceTimeoutRef` из `onResult` — детекция пауз в речи полностью передана Web Audio VAD в `speech.ts` (Single-Source VAD).
+  3. `handleSendMessage` строго обернут в `try ... finally`, гарантируя сброс `isSendingRef.current = false` и `setAiLoading(false)` при любых сетевых абортах, задержках или смене поколения звонка.
+  4. Синхронизирован паспорт `docs/mechanics/stage-06-phone-call.md` (P-01) и `DECISION_MATRIX.md` (обновлен до v1.4.1, в Superseded Log зафиксирован запрет конкурирующих таймеров тишины и ранних выходов без сброса флагов).
+  5. Все проверки пройдены: 153/153 тестов (`npm test`), `npm run typecheck` (0 ошибок), `npm run audit:intent` (100% green, 0 дрейфа) и `npm run build` (38/38 маршрутов).
+
 
 Историческая сверка 23 замечаний завершена: 11 подтверждено, 6 частично, 4 предложения, 1 опровергнуто, 1 недостаточно оснований. Ревью pilot-01-05-review.md и pilot-remediation.json сохраняют исходные вердикты отдельно от состояния исправлений; не начинать сверку заново.
 

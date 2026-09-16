@@ -265,7 +265,7 @@ export function usePhoneCall({
       silenceTimeoutRef.current = null;
     }
     if (recognizerRef.current) {
-      recognizerRef.current.stop();
+      recognizerRef.current.stop(true);
     }
     setRecording(false);
   };
@@ -292,7 +292,10 @@ export function usePhoneCall({
     setRecording(true);
     setLiveTranscript('');
 
-    if (silenceTimeoutRef.current) clearTimeout(silenceTimeoutRef.current);
+    if (silenceTimeoutRef.current) {
+      clearTimeout(silenceTimeoutRef.current);
+      silenceTimeoutRef.current = null;
+    }
 
     // В первых 5 уроках пауза 2 сек, в уроках 6-10 — 1.5 сек, далее 1.3 сек
     const silenceDelayMs = lesson.number && lesson.number <= 5 ? 2000
@@ -304,29 +307,6 @@ export function usePhoneCall({
 
         setLiveTranscript(transcript);
         setSpeechNotice(null);
-
-        // Резервный таймер авто-отправки при паузе в речи:
-        // Останавливает запись, чтобы MediaRecorder сформировал blob и запустил серверный Whisper V3
-        if (silenceTimeoutRef.current) clearTimeout(silenceTimeoutRef.current);
-        if (transcript.trim() && !isWhisperSilenceHallucination(transcript.trim())) {
-          silenceTimeoutRef.current = setTimeout(() => {
-            if (
-              !isEchoFromAi(transcript) &&
-              !isWhisperSilenceHallucination(transcript) &&
-              callActiveRef.current &&
-              shouldListenRef.current &&
-              !isSendingRef.current &&
-              !isAiSpeakingRef.current &&
-              !isMutedRef.current
-            ) {
-              if (recognizerRef.current) {
-                recognizerRef.current.stop();
-              } else {
-                handleSendMessage(transcript.trim());
-              }
-            }
-          }, silenceDelayMs);
-        }
       },
       (error: any) => {
         console.warn('Speech recognition warning:', error);
@@ -416,6 +396,7 @@ export function usePhoneCall({
             const textToSubmit = (transcript || '').trim();
             if (
               textToSubmit &&
+              textToSubmit.length >= 2 &&
               !isEchoFromAi(textToSubmit) &&
               !isWhisperSilenceHallucination(textToSubmit)
             ) {
@@ -690,8 +671,6 @@ export function usePhoneCall({
 
       const updatedHistory = [...messagesRef.current, aiMsg];
       setBothMessages(updatedHistory);
-      setAiLoading(false);
-      isSendingRef.current = false;
 
       // Озвучиваем ответ ИИ (если willHangUp = true, после реплики ИИ сам повесит трубку)
       playAiVoice(aiMsg.hebrew, willHangUp);
@@ -704,13 +683,16 @@ export function usePhoneCall({
           ? 'Задержка сети: собеседник не ответил вовремя. Попробуйте повторить фразу или ввести текст клавиатурой.'
           : 'Ответ собеседника не получен из-за сбоя связи. Можно повторить фразу или ввести текст.'
       );
-      setAiLoading(false);
-      isSendingRef.current = false;
       setTimeout(() => {
         if (callActiveRef.current && !isMutedRef.current && !isAiHangingUpRef.current) {
           startListening(true);
         }
       }, 500);
+    } finally {
+      if (generation === callGenerationRef.current) {
+        setAiLoading(false);
+      }
+      isSendingRef.current = false;
     }
   };
 

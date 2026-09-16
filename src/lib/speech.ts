@@ -1085,8 +1085,8 @@ export class HebrewSpeechRecognizer {
 
         if (isSpeakingNow) {
           speechFrames++;
-          // 2 фрейма подряд (~100мс) выше порога или четкий пик громкости
-          if (speechFrames >= 2 || avg > threshold + 5) {
+          // Требуем минимум 4 устойчивых фрейма (~200мс) или четкий пик громкости
+          if (speechFrames >= 4 || avg > threshold + 8) {
             this.hasDetectedSpeech = true;
             this.silenceStartTime = null;
           }
@@ -1137,25 +1137,32 @@ export class HebrewSpeechRecognizer {
             }
           } catch {}
 
-          // Если записано реальное аудио (более 800 байт), транскрибируем через Groq Whisper V3
-          if (audioBlob.size > 800) {
+          // Если записано реальное аудио (более 1500 байт ~0.3с речи), транскрибируем через Groq Whisper V3
+          if (audioBlob.size >= 1500) {
             const text = await this.transcribeAudioBlob(audioBlob, blobType);
-            if (text && text.trim() && !isWhisperSilenceHallucination(text.trim())) {
+            if (text && text.trim().length >= 2 && !isWhisperSilenceHallucination(text.trim())) {
               this.audioChunks = []; // очищаем буфер только при успешном распознавании
-              this.lastTranscript = text.trim();
-              this.currentOptions.onSilenceDetected?.(this.lastTranscript, audioBlob, audioUrl);
+              this.lastTranscript = '';
+              this.hasDetectedSpeech = false;
+              this.silenceStartTime = null;
+              this.currentOptions.onSilenceDetected?.(text.trim(), audioBlob, audioUrl);
               return;
             }
           }
+          // Если аудио оказалось слишком коротким или распознана тишина — сбрасываем шумы
+          this.audioChunks = [];
         }
       } catch (err) {
         console.warn('VAD transcribe fallback error:', err);
       }
     }
 
-    // 2. Fallback на браузерный Web Speech API
+    // 2. Fallback на браузерный Web Speech API (только если есть свежий осмысленный текст)
     const recognizedText = this.lastTranscript.trim();
-    if (recognizedText && !isWhisperSilenceHallucination(recognizedText)) {
+    if (recognizedText && recognizedText.length >= 2 && !isWhisperSilenceHallucination(recognizedText)) {
+      this.lastTranscript = '';
+      this.hasDetectedSpeech = false;
+      this.silenceStartTime = null;
       this.currentOptions.onSilenceDetected?.(recognizedText, null, null);
     }
   }
@@ -1298,6 +1305,8 @@ export class HebrewSpeechRecognizer {
 
     if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
       try {
+        this.mediaRecorder.onstop = null;
+        this.mediaRecorder.ondataavailable = null;
         this.mediaRecorder.stop();
       } catch {}
       this.mediaRecorder = null;
