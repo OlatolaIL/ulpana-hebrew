@@ -240,7 +240,7 @@ test('Phone simulator: Multi-turn Persona 1 (Ideal Student) maintains role and c
         { role: 'assistant', content: json1.hebrew },
         { role: 'user', content: 'כֵּן, כַּמָּה זֶה עוֹלֶה וְיֵשׁ שָׁם רִיהוּט?' },
         { role: 'assistant', content: json2.hebrew },
-        { role: 'user', content: 'מְעֻלֶּה, נִתְרָאֶה הַיּוֹם בְּשֶׁבַע! תּוֹדָה רַבָּה!' },
+        { role: 'user', content: 'מְעֻלֶּה, אֲנִי בָּא הַיּוֹם בְּשֶׁבַע! תּוֹדָה רַבָּה!' },
       ],
       callType: 'outgoing',
     }),
@@ -430,6 +430,21 @@ test('P-06: Lessons 1-35 do not contain future tense tirce/tirci in greetings, s
           scenario.systemPromptAddition.includes('תִּרְצֶה') || scenario.systemPromptAddition.includes('תִּרְצִי'),
           false,
           `Lesson ${lessonNum} (${gender}) systemPromptAddition must not contain future tense tirce/tirci`
+        );
+        assert.equal(
+          scenario.systemPromptAddition.includes('נִתְרָאֶה'),
+          false,
+          `Lesson ${lessonNum} (${gender}) systemPromptAddition must not contain future tense נִתְרָאֶה`
+        );
+        assert.equal(
+          scenario.systemPromptAddition.includes('תִּצְטָרֵךְ'),
+          false,
+          `Lesson ${lessonNum} (${gender}) systemPromptAddition must not contain future tense תִּצְטָרֵךְ`
+        );
+        assert.equal(
+          scenario.systemPromptAddition.includes('תִּמְסֹר'),
+          false,
+          `Lesson ${lessonNum} (${gender}) systemPromptAddition must not contain future tense תִּמְסֹר`
         );
       }
     }
