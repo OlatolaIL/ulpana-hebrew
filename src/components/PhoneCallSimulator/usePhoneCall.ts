@@ -11,6 +11,7 @@ import {
   saveLocalCallLog,
   getStudentKnownVocabulary,
 } from '@/lib/storage';
+import { callFlightRecorder } from '@/lib/callDiagnostics';
 import { CallState } from './types';
 
 interface UsePhoneCallProps {
@@ -154,6 +155,8 @@ export function usePhoneCall({
   const lastAiSpokenTimeRef = useRef(0);
   const lastRecordedAudioUrlRef = useRef<string | null>(null);
   const lastRecordedAudioBlobRef = useRef<Blob | null>(null);
+  const liveTranscriptRef = useRef('');
+  const watchdogTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const knownWords = useMemo(
     () => getStudentKnownVocabulary(userProfile, 50),
@@ -264,6 +267,10 @@ export function usePhoneCall({
       clearTimeout(silenceTimeoutRef.current);
       silenceTimeoutRef.current = null;
     }
+    if (watchdogTimeoutRef.current) {
+      clearTimeout(watchdogTimeoutRef.current);
+      watchdogTimeoutRef.current = null;
+    }
     if (recognizerRef.current) {
       recognizerRef.current.stop(true);
     }
@@ -291,22 +298,76 @@ export function usePhoneCall({
     shouldListenRef.current = true;
     setRecording(true);
     setLiveTranscript('');
+    liveTranscriptRef.current = '';
 
     if (silenceTimeoutRef.current) {
       clearTimeout(silenceTimeoutRef.current);
       silenceTimeoutRef.current = null;
+    }
+    if (watchdogTimeoutRef.current) {
+      clearTimeout(watchdogTimeoutRef.current);
+      watchdogTimeoutRef.current = null;
     }
 
     // В первых 5 уроках пауза 2 сек, в уроках 6-10 — 1.5 сек, далее 1.3 сек
     const silenceDelayMs = lesson.number && lesson.number <= 5 ? 2000
       : lesson.number && lesson.number <= 10 ? 1500 : 1300;
 
+    // Сторожевой таймер (12 сек): предотвращает бесконечное зависание микрофона на мобильных
+    watchdogTimeoutRef.current = setTimeout(() => {
+      if (
+        callActiveRef.current &&
+        shouldListenRef.current &&
+        !isSendingRef.current &&
+        !isAiSpeakingRef.current &&
+        !isMutedRef.current
+      ) {
+        const text = (liveTranscriptRef.current || '').trim();
+        if (text.length >= 2 && !isEchoFromAi(text) && !isWhisperSilenceHallucination(text)) {
+          if (recognizerRef.current) {
+            recognizerRef.current.commitSpeech();
+          } else {
+            handleSendMessage(text);
+          }
+        } else {
+          setSpeechNotice('Собеседник вас не расслышал. Скажите фразу громче');
+          setTimeout(() => {
+            if (callActiveRef.current && shouldListenRef.current && !isSendingRef.current) {
+              startListening(true);
+            }
+          }, 1500);
+        }
+      }
+    }, 12000);
+
     recognizerRef.current.start(
       (transcript) => {
         if (isAiSpeakingRef.current || isSendingRef.current || !callActiveRef.current || isMutedRef.current) return;
 
+        liveTranscriptRef.current = transcript;
         setLiveTranscript(transcript);
         setSpeechNotice(null);
+
+        // Резервный таймер тишины при паузе после сказанных слов
+        if (silenceTimeoutRef.current) clearTimeout(silenceTimeoutRef.current);
+        const trimmed = (transcript || '').trim();
+        if (trimmed.length >= 2 && !isWhisperSilenceHallucination(trimmed) && !isEchoFromAi(trimmed)) {
+          silenceTimeoutRef.current = setTimeout(() => {
+            if (
+              callActiveRef.current &&
+              shouldListenRef.current &&
+              !isSendingRef.current &&
+              !isAiSpeakingRef.current &&
+              !isMutedRef.current
+            ) {
+              if (recognizerRef.current) {
+                recognizerRef.current.commitSpeech();
+              } else {
+                handleSendMessage(trimmed);
+              }
+            }
+          }, silenceDelayMs);
+        }
       },
       (error: any) => {
         console.warn('Speech recognition warning:', error);
@@ -333,6 +394,15 @@ export function usePhoneCall({
         }
       },
       (lastTranscript, recordedBlob, recordedUrl) => {
+        if (silenceTimeoutRef.current) {
+          clearTimeout(silenceTimeoutRef.current);
+          silenceTimeoutRef.current = null;
+        }
+        if (watchdogTimeoutRef.current) {
+          clearTimeout(watchdogTimeoutRef.current);
+          watchdogTimeoutRef.current = null;
+        }
+
         // Завершение сессии распознавания: если все еще слушаем, проверяем наличие фразы
         if (
           callActiveRef.current &&
@@ -418,6 +488,12 @@ export function usePhoneCall({
     setAiSpeaking(true);
     setAudioLevel(0);
     lastAiSpokenTextRef.current = stripNikkud(text).trim().toLowerCase();
+    callFlightRecorder.record('TTS', 'AI speech started', {
+      text,
+      rate: userProfile.speechRate || 0.75,
+      gender: scenario.callerGender || 'male',
+      callerName: scenario.callerName,
+    }, 'info');
 
     try {
       await speakHebrew(text, {
@@ -426,9 +502,11 @@ export function usePhoneCall({
       });
     } catch (e) {
       console.error('Speech error:', e);
+      callFlightRecorder.record('TTS', 'Speech synthesis error', { error: String(e) }, 'error');
     } finally {
       setAiSpeaking(false);
       lastAiSpokenTimeRef.current = Date.now();
+      callFlightRecorder.record('TTS', 'AI speech finished', { willHangUp }, 'info');
 
       if (willHangUp) {
         // Собеседник прощается и САМ вешает трубку!
@@ -468,6 +546,15 @@ export function usePhoneCall({
     endingCallRef.current = false;
     setDebriefReport(null);
     setLoadingDebrief(false);
+    callLogIdRef.current = `call_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    callFlightRecorder.reset(callLogIdRef.current);
+    callFlightRecorder.record('SYSTEM', 'Call initiated (dialing)', {
+      lessonNumber: lesson.number,
+      callerName: scenario.callerName,
+      callType: scenario.callType,
+      userGender: userProfile.gender,
+    }, 'info');
+
     // 1. Активируем AudioContext прямо по клику пользователя (User Gesture)
     const ctx = phoneAudio.getContext();
     if (ctx && ctx.state === 'suspended') {
@@ -489,8 +576,13 @@ export function usePhoneCall({
           return;
         }
         activeMicStreamRef.current = stream;
+        callFlightRecorder.record('AUDIO', 'Microphone stream acquired', {
+          trackCount: stream.getAudioTracks().length,
+          settings: stream.getAudioTracks()[0]?.getSettings?.(),
+        }, 'success');
       } catch (err) {
         console.warn('Mic permission error:', err);
+        callFlightRecorder.record('AUDIO', 'Microphone permission error', { error: String(err) }, 'error');
       }
     }
 
@@ -508,7 +600,6 @@ export function usePhoneCall({
     shouldListenRef.current = false;
     setIsAiHangingUp(false);
     isAiHangingUpRef.current = false;
-    callLogIdRef.current = `call_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
     callStartTimeRef.current = 0;
     callDurationRef.current = 0;
     setCallDuration(0);
@@ -537,6 +628,9 @@ export function usePhoneCall({
       callActiveRef.current = true;
       setBothMessages([initialAiMsg]);
       setCallState('connected');
+      callFlightRecorder.record('SYSTEM', 'Call connected (contact picked up)', {
+        greeting: scenario.initialGreeting.hebrew,
+      }, 'success');
 
       // ИИ сразу озвучивает приветствие
       playAiVoice(initialAiMsg.hebrew);
@@ -576,6 +670,7 @@ export function usePhoneCall({
     // Защита от эхо собственного голоса ИИ и галлюцинаций тишины Whisper
     if ((isEchoFromAi(text) || isWhisperSilenceHallucination(text)) && !textToSend && !textInput) {
       console.warn('Blocked AI echo or silence hallucination:', text);
+      callFlightRecorder.record('VAD', 'Blocked AI echo or silence hallucination', { text }, 'warn');
       setLiveTranscript('');
       setTimeout(() => {
         if (callActiveRef.current && !isAiSpeakingRef.current && !loadingAiRef.current && !isMutedRef.current) {
@@ -609,6 +704,13 @@ export function usePhoneCall({
 
     const newHistory = [...messagesRef.current, userMsg];
     setBothMessages(newHistory);
+
+    const tStart = typeof performance !== 'undefined' ? performance.now() : Date.now();
+    callFlightRecorder.record('LLM', 'Sending user turn to /api/ai/phone', {
+      round: newHistory.length,
+      text,
+      provider: userProfile.aiProvider,
+    }, 'info');
 
     try {
       const historyPayload = newHistory.map((m) => ({
@@ -648,10 +750,23 @@ export function usePhoneCall({
         }),
       });
 
+      const latencyMs = Math.round((typeof performance !== 'undefined' ? performance.now() : Date.now()) - tStart);
+      callFlightRecorder.record('LLM', `Phone API response status ${res.status} (${latencyMs}ms)`, {
+        latencyMs,
+        status: res.status,
+      }, res.ok ? 'success' : 'error');
+
       if (!res.ok) throw new Error('Собеседник сейчас недоступен. Попробуйте ещё раз.');
       const data = await res.json();
       if (generation !== callGenerationRef.current) return;
       if (typeof data.hebrew !== 'string' || !data.hebrew.trim()) throw new Error('Не удалось получить ответ собеседника.');
+
+      callFlightRecorder.record('LLM', 'AI response parsed successfully', {
+        aiHebrew: data.hebrew,
+        isCompleted: Boolean(data.isCompleted),
+        shouldHangUp: Boolean(data.shouldHangUp),
+      }, 'info');
+
       const willHangUp = Boolean(data.shouldHangUp || data.isCompleted);
 
       if (willHangUp) {
@@ -678,6 +793,13 @@ export function usePhoneCall({
       if (generation !== callGenerationRef.current) return;
       console.error('Phone AI Error:', err);
       const isTimeout = err?.name === 'TimeoutError' || err?.name === 'AbortError';
+      const latencyMs = Math.round((typeof performance !== 'undefined' ? performance.now() : Date.now()) - tStart);
+      callFlightRecorder.record('ERROR', `Phone API error (${latencyMs}ms)`, {
+        latencyMs,
+        error: String(err),
+        isTimeout,
+      }, 'error');
+
       setSpeechNotice(
         isTimeout
           ? 'Задержка сети: собеседник не ответил вовремя. Попробуйте повторить фразу или ввести текст клавиатурой.'
@@ -709,6 +831,11 @@ export function usePhoneCall({
     phoneAudio.stopAll();
     if (autoListenTimeoutRef.current) clearTimeout(autoListenTimeoutRef.current);
     if (silenceTimeoutRef.current) clearTimeout(silenceTimeoutRef.current);
+
+    callFlightRecorder.record('SYSTEM', 'Call ended (hangup)', {
+      durationSeconds: callDurationRef.current,
+      totalMessages: messagesRef.current.length,
+    }, 'info');
 
     if (activeMicStreamRef.current) {
       try {
@@ -984,5 +1111,7 @@ export function usePhoneCall({
     toggleMute,
     handleAddWord,
     getRelevantWordsForCall,
+    activeMicStream: activeMicStreamRef.current,
+    audioContext: phoneAudio.getContext(),
   };
 }

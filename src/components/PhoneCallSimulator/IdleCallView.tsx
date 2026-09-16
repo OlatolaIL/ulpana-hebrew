@@ -1,5 +1,5 @@
 import React from 'react';
-import { Phone, PhoneCall, Info, BookOpen, Smartphone } from 'lucide-react';
+import { Phone, PhoneCall, Info, BookOpen, Smartphone, Activity } from 'lucide-react';
 import { UserProfile, PhoneScenario } from '@/types';
 
 interface IdleCallViewProps {
@@ -7,6 +7,7 @@ interface IdleCallViewProps {
   userProfile: UserProfile;
   onStartCall: () => void;
   onOpenWordsDrawer: () => void;
+  onOpenDiagnostics?: () => void;
 }
 
 export const IdleCallView: React.FC<IdleCallViewProps> = ({
@@ -14,11 +15,24 @@ export const IdleCallView: React.FC<IdleCallViewProps> = ({
   userProfile,
   onStartCall,
   onOpenWordsDrawer,
+  onOpenDiagnostics,
 }) => {
   return (
     <div className="bg-gradient-to-br from-zinc-900 via-zinc-900 to-zinc-950 text-white rounded-3xl p-6 sm:p-8 border border-zinc-800 shadow-xl relative overflow-hidden">
       <div className="absolute top-0 right-0 -mt-8 -mr-8 w-44 h-44 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute bottom-0 left-0 -mb-8 -ml-8 w-44 h-44 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+
+      {onOpenDiagnostics && (
+        <button
+          type="button"
+          onClick={onOpenDiagnostics}
+          className="absolute top-4 right-4 z-20 px-2.5 py-1.5 rounded-xl border border-zinc-700/80 bg-zinc-800/80 hover:bg-zinc-800 text-zinc-300 hover:text-white hover:border-blue-500/50 text-xs font-medium flex items-center gap-1.5 transition cursor-pointer"
+          title="Диагностика и Черный ящик звонка"
+        >
+          <Activity className="w-3.5 h-3.5 text-blue-400" />
+          <span className="text-[11px] font-hebrew">Тест/Лог</span>
+        </button>
+      )}
 
       <div className="relative z-10 flex flex-col items-center text-center max-w-lg mx-auto">
         {/* Аватар контакта */}

@@ -4,6 +4,7 @@
 
 import { stripNikkud } from './transcription';
 import { notifyAudioBlocked } from './audioNotifier';
+import { callFlightRecorder } from './callDiagnostics';
 
 let preferredHebrewVoice: SpeechSynthesisVoice | null = null;
 let activeUtterance: SpeechSynthesisUtterance | null = null;
@@ -1080,13 +1081,16 @@ export class HebrewSpeechRecognizer {
         const normalized = Math.min(1, Math.max(0, (avg - 3) / 40));
         this.currentOptions.onAudioLevel?.(normalized);
 
-        const threshold = this.currentOptions.speechThreshold ?? 10;
+        const threshold = this.currentOptions.speechThreshold ?? 6;
         const isSpeakingNow = avg > threshold;
 
         if (isSpeakingNow) {
           speechFrames++;
-          // Требуем минимум 4 устойчивых фрейма (~200мс) или четкий пик громкости
-          if (speechFrames >= 4 || avg > threshold + 8) {
+          // Требуем минимум 3 устойчивых фрейма (~150мс) или четкий пик громкости
+          if (speechFrames >= 3 || avg > threshold + 5) {
+            if (!this.hasDetectedSpeech) {
+              callFlightRecorder.record('VAD', 'Speech started (VAD trigger)', { avg: Math.round(avg), threshold }, 'info');
+            }
             this.hasDetectedSpeech = true;
             this.silenceStartTime = null;
           }
@@ -1102,6 +1106,7 @@ export class HebrewSpeechRecognizer {
                 this.silenceStartTime = null;
                 this.hasDetectedSpeech = false;
                 speechFrames = 0;
+                callFlightRecorder.record('VAD', 'Silence detected after speech', { silenceDuration }, 'info');
 
                 await this.handleSilenceDetected();
                 this.isProcessingSilence = false;
@@ -1145,9 +1150,12 @@ export class HebrewSpeechRecognizer {
               this.lastTranscript = '';
               this.hasDetectedSpeech = false;
               this.silenceStartTime = null;
+              callFlightRecorder.record('VAD', 'VAD phrase accepted for submission', { text: text.trim(), sizeBytes: audioBlob.size }, 'success');
               this.currentOptions.onSilenceDetected?.(text.trim(), audioBlob, audioUrl);
               return;
             }
+          } else {
+            callFlightRecorder.record('VAD', 'Noise rejected: chunk too small (<1500b)', { sizeBytes: audioBlob.size }, 'warn');
           }
           // Если аудио оказалось слишком коротким или распознана тишина — сбрасываем шумы
           this.audioChunks = [];
@@ -1168,16 +1176,19 @@ export class HebrewSpeechRecognizer {
   }
 
   private async transcribeAudioBlob(audioBlob: Blob, mimeType: string): Promise<string | null> {
+    const t0 = typeof performance !== 'undefined' ? performance.now() : Date.now();
     try {
       if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+        callFlightRecorder.record('STT', 'Whisper STT aborted: device offline', {}, 'warn');
         return null;
       }
       const formData = new FormData();
       const ext = mimeType.includes('mp4') ? 'm4a' : mimeType.includes('aac') ? 'aac' : 'webm';
       formData.append('file', audioBlob, `speech.${ext}`);
 
+      let cleanPrompt = '';
       if (this.currentOptions.vocabulary && this.currentOptions.vocabulary.length > 0) {
-        const cleanPrompt = Array.from(
+        cleanPrompt = Array.from(
           new Set(
             this.currentOptions.vocabulary
               .map((w) => stripNikkud(w).trim())
@@ -1194,21 +1205,49 @@ export class HebrewSpeechRecognizer {
         formData.append('apiKey', this.currentOptions.apiKey);
       }
 
+      callFlightRecorder.record('STT', 'Whisper STT request sent', {
+        sizeBytes: audioBlob.size,
+        mimeType,
+        promptLength: cleanPrompt.length,
+      }, 'info');
+
       const res = await fetch('/api/ai/transcribe', {
         method: 'POST',
         body: formData,
       });
+
+      const latencyMs = Math.round((typeof performance !== 'undefined' ? performance.now() : Date.now()) - t0);
 
       if (res.ok) {
         const data = await res.json();
         if (data.text && data.text.trim()) {
           const normalized = normalizeHebrewSpeechTranscript(data.text.trim());
           if (!isWhisperSilenceHallucination(normalized)) {
+            callFlightRecorder.record('STT', `Whisper STT success (${latencyMs}ms)`, {
+              latencyMs,
+              rawText: data.text,
+              normalized,
+            }, 'success');
             return normalized;
+          } else {
+            callFlightRecorder.record('STT', `Whisper silence hallucination filtered (${latencyMs}ms)`, {
+              latencyMs,
+              text: data.text,
+            }, 'warn');
           }
         }
+      } else {
+        callFlightRecorder.record('STT', `Whisper STT HTTP error (${latencyMs}ms)`, {
+          latencyMs,
+          status: res.status,
+        }, 'error');
       }
-    } catch (e) {
+    } catch (e: any) {
+      const latencyMs = Math.round((typeof performance !== 'undefined' ? performance.now() : Date.now()) - t0);
+      callFlightRecorder.record('STT', `Whisper STT exception (${latencyMs}ms)`, {
+        latencyMs,
+        error: String(e),
+      }, 'error');
       console.warn('transcribeAudioBlob error:', e);
     }
     return null;
@@ -1264,6 +1303,16 @@ export class HebrewSpeechRecognizer {
         this.mediaStream.getTracks().forEach((track) => track.stop());
       } catch {}
       this.mediaStream = null;
+    }
+  }
+
+  public async commitSpeech(): Promise<void> {
+    if (!this.isListening || this.isProcessingSilence) return;
+    this.isProcessingSilence = true;
+    try {
+      await this.handleSilenceDetected();
+    } finally {
+      this.isProcessingSilence = false;
     }
   }
 

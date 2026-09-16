@@ -9,6 +9,7 @@ import {
   Sparkles,
   Send,
   Info,
+  Activity,
 } from 'lucide-react';
 import { UserProfile, PhoneScenario, ChatMessage } from '@/types';
 import { speakHebrew } from '@/lib/speech';
@@ -29,6 +30,7 @@ interface ActiveCallViewProps {
   showSubtitles: boolean;
   onToggleSubtitles: () => void;
   onOpenAudioHelp: () => void;
+  onOpenDiagnostics?: () => void;
   liveTranscript: string;
   isEchoFromAi: (transcript: string) => boolean;
   onSendMessage: (
@@ -65,6 +67,7 @@ export const ActiveCallView: React.FC<ActiveCallViewProps> = ({
   showSubtitles,
   onToggleSubtitles,
   onOpenAudioHelp,
+  onOpenDiagnostics,
   liveTranscript,
   isEchoFromAi,
   onSendMessage,
@@ -120,8 +123,22 @@ export const ActiveCallView: React.FC<ActiveCallViewProps> = ({
           </div>
         </div>
 
-        {/* Быстрые переключатели: Субтитры и Помощь по звуку */}
+        {/* Быстрые переключатели: Диагностика, Помощь по звуку, Субтитры */}
         <div className="flex items-center gap-2">
+          {onOpenDiagnostics && (
+            <button
+              type="button"
+              onClick={onOpenDiagnostics}
+              className="px-2.5 py-1.5 rounded-xl border border-zinc-700/80 bg-zinc-800/80 hover:bg-zinc-800 text-zinc-300 hover:text-white hover:border-blue-500/50 text-xs font-medium flex items-center gap-1.5 transition cursor-pointer"
+              title="Диагностика и Черный ящик звонка"
+            >
+              <Activity className="w-3.5 h-3.5 text-blue-400" />
+              <span className="text-[11px] font-hebrew hidden sm:inline">
+                Тест/Лог
+              </span>
+            </button>
+          )}
+
           <button
             type="button"
             onClick={onOpenAudioHelp}

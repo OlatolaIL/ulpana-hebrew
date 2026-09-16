@@ -12,6 +12,7 @@ import { CallDebriefView } from './CallDebriefView';
 import { CallDrawer } from './CallDrawer';
 import { DialogueReviewModal } from './DialogueReviewModal';
 import { AudioHelpModal } from './AudioHelpModal';
+import { CallDiagnosticsModal } from './CallDiagnosticsModal';
 import { WordLookupModal } from '@/components/WordLookupModal';
 import { TextToken } from '@/lib/transcription';
 
@@ -63,6 +64,8 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
     toggleMute,
     handleAddWord,
     getRelevantWordsForCall,
+    activeMicStream,
+    audioContext,
   } = usePhoneCall({
     lesson,
     userProfile,
@@ -70,6 +73,7 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
     onWordAdded,
   });
 
+  const [showDiagnostics, setShowDiagnostics] = React.useState(false);
   const [selectedLookupWord, setSelectedLookupWord] = React.useState<string | null>(null);
   const [lookupContext, setLookupContext] = React.useState<string | undefined>(undefined);
   const [lookupSentenceTranslation, setLookupSentenceTranslation] = React.useState<string | undefined>(undefined);
@@ -97,6 +101,7 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
           userProfile={userProfile}
           onStartCall={handleStartCall}
           onOpenWordsDrawer={() => setIsWordsDrawerOpen(true)}
+          onOpenDiagnostics={() => setShowDiagnostics(true)}
         />
       )}
 
@@ -132,6 +137,7 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
             setAudioHelpUnlocked(false);
             setShowAudioHelp(true);
           }}
+          onOpenDiagnostics={() => setShowDiagnostics(true)}
           liveTranscript={liveTranscript}
           isEchoFromAi={isEchoFromAi}
           onSendMessage={handleSendMessage}
@@ -163,6 +169,7 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
           onOpenDialogueReview={() => setShowDialogueReviewModal(true)}
           onStartCall={handleStartCall}
           onBackToLesson={onBackToLesson}
+          onOpenDiagnostics={() => setShowDiagnostics(true)}
         />
       )}
 
@@ -239,6 +246,15 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
           onWordAdded={handleAddWord}
         />
       )}
+
+      {/* 10. МОДАЛЬНОЕ ОКНО ТЕЛЕМЕТРИИ И ЧЕРНОГО ЯЩИКА ЗВОНКА */}
+      <CallDiagnosticsModal
+        isOpen={showDiagnostics}
+        onClose={() => setShowDiagnostics(false)}
+        mounted={mounted}
+        activeStream={activeMicStream}
+        audioContext={audioContext}
+      />
     </div>
   );
 };

@@ -5,6 +5,7 @@ import {
   Check,
   RotateCcw,
   MessageSquare,
+  Activity,
 } from 'lucide-react';
 import { UserProfile, PhoneScenario, ChatMessage, Word, PhoneDebriefReport } from '@/types';
 import { isWordInPersonalDict } from '@/lib/storage';
@@ -24,6 +25,7 @@ interface CallDebriefViewProps {
   onOpenDialogueReview: () => void;
   onStartCall: () => void;
   onBackToLesson?: () => void;
+  onOpenDiagnostics?: () => void;
 }
 
 export const CallDebriefView: React.FC<CallDebriefViewProps> = ({
@@ -41,6 +43,7 @@ export const CallDebriefView: React.FC<CallDebriefViewProps> = ({
   onOpenDialogueReview,
   onStartCall,
   onBackToLesson,
+  onOpenDiagnostics,
 }) => {
   const userTurnsCount = messages.filter((m) => m.role === 'user').length;
   const isCallSuccessful = debriefReport?.isSuccess === true;
@@ -48,6 +51,23 @@ export const CallDebriefView: React.FC<CallDebriefViewProps> = ({
   return (
     <div className="bg-white dark:bg-zinc-900 rounded-3xl p-6 sm:p-8 border border-zinc-200 dark:border-zinc-800 shadow-xl space-y-6">
       {/* Заголовок звонка: успех или предупреждение о несостоявшемся разговоре */}
+      {/* ... */}
+      <div className="flex items-center justify-between">
+        <h3 className="text-xl font-bold text-zinc-900 dark:text-zinc-100 font-hebrew">
+          Итоги телефонного разговора
+        </h3>
+        {onOpenDiagnostics && (
+          <button
+            type="button"
+            onClick={onOpenDiagnostics}
+            className="px-2.5 py-1.5 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:text-blue-600 dark:hover:text-blue-400 text-xs font-medium flex items-center gap-1.5 transition cursor-pointer"
+            title="Диагностика и Черный ящик звонка"
+          >
+            <Activity className="w-3.5 h-3.5 text-blue-500" />
+            <span className="text-[11px] font-hebrew">Тест/Лог</span>
+          </button>
+        )}
+      </div>
       {isCallSuccessful ? (
         <div className="text-center">
           <div className="w-16 h-16 rounded-full bg-emerald-100 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-700 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto mb-3 text-2xl shadow-sm">
