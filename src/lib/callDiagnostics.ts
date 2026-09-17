@@ -206,7 +206,7 @@ export class CallFlightRecorder {
     } else if (category === 'LLM' && details?.latencyMs) {
       this.stats.llmCalls++;
       this.stats.llmTotalLatencyMs += Number(details.latencyMs) || 0;
-    } else if (category === 'TTS' && (title.includes('started') || title.includes('Playback'))) {
+    } else if (category === 'TTS' && (title.toLowerCase().includes('started') || title.toLowerCase().includes('playback') || title.toLowerCase().includes('speech'))) {
       this.stats.ttsUtterances++;
     }
 
@@ -377,7 +377,7 @@ export class CallFlightRecorder {
     const durationSec = (s.durationMs / 1000).toFixed(1);
 
     const lines: string[] = [
-      `# 📋 Телеметрия звонка (Этап 6: PhoneCallFlightRecorder)`,
+      `# 📋 Телеметрия звонка и диалога (Flight Recorder)`,
       `**Сессия:** \`${s.sessionId}\` | **Время:** ${dateStr} (${durationSec} сек)`,
       `**Устройство:** ${s.deviceInfo.isMobile ? '📱 Mobile' : '💻 Desktop'} (${s.deviceInfo.isIOS ? 'iOS' : s.deviceInfo.isAndroid ? 'Android' : 'Other'}) | ${s.deviceInfo.windowInnerWidth}x${s.deviceInfo.windowInnerHeight}`,
       `**Браузер:** \`${s.deviceInfo.userAgent.substring(0, 100)}...\``,

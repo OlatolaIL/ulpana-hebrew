@@ -11,6 +11,7 @@ import { PracticeView } from './PracticeView';
 import { CompletedView } from './CompletedView';
 import { DialogueWordsDrawer } from './DialogueWordsDrawer';
 import { WordLookupModal } from '../WordLookupModal';
+import { CallDiagnosticsModal } from '../PhoneCallSimulator/CallDiagnosticsModal';
 import { TextToken } from '@/lib/transcription';
 
 export const ScriptedDialogueTrainer: React.FC<ScriptedDialogueTrainerProps> = ({
@@ -25,6 +26,7 @@ export const ScriptedDialogueTrainer: React.FC<ScriptedDialogueTrainerProps> = (
   const [lookupSentenceTranslation, setLookupSentenceTranslation] = useState<string | undefined>(undefined);
   const [lookupSentenceTranscription, setLookupSentenceTranscription] = useState<string | undefined>(undefined);
   const [screenToast, setScreenToast] = useState<string | null>(null);
+  const [showDiagnostics, setShowDiagnostics] = useState<boolean>(false);
 
   const handleWordClick = (
     token: TextToken,
@@ -127,6 +129,7 @@ export const ScriptedDialogueTrainer: React.FC<ScriptedDialogueTrainerProps> = (
         onUpdateProfile={onUpdateProfile}
         speechRate={speechRate}
         setSpeechRate={setSpeechRate}
+        onOpenDiagnostics={() => setShowDiagnostics(true)}
       />
 
       {/* 2. Основное тело: переключение между режимами */}
@@ -205,6 +208,7 @@ export const ScriptedDialogueTrainer: React.FC<ScriptedDialogueTrainerProps> = (
           isRecording={isRecording}
           isOpponentSpeaking={isOpponentSpeaking}
           onWordClick={handleWordClick}
+          onOpenDiagnostics={() => setShowDiagnostics(true)}
         />
       )}
 
@@ -269,6 +273,14 @@ export const ScriptedDialogueTrainer: React.FC<ScriptedDialogueTrainerProps> = (
           <span>{screenToast}</span>
         </div>
       )}
+
+      {/* Модальное окно Смотрителя диалога (Flight Recorder) */}
+      <CallDiagnosticsModal
+        isOpen={showDiagnostics}
+        onClose={() => setShowDiagnostics(false)}
+        mounted={mounted}
+        title="Смотритель диалога (Flight Recorder)"
+      />
     </div>
   );
 };

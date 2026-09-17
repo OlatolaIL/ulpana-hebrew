@@ -1,5 +1,5 @@
 import React from 'react';
-import { Play, Pause, Info, BookOpen, X } from 'lucide-react';
+import { Play, Pause, Info, BookOpen, X, Activity } from 'lucide-react';
 import { ScriptedDialogue, UserProfile } from '@/types';
 import { TrainerMode } from './types';
 
@@ -20,6 +20,7 @@ interface DialogueHeaderProps {
   onUpdateProfile?: (profile: UserProfile) => void;
   speechRate: number;
   setSpeechRate: (rate: number) => void;
+  onOpenDiagnostics?: () => void;
 }
 
 export const DialogueHeader: React.FC<DialogueHeaderProps> = ({
@@ -39,6 +40,7 @@ export const DialogueHeader: React.FC<DialogueHeaderProps> = ({
   onUpdateProfile,
   speechRate,
   setSpeechRate,
+  onOpenDiagnostics,
 }) => {
   return (
     <>
@@ -194,6 +196,19 @@ export const DialogueHeader: React.FC<DialogueHeaderProps> = ({
           >
             {speechRate}x
           </button>
+
+          {/* Смотритель и Черный ящик */}
+          {onOpenDiagnostics && (
+            <button
+              type="button"
+              onClick={onOpenDiagnostics}
+              className="px-2.5 py-1 bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-100 dark:hover:bg-blue-900/60 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 rounded-xl text-xs font-bold flex items-center gap-1.5 transition cursor-pointer shadow-2xs"
+              title="Смотритель и Черный ящик (Flight Recorder): телеметрия микрофона, Whisper STT и ошибок"
+            >
+              <Activity className="w-3.5 h-3.5 text-blue-500 animate-pulse" />
+              <span>Смотритель</span>
+            </button>
+          )}
         </div>
       </div>
 

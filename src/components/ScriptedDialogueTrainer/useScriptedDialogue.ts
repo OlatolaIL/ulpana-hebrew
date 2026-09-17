@@ -31,6 +31,33 @@ import { phoneAudio } from '@/lib/phoneAudio';
 import { TrainerMode } from './types';
 import { isDialoguePracticeComplete, requestDialogueEvaluation } from '@/lib/dialoguePractice';
 import { isWhisperSilenceHallucination } from '@/lib/speechTranscription';
+import { callFlightRecorder } from '@/lib/callDiagnostics';
+
+function createCombinedSignal(parentSignal?: AbortSignal, timeoutMs = 35000): AbortSignal {
+  const controller = new AbortController();
+  const timer = setTimeout(() => {
+    controller.abort(new Error(`Timeout after ${timeoutMs}ms`));
+  }, timeoutMs);
+
+  if (parentSignal) {
+    if (parentSignal.aborted) {
+      clearTimeout(timer);
+      controller.abort(parentSignal.reason);
+    } else {
+      parentSignal.addEventListener(
+        'abort',
+        () => {
+          clearTimeout(timer);
+          controller.abort(parentSignal.reason);
+        },
+        { once: true }
+      );
+    }
+  }
+
+  controller.signal.addEventListener('abort', () => clearTimeout(timer), { once: true });
+  return controller.signal;
+}
 
 interface UseScriptedDialogueProps {
   lesson: Lesson;
@@ -444,6 +471,13 @@ export function useScriptedDialogue({
       const variant = getTurnText(currentTurn);
       const isFemale = opponentGender === 'female';
 
+      callFlightRecorder.record('TTS', `Opponent speech started: ${variant.hebrew}`, {
+        turnIndex: practiceTurnIndex,
+        speaker: currentTurn.speaker,
+        text: variant.hebrew,
+        rate: speechRate,
+      }, 'info');
+
       let active = true;
       const timer = setTimeout(async () => {
         await speakHebrew(variant.hebrew, {
@@ -533,6 +567,13 @@ export function useScriptedDialogue({
     const currentTurn = dialogue.turns[practiceTurnIndex];
     const variant = currentTurn ? getTurnText(currentTurn) : null;
 
+    callFlightRecorder.record('SYSTEM', 'Dialogue voice recording started', {
+      turnIndex: practiceTurnIndex,
+      userRoleSide,
+      expectedHebrew: variant?.hebrew,
+      intentRu: currentTurn?.intentRu,
+    }, 'info');
+
     const recognizer = new HebrewSpeechRecognizer();
     recognizerRef.current = recognizer;
     const session = practiceSessionRef.current;
@@ -549,6 +590,7 @@ export function useScriptedDialogue({
       (error) => {
         if (!isCurrent()) return;
         console.warn('Speech recognition error:', error);
+        callFlightRecorder.record('AUDIO', 'Speech recognition error', { error: String(error) }, 'error');
         setIsRecording(false);
         setIsEvaluating(false);
         setEvaluatingPhase('idle');
@@ -564,6 +606,7 @@ export function useScriptedDialogue({
         if (text || blob) {
           handleFinalSpeechResult(text, blob, finalUrl);
         } else {
+          callFlightRecorder.record('AUDIO', 'Voice recording finished with empty speech and blob', {}, 'warn');
           setIsRecording(false);
           setIsEvaluating(false);
           setEvaluatingPhase('idle');
@@ -581,6 +624,11 @@ export function useScriptedDialogue({
           if (!isCurrent()) return;
           if (audioBlob) {
             lastAudioBlobRef.current = audioBlob;
+            callFlightRecorder.record('AUDIO', 'Dialogue audio blob recorded', {
+              sizeBytes: audioBlob.size,
+              mimeType: audioBlob.type,
+              hasUrl: Boolean(audioUrl),
+            }, 'info');
           }
           if (audioUrl) {
             setUserAudioUrl(audioUrl);
@@ -595,6 +643,10 @@ export function useScriptedDialogue({
     setIsEvaluating(true);
     setEvaluatingPhase('transcribing');
 
+    callFlightRecorder.record('SYSTEM', 'Dialogue voice recording stopped by user', {
+      turnIndex: practiceTurnIndex,
+    }, 'info');
+
     if (recognizerRef.current) {
       recognizerRef.current.stop();
     }
@@ -603,18 +655,14 @@ export function useScriptedDialogue({
       clearTimeout(evaluationSafetyTimerRef.current);
     }
     evaluationSafetyTimerRef.current = setTimeout(() => {
-      if (evaluatingTurnRef.current !== practiceTurnIndex) {
-        const text = spokenTextRef.current.trim();
-        const blob = lastAudioBlobRef.current;
-        if (text || blob) {
-          handleFinalSpeechResult(text, blob, userAudioUrl);
-        } else {
-          setIsEvaluating(false);
-          setEvaluatingPhase('idle');
-          setEvaluationError('Время ожидания ответа истекло. Пожалуйста, попробуйте записать ответ ещё раз.');
-        }
-      }
-    }, 15000);
+      callFlightRecorder.record('ERROR', 'Dialogue evaluation safety timeout triggered (>18s)', {
+        practiceTurnIndex,
+        evaluatingTurn: evaluatingTurnRef.current,
+      }, 'error');
+      setIsEvaluating(false);
+      setEvaluatingPhase('idle');
+      setEvaluationError('Время ожидания ответа истекло (18с). Нажмите «Смотритель» для просмотра лога или запишите ответ ещё раз.');
+    }, 18000);
   };
 
   // Оценка реплики ученика по смыслу через API
@@ -681,6 +729,7 @@ export function useScriptedDialogue({
 
       // R-19: 1. ОСНОВНОЙ ДВИЖОК — Серверный Whisper-large-v3 через /api/ai/transcribe с контекстной подсказкой урока
       if (!textToEvaluate && isOnline && audioBlob && audioBlob.size > 500 && isCurrent()) {
+        const tWhisper = Date.now();
         try {
           const form = new FormData();
           const mime = audioBlob.type || 'audio/webm';
@@ -694,22 +743,52 @@ export function useScriptedDialogue({
             form.append('prompt', vocabPrompt);
           }
 
+          callFlightRecorder.record('STT', 'Dialogue Whisper STT request sent', {
+            sizeBytes: audioBlob.size,
+            mime,
+            promptLength: vocabPrompt.length,
+          }, 'info');
+
           const transcribeRes = await fetch('/api/ai/transcribe', {
             method: 'POST',
             body: form,
-            signal: controller.signal,
+            signal: createCombinedSignal(controller.signal, 20000),
           });
+
+          const whisperLatencyMs = Date.now() - tWhisper;
 
           if (transcribeRes.ok && isCurrent()) {
             const data = await transcribeRes.json();
             const whisperText = (data.text || '').trim();
             if (whisperText && !isWhisperSilenceHallucination(whisperText)) {
+              callFlightRecorder.record('STT', `Dialogue Whisper STT success (${whisperLatencyMs}ms)`, {
+                text: whisperText,
+                latencyMs: whisperLatencyMs,
+              }, 'success');
               textToEvaluate = whisperText;
               setSpokenText(whisperText);
               spokenTextRef.current = whisperText;
+            } else {
+              callFlightRecorder.record('STT', `Dialogue Whisper silence hallucination filtered (${whisperLatencyMs}ms)`, {
+                rawText: data.text,
+                latencyMs: whisperLatencyMs,
+              }, 'warn');
             }
+          } else {
+            let errPreview = '';
+            try { errPreview = await transcribeRes.text(); } catch {}
+            callFlightRecorder.record('STT', `Dialogue Whisper STT HTTP ${transcribeRes.status} (${whisperLatencyMs}ms)`, {
+              status: transcribeRes.status,
+              latencyMs: whisperLatencyMs,
+              error: errPreview.slice(0, 150),
+            }, 'error');
           }
-        } catch (transcribeErr) {
+        } catch (transcribeErr: any) {
+          const whisperLatencyMs = Date.now() - tWhisper;
+          callFlightRecorder.record('STT', `Dialogue Whisper STT exception (${whisperLatencyMs}ms)`, {
+            error: String(transcribeErr?.message || transcribeErr),
+            latencyMs: whisperLatencyMs,
+          }, 'error');
           console.warn('[ScriptedDialogue] Whisper transcribe error, fallback to device speech:', transcribeErr);
         }
       }
@@ -717,6 +796,9 @@ export function useScriptedDialogue({
       // R-19: 2. РЕЗЕРВНЫЙ ФОЛБЭК — Распознавание на устройстве (Web Speech API) только если офлайн или Whisper не ответил
       if (!textToEvaluate && recognizedHebrew.trim()) {
         textToEvaluate = recognizedHebrew.trim();
+        callFlightRecorder.record('STT', 'Fallback to device speech recognition', {
+          text: textToEvaluate,
+        }, 'info');
       }
 
       if (textToEvaluate) {
@@ -725,6 +807,14 @@ export function useScriptedDialogue({
       }
 
       if (textToEvaluate && isCurrent()) {
+        const tEval = Date.now();
+        callFlightRecorder.record('LLM', 'Sending turn to /api/ai/dialogue/evaluate', {
+          turnIndex: practiceTurnIndex,
+          userSpokenHebrew: textToEvaluate,
+          targetIntentRu: currentTurn.intentRu,
+          referenceHebrew: variant.hebrew,
+        }, 'info');
+
         finalEvalResult = await requestDialogueEvaluation({
           userSpokenHebrew: textToEvaluate,
           targetIntentRu: currentTurn.intentRu,
@@ -735,7 +825,16 @@ export function useScriptedDialogue({
           opponentGender,
           lessonNumber: lesson.number,
           level: lesson.level,
-        }, AbortSignal.any([controller.signal, AbortSignal.timeout(70000)]));
+        }, createCombinedSignal(controller.signal, 30000));
+
+        const evalLatencyMs = Date.now() - tEval;
+        callFlightRecorder.record('LLM', `Dialogue evaluated (${evalLatencyMs}ms)`, {
+          score: finalEvalResult.score,
+          isCorrect: finalEvalResult.isCorrect,
+          assessment: finalEvalResult.assessment,
+          feedbackRu: finalEvalResult.feedbackRu,
+          latencyMs: evalLatencyMs,
+        }, finalEvalResult.isCorrect ? 'success' : 'warn');
       }
 
       if (isCurrent() && finalEvalResult) {
@@ -751,14 +850,24 @@ export function useScriptedDialogue({
           } catch {}
         }
       } else if (isCurrent() && !finalEvalResult) {
+        callFlightRecorder.record('ERROR', 'No speech recognized for dialogue evaluation', {
+          isOnline,
+          audioBlobSize: audioBlob?.size,
+          deviceSpeech: recognizedHebrew,
+        }, 'warn');
         setEvaluationError(
           !isOnline
             ? 'Нет подключения к интернету. Проверьте соединение и повторите запись.'
             : 'Не удалось распознать речь. Попробуйте сказать фразу ещё раз.'
         );
       }
-    } catch {
-      if (isCurrent()) setEvaluationError('Проверка сейчас недоступна. Ответ не оценён. Можно повторить проверку этой фразы или записать новую.');
+    } catch (err: any) {
+      if (isCurrent()) {
+        callFlightRecorder.record('ERROR', 'Dialogue evaluation exception', {
+          error: String(err?.message || err),
+        }, 'error');
+        setEvaluationError('Проверка сейчас недоступна. Ответ не оценён. Можно открыть «Смотритель» для просмотра лога или повторить запись.');
+      }
     } finally {
       if (isCurrent()) {
       setIsEvaluating(false);

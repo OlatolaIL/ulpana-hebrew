@@ -12,6 +12,7 @@ import {
   BookOpen,
   Square,
   Download,
+  Activity,
 } from 'lucide-react';
 import {
   Lesson,
@@ -39,7 +40,7 @@ interface PracticeViewProps {
   turnHistory: Record<number, DialogueEvaluationResult>;
   userAudioUrl: string | null;
   playingAudioUrl: string | null;
-  handleToggleUserAudio: (audioUrlToPlay?: string) => void;
+  handleToggleUserAudio: (url?: string) => void;
   showNikkud: boolean;
   showTranscription: boolean;
   totalAvailableWordsCount: number;
@@ -67,6 +68,7 @@ interface PracticeViewProps {
   startVoiceRecording: () => void;
   isRecording: boolean;
   isOpponentSpeaking: boolean;
+  onOpenDiagnostics?: () => void;
 }
 
 export const PracticeView: React.FC<PracticeViewProps> = ({
@@ -107,6 +109,7 @@ export const PracticeView: React.FC<PracticeViewProps> = ({
   isRecording,
   isOpponentSpeaking,
   onWordClick,
+  onOpenDiagnostics,
 }) => {
   return (
     <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
@@ -354,11 +357,24 @@ export const PracticeView: React.FC<PracticeViewProps> = ({
                   <Sparkles className="w-5 h-5 animate-spin text-amber-300" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs sm:text-sm font-bold text-blue-950 dark:text-blue-100">
-                    {evaluatingPhase === 'transcribing'
-                      ? 'ИИ слушает и расшифровывает вашу речь...'
-                      : 'Проверяем смысл и грамматику распознанной фразы...'}
-                  </p>
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-xs sm:text-sm font-bold text-blue-950 dark:text-blue-100">
+                      {evaluatingPhase === 'transcribing'
+                        ? 'ИИ слушает и расшифровывает вашу речь...'
+                        : 'Проверяем смысл и грамматику распознанной фразы...'}
+                    </p>
+                    {onOpenDiagnostics && (
+                      <button
+                        type="button"
+                        onClick={onOpenDiagnostics}
+                        className="px-2 py-0.5 rounded-lg border border-blue-300 dark:border-blue-700 bg-white/80 dark:bg-zinc-900 text-blue-700 dark:text-blue-300 text-[11px] font-bold flex items-center gap-1 shrink-0 hover:bg-blue-100 transition cursor-pointer shadow-2xs"
+                        title="Открыть Смотритель (лог в реальном времени)"
+                      >
+                        <Activity className="w-3 h-3 text-blue-500 animate-pulse" />
+                        <span>Смотритель</span>
+                      </button>
+                    )}
+                  </div>
                   <p className="text-[11px] text-blue-700/80 dark:text-blue-300/80">
                     {evaluatingPhase === 'transcribing'
                       ? 'Преобразуем вашу запись в текст...'
@@ -393,12 +409,43 @@ export const PracticeView: React.FC<PracticeViewProps> = ({
           )}
 
           {evaluationError && !isEvaluating && (
-            <div role="alert" className="p-3 rounded-xl border border-amber-300 bg-amber-50 dark:bg-amber-950/40 text-sm space-y-2">
-              <p className="font-bold">Проверка недоступна</p>
-              <p>{evaluationError}</p>
-              <button type="button" onClick={retryEvaluation} className="px-3 py-2 rounded-lg bg-blue-600 text-white font-semibold">
-                Повторить проверку
-              </button>
+            <div role="alert" className="p-3.5 rounded-2xl border border-amber-300 dark:border-amber-800/80 bg-amber-50 dark:bg-amber-950/40 text-sm space-y-2.5 shadow-2xs">
+              <div className="flex items-center justify-between gap-2">
+                <p className="font-bold text-amber-950 dark:text-amber-100 flex items-center gap-1.5 text-xs sm:text-sm">
+                  <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                  <span>Проверка сейчас недоступна</span>
+                </p>
+                {onOpenDiagnostics && (
+                  <button
+                    type="button"
+                    onClick={onOpenDiagnostics}
+                    className="px-2 py-0.5 rounded-lg border border-blue-300 dark:border-blue-700 bg-white dark:bg-zinc-900 text-blue-700 dark:text-blue-300 font-bold text-xs flex items-center gap-1 hover:bg-blue-100 transition cursor-pointer shadow-2xs"
+                    title="Открыть Смотритель (технический лог)"
+                  >
+                    <Activity className="w-3.5 h-3.5 text-blue-500 animate-pulse" />
+                    <span>Смотритель</span>
+                  </button>
+                )}
+              </div>
+              <p className="text-xs text-amber-900 dark:text-amber-200">{evaluationError}</p>
+              <div className="flex items-center gap-3 pt-1">
+                <button
+                  type="button"
+                  onClick={retryEvaluation}
+                  className="px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs shadow-2xs transition cursor-pointer"
+                >
+                  Повторить проверку
+                </button>
+                {onOpenDiagnostics && (
+                  <button
+                    type="button"
+                    onClick={onOpenDiagnostics}
+                    className="text-xs text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1 transition cursor-pointer"
+                  >
+                    Посмотреть детали ошибки в Смотрителе →
+                  </button>
+                )}
+              </div>
             </div>
           )}
 

@@ -32,6 +32,7 @@ interface CallDiagnosticsModalProps {
   mounted: boolean;
   activeStream?: MediaStream | null;
   audioContext?: AudioContext | null;
+  title?: string;
 }
 
 export const CallDiagnosticsModal: React.FC<CallDiagnosticsModalProps> = ({
@@ -40,6 +41,7 @@ export const CallDiagnosticsModal: React.FC<CallDiagnosticsModalProps> = ({
   mounted,
   activeStream,
   audioContext,
+  title,
 }) => {
   const [summary, setSummary] = useState<FlightRecorderSummary>(() =>
     callFlightRecorder.exportSummary(activeStream, audioContext)
@@ -119,7 +121,7 @@ export const CallDiagnosticsModal: React.FC<CallDiagnosticsModalProps> = ({
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="font-bold text-sm sm:text-base text-zinc-100">
-                  Черный ящик звонка (Телеметрия)
+                  {title || 'Черный ящик и Смотритель (Телеметрия)'}
                 </h3>
                 <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded-full bg-blue-950/80 text-blue-300 border border-blue-800/60 font-semibold">
                   LIVE
