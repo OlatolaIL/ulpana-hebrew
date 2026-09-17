@@ -48,4 +48,5 @@ public/demo/audio_cache/
 
 # scrapers and indexes
 src/data/pealimCatalogIndex.json
+scripts/output/
 

@@ -203,6 +203,19 @@ ChatGPT — архитектор и независимая приёмка; Gemin
   3. `tests/complex-drills-invariants.test.cjs`: обновлены пороги проверки целостности (не менее 750 существительных и 45 прилагательных, валидация длины предложений 2–6 слов, проверка отсутствия архаичных кубуцев без вав, диапазон уроков `minLesson <= 100`).
   4. Проверки: `npm run typecheck` (0 ошибок), `node --require ./tests/register.cjs --test tests/complex-drills-invariants.test.cjs` (4/4 passed), `npm test` (176/176 passing), `npm run audit:intent` (100% зелёный статус соблюдения матрицы).
 
+**17.09.2026 — Ликвидация галлюцинаций Whisper при тишине и внедрение Audio Energy Gate (P-01, R-15, R-19):**
+- Диагностирована первопричина появления ложных фраз («דירה, דירות כאלה שיש לסלון, מה פעמים?») при намеренном молчании ученика в телефонном звонке:
+  1. Фоновый комнатный шум (-45..-51 dB) ложно активировал VAD из-за низкого порога `speechThreshold = 10`.
+  2. Записанная тишина вместе со словарными подсказками сценария Урока 7 передавалась в Groq Whisper.
+  3. Декодер Whisper синтезировал фразы из переданного `prompt` (Prompt Conditioning Hallucination) с ложной уверенностью `no_speech_prob < 0.01`.
+- Внедрено многоуровневое архитектурное решение:
+  1. В `src/lib/speech.ts` реализован Time-Domain RMS Audio Energy Gate (`peakRmsDbInCurrentChunk > -35 dBFS`, `peakAvgInCurrentChunk >= 15`) и адаптивное отслеживание фонового шума тишины (`ambientNoiseFloor`). Фоновые шумы и тишина отбрасываются до отправки на сервер.
+  2. В `src/components/PhoneCallSimulator/usePhoneCall.ts` порог детекции голоса `speechThreshold` поднят до 16.
+  3. В `src/app/api/ai/transcribe/route.ts` и `src/lib/speechTranscription.ts` внедрён серверный детектор `isWhisperPromptHallucination` и порог отсечки Whisper `avg_logprob < -1.0`, а также фильтрация коротких фантомов тишины («תודה רבה», «שלום»).
+  4. В `tests/whisper-prompt-resilience.test.cjs` добавлены регрессионные тесты детекции реальных галлюцинаций из боевой базы и пропуска реальной речи.
+- Синхронизированы `DECISION_MATRIX.md` (v1.4.3, Superseded Log) и паспорт `docs/mechanics/stage-06-phone-call.md` (P-01.10).
+- Проверки: `npm run typecheck` (0 ошибок), `npm test` (176/176 passing), `npm run audit:intent` (100% зелёный), `npm run build` (Next.js 16, 38/38 routes скомпилированы).
+
 Историческая сверка 23 замечаний завершена: 11 подтверждено, 6 частично, 4 предложения, 1 опровергнуто, 1 недостаточно оснований. Ревью pilot-01-05-review.md и pilot-remediation.json сохраняют исходные вердикты отдельно от состояния исправлений; не начинать сверку заново.
 
 ### Текущий кандидат и единственный следующий шаг разработчика
