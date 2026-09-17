@@ -424,7 +424,8 @@ export function usePhoneCall({
         apiKey: userProfile.groqApiKey || undefined,
         continuous: true,
         silenceDurationMs: silenceDelayMs,
-        speechThreshold: 10,
+        speechThreshold: 16,
+        energyThresholdDb: -35,
         audioContext: phoneAudio.getContext(),
         mediaStream: activeMicStreamRef.current,
         onAudioRecorded: (blob, url) => {

@@ -1,4 +1,4 @@
-﻿/**
+/**
  * whisper-prompt-resilience.test.cjs
  *
  * Инварианты:
@@ -114,4 +114,59 @@ assert(
   `Длина промпта (${promptString.length}) должна быть < 250 символов (лимит Groq = 896)`
 );
 
-console.log('✅ Все проверки устойчивости промпта Whisper и лимита 20 слов успешно пройдены!');
+// 5. Проверяем клиентский Audio Energy Gate в speech.ts
+assert(
+  speechContent.includes('peakRmsDbInCurrentChunk'),
+  'speech.ts обязан отслеживать пиковую RMS энергию в текущем чанке (peakRmsDbInCurrentChunk)'
+);
+assert(
+  speechContent.includes('peakAvgInCurrentChunk'),
+  'speech.ts обязан отслеживать пиковую частотную амплитуду в текущем чанке (peakAvgInCurrentChunk)'
+);
+assert(
+  speechContent.includes('ambientNoiseFloor'),
+  'speech.ts обязан адаптивно отслеживать фоновый шум комнаты (ambientNoiseFloor)'
+);
+assert(
+  speechContent.includes('hasRealSpeechEnergy'),
+  'speech.ts обязан проверять наличие реальной речевой энергии перед отправкой в STT (hasRealSpeechEnergy)'
+);
+
+// 6. Проверяем работу детектора галлюцинаций по промпту (isWhisperPromptHallucination)
+const { isWhisperPromptHallucination, isWhisperSilenceHallucination } = require('../src/lib/speechTranscription.ts');
+
+const lesson7Prompt = 'אלי (בעל הדירה), דירה של שני חדרים, דירה של שלושה חדרים, סלון ומטבח, יש מקרר ומיטה?, כמה זה עולה?, שלום, דירה, שני חדרים, שלושה חדרים, מקרר, מיטה, שולחן, מתי אפשר לראות?, בית, חדר, סלון, מטבח, חדר שינה, ארון';
+const hallucinationFromSilence = 'דירה, דירות כאלה שיש לסלון, מה פעמים?';
+
+assert.strictEqual(
+  isWhisperPromptHallucination(hallucinationFromSilence, lesson7Prompt, -1.104),
+  true,
+  'Фраза, синтезированная Whisper из промпта на тишине, обязана блокироваться детектором галлюцинаций'
+);
+
+assert.strictEqual(
+  isWhisperPromptHallucination('איזה כבר איימץ?', lesson7Prompt, -1.210),
+  true,
+  'Фраза с лог-вероятностью < -1.0 обязана блокироваться как акустический шум'
+);
+
+assert.strictEqual(
+  isWhisperPromptHallucination('שלום נאום נעים מאוד הכל בסדר', lesson7Prompt, -0.318),
+  false,
+  'Реальная речь с хорошей уверенностью модели (-0.318) не должна блокироваться'
+);
+
+// 7. Проверяем блокировку коротких фантомов тишины при низкой уверенности
+assert.strictEqual(
+  isWhisperSilenceHallucination('תודה רבה.', -0.907),
+  true,
+  'Короткий фантом тишины "תודה רבה" с низкой уверенностью (-0.907) обязан блокироваться'
+);
+
+assert.strictEqual(
+  isWhisperSilenceHallucination('תודה רבה', -0.35),
+  false,
+  'Реальное "תודה רבה", сказанное учеником с хорошей уверенностью (-0.35), должно успешно проходить'
+);
+
+console.log('✅ Все проверки устойчивости промпта Whisper, Audio Energy Gate и защиты от галлюцинаций успешно пройдены!');

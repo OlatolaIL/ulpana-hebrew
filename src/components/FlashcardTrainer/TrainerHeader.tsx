@@ -114,67 +114,72 @@ export const TrainerHeader: React.FC<TrainerHeaderProps> = ({
           <button
             onClick={() => onSetMode('flip')}
             title="Флип (Классические карточки)"
-            className={`flex-1 min-w-[65px] flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
+            aria-label="Флип"
+            className={`flex-1 min-w-0 sm:min-w-[65px] flex items-center justify-center gap-1.5 p-2 sm:px-2.5 sm:py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
               mode === 'flip'
                 ? 'bg-blue-600 text-white shadow-xs'
                 : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200'
             }`}
           >
-            <Layers className="w-3.5 h-3.5 flex-shrink-0" />
-            <span>Флип</span>
+            <Layers className="w-4 h-4 sm:w-3.5 sm:h-3.5 flex-shrink-0" />
+            <span className="hidden sm:inline">Флип</span>
           </button>
           {/* Конструктор */}
           <button
             onClick={() => onSetMode('builder')}
             title="Конструктор (Сборка слова)"
-            className={`flex-1 min-w-[85px] flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
+            aria-label="Конструктор"
+            className={`flex-1 min-w-0 sm:min-w-[85px] flex items-center justify-center gap-1.5 p-2 sm:px-2.5 sm:py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
               mode === 'builder'
                 ? 'bg-blue-600 text-white shadow-xs'
                 : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200'
             }`}
           >
-            <Hammer className="w-3.5 h-3.5 flex-shrink-0" />
-            <span>Конструктор</span>
+            <Hammer className="w-4 h-4 sm:w-3.5 sm:h-3.5 flex-shrink-0" />
+            <span className="hidden sm:inline">Конструктор</span>
           </button>
           {/* На слух */}
           <button
             onClick={() => onSetMode('listening')}
             title="На слух (Викторина по аудио)"
-            className={`flex-1 min-w-[70px] flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
+            aria-label="На слух"
+            className={`flex-1 min-w-0 sm:min-w-[70px] flex items-center justify-center gap-1.5 p-2 sm:px-2.5 sm:py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
               mode === 'listening'
                 ? 'bg-blue-600 text-white shadow-xs'
                 : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200'
             }`}
           >
-            <Headphones className="w-3.5 h-3.5 flex-shrink-0" />
-            <span>На слух</span>
+            <Headphones className="w-4 h-4 sm:w-3.5 sm:h-3.5 flex-shrink-0" />
+            <span className="hidden sm:inline">На слух</span>
           </button>
           {/* Авто на слух */}
           <button
             onClick={() => onSetMode('auto_audio')}
             title="Авто на слух (Пассивный плеер)"
-            className={`flex-1 min-w-[65px] flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
+            aria-label="Авто на слух"
+            className={`flex-1 min-w-0 sm:min-w-[65px] flex items-center justify-center gap-1.5 p-2 sm:px-2.5 sm:py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
               mode === 'auto_audio'
                 ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-xs'
                 : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200'
             }`}
           >
-            <Play className="w-3.5 h-3.5 fill-current flex-shrink-0" />
-            <span>Авто</span>
+            <Play className="w-4 h-4 sm:w-3.5 sm:h-3.5 fill-current flex-shrink-0" />
+            <span className="hidden sm:inline">Авто</span>
           </button>
           {/* Спряжения (Трансформация времён) */}
           {hasVerbs && (
             <button
               onClick={() => onSetMode('conjugation')}
               title="Спряжения (Трансформация времён)"
-              className={`flex-1 min-w-[85px] flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
+              aria-label="Спряжения"
+              className={`flex-1 min-w-0 sm:min-w-[85px] flex items-center justify-center gap-1.5 p-2 sm:px-2.5 sm:py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
                 mode === 'conjugation'
                   ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-xs'
                   : 'text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300'
               }`}
             >
-              <GitBranch className="w-3.5 h-3.5 flex-shrink-0" />
-              <span>Спряжения</span>
+              <GitBranch className="w-4 h-4 sm:w-3.5 sm:h-3.5 flex-shrink-0" />
+              <span className="hidden sm:inline">Спряжения</span>
             </button>
           )}
           {/* Комплекс (Слуховой тренажер с активной паузой) */}
@@ -182,14 +187,15 @@ export const TrainerHeader: React.FC<TrainerHeaderProps> = ({
             <button
               onClick={() => onSetMode('complex')}
               title="Комплекс (Микро-фразы 3–4 слова, активная пауза и слуховой разбор)"
-              className={`flex-1 min-w-[85px] flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
+              aria-label="Комплекс"
+              className={`flex-1 min-w-0 sm:min-w-[85px] flex items-center justify-center gap-1.5 p-2 sm:px-2.5 sm:py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
                 mode === 'complex'
                   ? 'bg-gradient-to-r from-amber-500 to-orange-600 text-white shadow-xs'
                   : 'text-amber-600 dark:text-amber-400 hover:text-amber-700 dark:hover:text-amber-300'
               }`}
             >
-              <Sparkles className="w-3.5 h-3.5 flex-shrink-0" />
-              <span>Комплекс</span>
+              <Sparkles className="w-4 h-4 sm:w-3.5 sm:h-3.5 flex-shrink-0" />
+              <span className="hidden sm:inline">Комплекс</span>
             </button>
           )}
         </div>

@@ -919,6 +919,7 @@ export interface SpeechRecognizerOptions {
   speechThreshold?: number;
   audioContext?: AudioContext | null;
   mediaStream?: MediaStream | null;
+  energyThresholdDb?: number; // Порог минимальной RMS-энергии голоса (в dB, дефолт -35 dB)
   onAudioLevel?: (level: number) => void;
   onSilenceDetected?: (transcript: string, audioBlob?: Blob | null, audioUrl?: string | null) => void;
   onAudioRecorded?: (audioBlob: Blob, audioUrl: string) => void;
@@ -947,6 +948,9 @@ export class HebrewSpeechRecognizer {
   private hasDetectedSpeech = false;
   private silenceStartTime: number | null = null;
   private isProcessingSilence = false;
+  private ambientNoiseFloor = 10;
+  private peakAvgInCurrentChunk = 0;
+  private peakRmsDbInCurrentChunk = -100;
 
   public isSupported(): boolean {
     if (typeof window === 'undefined') return false;
@@ -980,6 +984,9 @@ export class HebrewSpeechRecognizer {
     this.hasDetectedSpeech = false;
     this.silenceStartTime = null;
     this.isProcessingSilence = false;
+    this.ambientNoiseFloor = 10;
+    this.peakAvgInCurrentChunk = 0;
+    this.peakRmsDbInCurrentChunk = -100;
 
     // 1. Запуск браузерного распознавания речи (Web Speech API для живого превью)
     this.startRecognitionOnly();
@@ -1202,16 +1209,21 @@ export class HebrewSpeechRecognizer {
 
       const bufferLength = this.analyser.frequencyBinCount;
       const dataArray = new Uint8Array(bufferLength);
+      const timeData = new Uint8Array(bufferLength);
 
       let speechFrames = 0;
       this.hasDetectedSpeech = false;
       this.silenceStartTime = null;
       this.isProcessingSilence = false;
+      this.peakAvgInCurrentChunk = 0;
+      this.peakRmsDbInCurrentChunk = -100;
 
       this.vadInterval = setInterval(async () => {
         if (!this.isListening || !this.analyser) return;
 
         this.analyser.getByteFrequencyData(dataArray);
+        this.analyser.getByteTimeDomainData(timeData);
+
         let sum = 0;
         for (let i = 0; i < bufferLength; i++) {
           sum += dataArray[i];
@@ -1220,20 +1232,44 @@ export class HebrewSpeechRecognizer {
         const normalized = Math.min(1, Math.max(0, (avg - 3) / 40));
         this.currentOptions.onAudioLevel?.(normalized);
 
-        const threshold = this.currentOptions.speechThreshold ?? 6;
-        const isSpeakingNow = avg > threshold;
+        // Расчёт среднеквадратичной энергии во временной области (RMS dBFS)
+        let sumSquares = 0;
+        for (let i = 0; i < bufferLength; i++) {
+          const norm = (timeData[i] - 128) / 128;
+          sumSquares += norm * norm;
+        }
+        const rms = Math.sqrt(sumSquares / bufferLength);
+        const rmsDb = rms > 0.0001 ? 20 * Math.log10(rms) : -100;
+
+        const threshold = this.currentOptions.speechThreshold ?? 16;
+        const energyThreshold = this.currentOptions.energyThresholdDb ?? -35;
+
+        // Человеческая речь: частота превышает порог и фон, а RMS выше -35 dB
+        const isSpeakingNow = avg > threshold && avg >= (this.ambientNoiseFloor + 5) && rmsDb > energyThreshold;
 
         if (isSpeakingNow) {
+          if (avg > this.peakAvgInCurrentChunk) this.peakAvgInCurrentChunk = avg;
+          if (rmsDb > this.peakRmsDbInCurrentChunk) this.peakRmsDbInCurrentChunk = rmsDb;
           speechFrames++;
-          // Требуем минимум 3 устойчивых фрейма (~150мс) или четкий пик громкости
-          if (speechFrames >= 3 || avg > threshold + 5) {
+
+          // Требуем минимум 4 устойчивых фрейма (~200мс) или выраженный пик громкости
+          if (speechFrames >= 4 || (avg > threshold + 10 && rmsDb > (energyThreshold + 6))) {
             if (!this.hasDetectedSpeech) {
-              callFlightRecorder.record('VAD', 'Speech started (VAD trigger)', { avg: Math.round(avg), threshold }, 'info');
+              callFlightRecorder.record('VAD', 'Speech started (VAD trigger)', {
+                avg: Math.round(avg),
+                rmsDb: Math.round(rmsDb),
+                threshold,
+                ambientFloor: Math.round(this.ambientNoiseFloor),
+              }, 'info');
             }
             this.hasDetectedSpeech = true;
             this.silenceStartTime = null;
           }
         } else {
+          // Адаптивное отслеживание фонового шума комнаты во время тишины
+          if (!this.hasDetectedSpeech) {
+            this.ambientNoiseFloor = this.ambientNoiseFloor * 0.95 + avg * 0.05;
+          }
           speechFrames = Math.max(0, speechFrames - 1);
           if (this.hasDetectedSpeech && !this.isProcessingSilence && !this.currentOptions.disableAutoSilenceStop) {
             if (!this.silenceStartTime) {
@@ -1264,6 +1300,29 @@ export class HebrewSpeechRecognizer {
       return;
     }
 
+    // 0. ENERGY GATE: Проверяем, была ли в записанном аудиочанке реальная энергия человеческой речи
+    const energyThreshold = this.currentOptions.energyThresholdDb ?? -35;
+    const hasRealSpeechEnergy = this.peakAvgInCurrentChunk >= 15 && this.peakRmsDbInCurrentChunk > energyThreshold;
+
+    if (!hasRealSpeechEnergy) {
+      callFlightRecorder.record('VAD', 'Silence/noise chunk dropped by Energy Gate', {
+        peakAvg: Math.round(this.peakAvgInCurrentChunk),
+        peakRmsDb: Math.round(this.peakRmsDbInCurrentChunk),
+        ambientFloor: Math.round(this.ambientNoiseFloor),
+      }, 'warn');
+      this.audioChunks = [];
+      this.lastTranscript = '';
+      this.hasDetectedSpeech = false;
+      this.silenceStartTime = null;
+      this.peakAvgInCurrentChunk = 0;
+      this.peakRmsDbInCurrentChunk = -100;
+      return;
+    }
+
+    // Сбрасываем пиковые индикаторы для следующего чанка
+    this.peakAvgInCurrentChunk = 0;
+    this.peakRmsDbInCurrentChunk = -100;
+
     // 1. Пробуем транскрибировать накопленное аудио через Groq Whisper V3 для максимальной полноты фразы
     if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
       try {
@@ -1292,6 +1351,8 @@ export class HebrewSpeechRecognizer {
               callFlightRecorder.record('VAD', 'VAD phrase accepted for submission', { text: text.trim(), sizeBytes: audioBlob.size }, 'success');
               this.currentOptions.onSilenceDetected?.(text.trim(), audioBlob, audioUrl);
               return;
+            } else {
+              callFlightRecorder.record('VAD', 'Transcribe returned empty/filtered text, discarding chunk', { rawText: text }, 'warn');
             }
           } else {
             callFlightRecorder.record('VAD', 'Noise rejected: chunk too small (<1500b)', { sizeBytes: audioBlob.size }, 'warn');

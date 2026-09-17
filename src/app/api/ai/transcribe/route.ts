@@ -1,5 +1,5 @@
 import { geminiModel, resolveAiKeys } from '@/lib/aiModels';
-import { normalizeHebrewHomophones, isWhisperSilenceHallucination } from '@/lib/speechTranscription';
+import { normalizeHebrewHomophones, isWhisperSilenceHallucination, isWhisperPromptHallucination } from '@/lib/speechTranscription';
 import { checkAiRequest, fetchAi, aiErrorResponse, AiRequestError } from '@/lib/aiRequest';
 import { NextRequest, NextResponse } from 'next/server';
 import { readBoundedForm } from '@/lib/requestBody';
@@ -128,21 +128,25 @@ export async function POST(req: NextRequest) {
           const rawText = (data.text || '').trim();
           const text = normalizeHebrewHomophones(rawText);
 
-          // Проверка на вероятность отсутствия речи (no_speech_prob) и галлюцинации тишины
+          // Проверка на вероятность отсутствия речи (no_speech_prob) и галлюцинации тишины / промпта
           const segments = Array.isArray(data.segments) ? data.segments : [];
           const avgNoSpeechProb = segments.length > 0
             ? segments.reduce((acc: number, s: any) => acc + (s.no_speech_prob || 0), 0) / segments.length
             : 0;
+          const avgLogprob = segments.length > 0
+            ? segments.reduce((acc: number, s: any) => acc + (s.avg_logprob || 0), 0) / segments.length
+            : 0;
 
-          const isHallucination = isWhisperSilenceHallucination(text);
+          const isHallucination = isWhisperSilenceHallucination(text, avgLogprob);
+          const isPromptHallucination = isWhisperPromptHallucination(text, prompt, avgLogprob);
 
-          // Если Whisper выдал классическую галлюцинацию тишины или вероятность отсутствия речи высокая (> 0.45)
-          if (avgNoSpeechProb > 0.8 || (isHallucination && avgNoSpeechProb > 0.45)) {
+          // Если Whisper выдал классическую галлюцинацию тишины, галлюцинацию по промпту или вероятность отсутствия речи высокая (> 0.45)
+          if (avgNoSpeechProb > 0.8 || (isHallucination && avgNoSpeechProb > 0.45) || isPromptHallucination) {
             return NextResponse.json({
               text: '',
               engine: 'Groq Whisper V3',
               filtered: true,
-              reason: isHallucination ? 'silence_hallucination' : 'no_speech_prob',
+              reason: isPromptHallucination ? 'prompt_hallucination' : isHallucination ? 'silence_hallucination' : 'no_speech_prob',
             });
           }
 
