@@ -1,4 +1,4 @@
-export type AiTaskType = 'essay' | 'phone' | 'chat' | 'lookup' | 'conjugate' | 'debrief';
+export type AiTaskType = 'essay' | 'phone' | 'chat' | 'lookup' | 'conjugate' | 'debrief' | 'dialogue';
 
 /** Model IDs are deployment configuration, never supplied by the browser. */
 export function resolveAiKeys(provider: string, customKey?: unknown) {
@@ -10,6 +10,17 @@ export function resolveAiKeys(provider: string, customKey?: unknown) {
 }
 
 export function groqModels(task: AiTaskType = 'chat'): string[] {
+  if (task === 'dialogue') {
+    const primary = process.env.GROQ_MODEL?.trim() || 'qwen/qwen3.8-27b';
+    const fallback = process.env.GROQ_FALLBACK_MODEL?.trim();
+    const list = [
+      primary,
+      fallback,
+      'openai/gpt-oss-120b',
+      'openai/gpt-oss-20b',
+    ].filter((model): model is string => Boolean(model));
+    return [...new Set(list)].slice(0, 3);
+  }
   const primary =
     process.env.GROQ_MODEL?.trim() ||
     (task === 'essay' ? 'openai/gpt-oss-120b' : 'qwen/qwen3.8-27b');

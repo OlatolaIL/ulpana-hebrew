@@ -203,70 +203,32 @@ export async function POST(req: NextRequest) {
     // 5. Запрос к LLM для глубокой семантической и грамматической оценки
     const { groqKey, geminiKey } = resolveAiKeys(provider, apiKey);
 
-    const systemPrompt = `ТЫ — СТРОГИЙ, НО ДОБРОЖЕЛАТЕЛЬНЫЙ ПРЕПОДАВАТЕЛЬ ИВРИТА В УЛЬПАНЕ.
-Ученик выполняет задание в ролевом диалоге и отвечает ГОЛОСОМ.
-ТВОЯ ЗАДАЧА:
-1. Оценить ответ ученика ПО СМЫСЛУ, а НЕ ПО БУКВАЛЬНОМУ СОВПАДЕНИЮ СЛОВ.
-2. СТРОГО СЛЕДИТЬ ЗА ПРАВИЛЬНЫМ ПОРЯДКОМ СЛОВ (סֵדֶר מִילִּים) В ИВРИТЕ (особенно: прилагательное ПОСЛЕ существительного!).
-3. СТРОГО ПРОВЕРИТЬ ГРАММАТИЧЕСКИЙ РОД И СОГЛАСОВАНИЕ СЛОВ (особенно указательные местоимения זֶה / זֹאת / אֵלֶּה).
-4. Оценить ЧЁТКОСТЬ ПРОИЗНОШЕНИЯ И ФОНЕТИКУ (особенно окончания слов, буквы софиты, выдох ה).
+    const systemPrompt = `You are an expert Hebrew ulpan teacher evaluating a student's spoken response in a roleplay dialogue.
 
-КОНТЕКСТ РЕПЛИКИ:
-- Урок: №${lessonNumber} (Уровень ${level.toUpperCase()})
-- Цель высказывания: "${targetIntentRu}"
-- Примерная эталонная фраза: "${referenceHebrew}"
-- Допустимые вариации: ${JSON.stringify(sampleVariations)}
-- Ключевые понятия: ${JSON.stringify(acceptableKeywords)}
-- Пол ученика: ${userGender === 'female' ? 'Женский (נקבה)' : 'Мужской (זכר)'}
-- Пол собеседника: ${opponentGender === 'female' ? 'Женский (נקבה)' : 'Мужской (זכר)'}
-- ЧТО СКАЗАЛ УЧЕНИК: "${trimmedUser}"${grammarWarningText}
+EVALUATION CRITERIA:
+1. SEMANTICS: Assess if the student conveyed the intended communicative goal, not a verbatim match. Natural variations and creative phrasing are fully accepted.
+2. HEBREW GRAMMAR:
+   - Word order: Adjectives must strictly follow nouns (e.g. סֵפֶר טוֹב, קָפֶה חַם).
+   - Demonstratives: זֶה (masculine), זֹאת/זוֹ (feminine), אֵלֶּה (plural).
+3. If intent is achieved with correct grammar: isCorrect = true, assessment = "perfect" or "good".
+4. If intent failed or severe error: isCorrect = false, assessment = "incorrect" (or score <= 70, assessment = "good" if partially understood), with a clear, encouraging pedagogical explanation in Russian in feedbackRu.
 
-ГЛАВНЫЕ ПРАВИЛА ПРОВЕРКИ:
-1. ПОРЯДОК СЛОВ (סֵדֶר הַמִּילִּים) В ИВРИТЕ (КРИТИЧЕСКИ ВАЖНО):
-- В иврите прилагательное ВСЕГДА следует ПОСЛЕ существительного (сначала предмет, а потом его описание):
-  * ПРАВИЛЬНО: סֵפֶר טוֹב (книга хорошая), מִשְׁפָּחָה גְּדוֹלָה (семья большая), יֶלֶד טוֹב, דִּירָה יָפָה, קָפֶה חַם, יוֹם נָעִים.
-  * ГРУБАЯ ОШИБКА: טוֹב סֵפֶר, גְּדוֹלָה מִשְׁפָּחָה, חַם קָפֶה, יָפָה דִּירָה (прямой перенос русского/английского порядка слов).
-- Отрицание «לֹא» ВСЕГДА ставится ПЕРЕД глаголом или отрицаемым словом:
-  * ПРАВИЛЬНО: אֲנִי לֹא רוֹצֶה, הוּא לֹא גָּר כָּאן.
-  * ГРУБАЯ ОШИБКА: אֲנִי רוֹצֶה לֹא.
-- Вопросительные слова (אֵיפֹה, מָה, מִי, מָתַי, לָמָּה, כַּמָּה) ВСЕГДА ставятся в НАЧАЛЕ предложения/вопроса:
-  * ПРАВИЛЬНО: אֵיפֹה אַתָּה גָּר?
-  * ГРУБАЯ ОШИБКА: אַתָּה גָּר אֵיפֹה?
-- ЕСЛИ УЧЕНИК НАРУШИЛ ПОРЯДОК СЛОВ:
-  * Оценка score НЕ МОЖЕТ быть выше 70!
-  * Поле "assessment" НЕ МОЖЕТ быть "perfect" (только "good" если смысл понятен, или "incorrect").
-  * В "feedbackRu" ОБЯЗАТЕЛЬНО детально объясни правило порядка слов на иврите!
+CONTEXT:
+- Lesson: #${lessonNumber} (Level ${level.toUpperCase()})
+- Target Intent (Russian): "${targetIntentRu}"
+- Reference Hebrew: "${referenceHebrew}"
+- Acceptable variations: ${JSON.stringify(sampleVariations)}
+- Keywords: ${JSON.stringify(acceptableKeywords)}
+- Student gender: ${userGender === 'female' ? 'female (נקבה)' : 'male (זכר)'}
+- Opponent gender: ${opponentGender === 'female' ? 'female (נקבה)' : 'male (זכר)'}
+- WHAT STUDENT SAID: "${trimmedUser}"${grammarWarningText}
 
-2. ГРАММАТИКА РОДА И ЧИСЛА (КРИТИЧЕСКИ ВАЖНО):
-- Указательное местоимение «זֶה» (зэ) используется ТОЛЬКО со словами мужского рода (זכר): זֶה אַבָּא, זֶה אָח, זֶה בַּיִת, זֶה סֵפֶר, זֶה בֵּית סֵפֶר.
-- Указательное местоимение «זֹאת» (зот) или «זוֹ» (зо) используется ТОЛЬКО со словами женского рода (נקבה): זֹאת אִמָּא, זֹאת מִשְׁפָּחָה, זֹאת תְּמוּנָה, זֹאת אָחוֹת, זֹאת דִּירָה.
-- Для множественного числа («это / эти») используется ТОЛЬКО «אֵלֶּה» (э́ле): אֵלֶּה הוֹרִים, אֵלֶּה יְלָדִים, אֵלֶּה אַחִים.
-- ЕСЛИ УЧЕНИК НАРУШИЛ РОД (например сказал "זה אמא", "זה משפחה", "זאת אבא", "זה הורים"):
-  * Это ГРУБАЯ грамматическая ошибка ульпана!
-  * Оценка score НЕ МОЖЕТ быть выше 70!
-  * Поле "assessment" НЕ МОЖЕТ быть "perfect" (только "good" если общий смысл понятен, или "incorrect").
-  * В "feedbackRu" ОБЯЗАТЕЛЬНО объясни ошибку рода простыми словами: какое слово какого рода и какое местоимение нужно использовать.
-
-3. СМЫСЛ:
-Ученик НЕ ОБЯЗАН повторять эталон слово в слово! Если ученик передал нужный смысл своими словами и правильно согласовал род и порядок слов — ответ ПРАВИЛЬНЫЙ (isCorrect = true, assessment = "perfect").
-Например:
-- Вместо "אֲנִי רוֹצֶה קָפֶה" ученик сказал "אֶפְשָׁר קָפֶה בְּבַקָּשָׁה" -> ПРАВИЛЬНО (isCorrect: true, assessment: "perfect").
-- Если смысл совсем другой или бред — isCorrect = false, assessment = "incorrect".
-
-4. ФОНЕТИКА И ОКОНЧАНИЯ СЛОВ:
-- "pronunciationScore": число от 0 до 100.
-- "pronunciationFeedbackRu": Конкретная практическая рекомендация на русском языке по произношению:
-  * Проверь окончания слов: буквы софиты (ם, ך), выдох на букве ה на конце, окончание ת женского рода.
-  * Если всё произнесено чётко — похвали артикуляцию!
-
-Ответь СТРОГО в формате JSON без разметки:
+Return STRICT JSON only:
 {
   "isCorrect": true,
   "score": 90,
   "assessment": "perfect",
-  "feedbackRu": "Краткий комментарий по смыслу, грамматике и порядку слов ответа.",
-  "pronunciationScore": 88,
-  "pronunciationFeedbackRu": "Конкретная рекомендация по фонетике и концовкам букв/звуков.",
+  "feedbackRu": "Доброжелательный комментарий на русском языке с объяснением для ученика.",
   "betterAlternative": "Естественная альтернатива с огласовками (если уместно)"
 }`;
 
@@ -302,7 +264,7 @@ export async function POST(req: NextRequest) {
     };
 
     if (groqKey) {
-      const groqModels = configuredGroqModels();
+      const groqModels = configuredGroqModels('dialogue');
 
       for (const groqModel of groqModels) {
         try {
@@ -334,8 +296,6 @@ export async function POST(req: NextRequest) {
                 score: typeof parsed.score === 'number' ? Math.min(100, Math.max(0, parsed.score)) : (parsed.isCorrect ? 90 : 40),
                 assessment: (['perfect', 'good', 'incorrect'].includes(parsed.assessment) ? parsed.assessment : (parsed.isCorrect ? 'good' : 'incorrect')) as any,
                 feedbackRu: sanitizeRussianTranslation(parsed.feedbackRu || (parsed.isCorrect ? 'Отлично! Вас поняли.' : 'Попробуйте повторить фразу.')),
-                pronunciationScore: typeof parsed.pronunciationScore === 'number' ? Math.min(100, Math.max(0, parsed.pronunciationScore)) : (parsed.isCorrect ? 90 : 50),
-                pronunciationFeedbackRu: sanitizeRussianTranslation(parsed.pronunciationFeedbackRu || 'Следите за четкостью произношения окончаний.'),
                 betterAlternative: parsed.betterAlternative ? String(parsed.betterAlternative).trim() : referenceHebrew,
                 userSpokenHebrew: trimmedUser,
               };
@@ -349,13 +309,18 @@ export async function POST(req: NextRequest) {
 
     if (geminiKey) {
       try {
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel()}:generateContent?key=${geminiKey}`;
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel('dialogue')}:generateContent?key=${geminiKey}`;
         const res = await fetchAi(url, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             contents: [{ parts: [{ text: systemPrompt }] }],
-            generationConfig: { responseMimeType: 'application/json' },
+            generationConfig: {
+              responseMimeType: 'application/json',
+              thinkingConfig: {
+                thinkingBudget: 512,
+              },
+            },
           }),
         });
 
@@ -370,8 +335,6 @@ export async function POST(req: NextRequest) {
               score: typeof parsed.score === 'number' ? parsed.score : (parsed.isCorrect ? 90 : 40),
               assessment: parsed.assessment || (parsed.isCorrect ? 'good' : 'incorrect'),
               feedbackRu: sanitizeRussianTranslation(parsed.feedbackRu || 'Хороший ответ!'),
-              pronunciationScore: typeof parsed.pronunciationScore === 'number' ? Math.min(100, Math.max(0, parsed.pronunciationScore)) : (parsed.isCorrect ? 90 : 50),
-              pronunciationFeedbackRu: sanitizeRussianTranslation(parsed.pronunciationFeedbackRu || 'Следите за четкостью произношения окончаний.'),
               betterAlternative: parsed.betterAlternative || referenceHebrew,
               userSpokenHebrew: trimmedUser,
             };

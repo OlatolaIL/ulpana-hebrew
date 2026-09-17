@@ -1084,6 +1084,11 @@ export class HebrewSpeechRecognizer {
             cleanupStream();
             return;
           }
+          if (this.lastTranscript && this.lastTranscript.trim()) {
+            callFlightRecorder.record('STT', 'Fallback to device speech recognition', {
+              text: this.lastTranscript.trim(),
+            }, 'warn');
+          }
           const endCb = this.onEndCb;
           this.onEndCb = null;
           endCb?.(this.lastTranscript, recordedBlob, recordedUrl);
