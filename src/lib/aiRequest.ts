@@ -9,7 +9,11 @@ import type { UserSession } from '@/types';
 import { FREE_GUEST_LESSONS_LIMIT } from './config';
 
 export class AiRequestError extends Error {
-  constructor(message: string, public status: number) { super(message); }
+  status: number;
+  constructor(message: string, status: number) {
+    super(message);
+    this.status = status;
+  }
 }
 
 export async function checkAiRequest(req: NextRequest): Promise<UserSession | null> {

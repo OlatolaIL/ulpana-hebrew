@@ -314,7 +314,10 @@ export async function POST(req: NextRequest) {
             },
             body: JSON.stringify({
               model: groqModel,
-              messages: [{ role: 'system', content: systemPrompt }],
+              messages: [
+                { role: 'system', content: systemPrompt },
+                { role: 'user', content: 'Оцени ответ ученика на иврите. Верни результат строго в формате JSON.' },
+              ],
               temperature: 0.2,
               response_format: { type: 'json_object' },
             }),

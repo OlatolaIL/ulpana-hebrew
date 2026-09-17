@@ -21,6 +21,7 @@ import { TrainerMode } from './types';
 interface TrainerHeaderProps {
   displayTitle?: string;
   hasVerbs?: boolean;
+  hasComplex?: boolean;
   isSplitMode: boolean;
   canSplit: boolean;
   activePartIndex: number;
@@ -48,6 +49,7 @@ interface TrainerHeaderProps {
 export const TrainerHeader: React.FC<TrainerHeaderProps> = ({
   displayTitle,
   hasVerbs,
+  hasComplex,
   isSplitMode,
   canSplit,
   activePartIndex,
@@ -176,10 +178,10 @@ export const TrainerHeader: React.FC<TrainerHeaderProps> = ({
             </button>
           )}
           {/* Комплекс (Слуховой тренажер с активной паузой) */}
-          {hasVerbs && (
+          {(hasComplex ?? hasVerbs) && (
             <button
               onClick={() => onSetMode('complex')}
-              title="Комплекс (Фразы 3–4 слова, активная пауза, аудиоразбор и инфинитив)"
+              title="Комплекс (Микро-фразы 3–4 слова, активная пауза и слуховой разбор)"
               className={`flex-1 min-w-[85px] flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
                 mode === 'complex'
                   ? 'bg-gradient-to-r from-amber-500 to-orange-600 text-white shadow-xs'

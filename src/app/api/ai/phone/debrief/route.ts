@@ -30,13 +30,26 @@ function normalizeReport(
   const validScore = (score: unknown): score is number => typeof score === 'number' && Number.isFinite(score) && score >= 0 && score <= 100;
   if (!parsed || typeof parsed.isSuccess !== 'boolean' || !validScore(parsed.overallScore) || !validScore(parsed.grammarScore) ||
       typeof parsed.summaryRu !== 'string' || !parsed.summaryRu.trim() ||
-      !Array.isArray(parsed.turnReviews) || parsed.turnReviews.length !== userTurns.length) throw new Error('Incomplete debrief');
+      !Array.isArray(parsed.turnReviews) || (userTurns.length > 0 && parsed.turnReviews.length === 0)) throw new Error('Incomplete debrief');
   let totalDetectedErrors = 0;
-  const key = (value: string) => value.replace(/[\u0591-\u05C7.,!?;:"]/g, '').replace(/\s+/g, ' ').trim();
+  const key = (value: string) => (value || '').replace(/[\u0591-\u05C7.,!?;:"]/g, '').replace(/\s+/g, ' ').trim();
+  const rawReviews = Array.isArray(parsed.turnReviews) ? parsed.turnReviews : [];
+
   const turnReviews: PhoneDebriefTurnReview[] = userTurns.map((turn, index) => {
-    const review = parsed.turnReviews[index];
-    if (!review || typeof review.userHebrew !== 'string' || key(review.userHebrew) !== key(turn.hebrew) ||
-        !['perfect', 'good', 'needs_improvement'].includes(review.assessment) || typeof review.commentRu !== 'string' || !review.commentRu.trim()) throw new Error('Incomplete turn review');
+    let review = rawReviews.find((r) => r && typeof r.userHebrew === 'string' && key(r.userHebrew) === key(turn.hebrew));
+    if (!review && rawReviews[index]) {
+      review = rawReviews[index];
+    }
+    if (!review || typeof review !== 'object') {
+      review = { userHebrew: turn.hebrew, assessment: 'good', commentRu: 'Ответ понятен собеседнику.' };
+    }
+    const assessment = ['perfect', 'good', 'needs_improvement'].includes(review.assessment)
+      ? review.assessment
+      : 'good';
+    const commentRu = typeof review.commentRu === 'string' && review.commentRu.trim()
+      ? review.commentRu.trim()
+      : 'Ответ понятен собеседнику.';
+
     const errors = [...detectHebrewGrammarErrors(turn.hebrew), ...detectHebrewWordOrderErrors(turn.hebrew)];
     const errorMap = new Map<string, PhoneDebriefGrammarError>();
     for (const error of errors) errorMap.set(error.wrongPhrase, error);
@@ -52,17 +65,26 @@ function normalizeReport(
     }
     const grammarErrors = [...errorMap.values()];
     totalDetectedErrors += grammarErrors.length;
-    return { userHebrew: turn.hebrew, assessment: grammarErrors.length && review.assessment === 'perfect' ? 'good' : review.assessment,
-      commentRu: sanitizeRussianTranslation(review.commentRu), grammarErrors,
-      betterAlternative: typeof review.betterAlternative === 'string' ? review.betterAlternative : undefined };
+    return {
+      userHebrew: turn.hebrew,
+      assessment: grammarErrors.length && assessment === 'perfect' ? 'good' : assessment,
+      commentRu: sanitizeRussianTranslation(commentRu),
+      grammarErrors,
+      betterAlternative: typeof review.betterAlternative === 'string' && review.betterAlternative.trim() ? review.betterAlternative.trim() : undefined,
+    };
   });
   // Local checks can lower a supported grade, but cannot invent or inflate one.
   const grammarScore = Math.round(Math.min(parsed.grammarScore, Math.max(0, 100 - totalDetectedErrors * 12)));
   const overallScore = Math.round(totalDetectedErrors ? Math.min(parsed.overallScore, (parsed.overallScore * 2 + grammarScore) / 3) : parsed.overallScore);
-  return { overallScore, grammarScore, isSuccess: parsed.isSuccess && overallScore >= 70,
-    summaryRu: sanitizeRussianTranslation(parsed.summaryRu), turnReviews,
+  return {
+    overallScore,
+    grammarScore,
+    isSuccess: parsed.isSuccess && overallScore >= 70,
+    summaryRu: sanitizeRussianTranslation(parsed.summaryRu),
+    turnReviews,
     spokenTip: typeof parsed.spokenTip === 'string' ? sanitizeRussianTranslation(parsed.spokenTip) : undefined,
-    recommendedWords: Array.isArray(parsed.recommendedWords) ? parsed.recommendedWords.filter(w => w && typeof w.hebrew === 'string' && typeof w.translation === 'string' && typeof w.transcription === 'string').slice(0, 5) : undefined };
+    recommendedWords: Array.isArray(parsed.recommendedWords) ? parsed.recommendedWords.filter(w => w && typeof w.hebrew === 'string' && typeof w.translation === 'string' && typeof w.transcription === 'string').slice(0, 5) : undefined,
+  };
 }
 
 export async function POST(req: NextRequest) {
@@ -197,7 +219,7 @@ ${transcriptFormatted}
 
     // 1. Запрос через Groq
     if (groqKey) {
-      const groqModels = configuredGroqModels();
+      const groqModels = configuredGroqModels('debrief');
       for (const groqModel of groqModels) {
         try {
           const res = await fetchAi('https://api.groq.com/openai/v1/chat/completions', {
@@ -208,18 +230,21 @@ ${transcriptFormatted}
             },
             body: JSON.stringify({
               model: groqModel,
-              messages: [{ role: 'system', content: systemPrompt }],
+              messages: [
+                { role: 'system', content: systemPrompt },
+                { role: 'user', content: 'Пожалуйста, проведи подробный педагогический разбор телефонного разговора ученика. Ответь строго валидным JSON-объектом.' },
+              ],
               response_format: { type: 'json_object' },
               temperature: 0.3,
-              max_tokens: 1500,
+              max_tokens: 2000,
             }),
           });
 
           if (res.ok) {
             const data = await res.json();
-            const content = data.choices[0]?.message?.content || '{}';
+            const content = data.choices?.[0]?.message?.content || '{}';
             const parsed = JSON.parse(content);
-          if (typeof parsed.isSuccess !== 'boolean' || !Number.isFinite(parsed.overallScore) || typeof parsed.summaryRu !== 'string') throw new Error('Invalid debrief');
+            if (typeof parsed.isSuccess !== 'boolean' || !Number.isFinite(parsed.overallScore) || typeof parsed.summaryRu !== 'string') throw new Error('Invalid debrief');
             return NextResponse.json(textOnlyEvaluation(normalizeReport(parsed, userTurns)));
           }
         } catch (e) {
@@ -232,7 +257,7 @@ ${transcriptFormatted}
     if (geminiKey) {
       try {
         const geminiRes = await fetchAi(
-          `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel()}:generateContent?key=${geminiKey}`,
+          `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel('chat')}:generateContent?key=${geminiKey}`,
           {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -245,7 +270,10 @@ ${transcriptFormatted}
 
         if (geminiRes.ok) {
           const data = await geminiRes.json();
-          const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
+          let text = data.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
+          if (text.includes('```')) {
+            text = text.replace(/```(?:json)?/gi, '').replace(/```/g, '').trim();
+          }
           const parsed = JSON.parse(text);
           if (typeof parsed.isSuccess !== 'boolean' || !Number.isFinite(parsed.overallScore) || typeof parsed.summaryRu !== 'string') throw new Error('Invalid debrief');
           return NextResponse.json(textOnlyEvaluation(normalizeReport(parsed, userTurns)));

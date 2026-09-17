@@ -26,6 +26,7 @@ interface CallDebriefViewProps {
   onStartCall: () => void;
   onBackToLesson?: () => void;
   onOpenDiagnostics?: () => void;
+  onRetryDebrief?: () => void;
 }
 
 export const CallDebriefView: React.FC<CallDebriefViewProps> = ({
@@ -44,6 +45,7 @@ export const CallDebriefView: React.FC<CallDebriefViewProps> = ({
   onStartCall,
   onBackToLesson,
   onOpenDiagnostics,
+  onRetryDebrief,
 }) => {
   const userTurnsCount = messages.filter((m) => m.role === 'user').length;
   const isCallSuccessful = debriefReport?.isSuccess === true;
@@ -90,13 +92,25 @@ export const CallDebriefView: React.FC<CallDebriefViewProps> = ({
           </h2>
           <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1 max-w-md mx-auto font-hebrew">
             {loadingDebrief
-              ? 'Проверяем разговор. Результат появится здесь.'
+              ? 'ИИ анализирует разговор и готовит разбор... Пожалуйста, подождите.'
               : debriefReport
                 ? 'Есть над чем потренироваться. Откройте разбор и попробуйте разговор ещё раз.'
                 : userTurnsCount === 0
                   ? 'Вы пока не ответили собеседнику. Начните новый разговор, когда будете готовы.'
                   : evaluationNotice || 'Проверка сейчас недоступна. Разговор не получил оценку и зачёт.'}
           </p>
+          {!debriefReport && userTurnsCount > 0 && !loadingDebrief && onRetryDebrief && (
+            <div className="pt-2">
+              <button
+                type="button"
+                onClick={onRetryDebrief}
+                className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 active:scale-95 text-white text-xs sm:text-sm font-bold transition cursor-pointer shadow-sm font-hebrew"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>Повторить оценку ИИ</span>
+              </button>
+            </div>
+          )}
         </div>
       )}
 

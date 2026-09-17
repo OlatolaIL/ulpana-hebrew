@@ -29,18 +29,20 @@ test('R-00: DECISION_MATRIX.md exists and contains all required blocks, versioni
   assert.ok(matrixContent.includes('Superseded Log'), 'Must include Superseded Log section');
 });
 
-test('R-15: Stage 6 phone call passport exists and specifies all core invariants (P-01 to P-06)', () => {
+test('R-15: Stage 6 phone call passport exists and specifies all core invariants (P-01 to P-10)', () => {
   const passportPath = path.join(repoRoot, 'docs/mechanics/stage-06-phone-call.md');
   assert.ok(fs.existsSync(passportPath), 'stage-06-phone-call.md must exist in docs/mechanics');
   const content = fs.readFileSync(passportPath, 'utf8');
 
-  const requiredInvariants = ['P-01', 'P-02', 'P-03', 'P-04', 'P-05', 'P-06'];
+  const requiredInvariants = ['P-01', 'P-02', 'P-03', 'P-04', 'P-05', 'P-06', 'P-07', 'P-08', 'P-09', 'P-10'];
   for (const inv of requiredInvariants) {
     assert.ok(content.includes(inv), `Stage 6 passport must define invariant ${inv}`);
   }
   assert.ok(content.includes('Slot Memory'), 'Must specify Slot Memory invariant');
   assert.ok(content.includes('Speech Integrity'), 'Must specify Speech Integrity invariant');
   assert.ok(content.includes('Role Rigidity'), 'Must specify Role Rigidity invariant');
+  assert.ok(content.includes('Ultra-Low Latency'), 'Must specify Ultra-Low Latency invariant for live dialogue (P-07)');
+  assert.ok(content.includes('openai/gpt-oss-120b'), 'Must document openai/gpt-oss-120b in debrief reasoning carousel (P-10)');
 });
 
 test('R-01 & R-03: Superseded manual root and verb files must NOT exist in the codebase', () => {

@@ -1,0 +1,771 @@
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import {
+  Volume2,
+  Sparkles,
+  Play,
+  Pause,
+  RotateCcw,
+  ArrowRight,
+  ArrowLeft,
+  Timer,
+  BookOpen,
+  Eye,
+  GitBranch,
+  Check,
+  Layers,
+  AlertTriangle,
+  Grid,
+  Users,
+} from 'lucide-react';
+import { Word, UserProfile, RootRelatedWord } from '@/types';
+import { stripNikkud, tokenizeText, TextToken } from '@/lib/transcription';
+import { speakHebrew, speakRussian, stopSpeech } from '@/lib/speech';
+import { findOfflineVerbConjugation } from '@/lib/verbConjugations';
+import { WordLookupModal } from '@/components/WordLookupModal';
+import { addWordToPersonalDict, isWordInPersonalDict } from '@/lib/storage';
+import {
+  ComplexDrillItem,
+  VerbDrillItem,
+  NounDrillItem,
+  AdjectiveDrillItem,
+  PrepositionDrillItem,
+} from '@/types/complexDrills';
+import { getDrillDataForWord } from '@/data/drills';
+
+interface ComplexDrillModeProps {
+  currentWord: Word;
+  userProfile: UserProfile;
+  currentIndex: number;
+  wordsLength?: number;
+  onPrevWord: () => void;
+  onAdvanceNext: () => void;
+  onSpeakHebrew: (text: string, options?: { rate?: number }) => void;
+  onUpdateProfile?: (profile: UserProfile) => void;
+}
+
+type ComplexPhase = 'listening_he' | 'pause' | 'listening_confirm' | 'revealed';
+
+export const ComplexDrillMode: React.FC<ComplexDrillModeProps> = ({
+  currentWord,
+  userProfile,
+  currentIndex,
+  wordsLength,
+  onPrevWord,
+  onAdvanceNext,
+  onSpeakHebrew,
+  onUpdateProfile,
+}) => {
+  // Настройки отображения из профиля (Инвариант R-17)
+  const isCursive = userProfile.fontStyle === 'cursive';
+  const showNikkud = userProfile.showNikkud !== false;
+  const showTranscription = userProfile.showTranscription !== false;
+  const speechRate = userProfile.speechRate || 0.7;
+
+  // Извлекаем обучающие данные из реестра (Инварианты R-01, R-18, полиморфный диспетчер)
+  const drillItems = useMemo(() => {
+    return getDrillDataForWord(currentWord);
+  }, [currentWord]);
+
+  // Спряжения и семья корня (для глаголов или слов с корнем)
+  const conjugation = useMemo(() => {
+    const raw = currentWord.hebrewPlain || currentWord.hebrew;
+    return findOfflineVerbConjugation(raw);
+  }, [currentWord]);
+
+  const rootFamily: RootRelatedWord[] = useMemo(() => {
+    return conjugation?.rootFamily || [];
+  }, [conjugation]);
+
+  const rootLetters = conjugation?.root || currentWord.root;
+
+  // Выбранное время (для глаголов с несколькими временами)
+  const [selectedTense, setSelectedTense] = useState<'present' | 'past' | 'future'>('present');
+
+  // Активный drill item
+  const activeDrill: ComplexDrillItem = useMemo(() => {
+    if (drillItems.length === 0) {
+      return {
+        id: `fallback_${currentWord.id}`,
+        type: 'adverb',
+        targetWordPlain: currentWord.hebrewPlain || currentWord.hebrew,
+        targetWordVocalized: currentWord.hebrew,
+        targetWordTranscription: currentWord.transcription || '',
+        targetWordTranslation: currentWord.translation || '',
+        sentenceHe: currentWord.hebrew,
+        sentenceTranscription: currentWord.transcription || '',
+        sentenceRu: currentWord.translation,
+        minLesson: 1,
+      };
+    }
+    if (drillItems[0].type === 'verb') {
+      const match = (drillItems as VerbDrillItem[]).find((s) => s.tense === selectedTense);
+      return match || drillItems[0];
+    }
+    return drillItems[0];
+  }, [drillItems, selectedTense, currentWord]);
+
+  // Длительность паузы: 3, 4 или 5 секунд
+  const [pauseDurationSec, setPauseDurationSec] = useState<number>(4);
+  const [phase, setPhase] = useState<ComplexPhase>('listening_he');
+  const [countdown, setCountdown] = useState<number>(4);
+
+  // Режим автовоспроизведения (Hands-free)
+  const [autoAdvance, setAutoAdvance] = useState<boolean>(false);
+  const [autoCountdown, setAutoCountdown] = useState<number | null>(null);
+
+  // Интерактивный разбор неизвестных слов (WordLookupModal, R-20)
+  const [selectedLookupWord, setSelectedLookupWord] = useState<string | null>(null);
+  const [lookupContext, setLookupContext] = useState<string | undefined>(undefined);
+  const [lookupSentenceTranslation, setLookupSentenceTranslation] = useState<string | undefined>(undefined);
+  const [lookupSentenceTranscription, setLookupSentenceTranscription] = useState<string | undefined>(undefined);
+
+  // Ссылки на таймеры
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const autoTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const playCycleIdRef = useRef<number>(0);
+  const isMountedRef = useRef<boolean>(true);
+
+  // Очистка при размонтировании
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+      if (timerRef.current) clearInterval(timerRef.current);
+      if (autoTimerRef.current) clearInterval(autoTimerRef.current);
+      stopSpeech();
+    };
+  }, []);
+
+  // Таймер автоперехода
+  const triggerAutoAdvance = () => {
+    if (autoTimerRef.current) {
+      clearInterval(autoTimerRef.current);
+      autoTimerRef.current = null;
+    }
+    let seconds = 3;
+    setAutoCountdown(seconds);
+
+    autoTimerRef.current = setInterval(() => {
+      if (!isMountedRef.current) {
+        if (autoTimerRef.current) clearInterval(autoTimerRef.current);
+        return;
+      }
+      seconds -= 1;
+      if (seconds <= 0) {
+        if (autoTimerRef.current) {
+          clearInterval(autoTimerRef.current);
+          autoTimerRef.current = null;
+        }
+        setAutoCountdown(null);
+        onAdvanceNext();
+      } else {
+        setAutoCountdown(seconds);
+      }
+    }, 1000);
+  };
+
+  // Слуховая цепочка подтверждения по типам слов
+  const runConfirmationSequence = (targetItem: ComplexDrillItem, cycleId: number) => {
+    setPhase('listening_confirm');
+
+    // Шаг 3.1: Перевод фразы на русский
+    speakRussian(targetItem.sentenceRu, { rate: 0.95 }).then(() => {
+      if (!isMountedRef.current || playCycleIdRef.current !== cycleId) return;
+
+      if (targetItem.type === 'verb') {
+        // Для глагола: Инфинитив на иврите -> Перевод инфинитива
+        const infHe = targetItem.verbInfinitive || currentWord.hebrew;
+        speakHebrew(infHe, { rate: speechRate }).then(() => {
+          if (!isMountedRef.current || playCycleIdRef.current !== cycleId) return;
+          const infRu = currentWord.translation || targetItem.targetWordTranslation;
+          speakRussian(infRu, { rate: 0.95 }).then(() => {
+            if (!isMountedRef.current || playCycleIdRef.current !== cycleId) return;
+            finishConfirmation();
+          });
+        });
+      } else if (targetItem.type === 'noun') {
+        // Для существительного: Пара «ед.ч. — мн.ч.» на иврите -> Перевод + Род
+        const pairHe = `${targetItem.singularHe} — ${targetItem.pluralHe}`;
+        speakHebrew(pairHe, { rate: speechRate }).then(() => {
+          if (!isMountedRef.current || playCycleIdRef.current !== cycleId) return;
+          const genderRu = targetItem.gender === 'm' ? 'Мужской род' : 'Женский род';
+          const noteRu = targetItem.pluralNote ? `. ${targetItem.pluralNote}` : '';
+          const confirmText = `${targetItem.targetWordTranslation}. ${genderRu}${noteRu}.`;
+          speakRussian(confirmText, { rate: 0.95 }).then(() => {
+            if (!isMountedRef.current || playCycleIdRef.current !== cycleId) return;
+            finishConfirmation();
+          });
+        });
+      } else if (targetItem.type === 'adjective') {
+        // Для прилагательного: Базовая форма на иврите -> Перевод
+        speakHebrew(targetItem.forms.ms.hebrew, { rate: speechRate }).then(() => {
+          if (!isMountedRef.current || playCycleIdRef.current !== cycleId) return;
+          const confirmText = `${targetItem.targetWordTranslation}. Прилагательное.`;
+          speakRussian(confirmText, { rate: 0.95 }).then(() => {
+            if (!isMountedRef.current || playCycleIdRef.current !== cycleId) return;
+            finishConfirmation();
+          });
+        });
+      } else if (targetItem.type === 'preposition') {
+        // Для предлога: Форма со склонением -> Перевод + Лицо
+        speakHebrew(targetItem.inflectedFormHe, { rate: speechRate }).then(() => {
+          if (!isMountedRef.current || playCycleIdRef.current !== cycleId) return;
+          const confirmText = `${targetItem.targetWordTranslation}. ${targetItem.personTitle}.`;
+          speakRussian(confirmText, { rate: 0.95 }).then(() => {
+            if (!isMountedRef.current || playCycleIdRef.current !== cycleId) return;
+            finishConfirmation();
+          });
+        });
+      } else {
+        // Для прочих: Слово на иврите -> Перевод
+        speakHebrew(targetItem.targetWordVocalized, { rate: speechRate }).then(() => {
+          if (!isMountedRef.current || playCycleIdRef.current !== cycleId) return;
+          speakRussian(targetItem.targetWordTranslation, { rate: 0.95 }).then(() => {
+            if (!isMountedRef.current || playCycleIdRef.current !== cycleId) return;
+            finishConfirmation();
+          });
+        });
+      }
+    });
+  };
+
+  const finishConfirmation = () => {
+    setPhase('revealed');
+    if (autoAdvance) {
+      triggerAutoAdvance();
+    }
+  };
+
+  // Основной цикл активной слуховой паузы
+  const startDrillCycle = (targetItem: ComplexDrillItem = activeDrill) => {
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+    if (autoTimerRef.current) {
+      clearInterval(autoTimerRef.current);
+      autoTimerRef.current = null;
+    }
+    setAutoCountdown(null);
+    stopSpeech();
+
+    playCycleIdRef.current += 1;
+    const currentCycleId = playCycleIdRef.current;
+
+    // Шаг 1: Воспроизведение фразы на иврите
+    setPhase('listening_he');
+    setCountdown(pauseDurationSec);
+
+    speakHebrew(targetItem.sentenceHe, { rate: speechRate }).then(() => {
+      if (!isMountedRef.current || playCycleIdRef.current !== currentCycleId) return;
+
+      // Шаг 2: Активная пауза студента (3–5 сек)
+      setPhase('pause');
+      let remaining = pauseDurationSec;
+      setCountdown(remaining);
+
+      timerRef.current = setInterval(() => {
+        if (!isMountedRef.current || playCycleIdRef.current !== currentCycleId) {
+          if (timerRef.current) clearInterval(timerRef.current);
+          return;
+        }
+        remaining -= 1;
+        setCountdown(remaining);
+
+        if (remaining <= 0) {
+          if (timerRef.current) clearInterval(timerRef.current);
+          runConfirmationSequence(targetItem, currentCycleId);
+        }
+      }, 1000);
+    });
+  };
+
+  // Автостарт при смене слова
+  useEffect(() => {
+    startDrillCycle(activeDrill);
+    return () => {
+      stopSpeech();
+    };
+  }, [currentWord]);
+
+  // Токенизация фразы (R-20)
+  const tokens = useMemo(() => {
+    return tokenizeText(activeDrill.sentenceHe);
+  }, [activeDrill.sentenceHe]);
+
+  const handleTokenClick = (token: TextToken) => {
+    if (autoTimerRef.current) {
+      clearInterval(autoTimerRef.current);
+      autoTimerRef.current = null;
+      setAutoCountdown(null);
+    }
+    setSelectedLookupWord(token.cleanText || token.text);
+    setLookupContext(activeDrill.sentenceHe);
+    setLookupSentenceTranslation(activeDrill.sentenceRu);
+    setLookupSentenceTranscription(activeDrill.sentenceTranscription);
+  };
+
+  const handleToggleAutoAdvance = () => {
+    const next = !autoAdvance;
+    setAutoAdvance(next);
+    if (!next && autoTimerRef.current) {
+      clearInterval(autoTimerRef.current);
+      autoTimerRef.current = null;
+      setAutoCountdown(null);
+    } else if (next && phase === 'revealed') {
+      triggerAutoAdvance();
+    }
+  };
+
+  const isCurrentInDict = isWordInPersonalDict(currentWord.hebrew);
+
+  return (
+    <div className="w-full max-w-2xl mx-auto space-y-4 animate-in fade-in duration-300">
+      {/* ПЛАШКА УПРАВЛЕНИЯ ТРЕНАЖЕРОМ */}
+      <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-3 sm:p-4 shadow-sm flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <span className="p-1.5 rounded-xl bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400">
+            <Sparkles className="w-4 h-4" />
+          </span>
+          <div>
+            <div className="text-xs font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-1.5">
+              <span>Слуховой комплекс</span>
+              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 uppercase">
+                {activeDrill.type === 'verb' ? 'Глагол' : activeDrill.type === 'noun' ? 'Существительное' : activeDrill.type === 'adjective' ? 'Прилагательное' : 'Предлог'}
+              </span>
+            </div>
+            <div className="text-[11px] text-zinc-500">
+              {currentIndex + 1} из {wordsLength || 1}
+            </div>
+          </div>
+        </div>
+
+        {/* ПЕРЕКЛЮЧАТЕЛЬ ДЛИТЕЛЬНОСТИ ПАУЗЫ И АВТО-РЕЖИМ */}
+        <div className="flex items-center gap-2">
+          <div className="flex items-center bg-zinc-100 dark:bg-zinc-800 rounded-xl p-0.5 text-xs">
+            <span className="px-2 text-zinc-500 flex items-center gap-1">
+              <Timer className="w-3.5 h-3.5" />
+            </span>
+            {[3, 4, 5].map((sec) => (
+              <button
+                key={sec}
+                onClick={() => setPauseDurationSec(sec)}
+                className={`px-2 py-1 rounded-lg font-bold transition ${
+                  pauseDurationSec === sec
+                    ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 shadow-xs'
+                    : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
+                }`}
+              >
+                {sec}с
+              </button>
+            ))}
+          </div>
+
+          <button
+            onClick={handleToggleAutoAdvance}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition ${
+              autoAdvance
+                ? 'bg-amber-600 text-white shadow-xs'
+                : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200'
+            }`}
+          >
+            {autoAdvance ? <Play className="w-3.5 h-3.5 fill-current" /> : <Pause className="w-3.5 h-3.5" />}
+            <span>Авто</span>
+          </button>
+        </div>
+      </div>
+
+      {/* ГЛАВНЫЙ ЭКРАН СЛУХОВОГО КОМПЛЕКСА */}
+      <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-6 sm:p-8 shadow-lg space-y-6 relative overflow-hidden">
+        {/* Индикатор этапа */}
+        <div className="flex items-center justify-between text-xs font-medium text-zinc-500">
+          <div className="flex items-center gap-2">
+            {phase === 'listening_he' && (
+              <span className="flex items-center gap-1.5 text-blue-600 dark:text-blue-400 font-bold animate-pulse">
+                <Volume2 className="w-4 h-4" /> 1. Слушаем фразу на иврите...
+              </span>
+            )}
+            {phase === 'pause' && (
+              <span className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400 font-bold">
+                <Timer className="w-4 h-4 animate-spin" /> 2. Вспомните смысл (пауза {countdown}с)
+              </span>
+            )}
+            {phase === 'listening_confirm' && (
+              <span className="flex items-center gap-1.5 text-purple-600 dark:text-purple-400 font-bold animate-pulse">
+                <Volume2 className="w-4 h-4" /> 3. Аудио-подтверждение...
+              </span>
+            )}
+            {phase === 'revealed' && (
+              <span className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-bold">
+                <Check className="w-4 h-4" /> 4. Разбор карточки
+              </span>
+            )}
+          </div>
+
+          <button
+            onClick={() => startDrillCycle(activeDrill)}
+            className="flex items-center gap-1 text-xs text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 font-bold transition"
+            title="Повторить аудио-цикл"
+          >
+            <RotateCcw className="w-3.5 h-3.5" /> Повторить
+          </button>
+        </div>
+
+        {/* ОБЛАСТЬ ФРАЗЫ (ЗАКРЫТА / БЛЮР НА ПАУЗЕ) */}
+        <div className="py-6 px-4 bg-zinc-50 dark:bg-zinc-800/40 rounded-2xl border border-zinc-100 dark:border-zinc-800/60 text-center space-y-3 min-h-[140px] flex flex-col justify-center items-center">
+          {phase === 'listening_he' || phase === 'pause' ? (
+            <div className="space-y-3">
+              <div className="w-12 h-12 mx-auto rounded-full bg-amber-100 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center font-black text-lg shadow-inner">
+                {countdown}
+              </div>
+              <p className="text-xs text-zinc-500">
+                Декодируйте услышанное на слух в тишине...
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3 w-full animate-in fade-in duration-300">
+              {/* Интерактивная ивритская фраза */}
+              <div
+                dir="rtl"
+                className={`text-2xl sm:text-3xl font-black text-zinc-900 dark:text-zinc-50 tracking-wide flex flex-wrap justify-center gap-2 ${
+                  isCursive ? 'font-cursive' : 'font-print'
+                }`}
+              >
+                {tokens.map((tok, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => handleTokenClick(tok)}
+                    className="hover:text-blue-600 dark:hover:text-blue-400 underline decoration-dotted decoration-zinc-300 dark:decoration-zinc-600 hover:decoration-blue-500 transition cursor-pointer"
+                  >
+                    {showNikkud ? tok.text : stripNikkud(tok.text)}
+                  </button>
+                ))}
+              </div>
+
+              {/* Транскрипция */}
+              {showTranscription && activeDrill.sentenceTranscription && (
+                <div className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
+                  {activeDrill.sentenceTranscription}
+                </div>
+              )}
+
+              {/* Русский перевод фразы */}
+              <div className="text-base font-bold text-zinc-800 dark:text-zinc-200">
+                «{activeDrill.sentenceRu}»
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* СПЕЦИАЛИЗИРОВАННЫЙ БЛОК ГРАММАТИКИ (ОТКРЫВАЕТСЯ НА ФАЗЕ REVEALED) */}
+        {phase === 'revealed' && (
+          <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+            {/* 1. ЕСЛИ ЭТО СУЩЕСТВИТЕЛЬНОЕ */}
+            {activeDrill.type === 'noun' && (
+              <div className="bg-blue-50/60 dark:bg-blue-950/20 border border-blue-200/80 dark:border-blue-800/40 rounded-2xl p-4 sm:p-5 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`text-xs font-black px-2.5 py-1 rounded-lg ${
+                        activeDrill.gender === 'm'
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-rose-500 text-white'
+                      }`}
+                    >
+                      {activeDrill.gender === 'm' ? 'זָכָר · Мужской род' : 'נְקֵבָה · Женский род'}
+                    </span>
+                    {activeDrill.isPluralException && (
+                      <span className="flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-md bg-amber-100 dark:bg-amber-900/60 text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-700">
+                        <AlertTriangle className="w-3 h-3" />
+                        Исключение во мн.ч.!
+                      </span>
+                    )}
+                  </div>
+                  <button
+                    onClick={() =>
+                      speakHebrew(`${activeDrill.singularHe} — ${activeDrill.pluralHe}`, {
+                        rate: speechRate,
+                      })
+                    }
+                    className="p-2 rounded-xl bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 hover:bg-blue-200 transition cursor-pointer"
+                    title="Озвучить пару ед.ч. — мн.ч."
+                  >
+                    <Volume2 className="w-4 h-4" />
+                  </button>
+                </div>
+
+                {/* Таблица Ед. число — Мн. число */}
+                <div className="grid grid-cols-2 gap-3 text-center">
+                  <div className="p-3 bg-white dark:bg-zinc-800 rounded-xl border border-blue-100 dark:border-zinc-700">
+                    <span className="text-[11px] text-zinc-500 block">Единственное число (יָחִיד)</span>
+                    <span
+                      dir="rtl"
+                      className={`text-xl font-black text-zinc-900 dark:text-zinc-50 ${
+                        isCursive ? 'font-cursive' : 'font-print'
+                      }`}
+                    >
+                      {showNikkud ? activeDrill.singularHe : stripNikkud(activeDrill.singularHe)}
+                    </span>
+                    {showTranscription && activeDrill.singularTranscription && (
+                      <span className="text-xs text-zinc-500 block mt-0.5">
+                        {activeDrill.singularTranscription}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="p-3 bg-white dark:bg-zinc-800 rounded-xl border border-blue-100 dark:border-zinc-700">
+                    <span className="text-[11px] text-zinc-500 block">Множественное число (רַבִּים)</span>
+                    <span
+                      dir="rtl"
+                      className={`text-xl font-black text-zinc-900 dark:text-zinc-50 ${
+                        isCursive ? 'font-cursive' : 'font-print'
+                      }`}
+                    >
+                      {showNikkud ? activeDrill.pluralHe : stripNikkud(activeDrill.pluralHe)}
+                    </span>
+                    {showTranscription && activeDrill.pluralTranscription && (
+                      <span className="text-xs text-zinc-500 block mt-0.5">
+                        {activeDrill.pluralTranscription}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {activeDrill.pluralNote && (
+                  <div className="text-xs text-amber-800 dark:text-amber-200 bg-amber-50 dark:bg-amber-950/40 p-2.5 rounded-xl border border-amber-200 dark:border-amber-800/60 font-medium">
+                    💡 {activeDrill.pluralNote}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* 2. ЕСЛИ ЭТО ПРИЛАГАТЕЛЬНОЕ (МАТРИЦА 4 ФОРМ) */}
+            {activeDrill.type === 'adjective' && (
+              <div className="bg-emerald-50/60 dark:bg-emerald-950/20 border border-emerald-200/80 dark:border-emerald-800/40 rounded-2xl p-4 sm:p-5 space-y-3">
+                <div className="flex items-center justify-between text-xs font-bold text-emerald-800 dark:text-emerald-300">
+                  <span className="flex items-center gap-1.5">
+                    <Grid className="w-4 h-4" /> Матрица 4 форм согласования:
+                  </span>
+                  <span className="text-[11px] text-zinc-500">Нажмите на форму для озвучки</span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2.5">
+                  {[
+                    { key: 'ms', label: 'Муж. ед.ч.', data: activeDrill.forms.ms },
+                    { key: 'fs', label: 'Жен. ед.ч.', data: activeDrill.forms.fs },
+                    { key: 'mp', label: 'Муж. мн.ч.', data: activeDrill.forms.mp },
+                    { key: 'fp', label: 'Жен. мн.ч.', data: activeDrill.forms.fp },
+                  ].map((item) => {
+                    const isUsed = activeDrill.usedGenderNumber === item.key;
+                    return (
+                      <button
+                        key={item.key}
+                        onClick={() => speakHebrew(item.data.hebrew, { rate: speechRate })}
+                        className={`p-2.5 rounded-xl text-center transition cursor-pointer border ${
+                          isUsed
+                            ? 'bg-emerald-600 text-white border-emerald-700 shadow-sm'
+                            : 'bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 text-zinc-800 dark:text-zinc-200 hover:bg-emerald-50 dark:hover:bg-zinc-700'
+                        }`}
+                      >
+                        <span className={`text-[10px] block ${isUsed ? 'text-emerald-100' : 'text-zinc-500'}`}>
+                          {item.label} {isUsed && '• во фразе'}
+                        </span>
+                        <span
+                          dir="rtl"
+                          className={`text-base font-black block ${
+                            isCursive ? 'font-cursive' : 'font-print'
+                          }`}
+                        >
+                          {showNikkud ? item.data.hebrew : stripNikkud(item.data.hebrew)}
+                        </span>
+                        {showTranscription && item.data.transcription && (
+                          <span className={`text-[11px] block ${isUsed ? 'text-emerald-200' : 'text-zinc-400'}`}>
+                            {item.data.transcription}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* 3. ЕСЛИ ЭТО ПРЕДЛОГ СО СКЛОНЕНИЕМ */}
+            {activeDrill.type === 'preposition' && (
+              <div className="bg-purple-50/60 dark:bg-purple-950/20 border border-purple-200/80 dark:border-purple-800/40 rounded-2xl p-4 sm:p-5 space-y-3">
+                <div className="flex items-center justify-between text-xs font-bold text-purple-800 dark:text-purple-300">
+                  <span className="flex items-center gap-1.5">
+                    <Users className="w-4 h-4" /> Склонение предлога {activeDrill.basePrepositionHe}:
+                  </span>
+                  <span className="text-[11px] text-zinc-500">{activeDrill.personTitle}</span>
+                </div>
+
+                {activeDrill.inflectionsTable && (
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    {activeDrill.inflectionsTable.map((row, idx) => {
+                      const isCurrent = row.hebrew === activeDrill.inflectedFormHe;
+                      return (
+                        <button
+                          key={idx}
+                          onClick={() => speakHebrew(row.hebrew, { rate: speechRate })}
+                          className={`p-2 rounded-xl text-center transition cursor-pointer border ${
+                            isCurrent
+                              ? 'bg-purple-600 text-white border-purple-700 shadow-sm'
+                              : 'bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 text-zinc-800 dark:text-zinc-200 hover:bg-purple-50'
+                          }`}
+                        >
+                          <span className={`text-[10px] block ${isCurrent ? 'text-purple-100' : 'text-zinc-400'}`}>
+                            {row.person}
+                          </span>
+                          <span
+                            dir="rtl"
+                            className={`text-sm font-bold block ${
+                              isCursive ? 'font-cursive' : 'font-print'
+                            }`}
+                          >
+                            {showNikkud ? row.hebrew : stripNikkud(row.hebrew)}
+                          </span>
+                          <span className={`text-[10px] block ${isCurrent ? 'text-purple-200' : 'text-zinc-500'}`}>
+                            {row.transcription}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* 4. ЕСЛИ ЭТО ГЛАГОЛ (ВРЕМЕНА, БИНЬЯН, СЕМЬЯ КОРНЯ) */}
+            {activeDrill.type === 'verb' && (
+              <div className="space-y-3">
+                {/* Переключатель времён */}
+                {drillItems.length > 1 && (
+                  <div className="flex items-center gap-1.5 bg-zinc-100 dark:bg-zinc-800 p-1 rounded-xl">
+                    {(['present', 'past'] as const).map((t) => {
+                      const hasTense = (drillItems as VerbDrillItem[]).some((s) => s.tense === t);
+                      if (!hasTense) return null;
+                      return (
+                        <button
+                          key={t}
+                          onClick={() => {
+                            setSelectedTense(t);
+                            const nextDrill = (drillItems as VerbDrillItem[]).find((s) => s.tense === t);
+                            if (nextDrill) startDrillCycle(nextDrill);
+                          }}
+                          className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
+                            selectedTense === t
+                              ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 shadow-xs'
+                              : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300'
+                          }`}
+                        >
+                          {t === 'present' ? 'Настоящее время' : 'Прошедшее время'}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* Бейджи инфинитива, биньяна и предлога */}
+                <div className="flex flex-wrap items-center justify-between gap-2 p-3 bg-zinc-50 dark:bg-zinc-800/40 rounded-xl border border-zinc-200 dark:border-zinc-700 text-xs">
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-zinc-600 dark:text-zinc-300">Инфинитив:</span>
+                    <button
+                      onClick={() => speakHebrew(activeDrill.verbInfinitive, { rate: speechRate })}
+                      className="font-black text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
+                    >
+                      {activeDrill.verbInfinitive} <Volume2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                  {activeDrill.prepositionPlain && (
+                    <div className="flex items-center gap-1">
+                      <span className="text-zinc-500">Управление:</span>
+                      <span className="px-2 py-0.5 rounded-md bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 font-bold">
+                        +{activeDrill.prepositionPlain}
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Семья корня (Инвариант R-01, V-09) */}
+                {rootFamily.length > 0 && (
+                  <div className="p-3 bg-zinc-50 dark:bg-zinc-800/30 rounded-2xl border border-zinc-200 dark:border-zinc-800 space-y-2">
+                    <div className="text-xs font-bold text-zinc-600 dark:text-zinc-400 flex items-center gap-1.5">
+                      <GitBranch className="w-3.5 h-3.5" />
+                      <span>Семья корня {rootLetters ? `(${rootLetters})` : ''}:</span>
+                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                      {rootFamily.slice(0, 6).map((rf, idx) => (
+                        <button
+                          key={idx}
+                          onClick={() => speakHebrew(rf.hebrew, { rate: speechRate })}
+                          className="p-2 rounded-xl bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-left hover:bg-zinc-50 transition cursor-pointer"
+                        >
+                          <div
+                            dir="rtl"
+                            className={`font-black text-sm text-zinc-900 dark:text-zinc-100 ${
+                              isCursive ? 'font-cursive' : 'font-print'
+                            }`}
+                          >
+                            {showNikkud ? rf.hebrew : stripNikkud(rf.hebrew)}
+                          </div>
+                          <div className="text-[11px] text-zinc-500 truncate">{rf.translation}</div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* НИЖНЯЯ НАВИГАЦИЯ */}
+        <div className="flex items-center justify-between pt-2 border-t border-zinc-100 dark:border-zinc-800">
+          <button
+            onClick={onPrevWord}
+            disabled={currentIndex === 0}
+            className="px-4 py-2.5 rounded-xl border border-zinc-200 dark:border-zinc-700 text-xs font-bold text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5 transition cursor-pointer"
+          >
+            <ArrowLeft className="w-4 h-4" /> Назад
+          </button>
+
+          {autoCountdown !== null && (
+            <span className="text-xs font-bold text-amber-600 dark:text-amber-400 animate-pulse">
+              Автопереход через {autoCountdown}с...
+            </span>
+          )}
+
+          <button
+            onClick={onAdvanceNext}
+            className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-md hover:shadow-lg transition flex items-center gap-1.5 cursor-pointer"
+          >
+            Вперёд <ArrowRight className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+
+      {/* МОДАЛЬНОЕ ОКНО РАЗБОРА СЛОВА (R-20) */}
+      {selectedLookupWord && (
+        <WordLookupModal
+          word={selectedLookupWord}
+          isOpen={Boolean(selectedLookupWord)}
+          userProfile={userProfile}
+          context={lookupContext}
+          sentenceTranslation={lookupSentenceTranslation}
+          sentenceTranscription={lookupSentenceTranscription}
+          onClose={() => setSelectedLookupWord(null)}
+          onWordAdded={() => {
+            if (onUpdateProfile) {
+              // профиль обновится через хранилище
+            }
+          }}
+        />
+      )}
+    </div>
+  );
+};
+
+// Экспорт алиаса для обратной совместимости
+export const ComplexVerbMode = ComplexDrillMode;

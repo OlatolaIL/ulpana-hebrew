@@ -61,6 +61,7 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
     handleStartCall,
     handleEndCall,
     handleSendMessage,
+    retryDebrief,
     toggleMute,
     handleAddWord,
     getRelevantWordsForCall,
@@ -170,6 +171,7 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
           onStartCall={handleStartCall}
           onBackToLesson={onBackToLesson}
           onOpenDiagnostics={() => setShowDiagnostics(true)}
+          onRetryDebrief={retryDebrief}
         />
       )}
 

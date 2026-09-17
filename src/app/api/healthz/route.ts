@@ -9,6 +9,7 @@ import { groqModels, geminiModel, geminiModels } from '@/lib/aiModels';
 export async function GET() {
   const essayGroq = groqModels('essay');
   const phoneGroq = groqModels('phone');
+  const debriefGroq = groqModels('debrief');
   const geminiList = geminiModels('essay');
 
   return NextResponse.json({
@@ -18,6 +19,7 @@ export async function GET() {
       fallback: essayGroq[1] || null,
       essay: essayGroq,
       phone: phoneGroq,
+      debrief: debriefGroq,
     },
     gemini: geminiList[0] || null,
     geminiModels: geminiList,

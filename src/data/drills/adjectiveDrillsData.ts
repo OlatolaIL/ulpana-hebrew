@@ -1,0 +1,207 @@
+/**
+ * База данных проверенных микро-предложений (3–4 слова) для прилагательных Уровня Алеф.
+ *
+ * Инварианты:
+ * - Строгое כתיב מלא с огласовками (R-04, R-05, R-06).
+ * - Транскрипция с 'h' для ה и знаком ударения (R-09).
+ * - Сетка из 4 форм (муж. ед., жен. ед., муж. мн., жен. мн.).
+ * - Отработка согласования с существительным в контексте.
+ */
+
+import { AdjectiveDrillItem } from '@/types/complexDrills';
+import { stripNikkud } from '@/lib/transcription';
+
+export const ADJECTIVE_DRILLS_DATA: Record<string, AdjectiveDrillItem> = {
+  'גדול': {
+    id: 'adj_gadol',
+    type: 'adjective',
+    targetWordPlain: 'גדול',
+    targetWordVocalized: 'גָּדוֹל',
+    targetWordTranscription: 'гадóль',
+    targetWordTranslation: 'большой',
+    forms: {
+      ms: { hebrew: 'גָּדוֹל', transcription: 'гадóль', translation: 'большой (м.р. ед.ч.)' },
+      fs: { hebrew: 'גְּדוֹלָה', transcription: 'гдолá', translation: 'большая (ж.р. ед.ч.)' },
+      mp: { hebrew: 'גְּדוֹלִים', transcription: 'гдолӣ́м', translation: 'большие (м.р. мн.ч.)' },
+      fp: { hebrew: 'גְּדוֹלוֹת', transcription: 'гдолóт', translation: 'большие (ж.р. мн.ч.)' },
+    },
+    usedGenderNumber: 'ms',
+    sentenceHe: 'יֵשׁ לִי חֶדֶר גָּדוֹל.',
+    sentenceTranscription: 'йеш ли хéдер гадóль.',
+    sentenceRu: 'У меня большая комната.',
+    minLesson: 6,
+    lessonTheme: 'Семья и описание предметов',
+  },
+  'קטן': {
+    id: 'adj_katan',
+    type: 'adjective',
+    targetWordPlain: 'קטן',
+    targetWordVocalized: 'קָטָן',
+    targetWordTranscription: 'катáн',
+    targetWordTranslation: 'маленький',
+    forms: {
+      ms: { hebrew: 'קָטָן', transcription: 'катáн', translation: 'маленький (м.р. ед.ч.)' },
+      fs: { hebrew: 'קְטַנָּה', transcription: 'ктанá', translation: 'маленькая (ж.р. ед.ч.)' },
+      mp: { hebrew: 'קְטַנִּים', transcription: 'ктанӣ́м', translation: 'маленькие (м.р. мн.ч.)' },
+      fp: { hebrew: 'קְטַנּוֹת', transcription: 'ктанóт', translation: 'маленькие (ж.р. мн.ч.)' },
+    },
+    usedGenderNumber: 'fs',
+    sentenceHe: 'יִשְׂרָאֵל מְדִינָה קְטַנָּה מְאֹד.',
+    sentenceTranscription: 'Исраэ́ль мединá ктанá меóд.',
+    sentenceRu: 'Израиль — очень маленькая страна.',
+    minLesson: 6,
+    lessonTheme: 'Семья и описание предметов',
+  },
+  'טוב': {
+    id: 'adj_tov',
+    type: 'adjective',
+    targetWordPlain: 'טוב',
+    targetWordVocalized: 'טוֹב',
+    targetWordTranscription: 'тов',
+    targetWordTranslation: 'хороший / добрый',
+    forms: {
+      ms: { hebrew: 'טוֹב', transcription: 'тов', translation: 'хороший (м.р. ед.ч.)' },
+      fs: { hebrew: 'טוֹבָה', transcription: 'товá', translation: 'хорошая (ж.р. ед.ч.)' },
+      mp: { hebrew: 'טוֹבִים', transcription: 'товӣ́м', translation: 'хорошие (м.р. мн.ч.)' },
+      fp: { hebrew: 'טוֹבוֹת', transcription: 'товóт', translation: 'хорошие (ж.р. мн.ч.)' },
+    },
+    usedGenderNumber: 'ms',
+    sentenceHe: 'הַיּוֹם יוֹם טוֹב לְכוּלָּם.',
+    sentenceTranscription: 'hа-йом йом тов ле-хулáм.',
+    sentenceRu: 'Сегодня хороший день для всех.',
+    minLesson: 1,
+    lessonTheme: 'Приветствие и знакомство',
+  },
+  'חדש': {
+    id: 'adj_chadash',
+    type: 'adjective',
+    targetWordPlain: 'חדש',
+    targetWordVocalized: 'חָדָשׁ',
+    targetWordTranscription: 'хадáш',
+    targetWordTranslation: 'новый',
+    forms: {
+      ms: { hebrew: 'חָדָשׁ', transcription: 'хадáш', translation: 'новый (м.р. ед.ч.)' },
+      fs: { hebrew: 'חֲדָשָׁה', transcription: 'хадашá', translation: 'новая (ж.р. ед.ч.)' },
+      mp: { hebrew: 'חֲדָשִׁים', transcription: 'хадашӣ́м', translation: 'новые (м.р. мн.ч.)' },
+      fp: { hebrew: 'חֲדָשׁוֹת', transcription: 'хадашóт', translation: 'новые (ж.р. мн.ч.)' },
+    },
+    usedGenderNumber: 'ms',
+    sentenceHe: 'דָּוִד קוֹנֶה בַּיִת חָדָשׁ.',
+    sentenceTranscription: 'Давӣд конé бáит хадáш.',
+    sentenceRu: 'Давид покупает новый дом.',
+    minLesson: 4,
+    lessonTheme: 'Учёба и предметы',
+  },
+  'יפה': {
+    id: 'adj_yafe',
+    type: 'adjective',
+    targetWordPlain: 'יפה',
+    targetWordVocalized: 'יָפֶה',
+    targetWordTranscription: 'яфэ́',
+    targetWordTranslation: 'красивый',
+    forms: {
+      ms: { hebrew: 'יָפֶה', transcription: 'яфэ́', translation: 'красивый (м.р. ед.ч.)' },
+      fs: { hebrew: 'יָפָה', transcription: 'яфá', translation: 'красивая (ж.р. ед.ч.)' },
+      mp: { hebrew: 'יָפִים', transcription: 'яфӣ́м', translation: 'красивые (м.р. мн.ч.)' },
+      fp: { hebrew: 'יָפוֹת', transcription: 'яфóт', translation: 'красивые (ж.р. мн.ч.)' },
+    },
+    usedGenderNumber: 'fs',
+    sentenceHe: 'תֵּל אָבִיב עִיר יָפָה מְאֹד.',
+    sentenceTranscription: 'Тель Авӣв ир яфá меóд.',
+    sentenceRu: 'Тель-Авив — очень красивый город.',
+    minLesson: 3,
+    lessonTheme: 'Город и страна',
+  },
+  'חם': {
+    id: 'adj_cham',
+    type: 'adjective',
+    targetWordPlain: 'חם',
+    targetWordVocalized: 'חַם',
+    targetWordTranscription: 'хам',
+    targetWordTranslation: 'горячий / тёплый',
+    forms: {
+      ms: { hebrew: 'חַם', transcription: 'хам', translation: 'горячий (м.р. ед.ч.)' },
+      fs: { hebrew: 'חַמָּה', transcription: 'хамá', translation: 'горячая (ж.р. ед.ч.)' },
+      mp: { hebrew: 'חַמִּים', transcription: 'хамӣ́м', translation: 'горячие (м.р. мн.ч.)' },
+      fp: { hebrew: 'חַמּוֹת', transcription: 'хамóт', translation: 'горячие (ж.р. мн.ч.)' },
+    },
+    usedGenderNumber: 'ms',
+    sentenceHe: 'אֲנִי רוֹצֶה תֵּה חַם.',
+    sentenceTranscription: 'анӣ роцэ́ тэ хам.',
+    sentenceRu: 'Я хочу горячий чай.',
+    minLesson: 2,
+    lessonTheme: 'В кафе: заказы и напитки',
+  },
+  'קר': {
+    id: 'adj_kar',
+    type: 'adjective',
+    targetWordPlain: 'קר',
+    targetWordVocalized: 'קַר',
+    targetWordTranscription: 'кар',
+    targetWordTranslation: 'холодный',
+    forms: {
+      ms: { hebrew: 'קַר', transcription: 'кар', translation: 'холодный (м.р. ед.ч.)' },
+      fs: { hebrew: 'קָרָה', transcription: 'карá', translation: 'холодная (ж.р. ед.ч.)' },
+      mp: { hebrew: 'קָרִים', transcription: 'карӣ́м', translation: 'холодные (м.р. мн.ч.)' },
+      fp: { hebrew: 'קָרוֹת', transcription: 'карóт', translation: 'холодные (ж.р. мн.ч.)' },
+    },
+    usedGenderNumber: 'mp',
+    sentenceHe: 'יֵשׁ פֹּה מַיִם קָרִים.',
+    sentenceTranscription: 'йеш по мáим карӣ́м.',
+    sentenceRu: 'Здесь есть холодная вода.',
+    minLesson: 2,
+    lessonTheme: 'В кафе: заказы и напитки',
+  },
+  'טעים': {
+    id: 'adj_taim',
+    type: 'adjective',
+    targetWordPlain: 'טעים',
+    targetWordVocalized: 'טָעִים',
+    targetWordTranscription: 'таӣ́м',
+    targetWordTranslation: 'вкусный',
+    forms: {
+      ms: { hebrew: 'טָעִים', transcription: 'таӣ́м', translation: 'вкусный (м.р. ед.ч.)' },
+      fs: { hebrew: 'טְעִימָה', transcription: 'теимá', translation: 'вкусная (ж.р. ед.ч.)' },
+      mp: { hebrew: 'טְעִימִים', transcription: 'теимӣ́м', translation: 'вкусные (м.р. мн.ч.)' },
+      fp: { hebrew: 'טְעִימוֹת', transcription: 'теимóт', translation: 'вкусные (ж.р. мн.ч.)' },
+    },
+    usedGenderNumber: 'fs',
+    sentenceHe: 'הָעוּגָה הַזֹּאת טְעִימָה מְאֹד.',
+    sentenceTranscription: 'hа-угá hа-зот теимá меóд.',
+    sentenceRu: 'Этот пирог очень вкусный.',
+    minLesson: 2,
+    lessonTheme: 'В кафе: заказы и напитки',
+  },
+  'נחמד': {
+    id: 'adj_nechmad',
+    type: 'adjective',
+    targetWordPlain: 'נחמד',
+    targetWordVocalized: 'נֶחְמָד',
+    targetWordTranscription: 'нехмáд',
+    targetWordTranslation: 'симпатичный, милый, приятный',
+    forms: {
+      ms: { hebrew: 'נֶחְמָד', transcription: 'нехмáд', translation: 'симпатичный (м.р. ед.ч.)' },
+      fs: { hebrew: 'נֶחְמָדָה', transcription: 'нехмадá', translation: 'симпатичная (ж.р. ед.ч.)' },
+      mp: { hebrew: 'נֶחְמָדִים', transcription: 'нехмадӣ́м', translation: 'симпатичные (м.р. мн.ч.)' },
+      fp: { hebrew: 'נֶחְמָדוֹת', transcription: 'нехмадóт', translation: 'симпатичные (ж.р. мн.ч.)' },
+    },
+    usedGenderNumber: 'ms',
+    sentenceHe: 'הַמּוֹרֶה הַזֶּה נֶחְמָד מְאֹד.',
+    sentenceTranscription: 'hа-морé hа-зэ нехмáд меóд.',
+    sentenceRu: 'Этот учитель очень приятный.',
+    minLesson: 6,
+    lessonTheme: 'Семья и люди',
+  },
+};
+
+export function getAdjectiveDrill(rawWord: string): AdjectiveDrillItem | null {
+  if (!rawWord) return null;
+  const plain = stripNikkud(rawWord).trim();
+  if (ADJECTIVE_DRILLS_DATA[plain]) {
+    return ADJECTIVE_DRILLS_DATA[plain];
+  }
+  if (ADJECTIVE_DRILLS_DATA[rawWord]) {
+    return ADJECTIVE_DRILLS_DATA[rawWord];
+  }
+  return null;
+}

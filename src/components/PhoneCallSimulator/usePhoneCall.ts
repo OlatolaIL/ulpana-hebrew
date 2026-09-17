@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo, useSyncExternalStore } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback, useSyncExternalStore } from 'react';
 import confetti from 'canvas-confetti';
 import { Lesson, UserProfile, Word, ChatMessage, PhoneDebriefReport } from '@/types';
 import { getLessonPhoneScenario } from '@/data/phoneScenarios';
@@ -804,6 +804,98 @@ export function usePhoneCall({
     }
   };
 
+  // Педагогический разбор звонка (Debrief)
+  const requestDebrief = useCallback(
+    async (
+      transcriptPayload: Array<{ role: 'user' | 'assistant'; hebrew: string; translation?: string; transcription?: string; userAudioUrl?: string }>,
+      durationSec: number,
+      logId: string,
+      gen: number,
+    ) => {
+      setLoadingDebrief(true);
+      setSpeechNotice(null);
+      try {
+        const res = await fetch('/api/ai/phone/debrief', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            lessonNumber: lesson.id,
+            level: lesson.level,
+            userGender: userProfile.gender,
+            callerRole: scenario.callerRole,
+            callerNameRu: scenario.callerNameRu,
+            callType: scenario.callType || 'incoming',
+            situationSummary: scenario.situationSummary,
+            studentObjective: scenario.studentObjective,
+            transcript: transcriptPayload,
+            durationSeconds: durationSec,
+            provider: userProfile.aiProvider,
+            apiKey:
+              userProfile.aiProvider === 'groq'
+                ? userProfile.groqApiKey
+                : userProfile.geminiApiKey,
+          }),
+        });
+
+        if (!res.ok) throw new Error('Проверка разговора недоступна');
+        const debrief: PhoneDebriefReport = await res.json();
+        if (gen !== callGenerationRef.current) return;
+        setDebriefReport(debrief);
+        if (debrief.isSuccess === true) {
+          const updated = markLessonTabCompleted(lesson.id, 'phone');
+          onUpdateProfile?.(updated);
+        }
+        // Обновляем лог в БД с готовым отзывом учителя и свежими audio URLs
+        fetch('/api/calls/log', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id: logId,
+            lessonId: lesson.id,
+            callerName: scenario.callerNameRu || scenario.callerName,
+            callerRole: scenario.callerRole,
+            durationSeconds: durationSec,
+            transcript: messagesRef.current.map((m) => ({
+              role: m.role,
+              hebrew: m.hebrew,
+              translation: m.translation,
+              transcription: m.transcription,
+              userAudioUrl: m.userAudioUrl,
+            })),
+            feedback: debrief.summaryRu || 'Звонок успешно завершен',
+            userName: userProfile.name || 'Ученик',
+          }),
+        }).catch(() => {});
+      } catch (err) {
+        console.warn('Debrief fetch error:', err);
+        if (gen === callGenerationRef.current) {
+          setSpeechNotice('Разговор сохранён локально. Оценка недоступна, этап не зачтён.');
+        }
+      } finally {
+        if (gen === callGenerationRef.current) {
+          setLoadingDebrief(false);
+        }
+      }
+    },
+    [lesson.id, lesson.level, userProfile, scenario, onUpdateProfile]
+  );
+
+  const retryDebrief = useCallback(() => {
+    const currentMessages = messagesRef.current;
+    const userMessages = currentMessages.filter((m) => m.role === 'user');
+    if (userMessages.length === 0 || loadingDebrief) return;
+    const formattedTranscript = currentMessages.map((m) => ({
+      role: m.role,
+      hebrew: m.hebrew,
+      translation: m.translation,
+      transcription: m.transcription,
+      userAudioUrl: m.userAudioUrl,
+    }));
+    const logId = callLogIdRef.current || `call_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    callLogIdRef.current = logId;
+    requestDebrief(formattedTranscript, callDurationRef.current || callDuration, logId, callGenerationRef.current);
+  }, [loadingDebrief, callDuration, requestDebrief]);
+
   // Завершение звонка
   async function handleEndCall() {
     if (endingCallRef.current) return;
@@ -930,73 +1022,8 @@ export function usePhoneCall({
 
     // 3. Запрашиваем педагогический разбор звонка (Debriefing)
     if (userMessages.length > 0) {
-      setLoadingDebrief(true);
-      try {
-        fetch('/api/ai/phone/debrief', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            lessonNumber: lesson.id,
-            level: lesson.level,
-            userGender: userProfile.gender,
-            callerRole: scenario.callerRole,
-            callerNameRu: scenario.callerNameRu,
-            callType: scenario.callType || 'incoming',
-            situationSummary: scenario.situationSummary,
-            studentObjective: scenario.studentObjective,
-            transcript: formattedTranscript,
-            durationSeconds: finalDurationSeconds,
-            provider: userProfile.aiProvider,
-            apiKey:
-              userProfile.aiProvider === 'groq'
-                ? userProfile.groqApiKey
-                : userProfile.geminiApiKey,
-          }),
-        })
-          .then((r) => { if (!r.ok) throw new Error('Проверка разговора недоступна'); return r.json(); })
-            .then((debrief: PhoneDebriefReport) => {
-              if (generation !== callGenerationRef.current) return;
-            setDebriefReport(debrief);
-            if (debrief.isSuccess === true) {
-              const updated = markLessonTabCompleted(lesson.id, 'phone');
-              onUpdateProfile?.(updated);
-            }
-            // Обновляем лог в БД с готовым отзывом учителя и свежими audio URLs
-            fetch('/api/calls/log', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                id: currentCallLogId,
-                lessonId: lesson.id,
-                callerName: scenario.callerNameRu || scenario.callerName,
-                callerRole: scenario.callerRole,
-                durationSeconds: finalDurationSeconds,
-                transcript: messagesRef.current.map((m) => ({
-                  role: m.role,
-                  hebrew: m.hebrew,
-                  translation: m.translation,
-                  transcription: m.transcription,
-                  userAudioUrl: m.userAudioUrl,
-                })),
-                feedback: debrief.summaryRu || 'Звонок успешно завершен',
-                userName: userProfile.name || 'Ученик',
-              }),
-            }).catch(() => {});
-          })
-          .catch((err) => {
-            console.warn('Debrief fetch error:', err);
-            if (generation === callGenerationRef.current) setSpeechNotice('Разговор сохранён локально. Оценка недоступна, этап не зачтён.');
-          })
-            .finally(() => {
-              if (generation === callGenerationRef.current) setLoadingDebrief(false);
-          });
-      } catch (err) {
-        console.warn('Debrief error:', err);
-        setLoadingDebrief(false);
-      }
+      requestDebrief(formattedTranscript, finalDurationSeconds, currentCallLogId, generation);
     }
-
-
   };
 
   // Добавление слова в личный словарь
@@ -1094,6 +1121,7 @@ export function usePhoneCall({
     handleStartCall,
     handleEndCall,
     handleSendMessage,
+    retryDebrief,
     toggleMute,
     handleAddWord,
     getRelevantWordsForCall,

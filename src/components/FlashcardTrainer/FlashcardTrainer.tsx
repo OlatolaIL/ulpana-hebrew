@@ -25,7 +25,8 @@ import { BuilderMode } from './modes/BuilderMode';
 import { ListeningMode } from './modes/ListeningMode';
 import { AutoAudioMode } from './modes/AutoAudioMode';
 import { ConjugationMode } from './modes/ConjugationMode';
-import { ComplexVerbMode } from './modes/ComplexVerbMode';
+import { ComplexDrillMode } from './modes/ComplexDrillMode';
+import { hasComplexDrill } from '@/data/drills';
 import { extractVerbTriad } from '@/lib/verbTriad';
 import { PealimModal } from './PealimModal';
 
@@ -111,6 +112,10 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
         Boolean(w.root)
     );
   }, [words]);
+
+  const hasComplex = useMemo(() => {
+    return hasVerbs || words.some((w) => hasComplexDrill(w));
+  }, [words, hasVerbs]);
 
   const handleShuffleWords = () => {
     setCarouselDirections(generateCarouselDirections(words.length));
@@ -1012,6 +1017,7 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
       <TrainerHeader
         displayTitle={displayTitle}
         hasVerbs={hasVerbs}
+        hasComplex={hasComplex}
         isSplitMode={isSplitMode}
         canSplit={canSplit}
         activePartIndex={activePartIndex}
@@ -1106,7 +1112,7 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
       )}
 
       {mode === 'complex' && (
-        <ComplexVerbMode
+        <ComplexDrillMode
           currentWord={currentWord}
           userProfile={userProfile}
           currentIndex={currentIndex}
