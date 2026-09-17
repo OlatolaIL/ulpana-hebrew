@@ -7,7 +7,7 @@ const { hasComplexDrill, getDrillDataForWord } = require('../src/data/drills/ind
 
 test('Noun drills data integrity', () => {
   const keys = Object.keys(NOUN_DRILLS_DATA);
-  assert.ok(keys.length >= 70, `Expected at least 70 nouns, found ${keys.length}`);
+  assert.ok(keys.length >= 750, `Expected at least 750 nouns, found ${keys.length}`);
 
   for (const key of keys) {
     const item = NOUN_DRILLS_DATA[key];
@@ -31,7 +31,7 @@ test('Noun drills data integrity', () => {
 
 test('Adjective drills data integrity', () => {
   const keys = Object.keys(ADJECTIVE_DRILLS_DATA);
-  assert.ok(keys.length >= 8, `Expected at least 8 adjectives, found ${keys.length}`);
+  assert.ok(keys.length >= 45, `Expected at least 45 adjectives, found ${keys.length}`);
 
   for (const key of keys) {
     const item = ADJECTIVE_DRILLS_DATA[key];
