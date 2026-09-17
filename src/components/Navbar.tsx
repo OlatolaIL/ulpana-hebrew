@@ -90,13 +90,6 @@ export const Navbar: React.FC<NavbarProps> = ({
               <span>Уроки</span>
             </button>
 
-            <Link
-              href="/dialogues"
-              className="px-3.5 py-2 rounded-xl text-sm font-semibold flex items-center gap-1.5 transition text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800"
-            >
-              <span>🎭</span>
-              <span>Диалоги</span>
-            </Link>
 
             <button
               onClick={() => onNavigate('alphabet')}
@@ -263,15 +256,6 @@ export const Navbar: React.FC<NavbarProps> = ({
             </span>
           </button>
 
-          <Link
-            href="/dialogues"
-            className="flex flex-col items-center justify-center py-1 px-3 rounded-xl transition text-zinc-400 font-medium hover:text-blue-600 dark:hover:text-blue-400"
-          >
-            <span className="text-base mb-0.5 leading-none">🎭</span>
-            <span className="text-[11px] leading-tight">
-              Диалоги
-            </span>
-          </Link>
 
           <button
             onClick={() => onNavigate('alphabet')}
