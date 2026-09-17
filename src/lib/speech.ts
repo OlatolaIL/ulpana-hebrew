@@ -86,6 +86,10 @@ const PHONETIC_CORRECTIONS: [RegExp, string][] = [
   [/(^|[\s.,!?:;«»"״׳()[\]{}—])חשבון(?=[\s.,!?:;«»"״׳()[\]{}—]|$)/g, '$1חֶשְׁבּוֹן'],
   [/(^|[\s.,!?:;«»"״׳()[\]{}—])אפשר(?=[\s.,!?:;«»"״׳()[\]{}—]|$)/g, '$1אֶפְשָׁר'],
   [/(^|[\s.,!?:;«»"״׳()[\]{}—])סבבה(?=[\s.,!?:;«»"״׳()[\]{}—]|$)/g, '$1סַבָּבָּה'],
+
+  // 4. Огласовка и дагеш для ульпана (гарантия звука [п] вместо [ф] для синтезатора)
+  [/(^|[\s.,!?:;«»"״׳()[\]{}—])([לבמה]?ָ?)אוּלְפָן(?=[\s.,!?:;«»"״׳()[\]{}—]|$)/g, '$1$2אוּלְפָּן'],
+  [/(^|[\s.,!?:;«»"״׳()[\]{}—])([לבמה]?)אולפן(?=[\s.,!?:;«»"״׳()[\]{}—]|$)/g, '$1$2אוּלְפָּן'],
 ];
 
 /**
@@ -100,6 +104,8 @@ function fixHebrewPhonetics(text: string): string {
     res = res.replace(pattern, replacement);
   }
 
+  // Гарантируем дагеш в букве פ после шва в любых формах слова ульпан (לְפָּן)
+  res = res.replace(/(\u05dc\u05b0)\u05e4(?!\u05bc)(\u05b8\u05df)/g, '$1\u05e4\u05bc$2');
 
   res = res.replace(/(^|\s)ספרי(\s+ли|\s+לי)/g, '$1סַפְּרִי$2');
   res = res.replace(/(^|\s)ספר(\s+ли|\s+לי)/g, '$1סַפֵּר$2');
@@ -119,6 +125,9 @@ export function cleanHebrewForSpeech(text: string): string {
   let res = primaryText
     // Удаляем иконки, мета-метки и эмодзи
     .replace(/[♂♀⚥✔️❌①②③④⑤👉📦🌸🎙️👥↗️➡️⬅️⬆️⬇️✨💫\u200D\uFE0F\uFE0E]/g, '')
+    // Нормализуем восточные/юникодные знаки вопроса и восклицания
+    .replace(/[؟？]/g, '?')
+    .replace(/[！]/g, '!')
     // Удаляем любые комментарии и переводы в круглых скобках, например "(одна выпечка)", "(кáма зэ олé? — м.р.)"
     .replace(/\([^)]*\)/g, ' ')
     // Удаляем кавычки, скобки и стрелки
@@ -182,6 +191,8 @@ export function playFallbackAudio(
 
       // Сохраняем огласовки (ניקוד) и знаки препинания (. , ! ? : ;) для пауз и вопросительной интонации Google TTS
       const cleanText = text
+        .replace(/[؟？]/g, '?')
+        .replace(/[！]/g, '!')
         .replace(/["'״׳()[\]{}—<>«»]/g, ' ')
         .replace(/\s+([.,!?:;])/g, '$1')
         .replace(/([.,!?:;])(?=[\u0590-\u05FF\u0400-\u04FFa-zA-Z])/g, '$1 ')
@@ -192,10 +203,13 @@ export function playFallbackAudio(
         return;
       }
 
+      const isQuestion = cleanText.includes('?');
+      const effectiveRate = isQuestion ? Math.max(rate || 0.75, 0.8) : (rate || 0.75);
+
       const url = `https://translate.google.com/translate_tts?ie=UTF-8&tl=${lang}&client=tw-ob&q=${encodeURIComponent(cleanText)}`;
       const audio = new Audio(url);
       activeFallbackAudio = audio;
-      audio.playbackRate = Math.max(0.6, Math.min(1.3, rate || 0.75));
+      audio.playbackRate = Math.max(0.6, Math.min(1.3, effectiveRate));
 
       let isEnded = false;
       let fallbackTimeout: any = null;
@@ -314,12 +328,16 @@ export function speakHebrew(
     };
 
     try {
+      const isQuestion = speechText.includes('?');
       const utterance = new SpeechSynthesisUtterance(speechText);
       activeUtterance = utterance;
       utterance.lang = 'he-IL';
-      utterance.rate = rate;
+      // Для вопросов темп не должен быть чрезмерно замедленным (>=0.78), чтобы не размывать восходящий тон
+      utterance.rate = isQuestion ? Math.max(rate, 0.78) : rate;
       const defaultPitch = options.gender === 'male' ? 0.85 : (options.gender === 'female' ? 1.05 : 1.0);
-      utterance.pitch = options.pitch ?? defaultPitch;
+      // Для вопросов слегка повышаем питч (+12%), создавая естественный вопросительный контур в браузере
+      const questionPitchBonus = isQuestion ? 0.12 : 0;
+      utterance.pitch = options.pitch ?? Math.min(1.4, defaultPitch + questionPitchBonus);
 
       const voices = window.speechSynthesis.getVoices();
       const heVoices = voices.filter(
