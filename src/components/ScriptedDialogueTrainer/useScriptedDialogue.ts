@@ -567,6 +567,7 @@ export function useScriptedDialogue({
           setIsRecording(false);
           setIsEvaluating(false);
           setEvaluatingPhase('idle');
+          setEvaluationError('Голос не распознан. Пожалуйста, удерживайте кнопку и произнесите фразу на иврите.');
         }
       },
       {
@@ -610,9 +611,10 @@ export function useScriptedDialogue({
         } else {
           setIsEvaluating(false);
           setEvaluatingPhase('idle');
+          setEvaluationError('Время ожидания ответа истекло. Пожалуйста, попробуйте записать ответ ещё раз.');
         }
       }
-    }, 25000);
+    }, 15000);
   };
 
   // Оценка реплики ученика по смыслу через API
@@ -673,12 +675,12 @@ export function useScriptedDialogue({
 
     try {
       let finalEvalResult: DialogueEvaluationResult | null = null;
-      let textToEvaluate = '';
+      let textToEvaluate = recognizedHebrew.trim();
 
       const isOnline = typeof navigator === 'undefined' || navigator.onLine !== false;
 
       // R-19: 1. ОСНОВНОЙ ДВИЖОК — Серверный Whisper-large-v3 через /api/ai/transcribe с контекстной подсказкой урока
-      if (isOnline && audioBlob && audioBlob.size > 500 && isCurrent()) {
+      if (!textToEvaluate && isOnline && audioBlob && audioBlob.size > 500 && isCurrent()) {
         try {
           const form = new FormData();
           const mime = audioBlob.type || 'audio/webm';
@@ -687,7 +689,7 @@ export function useScriptedDialogue({
           const vocabPrompt = [
             ...(currentTurn.acceptableKeywords || []),
             variant.hebrew,
-          ].filter(Boolean).join(', ');
+          ].filter(Boolean).slice(0, 20).join(', ').slice(0, 250);
           if (vocabPrompt) {
             form.append('prompt', vocabPrompt);
           }
@@ -715,6 +717,9 @@ export function useScriptedDialogue({
       // R-19: 2. РЕЗЕРВНЫЙ ФОЛБЭК — Распознавание на устройстве (Web Speech API) только если офлайн или Whisper не ответил
       if (!textToEvaluate && recognizedHebrew.trim()) {
         textToEvaluate = recognizedHebrew.trim();
+      }
+
+      if (textToEvaluate) {
         setSpokenText(textToEvaluate);
         spokenTextRef.current = textToEvaluate;
       }

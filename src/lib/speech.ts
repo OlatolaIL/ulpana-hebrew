@@ -945,6 +945,15 @@ export class HebrewSpeechRecognizer {
           let recordedBlob: Blob | null = null;
           let recordedUrl: string | null = null;
 
+          const cleanupStream = () => {
+            if (!this.currentOptions.mediaStream && this.mediaStream) {
+              try {
+                this.mediaStream.getTracks().forEach((track) => track.stop());
+              } catch {}
+              this.mediaStream = null;
+            }
+          };
+
           if (recordedChunks.length > 0) {
             const blobType = mimeType || recordedChunks[0]?.type || 'audio/webm';
             const audioBlob = new Blob(recordedChunks, { type: blobType });
@@ -964,14 +973,23 @@ export class HebrewSpeechRecognizer {
               if (text && text.trim()) {
                 this.lastTranscript = text.trim();
                 this.onResultCb?.(this.lastTranscript, true);
-                this.onEndCb?.(this.lastTranscript, recordedBlob, recordedUrl);
+                const endCb = this.onEndCb;
+                this.onEndCb = null;
+                endCb?.(this.lastTranscript, recordedBlob, recordedUrl);
+                cleanupStream();
                 return;
               }
             }
           }
 
-          if (!this.onEndCb && !this.onResultCb) return;
-          this.onEndCb?.(this.lastTranscript, recordedBlob, recordedUrl);
+          if (!this.onEndCb && !this.onResultCb) {
+            cleanupStream();
+            return;
+          }
+          const endCb = this.onEndCb;
+          this.onEndCb = null;
+          endCb?.(this.lastTranscript, recordedBlob, recordedUrl);
+          cleanupStream();
         };
 
         this.mediaRecorder = recorder;
@@ -1373,11 +1391,18 @@ export class HebrewSpeechRecognizer {
 
     if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
       try {
-        this.mediaRecorder.onstop = null;
-        this.mediaRecorder.ondataavailable = null;
         this.mediaRecorder.stop();
-      } catch {}
+      } catch (err) {
+        console.warn('Error stopping mediaRecorder:', err);
+        const endCb = this.onEndCb;
+        this.onEndCb = null;
+        endCb?.(this.lastTranscript, null, null);
+      }
       this.mediaRecorder = null;
+    } else {
+      const endCb = this.onEndCb;
+      this.onEndCb = null;
+      endCb?.(this.lastTranscript, null, null);
     }
   }
 }
