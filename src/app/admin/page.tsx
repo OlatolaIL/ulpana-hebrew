@@ -1770,11 +1770,11 @@ export default function AdminPage() {
                                           className="p-2.5 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-xs flex flex-col gap-1"
                                         >
                                           <div className="flex items-center gap-2">
-                                            <span className="font-hebrew text-rose-600 line-through">
+                                            <span className="font-hebrew text-rose-600 dark:text-rose-400 font-bold px-1.5 py-0.5 rounded bg-rose-100 dark:bg-rose-950/70 border border-rose-200/60 dark:border-rose-800/40">
                                               {corr.original || corr.wrong}
                                             </span>
                                             <span>→</span>
-                                            <span className="font-hebrew font-bold text-emerald-600">
+                                            <span className="font-hebrew font-bold text-emerald-700 dark:text-emerald-400 px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950/70 border border-emerald-200/60 dark:border-emerald-800/40">
                                               {corr.corrected || corr.correct}
                                             </span>
                                           </div>

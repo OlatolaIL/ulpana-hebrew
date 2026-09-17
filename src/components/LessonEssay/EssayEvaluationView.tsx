@@ -176,7 +176,7 @@ export const EssayEvaluationView: React.FC<EssayEvaluationViewProps> = ({
                 className="p-3 rounded-xl bg-rose-50/60 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800/60 space-y-1.5 text-xs sm:text-sm"
               >
                 <div className="flex items-center gap-2 flex-wrap font-hebrew text-base sm:text-lg" dir="rtl">
-                  <span className="line-through text-rose-600 font-bold px-2 py-0.5 rounded bg-rose-100 dark:bg-rose-950/70 border border-rose-200/60 dark:border-rose-800/40">
+                  <span className="text-rose-600 dark:text-rose-400 font-bold px-2 py-0.5 rounded bg-rose-100 dark:bg-rose-950/70 border border-rose-200/60 dark:border-rose-800/40">
                     {item.wrongWord}
                   </span>
                   <span className="text-zinc-400 font-sans text-xs">➔</span>
@@ -232,14 +232,14 @@ export const EssayEvaluationView: React.FC<EssayEvaluationViewProps> = ({
               >
                 <div className="flex items-center gap-2 flex-wrap font-hebrew text-sm sm:text-base" dir="rtl">
                   {item.issueSnippet && (
-                    <span className="line-through text-rose-500 font-semibold px-1.5 py-0.5 rounded bg-rose-100 dark:bg-rose-950/50">
+                    <span className="text-rose-600 dark:text-rose-400 font-bold px-1.5 py-0.5 rounded bg-rose-100 dark:bg-rose-950/70 border border-rose-200/60 dark:border-rose-800/40">
                       {item.issueSnippet}
                     </span>
                   )}
                   {item.correctionSnippet && (
                     <>
                       <span className="text-zinc-400 font-sans text-xs">➔</span>
-                      <span className="font-bold text-emerald-600 dark:text-emerald-400 px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950/50">
+                      <span className="font-bold text-emerald-700 dark:text-emerald-300 px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950/70 border border-emerald-200/60 dark:border-emerald-800/40">
                         {item.correctionSnippet}
                       </span>
                     </>
@@ -282,9 +282,13 @@ export const EssayEvaluationView: React.FC<EssayEvaluationViewProps> = ({
               className="p-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-800 text-xs sm:text-sm text-zinc-700 dark:text-zinc-300 space-y-1"
             >
               <div className="flex items-center gap-2 font-hebrew" dir="rtl">
-                <span className="line-through text-rose-500">{g.wrongSnippet}</span>
+                <span className="text-rose-600 dark:text-rose-400 font-bold px-1.5 py-0.5 rounded bg-rose-100 dark:bg-rose-950/70 border border-rose-200/60 dark:border-rose-800/40">
+                  {g.wrongSnippet}
+                </span>
                 <span className="text-zinc-400 font-sans text-xs">➔</span>
-                <span className="font-bold text-emerald-600 dark:text-emerald-400">{g.correctionSnippet}</span>
+                <span className="font-bold text-emerald-700 dark:text-emerald-300 px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950/70 border border-emerald-200/60 dark:border-emerald-800/40">
+                  {g.correctionSnippet}
+                </span>
               </div>
               <p>{g.explanationRu}</p>
             </div>

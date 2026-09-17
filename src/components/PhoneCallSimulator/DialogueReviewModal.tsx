@@ -438,12 +438,12 @@ export const DialogueReviewModal: React.FC<DialogueReviewModalProps> = ({
                               className="text-xs text-amber-900 dark:text-amber-200 leading-snug space-y-0.5"
                             >
                               <div className="flex items-center gap-1.5 flex-wrap">
-                                <span className="line-through text-red-500 font-hebrew font-semibold">
-                                  «{ge.wrongPhrase}»
+                                <span className="text-rose-600 dark:text-rose-400 font-hebrew font-bold px-1.5 py-0.5 rounded bg-rose-100 dark:bg-rose-950/70 border border-rose-200/60 dark:border-rose-800/40">
+                                  {ge.wrongPhrase}
                                 </span>
                                 <span>➔</span>
-                                <span className="font-bold text-emerald-700 dark:text-emerald-400 font-hebrew">
-                                  «{ge.correctPhrase}»
+                                <span className="font-bold text-emerald-700 dark:text-emerald-400 font-hebrew px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950/70 border border-emerald-200/60 dark:border-emerald-800/40">
+                                  {ge.correctPhrase}
                                 </span>
                               </div>
                               <p className="text-[11px] text-amber-800/90 dark:text-amber-300/90 font-sans">
