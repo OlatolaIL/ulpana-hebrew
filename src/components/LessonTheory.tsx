@@ -16,6 +16,44 @@ interface LessonTheoryProps {
   onUpdateProfile?: (profile: UserProfile) => void;
 }
 
+/**
+ * Изоляция BiDi для заголовков с ивритом в скобках,
+ * предотвращающая выворачивание скобок (глитч UBA) на мобильных экранах
+ */
+function renderTitleWithBdi(title: string, isCursive?: boolean, showNikkud: boolean = true) {
+  if (!title) return null;
+  const match = title.match(/^(.*?)\s*\(([\u0590-\u05FF\s/]+)\)(.*?)$/);
+  if (match) {
+    const [, before, hebrew, after] = match;
+    return (
+      <span className="inline-flex items-center flex-wrap gap-x-1.5">
+        <span>{before}</span>
+        <span className="inline-flex items-center text-zinc-500 dark:text-zinc-400 font-normal text-sm sm:text-base" dir="ltr">
+          (
+          <bdi
+            dir="rtl"
+            className={
+              isCursive
+                ? 'font-cursive text-xl font-bold text-blue-600 dark:text-blue-400'
+                : 'font-hebrew font-bold text-blue-600 dark:text-blue-400'
+            }
+          >
+            {showNikkud ? hebrew : stripNikkud(hebrew)}
+          </bdi>
+          )
+        </span>
+        {after && <span>{after}</span>}
+      </span>
+    );
+  }
+  return title;
+}
+
+/**
+ * Рендеринг инлайн-текста с поддержкой жирного шрифта, кавычек и ивритских слов.
+ * Строго изолирует иврит (<bdi dir="rtl">) и транскрипцию (<bdi dir="ltr">),
+ * не раздувая высоту строки (устранены тяжелые таблетки-кляксы).
+ */
 function renderFormattedText(
   text: string,
   onPlay?: (hebrew: string, key?: string) => void,
@@ -24,8 +62,10 @@ function renderFormattedText(
   playingKey?: string | null
 ) {
   if (!text) return null;
-  // Находим жирный текст **...**, цитаты в кавычках «...» с ивритом или отдельные фразы на иврите
+
+  // Разбиваем на жирный текст **...**, цитаты в «...» с ивритом или отдельные фразы на иврите
   const parts = text.split(/(\*\*[^*]+\*\*|«[^»]*[\u0590-\u05FF][^»]*»|[\u0590-\u05FF]+(?:[\s\-]+[\u0590-\u05FF]+)*)/g);
+
   return parts.map((part, index) => {
     if (!part) return null;
     const isBold = part.startsWith('**') && part.endsWith('**');
@@ -35,31 +75,47 @@ function renderFormattedText(
     if (isBold) {
       const inner = part.slice(2, -2);
       const hasHebrew = /[\u0590-\u05FF]/.test(inner);
+
       if (hasHebrew && onPlay) {
-        const itemKey = `fmt-${index}-${inner.slice(0, 10)}`;
+        // Проверяем наличие транскрипции в скобках, например: זֶה (зэ) или זֹאת / זוֹ (зот / зу)
+        const hebrewMatch = inner.match(/([\u0590-\u05FF\s\-/"]+)/);
+        const hebrewPart = hebrewMatch ? hebrewMatch[0].trim() : inner.trim();
+        const extraPart = inner.replace(hebrewPart, '').trim();
+
+        const itemKey = `fmt-${index}-${hebrewPart.slice(0, 10)}`;
         const isPlaying = playingKey === itemKey;
+
         return (
-          <button
-            key={index}
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onPlay(inner, itemKey);
-            }}
-            className={`inline-flex items-center gap-1.5 font-bold px-2 py-0.5 my-0.5 rounded-xl border transition cursor-pointer select-text align-baseline mx-0.5 ${
-              isPlaying
-                ? 'bg-blue-600 text-white border-blue-600 shadow-xs scale-105'
-                : 'text-blue-700 dark:text-blue-300 bg-blue-50/90 dark:bg-blue-950/50 border-blue-200/90 dark:border-blue-800/60 hover:bg-blue-100 dark:hover:bg-blue-900/60'
-            }`}
-            title="Прослушать произношение (как произносится)"
-          >
-            <span dir="rtl" className={isCursive ? 'font-cursive text-lg' : 'font-hebrew text-sm sm:text-base'}>
-              {showNikkud ? inner : stripNikkud(inner)}
-            </span>
-            <Volume2 className={`w-3.5 h-3.5 shrink-0 ${isPlaying ? 'animate-pulse text-white' : 'text-blue-600 dark:text-blue-400 opacity-80'}`} />
-          </button>
+          <span key={index} className="inline-flex items-baseline gap-1 mx-0.5 align-baseline">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onPlay(hebrewPart, itemKey);
+              }}
+              className={`group inline-flex items-baseline gap-1 font-bold text-blue-700 dark:text-blue-300 hover:text-blue-900 dark:hover:text-blue-100 transition-colors cursor-pointer select-text rounded px-1 py-0.5 hover:bg-blue-50 dark:hover:bg-blue-950/50 align-baseline ${
+                isPlaying ? 'bg-blue-600 text-white hover:bg-blue-600 hover:text-white' : ''
+              }`}
+              title="Прослушать произношение"
+            >
+              <bdi dir="rtl" className={isCursive ? 'font-cursive text-xl' : 'font-hebrew text-base sm:text-lg'}>
+                {showNikkud ? hebrewPart : stripNikkud(hebrewPart)}
+              </bdi>
+              <Volume2
+                className={`w-3.5 h-3.5 shrink-0 align-middle -mt-0.5 ${
+                  isPlaying ? 'animate-pulse text-white' : 'opacity-60 group-hover:opacity-100'
+                }`}
+              />
+            </button>
+            {extraPart && (
+              <bdi dir="ltr" className="text-xs font-semibold text-zinc-500 dark:text-zinc-400">
+                {extraPart}
+              </bdi>
+            )}
+          </span>
         );
       }
+
       return (
         <strong key={index} className="font-bold text-zinc-900 dark:text-zinc-100">
           {inner}
@@ -71,6 +127,7 @@ function renderFormattedText(
       const inner = part.slice(1, -1);
       const itemKey = `quote-${index}-${inner.slice(0, 10)}`;
       const isPlaying = playingKey === itemKey;
+
       return (
         <button
           key={index}
@@ -79,49 +136,220 @@ function renderFormattedText(
             e.stopPropagation();
             onPlay(inner, itemKey);
           }}
-          className={`inline-flex items-center gap-1 font-semibold px-1.5 py-0.5 my-0.5 rounded-lg border transition cursor-pointer select-text align-baseline mx-0.5 ${
-            isPlaying
-              ? 'bg-blue-600 text-white border-blue-600 shadow-xs scale-105'
-              : 'text-zinc-900 dark:text-zinc-100 bg-zinc-100 dark:bg-zinc-800/80 border-zinc-200 dark:border-zinc-700 hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-950/40 dark:hover:text-blue-300'
+          className={`group inline-flex items-baseline gap-1 font-semibold text-zinc-900 dark:text-zinc-100 hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer select-text rounded px-1 py-0.5 hover:bg-zinc-100 dark:hover:bg-zinc-800/80 align-baseline mx-0.5 ${
+            isPlaying ? 'bg-blue-600 text-white hover:bg-blue-600 hover:text-white' : ''
           }`}
-          title="Прослушать произношение (как произносится)"
+          title="Прослушать произношение"
         >
-          <span dir="rtl" className={isCursive ? 'font-cursive text-base' : 'font-hebrew font-bold'}>
-            «{showNikkud ? inner : stripNikkud(inner)}»
-          </span>
-          <Volume2 className={`w-3 h-3 shrink-0 ${isPlaying ? 'animate-pulse text-white' : 'text-blue-500 opacity-75'}`} />
+          «<bdi dir="rtl" className={isCursive ? 'font-cursive text-lg' : 'font-hebrew font-bold'}>
+            {showNikkud ? inner : stripNikkud(inner)}
+          </bdi>»
+          <Volume2
+            className={`w-3 h-3 shrink-0 align-middle -mt-0.5 ${
+              isPlaying ? 'animate-pulse text-white' : 'opacity-50 group-hover:opacity-100'
+            }`}
+          />
         </button>
       );
     }
 
     if (isHebrewWord && onPlay && part.trim().length > 1) {
-      const itemKey = `heb-${index}-${part.slice(0, 10)}`;
+      const cleanWord = part.trim();
+      const itemKey = `heb-${index}-${cleanWord.slice(0, 10)}`;
       const isPlaying = playingKey === itemKey;
+
       return (
         <button
           key={index}
           type="button"
           onClick={(e) => {
             e.stopPropagation();
-            onPlay(part, itemKey);
+            onPlay(cleanWord, itemKey);
           }}
-          className={`inline-flex items-center gap-1 font-bold px-2 py-0.5 my-0.5 rounded-lg border transition cursor-pointer select-text align-baseline mx-0.5 ${
-            isPlaying
-              ? 'bg-blue-600 text-white border-blue-600 shadow-xs scale-105'
-              : 'text-blue-700 dark:text-blue-300 bg-blue-50/80 dark:bg-blue-950/50 border-blue-200/80 dark:border-blue-800/60 hover:bg-blue-100 dark:hover:bg-blue-900/60'
+          className={`group inline-flex items-baseline gap-1 font-bold text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200 transition-colors cursor-pointer select-text rounded px-1 py-0.5 hover:bg-blue-50 dark:hover:bg-blue-950/40 align-baseline mx-0.5 ${
+            isPlaying ? 'bg-blue-600 text-white hover:bg-blue-600 hover:text-white' : ''
           }`}
-          title="Прослушать произношение (как произносится)"
+          title="Прослушать произношение"
         >
-          <span dir="rtl" className={isCursive ? 'font-cursive text-xl' : 'font-hebrew text-base sm:text-lg font-bold'}>
-            {showNikkud ? part : stripNikkud(part)}
-          </span>
-          <Volume2 className={`w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0 ${isPlaying ? 'animate-pulse text-white' : 'text-blue-500 opacity-75'}`} />
+          <bdi dir="rtl" className={isCursive ? 'font-cursive text-xl' : 'font-hebrew text-base sm:text-lg font-bold'}>
+            {showNikkud ? cleanWord : stripNikkud(cleanWord)}
+          </bdi>
+          <Volume2
+            className={`w-3 h-3 shrink-0 align-middle -mt-0.5 ${
+              isPlaying ? 'animate-pulse text-white' : 'opacity-40 group-hover:opacity-100'
+            }`}
+          />
         </button>
       );
     }
 
     return part;
   });
+}
+
+/**
+ * Структурированный парсер и рендерер объяснений.
+ * Преобразует сырой markdown со стрелками `->` и дефисами в эстетичные учебные карточки.
+ */
+function renderStructuredExplanation(
+  explanation: string,
+  onPlay?: (hebrew: string, key?: string) => void,
+  isCursive?: boolean,
+  showNikkud: boolean = true,
+  playingKey?: string | null
+) {
+  if (!explanation) return null;
+
+  const lines = explanation.split('\n');
+  const renderedElements: React.ReactNode[] = [];
+
+  for (let lIdx = 0; lIdx < lines.length; lIdx++) {
+    const rawLine = lines[lIdx];
+    const trimmed = rawLine.trim();
+    if (!trimmed) {
+      renderedElements.push(<div key={`empty-${lIdx}`} className="h-2" />);
+      continue;
+    }
+
+    // 1. Проверяем паттерн структурированных примеров:
+    // - Мужской род: **זֶה (зэ)** -> זֶה סֵפֶר (Это книга - м.р. на иврите), זֶה מוֹרֶה (Это учитель).
+    const exampleMatch = trimmed.match(/^[-*]\s*([^:]+):\s*(\*\*[^*]+\*\*|[^\s]+)\s*(?:->|—|–)\s*(.+)$/);
+    if (exampleMatch) {
+      const [, category, keywordRaw, examplesRaw] = exampleMatch;
+      const isMale = /муж/i.test(category);
+      const isFemale = /жен/i.test(category);
+      const isPlural = /множ/i.test(category);
+
+      // Извлекаем пары пример-перевод
+      // Регулярка ищет ивритские слова и последующий русский перевод в скобках
+      const exampleItems: Array<{ hebrew: string; translation: string }> = [];
+      const itemRegex = /([\u0590-\u05FF]+(?:\s+[\u0590-\u05FF]+)*)\s*(?:\(([^)]+)\))?/g;
+      let match;
+      while ((match = itemRegex.exec(examplesRaw)) !== null) {
+        exampleItems.push({
+          hebrew: match[1].trim(),
+          translation: match[2] ? match[2].trim() : '',
+        });
+      }
+
+      renderedElements.push(
+        <div
+          key={`example-card-${lIdx}`}
+          className={`rounded-2xl p-4 sm:p-5 border shadow-2xs space-y-3 transition ${
+            isMale
+              ? 'bg-blue-50/40 dark:bg-blue-950/20 border-blue-200/80 dark:border-blue-900/50'
+              : isFemale
+              ? 'bg-rose-50/40 dark:bg-rose-950/20 border-rose-200/80 dark:border-rose-900/50'
+              : isPlural
+              ? 'bg-emerald-50/40 dark:bg-emerald-950/20 border-emerald-200/80 dark:border-emerald-900/50'
+              : 'bg-zinc-50 dark:bg-zinc-800/40 border-zinc-200 dark:border-zinc-800'
+          }`}
+        >
+          {/* Верхняя плашка карточки: Бейдж рода + Ключевое местоимение */}
+          <div className="flex items-center justify-between gap-2 flex-wrap border-b border-zinc-200/60 dark:border-zinc-800/60 pb-2.5">
+            <span
+              className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold ${
+                isMale
+                  ? 'bg-blue-100/80 dark:bg-blue-900/60 text-blue-800 dark:text-blue-200'
+                  : isFemale
+                  ? 'bg-rose-100/80 dark:bg-rose-900/60 text-rose-800 dark:text-rose-200'
+                  : isPlural
+                  ? 'bg-emerald-100/80 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-200'
+                  : 'bg-zinc-200/70 dark:bg-zinc-700 text-zinc-800 dark:text-zinc-200'
+              }`}
+            >
+              <span>{isMale ? '♂️' : isFemale ? '♀️' : isPlural ? '👥' : '📌'}</span>
+              <span>{category.trim()}</span>
+            </span>
+
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-semibold text-zinc-500 dark:text-zinc-400">Форма:</span>
+              <span className="text-sm font-bold">
+                {renderFormattedText(keywordRaw, onPlay, isCursive, showNikkud, playingKey)}
+              </span>
+            </div>
+          </div>
+
+          {/* Примеры предложений в виде аккуратных мини-карточек */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+            {exampleItems.map((ex, exIdx) => {
+              const exPlayKey = `ex-${lIdx}-${exIdx}`;
+              const isPlaying = playingKey === exPlayKey;
+
+              return (
+                <div
+                  key={exIdx}
+                  onClick={() => onPlay?.(ex.hebrew, exPlayKey)}
+                  className={`p-3 rounded-xl border bg-white dark:bg-zinc-900/90 shadow-2xs hover:border-blue-300 dark:hover:border-blue-700 cursor-pointer transition flex items-center justify-between gap-3 group ${
+                    isPlaying ? 'border-blue-500 ring-2 ring-blue-500/20' : 'border-zinc-200/80 dark:border-zinc-800'
+                  }`}
+                  title="Нажмите, чтобы прослушать пример"
+                >
+                  <div className="space-y-0.5 min-w-0">
+                    <p
+                      dir="rtl"
+                      className={`font-bold transition ${
+                        isCursive
+                          ? 'font-cursive text-xl sm:text-2xl text-blue-600 dark:text-blue-400'
+                          : 'font-hebrew text-lg font-extrabold text-zinc-900 dark:text-zinc-50 group-hover:text-blue-600 dark:group-hover:text-blue-400'
+                      }`}
+                    >
+                      <bdi dir="rtl">{showNikkud ? ex.hebrew : stripNikkud(ex.hebrew)}</bdi>
+                    </p>
+                    {ex.translation && (
+                      <p className="text-xs text-zinc-600 dark:text-zinc-400 leading-snug">
+                        {ex.translation}
+                      </p>
+                    )}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onPlay?.(ex.hebrew, exPlayKey);
+                    }}
+                    className={`p-1.5 rounded-lg shrink-0 transition ${
+                      isPlaying
+                        ? 'bg-blue-600 text-white'
+                        : 'text-zinc-400 group-hover:text-blue-600 group-hover:bg-blue-50 dark:group-hover:bg-blue-950/60'
+                    }`}
+                    title="Озвучить пример"
+                  >
+                    <Volume2 className={`w-4 h-4 ${isPlaying ? 'animate-pulse text-white' : ''}`} />
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      );
+      continue;
+    }
+
+    // 2. Проверяем обычные списки (- пункт или * пункт)
+    if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
+      const content = trimmed.slice(2);
+      renderedElements.push(
+        <div key={`bullet-${lIdx}`} className="flex items-start gap-2.5 py-1">
+          <span className="w-1.5 h-1.5 rounded-full bg-blue-600 dark:bg-blue-400 mt-2 shrink-0" />
+          <div className="text-sm sm:text-base text-zinc-800 dark:text-zinc-200 leading-relaxed flex-1">
+            {renderFormattedText(content, onPlay, isCursive, showNikkud, playingKey)}
+          </div>
+        </div>
+      );
+      continue;
+    }
+
+    // 3. Обычный абзац текста
+    renderedElements.push(
+      <p key={`p-${lIdx}`} className="text-sm sm:text-base text-zinc-700 dark:text-zinc-200 leading-relaxed">
+        {renderFormattedText(rawLine, onPlay, isCursive, showNikkud, playingKey)}
+      </p>
+    );
+  }
+
+  return <div className="space-y-3">{renderedElements}</div>;
 }
 
 export const LessonTheory: React.FC<LessonTheoryProps> = ({
@@ -158,39 +386,96 @@ export const LessonTheory: React.FC<LessonTheoryProps> = ({
   const isCursive = userProfile.fontStyle === 'cursive';
 
   return (
-    <div data-font-style={userProfile.fontStyle || 'print'} className="space-y-4 sm:space-y-6 max-w-3xl mx-auto pb-10">
-      {/* Краткое описание темы урока */}
-      {lesson.description && (
-        <div className="px-1 text-sm sm:text-base text-zinc-600 dark:text-zinc-400 font-medium leading-relaxed">
-          {renderFormattedText(
-            lesson.description,
-            handlePlay,
-            isCursive,
-            userProfile.showNikkud,
-            playingKey
-          )}
+    <div data-font-style={userProfile.fontStyle || 'print'} className="space-y-5 sm:space-y-6 max-w-3xl mx-auto pb-10">
+      {/* 0. Презентабельный Hero-блок урока */}
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-blue-600/10 via-indigo-500/5 to-transparent border border-blue-200/80 dark:border-blue-900/60 p-5 sm:p-6 shadow-xs space-y-3">
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="px-3 py-1 rounded-full text-xs font-bold tracking-wide bg-blue-600 text-white shadow-xs">
+              Урок {lesson.number} • {lesson.level === 'bet' ? 'Уровень Бет (ב)' : 'Уровень Алеф (א)'}
+            </span>
+            {lesson.category && (
+              <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-white dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700 shadow-2xs">
+                {lesson.category}
+              </span>
+            )}
+          </div>
         </div>
-      )}
 
-      {/* Грамматические темы */}
+        <div className="space-y-1.5 pt-1">
+          <div className="flex items-center gap-3">
+            <h1
+              dir="rtl"
+              onClick={() => handlePlay(lesson.titleHebrew, 'hero-hebrew')}
+              className={`cursor-pointer select-text transition leading-tight ${
+                isCursive
+                  ? 'font-cursive text-3xl sm:text-4xl font-bold text-blue-600 dark:text-blue-400'
+                  : 'font-hebrew text-2xl sm:text-3xl font-extrabold text-zinc-900 dark:text-zinc-50 hover:text-blue-600 dark:hover:text-blue-400'
+              }`}
+              title="Нажмите, чтобы прослушать название урока"
+            >
+              <bdi dir="rtl">{userProfile.showNikkud ? lesson.titleHebrew : stripNikkud(lesson.titleHebrew)}</bdi>
+            </h1>
+            <button
+              type="button"
+              onClick={() => handlePlay(lesson.titleHebrew, 'hero-hebrew')}
+              className={`p-2 rounded-xl transition cursor-pointer shrink-0 ${
+                playingKey === 'hero-hebrew'
+                  ? 'bg-blue-600 text-white shadow-xs scale-105'
+                  : 'text-blue-600 dark:text-blue-400 hover:bg-blue-100/70 dark:hover:bg-blue-900/50'
+              }`}
+              title="Прослушать название темы"
+              aria-label="Прослушать название темы"
+            >
+              <Volume2 className="w-4 h-4" />
+            </button>
+          </div>
+
+          <p className="text-base sm:text-lg font-bold text-zinc-800 dark:text-zinc-200">
+            {lesson.titleRussian}
+          </p>
+        </div>
+
+        {lesson.description && (
+          <div className="text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed pt-1 border-t border-blue-100/80 dark:border-blue-900/40">
+            {renderFormattedText(
+              lesson.description,
+              handlePlay,
+              isCursive,
+              userProfile.showNikkud,
+              playingKey
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* 1. Грамматические темы */}
       {lesson.grammar.map((topic, i) => (
         <div
           key={i}
-          className="bg-white dark:bg-zinc-900 rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-zinc-200 dark:border-zinc-800 shadow-sm space-y-4 sm:space-y-5"
+          className="bg-white dark:bg-zinc-900 rounded-2xl sm:rounded-3xl p-5 sm:p-7 border border-zinc-200 dark:border-zinc-800 shadow-sm space-y-4 sm:space-y-5"
         >
-          <div className="space-y-1">
-            <h3 className="text-base sm:text-lg font-bold text-zinc-900 dark:text-zinc-100">
-              {topic.title}
+          <div className="space-y-1.5 border-b border-zinc-100 dark:border-zinc-800 pb-3">
+            <h3 className="text-lg sm:text-xl font-extrabold text-zinc-900 dark:text-zinc-100">
+              {renderTitleWithBdi(topic.title, isCursive, userProfile.showNikkud)}
             </h3>
             {topic.summary && (
-              <p className="text-sm text-zinc-500 dark:text-zinc-400 font-medium">{topic.summary}</p>
+              <p className="text-sm text-zinc-500 dark:text-zinc-400 font-medium leading-relaxed">
+                {renderFormattedText(
+                  topic.summary,
+                  handlePlay,
+                  isCursive,
+                  userProfile.showNikkud,
+                  playingKey
+                )}
+              </p>
             )}
           </div>
 
-          {/* Текст объяснения */}
+          {/* Текст объяснения через структурированный парсер */}
           {topic.explanation && (
-            <div className="text-sm sm:text-base text-zinc-700 dark:text-zinc-200 leading-relaxed whitespace-pre-line">
-              {renderFormattedText(
+            <div className="pt-1">
+              {renderStructuredExplanation(
                 topic.explanation,
                 handlePlay,
                 isCursive,
@@ -355,13 +640,21 @@ export const LessonTheory: React.FC<LessonTheoryProps> = ({
 
                       {/* ДЕСКТОПНЫЙ ВИД: Полноразмерная таблица */}
                       <div className="hidden sm:block w-full overflow-x-auto rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-xs">
-                        <table className="w-full text-left border-collapse">
-                          <thead className="bg-zinc-50 dark:bg-zinc-800/80 text-zinc-600 dark:text-zinc-300 text-xs font-semibold uppercase">
+                        <table className="w-full text-left border-collapse table-auto">
+                          <thead className="bg-zinc-50/90 dark:bg-zinc-800/80 text-zinc-600 dark:text-zinc-300 text-xs font-bold uppercase tracking-wider">
                             <tr>
                               {table.headers.map((h, hIdx) => (
                                 <th
                                   key={hIdx}
-                                  className="px-4 py-2.5 border-b border-zinc-200 dark:border-zinc-800"
+                                  className={`px-4 py-3 border-b border-zinc-200 dark:border-zinc-800 ${
+                                    hIdx === 0
+                                      ? 'min-w-[140px]'
+                                      : hIdx === 1
+                                      ? 'min-w-[120px]'
+                                      : hIdx === 2
+                                      ? 'min-w-[170px]'
+                                      : 'min-w-[160px]'
+                                  }`}
                                 >
                                   {h}
                                 </th>
@@ -385,23 +678,24 @@ export const LessonTheory: React.FC<LessonTheoryProps> = ({
                                     colHeader.toLowerCase().includes('местоимение') ||
                                     colHeader.toLowerCase().includes('глагол') ||
                                     colHeader.toLowerCase().includes('форма') ||
-                                    colHeader.toLowerCase().includes('инфинитив');
+                                    colHeader.toLowerCase().includes('инфинитив') ||
+                                    colHeader.toLowerCase().includes('вопрос');
 
                                   return (
                                     <td
                                       key={cIdx}
-                                      className="px-4 py-3 align-middle"
+                                      className="px-4 py-3.5 align-middle"
                                     >
                                       {cell === 'Мужской' ? (
-                                        <span className="inline-block px-2 py-0.5 rounded text-[11px] font-bold bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 whitespace-nowrap border border-blue-200/80 dark:border-blue-900/60">
+                                        <span className="inline-block px-2.5 py-1 rounded-lg text-xs font-bold bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 whitespace-nowrap border border-blue-200/80 dark:border-blue-900/60">
                                           Муж. ♂
                                         </span>
                                       ) : cell === 'Женский' ? (
-                                        <span className="inline-block px-2 py-0.5 rounded text-[11px] font-bold bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 whitespace-nowrap border border-rose-200/80 dark:border-rose-900/60">
+                                        <span className="inline-block px-2.5 py-1 rounded-lg text-xs font-bold bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 whitespace-nowrap border border-rose-200/80 dark:border-rose-900/60">
                                           Жен. ♀
                                         </span>
                                       ) : cell === 'Общий' ? (
-                                        <span className="inline-block px-2 py-0.5 rounded text-[11px] font-bold bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 whitespace-nowrap border border-zinc-200 dark:border-zinc-700">
+                                        <span className="inline-block px-2.5 py-1 rounded-lg text-xs font-bold bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 whitespace-nowrap border border-zinc-200 dark:border-zinc-700">
                                           Общ. ⚥
                                         </span>
                                       ) : isHebrew ? (
@@ -420,7 +714,7 @@ export const LessonTheory: React.FC<LessonTheoryProps> = ({
                                             }`}
                                             title="Нажмите на текст, чтобы прослушать произношение"
                                           >
-                                            {userProfile.showNikkud ? cell : stripNikkud(cell)}
+                                            <bdi dir="rtl">{userProfile.showNikkud ? cell : stripNikkud(cell)}</bdi>
                                           </span>
                                           <button
                                             type="button"
@@ -444,7 +738,7 @@ export const LessonTheory: React.FC<LessonTheoryProps> = ({
                                           </button>
                                         </div>
                                       ) : (
-                                        <span className="text-sm text-zinc-700 dark:text-zinc-300 leading-snug break-words font-medium">
+                                        <span className="text-sm text-zinc-700 dark:text-zinc-300 leading-relaxed break-words font-medium">
                                           {renderFormattedText(
                                             cell,
                                             handlePlay,

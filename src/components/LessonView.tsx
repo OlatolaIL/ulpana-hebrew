@@ -217,11 +217,9 @@ export const LessonView: React.FC<LessonViewProps> = ({
                   </span>
 
                   {/* Текст названия (на десктопе или активной вкладке) */}
-                  <span className={`${isActive ? 'inline' : 'hidden sm:inline'} truncate text-[11px] sm:text-xs font-hebrew`}>
+                  <span className={`${isActive ? 'inline' : 'hidden sm:inline'} truncate text-[11px] sm:text-xs font-medium tracking-tight`}>
                     {stage.labelRu}
                   </span>
-
-
                 </div>
               </button>
             );
@@ -251,7 +249,7 @@ export const LessonView: React.FC<LessonViewProps> = ({
           <button
             type="button"
             onClick={handleResetLesson}
-            className={`p-1.5 rounded-xl border transition cursor-pointer shrink-0 active:scale-95 ${
+            className={`hidden sm:inline-flex p-1.5 rounded-xl border transition cursor-pointer shrink-0 active:scale-95 ${
               hasProgress
                 ? 'border-zinc-200 dark:border-zinc-700 text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 hover:border-rose-200 dark:border-rose-800'
                 : 'border-zinc-200/60 dark:border-zinc-800/60 text-zinc-400/60 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40'

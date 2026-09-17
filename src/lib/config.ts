@@ -47,7 +47,7 @@ export const LESSON_STAGES: LessonStageConfig[] = [
   { id: 'theory', num: 1, labelRu: 'Теория', labelHe: 'תֵּאוֹרְיָה', descriptionRu: 'Теория и правила' },
   { id: 'vocab', num: 2, labelRu: 'Слова', labelHe: 'מִילִּים', descriptionRu: 'Словарь урока' },
   { id: 'exercises', num: 3, labelRu: 'Тесты', labelHe: 'תַּרְגִּילִים', descriptionRu: 'Упражнения и тесты' },
-  { id: 'essay', num: 4, labelRu: 'Сочинение', labelHe: 'חִבּוּר', descriptionRu: 'Написание сочинения' },
+  { id: 'essay', num: 4, labelRu: 'Эссе', labelHe: 'חִבּוּר', descriptionRu: 'Написание короткого эссе' },
   { id: 'chat', num: 5, labelRu: 'Диалог', labelHe: 'שִׂיחָה', descriptionRu: 'Диалог и ИИ-чат' },
   { id: 'phone', num: 6, labelRu: 'Звонок', labelHe: 'טֶלֶפוֹן', descriptionRu: 'Телефонный звонок с ИИ' },
 ];
