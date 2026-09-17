@@ -15,7 +15,7 @@
  *   2. Валидация заготовок:
  *      node scripts/sync_complex_drills.cjs --check [staging.json]
  *
- *   3. Безопасное слияние проверенных карточек в кодовую базу:
+ *   3. Безопасное слияние проверенных карточек в кодовую базу (noun/adj/prep/verb):
  *      node scripts/sync_complex_drills.cjs --merge [staging.json]
  */
 
@@ -34,6 +34,7 @@ const PEALIM_PATH = path.join(repoRoot, 'src', 'data', 'pealimMasterDictionary.j
 const NOUN_DRILLS_PATH = path.join(repoRoot, 'src', 'data', 'drills', 'nounDrillsData.ts');
 const ADJ_DRILLS_PATH = path.join(repoRoot, 'src', 'data', 'drills', 'adjectiveDrillsData.ts');
 const PREP_DRILLS_PATH = path.join(repoRoot, 'src', 'data', 'drills', 'prepositionDrillsData.ts');
+const VERB_SENTENCES_PATH = path.join(repoRoot, 'src', 'data', 'verbSentencesData.ts');
 const DEFAULT_STAGING_PATH = path.join(repoRoot, 'scripts', 'output', 'drills_staging.json');
 
 const args = process.argv.slice(2);
@@ -107,7 +108,7 @@ function collectMissingWords(targetScope) {
         hebrew: w.hebrew,
         transcription: w.transcription || '',
         translation: w.translation || '',
-        partOfSpeech: w.partOfSpeech || 'noun',
+        partOfSpeech: w.partOfSpeech || null,
         gender: w.gender || null,
         sourceType,
         sourceName,
@@ -160,10 +161,41 @@ function handlePrepare() {
     const vocalized = pealimEntry?.hebrew || item.hebrew || item.plain;
     const transcription = pealimEntry?.transcription || item.transcription || '';
     const translation = pealimEntry?.translation || item.translation || '';
-    const pos = item.partOfSpeech || pealimEntry?.partOfSpeech || 'noun';
+    const pos = item.partOfSpeech || pealimEntry?.partOfSpeech || (item.plain.startsWith('ל') && pealimEntry?.conjugation ? 'verb' : 'noun');
     const gender = pealimEntry?.gender || item.gender || 'm';
 
-    if (pos === 'adjective') {
+    if (pos === 'verb') {
+      const conj = pealimEntry?.conjugation;
+      const presMs = conj?.present?.[0]?.hebrew || vocalized;
+      outputItems.push({
+        id: 'v_' + item.plain,
+        type: 'verb',
+        infinitive: vocalized,
+        infinitivePlain: item.plain,
+        root: pealimEntry?.root || item.root || '',
+        translationRu: translation,
+        sourceLessonId: item.lessonId,
+        sourceLessonTitle: item.sourceName,
+        source: item.sourceType,
+        sentences: [
+          {
+            id: 'v_' + item.plain + '_pres',
+            verbInfinitive: vocalized,
+            verbForm: presMs,
+            tense: 'present',
+            tenseRu: 'настоящее',
+            prepositionPlain: '',
+            prepositionVocalized: '',
+            sentenceHe: '[TODO: предложение на иврите 3-4 слова]',
+            sentenceTranscription: '[TODO: транскрипция фразы]',
+            sentenceRu: '[TODO: русский перевод фразы]',
+            drillAudioRu: '[TODO: перевод фразы] Глагол ' + translation + ', инфинитив: ' + transcription,
+            minLesson: item.lessonId,
+            lessonTheme: item.sourceName,
+          }
+        ]
+      });
+    } else if (pos === 'adjective') {
       outputItems.push({
         id: 'adj_' + item.plain,
         type: 'adjective',
@@ -260,26 +292,40 @@ function validateStaging(items) {
   let readyCount = 0;
 
   items.forEach((item, index) => {
-    const prefix = '[' + (index + 1) + ': ' + (item.targetWordPlain || item.id) + ']';
+    const prefix = '[' + (index + 1) + ': ' + (item.targetWordPlain || item.infinitivePlain || item.id) + ']';
 
     if (!item.type) {
       errors.push(prefix + " Отсутствует поле 'type'");
     }
-    if (!item.targetWordPlain) {
-      errors.push(prefix + " Отсутствует поле 'targetWordPlain'");
-    }
-    if (!item.sentenceHe || item.sentenceHe.includes('[TODO')) {
-      errors.push(prefix + " Не заполнено 'sentenceHe'");
-    }
-    if (!item.sentenceTranscription || item.sentenceTranscription.includes('[TODO')) {
-      errors.push(prefix + " Не заполнено 'sentenceTranscription'");
-    }
-    if (!item.sentenceRu || item.sentenceRu.includes('[TODO')) {
-      errors.push(prefix + " Не заполнено 'sentenceRu'");
-    }
 
-    if (item.type === 'adjective' && (!item.forms || !item.forms.ms || !item.forms.fs)) {
-      errors.push(prefix + ' Прилагательное должно иметь сетку 4 форм (ms, fs, mp, fp)');
+    if (item.type === 'verb') {
+      if (!item.infinitivePlain) errors.push(prefix + " Отсутствует 'infinitivePlain'");
+      if (!item.sentences || item.sentences.length === 0) {
+        errors.push(prefix + " Отсутствуют предложения в 'sentences'");
+      } else {
+        item.sentences.forEach((s, sIdx) => {
+          if (!s.sentenceHe || s.sentenceHe.includes('[TODO')) errors.push(prefix + ' sentences[' + sIdx + ']: не заполнено sentenceHe');
+          if (!s.sentenceTranscription || s.sentenceTranscription.includes('[TODO')) errors.push(prefix + ' sentences[' + sIdx + ']: не заполнено sentenceTranscription');
+          if (!s.sentenceRu || s.sentenceRu.includes('[TODO')) errors.push(prefix + ' sentences[' + sIdx + ']: не заполнено sentenceRu');
+        });
+      }
+    } else {
+      if (!item.targetWordPlain) {
+        errors.push(prefix + " Отсутствует поле 'targetWordPlain'");
+      }
+      if (!item.sentenceHe || item.sentenceHe.includes('[TODO')) {
+        errors.push(prefix + " Не заполнено 'sentenceHe'");
+      }
+      if (!item.sentenceTranscription || item.sentenceTranscription.includes('[TODO')) {
+        errors.push(prefix + " Не заполнено 'sentenceTranscription'");
+      }
+      if (!item.sentenceRu || item.sentenceRu.includes('[TODO')) {
+        errors.push(prefix + " Не заполнено 'sentenceRu'");
+      }
+
+      if (item.type === 'adjective' && (!item.forms || !item.forms.ms || !item.forms.fs)) {
+        errors.push(prefix + ' Прилагательное должно иметь сетку 4 форм (ms, fs, mp, fp)');
+      }
     }
 
     if (errors.length === 0) {
@@ -333,8 +379,9 @@ function handleMerge() {
   const nouns = items.filter(i => i.type === 'noun');
   const adjectives = items.filter(i => i.type === 'adjective');
   const prepositions = items.filter(i => i.type === 'preposition');
+  const verbs = items.filter(i => i.type === 'verb');
 
-  console.log('📦 Слияние карточек: существительных: ' + nouns.length + ', прилагательных: ' + adjectives.length + ', предлогов: ' + prepositions.length + '...');
+  console.log('📦 Слияние карточек: существительных: ' + nouns.length + ', прилагательных: ' + adjectives.length + ', предлогов: ' + prepositions.length + ', глаголов: ' + verbs.length + '...');
 
   if (nouns.length > 0) {
     mergeNouns(nouns);
@@ -344,6 +391,9 @@ function handleMerge() {
   }
   if (prepositions.length > 0) {
     mergePrepositions(prepositions);
+  }
+  if (verbs.length > 0) {
+    mergeVerbs(verbs);
   }
 
   console.log('\n🎉 Слияние успешно выполнено!');
@@ -489,6 +539,55 @@ function mergePrepositions(prepList) {
   console.log('   ✅ ' + prepList.length + ' предлогов добавлены в prepositionDrillsData.ts');
 }
 
+function mergeVerbs(verbList) {
+  let content = fs.readFileSync(VERB_SENTENCES_PATH, 'utf8');
+  const marker = 'export function getVerbSentenceGroup';
+  const idx = content.lastIndexOf(marker);
+  if (idx === -1) throw new Error('Не найден маркер getVerbSentenceGroup в verbSentencesData.ts');
+
+  const braceIdx = content.lastIndexOf('};', idx);
+  if (braceIdx === -1) throw new Error('Не найдено окончание VERB_SENTENCES_DATA');
+
+  const before = content.slice(0, braceIdx);
+  const after = content.slice(braceIdx);
+
+  const entries = verbList.map(item => {
+    const lines = [];
+    lines.push("  '" + item.infinitivePlain + "': {");
+    lines.push("    infinitive: '" + item.infinitive + "',");
+    lines.push("    infinitivePlain: '" + item.infinitivePlain + "',");
+    lines.push("    root: '" + item.root + "',");
+    lines.push("    translationRu: '" + item.translationRu.replace(/'/g, "\\'") + "',");
+    lines.push("    sourceLessonId: " + (item.sourceLessonId || 1) + ",");
+    lines.push("    sourceLessonTitle: '" + (item.sourceLessonTitle || '').replace(/'/g, "\\'") + "',");
+    lines.push("    sentences: [");
+    for (const s of item.sentences) {
+      lines.push("      {");
+      lines.push("        id: '" + s.id + "',");
+      lines.push("        verbInfinitive: '" + s.verbInfinitive + "',");
+      lines.push("        verbForm: '" + s.verbForm + "',");
+      lines.push("        tense: '" + (s.tense || 'present') + "',");
+      lines.push("        tenseRu: '" + (s.tenseRu || 'настоящее') + "',");
+      lines.push("        prepositionPlain: '" + (s.prepositionPlain || '') + "',");
+      lines.push("        prepositionVocalized: '" + (s.prepositionVocalized || '') + "',");
+      lines.push("        sentenceHe: '" + s.sentenceHe + "',");
+      lines.push("        sentenceTranscription: '" + s.sentenceTranscription.replace(/'/g, "\\'") + "',");
+      lines.push("        sentenceRu: '" + s.sentenceRu.replace(/'/g, "\\'") + "',");
+      lines.push("        drillAudioRu: '" + (s.drillAudioRu || s.sentenceRu).replace(/'/g, "\\'") + "',");
+      lines.push("        minLesson: " + (s.minLesson || 1) + ",");
+      lines.push("        lessonTheme: '" + (s.lessonTheme || '').replace(/'/g, "\\'") + "',");
+      lines.push("      },");
+    }
+    lines.push("    ],");
+    lines.push("  },");
+    return lines.join('\n');
+  }).join('\n');
+
+  const newContent = before + entries + '\n' + after;
+  fs.writeFileSync(VERB_SENTENCES_PATH, newContent, 'utf8');
+  console.log('   ✅ ' + verbList.length + ' глаголов добавлены в verbSentencesData.ts');
+}
+
 // Главный роутер
 if (isPrepare) {
   handlePrepare();
@@ -497,5 +596,5 @@ if (isPrepare) {
 } else if (isMerge) {
   handleMerge();
 } else {
-  console.log('\nИспользование sync_complex_drills.cjs:\n  --prepare-missing   Найти все недостающие слова и подготовить заготовку staging.json (80% данных из Pealim)\n                      Опции: --scope=all|lessons|thematic|prof  --out=path/to/staging.json\n  --check             Проверить валидность заготовки (наличие заполненных фраз, отсутствие [TODO])\n  --merge             Безопасно внедрить проверенные карточки в кодовую базу (noun/adj/prep)\n');
+  console.log('\nИспользование sync_complex_drills.cjs:\n  --prepare-missing   Найти все недостающие слова и подготовить заготовку staging.json (80% данных из Pealim)\n                      Опции: --scope=all|lessons|thematic|prof  --out=path/to/staging.json\n  --check             Проверить валидность заготовки (наличие заполненных фраз, отсутствие [TODO])\n  --merge             Безопасно внедрить проверенные карточки в кодовую базу (noun/adj/prep/verb)\n');
 }

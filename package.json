@@ -11,6 +11,8 @@
     "test": "node --require ./tests/register.cjs --test --test-isolation=none tests/*.test.cjs",
     "test:db": "node --require ./tests/register.cjs --test --test-isolation=none tests/database.integration.cjs",
     "audit:intent": "node scripts/audit_intent_compliance.cjs",
+    "drills:audit": "node scripts/audit_complex_drills_coverage.cjs",
+    "drills:sync": "node scripts/sync_complex_drills.cjs",
     "demo:record": "node scripts/record_demo_walkthrough.mjs",
     "demo:record-audio": "node scripts/record_full_walkthrough_with_sound.mjs"
   },

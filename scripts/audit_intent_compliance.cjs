@@ -130,6 +130,11 @@ if (fs.existsSync(matrixPath)) {
       codePrefixes: ['src/app/api/ai/phone', 'src/components/PhoneCallSimulator', 'src/data/phoneScenarios.ts'],
       passport: 'docs/mechanics/stage-06-phone-call.md',
     },
+    {
+      name: 'Слуховой комплекс «Комплекс» (ComplexDrills)',
+      codePrefixes: ['src/data/drills/', 'src/data/verbSentencesData.ts'],
+      passport: 'docs/mechanics/verb-sentences-matrix.md',
+    },
   ];
 
   let hasDrift = false;
@@ -165,6 +170,16 @@ if (fs.existsSync(matrixPath)) {
   }
 } else {
   console.log('🔴 ОШИБКА: Файл DECISION_MATRIX.md не найден в корне проекта!');
+}
+
+// 5. Контроль покрытия режима «Комплекс» (Zero-Drift ComplexDrills)
+console.log('');
+console.log('▶ [Zero-Drift ComplexDrills: Покрытие слухового комплекса]');
+const drillsAudit = run('node scripts/audit_complex_drills_coverage.cjs --summary');
+if (drillsAudit.ok) {
+  console.log(drillsAudit.output);
+} else {
+  console.log('🟡 Не удалось выполнить аудит покрытия drills: ' + drillsAudit.output);
 }
 
 console.log('\n====================================================\n');

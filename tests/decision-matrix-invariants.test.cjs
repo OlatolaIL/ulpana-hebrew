@@ -198,3 +198,23 @@ test('R-19: DECISION_MATRIX.md defines R-19 server Whisper engine with button-on
   assert.ok(code.includes('disableAutoSilenceStop'), 'useScriptedDialogue.ts must disable auto silence stop');
 });
 
+test('R-22: Zero-Drift Policy for ComplexDrills is documented and supported by automation scripts', () => {
+  const matrixContent = fs.readFileSync(matrixPath, 'utf8');
+  assert.ok(matrixContent.includes('R-22'), 'DECISION_MATRIX.md must define R-22');
+  assert.ok(matrixContent.includes('Zero-Drift Policy'), 'R-22 must define Zero-Drift Policy');
+  assert.ok(matrixContent.includes('npm run drills:audit'), 'R-22 must document drills:audit');
+  assert.ok(matrixContent.includes('npm run drills:sync'), 'R-22 must document drills:sync');
+
+  // Verify that scripts exist
+  const auditScriptPath = path.join(repoRoot, 'scripts/audit_complex_drills_coverage.cjs');
+  const syncScriptPath = path.join(repoRoot, 'scripts/sync_complex_drills.cjs');
+  assert.ok(fs.existsSync(auditScriptPath), 'scripts/audit_complex_drills_coverage.cjs must exist');
+  assert.ok(fs.existsSync(syncScriptPath), 'scripts/sync_complex_drills.cjs must exist');
+
+  // Verify package.json scripts
+  const pkg = JSON.parse(fs.readFileSync(path.join(repoRoot, 'package.json'), 'utf8'));
+  assert.ok(pkg.scripts['drills:audit'], 'package.json must contain drills:audit script');
+  assert.ok(pkg.scripts['drills:sync'], 'package.json must contain drills:sync script');
+});
+
+
