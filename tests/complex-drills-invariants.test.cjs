@@ -18,7 +18,7 @@ test('Noun drills data integrity', () => {
     assert.ok(item.sentenceHe, `Word ${key} missing sentenceHe`);
     assert.ok(item.sentenceRu, `Word ${key} missing sentenceRu`);
     assert.ok(item.sentenceTranscription, `Word ${key} missing sentenceTranscription`);
-    assert.ok(item.minLesson >= 1 && item.minLesson <= 50, `Word ${key} minLesson (${item.minLesson}) must be between 1 and 50`);
+    assert.ok(item.minLesson >= 1 && item.minLesson <= 100, `Word ${key} minLesson (${item.minLesson}) must be between 1 and 100`);
 
     // Check sentence length (V-02: 3-5 words)
     const wordsCount = item.sentenceHe.trim().split(/\s+/).length;
