@@ -24,6 +24,8 @@ export async function GET() {
     gemini: geminiList[0] || null,
     geminiModels: geminiList,
     groqConfigured: Boolean(process.env.GROQ_API_KEY),
-    geminiConfigured: Boolean(process.env.GEMINI_API_KEY),
+    geminiConfigured: Boolean(process.env.GEMINI_PRIMARY_API_KEY || process.env.GEMINI_AI_STUDIO_KEY || process.env.GEMINI_API_KEY),
+    geminiPrimaryConfigured: Boolean(process.env.GEMINI_PRIMARY_API_KEY || process.env.GEMINI_AI_STUDIO_KEY),
+    geminiFallbackConfigured: Boolean(process.env.GEMINI_API_KEY),
   });
 }

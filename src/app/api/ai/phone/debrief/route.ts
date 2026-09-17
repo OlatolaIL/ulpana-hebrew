@@ -131,7 +131,7 @@ export async function POST(req: NextRequest) {
         { status: 429 }
       );
     }
-    const { groqKey, geminiKey } = resolveAiKeys(provider, apiKey);
+    const { groqKey, geminiKey, geminiKeys } = resolveAiKeys(provider, apiKey);
 
     const userTurns = transcript.filter((t) => t.role === 'user');
 
@@ -217,7 +217,38 @@ ${transcriptFormatted}
   ]
 }`;
 
-    // 1. Запрос через Groq
+    // 1. Запрос через Gemini (основной движок)
+    const activeGeminiKeys = geminiKeys?.length ? geminiKeys : (geminiKey ? [geminiKey] : []);
+    for (const currentGeminiKey of activeGeminiKeys) {
+      try {
+        const geminiRes = await fetchAi(
+          `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel('debrief')}:generateContent?key=${currentGeminiKey}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: systemPrompt }] }],
+              generationConfig: { responseMimeType: 'application/json', temperature: 0.3 },
+            }),
+          }
+        );
+
+        if (geminiRes.ok) {
+          const data = await geminiRes.json();
+          let text = data.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
+          if (text.includes('```')) {
+            text = text.replace(/```(?:json)?/gi, '').replace(/```/g, '').trim();
+          }
+          const parsed = JSON.parse(text);
+          if (typeof parsed.isSuccess !== 'boolean' || !Number.isFinite(parsed.overallScore) || typeof parsed.summaryRu !== 'string') throw new Error('Invalid debrief');
+          return NextResponse.json(textOnlyEvaluation(normalizeReport(parsed, userTurns)));
+        }
+      } catch (e) {
+        console.warn('Debrief Gemini error:', e);
+      }
+    }
+
+    // 2. Страховочный запрос через Groq (fallback insurance)
     if (groqKey) {
       const groqModels = configuredGroqModels('debrief');
       for (const groqModel of groqModels) {
@@ -250,36 +281,6 @@ ${transcriptFormatted}
         } catch (e) {
           console.warn('Debrief Groq error:', e);
         }
-      }
-    }
-
-    // 2. Fallback через Gemini
-    if (geminiKey) {
-      try {
-        const geminiRes = await fetchAi(
-          `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel('chat')}:generateContent?key=${geminiKey}`,
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              contents: [{ parts: [{ text: systemPrompt }] }],
-              generationConfig: { responseMimeType: 'application/json', temperature: 0.3 },
-            }),
-          }
-        );
-
-        if (geminiRes.ok) {
-          const data = await geminiRes.json();
-          let text = data.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
-          if (text.includes('```')) {
-            text = text.replace(/```(?:json)?/gi, '').replace(/```/g, '').trim();
-          }
-          const parsed = JSON.parse(text);
-          if (typeof parsed.isSuccess !== 'boolean' || !Number.isFinite(parsed.overallScore) || typeof parsed.summaryRu !== 'string') throw new Error('Invalid debrief');
-          return NextResponse.json(textOnlyEvaluation(normalizeReport(parsed, userTurns)));
-        }
-      } catch (e) {
-        console.warn('Debrief Gemini error:', e);
       }
     }
 

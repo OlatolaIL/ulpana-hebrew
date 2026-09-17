@@ -11,7 +11,7 @@ const STORAGE_KEY = 'hebrew_app_profile_v1';
 const DEFAULT_PROFILE: UserProfile = {
   name: 'Ученик',
   gender: 'female',
-  aiProvider: 'groq',
+  aiProvider: 'gemini',
   groqApiKey: '',
   geminiApiKey: '',
   showNikkud: true,

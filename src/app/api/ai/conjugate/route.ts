@@ -89,7 +89,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 2. ИИ-генерация полной таблицы спряжений в стиле Pealim
-    const { groqKey, geminiKey } = resolveAiKeys(provider, apiKey);
+    const { groqKey, geminiKey, geminiKeys } = resolveAiKeys(provider, apiKey);
 
     const systemPrompt = `Ты — профессиональный лингвистический генератор таблиц спряжения глаголов иврита в строгом соответствии со стандартами Pealim.com и Академии языка Иврит (האקדמיה ללשון העברית).
 Пользователь запросил полное спряжение для глагола или глагольной формы: "${verb}".
@@ -177,8 +177,55 @@ export async function POST(req: NextRequest) {
   ]
 }`;
 
-    if (provider === 'groq' && groqKey) {
-      const modelsToTry = configuredGroqModels();
+    // 1. Запрос через Gemini (основной движок)
+    const activeGeminiKeys = geminiKeys?.length ? geminiKeys : (geminiKey ? [geminiKey] : []);
+    for (const currentGeminiKey of activeGeminiKeys) {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 7000);
+
+        const geminiRes = await fetchAi(
+          `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel('conjugate')}:generateContent?key=${currentGeminiKey}`,
+          {
+            method: 'POST',
+            signal: controller.signal,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [
+                {
+                  parts: [
+                    {
+                      text: `${systemPrompt}\n\nПользователь запросил глагол: "${verb}"`,
+                    },
+                  ],
+                },
+              ],
+              generationConfig: {
+                responseMimeType: 'application/json',
+                temperature: 0.1,
+              },
+            }),
+          }
+        );
+        clearTimeout(timeoutId);
+
+        if (geminiRes.ok) {
+          const data = await geminiRes.json();
+          const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
+          const parsed = JSON.parse(text);
+          const normalized = normalizeConjugationResponse(parsed, verb);
+          if (normalized) {
+            return NextResponse.json(normalized);
+          }
+        }
+      } catch (geminiErr) {
+        console.error('Gemini conjugate error:', geminiErr);
+      }
+    }
+
+    // 2. Страховочный запрос через Groq (fallback insurance)
+    if (groqKey) {
+      const modelsToTry = configuredGroqModels('conjugate');
 
       for (const groqModel of modelsToTry) {
         try {
@@ -217,50 +264,6 @@ export async function POST(req: NextRequest) {
         } catch (groqErr) {
           console.error(`Groq conjugate error with model ${groqModel}:`, groqErr);
         }
-      }
-    }
-
-    if (geminiKey) {
-      try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 7000);
-
-        const geminiRes = await fetchAi(
-          `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel()}:generateContent?key=${geminiKey}`,
-          {
-            method: 'POST',
-            signal: controller.signal,
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              contents: [
-                {
-                  parts: [
-                    {
-                      text: `${systemPrompt}\n\nПользователь запросил глагол: "${verb}"`,
-                    },
-                  ],
-                },
-              ],
-              generationConfig: {
-                responseMimeType: 'application/json',
-                temperature: 0.1,
-              },
-            }),
-          }
-        );
-        clearTimeout(timeoutId);
-
-        if (geminiRes.ok) {
-          const data = await geminiRes.json();
-          const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
-          const parsed = JSON.parse(text);
-          const normalized = normalizeConjugationResponse(parsed, verb);
-          if (normalized) {
-            return NextResponse.json(normalized);
-          }
-        }
-      } catch (geminiErr) {
-        console.error('Gemini conjugate error:', geminiErr);
       }
     }
 

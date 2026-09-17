@@ -147,7 +147,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 4. Если слово новое/нестандартное — обращаемся к Groq/Gemini AI
-    const { groqKey, geminiKey } = resolveAiKeys(provider, apiKey);
+    const { groqKey, geminiKey, geminiKeys } = resolveAiKeys(provider, apiKey);
 
     const systemPrompt = `Ты — профессиональный лингвистический словарь иврита для русскоязычных студентов ульпана.
 Пользователь нажал на слово на иврите: "${word}".
@@ -187,8 +187,39 @@ ${sentenceTranscription ? `   - Русская транскрипция слов
   }
 }`;
 
-    // Запрос через Groq
-    if (provider === 'groq' && groqKey) {
+    // 1. Запрос через Gemini (основной движок)
+    const activeGeminiKeys = geminiKeys?.length ? geminiKeys : (geminiKey ? [geminiKey] : []);
+    for (const currentGeminiKey of activeGeminiKeys) {
+      try {
+        const geminiRes = await fetchAi(
+          `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel('lookup')}:generateContent?key=${currentGeminiKey}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: systemPrompt }] }],
+              generationConfig: {
+                responseMimeType: 'application/json',
+                temperature: 0.1,
+              },
+            }),
+          }
+        );
+
+        if (geminiRes.ok) {
+          const data = await geminiRes.json();
+          const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
+          const parsed = JSON.parse(text);
+          const normalized = normalizeLookup(parsed, word);
+          return NextResponse.json(normalized);
+        }
+      } catch (geminiErr) {
+        console.error('Gemini lookup error:', geminiErr);
+      }
+    }
+
+    // 2. Страховочный запрос через Groq (fallback insurance)
+    if (groqKey) {
       const modelsToTry = configuredGroqModels('lookup');
 
       for (const groqModel of modelsToTry) {
@@ -222,36 +253,6 @@ ${sentenceTranscription ? `   - Русская транскрипция слов
         } catch (groqErr) {
           console.error(`Groq lookup error with model ${groqModel}:`, groqErr);
         }
-      }
-    }
-
-    // Запрос через Gemini
-    if (geminiKey) {
-      try {
-        const geminiRes = await fetchAi(
-          `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel('lookup')}:generateContent?key=${geminiKey}`,
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              contents: [{ parts: [{ text: systemPrompt }] }],
-              generationConfig: {
-                responseMimeType: 'application/json',
-                temperature: 0.1,
-              },
-            }),
-          }
-        );
-
-        if (geminiRes.ok) {
-          const data = await geminiRes.json();
-          const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
-          const parsed = JSON.parse(text);
-          const normalized = normalizeLookup(parsed, word);
-          return NextResponse.json(normalized);
-        }
-      } catch (geminiErr) {
-        console.error('Gemini lookup error:', geminiErr);
       }
     }
 

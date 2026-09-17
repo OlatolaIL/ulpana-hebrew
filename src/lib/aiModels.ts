@@ -1,11 +1,28 @@
 export type AiTaskType = 'essay' | 'phone' | 'chat' | 'lookup' | 'conjugate' | 'debrief' | 'dialogue';
 
+/**
+ * Resolves Gemini API keys in priority order:
+ * 1. GEMINI_PRIMARY_API_KEY (or GEMINI_AI_STUDIO_KEY) - primary key used for all tasks
+ * 2. GEMINI_API_KEY (or GEMINI_FALLBACK_API_KEY) - backup/reserve key
+ */
+export function geminiApiKeys(): string[] {
+  const primary = (process.env.GEMINI_PRIMARY_API_KEY || process.env.GEMINI_AI_STUDIO_KEY || '').trim();
+  const backup = (process.env.GEMINI_API_KEY || process.env.GEMINI_FALLBACK_API_KEY || '').trim();
+  return [...new Set([primary, backup].filter(Boolean))];
+}
+
 /** Model IDs are deployment configuration, never supplied by the browser. */
 export function resolveAiKeys(provider: string, customKey?: unknown) {
   const key = typeof customKey === 'string' ? customKey.trim() : '';
+  const configuredGemini = geminiApiKeys();
+  const primaryGemini = configuredGemini[0] || '';
+  const fallbackGemini = configuredGemini.length > 1 ? configuredGemini[1] : '';
+
   return {
     groqKey: provider === 'groq' && key ? key : (process.env.GROQ_API_KEY || '').trim(),
-    geminiKey: provider === 'gemini' && key ? key : (process.env.GEMINI_API_KEY || '').trim(),
+    geminiKey: provider === 'gemini' && key ? key : primaryGemini,
+    geminiFallbackKey: provider === 'gemini' && key ? '' : fallbackGemini,
+    geminiKeys: provider === 'gemini' && key ? [key] : configuredGemini,
   };
 }
 

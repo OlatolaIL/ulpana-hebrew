@@ -221,7 +221,7 @@ export async function POST(req: NextRequest) {
         { status: 429 }
       );
     }
-    const { groqKey, geminiKey } = resolveAiKeys(provider, apiKey);
+    const { groqKey, geminiKey, geminiKeys } = resolveAiKeys(provider, apiKey);
     const isFemale = userGender === 'female';
 
     const isLevelAlef = level === 'alef';
@@ -499,9 +499,53 @@ ${goals.map((g, idx) => `${idx + 1}. Ученик должен: ${g}`).join('\n'
   "new_words": []
 }`;
 
-    // 1. Попытка запроса через Groq API
-    if (provider === 'groq' && groqKey) {
-      const modelsToTry = configuredGroqModels();
+    // 1. Попытка запроса через Gemini API (основной движок)
+    const activeGeminiKeys = geminiKeys?.length ? geminiKeys : (geminiKey ? [geminiKey] : []);
+    for (const currentGeminiKey of activeGeminiKeys) {
+      try {
+        const geminiRes = await fetchAi(
+          `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel('chat')}:generateContent?key=${currentGeminiKey}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [
+                {
+                  parts: [
+                    {
+                      text: `${systemPrompt}\n\nИстория диалога:\n${sanitizedMessages
+                        .map((m) => `${m.role === 'user' ? 'Ученик' : 'Собеседник'}: ${m.content}`)
+                        .join('\n')}`,
+                    },
+                  ],
+                },
+              ],
+              generationConfig: {
+                responseMimeType: 'application/json',
+                temperature: 0.4,
+              },
+            }),
+          }
+        );
+
+        if (geminiRes.ok) {
+          const data = await geminiRes.json();
+          const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
+          const parsed = JSON.parse(text);
+          const normalized = normalizeResponse(parsed, isFinalTurn, nextStep, effectiveNextQuestionHebrew, isFemale, aiRole);
+          return NextResponse.json({
+            ...normalized,
+            engine: 'Gemini (Живой ИИ)',
+          });
+        }
+      } catch (geminiErr) {
+        console.error('Gemini chat error:', geminiErr);
+      }
+    }
+
+    // 2. Страховочный запрос через Groq API (fallback insurance)
+    if (groqKey) {
+      const modelsToTry = configuredGroqModels('chat');
 
       for (const groqModel of modelsToTry) {
         try {
@@ -539,49 +583,6 @@ ${goals.map((g, idx) => `${idx + 1}. Ученик должен: ${g}`).join('\n'
         } catch (groqErr) {
           console.error(`Groq fetch error with model ${groqModel}:`, groqErr);
         }
-      }
-    }
-
-    // 2. Попытка запроса через Gemini API
-    if (geminiKey) {
-      try {
-        const geminiRes = await fetchAi(
-          `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel()}:generateContent?key=${geminiKey}`,
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              contents: [
-                {
-                  parts: [
-                    {
-                      text: `${systemPrompt}\n\nИстория диалога:\n${sanitizedMessages
-                        .map((m) => `${m.role === 'user' ? 'Ученик' : 'Собеседник'}: ${m.content}`)
-                        .join('\n')}`,
-                    },
-                  ],
-                },
-              ],
-              generationConfig: {
-                responseMimeType: 'application/json',
-                temperature: 0.4,
-              },
-            }),
-          }
-        );
-
-        if (geminiRes.ok) {
-          const data = await geminiRes.json();
-          const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
-          const parsed = JSON.parse(text);
-          const normalized = normalizeResponse(parsed, isFinalTurn, nextStep, effectiveNextQuestionHebrew, isFemale, aiRole);
-          return NextResponse.json({
-            ...normalized,
-            engine: 'Gemini (Живой ИИ)',
-          });
-        }
-      } catch (geminiErr) {
-        console.error('Gemini chat error:', geminiErr);
       }
     }
 

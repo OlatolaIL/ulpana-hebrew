@@ -151,13 +151,17 @@ ChatGPT — архитектор и независимая приёмка; Gemin
 - Устранена проблема перекрытия верхних штрихов и огласовок в ивритских буквах при разборе орфографии.
 - Все проверки пройдены: `npm test` (165/165 тестов зелёные), `npm run typecheck` (0 ошибок), `npm run build` (успешная сборка), `npm run audit:intent` (зелёный).
 
-**17.09.2026 — Оптимизация оценки диалогов (Этап 5), карусель моделей Groq и ускорение Gemini fallback:**
-- Устранена причина сбоя анализа диалогов (`Dialogue evaluation unavailable` / 503) при исчерпании суточной квоты TPD (200k) на основной модели `qwen/qwen3.8-27b`:
-  1. В `src/lib/aiModels.ts` добавлен `dialogue` тип задач с каруселью моделей Groq (`qwen/qwen3.8-27b`, `openai/gpt-oss-120b`, `openai/gpt-oss-20b`). Так как лимиты токенов в Groq считаются отдельно по семействам моделей, отказ Qwen автоматически подхватывается моделями OpenAI OSS.
-  2. В `src/app/api/ai/dialogue/evaluate/route.ts` оптимизирован системный промпт: сокращен с ~1850 до ~350 токенов благодаря компактной англоязычной структуре правил при сохранении русскоязычного фидбека (`feedbackRu`) и ивритского контекста.
-  3. Для Gemini fallback внедрен `thinkingConfig: { thinkingBudget: 512 }`, что сократило задержку ответа модели с 16–19 секунд до ~1.3 секунд, предотвратив 20-секундный таймаут `fetchAi`.
-  4. В `src/lib/speech.ts` добавлена телеметрия в flight recorder при фолбэке на распознавание на устройстве.
-- Все проверки пройдены: 174/174 тестов (`npm test`), `npm run typecheck` (0 ошибок), `npm run audit:intent` (зелёный), `npm run build` (38/38 страниц).
+**17.09.2026 — Инверсия приоритета ИИ-моделей: Gemini как основной движок + Groq как страховка (R-21):**
+- По прямому архитектурному требованию пользователя Gemini с ключом из Google AI Studio (`GEMINI_PRIMARY_API_KEY`) установлен основным движком для всех задач проекта. Модели Groq (`qwen3.8-27b`, `gpt-oss-120b`, `gpt-oss-20b`) переведены в режим автоматической отказоустойчивой страховки (fallback insurance).
+- Инвертирован порядок опроса во всех 7 серверных AI-роутах (`dialogue/evaluate`, `phone`, `phone/debrief`, `chat`, `essay/evaluate`, `lookup`, `conjugate`):
+  1. Первым опрашивается Gemini (`gemini-3.5-flash-lite` с `thinkingBudget: 512` или `gemini-3.6-flash`).
+  2. При сбое, таймауте, ошибке 4xx/5xx или исчерпании квоты Gemini управление прозрачно переходит к карусели моделей Groq как страховке.
+  3. Если оба внешних провайдера недоступны — срабатывают безопасные локальные эвристики и автоответчики.
+- В `src/lib/storage.ts` значение `aiProvider` по умолчанию в `DEFAULT_PROFILE` изменено на `'gemini'`.
+- В `DECISION_MATRIX.md` добавлено правило R-21 (Блок 8) и зафиксирован запрет на опрос Groq вперед Gemini в Superseded Log.
+- Актуализирован паспорт механики звонков `docs/mechanics/stage-06-phone-call.md` (P-07, P-10).
+- В `tests/ai-provider-routing.test.cjs` добавлены сквозные тесты: подтвержден вызов Gemini первым и перехват управления моделями Groq при сбое Gemini.
+- Полная проверка: 176/176 тестов (`npm test`), `node tests/decision-matrix-invariants.test.cjs` (9/9), `npm run typecheck` (0 ошибок), `npm run audit:intent` (100% зелёный), `npm run build` (Next.js 16 webpack сборка 38/38 маршрутов).
 
 
 

@@ -201,7 +201,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 5. Запрос к LLM для глубокой семантической и грамматической оценки
-    const { groqKey, geminiKey } = resolveAiKeys(provider, apiKey);
+    const { groqKey, geminiKey, geminiKeys } = resolveAiKeys(provider, apiKey);
 
     const systemPrompt = `You are an expert Hebrew ulpan teacher evaluating a student's spoken response in a roleplay dialogue.
 
@@ -263,6 +263,47 @@ Return STRICT JSON only:
       return resData;
     };
 
+    // 5. Запрос к LLM: сначала Gemini (основной движок), затем Groq (страховка)
+    const activeGeminiKeys = geminiKeys?.length ? geminiKeys : (geminiKey ? [geminiKey] : []);
+    for (const currentGeminiKey of activeGeminiKeys) {
+      try {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel('dialogue')}:generateContent?key=${currentGeminiKey}`;
+        const res = await fetchAi(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: systemPrompt }] }],
+            generationConfig: {
+              responseMimeType: 'application/json',
+              thinkingConfig: {
+                thinkingBudget: 512,
+              },
+            },
+          }),
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+          if (text) {
+            const parsed = JSON.parse(text);
+            if (typeof parsed.isCorrect !== 'boolean' || !Number.isFinite(parsed.score) || typeof parsed.feedbackRu !== 'string') throw new Error('Invalid evaluation');
+            const evalResult: DialogueEvaluationResult = {
+              isCorrect: Boolean(parsed.isCorrect),
+              score: typeof parsed.score === 'number' ? parsed.score : (parsed.isCorrect ? 90 : 40),
+              assessment: parsed.assessment || (parsed.isCorrect ? 'good' : 'incorrect'),
+              feedbackRu: sanitizeRussianTranslation(parsed.feedbackRu || 'Хороший ответ!'),
+              betterAlternative: parsed.betterAlternative || referenceHebrew,
+              userSpokenHebrew: trimmedUser,
+            };
+
+            return NextResponse.json(textOnlyEvaluation(applyGrammarSafetyEnforcement(evalResult)));
+          }
+        }
+      } catch {}
+    }
+
+    // Страховочный вызов Groq (fallback insurance)
     if (groqKey) {
       const groqModels = configuredGroqModels('dialogue');
 
@@ -305,44 +346,6 @@ Return STRICT JSON only:
           }
         } catch {}
       }
-    }
-
-    if (geminiKey) {
-      try {
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel('dialogue')}:generateContent?key=${geminiKey}`;
-        const res = await fetchAi(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: systemPrompt }] }],
-            generationConfig: {
-              responseMimeType: 'application/json',
-              thinkingConfig: {
-                thinkingBudget: 512,
-              },
-            },
-          }),
-        });
-
-        if (res.ok) {
-          const data = await res.json();
-          const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-          if (text) {
-            const parsed = JSON.parse(text);
-            if (typeof parsed.isCorrect !== 'boolean' || !Number.isFinite(parsed.score) || typeof parsed.feedbackRu !== 'string') throw new Error('Invalid evaluation');
-            const evalResult: DialogueEvaluationResult = {
-              isCorrect: Boolean(parsed.isCorrect),
-              score: typeof parsed.score === 'number' ? parsed.score : (parsed.isCorrect ? 90 : 40),
-              assessment: parsed.assessment || (parsed.isCorrect ? 'good' : 'incorrect'),
-              feedbackRu: sanitizeRussianTranslation(parsed.feedbackRu || 'Хороший ответ!'),
-              betterAlternative: parsed.betterAlternative || referenceHebrew,
-              userSpokenHebrew: trimmedUser,
-            };
-
-            return NextResponse.json(textOnlyEvaluation(applyGrammarSafetyEnforcement(evalResult)));
-          }
-        }
-      } catch {}
     }
 
     // An unavailable provider cannot award a grade.

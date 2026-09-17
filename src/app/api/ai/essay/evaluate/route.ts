@@ -429,7 +429,7 @@ export async function POST(req: NextRequest) {
     const detectedSpelling = detectHebrewSpellingErrors(trimmedEssay, essayPrompt.suggestedWords);
 
     // 3. Вызов нейросети (Groq / Gemini) с полным резервным ключом
-    const { groqKey, geminiKey } = resolveAiKeys(provider, apiKey);
+    const { groqKey, geminiKey, geminiKeys } = resolveAiKeys(provider, apiKey);
 
     const systemPrompt = `ТЫ — ВЫСОКОКВАЛИФИЦИРОВАННЫЙ, МУДРЫЙ И ВНИМАТЕЛЬНЫЙ ПРЕПОДАВАТЕЛЬ ИВРИТА ИЗРАИЛЬСКОГО УЛЬПАНА (מוֹרֶה בָּכִיר בָּאוּלְפָּן).
 ТВОЯ ЗАДАЧА — ПРОВЕРИТЬ СОЧИНЕНИЕ (חִבּוּר) УЧЕНИКА, НАПИСАННОЕ НА ИВРИТЕ, ДАТЬ ЧЕСТНУЮ, ПЕДАГОГИЧЕСКИ ВЫВЕРЕННУЮ РЕЦЕНЗИЮ И УКАЗАТЬ НА ВСЕ ОШИБКИ.
@@ -804,7 +804,44 @@ ${detectedGrammar.length > 0 ? `ПРЕДВАРИТЕЛЬНЫЙ ДЕТЕКТОР 
       };
     };
 
-    // Попытка 1: Groq LLM (карусель моделей для сочинений)
+    // Попытка 1: Gemini LLM (основной движок, карусель моделей Google)
+    const activeGeminiKeys = geminiKeys?.length ? geminiKeys : (geminiKey ? [geminiKey] : []);
+    for (const currentGeminiKey of activeGeminiKeys) {
+      const geminiList = geminiModels('essay');
+      for (const gModel of geminiList) {
+        try {
+          const geminiRes = await fetchAi(
+            `https://generativelanguage.googleapis.com/v1beta/models/${gModel}:generateContent?key=${currentGeminiKey}`,
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                contents: [
+                  { role: 'user', parts: [{ text: `${systemPrompt}\n\n${userPrompt}` }] },
+                ],
+                generationConfig: {
+                  responseMimeType: 'application/json',
+                  temperature: 0.2,
+                },
+              }),
+            }
+          );
+
+          if (geminiRes.ok) {
+            const data = await geminiRes.json();
+            const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+            if (rawText) {
+              const parsed = JSON.parse(rawText);
+              return NextResponse.json(normalizeAndEnforceSafety(parsed));
+            }
+          }
+        } catch (err) {
+          console.warn(`Gemini evaluation error with model ${gModel}:`, err);
+        }
+      }
+    }
+
+    // Попытка 2: Groq LLM (страховочная карусель моделей)
     if (groqKey) {
       const groqModels = configuredGroqModels('essay');
       for (const groqModel of groqModels) {
@@ -836,42 +873,6 @@ ${detectedGrammar.length > 0 ? `ПРЕДВАРИТЕЛЬНЫЙ ДЕТЕКТОР 
           }
         } catch (err) {
           console.warn(`Groq evaluation error with model ${groqModel}:`, err);
-        }
-      }
-    }
-
-    // Попытка 2: Gemini LLM (карусель моделей Google)
-    if (geminiKey) {
-      const geminiList = geminiModels('essay');
-      for (const gModel of geminiList) {
-        try {
-          const geminiRes = await fetchAi(
-            `https://generativelanguage.googleapis.com/v1beta/models/${gModel}:generateContent?key=${geminiKey}`,
-            {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                contents: [
-                  { role: 'user', parts: [{ text: `${systemPrompt}\n\n${userPrompt}` }] },
-                ],
-                generationConfig: {
-                  responseMimeType: 'application/json',
-                  temperature: 0.2,
-                },
-              }),
-            }
-          );
-
-          if (geminiRes.ok) {
-            const data = await geminiRes.json();
-            const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text;
-            if (rawText) {
-              const parsed = JSON.parse(rawText);
-              return NextResponse.json(normalizeAndEnforceSafety(parsed));
-            }
-          }
-        } catch (err) {
-          console.warn(`Gemini evaluation error with model ${gModel}:`, err);
         }
       }
     }

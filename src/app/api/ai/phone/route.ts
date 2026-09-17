@@ -101,7 +101,7 @@ export async function POST(req: NextRequest) {
         { status: 429 }
       );
     }
-    const { groqKey, geminiKey } = resolveAiKeys(provider, apiKey);
+    const { groqKey, geminiKey, geminiKeys } = resolveAiKeys(provider, apiKey);
 
     const isFemale = userGender === 'female';
 
@@ -232,6 +232,114 @@ ${isFinal ? `ЭТО ФИНАЛЬНЫЙ РАУНД ЗВОНКА (раунд ${use
   "suggestedReplies": []
 }`;
 
+    // 1. Попытка запроса через Gemini API (основной движок, сверхбыстрый отклик < 1с, P-07)
+    const activeGeminiKeys = geminiKeys?.length ? geminiKeys : (geminiKey ? [geminiKey] : []);
+    if (activeGeminiKeys.length > 0) {
+      const gModels = geminiModels('phone');
+      for (const currentGeminiKey of activeGeminiKeys) {
+        for (const gModel of gModels) {
+          try {
+            const geminiRes = await fetchAi(
+              `https://generativelanguage.googleapis.com/v1beta/models/${gModel}:generateContent?key=${currentGeminiKey}`,
+              {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  contents: [
+                    {
+                      parts: [
+                        {
+                          text: `${systemPrompt}\n\nИстория звонка:\n${sanitizedMessages
+                            .map((m) => `${m.role === 'user' ? `Ученик (${finalUserRole})` : `${finalCallerNameRu} (${finalCallerRole})`}: ${m.content}`)
+                            .join('\n')}`,
+                        },
+                      ],
+                    },
+                  ],
+                  generationConfig: {
+                    responseMimeType: 'application/json',
+                    temperature: 0.3,
+                  },
+                }),
+              }
+            );
+
+            if (geminiRes.ok) {
+              const data = await geminiRes.json();
+              const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
+              const parsed = JSON.parse(text);
+
+              const safeHebrew = (parsed.hebrew || '').trim();
+              const rawTranscription = sanitizeTranscription(parsed.transcription || parsed.cyrillic_transcription || '');
+              const safeTranscription = ensureCyrillicHebrewTranscription(rawTranscription, safeHebrew);
+
+              const aiTextStripped = stripNikkud(safeHebrew).toLowerCase();
+              const isAiFarewell =
+                aiTextStripped.includes('להתראות') ||
+                aiTextStripped.includes('ביי') ||
+                aiTextStripped.includes('יום טוב') ||
+                aiTextStripped.includes('יום נפלא') ||
+                aiTextStripped.includes('יום מקסים') ||
+                aiTextStripped.includes('לילה טוב');
+
+              const isDone =
+                shouldForceFinalTurn ||
+                (userTurnsCount >= 2 && Boolean(parsed.shouldHangUp || parsed.isCompleted)) ||
+                (userTurnsCount >= 2 && isAiFarewell);
+
+              const parsedReplies = Array.isArray(parsed.suggestedReplies) ? parsed.suggestedReplies : [];
+              const safeReplies = parsedReplies.length > 0
+                ? parsedReplies.map((r: any) => {
+                    const replyHeb = (r.hebrew || '').trim();
+                    return {
+                      hebrew: replyHeb,
+                      transcription: ensureCyrillicHebrewTranscription(
+                        sanitizeTranscription(r.transcription || r.cyrillic_transcription || ''),
+                        replyHeb
+                      ),
+                      translation: sanitizeRussianTranslation(r.translation || r.russian_translation || ''),
+                    };
+                  })
+                : [
+                    {
+                      hebrew: 'כֵּן, נָכוֹן.',
+                      transcription: 'кен, нахóн.',
+                      translation: 'Да, верно.',
+                    },
+                    {
+                      hebrew: 'תּוֹדָה רַבָּה!',
+                      transcription: 'тодá рабá!',
+                      translation: 'Большое спасибо!',
+                    },
+                  ];
+
+              const filtered = filterRepeatedSlotQuestions(
+                {
+                  hebrew: safeHebrew,
+                  transcription: safeTranscription,
+                  translation: sanitizeRussianTranslation(parsed.translation || parsed.russian_translation || ''),
+                },
+                closedSlots
+              );
+
+              return NextResponse.json({
+                hebrew: filtered.hebrew,
+                transcription: filtered.transcription,
+                translation: filtered.translation,
+                isCompleted: isDone,
+                shouldHangUp: isDone,
+                suggestedReplies: isDone ? [] : safeReplies,
+                engine: `Gemini (${gModel})`,
+              });
+            }
+          } catch (geminiErr) {
+            console.warn(`Gemini phone call error with model ${gModel}:`, geminiErr);
+          }
+        }
+      }
+    }
+
+    // 2. Страховочный запрос через Groq API (fallback insurance)
     if (groqKey) {
       const groqModels = configuredGroqModels('phone');
       for (const groqModel of groqModels) {
@@ -261,8 +369,8 @@ ${isFinal ? `ЭТО ФИНАЛЬНЫЙ РАУНД ЗВОНКА (раунд ${use
 
           if (groqResponse.ok) {
             const data = await groqResponse.json();
-            const contentStr = data.choices[0]?.message?.content || '{}';
-            const parsed = JSON.parse(contentStr);
+            const content = data.choices?.[0]?.message?.content || '{}';
+            const parsed = JSON.parse(content);
 
             const safeHebrew = (parsed.hebrew || '').trim();
             const rawTranscription = sanitizeTranscription(parsed.transcription || parsed.cyrillic_transcription || '');
@@ -382,110 +490,6 @@ ${isFinal ? `ЭТО ФИНАЛЬНЫЙ РАУНД ЗВОНКА (раунд ${use
           }
         } catch (groqErr) {
           console.warn(`Groq error with model ${groqModel}:`, groqErr);
-        }
-      }
-    }
-
-    // 2. Попытка запроса через Gemini API (карусель быстрых моделей)
-    if (geminiKey) {
-      const gModels = geminiModels('phone');
-      for (const gModel of gModels) {
-        try {
-          const geminiRes = await fetchAi(
-            `https://generativelanguage.googleapis.com/v1beta/models/${gModel}:generateContent?key=${geminiKey}`,
-            {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                contents: [
-                  {
-                    parts: [
-                      {
-                        text: `${systemPrompt}\n\nИстория звонка:\n${sanitizedMessages
-                          .map((m) => `${m.role === 'user' ? `Ученик (${finalUserRole})` : `${finalCallerNameRu} (${finalCallerRole})`}: ${m.content}`)
-                          .join('\n')}`,
-                      },
-                    ],
-                  },
-                ],
-                generationConfig: {
-                  responseMimeType: 'application/json',
-                  temperature: 0.3,
-                },
-              }),
-            }
-          );
-
-          if (geminiRes.ok) {
-            const data = await geminiRes.json();
-            const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
-            const parsed = JSON.parse(text);
-
-            const safeHebrew = (parsed.hebrew || '').trim();
-            const rawTranscription = sanitizeTranscription(parsed.transcription || parsed.cyrillic_transcription || '');
-            const safeTranscription = ensureCyrillicHebrewTranscription(rawTranscription, safeHebrew);
-
-            const aiTextStripped = stripNikkud(safeHebrew).toLowerCase();
-            const isAiFarewell =
-              aiTextStripped.includes('להתראות') ||
-              aiTextStripped.includes('ביי') ||
-              aiTextStripped.includes('יום טוב') ||
-              aiTextStripped.includes('יום נפלא') ||
-              aiTextStripped.includes('יום מקסים') ||
-              aiTextStripped.includes('לילה טוב');
-
-            const isDone =
-              shouldForceFinalTurn ||
-              (userTurnsCount >= 2 && Boolean(parsed.shouldHangUp || parsed.isCompleted)) ||
-              (userTurnsCount >= 2 && isAiFarewell);
-
-            const parsedReplies = Array.isArray(parsed.suggestedReplies) ? parsed.suggestedReplies : [];
-            const safeReplies = parsedReplies.length > 0
-              ? parsedReplies.map((r: any) => {
-                  const replyHeb = (r.hebrew || '').trim();
-                  return {
-                    hebrew: replyHeb,
-                    transcription: ensureCyrillicHebrewTranscription(
-                      sanitizeTranscription(r.transcription || r.cyrillic_transcription || ''),
-                      replyHeb
-                    ),
-                    translation: sanitizeRussianTranslation(r.translation || r.russian_translation || ''),
-                  };
-                })
-              : [
-                  {
-                    hebrew: 'כֵּן, נָכוֹן.',
-                    transcription: 'кен, нахóн.',
-                    translation: 'Да, верно.',
-                  },
-                  {
-                    hebrew: 'תּוֹדָה רַבָּה!',
-                    transcription: 'тодá рабá!',
-                    translation: 'Большое спасибо!',
-                  },
-                ];
-
-            const filtered = filterRepeatedSlotQuestions(
-              {
-                hebrew: safeHebrew,
-                transcription: safeTranscription,
-                translation: sanitizeRussianTranslation(parsed.translation || parsed.russian_translation || ''),
-              },
-              closedSlots
-            );
-
-            return NextResponse.json({
-              hebrew: filtered.hebrew,
-              transcription: filtered.transcription,
-              translation: filtered.translation,
-              isCompleted: isDone,
-              shouldHangUp: isDone,
-              suggestedReplies: isDone ? [] : safeReplies,
-              engine: `Gemini (${gModel})`,
-            });
-          }
-        } catch (geminiErr) {
-          console.warn(`Gemini phone call error with model ${gModel}:`, geminiErr);
         }
       }
     }
