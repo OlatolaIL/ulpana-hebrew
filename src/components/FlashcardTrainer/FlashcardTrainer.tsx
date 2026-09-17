@@ -80,17 +80,28 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
     'idle' | 'part_completed' | 'all_parts_completed'
   >('idle');
 
-  // Активный набор слов: выбранная часть либо все слова колоды
-  const words =
-    isSplitMode && canSplit && activePartIndex >= 0 && parts[activePartIndex]
-      ? parts[activePartIndex]
-      : masterWords;
-
+  const [mode, setMode] = useState<TrainerMode>(initialMode || 'flip');
   const [isShuffled, setIsShuffled] = useState(Boolean(initialShuffle));
   const [shuffleToast, setShuffleToast] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
-  const [mode, setMode] = useState<TrainerMode>(initialMode || 'flip');
+
+  // Активный набор слов: выбранная часть либо все слова колоды
+  const rawWords =
+    isSplitMode && canSplit && activePartIndex >= 0 && parts[activePartIndex]
+      ? parts[activePartIndex]
+      : masterWords;
+
+  const complexWords = useMemo(() => {
+    return rawWords.filter((w) => hasComplexDrill(w));
+  }, [rawWords]);
+
+  const words = useMemo(() => {
+    if (mode === 'complex' && complexWords.length > 0) {
+      return complexWords;
+    }
+    return rawWords;
+  }, [mode, complexWords, rawWords]);
 
   // Для режима "Авто на слух"
   const [isAutoPlaying, setIsAutoPlaying] = useState(false);
@@ -1036,6 +1047,8 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
           stopSpeech();
           if (mode === 'auto_audio') handleAutoStop();
           setMode(m);
+          setCurrentIndex(0);
+          setIsFlipped(false);
           if (m === 'auto_audio') setIsAutoPlaying(true);
         }}
         onToggleSplitMode={handleToggleSplitMode}

@@ -282,6 +282,10 @@ export const ComplexDrillMode: React.FC<ComplexDrillModeProps> = ({
 
   // Автостарт при смене слова
   useEffect(() => {
+    if (activeDrill.id.startsWith('fallback_')) {
+      stopSpeech();
+      return;
+    }
     startDrillCycle(activeDrill);
     return () => {
       stopSpeech();
@@ -318,6 +322,41 @@ export const ComplexDrillMode: React.FC<ComplexDrillModeProps> = ({
   };
 
   const isCurrentInDict = isWordInPersonalDict(currentWord.hebrew);
+
+  if (activeDrill.id.startsWith('fallback_')) {
+    return (
+      <div className="w-full max-w-2xl mx-auto space-y-4 animate-in fade-in duration-300">
+        <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-8 shadow-sm text-center space-y-4">
+          <div className="w-14 h-14 rounded-2xl bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 flex items-center justify-center mx-auto">
+            <Layers className="w-7 h-7" />
+          </div>
+          <h3 className="text-lg font-bold text-zinc-900 dark:text-zinc-100">
+            Фраза для режима «Комплекс» в разработке
+          </h3>
+          <p className="text-sm text-zinc-600 dark:text-zinc-400 max-w-md mx-auto">
+            Для слова <span className="font-semibold text-zinc-900 dark:text-zinc-100">{currentWord.hebrew}</span> ({currentWord.translation}) контекстная фраза ещё составляется методистами.
+          </p>
+          <div className="pt-2 flex justify-center gap-3">
+            <button
+              onClick={onPrevWord}
+              disabled={currentIndex <= 0}
+              className="px-4 py-2 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 text-sm font-medium hover:bg-zinc-200 dark:hover:bg-zinc-700 disabled:opacity-40 flex items-center gap-1.5 cursor-pointer"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span>Назад</span>
+            </button>
+            <button
+              onClick={onAdvanceNext}
+              className="px-5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-sm font-bold flex items-center gap-1.5 transition shadow-sm cursor-pointer"
+            >
+              <span>Следующее слово</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full max-w-2xl mx-auto space-y-4 animate-in fade-in duration-300">

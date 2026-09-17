@@ -253,8 +253,12 @@ test('essay evaluation route uses aligned prompts 3-5 in outbound LLM requests',
   const savedFetch = global.fetch;
   const savedGroq = process.env.GROQ_API_KEY;
   const savedSecret = process.env.JWT_SECRET;
+  const savedModel = process.env.GROQ_MODEL;
+  const savedFallback = process.env.GROQ_FALLBACK_MODEL;
 
   process.env.GROQ_API_KEY = 'synthetic-key';
+  process.env.GROQ_MODEL = 'synthetic-model';
+  process.env.GROQ_FALLBACK_MODEL = 'synthetic-model';
   process.env.JWT_SECRET = 'test-only-session-secret-not-for-deployment-123456';
 
   try {
@@ -340,6 +344,16 @@ test('essay evaluation route uses aligned prompts 3-5 in outbound LLM requests',
       process.env.JWT_SECRET = savedSecret;
     } else {
       delete process.env.JWT_SECRET;
+    }
+    if (savedModel !== undefined) {
+      process.env.GROQ_MODEL = savedModel;
+    } else {
+      delete process.env.GROQ_MODEL;
+    }
+    if (savedFallback !== undefined) {
+      process.env.GROQ_FALLBACK_MODEL = savedFallback;
+    } else {
+      delete process.env.GROQ_FALLBACK_MODEL;
     }
   }
 });
