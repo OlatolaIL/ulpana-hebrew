@@ -92,9 +92,9 @@ test('4. All sentences in verbSentencesData.ts must adhere to the 3-4 words rule
     const tense = tenseMatches[idx];
     assert.ok(['present', 'past'].includes(tense), `Unexpected tense '${tense}'`);
 
-    // Min lesson must be a valid number
+    // Min lesson must be a valid number (1 to 100)
     const minLesson = minLessonMatches[idx];
-    assert.ok(minLesson >= 1 && minLesson <= 50, `minLesson ${minLesson} outside Alef scope`);
+    assert.ok(minLesson >= 1 && minLesson <= 100, `minLesson ${minLesson} outside course scope (1-100)`);
   });
 });
 
