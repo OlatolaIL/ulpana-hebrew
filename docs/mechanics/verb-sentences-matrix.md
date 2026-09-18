@@ -91,5 +91,8 @@
 
 ## 📊 Реестр проверок и тестов (Verification Suite)
 * Тест целостности структуры базы: `tests/verb-sentences-matrix.test.cjs`
-* Инвариант в матрице решений: `DECISION_MATRIX.md` (Правило **R-18**)
+* Тест инвариантов слухового комплекса: `tests/complex-drills-invariants.test.cjs`
+* Инвариант в матрице решений: `DECISION_MATRIX.md` (Правило **R-18**, **R-22**)
+* Сторожевой аудит покрытия: `npm run drills:audit` (100.0% покрытие всех уроков и колод)
 * Аудит соблюдения матрицы: `npm run audit:intent`
+

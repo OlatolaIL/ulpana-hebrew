@@ -402,6 +402,11 @@ function handleMerge() {
   execSync('node scripts/audit_complex_drills_coverage.cjs --summary', { stdio: 'inherit', cwd: repoRoot });
 }
 
+function esc(str) {
+  if (str === null || str === undefined) return '';
+  return String(str).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+}
+
 function mergeNouns(nounsList) {
   let content = fs.readFileSync(NOUN_DRILLS_PATH, 'utf8');
   const marker = 'export function getNounDrill';
@@ -416,32 +421,32 @@ function mergeNouns(nounsList) {
 
   const entries = nounsList.map(item => {
     const lines = [];
-    lines.push("  '" + item.targetWordPlain + "': {");
-    lines.push("    id: '" + item.id + "',");
+    lines.push("  '" + esc(item.targetWordPlain) + "': {");
+    lines.push("    id: '" + esc(item.id) + "',");
     lines.push("    type: 'noun',");
-    lines.push("    targetWordPlain: '" + item.targetWordPlain + "',");
-    lines.push("    targetWordVocalized: '" + item.targetWordVocalized + "',");
-    lines.push("    targetWordTranscription: '" + item.targetWordTranscription + "',");
-    lines.push("    targetWordTranslation: '" + item.targetWordTranslation.replace(/'/g, "\\'") + "',");
-    lines.push("    singularHe: '" + (item.singularHe || item.targetWordVocalized) + "',");
-    lines.push("    singularTranscription: '" + (item.singularTranscription || item.targetWordTranscription) + "',");
-    if (item.pluralHe) {
-      lines.push("    pluralHe: '" + item.pluralHe + "',");
-      lines.push("    pluralTranscription: '" + (item.pluralTranscription || "") + "',");
-    }
-    lines.push("    gender: '" + (item.gender || 'm') + "',");
+    lines.push("    targetWordPlain: '" + esc(item.targetWordPlain) + "',");
+    lines.push("    targetWordVocalized: '" + esc(item.targetWordVocalized) + "',");
+    lines.push("    targetWordTranscription: '" + esc(item.targetWordTranscription) + "',");
+    lines.push("    targetWordTranslation: '" + esc(item.targetWordTranslation) + "',");
+    lines.push("    singularHe: '" + esc(item.singularHe || item.targetWordVocalized) + "',");
+    lines.push("    singularTranscription: '" + esc(item.singularTranscription || item.targetWordTranscription) + "',");
+    const pluralHe = item.pluralHe || item.singularHe || item.targetWordVocalized;
+    const pluralTr = item.pluralTranscription || item.singularTranscription || item.targetWordTranscription || "";
+    lines.push("    pluralHe: '" + esc(pluralHe) + "',");
+    lines.push("    pluralTranscription: '" + esc(pluralTr) + "',");
+    lines.push("    gender: '" + esc(item.gender || 'm') + "',");
     if (item.isPluralException) {
       lines.push("    isPluralException: true,");
     }
     if (item.pluralNote) {
-      lines.push("    pluralNote: '" + item.pluralNote.replace(/'/g, "\\'") + "',");
+      lines.push("    pluralNote: '" + esc(item.pluralNote) + "',");
     }
-    lines.push("    sentenceHe: '" + item.sentenceHe + "',");
-    lines.push("    sentenceTranscription: '" + item.sentenceTranscription.replace(/'/g, "\\'") + "',");
-    lines.push("    sentenceRu: '" + item.sentenceRu.replace(/'/g, "\\'") + "',");
+    lines.push("    sentenceHe: '" + esc(item.sentenceHe) + "',");
+    lines.push("    sentenceTranscription: '" + esc(item.sentenceTranscription) + "',");
+    lines.push("    sentenceRu: '" + esc(item.sentenceRu) + "',");
     lines.push("    minLesson: " + (item.minLesson || 1) + ",");
     if (item.lessonTheme) {
-      lines.push("    lessonTheme: '" + item.lessonTheme.replace(/'/g, "\\'") + "',");
+      lines.push("    lessonTheme: '" + esc(item.lessonTheme) + "',");
     }
     lines.push("  },");
     return lines.join('\n');
@@ -466,26 +471,26 @@ function mergeAdjectives(adjList) {
 
   const entries = adjList.map(item => {
     const lines = [];
-    lines.push("  '" + item.targetWordPlain + "': {");
-    lines.push("    id: '" + item.id + "',");
+    lines.push("  '" + esc(item.targetWordPlain) + "': {");
+    lines.push("    id: '" + esc(item.id) + "',");
     lines.push("    type: 'adjective',");
-    lines.push("    targetWordPlain: '" + item.targetWordPlain + "',");
-    lines.push("    targetWordVocalized: '" + item.targetWordVocalized + "',");
-    lines.push("    targetWordTranscription: '" + item.targetWordTranscription + "',");
-    lines.push("    targetWordTranslation: '" + item.targetWordTranslation.replace(/'/g, "\\'") + "',");
+    lines.push("    targetWordPlain: '" + esc(item.targetWordPlain) + "',");
+    lines.push("    targetWordVocalized: '" + esc(item.targetWordVocalized) + "',");
+    lines.push("    targetWordTranscription: '" + esc(item.targetWordTranscription) + "',");
+    lines.push("    targetWordTranslation: '" + esc(item.targetWordTranslation) + "',");
     lines.push("    forms: {");
     for (const f of ['ms', 'fs', 'mp', 'fp']) {
       const form = item.forms?.[f] || { hebrew: item.targetWordVocalized, transcription: item.targetWordTranscription, translation: '' };
-      lines.push("      " + f + ": { hebrew: '" + form.hebrew + "', transcription: '" + form.transcription + "', translation: '" + form.translation.replace(/'/g, "\\'") + "' },");
+      lines.push("      " + f + ": { hebrew: '" + esc(form.hebrew) + "', transcription: '" + esc(form.transcription) + "', translation: '" + esc(form.translation) + "' },");
     }
     lines.push("    },");
-    lines.push("    usedGenderNumber: '" + (item.usedGenderNumber || 'ms') + "',");
-    lines.push("    sentenceHe: '" + item.sentenceHe + "',");
-    lines.push("    sentenceTranscription: '" + item.sentenceTranscription.replace(/'/g, "\\'") + "',");
-    lines.push("    sentenceRu: '" + item.sentenceRu.replace(/'/g, "\\'") + "',");
+    lines.push("    usedGenderNumber: '" + esc(item.usedGenderNumber || 'ms') + "',");
+    lines.push("    sentenceHe: '" + esc(item.sentenceHe) + "',");
+    lines.push("    sentenceTranscription: '" + esc(item.sentenceTranscription) + "',");
+    lines.push("    sentenceRu: '" + esc(item.sentenceRu) + "',");
     lines.push("    minLesson: " + (item.minLesson || 1) + ",");
     if (item.lessonTheme) {
-      lines.push("    lessonTheme: '" + item.lessonTheme.replace(/'/g, "\\'") + "',");
+      lines.push("    lessonTheme: '" + esc(item.lessonTheme) + "',");
     }
     lines.push("  },");
     return lines.join('\n');
@@ -510,25 +515,25 @@ function mergePrepositions(prepList) {
 
   const entries = prepList.map(item => {
     const lines = [];
-    lines.push("  '" + item.targetWordPlain + "': {");
-    lines.push("    id: '" + item.id + "',");
+    lines.push("  '" + esc(item.targetWordPlain) + "': {");
+    lines.push("    id: '" + esc(item.id) + "',");
     lines.push("    type: 'preposition',");
-    lines.push("    targetWordPlain: '" + item.targetWordPlain + "',");
-    lines.push("    targetWordVocalized: '" + item.targetWordVocalized + "',");
-    lines.push("    targetWordTranscription: '" + item.targetWordTranscription + "',");
-    lines.push("    targetWordTranslation: '" + item.targetWordTranslation.replace(/'/g, "\\'") + "',");
-    lines.push("    basePrepositionHe: '" + item.basePrepositionHe + "',");
-    lines.push("    basePrepositionRu: '" + item.basePrepositionRu.replace(/'/g, "\\'") + "',");
-    lines.push("    inflectedFormHe: '" + item.inflectedFormHe + "',");
-    lines.push("    inflectedTranscription: '" + item.inflectedTranscription.replace(/'/g, "\\'") + "',");
-    lines.push("    personTitle: '" + item.personTitle.replace(/'/g, "\\'") + "',");
+    lines.push("    targetWordPlain: '" + esc(item.targetWordPlain) + "',");
+    lines.push("    targetWordVocalized: '" + esc(item.targetWordVocalized) + "',");
+    lines.push("    targetWordTranscription: '" + esc(item.targetWordTranscription) + "',");
+    lines.push("    targetWordTranslation: '" + esc(item.targetWordTranslation) + "',");
+    lines.push("    basePrepositionHe: '" + esc(item.basePrepositionHe) + "',");
+    lines.push("    basePrepositionRu: '" + esc(item.basePrepositionRu) + "',");
+    lines.push("    inflectedFormHe: '" + esc(item.inflectedFormHe) + "',");
+    lines.push("    inflectedTranscription: '" + esc(item.inflectedTranscription) + "',");
+    lines.push("    personTitle: '" + esc(item.personTitle) + "',");
     lines.push("    inflectionsTable: " + JSON.stringify(item.inflectionsTable || []) + ",");
-    lines.push("    sentenceHe: '" + item.sentenceHe + "',");
-    lines.push("    sentenceTranscription: '" + item.sentenceTranscription.replace(/'/g, "\\'") + "',");
-    lines.push("    sentenceRu: '" + item.sentenceRu.replace(/'/g, "\\'") + "',");
+    lines.push("    sentenceHe: '" + esc(item.sentenceHe) + "',");
+    lines.push("    sentenceTranscription: '" + esc(item.sentenceTranscription) + "',");
+    lines.push("    sentenceRu: '" + esc(item.sentenceRu) + "',");
     lines.push("    minLesson: " + (item.minLesson || 1) + ",");
     if (item.lessonTheme) {
-      lines.push("    lessonTheme: '" + item.lessonTheme.replace(/'/g, "\\'") + "',");
+      lines.push("    lessonTheme: '" + esc(item.lessonTheme) + "',");
     }
     lines.push("  },");
     return lines.join('\n');
@@ -553,29 +558,29 @@ function mergeVerbs(verbList) {
 
   const entries = verbList.map(item => {
     const lines = [];
-    lines.push("  '" + item.infinitivePlain + "': {");
-    lines.push("    infinitive: '" + item.infinitive + "',");
-    lines.push("    infinitivePlain: '" + item.infinitivePlain + "',");
-    lines.push("    root: '" + item.root + "',");
-    lines.push("    translationRu: '" + item.translationRu.replace(/'/g, "\\'") + "',");
+    lines.push("  '" + esc(item.infinitivePlain) + "': {");
+    lines.push("    infinitive: '" + esc(item.infinitive) + "',");
+    lines.push("    infinitivePlain: '" + esc(item.infinitivePlain) + "',");
+    lines.push("    root: '" + esc(item.root) + "',");
+    lines.push("    translationRu: '" + esc(item.translationRu) + "',");
     lines.push("    sourceLessonId: " + (item.sourceLessonId || 1) + ",");
-    lines.push("    sourceLessonTitle: '" + (item.sourceLessonTitle || '').replace(/'/g, "\\'") + "',");
+    lines.push("    sourceLessonTitle: '" + esc(item.sourceLessonTitle || '') + "',");
     lines.push("    sentences: [");
     for (const s of item.sentences) {
       lines.push("      {");
-      lines.push("        id: '" + s.id + "',");
-      lines.push("        verbInfinitive: '" + s.verbInfinitive + "',");
-      lines.push("        verbForm: '" + s.verbForm + "',");
-      lines.push("        tense: '" + (s.tense || 'present') + "',");
-      lines.push("        tenseRu: '" + (s.tenseRu || 'настоящее') + "',");
-      lines.push("        prepositionPlain: '" + (s.prepositionPlain || '') + "',");
-      lines.push("        prepositionVocalized: '" + (s.prepositionVocalized || '') + "',");
-      lines.push("        sentenceHe: '" + s.sentenceHe + "',");
-      lines.push("        sentenceTranscription: '" + s.sentenceTranscription.replace(/'/g, "\\'") + "',");
-      lines.push("        sentenceRu: '" + s.sentenceRu.replace(/'/g, "\\'") + "',");
-      lines.push("        drillAudioRu: '" + (s.drillAudioRu || s.sentenceRu).replace(/'/g, "\\'") + "',");
+      lines.push("        id: '" + esc(s.id) + "',");
+      lines.push("        verbInfinitive: '" + esc(s.verbInfinitive) + "',");
+      lines.push("        verbForm: '" + esc(s.verbForm) + "',");
+      lines.push("        tense: '" + esc(s.tense || 'present') + "',");
+      lines.push("        tenseRu: '" + esc(s.tenseRu || 'настоящее') + "',");
+      lines.push("        prepositionPlain: '" + esc(s.prepositionPlain || '') + "',");
+      lines.push("        prepositionVocalized: '" + esc(s.prepositionVocalized || '') + "',");
+      lines.push("        sentenceHe: '" + esc(s.sentenceHe) + "',");
+      lines.push("        sentenceTranscription: '" + esc(s.sentenceTranscription) + "',");
+      lines.push("        sentenceRu: '" + esc(s.sentenceRu) + "',");
+      lines.push("        drillAudioRu: '" + esc(s.drillAudioRu || s.sentenceRu) + "',");
       lines.push("        minLesson: " + (s.minLesson || 1) + ",");
-      lines.push("        lessonTheme: '" + (s.lessonTheme || '').replace(/'/g, "\\'") + "',");
+      lines.push("        lessonTheme: '" + esc(s.lessonTheme || '') + "',");
       lines.push("      },");
     }
     lines.push("    ],");

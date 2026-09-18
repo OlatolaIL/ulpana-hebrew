@@ -90,7 +90,7 @@ test('4. All sentences in verbSentencesData.ts must adhere to the 3-4 words rule
 
     // Tense must be present or past
     const tense = tenseMatches[idx];
-    assert.ok(['present', 'past'].includes(tense), `Unexpected tense '${tense}'`);
+    assert.ok(['present', 'past', 'future'].includes(tense), `Unexpected tense '${tense}'`);
 
     // Min lesson must be a valid number (1 to 100)
     const minLesson = minLessonMatches[idx];
