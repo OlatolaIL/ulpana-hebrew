@@ -184,9 +184,9 @@ export const ComplexDrillMode: React.FC<ComplexDrillModeProps> = ({
           });
         });
       } else if (targetItem.type === 'noun') {
-        // Для существительного: Пара «ед.ч. — мн.ч.» на иврите -> Перевод + Род
-        const pairHe = `${targetItem.singularHe} — ${targetItem.pluralHe}`;
-        speakHebrew(pairHe, { rate: speechRate }).then(() => {
+        // Для существительного: Озвучиваем разбираемое слово на иврите (без дублирования) -> Перевод + Род
+        const wordHe = targetItem.targetWordVocalized || targetItem.singularHe;
+        speakHebrew(wordHe, { rate: speechRate }).then(() => {
           if (!isMountedRef.current || playCycleIdRef.current !== cycleId) return;
           const genderRu = targetItem.gender === 'm' ? 'Мужской род' : 'Женский род';
           const noteRu = targetItem.pluralNote ? `. ${targetItem.pluralNote}` : '';
@@ -303,6 +303,13 @@ export const ComplexDrillMode: React.FC<ComplexDrillModeProps> = ({
       autoTimerRef.current = null;
       setAutoCountdown(null);
     }
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+    playCycleIdRef.current += 1;
+    stopSpeech();
+
     setSelectedLookupWord(token.cleanText || token.text);
     setLookupContext(activeDrill.sentenceHe);
     setLookupSentenceTranslation(activeDrill.sentenceRu);
@@ -316,6 +323,11 @@ export const ComplexDrillMode: React.FC<ComplexDrillModeProps> = ({
       autoTimerRef.current = null;
       setAutoCountdown(null);
     }
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+    playCycleIdRef.current += 1;
     stopSpeech();
 
     setSelectedLookupWord(rw.hebrewPlain || stripNikkud(rw.hebrew));
@@ -523,83 +535,136 @@ export const ComplexDrillMode: React.FC<ComplexDrillModeProps> = ({
         {phase === 'revealed' && (
           <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
             {/* 1. ЕСЛИ ЭТО СУЩЕСТВИТЕЛЬНОЕ */}
-            {activeDrill.type === 'noun' && (
-              <div className="bg-blue-50/60 dark:bg-blue-950/20 border border-blue-200/80 dark:border-blue-800/40 rounded-2xl p-4 sm:p-5 space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span
-                      className={`text-xs font-black px-2.5 py-1 rounded-lg ${
-                        activeDrill.gender === 'm'
-                          ? 'bg-blue-600 text-white'
-                          : 'bg-rose-500 text-white'
-                      }`}
-                    >
-                      {activeDrill.gender === 'm' ? 'זָכָר · Мужской род' : 'נְקֵבָה · Женский род'}
-                    </span>
-                    {activeDrill.isPluralException && (
-                      <span className="flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-md bg-amber-100 dark:bg-amber-900/60 text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-700">
-                        <AlertTriangle className="w-3 h-3" />
-                        Исключение во мн.ч.!
+            {activeDrill.type === 'noun' && (() => {
+              const hasDistinctPlural = Boolean(
+                activeDrill.pluralHe &&
+                stripNikkud(activeDrill.pluralHe).trim() !== stripNikkud(activeDrill.singularHe).trim()
+              );
+
+              return (
+                <div className="bg-blue-50/60 dark:bg-blue-950/20 border border-blue-200/80 dark:border-blue-800/40 rounded-2xl p-4 sm:p-5 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span
+                        className={`text-xs font-black px-2.5 py-1 rounded-lg ${
+                          activeDrill.gender === 'm'
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-rose-500 text-white'
+                        }`}
+                      >
+                        {activeDrill.gender === 'm' ? 'זָכָר · Мужской род' : 'נְקֵבָה · Женский род'}
                       </span>
-                    )}
+                      {activeDrill.isPluralException && (
+                        <span className="flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-md bg-amber-100 dark:bg-amber-900/60 text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-700">
+                          <AlertTriangle className="w-3 h-3" />
+                          Исключение во мн.ч.!
+                        </span>
+                      )}
+                      {!hasDistinctPlural && (
+                        <span className="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300">
+                          Неисчисляемое / Без мн.ч.
+                        </span>
+                      )}
+                    </div>
+                    <button
+                      onClick={() =>
+                        hasDistinctPlural
+                          ? speakHebrew(`${activeDrill.singularHe}, ${activeDrill.pluralHe}`, {
+                              rate: speechRate,
+                            })
+                          : speakHebrew(activeDrill.singularHe, {
+                              rate: speechRate,
+                            })
+                      }
+                      className="p-2 rounded-xl bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 hover:bg-blue-200 transition cursor-pointer"
+                      title={hasDistinctPlural ? "Озвучить пару ед.ч. и мн.ч." : "Озвучить слово"}
+                    >
+                      <Volume2 className="w-4 h-4" />
+                    </button>
                   </div>
-                  <button
-                    onClick={() =>
-                      speakHebrew(`${activeDrill.singularHe} — ${activeDrill.pluralHe}`, {
-                        rate: speechRate,
-                      })
-                    }
-                    className="p-2 rounded-xl bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 hover:bg-blue-200 transition cursor-pointer"
-                    title="Озвучить пару ед.ч. — мн.ч."
-                  >
-                    <Volume2 className="w-4 h-4" />
-                  </button>
+
+                  {/* Если есть отдельная форма множественного числа — показываем 2 колонки */}
+                  {hasDistinctPlural ? (
+                    <div className="grid grid-cols-2 gap-3 text-center">
+                      <button
+                        type="button"
+                        onClick={() => speakHebrew(activeDrill.singularHe, { rate: speechRate })}
+                        className="p-3 bg-white dark:bg-zinc-800 rounded-xl border border-blue-100 dark:border-zinc-700 hover:border-blue-300 dark:hover:border-blue-600 transition cursor-pointer text-center group"
+                        title="Нажмите для озвучки единственного числа"
+                      >
+                        <span className="text-[11px] text-zinc-500 block group-hover:text-blue-600">Единственное число (יָחִיד)</span>
+                        <span
+                          dir="rtl"
+                          className={`text-xl font-black text-zinc-900 dark:text-zinc-50 block ${
+                            isCursive ? 'font-cursive' : 'font-print'
+                          }`}
+                        >
+                          {showNikkud ? activeDrill.singularHe : stripNikkud(activeDrill.singularHe)}
+                        </span>
+                        {showTranscription && activeDrill.singularTranscription && (
+                          <span className="text-xs text-zinc-500 block mt-0.5">
+                            {activeDrill.singularTranscription}
+                          </span>
+                        )}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => speakHebrew(activeDrill.pluralHe, { rate: speechRate })}
+                        className="p-3 bg-white dark:bg-zinc-800 rounded-xl border border-blue-100 dark:border-zinc-700 hover:border-blue-300 dark:hover:border-blue-600 transition cursor-pointer text-center group"
+                        title="Нажмите для озвучки множественного числа"
+                      >
+                        <span className="text-[11px] text-zinc-500 block group-hover:text-blue-600">Множественное число (רַבִּים)</span>
+                        <span
+                          dir="rtl"
+                          className={`text-xl font-black text-zinc-900 dark:text-zinc-50 block ${
+                            isCursive ? 'font-cursive' : 'font-print'
+                          }`}
+                        >
+                          {showNikkud ? activeDrill.pluralHe : stripNikkud(activeDrill.pluralHe)}
+                        </span>
+                        {showTranscription && activeDrill.pluralTranscription && (
+                          <span className="text-xs text-zinc-500 block mt-0.5">
+                            {activeDrill.pluralTranscription}
+                          </span>
+                        )}
+                      </button>
+                    </div>
+                  ) : (
+                    /* Если формы мн.ч. нет (неисчисляемое, קפה, תה, מים) — показываем аккуратную 1 карточку без дублирования */
+                    <div className="text-center">
+                      <button
+                        type="button"
+                        onClick={() => speakHebrew(activeDrill.singularHe, { rate: speechRate })}
+                        className="w-full p-3 bg-white dark:bg-zinc-800 rounded-xl border border-blue-100 dark:border-zinc-700 hover:border-blue-300 dark:hover:border-blue-600 transition cursor-pointer text-center group"
+                        title="Нажмите для озвучки"
+                      >
+                        <span className="text-[11px] text-zinc-500 block group-hover:text-blue-600">Словарная форма</span>
+                        <span
+                          dir="rtl"
+                          className={`text-2xl font-black text-zinc-900 dark:text-zinc-50 block ${
+                            isCursive ? 'font-cursive' : 'font-print'
+                          }`}
+                        >
+                          {showNikkud ? activeDrill.singularHe : stripNikkud(activeDrill.singularHe)}
+                        </span>
+                        {showTranscription && activeDrill.singularTranscription && (
+                          <span className="text-xs text-zinc-500 block mt-0.5">
+                            {activeDrill.singularTranscription}
+                          </span>
+                        )}
+                      </button>
+                    </div>
+                  )}
+
+                  {activeDrill.pluralNote && (
+                    <div className="text-xs text-amber-800 dark:text-amber-200 bg-amber-50 dark:bg-amber-950/40 p-2.5 rounded-xl border border-amber-200 dark:border-amber-800/60 font-medium">
+                      💡 {activeDrill.pluralNote}
+                    </div>
+                  )}
                 </div>
-
-                {/* Таблица Ед. число — Мн. число */}
-                <div className="grid grid-cols-2 gap-3 text-center">
-                  <div className="p-3 bg-white dark:bg-zinc-800 rounded-xl border border-blue-100 dark:border-zinc-700">
-                    <span className="text-[11px] text-zinc-500 block">Единственное число (יָחִיד)</span>
-                    <span
-                      dir="rtl"
-                      className={`text-xl font-black text-zinc-900 dark:text-zinc-50 ${
-                        isCursive ? 'font-cursive' : 'font-print'
-                      }`}
-                    >
-                      {showNikkud ? activeDrill.singularHe : stripNikkud(activeDrill.singularHe)}
-                    </span>
-                    {showTranscription && activeDrill.singularTranscription && (
-                      <span className="text-xs text-zinc-500 block mt-0.5">
-                        {activeDrill.singularTranscription}
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="p-3 bg-white dark:bg-zinc-800 rounded-xl border border-blue-100 dark:border-zinc-700">
-                    <span className="text-[11px] text-zinc-500 block">Множественное число (רַבִּים)</span>
-                    <span
-                      dir="rtl"
-                      className={`text-xl font-black text-zinc-900 dark:text-zinc-50 ${
-                        isCursive ? 'font-cursive' : 'font-print'
-                      }`}
-                    >
-                      {showNikkud ? activeDrill.pluralHe : stripNikkud(activeDrill.pluralHe)}
-                    </span>
-                    {showTranscription && activeDrill.pluralTranscription && (
-                      <span className="text-xs text-zinc-500 block mt-0.5">
-                        {activeDrill.pluralTranscription}
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                {activeDrill.pluralNote && (
-                  <div className="text-xs text-amber-800 dark:text-amber-200 bg-amber-50 dark:bg-amber-950/40 p-2.5 rounded-xl border border-amber-200 dark:border-amber-800/60 font-medium">
-                    💡 {activeDrill.pluralNote}
-                  </div>
-                )}
-              </div>
-            )}
+              );
+            })()}
 
             {/* 2. ЕСЛИ ЭТО ПРИЛАГАТЕЛЬНОЕ (МАТРИЦА 4 ФОРМ) */}
             {activeDrill.type === 'adjective' && (

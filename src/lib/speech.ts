@@ -5,11 +5,13 @@
 import { stripNikkud } from './transcription';
 import { notifyAudioBlocked } from './audioNotifier';
 import { callFlightRecorder } from './callDiagnostics';
+import { PEALIM_MASTER_LEXICON } from './ulpanDictionary';
 
 let preferredHebrewVoice: SpeechSynthesisVoice | null = null;
 let activeUtterance: SpeechSynthesisUtterance | null = null;
 let speechSafetyTimer: any = null;
 let activeFallbackAudio: HTMLAudioElement | null = null;
+let activeStudioAudio: HTMLAudioElement | null = null;
 
 /**
  * Инициализация и поиск лучшего голоса для иврита в системе
@@ -91,6 +93,10 @@ const PHONETIC_CORRECTIONS: [RegExp, string][] = [
   // 4. Огласовка и дагеш для ульпана (гарантия звука [п] вместо [ф] для синтезатора)
   [/(^|[\s.,!?:;«»"״׳()[\]{}—])([לבמה]?ָ?)אוּלְפָן(?=[\s.,!?:;«»"״׳()[\]{}—]|$)/g, '$1$2אוּלְפָּן'],
   [/(^|[\s.,!?:;«»"״׳()[\]{}—])([לבמה]?)אולפן(?=[\s.,!?:;«»"״׳()[\]{}—]|$)/g, '$1$2אוּלְפָּן'],
+
+  // 5. חתונה: фиксация патаха (звук [а]), чтобы синтезаторы речи (Microsoft Asaf, Google TTS) не сбивались на «хетуна»
+  [/(^|[\s.,!?:;«»"״׳()[\]{}—])(?:חֲתוּנָּה|חֲתֻנָּה|חֲתוּנָה|חתונה)(?=[\s.,!?:;«»"״׳()[\]{}—]|$)/g, '$1חַתּוּנָה'],
+  [/(^|[\s.,!?:;«»"״׳()[\]{}—])(?:חֲתוּנּוֹת|חֲתֻנּוֹת|חֲתוּנוֹת|חתונות)(?=[\s.,!?:;«»"״׳()[\]{}—]|$)/g, '$1חַתּוּנוֹת'],
 ];
 
 /**
@@ -256,11 +262,27 @@ export function playFallbackAudio(
 }
 
 /**
- * Универсальная озвучка иврита (браузерный Web Speech API + моментальный фолбэк на Audio)
+ * Поиск студийной аудиозаписи слова из мастер-словаря Pealim (только для точных словарных форм)
+ */
+export function getStudioAudioForWord(word: string): string | null {
+  if (!word) return null;
+  const clean = stripNikkud(word).trim();
+  if (!clean || clean.includes(' ')) return null;
+
+  try {
+    const entry = PEALIM_MASTER_LEXICON[clean];
+    return entry?.audio || null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Универсальная озвучка иврита (студийное аудио Pealim для отдельных слов + браузерный Web Speech API + моментальный фолбэк на Audio)
  */
 export function speakHebrew(
   text: string,
-  options: { rate?: number; pitch?: number; gender?: 'male' | 'female' } = {}
+  options: { rate?: number; pitch?: number; gender?: 'male' | 'female'; preferStudioAudio?: boolean } = {}
 ): Promise<void> {
   return new Promise((resolve) => {
     if (typeof window === 'undefined') {
@@ -290,6 +312,16 @@ export function speakHebrew(
       activeFallbackAudio = null;
     }
 
+    if (activeStudioAudio) {
+      try {
+        activeStudioAudio.onended = null;
+        activeStudioAudio.onerror = null;
+        activeStudioAudio.pause();
+        activeStudioAudio.src = '';
+      } catch {}
+      activeStudioAudio = null;
+    }
+
     const speechText = cleanHebrewForSpeech(text);
     if (!speechText) {
       resolve();
@@ -307,134 +339,212 @@ export function speakHebrew(
 
     const rate = options.rate ?? userRate;
 
-    // Если speechSynthesis не поддерживается в браузере — сразу запускаем fallback audio
-    if (!('speechSynthesis' in window)) {
-      playFallbackAudio(speechText, rate).then(() => resolve());
-      return;
-    }
-
-    try {
-      if (window.speechSynthesis.speaking || window.speechSynthesis.pending) {
-        window.speechSynthesis.cancel();
-      }
-    } catch {}
-
-    let isFinished = false;
-    const finish = () => {
-      if (!isFinished) {
-        isFinished = true;
-        activeUtterance = null;
-        if (speechSafetyTimer) {
-          clearTimeout(speechSafetyTimer);
-          speechSafetyTimer = null;
-        }
-        resolve();
-      }
-    };
-
-    try {
-      const isQuestion = speechText.includes('?');
-      const utterance = new SpeechSynthesisUtterance(speechText);
-      activeUtterance = utterance;
-      utterance.lang = 'he-IL';
-      // Для вопросов темп не должен быть чрезмерно замедленным (>=0.78), чтобы не размывать восходящий тон
-      utterance.rate = isQuestion ? Math.max(rate, 0.78) : rate;
-      const defaultPitch = options.gender === 'male' ? 0.85 : (options.gender === 'female' ? 1.05 : 1.0);
-      // Для вопросов слегка повышаем питч (+12%), создавая естественный вопросительный контур в браузере
-      const questionPitchBonus = isQuestion ? 0.12 : 0;
-      utterance.pitch = options.pitch ?? Math.min(1.4, defaultPitch + questionPitchBonus);
-
-      const voices = window.speechSynthesis.getVoices();
-      const heVoices = voices.filter(
-        (voice) => voice.lang === 'he-IL' || voice.lang === 'he' || (voice.lang && voice.lang.toLowerCase().startsWith('he'))
-      );
-
-      let matchedVoice: SpeechSynthesisVoice | null = null;
-      if (options.gender === 'male') {
-        matchedVoice = heVoices.find((v) => /asaf|guy|david|male|גבר/i.test(v.name)) || null;
-      } else if (options.gender === 'female') {
-        matchedVoice = heVoices.find((v) => /hila|sara|carmit|female|אישה/i.test(v.name)) || null;
+    // Вспомогательная функция воспроизведения через браузерный TTS / Fallback Audio
+    const playWithTts = () => {
+      // Если speechSynthesis не поддерживается в браузере — сразу запускаем fallback audio
+      if (!('speechSynthesis' in window)) {
+        playFallbackAudio(speechText, rate).then(() => resolve());
+        return;
       }
 
-      if (matchedVoice) {
-        utterance.voice = matchedVoice;
-      } else if (preferredHebrewVoice) {
-        utterance.voice = preferredHebrewVoice;
-      } else if (heVoices.length > 0) {
-        utterance.voice = heVoices[0];
-      }
+      try {
+        if (window.speechSynthesis.speaking || window.speechSynthesis.pending) {
+          window.speechSynthesis.cancel();
+        }
+      } catch {}
 
-      utterance.onend = () => {
-        if (speechSafetyTimer) {
-          clearTimeout(speechSafetyTimer);
-          speechSafetyTimer = null;
-        }
-        finish();
-      };
-
-      utterance.onerror = (e) => {
-        if (speechSafetyTimer) {
-          clearTimeout(speechSafetyTimer);
-          speechSafetyTimer = null;
-        }
-        // Если воспроизведение было отменено пользователем или кодом — НЕ запускаем фолбэк повторно!
-        if (e.error === 'canceled' || e.error === 'interrupted') {
-          finish();
-          return;
-        }
-        if (e.error === 'not-allowed') {
-          notifyAudioBlocked('tts_not_allowed');
-        }
-        console.warn('Browser TTS error, using audio fallback:', e);
-        playFallbackAudio(speechText, rate).then(() => finish());
-      };
-
-      // Защитный таймаут: если speechSynthesis завис (частый баг Chrome/iOS) — один раз переключаемся на audio
-      const maxDurationMs = Math.max(3500, speechText.length * 200 + 2000);
-      speechSafetyTimer = setTimeout(() => {
+      let isFinished = false;
+      const finish = () => {
         if (!isFinished) {
           isFinished = true;
-          speechSafetyTimer = null;
-          if (activeUtterance) {
-            activeUtterance.onend = null;
-            activeUtterance.onerror = null;
-            activeUtterance = null;
-          }
-          try {
-            window.speechSynthesis.cancel();
-          } catch {}
-          playFallbackAudio(speechText, rate).then(() => finish());
-        }
-      }, maxDurationMs);
-
-      // Запуск с микрозадержкой для предотвращения бага cancel()->speak() в Chromium
-      setTimeout(() => {
-        try {
-          window.speechSynthesis.speak(utterance);
-          if (window.speechSynthesis.paused) {
-            window.speechSynthesis.resume();
-          }
-        } catch (err: any) {
-          if (err?.name === 'NotAllowedError') {
-            notifyAudioBlocked('tts_not_allowed');
-          }
+          activeUtterance = null;
           if (speechSafetyTimer) {
             clearTimeout(speechSafetyTimer);
             speechSafetyTimer = null;
           }
-          playFallbackAudio(speechText, rate).then(() => finish());
+          resolve();
         }
-      }, 15);
-    } catch (err: any) {
-      if (err?.name === 'NotAllowedError') {
-        notifyAudioBlocked('tts_not_allowed');
+      };
+
+      try {
+        const isQuestion = speechText.includes('?');
+        const utterance = new SpeechSynthesisUtterance(speechText);
+        activeUtterance = utterance;
+        utterance.lang = 'he-IL';
+        // Для вопросов темп не должен быть чрезмерно замедленным (>=0.78), чтобы не размывать восходящий тон
+        utterance.rate = isQuestion ? Math.max(rate, 0.78) : rate;
+        const defaultPitch = options.gender === 'male' ? 0.85 : (options.gender === 'female' ? 1.05 : 1.0);
+        // Для вопросов слегка повышаем питч (+12%), создавая естественный вопросительный контур в браузере
+        const questionPitchBonus = isQuestion ? 0.12 : 0;
+        utterance.pitch = options.pitch ?? Math.min(1.4, defaultPitch + questionPitchBonus);
+
+        const voices = window.speechSynthesis.getVoices();
+        const heVoices = voices.filter(
+          (voice) => voice.lang === 'he-IL' || voice.lang === 'he' || (voice.lang && voice.lang.toLowerCase().startsWith('he'))
+        );
+
+        let matchedVoice: SpeechSynthesisVoice | null = null;
+        if (options.gender === 'male') {
+          matchedVoice = heVoices.find((v) => /asaf|guy|david|male|גבר/i.test(v.name)) || null;
+        } else if (options.gender === 'female') {
+          matchedVoice = heVoices.find((v) => /hila|sara|carmit|female|אישה/i.test(v.name)) || null;
+        }
+
+        if (matchedVoice) {
+          utterance.voice = matchedVoice;
+        } else if (preferredHebrewVoice) {
+          utterance.voice = preferredHebrewVoice;
+        } else if (heVoices.length > 0) {
+          utterance.voice = heVoices[0];
+        }
+
+        utterance.onend = () => {
+          if (speechSafetyTimer) {
+            clearTimeout(speechSafetyTimer);
+            speechSafetyTimer = null;
+          }
+          finish();
+        };
+
+        utterance.onerror = (e) => {
+          if (speechSafetyTimer) {
+            clearTimeout(speechSafetyTimer);
+            speechSafetyTimer = null;
+          }
+          // Если воспроизведение было отменено пользователем или кодом — НЕ запускаем фолбэк повторно!
+          if (e.error === 'canceled' || e.error === 'interrupted') {
+            finish();
+            return;
+          }
+          if (e.error === 'not-allowed') {
+            notifyAudioBlocked('tts_not_allowed');
+          }
+          console.warn('Browser TTS error, using audio fallback:', e);
+          playFallbackAudio(speechText, rate).then(() => finish());
+        };
+
+        // Защитный таймаут: если speechSynthesis завис (частый баг Chrome/iOS) — один раз переключаемся на audio
+        const maxDurationMs = Math.max(3500, speechText.length * 200 + 2000);
+        speechSafetyTimer = setTimeout(() => {
+          if (!isFinished) {
+            isFinished = true;
+            speechSafetyTimer = null;
+            if (activeUtterance) {
+              activeUtterance.onend = null;
+              activeUtterance.onerror = null;
+              activeUtterance = null;
+            }
+            try {
+              window.speechSynthesis.cancel();
+            } catch {}
+            playFallbackAudio(speechText, rate).then(() => finish());
+          }
+        }, maxDurationMs);
+
+        // Запуск с микрозадержкой для предотвращения бага cancel()->speak() в Chromium
+        setTimeout(() => {
+          try {
+            window.speechSynthesis.speak(utterance);
+            if (window.speechSynthesis.paused) {
+              window.speechSynthesis.resume();
+            }
+          } catch (err: any) {
+            if (err?.name === 'NotAllowedError') {
+              notifyAudioBlocked('tts_not_allowed');
+            }
+            if (speechSafetyTimer) {
+              clearTimeout(speechSafetyTimer);
+              speechSafetyTimer = null;
+            }
+            playFallbackAudio(speechText, rate).then(() => finish());
+          }
+        }, 15);
+      } catch (err: any) {
+        if (err?.name === 'NotAllowedError') {
+          notifyAudioBlocked('tts_not_allowed');
+        }
+        if (speechSafetyTimer) {
+          clearTimeout(speechSafetyTimer);
+          speechSafetyTimer = null;
+        }
+        playFallbackAudio(speechText, rate).then(() => finish());
       }
-      if (speechSafetyTimer) {
-        clearTimeout(speechSafetyTimer);
-        speechSafetyTimer = null;
+    };
+
+    // 2. Если это одиночное слово и включен режим студийного аудио — проверяем наличие студийной записи Pealim
+    if (options.preferStudioAudio !== false && typeof Audio !== 'undefined') {
+      const cleanWord = stripNikkud(text).trim();
+      if (cleanWord && !cleanWord.includes(' ')) {
+        const studioAudioUrl = getStudioAudioForWord(cleanWord);
+        if (studioAudioUrl) {
+          let isStudioEnded = false;
+          let studioTimeout: any = null;
+          let audio: HTMLAudioElement | null = null;
+
+          const finishStudio = () => {
+            if (!isStudioEnded) {
+              isStudioEnded = true;
+              if (studioTimeout) {
+                clearTimeout(studioTimeout);
+                studioTimeout = null;
+              }
+              if (activeStudioAudio === audio) {
+                activeStudioAudio = null;
+              }
+              resolve();
+            }
+          };
+
+          try {
+            audio = new Audio(studioAudioUrl);
+            activeStudioAudio = audio;
+            audio.onended = finishStudio;
+            audio.onerror = () => {
+              if (!isStudioEnded) {
+                isStudioEnded = true;
+                if (studioTimeout) {
+                  clearTimeout(studioTimeout);
+                  studioTimeout = null;
+                }
+                if (activeStudioAudio === audio) {
+                  activeStudioAudio = null;
+                }
+                playWithTts();
+              }
+            };
+
+            const playPromise = audio.play();
+            if (playPromise !== undefined) {
+              playPromise.catch((err: any) => {
+                if (err?.name === 'NotAllowedError') {
+                  notifyAudioBlocked('audio_play_not_allowed');
+                }
+                if (!isStudioEnded) {
+                  isStudioEnded = true;
+                  if (studioTimeout) {
+                    clearTimeout(studioTimeout);
+                    studioTimeout = null;
+                  }
+                  if (activeStudioAudio === audio) {
+                    activeStudioAudio = null;
+                  }
+                  playWithTts();
+                }
+              });
+            }
+
+            // Страховочный таймаут
+            studioTimeout = setTimeout(finishStudio, 6000);
+            return;
+          } catch {
+            // При ошибке Audio переходим к TTS
+          }
+        }
       }
-      playFallbackAudio(speechText, rate).then(() => finish());
     }
+
+    // Для предложений, фраз или при отсутствии студийной записи — запускаем связный TTS
+    playWithTts();
   });
 }
 
@@ -466,6 +576,16 @@ export function stopSpeech(): void {
         activeFallbackAudio.src = '';
       } catch {}
       activeFallbackAudio = null;
+    }
+    if (activeStudioAudio) {
+      try {
+        activeStudioAudio.onended = null;
+        activeStudioAudio.onerror = null;
+        activeStudioAudio.pause();
+        activeStudioAudio.currentTime = 0;
+        activeStudioAudio.src = '';
+      } catch {}
+      activeStudioAudio = null;
     }
   }
 }

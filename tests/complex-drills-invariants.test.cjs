@@ -122,3 +122,34 @@ test('No duplicate keys in any ComplexDrills dataset files (prevent TS1117 build
     );
   }
 });
+
+test('Noun drill audio confirmation in ComplexDrillMode does not duplicate target word', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const modePath = path.join(__dirname, '..', 'src', 'components', 'FlashcardTrainer', 'modes', 'ComplexDrillMode.tsx');
+  const content = fs.readFileSync(modePath, 'utf8');
+
+  // Must not concatenate singular and plural directly in confirmation speech
+  assert.ok(
+    !content.includes('const pairHe = `${targetItem.singularHe} — ${targetItem.pluralHe}`;'),
+    'ComplexDrillMode must not concatenate singular and plural for TTS confirmation (causes double repetition for uncountable nouns)'
+  );
+
+  // Must speak targetWordVocalized or singularHe once
+  assert.ok(
+    content.includes('const wordHe = targetItem.targetWordVocalized || targetItem.singularHe;'),
+    'ComplexDrillMode must speak targetWordVocalized or singularHe once in runConfirmationSequence'
+  );
+
+  // Must handle distinct plurals vs uncountable nouns in UI
+  assert.ok(
+    content.includes('hasDistinctPlural'),
+    'ComplexDrillMode must conditionally check hasDistinctPlural to avoid showing duplicate columns for uncountable nouns'
+  );
+
+  // handleTokenClick must stop speech and cancel active drill timer
+  assert.ok(
+    content.includes('playCycleIdRef.current += 1;\n    stopSpeech();\n\n    setSelectedLookupWord(token.cleanText || token.text);'),
+    'handleTokenClick must cancel speech and timer to prevent background playback during WordLookupModal'
+  );
+});
