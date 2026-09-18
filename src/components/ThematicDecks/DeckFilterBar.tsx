@@ -15,7 +15,8 @@ export type DeckFilter =
   | 'doctor'
   | 'accounting'
   | 'librarian'
-  | 'carWash';
+  | 'carWash'
+  | 'mom';
 
 interface FilterOption {
   id: DeckFilter;
@@ -114,6 +115,12 @@ const FILTER_OPTIONS: FilterOption[] = [
     label: '🚿 Автомойка',
     activeClass: 'bg-sky-600 text-white shadow-xs',
     inactiveClass: 'bg-sky-50 dark:bg-sky-950/50 text-sky-700 dark:text-sky-300 hover:bg-sky-100',
+  },
+  {
+    id: 'mom',
+    label: '👩‍👧 Мама в Израиле',
+    activeClass: 'bg-pink-600 text-white shadow-xs',
+    inactiveClass: 'bg-pink-50 dark:bg-pink-950/50 text-pink-700 dark:text-pink-300 hover:bg-pink-100',
   },
 ];
 

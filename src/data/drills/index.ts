@@ -24,6 +24,7 @@ import { findOfflineVerbConjugation } from '@/lib/verbConjugations';
 import { NOUN_DRILLS_DATA, getNounDrill } from './nounDrillsData';
 import { ADJECTIVE_DRILLS_DATA, getAdjectiveDrill } from './adjectiveDrillsData';
 import { PREPOSITION_DRILLS_DATA, getPrepositionDrill } from './prepositionDrillsData';
+import { MOM_DRILLS_DATA, getMomDrill } from './momDrillsData';
 
 export {
   NOUN_DRILLS_DATA,
@@ -32,6 +33,8 @@ export {
   getAdjectiveDrill,
   PREPOSITION_DRILLS_DATA,
   getPrepositionDrill,
+  MOM_DRILLS_DATA,
+  getMomDrill,
 };
 
 /**
@@ -41,6 +44,9 @@ export function hasComplexDrill(word: Word | { hebrew: string; hebrewPlain?: str
   if (!word) return false;
   const raw = (word.hebrewPlain || word.hebrew || '').trim();
   const plain = stripNikkud(raw).trim();
+
+  // 0. Проверяем тематический мамский комплекс
+  if (getMomDrill(raw) || getMomDrill(plain)) return true;
 
   // 1. Проверяем глаголы
   const verbList = getVerbDrillSentences(raw);
@@ -68,6 +74,12 @@ export function getDrillDataForWord(currentWord: Word): ComplexDrillItem[] {
 
   const raw = (currentWord.hebrewPlain || currentWord.hebrew || '').trim();
   const plain = stripNikkud(raw).trim();
+
+  // 0. ТЕМАТИЧЕСКИЙ МАМСКИЙ КОМПЛЕКС (приоритет для лексики мам)
+  const momItem = getMomDrill(raw) || getMomDrill(plain);
+  if (momItem) {
+    return [momItem];
+  }
 
   // 1. СУЩЕСТВИТЕЛЬНЫЕ
   const nounItem = getNounDrill(raw) || getNounDrill(plain);

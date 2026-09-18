@@ -85,3 +85,40 @@ test('Dispatcher getDrillDataForWord and hasComplexDrill', () => {
   assert.equal(verbResult[0].type, 'verb');
   assert.equal(verbResult[0].verbInfinitive, 'לִרְצוֹת');
 });
+
+test('No duplicate keys in any ComplexDrills dataset files (prevent TS1117 build failures)', () => {
+  const fs = require('fs');
+  const path = require('path');
+
+  const files = [
+    path.join(__dirname, '..', 'src', 'data', 'drills', 'nounDrillsData.ts'),
+    path.join(__dirname, '..', 'src', 'data', 'drills', 'adjectiveDrillsData.ts'),
+    path.join(__dirname, '..', 'src', 'data', 'drills', 'prepositionDrillsData.ts'),
+    path.join(__dirname, '..', 'src', 'data', 'verbSentencesData.ts'),
+  ];
+
+  for (const f of files) {
+    const content = fs.readFileSync(f, 'utf8');
+    const lines = content.split('\n');
+    const seen = new Set();
+    const duplicates = [];
+
+    lines.forEach((line, idx) => {
+      const m = line.match(/^  ['"]([^'"]+)['"]\s*:\s*\{/);
+      if (m) {
+        const key = m[1];
+        if (seen.has(key)) {
+          duplicates.push({ key, line: idx + 1 });
+        } else {
+          seen.add(key);
+        }
+      }
+    });
+
+    assert.equal(
+      duplicates.length,
+      0,
+      `File ${path.basename(f)} has ${duplicates.length} duplicate keys: ${duplicates.map(d => d.key + ' (line ' + d.line + ')').join(', ')}`
+    );
+  }
+});

@@ -407,6 +407,15 @@ function esc(str) {
   return String(str).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
 }
 
+function extractExistingKeys(fileContent) {
+  const keys = new Set();
+  const matches = fileContent.matchAll(/^  ['"]([^'"]+)['"]\s*:\s*\{/gm);
+  for (const m of matches) {
+    keys.add(m[1]);
+  }
+  return keys;
+}
+
 function mergeNouns(nounsList) {
   let content = fs.readFileSync(NOUN_DRILLS_PATH, 'utf8');
   const marker = 'export function getNounDrill';
@@ -418,8 +427,22 @@ function mergeNouns(nounsList) {
 
   const before = content.slice(0, braceIdx);
   const after = content.slice(braceIdx);
+  const existingKeys = extractExistingKeys(before);
+  const seenInBatch = new Set();
 
-  const entries = nounsList.map(item => {
+  const filteredNouns = nounsList.filter(item => {
+    const key = String(item.targetWordPlain || '').trim();
+    if (!key || existingKeys.has(key) || seenInBatch.has(key)) return false;
+    seenInBatch.add(key);
+    return true;
+  });
+
+  if (filteredNouns.length === 0) {
+    console.log('   ℹ️ Все существительные уже присутствуют в nounDrillsData.ts (пропущено).');
+    return;
+  }
+
+  const entries = filteredNouns.map(item => {
     const lines = [];
     lines.push("  '" + esc(item.targetWordPlain) + "': {");
     lines.push("    id: '" + esc(item.id) + "',");
@@ -454,7 +477,7 @@ function mergeNouns(nounsList) {
 
   const newContent = before + entries + '\n' + after;
   fs.writeFileSync(NOUN_DRILLS_PATH, newContent, 'utf8');
-  console.log('   ✅ ' + nounsList.length + ' существительных добавлены в nounDrillsData.ts');
+  console.log('   ✅ ' + filteredNouns.length + ' существительных добавлены в nounDrillsData.ts');
 }
 
 function mergeAdjectives(adjList) {
@@ -468,8 +491,22 @@ function mergeAdjectives(adjList) {
 
   const before = content.slice(0, braceIdx);
   const after = content.slice(braceIdx);
+  const existingKeys = extractExistingKeys(before);
+  const seenInBatch = new Set();
 
-  const entries = adjList.map(item => {
+  const filteredAdjs = adjList.filter(item => {
+    const key = String(item.targetWordPlain || '').trim();
+    if (!key || existingKeys.has(key) || seenInBatch.has(key)) return false;
+    seenInBatch.add(key);
+    return true;
+  });
+
+  if (filteredAdjs.length === 0) {
+    console.log('   ℹ️ Все прилагательные уже присутствуют в adjectiveDrillsData.ts (пропущено).');
+    return;
+  }
+
+  const entries = filteredAdjs.map(item => {
     const lines = [];
     lines.push("  '" + esc(item.targetWordPlain) + "': {");
     lines.push("    id: '" + esc(item.id) + "',");
@@ -498,7 +535,7 @@ function mergeAdjectives(adjList) {
 
   const newContent = before + entries + '\n' + after;
   fs.writeFileSync(ADJ_DRILLS_PATH, newContent, 'utf8');
-  console.log('   ✅ ' + adjList.length + ' прилагательных добавлены в adjectiveDrillsData.ts');
+  console.log('   ✅ ' + filteredAdjs.length + ' прилагательных добавлены в adjectiveDrillsData.ts');
 }
 
 function mergePrepositions(prepList) {
@@ -512,8 +549,22 @@ function mergePrepositions(prepList) {
 
   const before = content.slice(0, braceIdx);
   const after = content.slice(braceIdx);
+  const existingKeys = extractExistingKeys(before);
+  const seenInBatch = new Set();
 
-  const entries = prepList.map(item => {
+  const filteredPreps = prepList.filter(item => {
+    const key = String(item.targetWordPlain || '').trim();
+    if (!key || existingKeys.has(key) || seenInBatch.has(key)) return false;
+    seenInBatch.add(key);
+    return true;
+  });
+
+  if (filteredPreps.length === 0) {
+    console.log('   ℹ️ Все предлоги уже присутствуют в prepositionDrillsData.ts (пропущено).');
+    return;
+  }
+
+  const entries = filteredPreps.map(item => {
     const lines = [];
     lines.push("  '" + esc(item.targetWordPlain) + "': {");
     lines.push("    id: '" + esc(item.id) + "',");
@@ -541,7 +592,7 @@ function mergePrepositions(prepList) {
 
   const newContent = before + entries + '\n' + after;
   fs.writeFileSync(PREP_DRILLS_PATH, newContent, 'utf8');
-  console.log('   ✅ ' + prepList.length + ' предлогов добавлены в prepositionDrillsData.ts');
+  console.log('   ✅ ' + filteredPreps.length + ' предлогов добавлены в prepositionDrillsData.ts');
 }
 
 function mergeVerbs(verbList) {
@@ -555,8 +606,22 @@ function mergeVerbs(verbList) {
 
   const before = content.slice(0, braceIdx);
   const after = content.slice(braceIdx);
+  const existingKeys = extractExistingKeys(before);
+  const seenInBatch = new Set();
 
-  const entries = verbList.map(item => {
+  const filteredVerbs = verbList.filter(item => {
+    const key = String(item.infinitivePlain || '').trim();
+    if (!key || existingKeys.has(key) || seenInBatch.has(key)) return false;
+    seenInBatch.add(key);
+    return true;
+  });
+
+  if (filteredVerbs.length === 0) {
+    console.log('   ℹ️ Все глаголы уже присутствуют в verbSentencesData.ts (пропущено).');
+    return;
+  }
+
+  const entries = filteredVerbs.map(item => {
     const lines = [];
     lines.push("  '" + esc(item.infinitivePlain) + "': {");
     lines.push("    infinitive: '" + esc(item.infinitive) + "',");
@@ -580,7 +645,7 @@ function mergeVerbs(verbList) {
       lines.push("        sentenceRu: '" + esc(s.sentenceRu) + "',");
       lines.push("        drillAudioRu: '" + esc(s.drillAudioRu || s.sentenceRu) + "',");
       lines.push("        minLesson: " + (s.minLesson || 1) + ",");
-      lines.push("        lessonTheme: '" + esc(s.lessonTheme || '') + "',");
+      lines.push("        lessonTheme: '" + esc(s.lessonTheme || item.sourceLessonTitle || ('Урок ' + (s.minLesson || 1))) + "',");
       lines.push("      },");
     }
     lines.push("    ],");
@@ -590,7 +655,7 @@ function mergeVerbs(verbList) {
 
   const newContent = before + entries + '\n' + after;
   fs.writeFileSync(VERB_SENTENCES_PATH, newContent, 'utf8');
-  console.log('   ✅ ' + verbList.length + ' глаголов добавлены в verbSentencesData.ts');
+  console.log('   ✅ ' + filteredVerbs.length + ' глаголов добавлены в verbSentencesData.ts');
 }
 
 // Главный роутер

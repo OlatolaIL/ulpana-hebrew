@@ -18,6 +18,7 @@ import { DOCTOR_DECKS } from './doctor';
 import { ACCOUNTING_DECKS } from './accounting';
 import { LIBRARIAN_DECKS } from './librarian';
 import { CAR_WASH_DECKS } from './carWash';
+import { MOM_DECKS } from './mom';
 
 // При добавлении новой профессии — просто добавь её массив сюда:
 export const PROFESSIONAL_DECKS: ThematicDeck[] = [
@@ -28,6 +29,7 @@ export const PROFESSIONAL_DECKS: ThematicDeck[] = [
   ...ACCOUNTING_DECKS,
   ...LIBRARIAN_DECKS,
   ...CAR_WASH_DECKS,
+  ...MOM_DECKS,
 ];
 
 /**
