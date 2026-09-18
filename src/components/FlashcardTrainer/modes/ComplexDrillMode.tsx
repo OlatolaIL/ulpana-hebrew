@@ -309,6 +309,28 @@ export const ComplexDrillMode: React.FC<ComplexDrillModeProps> = ({
     setLookupSentenceTranscription(activeDrill.sentenceTranscription);
   };
 
+  // Клик по слову из семьи корня (открытие модальной карточки разбора слова, R-20)
+  const handleRootFamilyWordClick = (rw: RootRelatedWord) => {
+    if (autoTimerRef.current) {
+      clearInterval(autoTimerRef.current);
+      autoTimerRef.current = null;
+      setAutoCountdown(null);
+    }
+    stopSpeech();
+
+    setSelectedLookupWord(rw.hebrewPlain || stripNikkud(rw.hebrew));
+    setLookupContext(undefined);
+    setLookupSentenceTranslation(undefined);
+    setLookupSentenceTranscription(undefined);
+  };
+
+  // Озвучка слова из семьи корня (изолированная озвучка без открытия модалки)
+  const handleRootFamilySpeak = (e: React.MouseEvent, hebrew: string) => {
+    e.stopPropagation();
+    stopSpeech();
+    onSpeakHebrew(hebrew, { rate: speechRate });
+  };
+
   const handleToggleAutoAdvance = () => {
     const next = !autoAdvance;
     setAutoAdvance(next);
@@ -730,28 +752,98 @@ export const ComplexDrillMode: React.FC<ComplexDrillModeProps> = ({
                 {/* Семья корня (Инвариант R-01, V-09) */}
                 {rootFamily.length > 0 && (
                   <div className="p-3 bg-zinc-50 dark:bg-zinc-800/30 rounded-2xl border border-zinc-200 dark:border-zinc-800 space-y-2">
-                    <div className="text-xs font-bold text-zinc-600 dark:text-zinc-400 flex items-center gap-1.5">
-                      <GitBranch className="w-3.5 h-3.5" />
-                      <span>Семья корня {rootLetters ? `(${rootLetters})` : ''}:</span>
+                    <div className="text-xs font-bold text-zinc-600 dark:text-zinc-400 flex items-center justify-between">
+                      <div className="flex items-center gap-1.5 font-bold text-purple-700 dark:text-purple-300">
+                        <GitBranch className="w-3.5 h-3.5" />
+                        <span>Семья корня {rootLetters ? `(${rootLetters})` : ''}:</span>
+                      </div>
+                      <span className="text-[10px] text-zinc-400 dark:text-zinc-500 font-normal">
+                        нажмите для карточки
+                      </span>
                     </div>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                      {rootFamily.slice(0, 6).map((rf, idx) => (
-                        <button
-                          key={idx}
-                          onClick={() => speakHebrew(rf.hebrew, { rate: speechRate })}
-                          className="p-2 rounded-xl bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-left hover:bg-zinc-50 transition cursor-pointer"
-                        >
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-56 overflow-y-auto pr-0.5">
+                      {rootFamily.slice(0, 8).map((rf, idx) => {
+                        const cleanHe = stripNikkud(rf.hebrew);
+                        const inDict = isWordInPersonalDict(
+                          rf.hebrewPlain || cleanHe,
+                          userProfile.personalVocabulary
+                        );
+                        return (
                           <div
-                            dir="rtl"
-                            className={`font-black text-sm text-zinc-900 dark:text-zinc-100 ${
-                              isCursive ? 'font-cursive' : 'font-print'
-                            }`}
+                            key={idx}
+                            onClick={() => handleRootFamilyWordClick(rf)}
+                            className="flex items-center justify-between p-2.5 rounded-xl bg-white dark:bg-zinc-800/90 border border-zinc-200/80 dark:border-zinc-700 hover:border-purple-400 dark:hover:border-purple-500 transition cursor-pointer shadow-2xs group"
+                            title={`Открыть карточку слова: ${rf.translation}`}
                           >
-                            {showNikkud ? rf.hebrew : stripNikkud(rf.hebrew)}
+                            <div className="flex flex-col min-w-0 pr-2">
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <span className="text-xs font-bold text-zinc-900 dark:text-zinc-100 truncate">
+                                  {rf.translation}
+                                </span>
+                                {rf.partOfSpeech && (
+                                  <span
+                                    className={`text-[9px] px-1.5 py-0.5 rounded font-semibold ${
+                                      rf.partOfSpeech === 'noun'
+                                        ? 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300'
+                                        : rf.partOfSpeech === 'adjective'
+                                        ? 'bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300'
+                                        : rf.partOfSpeech === 'expression'
+                                        ? 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300'
+                                        : 'bg-zinc-100 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300'
+                                    }`}
+                                  >
+                                    {rf.partOfSpeech === 'noun'
+                                      ? 'сущ.'
+                                      : rf.partOfSpeech === 'adjective'
+                                      ? 'прил.'
+                                      : rf.partOfSpeech === 'expression'
+                                      ? 'выраж.'
+                                      : rf.partOfSpeech === 'verb'
+                                      ? 'гл.'
+                                      : rf.partOfSpeech}
+                                  </span>
+                                )}
+                              </div>
+                              {showTranscription && rf.transcription && (
+                                <span className="text-[11px] text-purple-600 dark:text-purple-400 font-mono">
+                                  [{rf.transcription}]
+                                </span>
+                              )}
+                            </div>
+
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              <span
+                                dir="rtl"
+                                className={`font-bold text-zinc-900 dark:text-zinc-100 ${
+                                  isCursive ? 'font-cursive text-lg' : 'font-hebrew text-sm'
+                                }`}
+                              >
+                                {showNikkud ? rf.hebrew : (rf.hebrewPlain || cleanHe)}
+                              </span>
+
+                              {/* Кнопка озвучки */}
+                              <button
+                                type="button"
+                                onClick={(e) => handleRootFamilySpeak(e, rf.hebrew)}
+                                className="p-1 rounded-lg hover:bg-purple-100 dark:hover:bg-purple-900/50 text-purple-600 dark:text-purple-400 transition cursor-pointer"
+                                title="Озвучить слово"
+                              >
+                                <Volume2 className="w-3.5 h-3.5" />
+                              </button>
+
+                              {/* Индикатор в словаре */}
+                              {inDict && (
+                                <span
+                                  title="Слово уже в вашем словарике"
+                                  className="text-emerald-600 dark:text-emerald-400"
+                                >
+                                  <Check className="w-3.5 h-3.5" />
+                                </span>
+                              )}
+                            </div>
                           </div>
-                          <div className="text-[11px] text-zinc-500 truncate">{rf.translation}</div>
-                        </button>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 )}
@@ -795,9 +887,15 @@ export const ComplexDrillMode: React.FC<ComplexDrillModeProps> = ({
           sentenceTranslation={lookupSentenceTranslation}
           sentenceTranscription={lookupSentenceTranscription}
           onClose={() => setSelectedLookupWord(null)}
-          onWordAdded={() => {
+          onWordAdded={(newWord) => {
             if (onUpdateProfile) {
-              // профиль обновится через хранилище
+              const currentVocab = userProfile.personalVocabulary || [];
+              if (!currentVocab.some((w) => w.id === newWord.id)) {
+                onUpdateProfile({
+                  ...userProfile,
+                  personalVocabulary: [newWord, ...currentVocab],
+                });
+              }
             }
           }}
         />

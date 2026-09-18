@@ -282,7 +282,7 @@ export const MOM_DECKS: ThematicDeck[] = [
       { id: 'mom_pg_12', hebrew: 'מַגְלֵשָׁה עֲנָקִית', hebrewPlain: 'מגלשה ענקית', transcription: 'маглешá анакӣт', translation: 'большая горка', partOfSpeech: 'noun', gender: 'f', lessonId: 0 },
       { id: 'mom_pg_13', hebrew: 'נַדְנֵדַת קֵן', hebrewPlain: 'נדנדת קן', transcription: 'наднедáт кен', translation: 'качели-гнездо', partOfSpeech: 'noun', gender: 'f', lessonId: 0 },
       { id: 'mom_pg_14', hebrew: 'בַּמְבָּה', hebrewPlain: 'במבה', transcription: 'бáмба', translation: 'Бамба (израильские арахисовые снеки)', partOfSpeech: 'noun', gender: 'f', lessonId: 0 },
-      { id: 'mom_pg_15', hebrew: 'מַיִם בַּבַּקְבּוּק', hebrewPlain: 'מים בבקבוק', transcription: 'мáим ба-бакбӯк', translation: 'вода в бутылочке', partOfSpeech: 'noun', gender: 'm', lessonId: 0 },
+      { id: 'mom_pg_15', hebrew: 'מַיִם בַּבַּקְבּוּק', hebrewPlain: 'מים בבקבוק', transcription: 'мáйим ба-бакбӯк', translation: 'вода в бутылочке', partOfSpeech: 'noun', gender: 'm', lessonId: 0 },
       { id: 'mom_pg_16', hebrew: 'לַחֲטוֹף', hebrewPlain: 'לחטוף', transcription: 'лахтóф', translation: 'вырывать из рук, отбирать игрушку', partOfSpeech: 'verb', root: 'ח-ט-ף', lessonId: 0 },
       { id: 'mom_pg_17', hebrew: 'לִדְחוֹף', hebrewPlain: 'לדחוף', transcription: 'лидхóф', translation: 'толкаться', partOfSpeech: 'verb', root: 'ד-ח-ף', lessonId: 0 },
       { id: 'mom_pg_18', hebrew: 'לַעֲשׂוֹת תּוֹרוֹת', hebrewPlain: 'לעשות תורות', transcription: 'лаасóт торóт', translation: 'кататься по очереди', partOfSpeech: 'verb', lessonId: 0 },

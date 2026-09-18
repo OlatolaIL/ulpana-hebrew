@@ -51,7 +51,7 @@ test('generateHebrewTranscription renders initial shuruk vav (וּ) as /u/ and d
   const shnayim = generateHebrewTranscription('וּשְׁנַיִם');
   assert.ok(!shnayim.startsWith('вэ'), `"וּשְׁנַיִם" generated unexpected initial "вэ": ${shnayim}`);
   assert.ok(shnayim.startsWith('у-'), `"וּשְׁנַיִם" should start with "у-": ${shnayim}`);
-  assert.equal(shnayim, 'у-шнаим');
+  assert.equal(shnayim, 'у-шнайим');
 
   const gvina = generateHebrewTranscription('וּגְבִינָה');
   assert.ok(!gvina.startsWith('вэ'), `"וּגְבִינָה" generated unexpected initial "вэ": ${gvina}`);
@@ -122,5 +122,21 @@ test('ensureCyrillicHebrewTranscription cleans up Latin letters and keeps stress
   const result = convertLatinHebrewTranscriptionToCyrillic('hacéфер');
   assert.equal(result, 'hасéфер');
   assert.ok(!result.includes('c'), 'must not contain Latin c');
+});
+
+test('generateHebrewTranscription correctly renders dual and diphthong endings with /y/ (майим, бамайим, байит, ядайим)', () => {
+  assert.equal(generateHebrewTranscription('מַיִם'), 'майим');
+  assert.equal(generateHebrewTranscription('בַּמַּיִם'), 'бамайим');
+  assert.equal(generateHebrewTranscription('בַּיִת'), 'байит');
+  assert.equal(generateHebrewTranscription('שָׁמַיִם'), 'шамайим');
+  assert.equal(generateHebrewTranscription('יָדַיִם'), 'ядайим');
+  assert.equal(generateHebrewTranscription('פַּעֲמַיִם'), 'паамайим');
+});
+
+test('cleanHebrewForSpeech prepares sababa with penultimate stress phonetic form (סַבָּבַּה)', () => {
+  const { cleanHebrewForSpeech } = require('../src/lib/speech.ts');
+  assert.equal(cleanHebrewForSpeech('סבבה'), 'סַבָּבַּה');
+  assert.equal(cleanHebrewForSpeech('סַבָּבָה'), 'סַבָּבַּה');
+  assert.equal(cleanHebrewForSpeech('סַבָּבָּה'), 'סַבָּבַּה');
 });
 

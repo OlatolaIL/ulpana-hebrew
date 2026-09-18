@@ -40,7 +40,7 @@ export const BESPOKE_ESSAY_PROMPTS: Record<number, LessonEssayPrompt> = {
       { hebrew: 'רוֹצֶה / רוֹצָה', translation: 'хочу (м.р. / ж.р.)', transcription: 'роцé / роцá' },
       { hebrew: 'שׁוֹתֶה / שׁוֹתָה', translation: 'пью (м.р. / ж.р.)', transcription: 'шотé / шотá' },
       { hebrew: 'קָפֶה', translation: 'кофе', transcription: 'кафé' },
-      { hebrew: 'מַיִם', translation: 'вода', transcription: 'мáим' },
+      { hebrew: 'מַיִם', translation: 'вода', transcription: 'мáйим' },
       { hebrew: 'עוּגָה', translation: 'пирог / торт', transcription: 'угá' },
       { hebrew: 'בְּבַקָּשָׁה', translation: 'пожалуйста', transcription: 'бэвакашá' },
       { hebrew: 'חֶשְׁבּוֹן', translation: 'счёт', transcription: 'хэжбóн' },

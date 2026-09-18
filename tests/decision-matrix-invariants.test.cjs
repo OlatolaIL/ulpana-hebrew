@@ -18,7 +18,7 @@ test('R-00: DECISION_MATRIX.md exists and contains all required blocks, versioni
   assert.ok(matrixContent.includes('Дата обновления:'), 'DECISION_MATRIX.md must include update date');
 
   // Check required rule anchors
-  const expectedRules = ['R-01', 'R-02', 'R-03', 'R-04', 'R-05', 'R-07', 'R-08', 'R-10', 'R-11', 'R-13', 'R-14', 'R-15', 'R-16', 'R-17'];
+  const expectedRules = ['R-01', 'R-02', 'R-03', 'R-04', 'R-05', 'R-07', 'R-08', 'R-10', 'R-11', 'R-13', 'R-14', 'R-15', 'R-16', 'R-17', 'R-23'];
   for (const rule of expectedRules) {
     assert.ok(matrixContent.includes(rule), `DECISION_MATRIX.md must define rule ${rule}`);
   }
@@ -215,6 +215,22 @@ test('R-22: Zero-Drift Policy for ComplexDrills is documented and supported by a
   const pkg = JSON.parse(fs.readFileSync(path.join(repoRoot, 'package.json'), 'utf8'));
   assert.ok(pkg.scripts['drills:audit'], 'package.json must contain drills:audit script');
   assert.ok(pkg.scripts['drills:sync'], 'package.json must contain drills:sync script');
+});
+
+test('R-23: Growth Engine isolation and MARKETING_STRATEGY.md passport exist', () => {
+  const matrixContent = fs.readFileSync(matrixPath, 'utf8');
+  assert.ok(matrixContent.includes('R-23'), 'DECISION_MATRIX.md must define R-23');
+  assert.ok(matrixContent.includes('MARKETING_STRATEGY.md'), 'R-23 must reference MARKETING_STRATEGY.md');
+
+  const strategyPath = path.join(repoRoot, 'growth/MARKETING_STRATEGY.md');
+  assert.ok(fs.existsSync(strategyPath), 'growth/MARKETING_STRATEGY.md must exist');
+  const strategyContent = fs.readFileSync(strategyPath, 'utf8');
+  assert.ok(strategyContent.includes('Growth Engine'), 'Passport must define Growth Engine');
+  assert.ok(strategyContent.includes('Мамы олим'), 'Passport must document key viral segment');
+  assert.ok(strategyContent.includes('Solopreneur + AI'), 'Passport must document automation principles');
+
+  const toolsPath = path.join(repoRoot, 'growth/TOOLS_AND_SCRIPTS.md');
+  assert.ok(fs.existsSync(toolsPath), 'growth/TOOLS_AND_SCRIPTS.md must exist');
 });
 
 

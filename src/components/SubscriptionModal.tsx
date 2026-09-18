@@ -22,9 +22,24 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
   onOpenAuth,
 }) => {
   const [promoCode, setPromoCode] = useState('');
+  const [savedPromo, setSavedPromo] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+
+  React.useEffect(() => {
+    if (isOpen && typeof window !== 'undefined') {
+      try {
+        const pending = localStorage.getItem('ulpana_pending_promo');
+        if (pending) {
+          setSavedPromo(pending);
+          if (!promoCode) {
+            setPromoCode(pending);
+          }
+        }
+      } catch {}
+    }
+  }, [isOpen, promoCode]);
 
   if (!isOpen) return null;
 
@@ -34,6 +49,19 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
         <div className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-3xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6 space-y-5">
           <button type="button" onClick={onClose} aria-label="Закрыть информацию о бете" className="absolute top-3 right-3 p-2"><X className="w-5 h-5" /></button>
           <h2 id="beta-access-title" className="pr-8 text-xl font-bold">Открытая бесплатная бета</h2>
+          {savedPromo && (
+            <div className="p-3.5 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-500/30 flex items-center gap-3">
+              <Sparkles className="w-5 h-5 text-amber-500 shrink-0" />
+              <div className="text-xs">
+                <p className="font-bold text-amber-900 dark:text-amber-200">
+                  Промокод «{savedPromo}» зафиксирован!
+                </p>
+                <p className="text-amber-700/80 dark:text-amber-300/80">
+                  Все 100 уроков сейчас открыты бесплатно. Ваш промокод сохранён за вами для продления PRO-доступа.
+                </p>
+              </div>
+            </div>
+          )}
           <p>Все 100 уроков, словарь, карточки и учебные разговоры доступны бесплатно на время беты. Покупать PRO или вводить промокод сейчас не нужно.</p>
           <p className="text-sm text-zinc-600 dark:text-zinc-300">Первые два урока можно попробовать без входа. Для дальнейших уроков и сохранения прогресса между устройствами войдите в аккаунт.</p>
           <p className="text-sm text-zinc-600 dark:text-zinc-300">Курс и автоматическая проверка ещё дорабатываются. О неточности можно сообщить через кнопку обратной связи.</p>
@@ -79,6 +107,10 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
         confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
         onPromoActivated(data.user);
         setPromoCode('');
+        setSavedPromo(null);
+        try {
+          localStorage.removeItem('ulpana_pending_promo');
+        } catch {}
       } else {
         setError(data.error || 'Не удалось активировать промокод');
       }

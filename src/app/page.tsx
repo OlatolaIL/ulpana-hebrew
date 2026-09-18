@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { Sparkles, X } from 'lucide-react';
 import { Navbar } from '@/components/Navbar';
 import { CourseMap } from '@/components/CourseMap';
 import { LessonView } from '@/components/LessonView';
@@ -111,6 +112,16 @@ export default function Home() {
       localStorage.setItem('ulpana_show_floating_feedback', show ? 'true' : 'false');
     }
   };
+
+  const [capturedPromoToast, setCapturedPromoToast] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!capturedPromoToast) return;
+    const timer = setTimeout(() => {
+      setCapturedPromoToast(null);
+    }, 5000);
+    return () => clearTimeout(timer);
+  }, [capturedPromoToast]);
 
   // Привязка модалок страницы к истории браузера (свайп назад / кнопка Back закрывает модалку)
   useModalHistory(isSettingsOpen, () => setIsSettingsOpen(false), 'settings-modal');
@@ -257,6 +268,20 @@ export default function Home() {
         const url = new URL(window.location.href);
         const loginToken = url.searchParams.get('login_token');
         const initData = getTelegramInitData();
+
+        // Захват промокода или реферального источника из URL (?promo=FB или ?ref=FB)
+        const promoParam = (url.searchParams.get('promo') || url.searchParams.get('ref'))?.trim().toUpperCase();
+        if (promoParam) {
+          try {
+            localStorage.setItem('ulpana_pending_promo', promoParam);
+            localStorage.setItem('ulpana_referral_source', promoParam);
+            localStorage.setItem('ulpana_promo_captured_at', Date.now().toString());
+          } catch {}
+          setCapturedPromoToast(promoParam);
+          url.searchParams.delete('promo');
+          url.searchParams.delete('ref');
+          window.history.replaceState({}, '', url.pathname + (url.search ? url.search : '') + url.hash);
+        }
         if (loginToken) {
           url.searchParams.delete('login_token');
           window.history.replaceState({}, '', url.pathname + url.search + url.hash);
@@ -1015,6 +1040,31 @@ export default function Home() {
         onClose={() => setIsGuideDrawerOpen(false)}
         activeSection={currentView}
       />
+
+      {/* Всплывающее уведомление о захвате промокода из URL (?promo=FB) */}
+      {capturedPromoToast && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="fixed top-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-4 py-3 rounded-2xl bg-zinc-900/95 dark:bg-zinc-100/95 text-white dark:text-zinc-900 shadow-2xl border border-amber-500/40 backdrop-blur-md animate-in fade-in slide-in-from-top-4 max-w-sm w-[90%]"
+        >
+          <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-500 flex items-center justify-center shrink-0">
+            <Sparkles className="w-4 h-4" />
+          </div>
+          <div className="text-xs flex-1 min-w-0">
+            <p className="font-bold truncate">Промокод «{capturedPromoToast}» зафиксирован!</p>
+            <p className="opacity-80 text-[11px] truncate">Специальные условия сохранены за вами</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setCapturedPromoToast(null)}
+            className="p-1 opacity-60 hover:opacity-100 transition shrink-0"
+            aria-label="Закрыть уведомление"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
     </div>
   );
 }

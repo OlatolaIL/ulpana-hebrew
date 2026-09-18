@@ -147,7 +147,7 @@ export const ADJECTIVE_DRILLS_DATA: Record<string, AdjectiveDrillItem> = {
     },
     usedGenderNumber: 'mp',
     sentenceHe: 'יֵשׁ פֹּה מַיִם קָרִים.',
-    sentenceTranscription: 'йеш по мáим карӣ́м.',
+    sentenceTranscription: 'йеш по мáйим карӣ́м.',
     sentenceRu: 'Здесь есть холодная вода.',
     minLesson: 2,
     lessonTheme: 'В кафе: заказы и напитки',

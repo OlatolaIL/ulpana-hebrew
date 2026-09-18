@@ -82,6 +82,14 @@ export function normalizeTranscription(transcription: string): string {
   // «צָרִיךְ» -> «царӣх»
   res = res.replace(/(^|[\s"«(—\[])цар[ии́]х(?=$|[\s.,!?;:"»)—\]])/gi, '$1царӣх');
 
+  // 6. Нормативное произношение «מַיִם» (мáйим) и двойственных форм: защита от выпадения «й»
+  res = res.replace(/(^|[\s"«(—\[])(?:б[аá]маим|б[аá]-маим)(?=$|[\s.,!?;:"»)—\]])/gi, '$1ба-мáйим');
+  res = res.replace(/(^|[\s"«(—\[])(?:б[эе]маим|б[эе]-маим)(?=$|[\s.,!?;:"»)—\]])/gi, '$1бэ-мáйим');
+  res = res.replace(/(^|[\s"«(—\[])(?:им\s+)?мáим(?=$|[\s.,!?;:"»)—\]])/gi, (m) => m.replace(/мáим/i, 'мáйим'));
+  res = res.replace(/(^|[\s"«(—\[])маим(?=$|[\s.,!?;:"»)—\]])/gi, '$1майим');
+  res = res.replace(/(^|[\s"«(—\[])(?:ба-)?шамáим(?=$|[\s.,!?;:"»)—\]])/gi, (m) => m.replace(/шамáим/i, 'шамáйим'));
+  res = res.replace(/(^|[\s"«(—\[])паамáим(?=$|[\s.,!?;:"»)—\]])/gi, '$1паамáйим');
+
   return res;
 }
 
@@ -198,7 +206,10 @@ export function generateHebrewTranscription(text: string): string {
           }
         }
 
-        lastVowel = vowelStr;
+        const prevVowel = lastVowel;
+        if (vowelStr) {
+          lastVowel = vowelStr;
+        }
 
         // Фонетические правила соединения
         if ((char === 'א' || char === 'ע') && vowelStr) {
@@ -209,7 +220,14 @@ export function generateHebrewTranscription(text: string): string {
           else if (vowelStr === 'е') result += 'е';
           else if (vowelStr === 'у') result += 'ю';
           else if (vowelStr === 'о') result += 'йо';
-          else result += 'и';
+          else if (vowelStr === 'и') {
+            // Хирик под йодом: если перед ним была гласная (как в מַיִם, בַּיִת, שָׁמַיִם, יָדַיִם),
+            // йод сохраняет функцию согласного [j] перед [i] -> «йи» (мáйим, бáйит).
+            // В начале слова или после согласной без гласной -> «и» (исраэль).
+            result += prevVowel ? 'йи' : 'и';
+          } else {
+            result += 'и';
+          }
         } else if (char === 'ו' && (consonant === 'у' || consonant === 'о')) {
           result += consonant;
         } else {

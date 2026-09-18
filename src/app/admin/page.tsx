@@ -38,6 +38,7 @@ import {
   Save,
   Send,
   PenTool,
+  Link2,
 } from 'lucide-react';
 import { getLessonById, LESSONS_CATALOG } from '@/data/lessonsData';
 import { loadLocalCallLogs } from '@/lib/storage';
@@ -204,6 +205,7 @@ export default function AdminPage() {
   const [promoCreating, setPromoCreating] = useState(false);
   const [promoSuccess, setPromoSuccess] = useState<string | null>(null);
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
+  const [copiedLink, setCopiedLink] = useState<string | null>(null);
 
   // Sub action state
   const [actionLoading, setActionLoading] = useState<string | null>(null);
@@ -579,6 +581,17 @@ export default function AdminPage() {
     navigator.clipboard.writeText(code);
     setCopiedCode(code);
     setTimeout(() => setCopiedCode(null), 2000);
+  };
+
+  // Copy referral link to clipboard (?promo=...)
+  const handleCopyLink = (code: string) => {
+    const origin = typeof window !== 'undefined' && window.location.origin
+      ? window.location.origin
+      : 'https://ulpana-hebrew.vercel.app';
+    const link = `${origin}/?promo=${encodeURIComponent(code)}`;
+    navigator.clipboard.writeText(link);
+    setCopiedLink(code);
+    setTimeout(() => setCopiedLink(null), 2500);
   };
 
   if (loading) {
@@ -1148,17 +1161,35 @@ export default function AdminPage() {
 
               <form onSubmit={handleCreatePromo} className="flex flex-col gap-3.5 mt-2">
                 <div>
-                  <label className="text-xs font-bold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider block mb-1.5">
-                    Код промокода
-                  </label>
+                  <div className="flex items-center justify-between mb-1.5 flex-wrap gap-1">
+                    <label className="text-xs font-bold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider">
+                      Код промокода
+                    </label>
+                    <div className="flex items-center gap-1 flex-wrap">
+                      <span className="text-[10px] text-zinc-400">Каналы:</span>
+                      {['FB', 'INSTA', 'LATTE', 'MOMS', 'OLE2026'].map((preset) => (
+                        <button
+                          key={preset}
+                          type="button"
+                          onClick={() => setNewPromoCode(preset)}
+                          className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-zinc-100 hover:bg-amber-100 hover:text-amber-800 dark:bg-zinc-800 dark:hover:bg-amber-950/60 dark:hover:text-amber-300 transition text-zinc-600 dark:text-zinc-400"
+                        >
+                          {preset}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                   <input
                     type="text"
                     required
-                    placeholder="Например: SHALOM2026"
+                    placeholder="Например: FB или SHALOM2026"
                     value={newPromoCode}
                     onChange={(e) => setNewPromoCode(e.target.value.toUpperCase())}
                     className="w-full px-4 py-2.5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800 font-mono font-bold uppercase text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
                   />
+                  <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-1 font-mono">
+                    Ссылка: ?promo={newPromoCode || 'КОД'}
+                  </p>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
@@ -1244,6 +1275,19 @@ export default function AdminPage() {
                                   <Check className="w-3.5 h-3.5 text-emerald-500" />
                                 ) : (
                                   <Copy className="w-3.5 h-3.5" />
+                                )}
+                              </button>
+                              <button
+                                onClick={() => handleCopyLink(p.code)}
+                                className="p-1 text-zinc-400 hover:text-blue-600 dark:hover:text-blue-400 transition"
+                                title="Скопировать прямую ссылку с промокодом (?promo=...)"
+                              >
+                                {copiedLink === p.code ? (
+                                  <span className="text-[10px] bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-1.5 py-0.5 rounded font-sans font-bold">
+                                    Ссылка скопирована!
+                                  </span>
+                                ) : (
+                                  <Link2 className="w-3.5 h-3.5" />
                                 )}
                               </button>
                             </div>
