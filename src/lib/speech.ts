@@ -64,9 +64,8 @@ const PHONETIC_CORRECTIONS: [RegExp, string][] = [
   [/(^|[\s.,!?:;«»"״׳()[\]{}—])בְּטֶח(?=[\s.,!?:;«»"״׳()[\]{}—]|$)/g, '$1בֶּטַח'],
   [/(^|[\s.,!?:;«»"״׳()[\]{}—])מְרוּהֶטֶת(?=[\s.,!?:;«»"״׳()[\]{}—]|$)/g, '$1מְרוֹהֶטֶת'],
   [/(^|[\s.,!?:;«»"״׳()[\]{}—])סָבָא(?=[\s.,!?:;«»"״׳()[\]{}—]|$)/g, '$1סַבָּא'],
-  // Живой сленг: «сабáба» с естественным разговорным ударением на предпоследний слог (милель: са-БА-ба)
-  // Композиция סַבָּ בָּה фиксирует ударение на первом слоге основы סַבָּ [БА] и безударном втором בָּה без пауз
-  [/(^|[\s.,!?:;«»"״׳()[\]{}—])(?:סַבָּבָה|סַבָּבָּה|סבבה)(?=[\s.,!?:;«»"״׳()[\]{}—]|$)/g, '$1סַבָּ בָּה'],
+  // Нормализация сленга: приводим негласованное «סבבה» к כתיב מלא с огласовками סַבָּבָה (цельное слово без пробелов)
+  [/(^|[\s.,!?:;«»"״׳()[\]{}—])סבבה(?=[\s.,!?:;«»"״׳()[\]{}—]|$)/g, '$1סַבָּבָה'],
 
   // 2. Сеголаты и слова с ударением на первый слог (милель), если поданы без огласовок
   [/(^|[\s.,!?:;«»"״׳()[\]{}—])בטח(?=[\s.,!?:;«»"״׳()[\]{}—]|$)/g, '$1בֶּטַח'],
@@ -262,12 +261,27 @@ export function playFallbackAudio(
 }
 
 /**
+ * Локальный реестр студийных записей для сленговых и исключительных слов,
+ * отсутствующих в академическом словаре Pealim
+ */
+const CURATED_STUDIO_AUDIO: Record<string, string> = {
+  'סבבה': '/audio/words/sababa.mp3',
+  'סַבָּבָה': '/audio/words/sababa.mp3',
+  'סַבָּבָּה': '/audio/words/sababa.mp3',
+};
+
+/**
  * Поиск студийной аудиозаписи слова из мастер-словаря Pealim (только для точных словарных форм)
  */
 export function getStudioAudioForWord(word: string): string | null {
   if (!word) return null;
   const clean = stripNikkud(word).trim();
   if (!clean || clean.includes(' ')) return null;
+
+  // 1. Проверяем наличие в кастомном реестре исключений (сленг)
+  if (CURATED_STUDIO_AUDIO[clean] || CURATED_STUDIO_AUDIO[word.trim()]) {
+    return CURATED_STUDIO_AUDIO[clean] || CURATED_STUDIO_AUDIO[word.trim()];
+  }
 
   try {
     const entry = PEALIM_MASTER_LEXICON[clean];
@@ -441,24 +455,24 @@ export function speakHebrew(
           }
         }, maxDurationMs);
 
-        // Запуск с микрозадержкой для предотвращения бага cancel()->speak() в Chromium
-        setTimeout(() => {
-          try {
-            window.speechSynthesis.speak(utterance);
-            if (window.speechSynthesis.paused) {
-              window.speechSynthesis.resume();
-            }
-          } catch (err: any) {
-            if (err?.name === 'NotAllowedError') {
-              notifyAudioBlocked('tts_not_allowed');
-            }
-            if (speechSafetyTimer) {
-              clearTimeout(speechSafetyTimer);
-              speechSafetyTimer = null;
-            }
-            playFallbackAudio(speechText, rate).then(() => finish());
+        // ВАЖНО: Запуск СТРОГО СИНХРОННЫЙ!
+        // Никаких setTimeout(..., 15)! Мобильные браузеры (iOS Safari / Android Chrome) требуют
+        // воспроизведения звука строго внутри пользовательского жеста (User Activation).
+        try {
+          window.speechSynthesis.speak(utterance);
+          if (window.speechSynthesis.paused) {
+            window.speechSynthesis.resume();
           }
-        }, 15);
+        } catch (err: any) {
+          if (err?.name === 'NotAllowedError') {
+            notifyAudioBlocked('tts_not_allowed');
+          }
+          if (speechSafetyTimer) {
+            clearTimeout(speechSafetyTimer);
+            speechSafetyTimer = null;
+          }
+          playFallbackAudio(speechText, rate).then(() => finish());
+        }
       } catch (err: any) {
         if (err?.name === 'NotAllowedError') {
           notifyAudioBlocked('tts_not_allowed');

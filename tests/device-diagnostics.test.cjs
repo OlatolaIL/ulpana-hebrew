@@ -16,8 +16,8 @@ test('Device diagnostics module collects complete diagnostic snapshot', async ()
   assert.ok(report.pwaAndCache, 'Report must have PWA and cache data');
   assert.ok(report.speechSynthesis, 'Report must have speech synthesis data');
   assert.ok(report.phoneticTransformations, 'Report must have phonetic transformations');
-  assert.equal(report.phoneticTransformations['סבבה'], 'סַבָּ בָּה');
-  assert.equal(report.phoneticTransformations['סַבָּבָה'], 'סַבָּ בָּה');
+  assert.equal(report.phoneticTransformations['סבבה'], 'סַבָּבָה');
+  assert.equal(report.phoneticTransformations['סַבָּבָה'], 'סַבָּבָה');
   assert.ok(report.liveSpeechTest, 'Report must have live speech test result');
 });
 

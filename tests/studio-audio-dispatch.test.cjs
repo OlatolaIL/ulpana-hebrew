@@ -100,10 +100,25 @@ test('speakHebrew: plays studio audio for single words when available', async (t
     assert.equal(playedUrls.length, 2);
     assert.equal(playedUrls[1], 'https://audio.pealim.com/v0/18/18fljifnr07w9.mp3');
 
+    // Curated studio audio for slang words (sababa)
+    await speakHebrew('סבבה');
+    assert.equal(playedUrls.length, 3);
+    assert.equal(playedUrls[2], '/audio/words/sababa.mp3');
+
+    await speakHebrew('סַבָּבָה');
+    assert.equal(playedUrls.length, 4);
+    assert.equal(playedUrls[3], '/audio/words/sababa.mp3');
+
     stopSpeech();
   } finally {
     global.Audio = originalAudio;
     global.window = originalWindow;
     stopSpeech();
   }
+});
+
+test('getStudioAudioForWord: curated studio audio overrides for slang words (סבבה)', () => {
+  assert.equal(getStudioAudioForWord('סבבה'), '/audio/words/sababa.mp3');
+  assert.equal(getStudioAudioForWord('סַבָּבָה'), '/audio/words/sababa.mp3');
+  assert.equal(getStudioAudioForWord('סַבָּבָּה'), '/audio/words/sababa.mp3');
 });

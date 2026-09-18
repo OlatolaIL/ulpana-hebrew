@@ -133,10 +133,10 @@ test('generateHebrewTranscription correctly renders dual and diphthong endings w
   assert.equal(generateHebrewTranscription('פַּעֲמַיִם'), 'паамайим');
 });
 
-test('cleanHebrewForSpeech prepares sababa with penultimate stress phonetic form (סַבָּ בָּה)', () => {
+test('cleanHebrewForSpeech normalizes unpointed sababa to pointed form (סַבָּבָה) without destructive space splitting', () => {
   const { cleanHebrewForSpeech } = require('../src/lib/speech.ts');
-  assert.equal(cleanHebrewForSpeech('סבבה'), 'סַבָּ בָּה');
-  assert.equal(cleanHebrewForSpeech('סַבָּבָה'), 'סַבָּ בָּה');
-  assert.equal(cleanHebrewForSpeech('סַבָּבָּה'), 'סַבָּ בָּה');
+  assert.equal(cleanHebrewForSpeech('סבבה'), 'סַבָּבָה');
+  assert.equal(cleanHebrewForSpeech('סַבָּבָה'), 'סַבָּבָה');
+  assert.equal(cleanHebrewForSpeech('סַבָּבָּה'), 'סַבָּבָּה');
 });
 
