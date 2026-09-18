@@ -11,10 +11,11 @@ interface VirtualHebrewKeyboardProps {
   disabled?: boolean;
 }
 
-// Стандартная израильская раскладка клавиатуры иврита (визуальный порядок слева→направо)
-const ROW_1 = ['פ', 'ם', 'ן', 'ו', 'ט', 'א', 'ר', 'ק'];
-const ROW_2 = ['ף', 'ך', 'ל', 'ח', 'י', 'ע', 'כ', 'ג', 'ד', 'ש'];
-const ROW_3 = ['ץ', 'ת', 'צ', 'מ', 'נ', 'ה', 'ב', 'ס', 'ז'];
+// Стандартная израильская раскладка клавиатуры (визуальный порядок слева→направо, как на физической клавиатуре)
+// ק = позиция E (QWERTY), פ = позиция P (QWERTY) → ק слева, פ справа
+const ROW_1 = ['ק', 'ר', 'א', 'ט', 'ו', 'ן', 'ם', 'פ'];
+const ROW_2 = ['ש', 'ד', 'ג', 'כ', 'ע', 'י', 'ח', 'ל', 'ך', 'ף'];
+const ROW_3 = ['ז', 'ס', 'ב', 'ה', 'נ', 'מ', 'צ', 'ת', 'ץ'];
 const PUNCTUATION = ['.', ',', '!', '?', '"'];
 
 export const VirtualHebrewKeyboard: React.FC<VirtualHebrewKeyboardProps> = ({
@@ -26,6 +27,7 @@ export const VirtualHebrewKeyboard: React.FC<VirtualHebrewKeyboardProps> = ({
 }) => {
   return (
     <div
+      dir="ltr"
       className="w-full max-w-2xl mx-auto p-2 sm:p-3 bg-zinc-100 dark:bg-zinc-800/90 rounded-2xl border border-zinc-200 dark:border-zinc-750 shadow-inner select-none space-y-1.5 sm:space-y-2"
     >
       {/* Ряд 1 */}
