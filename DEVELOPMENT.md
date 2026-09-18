@@ -230,6 +230,19 @@ ChatGPT — архитектор и независимая приёмка; Gemin
   4. Обновлены юнит-тесты в `tests/transcription-preserve-vav.test.cjs`.
 - Проверки: 186/186 тестов (`npm test`, 0 failures), `npm run typecheck` (0 ошибок), `npm run audit:intent` (100% зелёный), `npm run build` (38/38 routes успешно скомпилированы). Изменения отправлены в GitHub `origin/main` (`2bc8bf3`).
 
+**18.09.2026 — Регистрация официального YouTube-канала Ульпана и пресет промокода YT:**
+- В `growth/CHANNELS_AND_ASSETS.md` зафиксирован новый официальный YouTube-канал Ульпана: ID `UC1kWxNhUydNncIRzTbBzWJw`, публичный URL `https://www.youtube.com/channel/UC1kWxNhUydNncIRzTbBzWJw`, Studio URL `https://studio.youtube.com/channel/UC1kWxNhUydNncIRzTbBzWJw`.
+- В `src/app/admin/page.tsx` добавлен пресет `YT` (30 дней PRO, 500 активаций, описание видео, Shorts и закрепленный комментарий) в `CHANNEL_PRESETS` для автоматической генерации ссылок вида `https://ulpana-hebrew.vercel.app/?promo=YT` в 1 клик.
+- Проверки: `tests/promo-capture-and-management.test.cjs` (5/5 pass), `npm test` (186/186 pass), `npm run audit:intent` (100% зелёный).
+
+**18.09.2026 — Внедрение экспресс-диагностики аудио и TTS в шапку (Header JSON Exporter):**
+- Для выявления причин специфичного поведения мобильных движков речи прямо на реальных устройствах внедрен 1-клик инструмент сбора телеметрии:
+  1. Создан модуль `src/lib/deviceDiagnostics.ts`: собирает UserAgent, платформу, PWA Service Worker статус, кэш `caches.keys()`, полный список голосов Web Speech API (`speechSynthesis.getVoices()`), фильтрованные ивритские голоса, результат прогона `cleanHebrewForSpeech('סַבָּבָה')` и живой тест произношения со временем отклика.
+  2. Создано модальное окно `src/components/DeviceDiagnosticsModal.tsx`: визуализирует ключевые параметры, предоставляет 1-клик кнопки «Скопировать JSON в буфер» и «Скачать файл», а также повторное воспроизведение слова.
+  3. В `src/components/Navbar.tsx` в шапку добавлена компактная кнопка с иконкой пульса (`Activity`). По нажатию автоматически запускается тест, скачивается файл `ulpana-speech-diag-*.json`, данные копируются в буфер обмена и открывается модальное окно. Поддерживается автозапуск по ссылке `?diag=1`.
+  4. Добавлены тесты `tests/device-diagnostics.test.cjs` (3/3 pass).
+- Проверки: 189/189 тестов (`npm test`, 0 failures), `npm run typecheck` (0 ошибок), `npm run audit:intent` (100% зелёный), `npm run build` (38/38 routes скомпилированы).
+
 Историческая сверка 23 замечаний завершена: 11 подтверждено, 6 частично, 4 предложения, 1 опровергнуто, 1 недостаточно оснований. Ревью pilot-01-05-review.md и pilot-remediation.json сохраняют исходные вердикты отдельно от состояния исправлений; не начинать сверку заново.
 
 ### Текущий кандидат и единственный следующий шаг разработчика

@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import {
   BookOpen,
@@ -15,11 +15,19 @@ import {
   HelpCircle,
   MessageSquare,
   LogIn,
+  Activity,
+  RefreshCw,
 } from 'lucide-react';
 import { UserProfile } from '@/types';
 import { isVipUser } from '@/lib/vipUsers';
 import { IS_EARLY_ACCESS_FREE } from '@/lib/config';
 import { TierBadge } from './TierBadge';
+import {
+  collectDeviceDiagnostics,
+  downloadDiagnosticsFile,
+  DeviceDiagnosticsReport,
+} from '@/lib/deviceDiagnostics';
+import { DeviceDiagnosticsModal } from './DeviceDiagnosticsModal';
 
 interface NavbarProps {
   currentView: 'map' | 'lesson' | 'flashcards' | 'dictionary' | 'alphabet';
@@ -48,6 +56,37 @@ export const Navbar: React.FC<NavbarProps> = ({
 }) => {
   const isPro = userProfile.subscriptionTier === 'pro' || userProfile.subscriptionTier === 'admin';
   const isAdmin = isVipUser(userProfile.username, userProfile.telegramId, userProfile.name);
+
+  const [isDiagnosing, setIsDiagnosing] = useState(false);
+  const [diagReport, setDiagReport] = useState<DeviceDiagnosticsReport | null>(null);
+  const [isDiagModalOpen, setIsDiagModalOpen] = useState(false);
+
+  const handleRunDiagnostics = async () => {
+    if (isDiagnosing) return;
+    setIsDiagnosing(true);
+    try {
+      const report = await collectDeviceDiagnostics();
+      setDiagReport(report);
+      downloadDiagnosticsFile(report);
+      try {
+        await navigator.clipboard.writeText(JSON.stringify(report, null, 2));
+      } catch {}
+      setIsDiagModalOpen(true);
+    } catch (e) {
+      console.error('Diagnostic error:', e);
+    } finally {
+      setIsDiagnosing(false);
+    }
+  };
+
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      if (params.has('diag') || params.has('tts_diag')) {
+        handleRunDiagnostics();
+      }
+    }
+  }, []);
 
   return (
     <>
@@ -141,6 +180,21 @@ export const Navbar: React.FC<NavbarProps> = ({
               title="Статус открытого бета-тестирования и доступ PRO"
             >
               <span className="tracking-wide">{IS_EARLY_ACCESS_FREE ? 'БЕТА' : 'PRO'}</span>
+            </button>
+
+            {/* Кнопка сбора диагностики аудио/речи для устранения багов на устройствах */}
+            <button
+              onClick={handleRunDiagnostics}
+              disabled={isDiagnosing}
+              className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl border border-violet-300/80 dark:border-violet-800/60 bg-violet-50/80 dark:bg-violet-950/30 text-violet-700 dark:text-violet-300 hover:bg-violet-100 dark:hover:bg-violet-900/50 flex items-center justify-center shadow-xs transition active:scale-95 shrink-0"
+              title="Диагностика синтеза речи и аудио устройства (скачать JSON)"
+              aria-label="Диагностика аудио устройства"
+            >
+              {isDiagnosing ? (
+                <RefreshCw className="w-4 h-4 animate-spin text-violet-600 dark:text-violet-400" />
+              ) : (
+                <Activity className="w-4.5 h-4.5 text-violet-600 dark:text-violet-400 shrink-0" />
+              )}
             </button>
 
             {/* Быстрый переключатель шрифта (десктоп) */}
@@ -288,6 +342,13 @@ export const Navbar: React.FC<NavbarProps> = ({
           </button>
         </nav>
       )}
+
+      {/* Модальное окно диагностики аудио и TTS устройства */}
+      <DeviceDiagnosticsModal
+        isOpen={isDiagModalOpen}
+        onClose={() => setIsDiagModalOpen(false)}
+        report={diagReport}
+      />
     </>
   );
 };

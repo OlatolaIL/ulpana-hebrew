@@ -166,6 +166,7 @@ interface AdminEssay {
 const CHANNEL_PRESETS = [
   { code: 'FB', name: 'Facebook', days: 30, uses: 100, desc: 'Кнопка на странице FB / реклама' },
   { code: 'INSTA', name: 'Instagram', days: 14, uses: 500, desc: 'Ссылка в шапке профиля (био) / Reels' },
+  { code: 'YT', name: 'YouTube', days: 30, uses: 500, desc: 'Описание видео, Shorts и закрепленный комментарий' },
   { code: 'LATTE', name: 'Тыквенный латте', days: 14, uses: 500, desc: 'Посты и комментарии в группе FB' },
   { code: 'MOMS', name: 'Мамы Израиля', days: 30, uses: 300, desc: 'Группы мам и родительские чаты' },
   { code: 'OLE2026', name: 'Оле Хадаш', days: 30, uses: 1000, desc: 'Сообщества новых репатриантов' },
@@ -542,7 +543,7 @@ export default function AdminPage() {
       const existingCodes = new Set(promos.map((p) => p.code.toUpperCase()));
       const toCreate = CHANNEL_PRESETS.filter((p) => !existingCodes.has(p.code));
       if (toCreate.length === 0) {
-        alert('Все стандартные канальные промокоды (FB, INSTA, LATTE, MOMS, OLE2026) уже созданы!');
+        alert('Все стандартные канальные промокоды (FB, INSTA, YT, LATTE, MOMS, OLE2026) уже созданы!');
         return;
       }
       for (const item of toCreate) {
