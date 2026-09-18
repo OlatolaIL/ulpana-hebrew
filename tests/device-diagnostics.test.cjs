@@ -52,7 +52,11 @@ test('DeviceDiagnosticsModal renders 1-click copy, download and live speech test
     'Modal must support downloading diagnostics file'
   );
   assert.ok(
-    content.includes('handlePlayAgain'),
-    'Modal must support replaying live speech test'
+    content.includes('handlePlayVariant'),
+    'Modal must support replaying speech test variants'
+  );
+  assert.ok(
+    content.includes('SABABA_TEST_VARIANTS'),
+    'Modal must contain sababa phonetic test variants bench'
   );
 });
