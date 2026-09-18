@@ -1,5 +1,5 @@
 // Ulpana Hebrew - PWA Service Worker
-const CACHE_NAME = 'ulpana-hebrew-v3';
+const CACHE_NAME = 'ulpana-hebrew-v4';
 const STATIC_ASSETS = [
   '/',
   '/manifest.json',

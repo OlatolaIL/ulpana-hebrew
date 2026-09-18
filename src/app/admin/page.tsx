@@ -39,6 +39,7 @@ import {
   Send,
   PenTool,
   Link2,
+  X,
 } from 'lucide-react';
 import { getLessonById, LESSONS_CATALOG } from '@/data/lessonsData';
 import { loadLocalCallLogs } from '@/lib/storage';
@@ -162,6 +163,14 @@ interface AdminEssay {
   updated_at: string;
 }
 
+const CHANNEL_PRESETS = [
+  { code: 'FB', name: 'Facebook', days: 30, uses: 100, desc: 'Кнопка на странице FB / реклама' },
+  { code: 'INSTA', name: 'Instagram', days: 14, uses: 500, desc: 'Ссылка в шапке профиля (био) / Reels' },
+  { code: 'LATTE', name: 'Тыквенный латте', days: 14, uses: 500, desc: 'Посты и комментарии в группе FB' },
+  { code: 'MOMS', name: 'Мамы Израиля', days: 30, uses: 300, desc: 'Группы мам и родительские чаты' },
+  { code: 'OLE2026', name: 'Оле Хадаш', days: 30, uses: 1000, desc: 'Сообщества новых репатриантов' },
+];
+
 export default function AdminPage() {
   const [activeTab, setActiveTab] = useState<'stats' | 'users' | 'calls' | 'essays' | 'promos' | 'access'>('stats');
   const [loading, setLoading] = useState(true);
@@ -206,6 +215,8 @@ export default function AdminPage() {
   const [promoSuccess, setPromoSuccess] = useState<string | null>(null);
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const [copiedLink, setCopiedLink] = useState<string | null>(null);
+  const [isPromoModalOpen, setIsPromoModalOpen] = useState(false);
+  const [batchCreating, setBatchCreating] = useState(false);
 
   // Sub action state
   const [actionLoading, setActionLoading] = useState<string | null>(null);
@@ -516,6 +527,45 @@ export default function AdminPage() {
     }
   };
 
+  // Select channel preset with custom days & limits
+  const handleSelectPreset = (preset: (typeof CHANNEL_PRESETS)[0]) => {
+    setNewPromoCode(preset.code);
+    setNewPromoDays(String(preset.days));
+    setNewPromoUses(String(preset.uses));
+  };
+
+  // Batch create all missing marketing channels in 1 click
+  const handleBatchCreateChannels = async () => {
+    setBatchCreating(true);
+    setPromoSuccess(null);
+    try {
+      const existingCodes = new Set(promos.map((p) => p.code.toUpperCase()));
+      const toCreate = CHANNEL_PRESETS.filter((p) => !existingCodes.has(p.code));
+      if (toCreate.length === 0) {
+        alert('Все стандартные канальные промокоды (FB, INSTA, LATTE, MOMS, OLE2026) уже созданы!');
+        return;
+      }
+      for (const item of toCreate) {
+        await fetch('/api/admin/promos', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            code: item.code,
+            daysValid: item.days,
+            maxUses: item.uses,
+          }),
+        });
+      }
+      await fetchPromos();
+      setPromoSuccess(`Успешно созданы промокоды для каналов: ${toCreate.map((c) => c.code).join(', ')}!`);
+    } catch (e) {
+      console.error(e);
+      alert('Ошибка при создании промокодов каналов');
+    } finally {
+      setBatchCreating(false);
+    }
+  };
+
   // Create promo code
   const handleCreatePromo = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -536,6 +586,7 @@ export default function AdminPage() {
       if (res.ok) {
         setPromoSuccess(`Промокод "${data.promo.code}" успешно создан!`);
         setNewPromoCode('');
+        setIsPromoModalOpen(false);
         fetchPromos();
       } else {
         alert(data.error || 'Ошибка при создании промокода');
@@ -1167,14 +1218,19 @@ export default function AdminPage() {
                     </label>
                     <div className="flex items-center gap-1 flex-wrap">
                       <span className="text-[10px] text-zinc-400">Каналы:</span>
-                      {['FB', 'INSTA', 'LATTE', 'MOMS', 'OLE2026'].map((preset) => (
+                      {CHANNEL_PRESETS.map((preset) => (
                         <button
-                          key={preset}
+                          key={preset.code}
                           type="button"
-                          onClick={() => setNewPromoCode(preset)}
-                          className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-zinc-100 hover:bg-amber-100 hover:text-amber-800 dark:bg-zinc-800 dark:hover:bg-amber-950/60 dark:hover:text-amber-300 transition text-zinc-600 dark:text-zinc-400"
+                          onClick={() => handleSelectPreset(preset)}
+                          title={`${preset.name}: ${preset.days} дн. PRO, ${preset.uses} активаций`}
+                          className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded transition ${
+                            newPromoCode === preset.code
+                              ? 'bg-amber-500 text-white shadow-sm'
+                              : 'bg-zinc-100 hover:bg-amber-100 hover:text-amber-800 dark:bg-zinc-800 dark:hover:bg-amber-950/60 dark:hover:text-amber-300 text-zinc-600 dark:text-zinc-400'
+                          }`}
                         >
-                          {preset}
+                          {preset.code}
                         </button>
                       ))}
                     </div>
@@ -1182,14 +1238,21 @@ export default function AdminPage() {
                   <input
                     type="text"
                     required
-                    placeholder="Например: FB или SHALOM2026"
+                    placeholder="Например: INSTA, LATTE или SHALOM"
                     value={newPromoCode}
                     onChange={(e) => setNewPromoCode(e.target.value.toUpperCase())}
                     className="w-full px-4 py-2.5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800 font-mono font-bold uppercase text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
                   />
-                  <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-1 font-mono">
-                    Ссылка: ?promo={newPromoCode || 'КОД'}
-                  </p>
+                  {CHANNEL_PRESETS.find((c) => c.code === newPromoCode) ? (
+                    <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-1 font-medium">
+                      🎯 {CHANNEL_PRESETS.find((c) => c.code === newPromoCode)?.name}:{' '}
+                      {CHANNEL_PRESETS.find((c) => c.code === newPromoCode)?.desc}
+                    </p>
+                  ) : (
+                    <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-1 font-mono">
+                      Ссылка: ?promo={newPromoCode || 'КОД'}
+                    </p>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
@@ -1226,34 +1289,66 @@ export default function AdminPage() {
 
                 <button
                   type="submit"
-                  disabled={promoCreating}
+                  disabled={promoCreating || !newPromoCode.trim()}
                   className="w-full mt-2 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-600 hover:to-yellow-500 text-white font-bold text-sm flex items-center justify-center gap-2 transition shadow-md shadow-amber-500/20 active:scale-98 disabled:opacity-50"
                 >
                   <Plus className="w-4 h-4" />
                   <span>{promoCreating ? 'Создание...' : 'Создать промокод'}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setIsPromoModalOpen(true)}
+                  className="w-full py-2.5 rounded-xl border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800/60 font-semibold text-xs text-zinc-700 dark:text-zinc-300 transition flex items-center justify-center gap-1.5"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                  <span>Открыть окно с настройками каналов</span>
                 </button>
               </form>
             </div>
 
             {/* Promo Codes List */}
             <div className="lg:col-span-2 bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-sm overflow-hidden flex flex-col">
-              <div className="p-5 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
-                <h2 className="font-bold text-base text-zinc-900 dark:text-zinc-50">
-                  Активные промокоды
-                </h2>
-                <span className="text-xs text-zinc-400">Всего: {promos.length}</span>
+              <div className="p-5 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between flex-wrap gap-3">
+                <div className="flex items-center gap-2">
+                  <h2 className="font-bold text-base text-zinc-900 dark:text-zinc-50">
+                    Активные промокоды
+                  </h2>
+                  <span className="text-xs text-zinc-400 font-medium">({promos.length})</span>
+                </div>
+
+                <div className="flex items-center gap-2 flex-wrap">
+                  <button
+                    type="button"
+                    onClick={handleBatchCreateChannels}
+                    disabled={batchCreating}
+                    className="px-3 py-1.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-300 font-bold text-xs flex items-center gap-1.5 transition disabled:opacity-50 shadow-sm"
+                    title="Создать все промокоды каналов: INSTA, LATTE, MOMS, OLE2026"
+                  >
+                    <Sparkles className="w-3.5 h-3.5" />
+                    <span>{batchCreating ? 'Создание...' : '⚡ Создать все каналы (INSTA, LATTE, MOMS)'}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsPromoModalOpen(true)}
+                    className="px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center gap-1.5 transition shadow-sm active:scale-98"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>+ Создать (Окно)</span>
+                  </button>
+                </div>
               </div>
 
               {promos.length === 0 ? (
                 <div className="p-12 text-center text-zinc-400 text-sm">
-                  Промокодов пока нет. Создайте первый промокод в форме слева.
+                  Промокодов пока нет. Создайте первый промокод в форме слева или через кнопку выше.
                 </div>
               ) : (
                 <div className="overflow-x-auto flex-1">
                   <table className="w-full text-left text-sm">
                     <thead className="bg-zinc-50 dark:bg-zinc-800/50 text-zinc-500 dark:text-zinc-400 text-xs uppercase font-semibold">
                       <tr>
-                        <th className="px-5 py-3.5">Код</th>
+                        <th className="px-5 py-3.5">Код / Канал</th>
                         <th className="px-5 py-3.5">Период PRO</th>
                         <th className="px-5 py-3.5">Использовано</th>
                         <th className="px-5 py-3.5">Статус</th>
@@ -1261,79 +1356,227 @@ export default function AdminPage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
-                      {promos.map((p) => (
-                        <tr key={p.id} className="hover:bg-zinc-50/80 dark:hover:bg-zinc-800/40 transition">
-                          <td className="px-5 py-3.5 font-mono font-bold text-zinc-900 dark:text-zinc-100">
-                            <div className="flex items-center gap-2">
-                              <span>{p.code}</span>
-                              <button
-                                onClick={() => handleCopyCode(p.code)}
-                                className="p-1 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 transition"
-                                title="Скопировать промокод"
-                              >
-                                {copiedCode === p.code ? (
-                                  <Check className="w-3.5 h-3.5 text-emerald-500" />
-                                ) : (
-                                  <Copy className="w-3.5 h-3.5" />
-                                )}
-                              </button>
-                              <button
-                                onClick={() => handleCopyLink(p.code)}
-                                className="p-1 text-zinc-400 hover:text-blue-600 dark:hover:text-blue-400 transition"
-                                title="Скопировать прямую ссылку с промокодом (?promo=...)"
-                              >
-                                {copiedLink === p.code ? (
-                                  <span className="text-[10px] bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-1.5 py-0.5 rounded font-sans font-bold">
-                                    Ссылка скопирована!
+                      {promos.map((p) => {
+                        const matchedPreset = CHANNEL_PRESETS.find(
+                          (c) => c.code === p.code.toUpperCase()
+                        );
+                        return (
+                          <tr key={p.id} className="hover:bg-zinc-50/80 dark:hover:bg-zinc-800/40 transition">
+                            <td className="px-5 py-3.5 font-mono font-bold text-zinc-900 dark:text-zinc-100">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span>{p.code}</span>
+                                {matchedPreset && (
+                                  <span className="px-2 py-0.5 rounded-md text-[10px] font-sans font-semibold bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+                                    {matchedPreset.name}
                                   </span>
-                                ) : (
-                                  <Link2 className="w-3.5 h-3.5" />
                                 )}
+                                <button
+                                  onClick={() => handleCopyCode(p.code)}
+                                  className="p-1 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 transition rounded"
+                                  title="Скопировать только код"
+                                >
+                                  {copiedCode === p.code ? (
+                                    <Check className="w-3.5 h-3.5 text-emerald-500" />
+                                  ) : (
+                                    <Copy className="w-3.5 h-3.5" />
+                                  )}
+                                </button>
+                                <button
+                                  onClick={() => handleCopyLink(p.code)}
+                                  className="p-1 text-zinc-400 hover:text-blue-600 dark:hover:text-blue-400 transition rounded"
+                                  title="Скопировать готовую ссылку с промокодом (?promo=...)"
+                                >
+                                  {copiedLink === p.code ? (
+                                    <span className="text-[10px] bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-1.5 py-0.5 rounded font-sans font-bold">
+                                      Ссылка скопирована!
+                                    </span>
+                                  ) : (
+                                    <Link2 className="w-3.5 h-3.5" />
+                                  )}
+                                </button>
+                              </div>
+                            </td>
+
+                            <td className="px-5 py-3.5 font-semibold text-zinc-700 dark:text-zinc-300">
+                              {p.daysValid} дней
+                            </td>
+
+                            <td className="px-5 py-3.5">
+                              <div className="flex items-center gap-2">
+                                <span className="font-bold text-xs text-zinc-900 dark:text-zinc-100">
+                                  {p.usedCount} / {p.maxUses}
+                                </span>
+                              </div>
+                            </td>
+
+                            <td className="px-5 py-3.5">
+                              <button
+                                onClick={() => handleTogglePromo(p.id, p.isActive)}
+                                className={`px-2 py-0.5 rounded-full text-xs font-bold transition ${
+                                  p.isActive
+                                    ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300'
+                                    : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500'
+                                }`}
+                              >
+                                {p.isActive ? 'Активен' : 'Отключен'}
                               </button>
-                            </div>
-                          </td>
+                            </td>
 
-                          <td className="px-5 py-3.5 font-semibold text-zinc-700 dark:text-zinc-300">
-                            {p.daysValid} дней
-                          </td>
-
-                          <td className="px-5 py-3.5">
-                            <div className="flex items-center gap-2">
-                              <span className="font-bold text-xs text-zinc-900 dark:text-zinc-100">
-                                {p.usedCount} / {p.maxUses}
-                              </span>
-                            </div>
-                          </td>
-
-                          <td className="px-5 py-3.5">
-                            <button
-                              onClick={() => handleTogglePromo(p.id, p.isActive)}
-                              className={`px-2 py-0.5 rounded-full text-xs font-bold transition ${
-                                p.isActive
-                                  ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300'
-                                  : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500'
-                              }`}
-                            >
-                              {p.isActive ? 'Активен' : 'Отключен'}
-                            </button>
-                          </td>
-
-                          <td className="px-5 py-3.5 text-right">
-                            <button
-                              onClick={() => handleDeletePromo(p.id)}
-                              className="p-1.5 rounded-lg text-zinc-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 transition"
-                              title="Удалить промокод"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
+                            <td className="px-5 py-3.5 text-right">
+                              <button
+                                onClick={() => handleDeletePromo(p.id)}
+                                className="p-1.5 rounded-lg text-zinc-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 transition"
+                                title="Удалить промокод"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
               )}
             </div>
+
+            {/* MODAL: Отдельное окно создания промокода с индивидуальными параметрами для каждого канала */}
+            {isPromoModalOpen && (
+              <div
+                role="dialog"
+                aria-modal="true"
+                className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in"
+              >
+                <div className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-3xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6 space-y-5 shadow-2xl">
+                  <button
+                    type="button"
+                    onClick={() => setIsPromoModalOpen(false)}
+                    className="absolute top-4 right-4 p-2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-10 h-10 rounded-2xl bg-amber-500/10 text-amber-500 flex items-center justify-center">
+                      <KeyRound className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h2 className="text-lg font-bold text-zinc-900 dark:text-zinc-50">
+                        Параметры промокода
+                      </h2>
+                      <p className="text-xs text-zinc-500">
+                        Выберите канал или задайте индивидуальные параметры вручную
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Выбор готового канала */}
+                  <div>
+                    <label className="text-xs font-bold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider block mb-2">
+                      Целевой канал продвижения:
+                    </label>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                      {CHANNEL_PRESETS.map((preset) => {
+                        const isSelected = newPromoCode === preset.code;
+                        return (
+                          <button
+                            key={preset.code}
+                            type="button"
+                            onClick={() => handleSelectPreset(preset)}
+                            className={`p-2.5 rounded-2xl border text-left transition flex flex-col gap-1 ${
+                              isSelected
+                                ? 'border-amber-500 bg-amber-50 dark:bg-amber-950/40 text-amber-900 dark:text-amber-200 shadow-sm ring-2 ring-amber-500/20'
+                                : 'border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/50'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between">
+                              <span className="font-mono font-bold text-xs">{preset.code}</span>
+                              <span className="text-[10px] text-zinc-400 font-semibold">{preset.days} дн.</span>
+                            </div>
+                            <span className="text-xs font-semibold text-zinc-800 dark:text-zinc-200 truncate">
+                              {preset.name}
+                            </span>
+                            <span className="text-[10px] text-zinc-400 line-clamp-1">
+                              {preset.desc}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Форма параметров */}
+                  <form onSubmit={handleCreatePromo} className="space-y-4 pt-2 border-t border-zinc-200 dark:border-zinc-800">
+                    <div>
+                      <label className="text-xs font-bold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider block mb-1.5">
+                        Код промокода
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="Например: INSTA, LATTE или MOMS"
+                        value={newPromoCode}
+                        onChange={(e) => setNewPromoCode(e.target.value.toUpperCase())}
+                        className="w-full px-4 py-2.5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800 font-mono font-bold uppercase text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                      />
+                      <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-1 font-mono">
+                        Готовая ссылка для рекламы: ?promo={newPromoCode || 'КОД'}
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-xs font-bold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider block mb-1.5">
+                          Срок PRO (дней)
+                        </label>
+                        <input
+                          type="number"
+                          min="1"
+                          max="3650"
+                          required
+                          value={newPromoDays}
+                          onChange={(e) => setNewPromoDays(e.target.value)}
+                          className="w-full px-4 py-2.5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800 font-bold text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-xs font-bold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider block mb-1.5">
+                          Лимит активаций
+                        </label>
+                        <input
+                          type="number"
+                          min="1"
+                          max="100000"
+                          required
+                          value={newPromoUses}
+                          onChange={(e) => setNewPromoUses(e.target.value)}
+                          className="w-full px-4 py-2.5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800 font-bold text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex gap-3 pt-2">
+                      <button
+                        type="button"
+                        onClick={() => setIsPromoModalOpen(false)}
+                        className="flex-1 py-3 rounded-xl border border-zinc-200 dark:border-zinc-800 font-semibold text-sm hover:bg-zinc-50 dark:hover:bg-zinc-800 transition"
+                      >
+                        Отмена
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={promoCreating || !newPromoCode.trim()}
+                        className="flex-1 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-600 hover:to-yellow-500 text-white font-bold text-sm flex items-center justify-center gap-2 transition shadow-md shadow-amber-500/20 active:scale-98 disabled:opacity-50"
+                      >
+                        <Plus className="w-4 h-4" />
+                        <span>{promoCreating ? 'Создание...' : 'Создать промокод'}</span>
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
