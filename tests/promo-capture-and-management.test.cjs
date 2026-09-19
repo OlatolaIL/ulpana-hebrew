@@ -65,5 +65,5 @@ test('5. src/app/admin/page.tsx contains 1-click link copying and channel preset
 
   assert.ok(content.includes('handleCopyLink'), 'admin/page.tsx must implement handleCopyLink');
   assert.ok(content.includes('?promo='), 'admin/page.tsx must build ?promo= URLs');
-  assert.ok(content.includes('FB') && content.includes('INSTA') && content.includes('LATTE'), 'admin/page.tsx must contain channel presets');
+  assert.ok(content.includes('FB') && content.includes('INSTA') && content.includes('TIKTOK') && content.includes('LATTE'), 'admin/page.tsx must contain channel presets');
 });

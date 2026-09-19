@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Скрипт публикации постов в Telegram-канал @ulpana_il или группу
  * 
  * Использование:
@@ -30,6 +30,12 @@ const fileArg = args.find(a => a.startsWith('--file='));
 const filePath = fileArg ? fileArg.split('=')[1] : null;
 const chatArg = args.find(a => a.startsWith('--chat='));
 const targetChat = chatArg ? chatArg.split('=')[1] : defaultTargetChat;
+const videoArg = args.find(a => a.startsWith('--video='));
+const videoPath = videoArg ? videoArg.split('=')[1] : null;
+const btnTextArg = args.find(a => a.startsWith('--btn-text='));
+const customBtnText = btnTextArg ? btnTextArg.split('=')[1] : null;
+const btnUrlArg = args.find(a => a.startsWith('--btn-url='));
+const customBtnUrl = btnUrlArg ? btnUrlArg.slice(btnUrlArg.indexOf('=') + 1) : null;
 
 // Образец аутентичного поста «Ульпан Алеф»
 const samplePost = {
@@ -65,8 +71,8 @@ const samplePost = {
 
 async function main() {
   let messageText = samplePost.html;
-  let btnText = samplePost.buttonText;
-  let btnUrl = samplePost.buttonUrl;
+  let btnText = customBtnText || samplePost.buttonText;
+  let btnUrl = customBtnUrl || samplePost.buttonUrl;
 
   if (filePath && fs.existsSync(filePath)) {
     messageText = fs.readFileSync(filePath, 'utf8');
@@ -92,7 +98,41 @@ async function main() {
     process.exit(1);
   }
 
-  console.log(`📡 Отправка сообщения через Telegram Bot API в ${targetChat}...`);
+  if (videoPath && fs.existsSync(videoPath)) {
+    console.log(`📡 Загрузка и отправка видео через sendVideo в ${targetChat}...`);
+    console.log(`📁 Видео: ${videoPath} (${(fs.statSync(videoPath).size / 1024 / 1024).toFixed(2)} MB)`);
+
+    const formData = new FormData();
+    formData.append('chat_id', targetChat);
+    const videoBuffer = fs.readFileSync(videoPath);
+    formData.append('video', new Blob([videoBuffer], { type: 'video/mp4' }), path.basename(videoPath));
+    formData.append('caption', messageText);
+    formData.append('parse_mode', 'HTML');
+    formData.append('supports_streaming', 'true');
+    if (btnText && btnUrl) {
+      formData.append('reply_markup', JSON.stringify({
+        inline_keyboard: [[{ text: btnText, url: btnUrl }]]
+      }));
+    }
+
+    try {
+      const res = await fetch(`https://api.telegram.org/bot${botToken}/sendVideo`, {
+        method: 'POST',
+        body: formData
+      });
+      const data = await res.json();
+      if (data.ok) {
+        console.log(`🎉 ВИДЕО УСПЕШНО ОПУБЛИКОВАНО В ТЕЛЕГРАМ! Message ID: ${data.result.message_id}`);
+      } else {
+        console.error('❌ Ошибка Telegram API:', data.description || data);
+      }
+    } catch (err) {
+      console.error('❌ Сетевая ошибка при отправке видео:', err.message);
+    }
+    return;
+  }
+
+  console.log(`📡 Отправка текстового сообщения через Telegram Bot API в ${targetChat}...`);
 
   const payload = {
     chat_id: targetChat,

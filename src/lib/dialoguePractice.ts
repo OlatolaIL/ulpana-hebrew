@@ -22,7 +22,6 @@ export async function requestDialogueEvaluation(
     (value.isCorrect && value.assessment === 'incorrect')
   ) throw new Error('Invalid dialogue evaluation');
 
-  // This endpoint receives a transcript. It cannot measure pronunciation.
   return {
     isCorrect: value.isCorrect,
     score: value.score,
@@ -30,6 +29,8 @@ export async function requestDialogueEvaluation(
     feedbackRu: value.feedbackRu,
     userSpokenHebrew: String(input.userSpokenHebrew ?? ''),
     ...(typeof value.betterAlternative === 'string' ? { betterAlternative: value.betterAlternative } : {}),
+    ...(typeof value.pronunciationScore === 'number' ? { pronunciationScore: value.pronunciationScore } : {}),
+    ...(typeof value.pronunciationFeedbackRu === 'string' ? { pronunciationFeedbackRu: value.pronunciationFeedbackRu } : {}),
   };
 }
 

@@ -40,7 +40,9 @@ import {
   PenTool,
   Link2,
   X,
+  Video,
 } from 'lucide-react';
+import { AdminMarketingHub } from './components/AdminMarketingHub';
 import { getLessonById, LESSONS_CATALOG } from '@/data/lessonsData';
 import { loadLocalCallLogs } from '@/lib/storage';
 import { isVipUser } from '@/lib/vipUsers';
@@ -166,6 +168,7 @@ interface AdminEssay {
 const CHANNEL_PRESETS = [
   { code: 'FB', name: 'Facebook', days: 30, uses: 100, desc: 'Кнопка на странице FB / реклама' },
   { code: 'INSTA', name: 'Instagram', days: 14, uses: 500, desc: 'Ссылка в шапке профиля (био) / Reels' },
+  { code: 'TIKTOK', name: 'TikTok', days: 14, uses: 500, desc: 'Ссылка в описании профиля (био) / видео' },
   { code: 'YT', name: 'YouTube', days: 30, uses: 500, desc: 'Описание видео, Shorts и закрепленный комментарий' },
   { code: 'LATTE', name: 'Тыквенный латте', days: 14, uses: 500, desc: 'Посты и комментарии в группе FB' },
   { code: 'MOMS', name: 'Мамы Израиля', days: 30, uses: 300, desc: 'Группы мам и родительские чаты' },
@@ -173,7 +176,7 @@ const CHANNEL_PRESETS = [
 ];
 
 export default function AdminPage() {
-  const [activeTab, setActiveTab] = useState<'stats' | 'users' | 'calls' | 'essays' | 'promos' | 'access'>('stats');
+  const [activeTab, setActiveTab] = useState<'stats' | 'users' | 'calls' | 'essays' | 'promos' | 'access' | 'marketing'>('stats');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isDbConnected, setIsDbConnected] = useState(true);
@@ -835,6 +838,18 @@ export default function AdminPage() {
           >
             <ShieldCheck className="w-4 h-4" />
             <span>Доступ к контенту</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('marketing')}
+            className={`px-4 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 transition ${
+              activeTab === 'marketing'
+                ? 'bg-blue-600 text-white shadow-sm'
+                : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900'
+            }`}
+          >
+            <Video className="w-4 h-4" />
+            <span>Маркетинг & Контент</span>
           </button>
         </div>
 
@@ -2452,6 +2467,11 @@ export default function AdminPage() {
               </div>
             </div>
           </div>
+        )}
+
+        {/* TAB 7: MARKETING & CONTENT HUB */}
+        {activeTab === 'marketing' && (
+          <AdminMarketingHub />
         )}
       </main>
 

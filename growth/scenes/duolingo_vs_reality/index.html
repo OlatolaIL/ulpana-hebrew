@@ -1,0 +1,1072 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=390, height=844, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Duolingo vs Реальность — Ульпан Алеф</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700;800;900&family=Montserrat:wght@700;800;900&display=swap" rel="stylesheet">
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body {
+      width: 390px;
+      height: 844px;
+      overflow: hidden;
+      background: #090d16;
+      font-family: 'Rubik', sans-serif;
+      color: #fff;
+      position: relative;
+    }
+
+    /* Виртуальный экран мобильного */
+    #phone-container {
+      width: 390px;
+      height: 844px;
+      position: relative;
+      overflow: hidden;
+      background: #0f172a;
+    }
+
+    /* Динамические титры в стиле TikTok/Reels */
+    .reels-subtitles {
+      position: absolute;
+      top: 22px;
+      left: 16px;
+      right: 16px;
+      z-index: 1000;
+      text-align: center;
+      pointer-events: none;
+    }
+
+    .sub-badge {
+      display: inline-block;
+      font-family: 'Montserrat', sans-serif;
+      font-size: 21px;
+      font-weight: 900;
+      text-transform: uppercase;
+      padding: 8px 18px;
+      border-radius: 12px;
+      background: rgba(0, 0, 0, 0.88);
+      border: 2px solid #facc15;
+      color: #fff;
+      text-shadow: 0 2px 8px rgba(0,0,0,0.8);
+      box-shadow: 0 10px 25px rgba(0,0,0,0.6), 0 0 20px rgba(250, 204, 21, 0.4);
+      transform: scale(0.95);
+      animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    }
+
+    .sub-badge span.highlight {
+      color: #facc15;
+    }
+
+    .sub-badge span.red {
+      color: #ef4444;
+    }
+
+    .sub-badge span.green {
+      color: #22c55e;
+    }
+
+    @keyframes popIn {
+      0% { transform: scale(0.7); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    /* Базовый класс сцен */
+    .scene {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0;
+      pointer-events: none;
+      visibility: hidden;
+      transition: opacity 0.35s ease, transform 0.35s ease, visibility 0.35s;
+      transform: scale(0.98);
+    }
+
+    .scene.active {
+      opacity: 1;
+      pointer-events: auto;
+      visibility: visible;
+      transform: scale(1);
+    }
+
+    /* ========================================================
+       СЦЕНА 1: DUOLINGO (0s - 4.2s)
+       ======================================================== */
+    #scene-duo {
+      background: #58cc02;
+      color: #4b4b4b;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .duo-header {
+      padding: 44px 20px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #58cc02;
+    }
+
+    .duo-progress-bar {
+      flex: 1;
+      height: 16px;
+      background: #46a302;
+      border-radius: 10px;
+      margin: 0 14px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .duo-progress-fill {
+      width: 45%;
+      height: 100%;
+      background: #ffc800;
+      border-radius: 10px;
+    }
+
+    .duo-card {
+      flex: 1;
+      background: #ffffff;
+      border-top-left-radius: 28px;
+      border-top-right-radius: 28px;
+      padding: 70px 20px 30px;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.1);
+    }
+
+    .duo-prompt-title {
+      font-size: 19px;
+      font-weight: 800;
+      color: #3c3c3c;
+      margin-bottom: 24px;
+    }
+
+    .duo-mascot-row {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 30px;
+    }
+
+    .duo-mascot {
+      width: 76px;
+      height: 76px;
+      background: #58cc02;
+      border-radius: 22px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 42px;
+      box-shadow: 0 6px 0 #46a302;
+    }
+
+    .duo-speech-bubble {
+      background: #f7f7f7;
+      border: 2px solid #e5e5e5;
+      border-radius: 18px;
+      padding: 14px 18px;
+      font-size: 17px;
+      font-weight: 700;
+      color: #333;
+      position: relative;
+      flex: 1;
+    }
+
+    .duo-speech-bubble::before {
+      content: '';
+      position: absolute;
+      left: -10px;
+      top: 50%;
+      transform: translateY(-50%);
+      border-width: 8px 10px 8px 0;
+      border-style: solid;
+      border-color: transparent #e5e5e5 transparent transparent;
+    }
+
+    .duo-sentence-slot {
+      min-height: 58px;
+      border-top: 2px solid #e5e5e5;
+      border-bottom: 2px solid #e5e5e5;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 8px 0;
+      margin-bottom: 24px;
+      direction: rtl;
+    }
+
+    .duo-word-chip {
+      background: #fff;
+      border: 2px solid #e5e5e5;
+      border-bottom: 4px solid #e5e5e5;
+      border-radius: 14px;
+      padding: 10px 14px;
+      font-size: 17px;
+      font-weight: 700;
+      color: #4b4b4b;
+      cursor: pointer;
+      user-select: none;
+      direction: rtl;
+    }
+
+    .duo-word-chip.selected {
+      background: #ddf4ff;
+      border-color: #84d8ff;
+      border-bottom-color: #1cb0f6;
+      color: #1899d6;
+    }
+
+    .duo-bank-grid {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
+      margin-top: auto;
+      margin-bottom: 28px;
+      direction: rtl;
+    }
+
+    .duo-check-btn {
+      width: 100%;
+      height: 52px;
+      background: #58cc02;
+      border: none;
+      border-bottom: 4px solid #46a302;
+      border-radius: 16px;
+      color: #fff;
+      font-size: 16px;
+      font-weight: 900;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(88, 204, 2, 0.4);
+    }
+
+    /* ========================================================
+       СЦЕНА 2: РЕАЛЬНОСТЬ / ЗВОНОК КУРЬЕРА (4.2s - 8.5s)
+       ======================================================== */
+    #scene-call {
+      background: #000;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      padding: 60px 24px 44px;
+    }
+
+    /* Дрожание экрана от звонка */
+    .shake {
+      animation: phoneRingShake 0.45s infinite;
+    }
+
+    @keyframes phoneRingShake {
+      0% { transform: translate(0, 0) rotate(0deg); }
+      20% { transform: translate(-3px, 3px) rotate(-1deg); }
+      40% { transform: translate(3px, -2px) rotate(1deg); }
+      60% { transform: translate(-3px, -1px) rotate(0deg); }
+      80% { transform: translate(3px, 2px) rotate(-1deg); }
+      100% { transform: translate(0, 0) rotate(0deg); }
+    }
+
+    .call-top {
+      text-align: center;
+      margin-top: 50px;
+    }
+
+    .caller-avatar {
+      width: 110px;
+      height: 110px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #00c6ff, #0072ff);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 58px;
+      margin: 0 auto 18px;
+      border: 3px solid rgba(255, 255, 255, 0.25);
+      box-shadow: 0 0 35px rgba(0, 198, 255, 0.4);
+    }
+
+    .caller-name {
+      font-size: 28px;
+      font-weight: 800;
+      color: #fff;
+      margin-bottom: 6px;
+    }
+
+    .caller-number {
+      font-size: 15px;
+      color: #94a3b8;
+      margin-bottom: 8px;
+    }
+
+    .call-status {
+      font-size: 14px;
+      color: #38bdf8;
+      font-weight: 600;
+    }
+
+    .call-actions-row {
+      display: flex;
+      justify-content: space-around;
+      width: 100%;
+      margin-bottom: 20px;
+    }
+
+    .call-btn {
+      width: 76px;
+      height: 76px;
+      border-radius: 50%;
+      border: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 32px;
+      color: #fff;
+      cursor: pointer;
+    }
+
+    .call-btn.decline {
+      background: #ef4444;
+      box-shadow: 0 8px 25px rgba(239, 68, 68, 0.5);
+    }
+
+    .call-btn.accept {
+      background: #22c55e;
+      box-shadow: 0 8px 25px rgba(34, 197, 94, 0.6);
+      animation: pulseGreen 1.5s infinite;
+    }
+
+    @keyframes pulseGreen {
+      0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.6); }
+      70% { transform: scale(1.06); box-shadow: 0 0 0 16px rgba(34, 197, 94, 0); }
+      100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+    }
+
+    /* ========================================================
+       СЦЕНА 3: УЛЬПАН АЛЕФ (8.5s - 13.0s)
+       ======================================================== */
+    #scene-ulpana {
+      background: #090e1a;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .ulpana-header {
+      padding: 130px 18px 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      background: #0f172a;
+    }
+
+    .ulpana-logo-badge {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .ulpana-logo-icon {
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 19px;
+      font-weight: 900;
+      color: #fff;
+    }
+
+    .ulpana-logo-text {
+      font-size: 16px;
+      font-weight: 800;
+      color: #fff;
+      letter-spacing: -0.3px;
+    }
+
+    .stage-pill {
+      background: rgba(59, 130, 246, 0.2);
+      border: 1px solid #3b82f6;
+      border-radius: 20px;
+      padding: 4px 12px;
+      font-size: 11px;
+      font-weight: 700;
+      color: #60a5fa;
+    }
+
+    .ulpana-body {
+      flex: 1;
+      padding: 14px 18px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .call-live-hud {
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid rgba(56, 189, 248, 0.4);
+      border-radius: 20px;
+      padding: 5px 14px;
+      font-size: 11px;
+      font-weight: 700;
+      color: #38bdf8;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      align-self: center;
+    }
+
+    .task-card {
+      background: #1e293b;
+      border-radius: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 12px 16px;
+    }
+
+    .task-header-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 6px;
+    }
+
+    .courier-mini-badge {
+      font-size: 11px;
+      font-weight: 800;
+      color: #38bdf8;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .audio-wave-mini {
+      display: flex;
+      gap: 3px;
+      align-items: center;
+    }
+
+    .audio-wave-mini span {
+      width: 3px;
+      height: 10px;
+      background: #38bdf8;
+      border-radius: 2px;
+      animation: waveMini 0.8s infinite alternate;
+    }
+
+    .audio-wave-mini span:nth-child(2) { animation-delay: 0.2s; height: 14px; }
+    .audio-wave-mini span:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes waveMini {
+      0% { height: 6px; }
+      100% { height: 16px; }
+    }
+
+    .task-hebrew-cue {
+      font-size: 18px;
+      font-weight: 800;
+      color: #f1f5f9;
+      direction: rtl;
+      line-height: 1.35;
+    }
+
+    .task-ru-sub {
+      font-size: 12px;
+      color: #94a3b8;
+      margin-top: 3px;
+    }
+
+    .student-zone-card {
+      background: rgba(15, 23, 42, 0.7);
+      border: 1.5px solid rgba(59, 130, 246, 0.35);
+      border-radius: 18px;
+      padding: 12px 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+    }
+
+    .zone-title {
+      font-size: 10px;
+      font-weight: 900;
+      letter-spacing: 1px;
+      color: #60a5fa;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+    }
+
+    .mic-zone {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      margin: 4px 0 8px;
+    }
+
+    .mic-button {
+      width: 76px;
+      height: 76px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #3b82f6, #2563eb);
+      border: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 34px;
+      color: #fff;
+      box-shadow: 0 8px 24px rgba(37, 99, 235, 0.5);
+      position: relative;
+      z-index: 2;
+    }
+
+    .mic-hint {
+      font-size: 11px;
+      color: #94a3b8;
+      font-weight: 600;
+      margin-top: 6px;
+    }
+
+    .mic-ripples {
+      position: absolute;
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      border: 2px solid rgba(59, 130, 246, 0.6);
+      animation: ripple 1.6s infinite ease-out;
+      z-index: 1;
+    }
+
+    @keyframes ripple {
+      0% { transform: scale(0.6); opacity: 1; }
+      100% { transform: scale(1.4); opacity: 0; }
+    }
+
+    .student-reply-bubble {
+      background: rgba(30, 41, 59, 0.95);
+      border: 1.5px solid #3b82f6;
+      border-radius: 14px;
+      padding: 8px 14px;
+      text-align: center;
+      width: 100%;
+      margin-top: 6px;
+    }
+
+    .reply-he {
+      font-size: 21px;
+      font-weight: 800;
+      color: #60a5fa;
+      direction: rtl;
+      margin-bottom: 2px;
+    }
+
+    .reply-ru {
+      font-size: 12px;
+      color: #94a3b8;
+    }
+
+    /* Анимированная звуковая волна */
+    .voice-waveform {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      height: 22px;
+      margin: 6px 0;
+    }
+
+    .wbar {
+      width: 4px;
+      height: 8px;
+      background: #38bdf8;
+      border-radius: 4px;
+      animation: wave 0.8s infinite ease-in-out alternate;
+    }
+
+    .wbar:nth-child(2) { animation-delay: 0.15s; }
+    .wbar:nth-child(3) { animation-delay: 0.3s; }
+    .wbar:nth-child(4) { animation-delay: 0.45s; }
+    .wbar:nth-child(5) { animation-delay: 0.6s; }
+    .wbar:nth-child(6) { animation-delay: 0.25s; }
+    .wbar:nth-child(7) { animation-delay: 0.4s; }
+    .wbar:nth-child(8) { animation-delay: 0.55s; }
+    .wbar:nth-child(9) { animation-delay: 0.35s; }
+
+    @keyframes wave {
+      0% { height: 5px; background: #38bdf8; }
+      100% { height: 20px; background: #818cf8; }
+    }
+
+    /* Пословный разбор произношения */
+    .word-acc-row {
+      display: flex;
+      justify-content: center;
+      gap: 6px;
+      margin-top: 6px;
+      direction: rtl;
+    }
+
+    .acc-chip {
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid rgba(34, 197, 94, 0.5);
+      border-radius: 8px;
+      padding: 4px 8px;
+      font-size: 12px;
+      font-weight: 700;
+      color: #f1f5f9;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .acc-chip b {
+      color: #22c55e;
+      font-size: 11px;
+    }
+
+    .ai-feedback-banner {
+      background: linear-gradient(90deg, rgba(34, 197, 94, 0.25), rgba(16, 185, 129, 0.35));
+      border: 1.5px solid #22c55e;
+      border-radius: 14px;
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 0 20px rgba(34, 197, 94, 0.25);
+    }
+
+    .ai-badge-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .ai-check-icon {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: #22c55e;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 15px;
+      font-weight: 900;
+    }
+
+    .ai-score-text {
+      font-size: 14px;
+      font-weight: 900;
+      color: #fff;
+    }
+
+    /* ========================================================
+       СЦЕНА 4: ПАНЧЛАЙН & CTA (13.0s - 17.5s)
+       ======================================================== */
+    #scene-cta {
+      background: radial-gradient(circle at 50% 30%, #1e3a8a 0%, #090e1a 75%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 30px 24px;
+      text-align: center;
+    }
+
+    .cta-logo {
+      width: 80px;
+      height: 80px;
+      border-radius: 22px;
+      background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 42px;
+      font-weight: 900;
+      color: #fff;
+      margin-bottom: 24px;
+      box-shadow: 0 15px 35px rgba(59, 130, 246, 0.5);
+      border: 2px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .cta-title {
+      font-family: 'Montserrat', sans-serif;
+      font-size: 25px;
+      font-weight: 900;
+      line-height: 1.25;
+      margin-bottom: 14px;
+      text-transform: uppercase;
+    }
+
+    .cta-title span.yellow { color: #facc15; }
+    .cta-title span.blue { color: #38bdf8; }
+
+    .cta-desc {
+      font-size: 14px;
+      color: #94a3b8;
+      line-height: 1.5;
+      margin-bottom: 28px;
+      padding: 0 10px;
+    }
+
+    .cta-btn {
+      width: 100%;
+      padding: 18px;
+      background: linear-gradient(135deg, #22c55e, #16a34a);
+      border-radius: 18px;
+      border: none;
+      color: #fff;
+      font-size: 17px;
+      font-weight: 900;
+      box-shadow: 0 10px 25px rgba(34, 197, 94, 0.4);
+      animation: pulseGreen 1.5s infinite;
+      letter-spacing: 0.5px;
+    }
+
+    .cta-link-hint {
+      margin-top: 14px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #64748b;
+    }
+
+    /* Виртуальный тач-курсор */
+    #touch-cursor {
+      position: absolute;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(59, 130, 246, 0.8) 0%, rgba(37, 99, 235, 0.25) 70%, transparent 100%);
+      border: 2px solid rgba(255, 255, 255, 0.9);
+      box-shadow: 0 0 20px rgba(59, 130, 246, 0.9);
+      pointer-events: none;
+      z-index: 99999;
+      transform: translate(-50%, -50%) scale(0);
+      transition: transform 0.2s ease, opacity 0.2s ease;
+      opacity: 0;
+    }
+
+    #touch-cursor.visible {
+      transform: translate(-50%, -50%) scale(1);
+      opacity: 1;
+    }
+
+    #touch-cursor.tap {
+      transform: translate(-50%, -50%) scale(0.8);
+    }
+  </style>
+</head>
+<body>
+  <div id="phone-container">
+    
+    <!-- Динамические титры -->
+    <div class="reels-subtitles" id="subtitles">
+      <div class="sub-badge" id="sub-badge">
+        <span class="highlight">6 МЕСЯЦЕВ</span> В DUOLINGO 🦉
+      </div>
+    </div>
+
+    <!-- СЦЕНА 1: DUOLINGO -->
+    <div class="scene active" id="scene-duo">
+      <div class="duo-header">
+        <span style="font-size: 20px; font-weight:800; color:#fff;">✕</span>
+        <div class="duo-progress-bar">
+          <div class="duo-progress-fill"></div>
+        </div>
+        <span style="font-size: 20px; font-weight:800; color:#fff;">❤️ 5</span>
+      </div>
+      <div class="duo-card" style="position: relative;">
+        <div style="position: absolute; top: 16px; right: 18px; background: rgba(0,0,0,0.85); color: #facc15; font-size: 11px; font-weight: 900; padding: 5px 10px; border-radius: 8px; border: 1px solid #facc15; letter-spacing: 0.5px;">
+          🔇 0% РАЗГОВОРА
+        </div>
+
+        <div class="duo-prompt-title">Переведите это предложение:</div>
+        <div class="duo-character-row">
+          <div class="duo-owl-box">🦆</div>
+          <div class="duo-speech-bubble">Зелёная утка пьёт молоко.</div>
+        </div>
+
+        <div class="duo-slots-box" id="duo-slots">
+          <div class="duo-word-chip active">הַבַּרְוָז</div>
+          <div class="duo-word-chip active">הַיָּרוֹק</div>
+          <div class="duo-word-chip active">שׁוֹתֶה</div>
+          <div class="duo-word-chip active">חָלָב</div>
+        </div>
+
+        <div class="duo-options-grid">
+          <div class="duo-word-chip" style="opacity:0.4;">חָלָב</div>
+          <div class="duo-word-chip" style="opacity:0.4;">שׁוֹתֶה</div>
+          <div class="duo-word-chip" style="opacity:0.4;">הַיָּרוֹק</div>
+          <div class="duo-word-chip" style="opacity:0.4;">הַבַּרְוָז</div>
+          <div class="duo-word-chip">לֶחֶם</div>
+          <div class="duo-word-chip">סוּס</div>
+        </div>
+
+        <button class="duo-check-btn">ПРОВЕРИТЬ</button>
+      </div>
+    </div>
+
+    <!-- СЦЕНА 2: ВХОДЯЩИЙ ЗВОНОК КУРЬЕРА (СТУПОР) -->
+    <div class="scene" id="scene-call">
+      <div class="call-top">
+        <div class="caller-avatar">🛵</div>
+        <div class="caller-name">Курьер Wolt</div>
+        <div class="caller-number">+972 54-819-2044</div>
+        <div class="call-status" id="call-status-text">Входящий вызов...</div>
+      </div>
+
+      <!-- Карточка растерянности вместо текста курьера -->
+      <div class="call-middle-card" id="call-middle-card" style="opacity: 0; transform: translateY(20px); transition: all 0.4s ease; background: rgba(239, 68, 68, 0.15); border: 2px dashed #ef4444; border-radius: 20px; padding: 18px 20px; text-align: center;">
+        <div style="font-size: 34px; margin-bottom: 4px;">😰</div>
+        <div style="font-size: 26px; font-weight: 900; color: #fca5a5; direction: rtl;">«...אֲנִי... אֲנִי...»</div>
+        <div style="font-size: 14px; color: #fecaca; margin-top: 4px; font-style: italic;">«Эээ... Ани... Ани...»</div>
+        <div style="font-size: 11px; color: #ef4444; font-weight: 900; margin-top: 8px; letter-spacing: 1px; text-transform: uppercase;">❌ ЯЗЫКОВОЙ ПАРАЛИЧ</div>
+      </div>
+
+      <div class="call-actions-row">
+        <button class="call-btn decline">✕</button>
+        <button class="call-btn accept" id="btn-accept-call">📞</button>
+      </div>
+    </div>
+
+    <!-- СЦЕНА 3: УЛЬПАН АЛЕФ (НАСЫЩЕННЫЙ ИНТЕРФЕЙС) -->
+    <div class="scene" id="scene-ulpana">
+      <div class="ulpana-header">
+        <div class="ulpana-logo-badge">
+          <div class="ulpana-logo-icon">א</div>
+          <div>
+            <div class="ulpana-logo-text">Ульпа́на Алеф</div>
+            <div style="font-size: 11px; color: #60a5fa; font-weight: 600;">AI-симулятор звонков</div>
+          </div>
+        </div>
+        <div class="stage-pill">Этап 5 • Разговор</div>
+      </div>
+
+      <div class="ulpana-body">
+        <div class="call-live-hud">🛵 Wolt • Разговор в реальном времени • 00:04 🟢</div>
+
+        <!-- Реплика курьера в звонке -->
+        <div class="task-card">
+          <div class="task-header-row">
+            <div class="courier-mini-badge">🛵 Курьер Wolt</div>
+            <div class="audio-wave-mini"><span></span><span></span><span></span></div>
+          </div>
+          <div class="task-hebrew-cue">«שָׁלוֹם! אֲנִי לְמַטָּה, אֵיזֶה קוֹד בָּאִינְטֶרְקוֹם?!»</div>
+          <div class="task-ru-sub">«Шалом! Я внизу, какой код домофона?!»</div>
+        </div>
+
+        <!-- Зона голосового ответа ученика -->
+        <div class="student-zone-card">
+          <div class="zone-title">ТВОЙ ГОЛОСОВОЙ ОТВЕТ:</div>
+          
+          <div class="mic-zone">
+            <div class="mic-ripples" id="mic-ripples"></div>
+            <button class="mic-button" id="mic-btn">🎙️</button>
+            <div class="mic-hint" id="mic-hint">Нажми и говори</div>
+          </div>
+
+          <!-- Анимированная звуковая волна речи -->
+          <div class="voice-waveform" id="voice-waveform" style="opacity: 0; transition: opacity 0.3s ease;">
+            <span class="wbar"></span><span class="wbar"></span><span class="wbar"></span><span class="wbar"></span><span class="wbar"></span><span class="wbar"></span><span class="wbar"></span><span class="wbar"></span><span class="wbar"></span>
+          </div>
+
+          <!-- Распознанный ответ ученика -->
+          <div class="student-reply-bubble" id="student-bubble" style="opacity: 0; transform: translateY(8px); transition: all 0.3s ease;">
+            <div class="reply-he">«אֲנִי כְּבָר יוֹרֵד!»</div>
+            <div class="reply-ru">Я уже спускаюсь!</div>
+          </div>
+
+          <!-- Пословный разбор точности -->
+          <div class="word-acc-row" id="word-acc-row" style="opacity: 0; transition: opacity 0.3s ease;">
+            <div class="acc-chip">«אֲנִי» <b>99%</b></div>
+            <div class="acc-chip">«כְּבָר» <b>97%</b></div>
+            <div class="acc-chip">«יוֹרֵד!» <b>98%</b></div>
+          </div>
+        </div>
+
+        <!-- AI Feedback -->
+        <div class="ai-feedback-banner" id="ai-banner" style="opacity: 0; transform: scale(0.95); transition: all 0.35s ease;">
+          <div class="ai-badge-left">
+            <div class="ai-check-icon">✓</div>
+            <div>
+              <div class="ai-score-text">ТОЧНОСТЬ: 98%</div>
+              <div style="font-size: 12px; color: #86efac; font-weight: 700;">СТРАХ ЗВОНКОВ ПРЕОДОЛЕН! 🎉</div>
+            </div>
+          </div>
+          <div style="font-size: 26px;">🚀</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- СЦЕНА 4: CTA -->
+    <div class="scene" id="scene-cta">
+      <div class="cta-logo">א</div>
+      <div class="cta-title">
+        ХВАТИТ КОРМИТЬ <span class="yellow">УТОК!</span> 🦆❌<br>
+        ЗАГОВОРИ В <span class="blue">ИЗРАИЛЕ</span> 🇮🇱
+      </div>
+      <div class="cta-desc">
+        AI-симулятор реальных звонков курьера, банка, поликлиники и школы.
+      </div>
+      <button class="cta-btn">ПОПРОБОВАТЬ БЕСПЛАТНО 🚀</button>
+      <div class="cta-link-hint">Ссылка в шапке профиля • ulpana.online</div>
+    </div>
+
+    <!-- Виртуальный палец (Тач-курсор) -->
+    <div id="touch-cursor"></div>
+  </div>
+
+  <script>
+    // Логика управления сценами и синхронизации с таймкодами (17.5 сек)
+    const subBadge = document.getElementById('sub-badge');
+    const sceneDuo = document.getElementById('scene-duo');
+    const sceneCall = document.getElementById('scene-call');
+    const sceneUlpana = document.getElementById('scene-ulpana');
+    const sceneCta = document.getElementById('scene-cta');
+    const touch = document.getElementById('touch-cursor');
+    const callMiddleCard = document.getElementById('call-middle-card');
+    const callStatusText = document.getElementById('call-status-text');
+
+    function showTouch(x, y, tap = false) {
+      touch.style.left = x + 'px';
+      touch.style.top = y + 'px';
+      touch.classList.add('visible');
+      if (tap) {
+        touch.classList.add('tap');
+        setTimeout(() => touch.classList.remove('tap'), 200);
+      }
+    }
+
+    function hideTouch() {
+      touch.classList.remove('visible');
+    }
+
+    // Хронология видео (поддерживает динамические тайминги из аудиодорожки)
+    window.startReelsTimeline = function(customTimings) {
+      const t = Object.assign({
+        checkTap: 3300,
+        sceneCall: 4400,
+        callTap: 8500,
+        callAnswered: 8700,
+        sceneUlpana: 12700,
+        micTap: 13000,
+        sceneCta: 19500,
+        ctaTap: 21500
+      }, customTimings || window.__REELS_TIMINGS__ || {});
+
+      console.log('🎬 Запуск таймлайна вирального Reels с таймингами:', t);
+
+      // СЦЕНА 1: DUOLINGO (активна со старта)
+      // Касание кнопки "Проверить"
+      setTimeout(() => {
+        showTouch(195, 780, true);
+      }, t.checkTap);
+
+      setTimeout(() => hideTouch(), t.checkTap + 600);
+
+      // ВЗРЫВ РЕАЛЬНОСТИ (СЦЕНА 2: ЗВОНОК)
+      setTimeout(() => {
+        sceneDuo.classList.remove('active');
+        sceneCall.classList.add('active', 'shake');
+        subBadge.innerHTML = '<span class="red">РЕАЛЬНОСТЬ</span> В ИЗРАИЛЕ 😱';
+      }, t.sceneCall);
+
+      // Тап по зеленой кнопке "Ответить"
+      setTimeout(() => {
+        showTouch(285, 740, true);
+      }, t.callTap);
+
+      // Звонок принят, курьер говорит в трубку
+      setTimeout(() => {
+        hideTouch();
+        sceneCall.classList.remove('shake');
+        callStatusText.innerText = '00:02 • Разговор...';
+        callStatusText.style.color = '#22c55e';
+      }, t.callAnswered);
+
+      // Момент растерянности («...Ани... Ани...»): появляется карточка паники
+      setTimeout(() => {
+        callStatusText.innerText = '00:04 • Ступор...';
+        callStatusText.style.color = '#ef4444';
+        callMiddleCard.style.opacity = '1';
+        callMiddleCard.style.transform = 'translateY(0)';
+        subBadge.innerHTML = 'РЕАЛЬНОСТЬ: <span class="red">СТУПОР</span> 🥶';
+      }, t.callPanic || (t.callAnswered + 3600));
+
+      // ПЕРЕХОД В УЛЬПАН АЛЕФ (СЦЕНА 3)
+      setTimeout(() => {
+        sceneCall.classList.remove('active');
+        sceneUlpana.classList.add('active');
+        subBadge.innerHTML = 'ТРЕНАЖЕР: <span class="green">ГОВОРИ ГОЛОСОМ</span> 🎙️';
+        
+        // Тап по микрофону
+        setTimeout(() => {
+          showTouch(195, 424, true);
+        }, Math.max(200, t.micTap - t.sceneUlpana));
+
+        setTimeout(() => {
+          hideTouch();
+          const voiceWf = document.getElementById('voice-waveform');
+          const studentB = document.getElementById('student-bubble');
+          const wordAcc = document.getElementById('word-acc-row');
+          const aiB = document.getElementById('ai-banner');
+          const micHint = document.getElementById('mic-hint');
+          if (micHint) micHint.innerText = 'Запись речи...';
+          if (voiceWf) voiceWf.style.opacity = '1';
+          if (studentB) {
+            studentB.style.opacity = '1';
+            studentB.style.transform = 'translateY(0)';
+          }
+
+          // Появление пословного разбора и победного 98%
+          setTimeout(() => {
+            if (micHint) micHint.innerText = 'Распознано!';
+            if (voiceWf) voiceWf.style.opacity = '0.3';
+            if (wordAcc) wordAcc.style.opacity = '1';
+            if (aiB) {
+              aiB.style.opacity = '1';
+              aiB.style.transform = 'scale(1)';
+            }
+          }, 900);
+        }, Math.max(200, t.micTap - t.sceneUlpana) + 400);
+      }, t.sceneUlpana);
+
+      // ФИНАЛЬНЫЙ ПАНЧЛАЙН & CTA (СЦЕНА 4)
+      setTimeout(() => {
+        sceneUlpana.classList.remove('active');
+        sceneCta.classList.add('active');
+        subBadge.innerHTML = '<span class="highlight">УЛЬПАН АЛЕФ</span> 🇮🇱';
+        
+        // Тап по кнопке CTA
+        setTimeout(() => {
+          showTouch(195, 600, true);
+        }, Math.max(500, t.ctaTap - t.sceneCta));
+        setTimeout(() => hideTouch(), Math.max(500, t.ctaTap - t.sceneCta) + 800);
+      }, t.sceneCta);
+    };
+
+    // Запуск при старте, если не будет вызван явно из Playwright
+    window.addEventListener('DOMContentLoaded', () => {
+      if (!window.__PLAYWRIGHT_MANUAL_START__) {
+        window.startReelsTimeline();
+      }
+    });
+  </script>
+</body>
+</html>

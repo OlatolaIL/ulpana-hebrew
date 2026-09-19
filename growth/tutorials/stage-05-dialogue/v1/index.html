@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=390, height=844, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Этап 5: Диалоги — Обучающее видео | Ульпан Алеф</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700;800;900&family=Montserrat:wght@700;800;900&display=swap" rel="stylesheet">
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body {
+      width: 390px;
+      height: 844px;
+      overflow: hidden;
+      background: #090d16;
+      font-family: 'Rubik', sans-serif;
+      color: #fff;
+      position: relative;
+    }
+
+    #phone-container {
+      width: 390px;
+      height: 844px;
+      position: relative;
+      overflow: hidden;
+      background: #0b1120;
+    }
+
+    /* Динамические титры в стиле TikTok/Reels */
+    .reels-subtitles {
+      position: absolute;
+      top: 22px;
+      left: 16px;
+      right: 16px;
+      z-index: 1000;
+      text-align: center;
+      pointer-events: none;
+    }
+
+    .sub-badge {
+      display: inline-block;
+      font-family: 'Montserrat', sans-serif;
+      font-size: 20px;
+      font-weight: 900;
+      text-transform: uppercase;
+      padding: 8px 18px;
+      border-radius: 12px;
+      background: rgba(0, 0, 0, 0.9);
+      border: 2px solid #facc15;
+      color: #fff;
+      text-shadow: 0 2px 8px rgba(0,0,0,0.8);
+      box-shadow: 0 10px 25px rgba(0,0,0,0.6), 0 0 20px rgba(250, 204, 21, 0.4);
+      animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    }
+
+    .sub-badge span.highlight { color: #facc15; }
+    .sub-badge span.green { color: #22c55e; }
+    .sub-badge span.blue { color: #38bdf8; }
+
+    @keyframes popIn {
+      0% { transform: scale(0.7); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    /* Базовый класс сцен (R-25: строго absolute + visibility: hidden) */
+    .scene {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0;
+      pointer-events: none;
+      visibility: hidden;
+      transition: opacity 0.35s ease, transform 0.35s ease, visibility 0.35s;
+      transform: scale(0.98);
+    }
+
+    .scene.active {
+      opacity: 1;
+      pointer-events: auto;
+      visibility: visible;
+      transform: scale(1);
+    }
+
+    /* ========================================================
+       ОБЩИЕ КОМПОНЕНТЫ ИНТЕРФЕЙСА
+       ======================================================== */
+    .app-header {
+      padding: 110px 18px 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      background: #0f172a;
+    }
+
+    .header-logo-badge {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .header-logo-icon {
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 19px;
+      font-weight: 900;
+      color: #fff;
+    }
+
+    .header-title-text {
+      font-size: 15px;
+      font-weight: 800;
+      color: #fff;
+      letter-spacing: -0.3px;
+    }
+
+    .header-sub-text {
+      font-size: 11px;
+      color: #60a5fa;
+      font-weight: 600;
+    }
+
+    .stage-pill {
+      background: rgba(59, 130, 246, 0.2);
+      border: 1px solid #3b82f6;
+      border-radius: 20px;
+      padding: 4px 12px;
+      font-size: 11px;
+      font-weight: 700;
+      color: #60a5fa;
+    }
+
+    .app-body {
+      flex: 1;
+      padding: 16px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    /* ========================================================
+       СЦЕНА 1: ВЫБОР РОЛИ (ROLE SELECT)
+       ======================================================== */
+    #scene-roles {
+      background: #090e1a;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .role-intro-card {
+      background: #1e293b;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 18px;
+      padding: 16px;
+      text-align: center;
+    }
+
+    .role-intro-badge {
+      font-size: 11px;
+      font-weight: 800;
+      color: #facc15;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+
+    .role-intro-title {
+      font-size: 18px;
+      font-weight: 800;
+      color: #f1f5f9;
+      margin-bottom: 4px;
+    }
+
+    .role-intro-desc {
+      font-size: 13px;
+      color: #94a3b8;
+    }
+
+    .roles-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 4px;
+    }
+
+    .role-card {
+      background: rgba(15, 23, 42, 0.8);
+      border: 2px solid rgba(255, 255, 255, 0.1);
+      border-radius: 16px;
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .role-card.selected {
+      border-color: #3b82f6;
+      background: rgba(59, 130, 246, 0.15);
+      box-shadow: 0 0 20px rgba(59, 130, 246, 0.25);
+    }
+
+    .role-avatar {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: #334155;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 26px;
+    }
+
+    .role-card.selected .role-avatar {
+      background: #3b82f6;
+    }
+
+    .role-info {
+      flex: 1;
+    }
+
+    .role-name {
+      font-size: 16px;
+      font-weight: 800;
+      color: #f1f5f9;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .role-tag {
+      font-size: 10px;
+      font-weight: 800;
+      padding: 2px 8px;
+      border-radius: 10px;
+      background: #22c55e;
+      color: #fff;
+    }
+
+    .role-desc {
+      font-size: 12px;
+      color: #94a3b8;
+      margin-top: 2px;
+    }
+
+    .primary-btn {
+      width: 100%;
+      height: 52px;
+      background: linear-gradient(135deg, #3b82f6, #2563eb);
+      border: none;
+      border-radius: 16px;
+      color: #fff;
+      font-size: 16px;
+      font-weight: 900;
+      letter-spacing: 0.5px;
+      cursor: pointer;
+      box-shadow: 0 8px 24px rgba(37, 99, 235, 0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-top: auto;
+    }
+
+    /* ========================================================
+       СЦЕНА 2: ЖИВОЙ ДИАЛОГ (PRACTICE)
+       ======================================================== */
+    #scene-practice {
+      background: #090e1a;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .live-hud {
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid rgba(56, 189, 248, 0.4);
+      border-radius: 20px;
+      padding: 5px 14px;
+      font-size: 11px;
+      font-weight: 700;
+      color: #38bdf8;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      align-self: center;
+    }
+
+    .interlocutor-card {
+      background: #1e293b;
+      border-radius: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 12px 16px;
+    }
+
+    .interlocutor-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 6px;
+    }
+
+    .interlocutor-name {
+      font-size: 11px;
+      font-weight: 800;
+      color: #38bdf8;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .audio-bars {
+      display: flex;
+      gap: 3px;
+      align-items: center;
+    }
+
+    .audio-bars span {
+      width: 3px;
+      height: 10px;
+      background: #38bdf8;
+      border-radius: 2px;
+      animation: barPulse 0.8s infinite alternate;
+    }
+
+    .audio-bars span:nth-child(2) { animation-delay: 0.2s; height: 15px; }
+    .audio-bars span:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes barPulse {
+      0% { height: 6px; }
+      100% { height: 16px; }
+    }
+
+    .hebrew-turn-text {
+      font-size: 19px;
+      font-weight: 800;
+      color: #f1f5f9;
+      direction: rtl;
+      line-height: 1.35;
+    }
+
+    .ru-sub-text {
+      font-size: 12px;
+      color: #94a3b8;
+      margin-top: 3px;
+    }
+
+    .student-dialogue-zone {
+      background: rgba(15, 23, 42, 0.7);
+      border: 1.5px solid rgba(59, 130, 246, 0.35);
+      border-radius: 18px;
+      padding: 12px 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+    }
+
+    .zone-badge {
+      font-size: 10px;
+      font-weight: 900;
+      letter-spacing: 1px;
+      color: #60a5fa;
+      margin-bottom: 4px;
+      text-transform: uppercase;
+    }
+
+    .turn-hint-text {
+      font-size: 12px;
+      color: #cbd5e1;
+      font-style: italic;
+      margin-bottom: 6px;
+    }
+
+    .mic-zone {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      margin: 4px 0 6px;
+    }
+
+    .mic-button {
+      width: 76px;
+      height: 76px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #3b82f6, #2563eb);
+      border: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 34px;
+      color: #fff;
+      box-shadow: 0 8px 24px rgba(37, 99, 235, 0.5);
+      position: relative;
+      z-index: 2;
+    }
+
+    .mic-ripples {
+      position: absolute;
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      border: 2px solid rgba(59, 130, 246, 0.6);
+      animation: ripple 1.6s infinite ease-out;
+      z-index: 1;
+    }
+
+    @keyframes ripple {
+      0% { transform: scale(0.6); opacity: 1; }
+      100% { transform: scale(1.4); opacity: 0; }
+    }
+
+    .mic-status-label {
+      font-size: 11px;
+      color: #94a3b8;
+      font-weight: 600;
+      margin-top: 6px;
+    }
+
+    .voice-waveform {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      height: 22px;
+      margin: 4px 0;
+    }
+
+    .wbar {
+      width: 4px;
+      height: 8px;
+      background: #38bdf8;
+      border-radius: 4px;
+      animation: wave 0.8s infinite ease-in-out alternate;
+    }
+
+    .wbar:nth-child(2) { animation-delay: 0.15s; }
+    .wbar:nth-child(3) { animation-delay: 0.3s; }
+    .wbar:nth-child(4) { animation-delay: 0.45s; }
+    .wbar:nth-child(5) { animation-delay: 0.6s; }
+    .wbar:nth-child(6) { animation-delay: 0.25s; }
+    .wbar:nth-child(7) { animation-delay: 0.4s; }
+    .wbar:nth-child(8) { animation-delay: 0.55s; }
+
+    @keyframes wave {
+      0% { height: 5px; background: #38bdf8; }
+      100% { height: 20px; background: #818cf8; }
+    }
+
+    .user-spoken-bubble {
+      background: rgba(30, 41, 59, 0.95);
+      border: 1.5px solid #3b82f6;
+      border-radius: 14px;
+      padding: 8px 14px;
+      text-align: center;
+      width: 100%;
+      margin-top: 4px;
+    }
+
+    .spoken-he {
+      font-size: 19px;
+      font-weight: 800;
+      color: #60a5fa;
+      direction: rtl;
+    }
+
+    .spoken-ru {
+      font-size: 11px;
+      color: #94a3b8;
+      margin-top: 2px;
+    }
+
+    .word-accuracy-row {
+      display: flex;
+      justify-content: center;
+      gap: 5px;
+      margin-top: 6px;
+      direction: rtl;
+      flex-wrap: wrap;
+    }
+
+    .acc-chip {
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid rgba(34, 197, 94, 0.5);
+      border-radius: 8px;
+      padding: 3px 6px;
+      font-size: 11px;
+      font-weight: 700;
+      color: #f1f5f9;
+      display: flex;
+      align-items: center;
+      gap: 3px;
+    }
+
+    .acc-chip b {
+      color: #22c55e;
+      font-size: 11px;
+    }
+
+    .ai-feedback-badge {
+      background: linear-gradient(90deg, rgba(34, 197, 94, 0.25), rgba(16, 185, 129, 0.35));
+      border: 1.5px solid #22c55e;
+      border-radius: 14px;
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 0 20px rgba(34, 197, 94, 0.25);
+    }
+
+    .ai-badge-content {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .ai-check {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: #22c55e;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 15px;
+      font-weight: 900;
+    }
+
+    .ai-score {
+      font-size: 14px;
+      font-weight: 900;
+      color: #fff;
+    }
+
+    /* ========================================================
+       СЦЕНА 3: РЕЗУЛЬТАТ / ЗАЧЕТ (COMPLETED)
+       ======================================================== */
+    #scene-completed {
+      background: radial-gradient(circle at 50% 30%, #1e3a8a 0%, #090e1a 75%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 40px 24px;
+    }
+
+    .completed-icon-box {
+      width: 86px;
+      height: 86px;
+      border-radius: 28px;
+      background: linear-gradient(135deg, #22c55e, #15803d);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 46px;
+      box-shadow: 0 12px 30px rgba(34, 197, 94, 0.4);
+      margin-bottom: 20px;
+      animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    }
+
+    .completed-title {
+      font-size: 24px;
+      font-weight: 900;
+      line-height: 1.25;
+      margin-bottom: 12px;
+      text-transform: uppercase;
+    }
+
+    .completed-stat-card {
+      width: 100%;
+      background: rgba(15, 23, 42, 0.8);
+      border: 1.5px solid rgba(255, 255, 255, 0.1);
+      border-radius: 20px;
+      padding: 16px;
+      margin: 16px 0 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      text-align: left;
+    }
+
+    .stat-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 13px;
+      font-weight: 700;
+      color: #cbd5e1;
+    }
+
+    .stat-row b {
+      color: #22c55e;
+      font-size: 15px;
+    }
+
+    .completed-btn {
+      width: 100%;
+      height: 54px;
+      background: linear-gradient(135deg, #f59e0b, #d97706);
+      border: none;
+      border-radius: 16px;
+      color: #000;
+      font-size: 16px;
+      font-weight: 900;
+      letter-spacing: 0.5px;
+      cursor: pointer;
+      box-shadow: 0 8px 25px rgba(245, 158, 11, 0.4);
+    }
+
+    .completed-link-hint {
+      font-size: 13px;
+      color: #94a3b8;
+      margin-top: 14px;
+      font-weight: 600;
+    }
+
+    /* Тач-курсор */
+    #touch-cursor {
+      position: absolute;
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.35);
+      border: 2px solid rgba(255, 255, 255, 0.9);
+      box-shadow: 0 0 15px rgba(255, 255, 255, 0.6);
+      pointer-events: none;
+      z-index: 9999;
+      transform: translate(-50%, -50%) scale(1);
+      transition: transform 0.15s ease-out, opacity 0.2s ease;
+      opacity: 0;
+    }
+
+    #touch-cursor.visible { opacity: 1; }
+    #touch-cursor.tap { transform: translate(-50%, -50%) scale(0.8); }
+  </style>
+</head>
+<body>
+  <div id="phone-container">
+    
+    <!-- Динамические титры -->
+    <div class="reels-subtitles" id="subtitles">
+      <div class="sub-badge" id="sub-badge">
+        <span class="highlight">ЭТАП 5: ДИАЛОГИ</span> 🎙️
+      </div>
+    </div>
+
+    <!-- СЦЕНА 1: ВЫБОР РОЛИ -->
+    <div class="scene active" id="scene-roles">
+      <div class="app-header">
+        <div class="header-logo-badge">
+          <div class="header-logo-icon">א</div>
+          <div>
+            <div class="header-title-text">Ульпа́на Алеф</div>
+            <div class="header-sub-text">Урок 2: В кафе «Арома»</div>
+          </div>
+        </div>
+        <div class="stage-pill">Этап 5/6 • Диалог</div>
+      </div>
+
+      <div class="app-body">
+        <div class="role-intro-card">
+          <div class="role-intro-badge">ЖИВАЯ РЕЧЬ БЕЗ СТРЕССА ☕</div>
+          <div class="role-intro-title">Заказ кофе у стойки</div>
+          <div class="role-intro-desc">Выбери, за кого ты тренируешься говорить:</div>
+        </div>
+
+        <div class="roles-grid">
+          <div class="role-card selected" id="role-client">
+            <div class="role-avatar">🙋‍♂️</div>
+            <div class="role-info">
+              <div class="role-name">Клиент <span class="role-tag">ТЫ ГОВОРИШЬ</span></div>
+              <div class="role-desc">Заказываешь кофе и круассан</div>
+            </div>
+          </div>
+
+          <div class="role-card" id="role-barista">
+            <div class="role-avatar">☕</div>
+            <div class="role-info">
+              <div class="role-name">Бариста (ИИ)</div>
+              <div class="role-desc">Задаёт вопросы и принимает заказ</div>
+            </div>
+          </div>
+        </div>
+
+        <button class="primary-btn" id="btn-start-dialogue">НАЧАТЬ ТРЕНИРОВКУ 🚀</button>
+      </div>
+    </div>
+
+    <!-- СЦЕНА 2: ЖИВОЙ ДИАЛОГ -->
+    <div class="scene" id="scene-practice">
+      <div class="app-header">
+        <div class="header-logo-badge">
+          <div class="header-logo-icon">א</div>
+          <div>
+            <div class="header-title-text">Ульпа́на Алеф</div>
+            <div class="header-sub-text">Кафе «Арома» • Реплика 1/3</div>
+          </div>
+        </div>
+        <div class="stage-pill">Этап 5/6 • Диалог</div>
+      </div>
+
+      <div class="app-body">
+        <div class="live-hud">☕ Бариста говорит первым • 00:03 🟢</div>
+
+        <!-- Реплика бариста -->
+        <div class="interlocutor-card">
+          <div class="interlocutor-header">
+            <div class="interlocutor-name">☕ Бариста Арома</div>
+            <div class="audio-bars"><span></span><span></span><span></span></div>
+          </div>
+          <div class="hebrew-turn-text">«שָׁלוֹם! מָה אַתָּה רוֹצֶה לִשְׁתּוֹת?»</div>
+          <div class="ru-sub-text">«Шалом! Что ты хочешь выпить?»</div>
+        </div>
+
+        <!-- Зона ответа ученика -->
+        <div class="student-dialogue-zone">
+          <div class="zone-badge">ТВОЙ ОТВЕТ ГОЛОСОМ:</div>
+          <div class="turn-hint-text">«Скажи: Я хочу маленький кофе, пожалуйста»</div>
+
+          <div class="mic-zone">
+            <div class="mic-ripples" id="mic-ripples"></div>
+            <button class="mic-button" id="mic-btn">🎙️</button>
+            <div class="mic-status-label" id="mic-status">Нажми и говори</div>
+          </div>
+
+          <!-- Анимированная звуковая волна речи -->
+          <div class="voice-waveform" id="voice-waveform" style="opacity: 0; transition: opacity 0.3s ease;">
+            <span class="wbar"></span><span class="wbar"></span><span class="wbar"></span><span class="wbar"></span><span class="wbar"></span><span class="wbar"></span><span class="wbar"></span><span class="wbar"></span>
+          </div>
+
+          <!-- Распознанный ответ -->
+          <div class="user-spoken-bubble" id="spoken-bubble" style="opacity: 0; transform: translateY(8px); transition: all 0.3s ease;">
+            <div class="spoken-he">«אֲנִי רוֹצֶה קָפֶה קָטָן, בְּבַקָּשָׁה»</div>
+            <div class="spoken-ru">Я хочу маленький кофе, пожалуйста</div>
+          </div>
+
+          <!-- Пословный разбор точности -->
+          <div class="word-accuracy-row" id="word-accuracy" style="opacity: 0; transition: opacity 0.3s ease;">
+            <div class="acc-chip">«אֲנִי» <b>99%</b></div>
+            <div class="acc-chip">«רוֹצֶה» <b>98%</b></div>
+            <div class="acc-chip">«קָפֶה» <b>97%</b></div>
+            <div class="acc-chip">«קָטָן» <b>98%</b></div>
+            <div class="acc-chip">«בְּבַקָּשָׁה» <b>99%</b></div>
+          </div>
+        </div>
+
+        <!-- AI Feedback -->
+        <div class="ai-feedback-badge" id="ai-feedback" style="opacity: 0; transform: scale(0.95); transition: all 0.35s ease;">
+          <div class="ai-badge-content">
+            <div class="ai-check">✓</div>
+            <div>
+              <div class="ai-score">ТОЧНОСТЬ: 98%</div>
+              <div style="font-size: 11px; color: #86efac; font-weight: 700;">ОТЛИЧНОЕ ПРОИЗНОШЕНИЕ! 🎉</div>
+            </div>
+          </div>
+          <div style="font-size: 24px;">🚀</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- СЦЕНА 3: РЕЗУЛЬТАТ / ЗАЧЁТ -->
+    <div class="scene" id="scene-completed">
+      <div class="completed-icon-box">🎉</div>
+      <div class="completed-title">
+        ЭТАП 5/6 УСПЕШНО <span style="color: #22c55e;">ЗАЧТЁН!</span>
+      </div>
+      <div style="font-size: 14px; color: #94a3b8; margin-bottom: 6px;">
+        Ты говоришь на иврите уверенно и без страха ошибки!
+      </div>
+
+      <div class="completed-stat-card">
+        <div class="stat-row">
+          <span>Точность произношения:</span>
+          <b>98%</b>
+        </div>
+        <div class="stat-row">
+          <span>Слов в активном запасе:</span>
+          <b>+6 новых слов</b>
+        </div>
+        <div class="stat-row">
+          <span>Языковой барьер:</span>
+          <b style="color: #60a5fa;">ПРЕОДОЛЁН 🛡️</b>
+        </div>
+      </div>
+
+      <button class="completed-btn" id="btn-next-stage">ПЕРЕЙТИ К ЭТАПУ 6: ЗВОНОК 📞</button>
+      <div class="completed-link-hint">ulpana.online • Практика с 1-го урока</div>
+    </div>
+
+    <!-- Виртуальный тач-курсор -->
+    <div id="touch-cursor"></div>
+  </div>
+
+  <script>
+    const subBadge = document.getElementById('sub-badge');
+    const sceneRoles = document.getElementById('scene-roles');
+    const scenePractice = document.getElementById('scene-practice');
+    const sceneCompleted = document.getElementById('scene-completed');
+    const touch = document.getElementById('touch-cursor');
+
+    function showTouch(x, y, tap = false) {
+      touch.style.left = x + 'px';
+      touch.style.top = y + 'px';
+      touch.classList.add('visible');
+      if (tap) {
+        touch.classList.add('tap');
+        setTimeout(() => touch.classList.remove('tap'), 200);
+      }
+    }
+
+    function hideTouch() {
+      touch.classList.remove('visible');
+    }
+
+    window.startTutorialTimeline = function(customTimings) {
+      const t = Object.assign({
+        startTap: 3600,
+        scenePractice: 4200,
+        micTap: 8800,
+        sceneCompleted: 18500,
+        nextTap: 22000
+      }, customTimings || window.__TUTORIAL_TIMINGS__ || {});
+
+      console.log('🎬 Запуск таймлайна обучающего видео (Этап 5):', t);
+
+      // 1. Тап по кнопке "НАЧАТЬ ТРЕНИРОВКУ"
+      setTimeout(() => {
+        showTouch(195, 470, true); // центр primary-btn
+      }, t.startTap);
+
+      setTimeout(() => hideTouch(), t.startTap + 500);
+
+      // 2. Переход к диалогу
+      setTimeout(() => {
+        sceneRoles.classList.remove('active');
+        scenePractice.classList.add('active');
+        subBadge.innerHTML = 'МЕХАНИКА: <span class="green">ОТВЕТ ГОЛОСОМ</span> 🎙️';
+      }, t.scenePractice);
+
+      // 3. Тап по микрофону
+      setTimeout(() => {
+        showTouch(195, 412, true); // центр mic-btn
+      }, t.micTap);
+
+      setTimeout(() => {
+        hideTouch();
+        const micStatus = document.getElementById('mic-status');
+        const voiceWf = document.getElementById('voice-waveform');
+        const spokenB = document.getElementById('spoken-bubble');
+        const wordAcc = document.getElementById('word-accuracy');
+        const aiFeedback = document.getElementById('ai-feedback');
+
+        if (micStatus) micStatus.innerText = 'Запись речи...';
+        if (voiceWf) voiceWf.style.opacity = '1';
+        if (spokenB) {
+          spokenB.style.opacity = '1';
+          spokenB.style.transform = 'translateY(0)';
+        }
+
+        // Появление оценки Whisper
+        setTimeout(() => {
+          if (micStatus) micStatus.innerText = 'Распознано!';
+          if (voiceWf) voiceWf.style.opacity = '0.3';
+          if (wordAcc) wordAcc.style.opacity = '1';
+          if (aiFeedback) {
+            aiFeedback.style.opacity = '1';
+            aiFeedback.style.transform = 'scale(1)';
+          }
+          subBadge.innerHTML = 'ТОЧНОСТЬ: <span class="green">98% УСПЕХ</span> 🎉';
+        }, 1100);
+      }, t.micTap + 400);
+
+      // 4. Переход к победному экрану
+      setTimeout(() => {
+        scenePractice.classList.remove('active');
+        sceneCompleted.classList.add('active');
+        subBadge.innerHTML = '<span class="highlight">ЭТАП 5 ЗАЧТЁН!</span> 🏆';
+
+        // Тап по кнопке "Перейти к этапу 6"
+        setTimeout(() => {
+          showTouch(195, 595, true);
+        }, Math.max(500, t.nextTap - t.sceneCompleted));
+
+        setTimeout(() => hideTouch(), Math.max(500, t.nextTap - t.sceneCompleted) + 700);
+      }, t.sceneCompleted);
+    };
+
+    window.addEventListener('DOMContentLoaded', () => {
+      if (!window.__PLAYWRIGHT_MANUAL_START__) {
+        window.startTutorialTimeline();
+      }
+    });
+  </script>
+</body>
+</html>

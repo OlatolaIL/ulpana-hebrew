@@ -51,3 +51,7 @@ public/demo/audio_cache/
 src/data/pealimCatalogIndex.json
 scripts/output/
 
+# marketing temporary & sessions
+growth/data/wa_session/
+public/demo/*.png
+

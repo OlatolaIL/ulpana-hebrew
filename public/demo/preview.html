@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Предпросмотр ролика — Ульпан Алеф</title>
+  <style>
+    body {
+      background: #0b0f19;
+      color: #fff;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      margin: 0;
+      padding: 20px;
+      box-sizing: border-box;
+    }
+    .container {
+      max-width: 420px;
+      width: 100%;
+      text-align: center;
+    }
+    h1 {
+      font-size: 20px;
+      margin-bottom: 8px;
+    }
+    p {
+      color: #94a3b8;
+      font-size: 14px;
+      margin-bottom: 16px;
+    }
+    .video-card {
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.6), 0 0 30px rgba(59, 130, 246, 0.2);
+      border: 1.5px solid rgba(255,255,255,0.15);
+      background: #000;
+      position: relative;
+    }
+    video {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+    .btn-play {
+      margin-top: 18px;
+      padding: 14px 24px;
+      font-size: 16px;
+      font-weight: 700;
+      border-radius: 14px;
+      background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+      color: #fff;
+      border: none;
+      cursor: pointer;
+      box-shadow: 0 8px 20px rgba(37,99,235,0.4);
+      transition: transform 0.15s ease;
+      width: 100%;
+    }
+    .btn-play:active {
+      transform: scale(0.97);
+    }
+    .audio-card {
+      margin-top: 20px;
+      padding: 14px;
+      background: rgba(30,41,59,0.7);
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,0.1);
+      text-align: left;
+    }
+    .audio-card h3 {
+      margin: 0 0 6px 0;
+      font-size: 14px;
+      color: #cbd5e1;
+    }
+    audio {
+      width: 100%;
+      margin-top: 6px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🎬 Виральный ролик: Duolingo vs Реальность</h1>
+    <p>17.5 сек • 9:16 Vertical • Формат для TikTok / Reels / Shorts</p>
+
+    <div class="video-card">
+      <video id="video-player" src="./reels_duolingo_vs_reality.mp4" playsinline controls></video>
+    </div>
+
+    <button class="btn-play" onclick="playWithSound()">🔊 ВКЛЮЧИТЬ И СМОТРЕТЬ СО ЗВУКОМ</button>
+
+    <div class="audio-card">
+      <h3>🎙️ Отдельная мастер-аудиодорожка (WAV):</h3>
+      <audio controls src="./reels_audio.wav"></audio>
+    </div>
+  </div>
+
+  <script>
+    function playWithSound() {
+      const v = document.getElementById('video-player');
+      v.muted = false;
+      v.volume = 1.0;
+      v.currentTime = 0;
+      v.play().catch(err => {
+        console.error('Play error:', err);
+      });
+    }
+  </script>
+</body>
+</html>

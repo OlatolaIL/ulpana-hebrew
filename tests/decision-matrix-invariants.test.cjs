@@ -18,7 +18,7 @@ test('R-00: DECISION_MATRIX.md exists and contains all required blocks, versioni
   assert.ok(matrixContent.includes('Дата обновления:'), 'DECISION_MATRIX.md must include update date');
 
   // Check required rule anchors
-  const expectedRules = ['R-01', 'R-02', 'R-03', 'R-04', 'R-05', 'R-07', 'R-08', 'R-10', 'R-11', 'R-13', 'R-14', 'R-15', 'R-16', 'R-17', 'R-23', 'R-24'];
+  const expectedRules = ['R-01', 'R-02', 'R-03', 'R-04', 'R-05', 'R-07', 'R-08', 'R-10', 'R-11', 'R-13', 'R-14', 'R-15', 'R-16', 'R-17', 'R-23', 'R-24', 'R-25'];
   for (const rule of expectedRules) {
     assert.ok(matrixContent.includes(rule), `DECISION_MATRIX.md must define rule ${rule}`);
   }
@@ -261,6 +261,27 @@ test('R-24: Curated Studio Audio Registry is defined with word/sentence assets a
   assert.ok(speechCode.includes('CURATED_STUDIO_AUDIO'), 'speech.ts must define CURATED_STUDIO_AUDIO');
   assert.ok(speechCode.includes('CURATED_SENTENCE_AUDIO'), 'speech.ts must define CURATED_SENTENCE_AUDIO');
   assert.ok(speechCode.includes('getCuratedSentenceAudio'), 'speech.ts must export getCuratedSentenceAudio');
+});
+
+test('R-25: Viral Video Engine and VIDEO_PRODUCTION_PLAYBOOK.md invariants are defined and enforced', () => {
+  const matrixContent = fs.readFileSync(matrixPath, 'utf8');
+  assert.ok(matrixContent.includes('R-25'), 'DECISION_MATRIX.md must define R-25');
+  assert.ok(matrixContent.includes('VIDEO_PRODUCTION_PLAYBOOK.md'), 'R-25 must reference VIDEO_PRODUCTION_PLAYBOOK.md');
+  assert.ok(matrixContent.includes('position: absolute; inset: 0; visibility: hidden;'), 'R-25 must enforce scene positioning invariant');
+  assert.ok(matrixContent.includes('косинусное сглаживание 15ms'), 'R-25 must enforce de-clicking invariant');
+
+  const playbookPath = path.join(repoRoot, 'growth/VIDEO_PRODUCTION_PLAYBOOK.md');
+  assert.ok(fs.existsSync(playbookPath), 'growth/VIDEO_PRODUCTION_PLAYBOOK.md must exist');
+  const playbookContent = fs.readFileSync(playbookPath, 'utf8');
+  assert.ok(playbookContent.includes('390x844'), 'Playbook must define mobile 9:16 viewport');
+  assert.ok(playbookContent.includes('15ms'), 'Playbook must define 15ms de-clicking window');
+  assert.ok(playbookContent.includes('atempo=1.22'), 'Playbook must define narrator speedup');
+
+  // Verify tutorials registry exists
+  const registryPath = path.join(repoRoot, 'growth/tutorials/registry.json');
+  assert.ok(fs.existsSync(registryPath), 'growth/tutorials/registry.json must exist');
+  const registry = JSON.parse(fs.readFileSync(registryPath, 'utf8'));
+  assert.ok(registry.stages && registry.stages['stage-05-dialogue'], 'registry.json must track stage-05-dialogue in stages');
 });
 
 

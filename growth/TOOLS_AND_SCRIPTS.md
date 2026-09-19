@@ -1,4 +1,4 @@
-﻿# Инструментарий и автоматизация маркетинга («Ульпан Алеф» — Growth Toolbox)
+# Инструментарий и автоматизация маркетинга («Ульпан Алеф» — Growth Toolbox)
 
 > **Статус:** 🔴 BLOCKING (Правило R-23 в `DECISION_MATRIX.md`)  
 > **Назначение:** Единая шпаргалка по всем скриптам, командам, генераторам и автоматизациям для маркетинга, контента и соцсетей.
@@ -19,6 +19,10 @@
 * **Отправка конкретного файла с постом:**
   ```bash
   node growth/scripts/post_to_telegram.cjs --file=growth/content/tg_posts/post_01.md --send
+  ```
+* **Публикация видео в канал:**
+  ```bash
+  node growth/scripts/post_to_telegram.cjs --video=./public/demo/reels_duolingo_vs_reality.mp4 --send
   ```
 * **Отправка в другой чат/группу:**
   ```bash
@@ -47,6 +51,19 @@
   npm run demo:record-audio
   ```
 * **Исходный скрипт:** `scripts/record_full_walkthrough_with_sound.mjs`
+
+### Генерация вирального ролика (Reels / TikTok / Shorts) «Duolingo vs Реальность»:
+* **Команда:**
+  ```bash
+  node growth/scripts/record_viral_reels.mjs
+  # или через npm:
+  npm run reels:generate
+  ```
+* **Исходный скрипт:** `growth/scripts/record_viral_reels.mjs`
+* **Сцена и моушн:** `growth/scenes/duolingo_vs_reality/index.html`
+* **Сценарий:** `growth/content/reels_scripts/reels_01_duolingo_vs_reality.md`
+* **Куда сохраняется видео:** `public/demo/reels_duolingo_vs_reality.mp4`
+* **Что делает:** Робот запускает Playwright в 9:16 (390x844), синтезирует реплики и звуковые эффекты (гудок курьера, джингл ИИ), проигрывает анимацию со сменой 4 сцен и с помощью FFmpeg собирает готовый `.mp4` ролик на 17.5 секунд.
 
 ---
 

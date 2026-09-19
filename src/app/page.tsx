@@ -156,6 +156,20 @@ export default function Home() {
     let initialLessonId = 1;
     let initialTab: LessonStageTab = 'theory';
 
+    // Проверка параметров URL search, если hash не задан
+    if (!initialHash && typeof window !== 'undefined') {
+      try {
+        const searchParams = new URLSearchParams(window.location.search);
+        const qLesson = searchParams.get('lesson');
+        const qStage = searchParams.get('stage');
+        if (qLesson) {
+          const num = parseInt(qLesson, 10);
+          const stageSlug = qStage ? qStage.toLowerCase() : '';
+          initialHash = `#lesson-${num}${stageSlug ? `/${stageSlug}` : ''}`;
+        }
+      } catch {}
+    }
+
     if (initialHash.startsWith('#lesson-')) {
       const raw = initialHash.replace('#lesson-', '');
       const slashIndex = raw.indexOf('/');
@@ -173,6 +187,12 @@ export default function Home() {
         dialog: 'chat',
         phone: 'phone',
         call: 'phone',
+        '1': 'theory',
+        '2': 'vocab',
+        '3': 'exercises',
+        '4': 'essay',
+        '5': 'chat',
+        '6': 'phone',
       };
       const requestedTab = tabMap[tabSlug];
 
@@ -239,6 +259,12 @@ export default function Home() {
         initialView = 'dictionary';
         initialHash = '#dictionary';
       }
+    } else if (initialHash.startsWith('#deck-') || initialHash.startsWith('#decks/')) {
+      const rawDeckId = initialHash.startsWith('#deck-')
+        ? initialHash.replace('#deck-', '')
+        : initialHash.replace('#decks/', '');
+      initialView = 'dictionary';
+      setActiveDeckId(rawDeckId);
     } else if (initialHash === '#dictionary') {
       initialView = 'dictionary';
     } else if (initialHash === '#alphabet') {

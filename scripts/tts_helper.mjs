@@ -13,26 +13,48 @@ if (!fs.existsSync(CACHE_DIR)) {
   fs.mkdirSync(CACHE_DIR, { recursive: true });
 }
 
-function fetchSingleTts(text, lang, filename) {
+async function fetchSingleTts(text, lang, filename, maxRetries = 4) {
   const filePath = path.join(CACHE_DIR, filename);
   if (fs.existsSync(filePath) && fs.statSync(filePath).size > 1000) {
-    return Promise.resolve(filePath);
+    return filePath;
   }
 
-  return new Promise((resolve, reject) => {
-    const url = `https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=${lang}&q=${encodeURIComponent(text)}`;
-    https.get(url, { headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' } }, (res) => {
-      if (res.statusCode !== 200) {
-        return reject(new Error(`TTS failed with status ${res.statusCode} for: "${text}"`));
-      }
-      const file = fs.createWriteStream(filePath);
-      res.pipe(file);
-      file.on('finish', () => {
-        file.close();
-        resolve(filePath);
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      await new Promise((resolve, reject) => {
+        const url = `https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=${lang}&q=${encodeURIComponent(text)}`;
+        const req = https.get(url, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+          },
+          timeout: 10000
+        }, (res) => {
+          if (res.statusCode !== 200) {
+            return reject(new Error(`TTS failed with status ${res.statusCode} for: "${text}"`));
+          }
+          const file = fs.createWriteStream(filePath);
+          res.pipe(file);
+          file.on('finish', () => {
+            file.close();
+            resolve(filePath);
+          });
+          file.on('error', reject);
+        });
+
+        req.on('error', reject);
+        req.on('timeout', () => {
+          req.destroy();
+          reject(new Error('Request timed out'));
+        });
       });
-    }).on('error', reject);
-  });
+
+      return filePath;
+    } catch (err) {
+      if (attempt === maxRetries) throw err;
+      console.warn(`⏳ Повтор TTS для "${text.slice(0, 20)}" (попытка ${attempt}/${maxRetries}): ${err.message}`);
+      await new Promise(r => setTimeout(r, 1500 * attempt));
+    }
+  }
 }
 
 export async function fetchTts(text, lang, filename) {
