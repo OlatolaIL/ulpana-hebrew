@@ -195,11 +195,14 @@ export function playFallbackAudio(
         activeFallbackAudio = null;
       }
 
-      // Сохраняем огласовки (ניקוד) и знаки препинания (. , ! ? : ;) для пауз и вопросительной интонации Google TTS
+      // Google Translate TTS не умеет читать огласованный иврит (никуд):
+      // тּוֹדָה → «теуда», בְּבַקָּשָׁה → «беваакаша».
+      // Снимаем никуд строго перед формированием URL — только для Google TTS.
+      // cleanText (с огласовками) сохраняем для определения isQuestion и playbackRate.
       let cleanText = text
         .replace(/[؟？]/g, '?')
         .replace(/[！]/g, '!')
-        .replace(/["'״׳()[\]{}—<>«»]/g, ' ')
+        .replace(/[\"'״׳()[\]{}—<>«»]/g, ' ')
         .replace(/\s+([.,!?:;])/g, '$1')
         .replace(/([.,!?:;])(?=[\u0590-\u05FF\u0400-\u04FFa-zA-Z])/g, '$1 ')
         .replace(/\s+/g, ' ')
@@ -216,7 +219,10 @@ export function playFallbackAudio(
       const isQuestion = cleanText.includes('?');
       const effectiveRate = isQuestion ? Math.max(rate || 0.75, 0.8) : (rate || 0.75);
 
-      const url = `https://translate.google.com/translate_tts?ie=UTF-8&tl=${lang}&client=tw-ob&q=${encodeURIComponent(cleanText)}`;
+      // Для иврита снимаем огласовки перед отправкой в Google TTS — без них читает правильно
+      const ttsText = lang === 'iw' ? stripNikkud(cleanText).replace(/\s+/g, ' ').trim() : cleanText;
+
+      const url = `https://translate.google.com/translate_tts?ie=UTF-8&tl=${lang}&client=tw-ob&q=${encodeURIComponent(ttsText)}`;
       const audio = new Audio(url);
       activeFallbackAudio = audio;
       audio.playbackRate = Math.max(0.6, Math.min(1.3, effectiveRate));

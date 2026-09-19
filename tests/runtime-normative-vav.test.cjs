@@ -147,7 +147,9 @@ test('speakHebrew transmits normative text across native TTS, unsupported synthe
 
     assert.equal(sinks.length, 2);
     assert.equal(sinks[1].sink, 'fallback-audio');
-    assert.equal(sinks[1].text, 'לֶחֶם וּגְבִינָה', 'Fallback Audio must receive unmodified normative text');
+    // Google Translate TTS получает текст БЕЗ огласовок — иначе читает неверно («теуда», «беваакаша»).
+    // Нормативный текст с огласовками идёт только в браузерный speechSynthesis (Sink 1).
+    assert.equal(sinks[1].text, 'לחם וגבינה', 'Fallback Audio URL must strip nikkud for Google TTS to pronounce correctly');
     assert.equal(sinks[1].rate, 0.8);
 
     // Sink 3: Error fallback (speechSynthesis.speak errors out)
@@ -170,7 +172,8 @@ test('speakHebrew transmits normative text across native TTS, unsupported synthe
 
     assert.equal(sinks.length, 3);
     assert.equal(sinks[2].sink, 'fallback-audio');
-    assert.equal(sinks[2].text, 'לֶחֶם וּגְבִינָה', 'Error fallback Audio must receive unmodified normative text');
+    // Google Translate TTS получает текст БЕЗ огласовок
+    assert.equal(sinks[2].text, 'לחם וגבינה', 'Error fallback Audio URL must strip nikkud for Google TTS');
 
     // Single-word test: וּגְבִינָה alone
     global.window.speechSynthesis = {
