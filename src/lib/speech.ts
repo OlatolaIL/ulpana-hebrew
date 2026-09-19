@@ -341,8 +341,9 @@ export function getStudioAudioForWord(word: string): string | null {
   if (!clean || clean.includes(' ')) return null;
 
   // 1. Проверяем наличие в кастомном реестре исключений (сленг)
-  if (CURATED_STUDIO_AUDIO[clean] || CURATED_STUDIO_AUDIO[word.trim()]) {
-    return CURATED_STUDIO_AUDIO[clean] || CURATED_STUDIO_AUDIO[word.trim()];
+  const normalizedKey = clean.replace(/["״׳']/g, '');
+  if (CURATED_STUDIO_AUDIO[clean] || CURATED_STUDIO_AUDIO[word.trim()] || CURATED_STUDIO_AUDIO[normalizedKey]) {
+    return CURATED_STUDIO_AUDIO[clean] || CURATED_STUDIO_AUDIO[word.trim()] || CURATED_STUDIO_AUDIO[normalizedKey];
   }
 
   try {

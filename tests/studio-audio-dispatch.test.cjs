@@ -152,7 +152,9 @@ test('getStudioAudioForWord: curated studio audio overrides for slang words and 
   assert.equal(getStudioAudioForWord('סִילָבּוּס'), '/audio/words/syllabus.mp3');
   assert.equal(getStudioAudioForWord('צהל'), '/audio/words/zahal.mp3');
   assert.equal(getStudioAudioForWord('צה"ל'), '/audio/words/zahal.mp3');
+  assert.equal(getStudioAudioForWord('צה״ל'), '/audio/words/zahal.mp3');
   assert.equal(getStudioAudioForWord('צַהַ"ל'), '/audio/words/zahal.mp3');
+  assert.equal(getStudioAudioForWord('צַהַ״ל'), '/audio/words/zahal.mp3');
   assert.equal(getStudioAudioForWord('באסה'), '/audio/words/baasa.mp3');
   assert.equal(getStudioAudioForWord('בָּאסָה'), '/audio/words/baasa.mp3');
   assert.equal(getStudioAudioForWord('יאללה'), '/audio/words/yalla.mp3');
