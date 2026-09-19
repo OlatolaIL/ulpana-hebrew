@@ -5,9 +5,9 @@
 
 ---
 
-## 🛠 1. Скрипты публикации и работы с Telegram
+## 🛠 1. Скрипты публикации (Telegram, Facebook, YouTube)
 
-### Скрипт автопостинга в канал `@ulpana_il`: `growth/scripts/post_to_telegram.cjs`
+### А. Скрипт автопостинга в Telegram-канал `@ulpana_il`: `growth/scripts/post_to_telegram.cjs`
 * **Предпросмотр поста (Dry-Run без отправки):**
   ```bash
   node growth/scripts/post_to_telegram.cjs --preview
@@ -27,6 +27,50 @@
 * **Отправка в другой чат/группу:**
   ```bash
   node growth/scripts/post_to_telegram.cjs --chat=@other_chat --send
+  ```
+
+### Б. Скрипт публикации на Facebook Page: `growth/scripts/post_to_meta.cjs`
+* **Предпросмотр поста:**
+  ```bash
+  node growth/scripts/post_to_meta.cjs --preview
+  ```
+* **Публикация поста на страницу Facebook:**
+  ```bash
+  node growth/scripts/post_to_meta.cjs --send
+  ```
+* **Публикация и автоматическая запись в реестр `publications.json`:**
+  ```bash
+  node growth/scripts/post_to_meta.cjs --send --register
+  ```
+* **Публикация с кастомным файлом и ссылкой:**
+  ```bash
+  node growth/scripts/post_to_meta.cjs --file=post.txt --link="https://ulpana-hebrew.vercel.app/?promo=FB" --send
+  ```
+
+### В. Скрипт публикации видео и Shorts в YouTube: `growth/scripts/post_to_youtube.cjs`
+* **Предпросмотр видео и метаданных (Dry-Run без загрузки):**
+  ```bash
+  node growth/scripts/post_to_youtube.cjs --preview
+  ```
+* **Мастер первичной авторизации OAuth 2.0 (в 1 клик):**
+  ```bash
+  node growth/scripts/post_to_youtube.cjs --auth
+  ```
+* **Реальная загрузка видео на YouTube-канал:**
+  ```bash
+  node growth/scripts/post_to_youtube.cjs --send
+  ```
+* **Загрузка конкретного видеоролика и регистрация в `publications.json`:**
+  ```bash
+  node growth/scripts/post_to_youtube.cjs --video=./public/demo/reels_duolingo_vs_reality.mp4 --send --register
+  ```
+* **Публикация с доступом по ссылке (unlisted) или приватно (private):**
+  ```bash
+  node growth/scripts/post_to_youtube.cjs --privacy=unlisted --send
+  ```
+* **Кастомные метаданные (заголовок, описание, теги):**
+  ```bash
+  node growth/scripts/post_to_youtube.cjs --title="Заголовок #Shorts" --tags="иврит,ульпан,shorts" --send
   ```
 
 ---

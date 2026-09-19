@@ -8,7 +8,7 @@ const DATA_DIR = path.join(process.cwd(), 'growth', 'data');
 const FILE_PATH = path.join(DATA_DIR, 'leads.json');
 
 // Контур 1: Быстрое «Ситечко» (RegExp маркеров боли)
-export const TRIGGER_PATTERNS = [
+const TRIGGER_PATTERNS = [
   /курьер/i,
   /вольт/i,
   /wolt/i,
@@ -31,7 +31,7 @@ export const TRIGGER_PATTERNS = [
   /клалит/i,
 ];
 
-export function matchesTrigger(text: string): boolean {
+function matchesTrigger(text: string): boolean {
   return TRIGGER_PATTERNS.some((p) => p.test(text));
 }
 

@@ -10,8 +10,8 @@
     "promoCode": "FB_POST",
     "fullUrlWithPromo": "https://ulpana-hebrew.vercel.app/lessons/1/call?promo=FB_POST",
     "livePostUrl": "https://www.facebook.com/1261423050393637_122095315083488846",
-    "status": "published",
-    "notes": "Автопостинг через Meta Graph API",
+    "status": "archived",
+    "notes": "Удален тестовый пост по запросу пользователя",
     "createdAt": "2026-09-19T18:05:09.256Z",
     "updatedAt": "2026-09-19T18:05:09.256Z"
   },

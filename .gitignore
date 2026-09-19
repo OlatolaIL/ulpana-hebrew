@@ -53,5 +53,8 @@ scripts/output/
 
 # marketing temporary & sessions
 growth/data/wa_session/
+growth/data/tg_session*
+growth/data/*_session*
+growth/data/*.session
 public/demo/*.png
 

@@ -1,5 +1,24 @@
 [
   {
+    "id": "lead-test-1789842689912",
+    "timestamp": "2026-09-19T18:31:29.912Z",
+    "sourceChannel": "telegram",
+    "sourceChatName": "@ole_hadash_chat",
+    "authorName": "Михаил (Тест)",
+    "authorContact": "@mikhail_test",
+    "rawText": "Вчера курьер из Wolt звонил, кричал в трубку \"ани лемата\", я от страха сбросил трубку... Что делать с этим ивритом?",
+    "aiAnalysis": {
+      "isTargetLead": true,
+      "painCategory": "courier_call",
+      "confidence": 8,
+      "painSummary": "Страх звонков курьеров (Wolt / доставка)",
+      "targetDeepLink": "/lessons/1/call",
+      "suggestedReply": "Здравствуйте! Очень вас понимаю, сам через это проходил. В «Ульпан Алеф» как раз есть интерактивный тренажер для таких ситуаций (симулятор звонков и нужные фразы): https://ulpana-hebrew.vercel.app/lessons/1/call?promo=RADAR"
+    },
+    "messageUrl": "https://t.me/ole_hadash_chat/12345",
+    "status": "new"
+  },
+  {
     "id": "lead-wa-001",
     "timestamp": "2026-09-19T08:14:00.000Z",
     "sourceChannel": "whatsapp",

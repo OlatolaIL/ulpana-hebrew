@@ -178,6 +178,7 @@ async function recordStageTutorial(stageNum = 5, version = 'v2') {
   const stageKey = `stage-0${stageNum}-dialogue`;
   const masterAudioPath = path.resolve(CACHE_DIR, `tut_${stageKey}_${version}_master.wav`);
   const { totalDurationSec, clips } = await buildTutorialMasterAudio(masterAudioPath, STAGE_05_CUES);
+  let uiOffsetSec = 0;
 
   const introClip = clips.find((c) => c.id === 'intro');
   const baristaClip = clips.find((c) => c.id === 'barista');
@@ -199,23 +200,67 @@ async function recordStageTutorial(stageNum = 5, version = 'v2') {
     ],
   });
 
-  const context = await browser.newContext({
-    viewport: { width: 390, height: 844 },
-    deviceScaleFactor: 2,
-    isMobile: true,
-    hasTouch: true,
-    permissions: ['microphone'],
-    recordVideo: {
-      dir: OUTPUT_DIR,
-      size: { width: 390, height: 844 },
-    },
-  });
-
-  const page = await context.newPage();
+  let context;
+  let page;
+  let recordingStartTime = 0;
 
   if (version === 'v2') {
     // ВЕРСИЯ v2.0: ЗАПИСЬ НА РЕАЛЬНОМ ЭКРАНЕ http://localhost:3000/lesson/2?stage=5 (R-25)
     console.log('🌟 [v2.0] Активация режима реального экрана приложения (localhost:3000)...');
+
+    console.log('🔥 Прогрев роута http://localhost:3000/#lesson-2/chat перед записью...');
+    const warmupContext = await browser.newContext({
+      viewport: { width: 390, height: 844 },
+      deviceScaleFactor: 2,
+    });
+    const warmupPage = await warmupContext.newPage();
+    await warmupPage.addInitScript(() => {
+      try {
+        localStorage.setItem('ulpana_auto_show_guides', 'false');
+        localStorage.setItem('pwa_prompt_dismissed_at', Date.now().toString());
+        localStorage.setItem('ulpana_show_floating_feedback', 'false');
+        localStorage.setItem('ulpana_chat_tips_hidden', 'true');
+        localStorage.setItem(
+          'ulpana_user_profile',
+          JSON.stringify({
+            id: 'tut_guest_v2',
+            name: 'Ученик',
+            gender: 'female',
+            showNikkud: true,
+            showTranscription: true,
+            fontStyle: 'print',
+            speechRate: 0.75,
+            completedLessons: [1],
+            lessonProgress: {
+              2: { completedTabs: ['theory', 'vocab', 'exercises', 'essay'] },
+            },
+          })
+        );
+      } catch (_) {}
+    });
+    try {
+      await warmupPage.goto('http://localhost:3000/#lesson-2/chat', { waitUntil: 'domcontentloaded' });
+      await warmupPage.locator('button:has-text("Ответить по ролям (голос)")').waitFor({ state: 'visible', timeout: 30000 });
+    } catch (_) {}
+    await warmupPage.close();
+    await warmupContext.close();
+    console.log('✅ Роут прогрет и готов к съемке без задержек!');
+
+    console.log('🎥 Запуск чистого контекста записи Playwright...');
+    recordingStartTime = Date.now();
+    context = await browser.newContext({
+      viewport: { width: 390, height: 844 },
+      deviceScaleFactor: 2,
+      isMobile: true,
+      hasTouch: true,
+      permissions: ['microphone'],
+      recordVideo: {
+        dir: OUTPUT_DIR,
+        size: { width: 390, height: 844 },
+      },
+    });
+
+    page = await context.newPage();
 
     // 1. Настройка localStorage и перехват моков
     await page.addInitScript(() => {
@@ -354,6 +399,7 @@ async function recordStageTutorial(stageNum = 5, version = 'v2') {
         body: JSON.stringify({
           assessment: 'perfect',
           isCorrect: true,
+          score: 98,
           feedbackRu: 'Отличный заказ кофе! Точная грамматика и вежливая форма בבקשה.',
           pronunciationScore: 98,
           pronunciationFeedbackRu: 'Превосходное звучание гласных и правильное ударение.',
@@ -379,35 +425,17 @@ async function recordStageTutorial(stageNum = 5, version = 'v2') {
     });
     page.on('pageerror', (err) => console.error('  [BROWSER ERROR]', err.message));
 
-  if (version === 'v2') {
-    console.log('🔥 Прогрев роута http://localhost:3000/#lesson-2/chat перед записью...');
-    const warmupContext = await browser.newContext({
-      viewport: { width: 390, height: 844 },
-      deviceScaleFactor: 2,
-    });
-    const warmupPage = await warmupContext.newPage();
-    try {
-      await warmupPage.goto('http://localhost:3000/lesson/2?stage=5', { waitUntil: 'domcontentloaded' });
-      await warmupPage.locator('button:has-text("Ответить по ролям (голос)")').waitFor({ state: 'visible', timeout: 30000 });
-    } catch (_) {}
-    await warmupPage.close();
-    await warmupContext.close();
-    console.log('✅ Роут прогрет и готов к съемке без задержек!');
-  }
+    uiOffsetSec = 0;
 
-  let uiOffsetSec = 0;
+    const targetUrl = 'http://localhost:3000/#lesson-2/chat';
+    console.log(`🌐 Переход на ${targetUrl}...`);
+    await page.goto(targetUrl, { waitUntil: 'domcontentloaded' });
 
-  const targetUrl = version === 'v2' ? 'http://localhost:3000/#lesson-2/chat' : 'http://localhost:3000/lesson/2?stage=5';
-  console.log(`🌐 Переход на ${targetUrl}...`);
-  const pageStartTime = Date.now();
-  await page.goto(targetUrl, { waitUntil: 'domcontentloaded' });
-
-  if (version === 'v2') {
     console.log('⏳ Ожидание появления экрана этапа 5 (кнопка "Ответить по ролям (голос)")...');
     const roleBtn = page.locator('button:has-text("Ответить по ролям (голос)")');
     await roleBtn.waitFor({ state: 'visible', timeout: 25000 });
     const uiReadyTime = Date.now();
-    uiOffsetSec = Math.max(0, (uiReadyTime - pageStartTime) / 1000);
+    uiOffsetSec = Math.max(0, (uiReadyTime - recordingStartTime) / 1000);
     console.log(`✅ Экран этапа 5 успешно загружен! Смещение предзагрузки: ${uiOffsetSec.toFixed(2)}s (будет отрезано)`);
 
     // Функция для плавного нажатия на элемент
@@ -497,7 +525,8 @@ async function recordStageTutorial(stageNum = 5, version = 'v2') {
     // Ожидание появления реальной карточки оценки 98% (evalClip: 10.53s -> 15.35s)
     console.log('  ✨ Ожидание появления оценки ИИ...');
     try {
-      await page.waitForSelector('text=Произношение: 98%', { timeout: 8000 });
+      const badge = page.locator('span:has-text("98%"), :has-text("Отличный заказ кофе"), :has-text("Отлично!")').first();
+      await badge.waitFor({ state: 'visible', timeout: 8000 });
       console.log('  🎉 Бейдж 98% успешно отобразился в DOM!');
     } catch (_) {}
 
@@ -552,34 +581,43 @@ async function recordStageTutorial(stageNum = 5, version = 'v2') {
   }
 
   console.log('🛑 Завершение записи сцены...');
+  const videoObj = page.video();
   await page.close();
   await context.close();
   await browser.close();
 
-  // Поиск WebM видео от Playwright
-  const files = fs
-    .readdirSync(OUTPUT_DIR)
-    .filter((f) => f.endsWith('.webm'))
-    .map((f) => ({
-      name: f,
-      time: fs.statSync(path.join(OUTPUT_DIR, f)).mtimeMs,
-    }))
-    .sort((a, b) => b.time - a.time);
-
-  if (!files.length) {
-    throw new Error('Playwright не создал файл .webm в ' + OUTPUT_DIR);
+  let rawVideoPath;
+  if (videoObj) {
+    try {
+      rawVideoPath = await videoObj.path();
+    } catch (_) {}
   }
+  if (!rawVideoPath || !fs.existsSync(rawVideoPath)) {
+    const files = fs
+      .readdirSync(OUTPUT_DIR)
+      .filter((f) => f.endsWith('.webm'))
+      .map((f) => ({
+        name: f,
+        time: fs.statSync(path.join(OUTPUT_DIR, f)).mtimeMs,
+      }))
+      .sort((a, b) => b.time - a.time);
 
-  const rawVideoPath = path.join(OUTPUT_DIR, files[0].name);
+    if (!files.length) {
+      throw new Error('Playwright не создал файл .webm в ' + OUTPUT_DIR);
+    }
+    rawVideoPath = path.join(OUTPUT_DIR, files[0].name);
+  }
   const finalMp4Path = path.resolve(OUTPUT_DIR, `stage_0${stageNum}_dialogue_${version}.mp4`);
 
   console.log(`🎬 Сведение видео (${rawVideoPath}) со смещением ${uiOffsetSec.toFixed(2)}s и мастер-аудио в ${finalMp4Path}...`);
 
   const ffmpegArgs = [
     '-y',
-    ...(uiOffsetSec > 0.05 ? ['-ss', uiOffsetSec.toFixed(3)] : []),
     '-i', rawVideoPath,
     '-i', masterAudioPath,
+    ...(uiOffsetSec > 0.05
+      ? ['-filter_complex', `[0:v]trim=start=${uiOffsetSec.toFixed(3)},setpts=PTS-STARTPTS[v]`, '-map', '[v]', '-map', '1:a']
+      : ['-map', '0:v', '-map', '1:a']),
     '-t', totalDurationSec.toString(),
     '-c:v', 'libx264',
     '-preset', 'fast',
@@ -608,6 +646,16 @@ async function recordStageTutorial(stageNum = 5, version = 'v2') {
   console.log(`📁 Путь: ${finalMp4Path}`);
   console.log(`📦 Размер: ${(finalStat.size / 1024 / 1024).toFixed(2)} MB`);
   console.log(`⏱️ Хронометраж: ${totalDurationSec}s (9:16 vertical, 390x844 @2x)`);
+
+  // Контрольные кадры для верификации (R-13)
+  const framesDir = path.resolve(OUTPUT_DIR, 'verification_frames');
+  if (!fs.existsSync(framesDir)) fs.mkdirSync(framesDir, { recursive: true });
+  const checkTimes = [0.5, 11.5, 20.0];
+  for (const t of checkTimes) {
+    const framePath = path.join(framesDir, `frame_${t.toFixed(1)}s.jpg`);
+    cp.spawnSync(FFMPEG_PATH, ['-y', '-ss', t.toString(), '-i', finalMp4Path, '-frames:v', '1', '-q:v', '2', framePath]);
+    console.log(`📸 Контрольный кадр (${t}s): ${framePath}`);
+  }
 
   // Обновляем registry.json
   const registryPath = path.resolve('./growth/tutorials/registry.json');

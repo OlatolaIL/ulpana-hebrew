@@ -24,9 +24,11 @@
 
 ## 🏛 Блок 2. Настройка каналов и социальных сетей
 
-- [ ] **1. YouTube-канал:**
-  * Создать канал проекта (например, *«Ульпан Алеф | Живой иврит»*).
-  * Сюда будут выкладываться **YouTube Shorts** (для бесплатного поиска) + ссылки пойдут на сайт для встраивания подсказок к урокам.
+- [ ] **1. YouTube-канал и автопостинг:**
+  * Канал запущен: [Канал Ульпана](https://www.youtube.com/channel/UC1kWxNhUydNncIRzTbBzWJw) (`UC1kWxNhUydNncIRzTbBzWJw`).
+  * Сюда выкладываются **YouTube Shorts** и видеоролики с промокодом `YT`.
+  * Авторизация OAuth 2.0 (в 1 клик): `node growth/scripts/post_to_youtube.cjs --auth`
+  * Загрузка видео/Shorts: `node growth/scripts/post_to_youtube.cjs --send --register`
 - [ ] **2. Facebook Бизнес-Страница (Facebook Page):**
   * Создать публичную страницу проекта (для постов, отзывов и автоответов ManyChat на плюсики `+`).
   * **Кнопка действия (Action Button):** выбрать «Использовать приложение» (Use App) $\rightarrow$ указать ссылку: `https://ulpana-hebrew.vercel.app/?promo=FB`.

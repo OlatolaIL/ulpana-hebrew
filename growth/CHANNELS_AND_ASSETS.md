@@ -46,10 +46,11 @@
 | **«Русскоязычная Хайфа и Крайот»** | Городское ядро | Больничные кассы, городские службы, коммуналка. | `HAIFA` |
 | **«Нетания / Бат-Ям / Ришон»** | Анклавы алии | Повседневный иврит, преодоление языкового барьера. | `CENTER` |
 
-### Б. Telegram-чаты и каналы для мониторинга алертов (`@TGStat_Alerts_bot`)
-* Чаты репатриации: ключевые слова `ульпан`, `курьер`, `клалит`, `макаби`, `страх говорить`.
-* Чаты аренды жилья: ключевые слова `договор`, `хозяин квартиры`, `арнона`.
-* Профильные IT-чаты репатриантов: ключевые слова `иврит на митингах`, `собеседование на иврите`.
+### Б. Telegram-чаты и мониторинг лидов
+* **Инструменты:**
+  * **Автономный радар (GramJS / MTProto):** `growth/scripts/telegram_radar.cjs` — пассивный мониторинг чатов (по умолчанию `@ole_hadash_chat`), ИИ-анализ боли через Groq и мгновенные алерты в Telegram фаундеру.
+  * **Сервис алертов:** `@TGStat_Alerts_bot` (мониторинг открытых чатов по ключевым словам).
+* **Ключевые триггеры:** `ульпан`, `иврит`, `курьер`, `вольт`, `садик`, `поликлиника`, `клалит`, `макаби`, `страх говорить`, `собеседование`.
 
 ### В. WhatsApp-сообщества (Партизанский мониторинг — запланировано в бэклог)
 * **Инструмент:** Baileys WebSocket API (`growth/scripts/whatsapp_radar.cjs`, backlog).
@@ -64,6 +65,14 @@
 
 | Переменная окружения | Назначение | Где задается |
 | :--- | :--- | :--- |
-| `TELEGRAM_BOT_TOKEN` | Токен Telegram-бота для проверки подписки и автопостинга | `.env.local` / Vercel Env |
+| `TELEGRAM_BOT_TOKEN` | Токен Telegram-бота для проверки подписки, автопостинга и отправки алертов | `.env.local` / Vercel Env |
 | `TELEGRAM_ADMIN_CHAT_ID` | Ваш личный ID в Telegram для получения алертов о лидах | `.env.local` |
+| `TELEGRAM_API_ID` | API ID для клиента Telegram MTProto (my.telegram.org) | `.env.local` |
+| `TELEGRAM_API_HASH` | API HASH для клиента Telegram MTProto (my.telegram.org) | `.env.local` |
+| `FB_PAGE_ID` | Идентификатор страницы Facebook для автопостинга через Graph API | `.env.local` |
+| `META_ACCESS_TOKEN` | Долгоживущий токен доступа страницы Facebook (Page Access Token) | `.env.local` |
+| `YOUTUBE_CLIENT_ID` | Google OAuth 2.0 Client ID для YouTube Data API v3 | `.env.local` |
+| `YOUTUBE_CLIENT_SECRET` | Google OAuth 2.0 Client Secret для YouTube Data API v3 | `.env.local` |
+| `YOUTUBE_REFRESH_TOKEN` | Долгоживущий Refresh Token для автоматического обновления access_token | `.env.local` |
 | `NEXT_PUBLIC_APP_URL` | Базовый URL приложения для генерации реферальных ссылок | `.env.local` |
+
