@@ -268,7 +268,69 @@ const CURATED_STUDIO_AUDIO: Record<string, string> = {
   'סבבה': '/audio/words/sababa.mp3',
   'סַבָּבָה': '/audio/words/sababa.mp3',
   'סַבָּבָּה': '/audio/words/sababa.mp3',
+  'תכלס': '/audio/words/tachles.mp3',
+  'תַּכְלֶס': '/audio/words/tachles.mp3',
+  'פראייר': '/audio/words/fraier.mp3',
+  'פְרָאיֶיר': '/audio/words/fraier.mp3',
+  'סחבק': '/audio/words/sahbak.mp3',
+  'סַחְבָּק': '/audio/words/sahbak.mp3',
+  'פנצר': '/audio/words/pancher.mp3',
+  "פנצ'ר": '/audio/words/pancher.mp3',
+  "פַּנְצֶ'ר": '/audio/words/pancher.mp3',
+  'צימר': '/audio/words/tzimer.mp3',
+  'צִימֶר': '/audio/words/tzimer.mp3',
+  'טאבו': '/audio/words/tabu.mp3',
+  'טַאבּוּ': '/audio/words/tabu.mp3',
+  'סילבוס': '/audio/words/syllabus.mp3',
+  'סִילָבּוּס': '/audio/words/syllabus.mp3',
+  'צהל': '/audio/words/zahal.mp3',
+  'צה"ל': '/audio/words/zahal.mp3',
+  'צַהַ"ל': '/audio/words/zahal.mp3',
+  'באסה': '/audio/words/baasa.mp3',
+  'בָּאסָה': '/audio/words/baasa.mp3',
+  'יאללה': '/audio/words/yalla.mp3',
+  'יַאלְלָה': '/audio/words/yalla.mp3',
 };
+
+/**
+ * Локальный реестр предгенерированных аудиозаписей для предложений со сленгом
+ * и нерегулярным ударением (R-24)
+ */
+const CURATED_SENTENCE_AUDIO: Record<string, string> = {
+  'הכל סבבה תודה רבה': '/audio/sentences/hakol_sababa.mp3',
+  'תכלס אתה ממש צודק': '/audio/sentences/tachles_tsodek.mp3',
+  'אף אחד לא פראייר': '/audio/sentences/lo_fraier.mp3',
+  'הוא סחבק אמיתי שלנו': '/audio/sentences/sahbak_amiti.mp3',
+  'הוא סחבק אמתי שלנו': '/audio/sentences/sahbak_amiti.mp3',
+  "יש לי פנצ'ר באוטו": '/audio/sentences/pancher_baoto.mp3',
+  'יש לי פנצר באוטו': '/audio/sentences/pancher_baoto.mp3',
+  'שכרנו צימר יפה בצפון': '/audio/sentences/tzimer_tzafon.mp3',
+  'הדירה כבר רשומה בטאבו': '/audio/sentences/tabu_dira.mp3',
+  'הסילבוס מפורט מאד השנה': '/audio/sentences/syllabus_mevorat.mp3',
+  'הסילבוס מפורט מאוד השנה': '/audio/sentences/syllabus_mevorat.mp3',
+  'צהל מגן על המדינה': '/audio/sentences/zahal_megen.mp3',
+  'צה"ל מגן על המדינה': '/audio/sentences/zahal_megen.mp3',
+};
+
+/**
+ * Нормализация фразы для поиска в реестре предложений (снятие огласовок и знаков препинания)
+ */
+export function normalizeSentenceKey(sentence: string): string {
+  return stripNikkud(sentence)
+    .replace(/["״׳']/g, '')
+    .replace(/[.,!?:;«»()[\]{}—\-]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/**
+ * Поиск предгенерированной аудиозаписи для предложения со сленгом (R-24)
+ */
+export function getCuratedSentenceAudio(sentence: string): string | null {
+  if (!sentence || typeof sentence !== 'string') return null;
+  const key = normalizeSentenceKey(sentence);
+  return CURATED_SENTENCE_AUDIO[key] || null;
+}
 
 /**
  * Поиск студийной аудиозаписи слова из мастер-словаря Pealim (только для точных словарных форм)
@@ -485,17 +547,37 @@ export function speakHebrew(
       }
     };
 
-    // 2. Если это одиночное слово и включен режим студийного аудио — проверяем наличие студийной записи Pealim
+    // 2. Проверяем наличие студийного аудио для одиночных слов или предгенерированных предложений со сленгом (R-24)
     if (options.preferStudioAudio !== false && typeof Audio !== 'undefined') {
       const cleanWord = stripNikkud(text).trim();
-      if (cleanWord && !cleanWord.includes(' ')) {
-        const studioAudioUrl = getStudioAudioForWord(cleanWord);
-        if (studioAudioUrl) {
-          let isStudioEnded = false;
-          let studioTimeout: any = null;
-          let audio: HTMLAudioElement | null = null;
+      const studioWordAudioUrl = !cleanWord.includes(' ') ? getStudioAudioForWord(cleanWord) : null;
+      const curatedSentenceAudioUrl = !studioWordAudioUrl ? getCuratedSentenceAudio(text) : null;
+      const targetAudioUrl = studioWordAudioUrl || curatedSentenceAudioUrl;
 
-          const finishStudio = () => {
+      if (targetAudioUrl) {
+        let isStudioEnded = false;
+        let studioTimeout: any = null;
+        let audio: HTMLAudioElement | null = null;
+
+        const finishStudio = () => {
+          if (!isStudioEnded) {
+            isStudioEnded = true;
+            if (studioTimeout) {
+              clearTimeout(studioTimeout);
+              studioTimeout = null;
+            }
+            if (activeStudioAudio === audio) {
+              activeStudioAudio = null;
+            }
+            resolve();
+          }
+        };
+
+        try {
+          audio = new Audio(targetAudioUrl);
+          activeStudioAudio = audio;
+          audio.onended = finishStudio;
+          audio.onerror = () => {
             if (!isStudioEnded) {
               isStudioEnded = true;
               if (studioTimeout) {
@@ -505,15 +587,16 @@ export function speakHebrew(
               if (activeStudioAudio === audio) {
                 activeStudioAudio = null;
               }
-              resolve();
+              playWithTts();
             }
           };
 
-          try {
-            audio = new Audio(studioAudioUrl);
-            activeStudioAudio = audio;
-            audio.onended = finishStudio;
-            audio.onerror = () => {
+          const playPromise = audio.play();
+          if (playPromise !== undefined) {
+            playPromise.catch((err: any) => {
+              if (err?.name === 'NotAllowedError') {
+                notifyAudioBlocked('audio_play_not_allowed');
+              }
               if (!isStudioEnded) {
                 isStudioEnded = true;
                 if (studioTimeout) {
@@ -525,34 +608,14 @@ export function speakHebrew(
                 }
                 playWithTts();
               }
-            };
-
-            const playPromise = audio.play();
-            if (playPromise !== undefined) {
-              playPromise.catch((err: any) => {
-                if (err?.name === 'NotAllowedError') {
-                  notifyAudioBlocked('audio_play_not_allowed');
-                }
-                if (!isStudioEnded) {
-                  isStudioEnded = true;
-                  if (studioTimeout) {
-                    clearTimeout(studioTimeout);
-                    studioTimeout = null;
-                  }
-                  if (activeStudioAudio === audio) {
-                    activeStudioAudio = null;
-                  }
-                  playWithTts();
-                }
-              });
-            }
-
-            // Страховочный таймаут
-            studioTimeout = setTimeout(finishStudio, 6000);
-            return;
-          } catch {
-            // При ошибке Audio переходим к TTS
+            });
           }
+
+          // Страховочный таймаут
+          studioTimeout = setTimeout(finishStudio, 6000);
+          return;
+        } catch {
+          // При ошибке Audio переходим к TTS
         }
       }
     }

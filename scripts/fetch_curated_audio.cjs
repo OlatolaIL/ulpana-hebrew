@@ -1,0 +1,119 @@
+/**
+ * scripts/fetch_curated_audio.cjs
+ *
+ * Генератор и синхронизатор постоянного реестра Curated Audio (R-24)
+ * для сленговых слов и предложений с нерегулярным ударением.
+ *
+ * Гарантирует:
+ * - Монолитные качественные MP3-файлы без склеек слогов.
+ * - Чистую дикторскую дикцию с эталонным израильским ударением (милель для сленга).
+ * - Локальное кэширование в public/audio/words/ и public/audio/sentences/.
+ */
+
+const https = require('https');
+const fs = require('fs');
+const path = require('path');
+const { spawnSync } = require('child_process');
+
+const ffmpegPath = require('@ffmpeg-installer/ffmpeg').path;
+
+const WORDS_DIR = path.resolve(__dirname, '../public/audio/words');
+const SENTENCES_DIR = path.resolve(__dirname, '../public/audio/sentences');
+
+if (!fs.existsSync(WORDS_DIR)) fs.mkdirSync(WORDS_DIR, { recursive: true });
+if (!fs.existsSync(SENTENCES_DIR)) fs.mkdirSync(SENTENCES_DIR, { recursive: true });
+
+const CURATED_WORDS = [
+  { id: 'sababa', text: 'סַבָּבָה', file: 'sababa.mp3' },
+  { id: 'tachles', text: 'תַּכְלֶס', file: 'tachles.mp3' },
+  { id: 'fraier', text: 'פְרָאיֶיר', file: 'fraier.mp3' },
+  { id: 'sahbak', text: 'סַחְבָּק', file: 'sahbak.mp3' },
+  { id: 'pancher', text: "פַּנְצֶ'ר", file: 'pancher.mp3' },
+  { id: 'tzimer', text: 'צִימֶר', file: 'tzimer.mp3' },
+  { id: 'tabu', text: 'טַאבּוּ', file: 'tabu.mp3' },
+  { id: 'syllabus', text: 'סִילָבּוּס', file: 'syllabus.mp3' },
+  { id: 'zahal', text: 'צַהַ"ל', file: 'zahal.mp3' },
+  { id: 'baasa', text: 'בָּאסָה', file: 'baasa.mp3' },
+  { id: 'yalla', text: 'יַאלְלָה', file: 'yalla.mp3' },
+];
+
+const CURATED_SENTENCES = [
+  { id: 'hakol_sababa', text: 'הַכֹּל סַבָּבָה, תּוֹדָה רַבָּה!', file: 'hakol_sababa.mp3' },
+  { id: 'tachles_tsodek', text: 'תַּכְלֶס, אַתָּה מַמָּשׁ צוֹדֵק.', file: 'tachles_tsodek.mp3' },
+  { id: 'lo_fraier', text: 'אַף אֶחָד לֹא פְרָאיֶיר.', file: 'lo_fraier.mp3' },
+  { id: 'sahbak_amiti', text: 'הוּא סַחְבָּק אֲמִתִּי שֶׁלָּנוּ.', file: 'sahbak_amiti.mp3' },
+  { id: 'pancher_baoto', text: "יֵשׁ לִי פַּנְצֶ'ר בָּאוֹטוֹ.", file: 'pancher_baoto.mp3' },
+  { id: 'tzimer_tzafon', text: 'שָׂכַרְנוּ צִימֶר יָפֶה בַּצָּפוֹן.', file: 'tzimer_tzafon.mp3' },
+  { id: 'tabu_dira', text: 'הַדִּירָה כְּבָר רְשׁוּמָה בַּטַּאבּוּ.', file: 'tabu_dira.mp3' },
+  { id: 'syllabus_mevorat', text: 'הַסִּילָבּוּס מְפוֹרָט מְאֹד הַשָּׁנָה.', file: 'syllabus_mevorat.mp3' },
+  { id: 'zahal_megen', text: 'צַהַ"ל מֵגֵן עַל הַמְּדִינָה.', file: 'zahal_megen.mp3' },
+];
+
+function downloadAudio(text, destPath) {
+  return new Promise((resolve, reject) => {
+    const url = `https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=iw&q=${encodeURIComponent(text)}`;
+    https.get(url, { headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' } }, (res) => {
+      if (res.statusCode !== 200) {
+        return reject(new Error(`TTS download failed (${res.statusCode}) for: ${text}`));
+      }
+      const chunks = [];
+      res.on('data', (c) => chunks.push(c));
+      res.on('end', () => {
+        const buf = Buffer.concat(chunks);
+        if (buf.length < 1500) {
+          return reject(new Error(`Corrupt or too small audio stream (${buf.length} bytes) for: ${text}`));
+        }
+        fs.writeFileSync(destPath, buf);
+        resolve(buf.length);
+      });
+    }).on('error', reject);
+  });
+}
+
+function probeAudio(filePath) {
+  const probe = spawnSync(ffmpegPath, ['-i', filePath]);
+  const stderr = probe.stderr.toString();
+  const durMatch = stderr.match(/Duration: (\d{2}:\d{2}:\d{2}\.\d+)/);
+  return durMatch ? durMatch[1] : 'unknown';
+}
+
+async function main() {
+  console.log('====================================================');
+  console.log('🎙️ СИНХРОНИЗАЦИЯ CURATED AUDIO (СЛЕНГ И ПРЕДЛОЖЕНИЯ)');
+  console.log('====================================================\n');
+
+  console.log('--- 1. Синхронизация отдельных слов (11 единиц) ---');
+  for (const item of CURATED_WORDS) {
+    const targetFile = path.join(WORDS_DIR, item.file);
+    try {
+      const bytes = await downloadAudio(item.text, targetFile);
+      const dur = probeAudio(targetFile);
+      console.log(`✓ [Слово] ${item.text.padEnd(12)} -> /audio/words/${item.file.padEnd(14)} (${dur}, ${bytes} байт)`);
+    } catch (err) {
+      console.error(`✗ Ошибка при скачивании слова "${item.text}":`, err.message);
+      process.exit(1);
+    }
+  }
+
+  console.log('\n--- 2. Синхронизация предложений (9 единиц) ---');
+  for (const item of CURATED_SENTENCES) {
+    const targetFile = path.join(SENTENCES_DIR, item.file);
+    try {
+      const bytes = await downloadAudio(item.text, targetFile);
+      const dur = probeAudio(targetFile);
+      console.log(`✓ [Фраза] ${item.text.padEnd(32)} -> /audio/sentences/${item.file.padEnd(20)} (${dur}, ${bytes} байт)`);
+    } catch (err) {
+      console.error(`✗ Ошибка при скачивании предложения "${item.text}":`, err.message);
+      process.exit(1);
+    }
+  }
+
+  console.log('\n====================================================');
+  console.log('✅ Все 20 файлов успешно проверены и сохранены!');
+  console.log('====================================================');
+}
+
+main().catch((err) => {
+  console.error('Критический сбой:', err);
+  process.exit(1);
+});

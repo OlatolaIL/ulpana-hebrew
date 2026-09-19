@@ -18,7 +18,7 @@ test('R-00: DECISION_MATRIX.md exists and contains all required blocks, versioni
   assert.ok(matrixContent.includes('Дата обновления:'), 'DECISION_MATRIX.md must include update date');
 
   // Check required rule anchors
-  const expectedRules = ['R-01', 'R-02', 'R-03', 'R-04', 'R-05', 'R-07', 'R-08', 'R-10', 'R-11', 'R-13', 'R-14', 'R-15', 'R-16', 'R-17', 'R-23'];
+  const expectedRules = ['R-01', 'R-02', 'R-03', 'R-04', 'R-05', 'R-07', 'R-08', 'R-10', 'R-11', 'R-13', 'R-14', 'R-15', 'R-16', 'R-17', 'R-23', 'R-24'];
   for (const rule of expectedRules) {
     assert.ok(matrixContent.includes(rule), `DECISION_MATRIX.md must define rule ${rule}`);
   }
@@ -231,6 +231,36 @@ test('R-23: Growth Engine isolation and MARKETING_STRATEGY.md passport exist', (
 
   const toolsPath = path.join(repoRoot, 'growth/TOOLS_AND_SCRIPTS.md');
   assert.ok(fs.existsSync(toolsPath), 'growth/TOOLS_AND_SCRIPTS.md must exist');
+});
+
+test('R-24: Curated Studio Audio Registry is defined with word/sentence assets and test suite', () => {
+  const matrixContent = fs.readFileSync(matrixPath, 'utf8');
+  assert.ok(matrixContent.includes('R-24'), 'DECISION_MATRIX.md must define R-24');
+  assert.ok(matrixContent.includes('CURATED_STUDIO_AUDIO'), 'R-24 must document CURATED_STUDIO_AUDIO');
+  assert.ok(matrixContent.includes('CURATED_SENTENCE_AUDIO'), 'R-24 must document CURATED_SENTENCE_AUDIO');
+  assert.ok(matrixContent.includes('fetch_curated_audio.cjs'), 'R-24 must document fetch_curated_audio.cjs');
+  assert.ok(matrixContent.includes('Франкенштейн'), 'Superseded Log must document Frankenstein syllable splicing ban');
+
+  // Verify scripts and test files exist
+  const fetchScriptPath = path.join(repoRoot, 'scripts/fetch_curated_audio.cjs');
+  const testSuitePath = path.join(repoRoot, 'tests/studio-audio-dispatch.test.cjs');
+  assert.ok(fs.existsSync(fetchScriptPath), 'scripts/fetch_curated_audio.cjs must exist');
+  assert.ok(fs.existsSync(testSuitePath), 'tests/studio-audio-dispatch.test.cjs must exist');
+
+  // Verify key audio assets exist
+  const sababaWordPath = path.join(repoRoot, 'public/audio/words/sababa.mp3');
+  const tachlesWordPath = path.join(repoRoot, 'public/audio/words/tachles.mp3');
+  const sababaSentencePath = path.join(repoRoot, 'public/audio/sentences/hakol_sababa.mp3');
+  assert.ok(fs.existsSync(sababaWordPath), 'public/audio/words/sababa.mp3 must exist');
+  assert.ok(fs.existsSync(tachlesWordPath), 'public/audio/words/tachles.mp3 must exist');
+  assert.ok(fs.existsSync(sababaSentencePath), 'public/audio/sentences/hakol_sababa.mp3 must exist');
+
+  // Verify speech.ts implements both registries and sentence audio getter
+  const speechPath = path.join(repoRoot, 'src/lib/speech.ts');
+  const speechCode = fs.readFileSync(speechPath, 'utf8');
+  assert.ok(speechCode.includes('CURATED_STUDIO_AUDIO'), 'speech.ts must define CURATED_STUDIO_AUDIO');
+  assert.ok(speechCode.includes('CURATED_SENTENCE_AUDIO'), 'speech.ts must define CURATED_SENTENCE_AUDIO');
+  assert.ok(speechCode.includes('getCuratedSentenceAudio'), 'speech.ts must export getCuratedSentenceAudio');
 });
 
 
