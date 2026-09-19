@@ -24,7 +24,7 @@ if (!fs.existsSync(WORDS_DIR)) fs.mkdirSync(WORDS_DIR, { recursive: true });
 if (!fs.existsSync(SENTENCES_DIR)) fs.mkdirSync(SENTENCES_DIR, { recursive: true });
 
 const CURATED_WORDS = [
-  { id: 'sababa', text: 'סַבָּבָה', file: 'sababa.mp3' },
+  { id: 'sababa', text: 'סַבָּבָּה', file: 'sababa.mp3' },
   { id: 'tachles', text: 'תַּכְלֶס', file: 'tachles.mp3' },
   { id: 'fraier', text: 'פְרָאיֶיר', file: 'fraier.mp3' },
   { id: 'sahbak', text: 'סַחְבָּק', file: 'sahbak.mp3' },
@@ -38,7 +38,7 @@ const CURATED_WORDS = [
 ];
 
 const CURATED_SENTENCES = [
-  { id: 'hakol_sababa', text: 'הַכֹּל סַבָּבָה, תּוֹדָה רַבָּה!', file: 'hakol_sababa.mp3' },
+  { id: 'hakol_sababa', text: 'הַכֹּל סַבָּבָּה, תּוֹדָה רַבָּה!', file: 'hakol_sababa.mp3' },
   { id: 'tachles_tsodek', text: 'תַּכְלֶס, אַתָּה מַמָּשׁ צוֹדֵק.', file: 'tachles_tsodek.mp3' },
   { id: 'lo_fraier', text: 'אַף אֶחָד לֹא פְרָאיֶיר.', file: 'lo_fraier.mp3' },
   { id: 'sahbak_amiti', text: 'הוּא סַחְבָּק אֲמִתִּי שֶׁלָּנוּ.', file: 'sahbak_amiti.mp3' },
