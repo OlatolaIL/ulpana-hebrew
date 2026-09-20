@@ -75,3 +75,14 @@ test('6. Target communities include Facebook groups', () => {
   assert.ok(fbComms.some((c) => c.id === 'fb_pumpkin_latte'), 'Must contain Pumpkin Latte');
   assert.ok(fbComms.some((c) => c.id === 'fb_moms_israel'), 'Must contain Moms Israel');
 });
+
+test('7. Facebook radar implements time window filtering and 2-tier deduplication', () => {
+  const scriptPath = path.join(__dirname, '..', 'growth', 'scripts', 'facebook_radar.cjs');
+  const scriptContent = fs.readFileSync(scriptPath, 'utf-8');
+
+  assert.ok(scriptContent.includes('MAX_LOOKBACK_HOURS'), 'Script must define MAX_LOOKBACK_HOURS');
+  assert.ok(scriptContent.includes('parsePostAgeHours'), 'Script must define parsePostAgeHours helper');
+  assert.ok(scriptContent.includes('getLeadSignature'), 'Script must define getLeadSignature helper');
+  assert.ok(scriptContent.includes('sorting_setting=CHRONOLOGICAL'), 'Script must enforce chronological sorting for FB feeds');
+  assert.ok(scriptContent.includes('existingSignatures'), 'Script must maintain existingSignatures for deduplication');
+});

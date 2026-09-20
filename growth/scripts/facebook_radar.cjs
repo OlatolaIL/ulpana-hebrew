@@ -60,9 +60,48 @@ const TRIGGER_PATTERNS = [
   /ани лемата/i,
 ];
 
+// 2.1 Конфигурация временного окна и дедупликации
+// Для 12-часового цикла мониторинга окно 24 часа дает надежный нахлёст (overlap),
+// исключая пропуск ночных/дневных постов, а дедупликация защищает от повторов.
+const MAX_LOOKBACK_HOURS = 24;
+
 function matchesTrigger(text) {
   if (!text || typeof text !== 'string') return false;
   return TRIGGER_PATTERNS.some((p) => p.test(text));
+}
+
+/**
+ * Нормализованная сигнатура контента для гарантированной дедупликации
+ * даже если Facebook не отдает прямой permalink поста
+ */
+function getLeadSignature(author, text) {
+  const normAuthor = (author || '').trim().toLowerCase();
+  const normText = (text || '').replace(/\s+/g, ' ').trim().slice(0, 80).toLowerCase();
+  return `${normAuthor}:::${normText}`;
+}
+
+/**
+ * Оценка давности поста в часах по тексту метки времени Facebook
+ * Поддерживает форматы на русском, английском и иврите ("2 ч.", "30 мин", "Yesterday", "1d")
+ */
+function parsePostAgeHours(timeText) {
+  if (!timeText || typeof timeText !== 'string') return 0; // если метка скрыта, считаем свежим
+  const t = timeText.toLowerCase();
+
+  // Минуты
+  if (t.includes('мин') || t.includes('min') || t.includes('דק')) return 0.5;
+  // Часы
+  const hMatch = t.match(/(\d+)\s*(ч|h|hour|hr|שע)/i);
+  if (hMatch) return parseInt(hMatch[1], 10);
+  // Дни
+  const dMatch = t.match(/(\d+)\s*(дн|д|d|day|ימ)/i);
+  if (dMatch) return parseInt(dMatch[1], 10) * 24;
+  // Вчера
+  if (t.includes('вчера') || t.includes('yesterday') || t.includes('אתמול')) return 24;
+  // Недели или месяцы (заведомо старые посты)
+  if (t.includes('нед') || t.includes('w') || t.includes('мес') || t.includes('m') || t.includes('год') || t.includes('y')) return 168;
+
+  return 0;
 }
 
 function sleep(ms) {
@@ -426,7 +465,8 @@ async function runScan(options = {}) {
   console.log(`⏱ Режим: ${isFast ? 'Быстрый (тест)' : 'Щадящий (человекоподобный раз в 12 часов)'}`);
 
   const leads = loadLeads();
-  const existingUrls = new Set(leads.map((l) => l.postUrl).filter(Boolean));
+  const existingUrls = new Set(leads.map((l) => l.postUrl).filter((u) => u && (u.includes('/posts/') || u.includes('/permalink/'))));
+  const existingSignatures = new Set(leads.map((l) => getLeadSignature(l.authorName, l.rawText)));
   const newLeads = [];
 
   const browser = await launchBrowser(playwright, {
@@ -441,12 +481,17 @@ async function runScan(options = {}) {
 
   for (let i = 0; i < communities.length; i++) {
     const comm = communities[i];
-    console.log(`\n🔍 [${i + 1}/${communities.length}] Сканирование: "${comm.title}" (${comm.inviteUrl})`);
+    // Хронологическая сортировка ленты Facebook: новые посты первыми (?sorting_setting=CHRONOLOGICAL)
+    const targetUrl = comm.inviteUrl.includes('?')
+      ? `${comm.inviteUrl}&sorting_setting=CHRONOLOGICAL`
+      : `${comm.inviteUrl}?sorting_setting=CHRONOLOGICAL`;
+
+    console.log(`\n🔍 [${i + 1}/${communities.length}] Сканирование: "${comm.title}" (${targetUrl})`);
 
     const page = await context.newPage();
 
     try {
-      await page.goto(comm.inviteUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
+      await page.goto(targetUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
       await randomDelay(isFast ? 1000 : 3000, isFast ? 2000 : 5000);
 
       // Плавный скролл 2-3 раза для подгрузки свежих постов
@@ -465,18 +510,25 @@ async function runScan(options = {}) {
           const text = el.innerText?.trim();
           if (!text || text.length < 30 || text.length > 2500) return;
 
+          const article = el.closest('div[role="article"]') || el;
+
           // Ищем ссылку на пост
-          const linkEl = el.closest('div[role="article"]')?.querySelector('a[href*="/posts/"], a[href*="/permalink/"]');
+          const linkEl = article.querySelector('a[href*="/posts/"], a[href*="/permalink/"]');
           const postUrl = linkEl ? linkEl.href : window.location.href;
 
           // Имя автора
-          const authorEl = el.closest('div[role="article"]')?.querySelector('h2, strong, a[role="link"]');
+          const authorEl = article.querySelector('h2, strong, a[role="link"]');
           const authorName = authorEl?.innerText?.trim() || 'Участник группы';
+
+          // Временная метка поста (например, "2 ч.", "30 мин", "Yesterday")
+          const timeEl = article.querySelector('a[href*="/posts/"] span, a[href*="/permalink/"] span, abbr');
+          const timeText = timeEl?.innerText?.trim() || '';
 
           results.push({
             text,
             postUrl,
             authorName,
+            timeText,
           });
         });
 
@@ -488,10 +540,24 @@ async function runScan(options = {}) {
       for (const p of extractedPosts) {
         if (!matchesTrigger(p.text)) continue;
 
-        // Дедупликация по URL и тексту
-        if (existingUrls.has(p.postUrl)) continue;
+        // 1. Проверка временного окна (не старше MAX_LOOKBACK_HOURS = 24 ч)
+        const ageHours = parsePostAgeHours(p.timeText);
+        if (ageHours > MAX_LOOKBACK_HOURS) {
+          console.log(`  ⏭ Пропущен пост старше ${MAX_LOOKBACK_HOURS}ч (~${Math.round(ageHours)}ч назад): "${p.text.slice(0, 40)}..."`);
+          continue;
+        }
 
-        console.log(`  🎯 Сработал языковой триггер! Автор: ${p.authorName}`);
+        // 2. Двухуровневая дедупликация (по URL и по сигнатуре текста)
+        const signature = getLeadSignature(p.authorName, p.text);
+        const hasUrlMatch = p.postUrl && (p.postUrl.includes('/posts/') || p.postUrl.includes('/permalink/')) && existingUrls.has(p.postUrl);
+        const hasSigMatch = existingSignatures.has(signature);
+
+        if (hasUrlMatch || hasSigMatch) {
+          console.log(`  ⏭ Пост уже обработан ранее (дубликат), пропускаем: "${p.text.slice(0, 40)}..."`);
+          continue;
+        }
+
+        console.log(`  🎯 Сработал языковой триггер! Автор: ${p.authorName} (${p.timeText || 'свежее'})`);
         console.log(`     Цитата: "${p.text.slice(0, 60)}..."`);
 
         const analysis = await analyzeWithAi(p.text);
@@ -511,7 +577,10 @@ async function runScan(options = {}) {
           };
 
           newLeads.push(leadItem);
-          existingUrls.add(p.postUrl);
+          existingSignatures.add(signature);
+          if (p.postUrl && (p.postUrl.includes('/posts/') || p.postUrl.includes('/permalink/'))) {
+            existingUrls.add(p.postUrl);
+          }
         }
       }
     } catch (err) {

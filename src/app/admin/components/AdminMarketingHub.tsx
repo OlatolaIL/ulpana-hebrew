@@ -31,6 +31,8 @@ import {
   Download,
   Film,
   X,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 
 export interface TargetCommunity {
@@ -115,6 +117,7 @@ export function AdminMarketingHub() {
   // Health check state
   const [health, setHealth] = useState<HealthCheckData | null>(null);
   const [healthLoading, setHealthLoading] = useState(false);
+  const [isHealthExpanded, setIsHealthExpanded] = useState(false);
 
   // Publications state
   const [publications, setPublications] = useState<PublicationItem[]>([]);
@@ -539,30 +542,114 @@ export function AdminMarketingHub() {
   return (
     <div className="space-y-6">
       {/* 1. ДИАГНОСТИЧЕСКИЙ СВЕТОФОР ПОДКЛЮЧЕНИЙ (HEALTH CHECK HUD) */}
-      <div className="bg-zinc-900/90 rounded-2xl border border-zinc-800 p-4 shadow-xl backdrop-blur-md">
-        <div className="flex flex-wrap items-center justify-between gap-4 pb-3 border-b border-zinc-800/80">
-          <div className="flex items-center gap-2">
-            <Activity className="w-5 h-5 text-emerald-400" />
-            <h2 className="text-base font-bold text-zinc-100">Монитор подключений и каналов (Health Check)</h2>
+      <div className="bg-zinc-900/90 rounded-2xl border border-zinc-800 p-3.5 shadow-xl backdrop-blur-md">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-3 flex-wrap">
+            <div className="flex items-center gap-2">
+              <Activity className="w-4 h-4 text-emerald-400" />
+              <h2 className="text-sm font-bold text-zinc-100">Монитор подключений</h2>
+            </div>
+
+            {/* Компактные статусные бейджи в одну строчку */}
+            {health && (
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-zinc-950/70 border border-zinc-800 text-[11px] font-medium text-zinc-300">
+                  <span
+                    className={`w-2 h-2 rounded-full ${
+                      health.services.telegram.status === 'ok'
+                        ? 'bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.7)]'
+                        : health.services.telegram.status === 'warning'
+                        ? 'bg-amber-500'
+                        : 'bg-red-500'
+                    }`}
+                  />
+                  <span>TG</span>
+                </span>
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-zinc-950/70 border border-zinc-800 text-[11px] font-medium text-zinc-300">
+                  <span
+                    className={`w-2 h-2 rounded-full ${
+                      health.services.groq.status === 'ok'
+                        ? 'bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.7)]'
+                        : 'bg-red-500'
+                    }`}
+                  />
+                  <span>Groq</span>
+                </span>
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-zinc-950/70 border border-zinc-800 text-[11px] font-medium text-zinc-300">
+                  <span
+                    className={`w-2 h-2 rounded-full ${
+                      health.services.gemini.status === 'ok'
+                        ? 'bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.7)]'
+                        : 'bg-amber-500 shadow-[0_0_6px_rgba(245,158,11,0.7)]'
+                    }`}
+                  />
+                  <span>Gemini{health.services.gemini.status !== 'ok' ? ' (401)' : ''}</span>
+                </span>
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-zinc-950/70 border border-zinc-800 text-[11px] font-medium text-zinc-300">
+                  <span
+                    className={`w-2 h-2 rounded-full ${
+                      health.services.whatsapp.status === 'ok' ? 'bg-emerald-500' : 'bg-amber-500'
+                    }`}
+                  />
+                  <span>WA</span>
+                </span>
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-zinc-950/70 border border-zinc-800 text-[11px] font-medium text-zinc-300">
+                  <span className="w-2 h-2 rounded-full bg-blue-500" />
+                  <span>Meta</span>
+                </span>
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-zinc-950/70 border border-zinc-800 text-[11px] font-medium text-zinc-300">
+                  <span
+                    className={`w-2 h-2 rounded-full ${
+                      health.services.youtube?.status === 'ok'
+                        ? 'bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.7)]'
+                        : 'bg-amber-500'
+                    }`}
+                  />
+                  <span>YouTube</span>
+                </span>
+              </div>
+            )}
           </div>
-          <button
-            type="button"
-            onClick={checkHealth}
-            disabled={healthLoading}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-xs font-semibold text-zinc-200 transition cursor-pointer border border-zinc-700"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${healthLoading ? 'animate-spin text-emerald-400' : ''}`} />
-            <span>{healthLoading ? 'Проверка...' : 'Проверить все подключения'}</span>
-          </button>
+
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={checkHealth}
+              disabled={healthLoading}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-xs font-semibold text-zinc-200 transition cursor-pointer border border-zinc-700"
+              title="Проверить состояние всех API"
+            >
+              <RefreshCw className={`w-3 h-3 ${healthLoading ? 'animate-spin text-emerald-400' : ''}`} />
+              <span className="hidden sm:inline">{healthLoading ? 'Проверка...' : 'Проверить'}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsHealthExpanded(!isHealthExpanded)}
+              className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-xs font-semibold text-zinc-300 hover:text-white transition cursor-pointer border border-zinc-700"
+              title={isHealthExpanded ? 'Свернуть карточки монитора' : 'Показать подробности по каждому сервису'}
+            >
+              <span>{isHealthExpanded ? 'Свернуть' : 'Подробнее'}</span>
+              {isHealthExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+            </button>
+          </div>
         </div>
 
-        {health ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3 pt-3">
+        {/* Развернутая сетка подробностей (по клику на "Подробнее") */}
+        {isHealthExpanded && health && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3 pt-3 mt-3 border-t border-zinc-800/80">
             {/* Telegram */}
             <div className="bg-zinc-950/60 rounded-xl p-3 border border-zinc-800/60 flex flex-col justify-between">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold text-zinc-400">✈️ Telegram Bot</span>
-                <span className={`w-2.5 h-2.5 rounded-full ${health.services.telegram.status === 'ok' ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]' : health.services.telegram.status === 'warning' ? 'bg-amber-500' : 'bg-red-500'}`} />
+                <span
+                  className={`w-2.5 h-2.5 rounded-full ${
+                    health.services.telegram.status === 'ok'
+                      ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]'
+                      : health.services.telegram.status === 'warning'
+                      ? 'bg-amber-500'
+                      : 'bg-red-500'
+                  }`}
+                />
               </div>
               <p className="text-xs text-zinc-300 mt-2 font-medium line-clamp-2">{health.services.telegram.message}</p>
               {health.services.telegram.latencyMs !== undefined && (
@@ -574,7 +661,13 @@ export function AdminMarketingHub() {
             <div className="bg-zinc-950/60 rounded-xl p-3 border border-zinc-800/60 flex flex-col justify-between">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold text-zinc-400">⚡ Groq LLM</span>
-                <span className={`w-2.5 h-2.5 rounded-full ${health.services.groq.status === 'ok' ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]' : 'bg-red-500'}`} />
+                <span
+                  className={`w-2.5 h-2.5 rounded-full ${
+                    health.services.groq.status === 'ok'
+                      ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]'
+                      : 'bg-red-500'
+                  }`}
+                />
               </div>
               <p className="text-xs text-zinc-300 mt-2 font-medium line-clamp-2">{health.services.groq.message}</p>
               {health.services.groq.latencyMs !== undefined && (
@@ -586,7 +679,13 @@ export function AdminMarketingHub() {
             <div className="bg-zinc-950/60 rounded-xl p-3 border border-zinc-800/60 flex flex-col justify-between">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold text-zinc-400">✨ Gemini LLM</span>
-                <span className={`w-2.5 h-2.5 rounded-full ${health.services.gemini.status === 'ok' ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]' : 'bg-amber-500'}`} />
+                <span
+                  className={`w-2.5 h-2.5 rounded-full ${
+                    health.services.gemini.status === 'ok'
+                      ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]'
+                      : 'bg-amber-500'
+                  }`}
+                />
               </div>
               <p className="text-xs text-zinc-300 mt-2 font-medium line-clamp-2">{health.services.gemini.message}</p>
               {health.services.gemini.latencyMs !== undefined && (
@@ -598,7 +697,13 @@ export function AdminMarketingHub() {
             <div className="bg-zinc-950/60 rounded-xl p-3 border border-zinc-800/60 flex flex-col justify-between">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold text-zinc-400">💬 WhatsApp Radar</span>
-                <span className={`w-2.5 h-2.5 rounded-full ${health.services.whatsapp.status === 'ok' ? 'bg-emerald-500' : 'bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]'}`} />
+                <span
+                  className={`w-2.5 h-2.5 rounded-full ${
+                    health.services.whatsapp.status === 'ok'
+                      ? 'bg-emerald-500'
+                      : 'bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]'
+                  }`}
+                />
               </div>
               <p className="text-xs text-zinc-300 mt-2 font-medium line-clamp-2">{health.services.whatsapp.message}</p>
               <span className="text-[10px] text-zinc-500 mt-1">Listen-Only</span>
@@ -634,8 +739,6 @@ export function AdminMarketingHub() {
               <span className="text-[10px] text-zinc-500 mt-1">Shorts & Видео</span>
             </div>
           </div>
-        ) : (
-          <div className="py-4 text-center text-xs text-zinc-500">Загрузка данных диагностики...</div>
         )}
       </div>
 
@@ -691,10 +794,10 @@ export function AdminMarketingHub() {
                     key={ch}
                     type="button"
                     onClick={() => setChannelFilter(ch)}
-                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition cursor-pointer ${
+                    className={`px-3 py-1 rounded-lg text-xs font-semibold transition cursor-pointer ${
                       channelFilter === ch
-                        ? 'bg-zinc-200 text-zinc-900 dark:bg-zinc-100'
-                        : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'
+                        ? 'bg-blue-600 text-white shadow-sm shadow-blue-500/30 font-bold'
+                        : 'bg-zinc-800/80 text-zinc-300 hover:bg-zinc-700/80 hover:text-white border border-zinc-700/60'
                     }`}
                   >
                     {ch === 'all' ? 'Все' : ch.toUpperCase()}
@@ -766,10 +869,9 @@ export function AdminMarketingHub() {
                   <tr>
                     <th className="px-4 py-3">Дата и Канал</th>
                     <th className="px-4 py-3">Кампания и Версия</th>
-                    <th className="px-4 py-3">Видео под канал</th>
-                    <th className="px-4 py-3">Текст поста (Copywriting)</th>
-                    <th className="px-4 py-3">Целевой Deep Link</th>
-                    <th className="px-4 py-3">Промокод</th>
+                    <th className="px-4 py-3">Видео</th>
+                    <th className="px-4 py-3 min-w-[280px]">Текст поста (Copywriting)</th>
+                    <th className="px-4 py-3">Ссылка и Промокод</th>
                     <th className="px-4 py-3">Статус</th>
                     <th className="px-4 py-3 text-right">Действия</th>
                   </tr>
@@ -832,12 +934,12 @@ export function AdminMarketingHub() {
                           <span className="text-zinc-600 text-xs">—</span>
                         )}
                       </td>
-                      <td className="px-4 py-3 max-w-sm">
-                        <div className="flex flex-col gap-1">
+                      <td className="px-4 py-3 min-w-[280px]">
+                        <div className="flex flex-col gap-1.5">
                           <button
                             type="button"
                             onClick={() => copyCaption(pub.caption || pub.title, pub.id)}
-                            className="inline-flex items-center gap-1.5 px-2 py-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-semibold transition cursor-pointer border border-zinc-700 w-fit"
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-semibold transition cursor-pointer border border-zinc-700 w-fit"
                             title="Скопировать готовый авторский текст поста с хэштегами"
                           >
                             {copiedCaptionId === pub.id ? (
@@ -853,7 +955,7 @@ export function AdminMarketingHub() {
                             )}
                           </button>
                           <p
-                            className="text-[11px] text-zinc-400 line-clamp-2 leading-relaxed"
+                            className="text-[12px] text-zinc-300 line-clamp-3 leading-relaxed"
                             title={pub.caption || pub.title}
                           >
                             {pub.caption || pub.title}
@@ -861,24 +963,26 @@ export function AdminMarketingHub() {
                         </div>
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap">
-                        <button
-                          type="button"
-                          onClick={() => copyToClipboard(pub.fullUrlWithPromo, pub.id)}
-                          className="flex items-center gap-1.5 px-2 py-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white transition cursor-pointer text-xs"
-                          title="Скопировать готовую ссылку с промокодом"
-                        >
-                          {copiedId === pub.id ? (
-                            <Check className="w-3.5 h-3.5 text-emerald-400" />
-                          ) : (
-                            <Copy className="w-3.5 h-3.5 text-zinc-400" />
+                        <div className="flex flex-col gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => copyToClipboard(pub.fullUrlWithPromo, pub.id)}
+                            className="flex items-center gap-1.5 px-2 py-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white transition cursor-pointer text-xs w-fit"
+                            title="Скопировать готовую ссылку с промокодом"
+                          >
+                            {copiedId === pub.id ? (
+                              <Check className="w-3.5 h-3.5 text-emerald-400" />
+                            ) : (
+                              <Copy className="w-3.5 h-3.5 text-zinc-400" />
+                            )}
+                            <span className="font-mono text-[11px]">{pub.targetDeepLink}</span>
+                          </button>
+                          {pub.promoCode && (
+                            <span className="font-mono font-bold text-amber-400 px-2 py-0.5 rounded bg-amber-500/10 border border-amber-500/20 text-[10px] w-fit">
+                              Код: {pub.promoCode}
+                            </span>
                           )}
-                          <span className="font-mono text-[11px]">{pub.targetDeepLink}</span>
-                        </button>
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        <span className="font-mono font-bold text-amber-400 px-2 py-0.5 rounded bg-amber-500/10 border border-amber-500/20 text-xs">
-                          {pub.promoCode || '—'}
-                        </span>
+                        </div>
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap">
                         <div className="flex flex-col gap-1">
