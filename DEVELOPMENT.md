@@ -147,6 +147,18 @@ ChatGPT — архитектор и независимая приёмка; Gemin
 - Добавлен компонент `src/app/admin/components/AdminMarketingHub.tsx` и вкладка «Маркетинг & Контент» в `src/app/admin/page.tsx`.
 - Тесты: 25/25 тестов пройдены (`tests/marketing-health-check.test.cjs`, `tests/deep-linking-routes.test.cjs`, `tests/marketing-registry-api.test.cjs`, `tests/lead-radar-filter.test.cjs`, `tests/decision-matrix-invariants.test.cjs`), аудит `npm run audit:intent` 100% зелёный.
 
+**20.09.2026 — Пост-центричная таблица в Маркетинг-Хабе (Post-First Hub) и 1-клик публикация (коммит 75234b7):**
+- **Пост-центричная модель публикации взамен «сырых файлов»:**
+  - Сущность публикации расширена полями `campaignTitle`, `version`, `videoPath`, `caption` (в `growth/data/publications.json` и `src/app/api/admin/marketing/publications/route.ts`).
+  - Каждая строка в таблице админки — законченный пост под ключ под конкретную соцсеть с адаптированным текстом (CTA в шапке для IG, в описании для YT, ссылка на бота для TG) и целевым промокодом (`YT`, `INSTA`, `TIKTOK`, `TG_CHANNEL`).
+  - Добавлен пакет постов для **«Этап 5: Разговорные диалоги v2.0»** (YouTube Shorts, Telegram, Instagram Reels, TikTok).
+- **Интерактивные возможности таблицы:**
+  - Встроенный модальный HTML5-видеоплеер: кнопка ▶️ «Плеер» открывает просмотр ролика прямо в админке без перехода на сторонние страницы.
+  - Кнопка 📋 «Скопировать текст» с визуальной индикацией для мгновенной вставки в соцсети.
+  - Кнопка ⚡ «В 1 клик» для YouTube, Telegram и Facebook: атомарно отправляет материал через API боевого сервера и обновляет статус на `🟢 Вышел` с ссылкой на реальный пост/Shorts.
+  - Фильтры по соцсетям, кампаниям и статусам публикаций.
+- **Верификация:** `npx tsc --noEmit` (0 ошибок), `tests/decision-matrix-invariants.test.cjs` (13/13 pass), `npm run audit:intent` (100% Zero-Drift), `npm run build` (чистая сборка 44/44 роутов). Все изменения закоммичены и отправлены в `origin main` (коммит `75234b7`).
+
 **20.09.2026 — Автономный Hetzner 24/7 демон, плоская таблица сообществ и честные статусы радара:**
 - **Развертывание 24/7 демона на Hetzner VPS (`olatola.co.il` / `159.69.182.255`):** настроен процесс `ulpana-telegram-radar` в PM2 под управлением systemd (`pm2-root.service`), непрерывно слушающий сообщения по протоколу MTProto через gramjs в 5 супергруппах Telegram. Успешно проверена сквозная доставка алертов о болях основателю в Telegram-бот @ulpana_il.
 - **Очистка данных и 100% достоверность (Zero Fake Data):** база `growth/data/leads.json` очищена до `[]` локально и на сервере Hetzner. Удалены все синтетические моки («Михаил», «Елена»). Кнопка тестовой генерации заменена на честную синхронизацию реальных данных `handleRefreshRadar`.
