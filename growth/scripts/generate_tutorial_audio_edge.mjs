@@ -12,22 +12,22 @@ if (!fs.existsSync(CACHE_DIR)) {
   fs.mkdirSync(CACHE_DIR, { recursive: true });
 }
 
-async function synthesizeEdgeAudio(text, voiceName, outWavFilename) {
+async function synthesizeEdgeAudio(text, voiceName, outWavFilename, options = {}) {
   const finalWavPath = path.join(CACHE_DIR, outWavFilename);
   const tempMp3Path = path.join(CACHE_DIR, `${outWavFilename}.temp.mp3`);
 
-  console.log(`🎙️ Синтез (${voiceName}): "${text.slice(0, 40)}..."`);
+  console.log(`🎙️ Синтез (${voiceName}, rate=${options.rate || 'default'}): "${text.slice(0, 40)}..."`);
   const tts = new MsEdgeTTS();
   await tts.setMetadata(voiceName, OUTPUT_FORMAT.AUDIO_24KHZ_48KBITRATE_MONO_MP3);
 
-  const readable = tts.toStream(text);
+  const { audioStream } = tts.toStream(text, options);
   const writeStream = fs.createWriteStream(tempMp3Path);
 
   await new Promise((resolve, reject) => {
-    readable.pipe(writeStream);
+    audioStream.pipe(writeStream);
     writeStream.on('finish', resolve);
     writeStream.on('error', reject);
-    readable.on('error', reject);
+    audioStream.on('error', reject);
   });
 
   // Конвертация через FFmpeg в чистый 44.1kHz 16-bit 2-канальный WAV
@@ -49,65 +49,60 @@ async function synthesizeEdgeAudio(text, voiceName, outWavFilename) {
 }
 
 async function run() {
-  console.log('🚀 Старт генерации аудиоклипов для Обучающего видео (Этап 5: Диалоги) через Edge Neural TTS...\n');
+  console.log('🚀 Старт генерации спокойного обучающего аудио (Этап 5: Диалоги) через Edge Neural TTS...\n');
+  console.log('📐 Стандарты: R-17 (Иврит 0.8x спокойная артикуляция), R-25 (Русский диктор 1.0x без ускорения)\n');
 
-  // 1. Введение (Диктор, Dmitry)
+  // 1. Введение (Диктор, Dmitry, 1.0x, одобренный вариант 1: Пятый этап — диалоги)
   await synthesizeEdgeAudio(
-    'Этап пять: Диалоги. Здесь ты учишься говорить связно в реальных ситуациях без стресса.',
+    'Пятый этап — диалоги. Здесь ты учишься говорить связно в реальных ситуациях без стресса.',
     'ru-RU-DmitryNeural',
-    'tut5_raw_01_intro.wav'
+    'tut5_raw_01_intro.wav',
+    { rate: 'default' }
   );
 
-  // 2. Бариста (Иврит, Avri)
+  // 2. Бариста (Иврит, Avri, мужской род к гостю-мужчине: ברוך הבא / מה תרצה)
   await synthesizeEdgeAudio(
-    'שָׁלוֹם! מָה אַתָּה רוֹצֶה לִשְׁתּוֹת?',
+    'שלום! ברוך הבא. מה תרצה לשתות?',
     'he-IL-AvriNeural',
-    'tut5_raw_02_barista.wav'
+    'tut5_raw_02_barista.wav',
+    { rate: '-15%' }
   );
 
-  // 3. Ученик (Иврит, Hila)
+  // 3. Ученик (Иврит, Avri с pitch +35Hz для молодого контрастного голоса ученика: רוצה קפה עם חלב)
   await synthesizeEdgeAudio(
-    'אֲנִי רוֹצֶה קָפֶה קָטָן, בְּבַקָּשָׁה.',
-    'he-IL-HilaNeural',
-    'tut5_raw_03_student.wav'
+    'שלום, אני רוצה קפה עם חלב, בבקשה.',
+    'he-IL-AvriNeural',
+    'tut5_raw_03_student.wav',
+    { rate: '-10%', pitch: '+35Hz' }
   );
 
-  // 4. Оценка ИИ без инженерного жаргона (R-25) (Диктор, Dmitry)
+  // 4. Оценка ИИ без инженерного жаргона (Диктор, Dmitry, 1.0x, принудительное ударение на слÓва)
   await synthesizeEdgeAudio(
-    'Умный тренажёр слушает без спешки и оценивает точность каждого слова.',
+    'Умный тренажёр слушает без спешки и оценивает точность каждого сло\u0301ва.',
     'ru-RU-DmitryNeural',
-    'tut5_raw_04_eval.wav'
+    'tut5_raw_04_eval.wav',
+    { rate: 'default' }
   );
 
-  // 5. Результат / Outro (Диктор, Dmitry)
+  // 5. Результат / Outro (Диктор, Dmitry, 1.0x, безупречная дикция без оговорок)
   await synthesizeEdgeAudio(
-    'Девяносто восемь процентов! Этап успешно зачтён. Говори уверенно в Израиле!',
+    'Девяносто восемь процентов! Этот этап успешно зачтён. Говори уверенно в Израиле!',
     'ru-RU-DmitryNeural',
-    'tut5_raw_05_outro.wav'
+    'tut5_raw_05_outro.wav',
+    { rate: 'default' }
   );
 
-  // 6. Ускорение закадровой русской речи до 1.22x (R-25)
-  console.log('\n⚡ Ускорение закадровой русской речи до 1.22x (R-25)...');
-  const speedups = [
-    { in: 'tut5_raw_01_intro.wav', out: 'tut5_sped_01_intro.wav', speed: '1.22' },
-    { in: 'tut5_raw_04_eval.wav', out: 'tut5_sped_04_eval.wav', speed: '1.22' },
-    { in: 'tut5_raw_05_outro.wav', out: 'tut5_sped_05_outro.wav', speed: '1.22' },
+  // Создаем копии для совместимости tut5_sped_* без какого-либо ускорения (1.0x)
+  const compatCopies = [
+    { src: 'tut5_raw_01_intro.wav', dst: 'tut5_sped_01_intro.wav' },
+    { src: 'tut5_raw_04_eval.wav', dst: 'tut5_sped_04_eval.wav' },
+    { src: 'tut5_raw_05_outro.wav', dst: 'tut5_sped_05_outro.wav' },
   ];
-
-  for (const s of speedups) {
-    const inPath = path.join(CACHE_DIR, s.in);
-    const outPath = path.join(CACHE_DIR, s.out);
-    cp.spawnSync(ffmpeg, [
-      '-y',
-      '-i', inPath,
-      '-filter:a', `atempo=${s.speed}`,
-      outPath
-    ]);
-    const stat = fs.statSync(outPath);
-    console.log(`✅ [Ускорен 1.22x] ${s.out} (${(stat.size / 1024).toFixed(1)} KB)`);
+  for (const c of compatCopies) {
+    fs.copyFileSync(path.join(CACHE_DIR, c.src), path.join(CACHE_DIR, c.dst));
   }
 
-  console.log('\n🎉 ВСЕ 5 АУДИОКЛИПОВ УСПЕШНО СИНТЕЗИРОВАНЫ И ГОТОВЫ К МОНТАЖУ!');
+  console.log('\n🎉 ВСЕ 5 АУДИОКЛИПОВ УСПЕШНО СИНТЕЗИРОВАНЫ В СПОКОЙНОМ ОБУЧАЮЩЕМ ТЕМПЕ!');
 }
 
 run().catch((err) => {

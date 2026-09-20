@@ -19,6 +19,7 @@ export interface MarketingHealthResponse {
     gemini: ServiceHealth;
     whatsapp: ServiceHealth;
     meta: ServiceHealth;
+    youtube: ServiceHealth;
   };
 }
 
@@ -263,6 +264,71 @@ export async function GET(req: NextRequest) {
       }
     }
 
+    // 6. Проверка YouTube (YouTube Data API v3 & Shorts)
+    let youtubeHealth: ServiceHealth;
+    const ytClientId = process.env.YOUTUBE_CLIENT_ID?.trim();
+    const ytClientSecret = process.env.YOUTUBE_CLIENT_SECRET?.trim();
+    const ytRefreshToken = process.env.YOUTUBE_REFRESH_TOKEN?.trim();
+
+    if (!ytClientId || !ytClientSecret || !ytRefreshToken) {
+      youtubeHealth = {
+        status: 'manual_mode',
+        message: 'YOUTUBE_REFRESH_TOKEN не задан в Vercel Env / .env.local (доступен ручной режим или CLI)',
+        details: { mode: 'Manual Upload / Studio UI' },
+      };
+    } else {
+      const t0 = Date.now();
+      try {
+        const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: new URLSearchParams({
+            client_id: ytClientId,
+            client_secret: ytClientSecret,
+            refresh_token: ytRefreshToken,
+            grant_type: 'refresh_token',
+          }),
+          signal: AbortSignal.timeout(4000),
+        });
+
+        const tokenData = await tokenRes.json();
+        if (!tokenRes.ok || !tokenData.access_token) {
+          youtubeHealth = {
+            status: 'error',
+            latencyMs: Date.now() - t0,
+            message: `Ошибка токена YouTube: ${tokenData.error_description || 'Неверный refresh token'}`,
+            details: tokenData,
+          };
+        } else {
+          // Запрашиваем информацию о канале
+          const channelRes = await fetch('https://www.googleapis.com/youtube/v3/channels?part=snippet&mine=true', {
+            headers: { Authorization: `Bearer ${tokenData.access_token}` },
+            signal: AbortSignal.timeout(4000),
+          });
+          const channelData = await channelRes.json();
+          const channelTitle = channelData.items?.[0]?.snippet?.title || 'Ульпан Алеф | Живой иврит';
+          const channelId = channelData.items?.[0]?.id || 'UC1kWxNhUydNncIRzTbBzWJw';
+
+          youtubeHealth = {
+            status: 'ok',
+            latencyMs: Date.now() - t0,
+            message: `YouTube-канал "${channelTitle}" подключен (ID: ${channelId})`,
+            details: {
+              channelTitle,
+              channelId,
+              mode: 'YouTube Data API v3 Direct Resumable Upload',
+            },
+          };
+        }
+      } catch (e: any) {
+        youtubeHealth = {
+          status: 'error',
+          latencyMs: Date.now() - t0,
+          message: `Таймаут/ошибка подключения к YouTube API: ${e.message}`,
+        };
+      }
+    }
+
     const response: MarketingHealthResponse = {
       timestamp: new Date().toISOString(),
       services: {
@@ -271,6 +337,7 @@ export async function GET(req: NextRequest) {
         gemini: geminiHealth,
         whatsapp: whatsappHealth,
         meta: metaHealth,
+        youtube: youtubeHealth,
       },
     };
 

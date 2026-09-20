@@ -224,8 +224,23 @@ async function runOAuthFlow() {
           }
 
           console.log('\n🎉 ПОЗДРАВЛЯЕМ! OAuth-токен успешно получен!');
+          try {
+            let envContent = '';
+            if (fs.existsSync('.env.local')) {
+              envContent = fs.readFileSync('.env.local', 'utf8');
+            }
+            if (/^YOUTUBE_REFRESH_TOKEN=/m.test(envContent)) {
+              envContent = envContent.replace(/^YOUTUBE_REFRESH_TOKEN=.*$/m, `YOUTUBE_REFRESH_TOKEN=${tokenData.refresh_token}`);
+            } else {
+              envContent += `\nYOUTUBE_REFRESH_TOKEN=${tokenData.refresh_token}\n`;
+            }
+            fs.writeFileSync('.env.local', envContent.trim() + '\n', 'utf8');
+            console.log('✅ YOUTUBE_REFRESH_TOKEN автоматически сохранён в .env.local!');
+          } catch (saveErr) {
+            console.warn('⚠️ Не удалось автоматически записать в .env.local:', saveErr.message);
+          }
           console.log('=====================================================');
-          console.log('Добавьте следующую строку в ваш файл .env.local:\n');
+          console.log('Для Vercel Production скопируйте эту строку в Environment Variables:\n');
           console.log(`YOUTUBE_REFRESH_TOKEN=${tokenData.refresh_token}\n`);
           console.log('=====================================================');
           console.log('Теперь вы можете публиковать видео:');

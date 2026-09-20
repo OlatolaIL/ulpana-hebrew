@@ -42,6 +42,7 @@ interface HealthCheckData {
     gemini: ServiceHealth;
     whatsapp: ServiceHealth;
     meta: ServiceHealth;
+    youtube?: ServiceHealth;
   };
 }
 
@@ -124,6 +125,15 @@ export function AdminMarketingHub() {
     setCopiedId(id);
     setTimeout(() => setCopiedId(null), 2000);
   };
+
+  // Quick Publish state (1-клик выгрузка на боевом сервере)
+  const [isQuickPublishModalOpen, setIsQuickPublishModalOpen] = useState(false);
+  const [quickChannel, setQuickChannel] = useState<'youtube' | 'telegram' | 'facebook'>('youtube');
+  const [quickTitle, setQuickTitle] = useState('🇮🇱 Как не впасть в ступор, когда звонит израильский курьер #Shorts');
+  const [quickDesc, setQuickDesc] = useState('');
+  const [quickVideo, setQuickVideo] = useState('public/demo/reels_duolingo_vs_reality.mp4');
+  const [isQuickPublishing, setIsQuickPublishing] = useState(false);
+  const [quickResult, setQuickResult] = useState<{ success: boolean; message: string; url?: string } | null>(null);
 
   // Fetch Health Check
   const checkHealth = useCallback(async () => {
@@ -213,6 +223,53 @@ export function AdminMarketingHub() {
       console.error('Error creating publication', e);
     } finally {
       setPubSaving(false);
+    }
+  };
+
+  // Quick Publish Handler (Отправка на боевой сервер)
+  const handleQuickPublish = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!quickTitle.trim()) return;
+
+    setIsQuickPublishing(true);
+    setQuickResult(null);
+
+    try {
+      const res = await fetch('/api/admin/marketing/publish', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          channel: quickChannel,
+          title: quickTitle,
+          description: quickDesc || undefined,
+          videoPath: quickVideo,
+          privacy: 'public',
+          register: true,
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setQuickResult({
+          success: true,
+          message: `Успешно выгружено на ${quickChannel.toUpperCase()}!`,
+          url: data.livePostUrl || data.publicUrl,
+        });
+        fetchPublications();
+        checkHealth();
+      } else {
+        setQuickResult({
+          success: false,
+          message: data.error || 'Не удалось опубликовать материал',
+        });
+      }
+    } catch (err: any) {
+      setQuickResult({
+        success: false,
+        message: `Сетевая ошибка: ${err.message}`,
+      });
+    } finally {
+      setIsQuickPublishing(false);
     }
   };
 
@@ -324,7 +381,7 @@ export function AdminMarketingHub() {
         </div>
 
         {health ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 pt-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3 pt-3">
             {/* Telegram */}
             <div className="bg-zinc-950/60 rounded-xl p-3 border border-zinc-800/60 flex flex-col justify-between">
               <div className="flex items-center justify-between">
@@ -379,6 +436,26 @@ export function AdminMarketingHub() {
               </div>
               <p className="text-xs text-zinc-300 mt-2 font-medium line-clamp-2">{health.services.meta.message}</p>
               <span className="text-[10px] text-zinc-500 mt-1">Бесплатный 1-клик постинг</span>
+            </div>
+
+            {/* YouTube Data API v3 */}
+            <div className="bg-zinc-950/60 rounded-xl p-3 border border-zinc-800/60 flex flex-col justify-between">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-zinc-400">▶️ YouTube API</span>
+                <span
+                  className={`w-2.5 h-2.5 rounded-full ${
+                    health.services.youtube?.status === 'ok'
+                      ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]'
+                      : health.services.youtube?.status === 'manual_mode'
+                      ? 'bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]'
+                      : 'bg-red-500'
+                  }`}
+                />
+              </div>
+              <p className="text-xs text-zinc-300 mt-2 font-medium line-clamp-2">
+                {health.services.youtube?.message || 'YouTube Data API v3'}
+              </p>
+              <span className="text-[10px] text-zinc-500 mt-1">Shorts & Видео</span>
             </div>
           </div>
         ) : (
@@ -448,14 +525,28 @@ export function AdminMarketingHub() {
               ))}
             </div>
 
-            <button
-              type="button"
-              onClick={() => setIsAddPubModalOpen(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition shadow-lg shadow-blue-600/20 cursor-pointer"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Добавить публикацию</span>
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setQuickResult(null);
+                  setIsQuickPublishModalOpen(true);
+                }}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-red-600 via-rose-600 to-amber-600 hover:from-red-500 hover:to-amber-500 text-white text-xs font-bold transition shadow-lg shadow-red-600/20 cursor-pointer"
+              >
+                <Flame className="w-4 h-4" />
+                <span>⚡ Быстрая публикация</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setIsAddPubModalOpen(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition shadow-lg shadow-blue-600/20 cursor-pointer"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Внести в реестр</span>
+              </button>
+            </div>
           </div>
 
           <div className="bg-zinc-900 rounded-2xl border border-zinc-800 overflow-hidden shadow-xl">
@@ -788,6 +879,41 @@ export function AdminMarketingHub() {
               <ExternalLink className="w-3 h-3" />
             </a>
           </div>
+
+          <div className="bg-zinc-900 rounded-2xl border border-zinc-800 p-5 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="font-bold text-red-400">▶️ YouTube (Shorts & Канал)</span>
+              <span className={`px-2 py-0.5 rounded-full text-[11px] font-semibold ${
+                health?.services.youtube?.status === 'ok'
+                  ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
+                  : 'bg-amber-500/10 text-amber-400 border border-amber-500/30'
+              }`}>
+                {health?.services.youtube?.status === 'ok' ? '🟢 API подключен' : '🟡 Настройка OAuth'}
+              </span>
+            </div>
+            <p className="text-sm font-bold text-zinc-100">Ульпан Алеф | Живой иврит</p>
+            <p className="text-xs text-zinc-400">Публикация YouTube Shorts и обучающих роликов. Промокод для описаний: YT.</p>
+            <div className="flex items-center gap-3 pt-1">
+              <a
+                href="https://www.youtube.com/channel/UC1kWxNhUydNncIRzTbBzWJw"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-xs text-red-400 hover:underline font-semibold"
+              >
+                <span>Открыть канал</span>
+                <ExternalLink className="w-3 h-3" />
+              </a>
+              <a
+                href="https://studio.youtube.com/channel/UC1kWxNhUydNncIRzTbBzWJw"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-xs text-zinc-400 hover:text-zinc-200"
+              >
+                <span>YouTube Studio</span>
+                <ExternalLink className="w-3 h-3" />
+              </a>
+            </div>
+          </div>
         </div>
       )}
 
@@ -907,6 +1033,126 @@ export function AdminMarketingHub() {
                   className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold cursor-pointer"
                 >
                   {pubSaving ? 'Сохранение...' : 'Сохранить публикацию'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      {/* МОДАЛКА: БЫСТРАЯ ПУБЛИКАЦИЯ (1-КЛИК ПОСТИНГ НА БОЕВОМ СЕРВЕРЕ) */}
+      {isQuickPublishModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-zinc-900 rounded-2xl border border-zinc-800 p-6 max-w-lg w-full shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
+              <h3 className="text-base font-bold text-zinc-100 flex items-center gap-2">
+                <Flame className="w-5 h-5 text-red-400" />
+                <span>Быстрая публикация на боевом сервере</span>
+              </h3>
+              <button
+                type="button"
+                onClick={() => setIsQuickPublishModalOpen(false)}
+                className="text-zinc-500 hover:text-zinc-300 cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            {quickResult && (
+              <div
+                className={`p-3 rounded-xl border text-xs ${
+                  quickResult.success
+                    ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
+                    : 'bg-red-500/10 border-red-500/30 text-red-300'
+                }`}
+              >
+                <p className="font-bold">{quickResult.message}</p>
+                {quickResult.url && (
+                  <a
+                    href={quickResult.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 mt-1 text-blue-400 hover:underline font-semibold"
+                  >
+                    <span>Перейти к публикации</span>
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                )}
+              </div>
+            )}
+
+            <form onSubmit={handleQuickPublish} className="space-y-3 text-xs">
+              <div>
+                <label className="block text-zinc-400 font-semibold mb-1">Площадка для выгрузки:</label>
+                <select
+                  value={quickChannel}
+                  onChange={(e) => setQuickChannel(e.target.value as any)}
+                  className="w-full bg-zinc-800 rounded-xl p-2.5 text-zinc-200 border border-zinc-700 outline-none font-semibold"
+                >
+                  <option value="youtube">▶️ YouTube (Shorts / Канал)</option>
+                  <option value="telegram">✈️ Telegram (@ulpana_il)</option>
+                  <option value="facebook">📘 Facebook (Страница)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-zinc-400 font-semibold mb-1">Заголовок / Тема:</label>
+                <input
+                  type="text"
+                  value={quickTitle}
+                  onChange={(e) => setQuickTitle(e.target.value)}
+                  placeholder="Заголовок для YouTube Shorts или поста"
+                  required
+                  className="w-full bg-zinc-800 rounded-xl p-2.5 text-zinc-200 border border-zinc-700 outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-zinc-400 font-semibold mb-1">Описание / Текст поста:</label>
+                <textarea
+                  rows={3}
+                  value={quickDesc}
+                  onChange={(e) => setQuickDesc(e.target.value)}
+                  placeholder="Текст с описанием, фразами на иврите и ссылкой (если пусто — используется стандартный шаблон)"
+                  className="w-full bg-zinc-800 rounded-xl p-2.5 text-zinc-200 border border-zinc-700 outline-none resize-none"
+                />
+              </div>
+
+              {(quickChannel === 'youtube' || quickChannel === 'telegram') && (
+                <div>
+                  <label className="block text-zinc-400 font-semibold mb-1">Видеофайл на сервере (public/demo/...):</label>
+                  <select
+                    value={quickVideo}
+                    onChange={(e) => setQuickVideo(e.target.value)}
+                    className="w-full bg-zinc-800 rounded-xl p-2.5 text-zinc-200 border border-zinc-700 outline-none"
+                  >
+                    <option value="public/demo/reels_duolingo_vs_reality.mp4">
+                      reels_duolingo_vs_reality.mp4 (Duolingo vs Реальность, 9:16 Shorts)
+                    </option>
+                    <option value="public/demo/tutorials/stage_05_dialogue_v2.mp4">
+                      tutorials/stage_05_dialogue_v2.mp4 (Диалог с Бариста)
+                    </option>
+                    <option value="public/demo/ulpana_full_guide.mp4">
+                      ulpana_full_guide.mp4 (Полный гид по ульпану)
+                    </option>
+                  </select>
+                </div>
+              )}
+
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-zinc-800">
+                <button
+                  type="button"
+                  onClick={() => setIsQuickPublishModalOpen(false)}
+                  className="px-4 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-semibold cursor-pointer"
+                >
+                  Закрыть
+                </button>
+                <button
+                  type="submit"
+                  disabled={isQuickPublishing}
+                  className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-red-600 to-amber-600 hover:from-red-500 hover:to-amber-500 text-white font-bold cursor-pointer disabled:opacity-50"
+                >
+                  <Flame className="w-4 h-4" />
+                  <span>{isQuickPublishing ? 'Выгрузка на сервер...' : '🚀 Запустить публикацию'}</span>
                 </button>
               </div>
             </form>

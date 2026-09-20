@@ -1,5 +1,21 @@
 [
   {
+    "id": "pub-yt-6375",
+    "date": "2026-09-20",
+    "channel": "youtube",
+    "channelAccount": "Ульпан Алеф",
+    "format": "short_video",
+    "title": "🇮🇱 Как не впасть в ступор, когда звонит израильский курьер #Shorts",
+    "targetDeepLink": "/lessons/1/call",
+    "promoCode": "YT",
+    "fullUrlWithPromo": "https://ulpana-hebrew.vercel.app/?promo=YT",
+    "livePostUrl": "https://www.youtube.com/shorts/IqBfDfWt9T0",
+    "status": "published",
+    "notes": "Автопостинг через YouTube Data API v3",
+    "createdAt": "2026-09-20T05:00:36.376Z",
+    "updatedAt": "2026-09-20T05:00:36.376Z"
+  },
+  {
     "id": "pub-fb-9255",
     "date": "2026-09-19",
     "channel": "facebook",

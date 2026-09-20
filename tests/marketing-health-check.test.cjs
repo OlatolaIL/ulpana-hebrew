@@ -21,7 +21,7 @@ test('1. Marketing health check route exists and imports verifyAdminRequest', ()
   assert.ok(content.includes('export async function GET'), 'Route must export GET handler');
 });
 
-test('2. Health check route inspects all 5 required services', () => {
+test('2. Health check route inspects all 6 required services', () => {
   const routePath = path.join(__dirname, '..', 'src', 'app', 'api', 'admin', 'marketing', 'health', 'route.ts');
   const content = fs.readFileSync(routePath, 'utf-8');
 
@@ -30,6 +30,7 @@ test('2. Health check route inspects all 5 required services', () => {
   assert.ok(content.includes('gemini:'), 'Must check gemini service');
   assert.ok(content.includes('whatsapp:'), 'Must check whatsapp service');
   assert.ok(content.includes('meta:'), 'Must check meta service');
+  assert.ok(content.includes('youtube:'), 'Must check youtube service');
 });
 
 test('3. Health check route implements timeouts and channel admin check', () => {

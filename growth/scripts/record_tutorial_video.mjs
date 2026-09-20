@@ -20,31 +20,31 @@ if (!fs.existsSync(CACHE_DIR)) {
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-// Cues для Этапа 5: Диалоги
+// Cues для Этапа 5: Диалоги (Спокойный обучающий темп: R-17, R-25)
 const STAGE_05_CUES = [
   {
     id: 'intro',
-    wavFile: 'tut5_sped_01_intro.wav',
-    gapAfterSec: 0.35,
+    wavFile: 'tut5_raw_01_intro.wav',
+    gapAfterSec: 0.4,
   },
   {
     id: 'barista',
     wavFile: 'tut5_raw_02_barista.wav',
-    gapAfterSec: 0.4,
+    gapAfterSec: 0.5,
   },
   {
     id: 'student',
     wavFile: 'tut5_raw_03_student.wav',
-    gapAfterSec: 0.5,
+    gapAfterSec: 0.6,
   },
   {
     id: 'eval',
-    wavFile: 'tut5_sped_04_eval.wav',
+    wavFile: 'tut5_raw_04_eval.wav',
     gapAfterSec: 0.4,
   },
   {
     id: 'outro',
-    wavFile: 'tut5_sped_05_outro.wav',
+    wavFile: 'tut5_raw_05_outro.wav',
     gapAfterSec: 0.5,
   },
 ];
@@ -214,6 +214,12 @@ async function recordStageTutorial(stageNum = 5, version = 'v2') {
       deviceScaleFactor: 2,
     });
     const warmupPage = await warmupContext.newPage();
+    await warmupPage.route('**/api/auth/me', async (route) => {
+      await route.fulfill({ status: 200, json: { authenticated: false, user: null } });
+    });
+    await warmupPage.route('**/api/admin/access-rules', async (route) => {
+      await route.fulfill({ status: 200, json: { ok: true, isEarlyAccessFree: true, lessonRules: {} } });
+    });
     await warmupPage.addInitScript(() => {
       try {
         localStorage.setItem('ulpana_auto_show_guides', 'false');
@@ -221,11 +227,10 @@ async function recordStageTutorial(stageNum = 5, version = 'v2') {
         localStorage.setItem('ulpana_show_floating_feedback', 'false');
         localStorage.setItem('ulpana_chat_tips_hidden', 'true');
         localStorage.setItem(
-          'ulpana_user_profile',
+          'hebrew_app_profile_v1',
           JSON.stringify({
-            id: 'tut_guest_v2',
-            name: 'Ученик',
-            gender: 'female',
+            name: 'Student',
+            gender: 'male',
             showNikkud: true,
             showTranscription: true,
             fontStyle: 'print',
@@ -240,7 +245,7 @@ async function recordStageTutorial(stageNum = 5, version = 'v2') {
     });
     try {
       await warmupPage.goto('http://localhost:3000/#lesson-2/chat', { waitUntil: 'domcontentloaded' });
-      await warmupPage.locator('button:has-text("Ответить по ролям (голос)")').waitFor({ state: 'visible', timeout: 30000 });
+      await warmupPage.locator('button:has-text("Ответить по ролям")').first().waitFor({ state: 'visible', timeout: 35000 });
     } catch (_) {}
     await warmupPage.close();
     await warmupContext.close();
@@ -270,11 +275,10 @@ async function recordStageTutorial(stageNum = 5, version = 'v2') {
         localStorage.setItem('ulpana_show_floating_feedback', 'false');
         localStorage.setItem('ulpana_chat_tips_hidden', 'true');
         localStorage.setItem(
-          'ulpana_user_profile',
+          'hebrew_app_profile_v1',
           JSON.stringify({
-            id: 'tut_guest_v2',
-            name: 'Ученик',
-            gender: 'female',
+            name: 'Student',
+            gender: 'male',
             showNikkud: true,
             showTranscription: true,
             fontStyle: 'print',
@@ -380,13 +384,21 @@ async function recordStageTutorial(stageNum = 5, version = 'v2') {
     });
 
     // 2. Перехват API роутов для мгновенного и надежного ответа
+    await page.route('**/api/auth/me', async (route) => {
+      await route.fulfill({ status: 200, json: { authenticated: false, user: null } });
+    });
+
+    await page.route('**/api/admin/access-rules', async (route) => {
+      await route.fulfill({ status: 200, json: { ok: true, isEarlyAccessFree: true, lessonRules: {} } });
+    });
+
     await page.route('**/api/ai/transcribe', async (route) => {
       console.log('  🎯 [MOCK API] Перехвачен вызов /api/ai/transcribe');
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify({
-          text: 'אֲנִי רוֹצֶה קָפֶה קָטָן, בְּבַקָּשָׁה',
+          text: 'שָׁלוֹם, אֲנִי רוֹצֶה קָפֶה עִם חָלָב, בְּבַקָּשָׁה',
         }),
       });
     });
@@ -403,7 +415,7 @@ async function recordStageTutorial(stageNum = 5, version = 'v2') {
           feedbackRu: 'Отличный заказ кофе! Точная грамматика и вежливая форма בבקשה.',
           pronunciationScore: 98,
           pronunciationFeedbackRu: 'Превосходное звучание гласных и правильное ударение.',
-          userSpokenHebrew: 'אֲנִי רוֹצֶה קָפֶה קָטָן, בְּבַקָּשָׁה',
+          userSpokenHebrew: 'שָׁלוֹם, אֲנִי רוֹצֶה קָפֶה עִם חָלָב, בְּבַקָּשָׁה',
           betterAlternative: null,
         }),
       });
@@ -431,9 +443,9 @@ async function recordStageTutorial(stageNum = 5, version = 'v2') {
     console.log(`🌐 Переход на ${targetUrl}...`);
     await page.goto(targetUrl, { waitUntil: 'domcontentloaded' });
 
-    console.log('⏳ Ожидание появления экрана этапа 5 (кнопка "Ответить по ролям (голос)")...');
-    const roleBtn = page.locator('button:has-text("Ответить по ролям (голос)")');
-    await roleBtn.waitFor({ state: 'visible', timeout: 25000 });
+    console.log('⏳ Ожидание появления экрана этапа 5 (кнопка "Ответить по ролям")...');
+    const roleBtn = page.locator('button:has-text("Ответить по ролям")').first();
+    await roleBtn.waitFor({ state: 'visible', timeout: 45000 });
     const uiReadyTime = Date.now();
     uiOffsetSec = Math.max(0, (uiReadyTime - recordingStartTime) / 1000);
     console.log(`✅ Экран этапа 5 успешно загружен! Смещение предзагрузки: ${uiOffsetSec.toFixed(2)}s (будет отрезано)`);
