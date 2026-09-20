@@ -3,109 +3,336 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Предпросмотр ролика — Ульпан Алеф</title>
+  <title>Видеоролики с промокодами — Ульпан Алеф</title>
   <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      background: #0b0f19;
+      background: #070e24;
       color: #fff;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
       min-height: 100vh;
-      margin: 0;
-      padding: 20px;
-      box-sizing: border-box;
+      padding: 16px;
     }
     .container {
-      max-width: 420px;
+      max-width: 440px;
       width: 100%;
       text-align: center;
     }
+    .header {
+      margin-bottom: 14px;
+    }
     h1 {
-      font-size: 20px;
-      margin-bottom: 8px;
+      font-size: 19px;
+      font-weight: 800;
+      margin-bottom: 4px;
+      color: #f8fafc;
     }
-    p {
+    .subtitle {
       color: #94a3b8;
-      font-size: 14px;
-      margin-bottom: 16px;
+      font-size: 13px;
     }
-    .video-card {
-      border-radius: 20px;
+    /* Вкладки платформ */
+    .tabs-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 6px;
+      margin: 14px 0;
+    }
+    .tab-btn {
+      padding: 8px 4px;
+      background: rgba(30, 41, 59, 0.7);
+      border: 1.5px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      color: #94a3b8;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+    }
+    .tab-btn:hover {
+      background: rgba(59, 130, 246, 0.2);
+      color: #fff;
+    }
+    .tab-btn.active {
+      background: linear-gradient(135deg, #2563eb, #1d4ed8);
+      border-color: #60a5fa;
+      color: #fff;
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
+    }
+    .tab-icon { font-size: 16px; }
+
+    /* Видео контейнер */
+    .video-wrapper {
+      border-radius: 24px;
       overflow: hidden;
-      box-shadow: 0 20px 50px rgba(0,0,0,0.6), 0 0 30px rgba(59, 130, 246, 0.2);
-      border: 1.5px solid rgba(255,255,255,0.15);
+      box-shadow: 0 20px 50px rgba(0,0,0,0.7), 0 0 30px rgba(37, 99, 235, 0.25);
+      border: 1.5px solid rgba(255,255,255,0.12);
       background: #000;
       position: relative;
+      aspect-ratio: 390 / 844;
+      max-height: 560px;
+      margin: 0 auto;
     }
     video {
       width: 100%;
-      height: auto;
+      height: 100%;
+      object-fit: cover;
       display: block;
     }
-    .btn-play {
-      margin-top: 18px;
-      padding: 14px 24px;
-      font-size: 16px;
-      font-weight: 700;
-      border-radius: 14px;
-      background: linear-gradient(135deg, #3b82f6, #1d4ed8);
-      color: #fff;
-      border: none;
-      cursor: pointer;
-      box-shadow: 0 8px 20px rgba(37,99,235,0.4);
-      transition: transform 0.15s ease;
-      width: 100%;
-    }
-    .btn-play:active {
-      transform: scale(0.97);
-    }
-    .audio-card {
-      margin-top: 20px;
-      padding: 14px;
-      background: rgba(30,41,59,0.7);
-      border-radius: 14px;
-      border: 1px solid rgba(255,255,255,0.1);
+
+    /* Инфо-карточка платформы */
+    .info-card {
+      margin-top: 14px;
+      padding: 12px 14px;
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid rgba(59, 130, 246, 0.25);
+      border-radius: 16px;
       text-align: left;
     }
-    .audio-card h3 {
-      margin: 0 0 6px 0;
-      font-size: 14px;
-      color: #cbd5e1;
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
     }
-    audio {
-      width: 100%;
+    .info-label {
+      font-size: 11px;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-weight: 700;
+    }
+    .promo-badge {
+      background: #ffd700;
+      color: #0b0f19;
+      padding: 3px 8px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 900;
+      letter-spacing: 0.5px;
+    }
+    .url-row {
+      display: flex;
+      gap: 6px;
       margin-top: 6px;
     }
+    .url-input {
+      flex: 1;
+      padding: 8px 10px;
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 10px;
+      color: #60a5fa;
+      font-size: 11px;
+      font-family: monospace;
+      outline: none;
+    }
+    .btn-copy {
+      padding: 8px 12px;
+      background: #2563eb;
+      border: none;
+      border-radius: 10px;
+      color: #fff;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background 0.15s;
+    }
+    .btn-copy:hover { background: #1d4ed8; }
+    .btn-copy.copied { background: #10b981; }
+
+    /* Кнопки действий */
+    .actions-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 10px;
+    }
+    .btn-action {
+      padding: 12px 14px;
+      border-radius: 14px;
+      font-size: 13px;
+      font-weight: 700;
+      border: none;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      text-decoration: none;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #10b981, #059669);
+      color: #fff;
+      box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);
+    }
+    .btn-primary:active { transform: scale(0.98); }
+    .btn-secondary {
+      background: rgba(30, 41, 59, 0.9);
+      color: #cbd5e1;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+    }
+    .btn-secondary:hover { color: #fff; }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>🎬 Виральный ролик: Duolingo vs Реальность</h1>
-    <p>17.5 сек • 9:16 Vertical • Формат для TikTok / Reels / Shorts</p>
-
-    <div class="video-card">
-      <video id="video-player" src="./reels_duolingo_vs_reality.mp4" playsinline controls></video>
+    <div class="header">
+      <h1>🎬 Промо-видео: Wolt Курьер</h1>
+      <p class="subtitle">5 версий ролика с плашками и CTA под каждую площадку</p>
     </div>
 
-    <button class="btn-play" onclick="playWithSound()">🔊 ВКЛЮЧИТЬ И СМОТРЕТЬ СО ЗВУКОМ</button>
+    <!-- Вкладки платформ -->
+    <div class="tabs-grid">
+      <button class="tab-btn active" onclick="selectPlatform('youtube')">
+        <span class="tab-icon">▶️</span>
+        <span>YouTube</span>
+      </button>
+      <button class="tab-btn" onclick="selectPlatform('insta')">
+        <span class="tab-icon">📸</span>
+        <span>Reels</span>
+      </button>
+      <button class="tab-btn" onclick="selectPlatform('tiktok')">
+        <span class="tab-icon">🎵</span>
+        <span>TikTok</span>
+      </button>
+      <button class="tab-btn" onclick="selectPlatform('tg')">
+        <span class="tab-icon">✈️</span>
+        <span>Telegram</span>
+      </button>
+      <button class="tab-btn" onclick="selectPlatform('fb')">
+        <span class="tab-icon">👥</span>
+        <span>Facebook</span>
+      </button>
+    </div>
 
-    <div class="audio-card">
-      <h3>🎙️ Отдельная мастер-аудиодорожка (WAV):</h3>
-      <audio controls src="./reels_audio.wav"></audio>
+    <!-- Видео плеер -->
+    <div class="video-wrapper">
+      <video id="video-player" src="./promo/reels_youtube.mp4" playsinline controls></video>
+    </div>
+
+    <!-- Быстрые действия -->
+    <div class="actions-grid">
+      <button class="btn-action btn-primary" onclick="playWithSound()">
+        🔊 Со звуком
+      </button>
+      <a id="btn-download" class="btn-action btn-secondary" href="./promo/reels_youtube.mp4" download>
+        ⬇️ Скачать MP4
+      </a>
+    </div>
+
+    <!-- Инфо о промокоде и ссылка -->
+    <div class="info-card">
+      <div class="info-row">
+        <span class="info-label" id="platform-label">YouTube Shorts</span>
+        <span class="promo-badge" id="promo-code">ПРОМОКОД: YOUTUBE</span>
+      </div>
+      <div style="font-size: 12px; color: #cbd5e1; margin-bottom: 6px;" id="platform-cta-note">
+        📍 Ссылка размещается: <b>в описании видео и первом комментарии</b>
+      </div>
+      <div class="url-row">
+        <input class="url-input" id="promo-url" readonly value="https://ulpana-hebrew.vercel.app?promo=YOUTUBE">
+        <button class="btn-copy" id="btn-copy" onclick="copyPromoUrl()">Копировать</button>
+      </div>
     </div>
   </div>
 
   <script>
+    const PLATFORMS = {
+      youtube: {
+        label: 'YouTube Shorts',
+        code: 'YOUTUBE',
+        video: './promo/reels_youtube.mp4',
+        cta: 'в описании видео и закреплённом комментарии',
+        url: 'https://ulpana-hebrew.vercel.app?promo=YOUTUBE'
+      },
+      insta: {
+        label: 'Instagram Reels',
+        code: 'INSTA',
+        video: './promo/reels_insta.mp4',
+        cta: 'в шапке профиля (bio аккаунта)',
+        url: 'https://ulpana-hebrew.vercel.app?promo=INSTA'
+      },
+      tiktok: {
+        label: 'TikTok',
+        code: 'TIKTOK',
+        video: './promo/reels_tiktok.mp4',
+        cta: 'в шапке профиля (bio аккаунта)',
+        url: 'https://ulpana-hebrew.vercel.app?promo=TIKTOK'
+      },
+      tg: {
+        label: 'Telegram-канал',
+        code: 'TG',
+        video: './promo/reels_tg.mp4',
+        cta: 'прямо в тексте сообщения Telegram',
+        url: 'https://ulpana-hebrew.vercel.app?promo=TG'
+      },
+      fb: {
+        label: 'Facebook',
+        code: 'FB',
+        video: './promo/reels_fb.mp4',
+        cta: 'в тексте поста Facebook',
+        url: 'https://ulpana-hebrew.vercel.app?promo=FB'
+      }
+    };
+
+    let currentPlatform = 'youtube';
+
+    function selectPlatform(id) {
+      currentPlatform = id;
+      const p = PLATFORMS[id];
+
+      // Переключаем активную кнопку
+      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+      event.currentTarget.classList.add('active');
+
+      // Обновляем плеер
+      const video = document.getElementById('video-player');
+      video.src = p.video;
+      video.load();
+
+      // Обновляем ссылку на скачивание
+      const dlBtn = document.getElementById('btn-download');
+      dlBtn.href = p.video;
+
+      // Обновляем инфо
+      document.getElementById('platform-label').textContent = p.label;
+      document.getElementById('promo-code').textContent = 'ПРОМОКОД: ' + p.code;
+      document.getElementById('platform-cta-note').innerHTML = '📍 Ссылка размещается: <b>' + p.cta + '</b>';
+      document.getElementById('promo-url').value = p.url;
+
+      const copyBtn = document.getElementById('btn-copy');
+      copyBtn.textContent = 'Копировать';
+      copyBtn.classList.remove('copied');
+    }
+
     function playWithSound() {
       const v = document.getElementById('video-player');
       v.muted = false;
       v.volume = 1.0;
       v.currentTime = 0;
-      v.play().catch(err => {
-        console.error('Play error:', err);
+      v.play().catch(err => console.error('Play error:', err));
+    }
+
+    function copyPromoUrl() {
+      const urlInput = document.getElementById('promo-url');
+      navigator.clipboard.writeText(urlInput.value).then(() => {
+        const btn = document.getElementById('btn-copy');
+        btn.textContent = 'Скопировано! ✓';
+        btn.classList.add('copied');
+        setTimeout(() => {
+          btn.textContent = 'Копировать';
+          btn.classList.remove('copied');
+        }, 2000);
       });
     }
   </script>

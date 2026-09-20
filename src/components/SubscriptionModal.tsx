@@ -26,6 +26,7 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [pendingSaved, setPendingSaved] = useState(false);
 
   React.useEffect(() => {
     if (isOpen && typeof window !== 'undefined') {
@@ -40,46 +41,6 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
       } catch {}
     }
   }, [isOpen, promoCode]);
-
-  if (!isOpen) return null;
-
-  if (IS_EARLY_ACCESS_FREE) {
-    return (
-      <div role="dialog" aria-modal="true" aria-labelledby="beta-access-title" className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-        <div className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-3xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6 space-y-5">
-          <button type="button" onClick={onClose} aria-label="Закрыть информацию о бете" className="absolute top-3 right-3 p-2"><X className="w-5 h-5" /></button>
-          <h2 id="beta-access-title" className="pr-8 text-xl font-bold">Открытая бесплатная бета</h2>
-          {savedPromo && (
-            <div className="p-3.5 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-500/30 flex items-center gap-3">
-              <Sparkles className="w-5 h-5 text-amber-500 shrink-0" />
-              <div className="text-xs">
-                <p className="font-bold text-amber-900 dark:text-amber-200">
-                  Промокод «{savedPromo}» зафиксирован!
-                </p>
-                <p className="text-amber-700/80 dark:text-amber-300/80">
-                  Все 100 уроков сейчас открыты бесплатно. Ваш промокод сохранён за вами для продления PRO-доступа.
-                </p>
-              </div>
-            </div>
-          )}
-          <p>Все 100 уроков, словарь, карточки и учебные разговоры доступны бесплатно на время беты. Покупать PRO или вводить промокод сейчас не нужно.</p>
-          <p className="text-sm text-zinc-600 dark:text-zinc-300">Первые два урока можно попробовать без входа. Для дальнейших уроков и сохранения прогресса между устройствами войдите в аккаунт.</p>
-          <p className="text-sm text-zinc-600 dark:text-zinc-300">Курс и автоматическая проверка ещё дорабатываются. О неточности можно сообщить через кнопку обратной связи.</p>
-          {!userProfile.isLoggedIn && <button type="button" onClick={() => { onClose(); onOpenAuth(); }} className="w-full rounded-xl bg-blue-600 px-4 py-3 font-bold text-white">Войти бесплатно</button>}
-          <button type="button" onClick={onClose} className="w-full rounded-xl border border-zinc-300 dark:border-zinc-700 px-4 py-3 font-semibold">Продолжить обучение</button>
-        </div>
-      </div>
-    );
-  }
-
-  const isPro = userProfile.subscriptionTier === 'pro' || userProfile.subscriptionTier === 'admin';
-  const expiresDate = userProfile.subscriptionExpiresAt
-    ? new Date(userProfile.subscriptionExpiresAt).toLocaleDateString('ru-RU', {
-        day: 'numeric',
-        month: 'long',
-        year: 'numeric',
-      })
-    : null;
 
   const handleActivatePromo = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -104,22 +65,120 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
       const data = await res.json();
       if (res.ok && data.success) {
         setSuccessMsg(data.message);
-        confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
-        onPromoActivated(data.user);
-        setPromoCode('');
-        setSavedPromo(null);
-        try {
-          localStorage.removeItem('ulpana_pending_promo');
-        } catch {}
+        if (data.pending) {
+          // Бета: код зафиксирован в БД
+          setPendingSaved(true);
+          try { localStorage.removeItem('ulpana_pending_promo'); } catch {}
+        } else {
+          // После беты: PRO активирован
+          confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+          onPromoActivated(data.user);
+          setPromoCode('');
+          try { localStorage.removeItem('ulpana_pending_promo'); } catch {}
+        }
       } else {
-        setError(data.error || 'Не удалось активировать промокод');
+        if (data.requireAuth) {
+          setError('');
+          onClose();
+          onOpenAuth();
+        } else {
+          setError(data.error || 'Не удалось активировать промокод');
+        }
       }
-    } catch (e) {
+    } catch {
       setError('Ошибка подключения к серверу');
     } finally {
       setLoading(false);
     }
   };
+
+  if (!isOpen) return null;
+
+  if (IS_EARLY_ACCESS_FREE) {
+    return (
+      <div role="dialog" aria-modal="true" aria-labelledby="beta-access-title" className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+        <div className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-3xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6 space-y-5">
+          <button type="button" onClick={onClose} aria-label="Закрыть информацию о бете" className="absolute top-3 right-3 p-2"><X className="w-5 h-5" /></button>
+          <h2 id="beta-access-title" className="pr-8 text-xl font-bold">Открытая бесплатная бета</h2>
+
+          {/* Статус сохранённого промокода */}
+          {pendingSaved && (
+            <div className="p-3.5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-500/30 flex items-center gap-3">
+              <Sparkles className="w-5 h-5 text-emerald-500 shrink-0" />
+              <div className="text-xs">
+                <p className="font-bold text-emerald-900 dark:text-emerald-200">Промокод зафиксирован!</p>
+                <p className="text-emerald-700/80 dark:text-emerald-300/80">
+                  PRO-доступ активируется автоматически после окончания беты.
+                </p>
+              </div>
+            </div>
+          )}
+
+          <p>Все 100 уроков, словарь, карточки и учебные разговоры доступны бесплатно на время беты. Покупать PRO сейчас не нужно.</p>
+          <p className="text-sm text-zinc-600 dark:text-zinc-300">Первые два урока можно попробовать без входа. Для дальнейших уроков и сохранения прогресса войдите в аккаунт.</p>
+          <p className="text-sm text-zinc-600 dark:text-zinc-300">Курс ещё дорабатывается. О неточностях можно сообщить через кнопку обратной связи.</p>
+
+          {/* Блок фиксации промокода во время беты */}
+          {!pendingSaved && (
+            <div className="p-4 rounded-2xl bg-amber-500/5 border border-amber-500/20 space-y-3">
+              <div className="flex items-center gap-2 text-xs font-bold text-amber-900 dark:text-amber-300">
+                <KeyRound className="w-4 h-4 text-amber-500" />
+                <span>Есть промокод? Зафиксируйте его сейчас</span>
+              </div>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                Он будет привязан к вашему аккаунту и автоматически активируется после беты.
+              </p>
+              {!userProfile.isLoggedIn ? (
+                <button
+                  type="button"
+                  onClick={() => { onClose(); onOpenAuth(); }}
+                  className="w-full rounded-xl bg-blue-600 px-4 py-3 font-bold text-white text-sm"
+                >
+                  Войти, чтобы зафиксировать промокод →
+                </button>
+              ) : (
+                <form onSubmit={handleActivatePromo} className="flex gap-2">
+                  <input
+                    type="text"
+                    value={promoCode}
+                    onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
+                    placeholder="Введите промокод"
+                    className="flex-1 px-3.5 py-2 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-xs uppercase font-bold focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  />
+                  <button
+                    type="submit"
+                    disabled={loading || !promoCode.trim()}
+                    className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold shadow-sm transition active:scale-95 disabled:opacity-50"
+                  >
+                    {loading ? '...' : 'Сохранить'}
+                  </button>
+                </form>
+              )}
+              {error && <p className="text-xs font-semibold text-red-600 dark:text-red-400">{error}</p>}
+            </div>
+          )}
+
+          {!userProfile.isLoggedIn && !pendingSaved && (
+            <button type="button" onClick={() => { onClose(); onOpenAuth(); }} className="w-full rounded-xl bg-blue-600 px-4 py-3 font-bold text-white">
+              Войти бесплатно
+            </button>
+          )}
+          <button type="button" onClick={onClose} className="w-full rounded-xl border border-zinc-300 dark:border-zinc-700 px-4 py-3 font-semibold">
+            Продолжить обучение
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const isPro = userProfile.subscriptionTier === 'pro' || userProfile.subscriptionTier === 'admin';
+  const expiresDate = userProfile.subscriptionExpiresAt
+    ? new Date(userProfile.subscriptionExpiresAt).toLocaleDateString('ru-RU', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+      })
+    : null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in">

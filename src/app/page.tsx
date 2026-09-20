@@ -303,6 +303,9 @@ export default function Home() {
             localStorage.setItem('ulpana_referral_source', promoParam);
             localStorage.setItem('ulpana_promo_captured_at', Date.now().toString());
           } catch {}
+          // Cookie-мост: дублируем промокод в cookie, доступную серверу при auth-запросе.
+          // httpOnly: false — клиент должен уметь удалить cookie после активации (R-16).
+          document.cookie = `ulpana_promo_ref=${encodeURIComponent(promoParam)}; Max-Age=604800; Path=/; SameSite=Lax`;
           setCapturedPromoToast(promoParam);
           url.searchParams.delete('promo');
           url.searchParams.delete('ref');

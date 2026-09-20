@@ -4,24 +4,22 @@ import { getDbPool } from '@/lib/db';
 import { UserSession } from '@/types';
 import { IS_EARLY_ACCESS_FREE } from '@/lib/config';
 
-const STATIC_PROMO_CODES: Record<string, number> = {
-  ULPANA2026: 30,
-  MAZAL_TOV: 90,
-};
-
 export async function POST(req: NextRequest) {
-  if (IS_EARLY_ACCESS_FREE) {
-    return NextResponse.json({ error: 'Во время бесплатной беты промокод не требуется.' }, { status: 409 });
-  }
   try {
     const token = req.cookies.get('ulpana_session')?.value;
     if (!token) {
-      return NextResponse.json({ error: 'Войдите через Telegram, чтобы активировать промокод' }, { status: 401 });
+      return NextResponse.json(
+        { error: 'Войдите в аккаунт, чтобы зафиксировать промокод', requireAuth: true },
+        { status: 401 }
+      );
     }
 
     const session = await verifySessionToken(token);
     if (!session) {
-      return NextResponse.json({ error: 'Недействительная сессия' }, { status: 401 });
+      return NextResponse.json(
+        { error: 'Недействительная сессия', requireAuth: true },
+        { status: 401 }
+      );
     }
 
     const { code } = await req.json();
@@ -30,47 +28,69 @@ export async function POST(req: NextRequest) {
     }
 
     const normalizedCode = code.trim().toUpperCase();
-    let daysToAdd = STATIC_PROMO_CODES[normalizedCode] || 0;
 
     const db = getDbPool();
-    if (db) {
-      const promoRes = await db.query(
-        'SELECT * FROM ulpana_promo_codes WHERE UPPER(code) = $1 AND is_active = true',
-        [normalizedCode]
+    if (!db) {
+      return NextResponse.json(
+        { error: 'База данных недоступна. Попробуйте позже.' },
+        { status: 503 }
       );
-
-      if (promoRes.rows.length > 0) {
-        const promo = promoRes.rows[0];
-        if (promo.max_uses && promo.used_count >= promo.max_uses) {
-          return NextResponse.json({ error: 'Лимит активаций этого промокода исчерпан' }, { status: 400 });
-        }
-        daysToAdd = promo.days_valid;
-
-        await db.query(
-          'UPDATE ulpana_promo_codes SET used_count = used_count + 1 WHERE id = $1',
-          [promo.id]
-        );
-      }
     }
 
-    if (daysToAdd <= 0) {
+    // Валидируем: код должен существовать и быть активным
+    const promoRes = await db.query(
+      'SELECT * FROM ulpana_promo_codes WHERE UPPER(code) = $1 AND is_active = true',
+      [normalizedCode]
+    );
+
+    if (promoRes.rows.length === 0) {
       return NextResponse.json({ error: 'Неверный или недействительный промокод' }, { status: 400 });
     }
 
-    const currentExpires = session.subscriptionExpiresAt && session.subscriptionExpiresAt > Date.now()
-      ? session.subscriptionExpiresAt
-      : Date.now();
+    const promo = promoRes.rows[0];
+    if (promo.max_uses && promo.used_count >= promo.max_uses) {
+      return NextResponse.json({ error: 'Лимит активаций этого промокода исчерпан' }, { status: 400 });
+    }
+
+    // Режим беты: сохраняем код за пользователем, активируем после беты
+    if (IS_EARLY_ACCESS_FREE) {
+      await db.query(
+        `UPDATE ulpana_users SET promo_pending = $1, updated_at = NOW() WHERE id = $2`,
+        [normalizedCode, session.id]
+      );
+      return NextResponse.json({
+        success: true,
+        pending: true,
+        message: `Промокод «${normalizedCode}» зафиксирован! PRO-доступ активируется автоматически после окончания беты.`,
+        user: session,
+      });
+    }
+
+    // Обычный режим: активируем сразу
+    if (promo.max_uses && promo.used_count >= promo.max_uses) {
+      return NextResponse.json({ error: 'Лимит активаций этого промокода исчерпан' }, { status: 400 });
+    }
+
+    const daysToAdd: number = promo.days_valid;
+
+    await db.query(
+      'UPDATE ulpana_promo_codes SET used_count = used_count + 1 WHERE id = $1',
+      [promo.id]
+    );
+
+    const currentExpires =
+      session.subscriptionExpiresAt && session.subscriptionExpiresAt > Date.now()
+        ? session.subscriptionExpiresAt
+        : Date.now();
 
     const newExpiresAt = currentExpires + daysToAdd * 24 * 60 * 60 * 1000;
 
-    if (db) {
-      await db.query(
-        `UPDATE ulpana_users
-         SET subscription_tier = 'pro', subscription_expires_at = $1, updated_at = NOW()
-         WHERE id = $2`,
-        [newExpiresAt, session.id]
-      );
-    }
+    await db.query(
+      `UPDATE ulpana_users
+       SET subscription_tier = 'pro', subscription_expires_at = $1, promo_pending = NULL, updated_at = NOW()
+       WHERE id = $2`,
+      [newExpiresAt, session.id]
+    );
 
     const updatedSession: UserSession = {
       ...session,
@@ -82,6 +102,7 @@ export async function POST(req: NextRequest) {
 
     const response = NextResponse.json({
       success: true,
+      pending: false,
       message: `Промокод успешно активирован! PRO-доступ предоставлен на ${daysToAdd} дн.`,
       user: updatedSession,
     });

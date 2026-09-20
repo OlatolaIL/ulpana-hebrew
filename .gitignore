@@ -58,4 +58,5 @@ growth/data/*_session*
 growth/data/*.session
 growth/data/logs/
 public/demo/*.png
+growth/output/
 

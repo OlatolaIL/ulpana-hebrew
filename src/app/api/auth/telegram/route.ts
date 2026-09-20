@@ -128,6 +128,20 @@ export async function POST(req: NextRequest) {
           ]
         );
       }
+
+      // Авто-привязка промокода из cookie-моста (устанавливается клиентом при переходе по ?promo=)
+      const promoRefCookie = req.cookies.get('ulpana_promo_ref')?.value;
+      if (promoRefCookie) {
+        const promoCode = decodeURIComponent(promoRefCookie).trim().toUpperCase().slice(0, 64);
+        if (promoCode) {
+          // Сохраняем только если promo_pending ещё не задан, чтобы не перетирать ручной ввод
+          await db.query(
+            `UPDATE ulpana_users SET promo_pending = $1, updated_at = NOW()
+             WHERE id = $2 AND (promo_pending IS NULL OR promo_pending = '')`,
+            [promoCode, userId]
+          );
+        }
+      }
     }
 
     const session: UserSession = {

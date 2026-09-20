@@ -70,6 +70,7 @@ async function initializeDatabase() {
       ALTER TABLE ulpana_users ADD COLUMN IF NOT EXISTS sync_revision BIGINT NOT NULL DEFAULT 0;
       ALTER TABLE ulpana_users ADD COLUMN IF NOT EXISTS is_channel_subscriber BOOLEAN DEFAULT FALSE;
       ALTER TABLE ulpana_users ADD COLUMN IF NOT EXISTS channel_verified_at TIMESTAMPTZ;
+      ALTER TABLE ulpana_users ADD COLUMN IF NOT EXISTS promo_pending TEXT DEFAULT NULL;
     `);
 
     // 2. Таблица прогресса по урокам
