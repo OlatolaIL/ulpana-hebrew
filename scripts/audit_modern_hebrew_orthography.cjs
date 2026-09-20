@@ -9,6 +9,13 @@ const repoRoot = path.resolve(__dirname, '..');
 // за которой нет буквы вав ו.
 const ARCHAIC_KUBUTZ_REGEX = /([א-הז-ת][\u05BC\u05C1\u05C2]*)\u05BB(?![ְֱֲֳִֵֶַָֹֺֻּֽֿׁׂׅׄ]*ו)/g;
 
+// Регулярное выражение: архаичные огласованные формы с камац-катан/холам-хасер без буквы вав
+// (по стандарту современного иврита R-04/R-05 обязательно пишутся с вав: תוכנית, אוכל, חומר, טופס и т.д.)
+const ARCHAIC_DEFECTIVE_VOCALIZED_REGEX = /(?:[בהוכלמש]?)(?:תָּכְנִית|הָאֹכֶל|הַטֹּפֶס|הַדֹּפֶק|הַבֹּץ|תַּחְבֹּשֶׁת|בָּאֹסֶף|חֹמֶר|מְבֹהָל)/g;
+
+// Регулярное выражение: архаичный ктив хасер без огласовок (прямой запрет R-05)
+const ARCHAIC_UNVOCALIZED_REGEX = /(?:^|[\s"«'״׳()[\]{}—])(?:[בהוכלמש]?)(?:תכנית|ממלץ)(?=[\s.,!?;:"»'״׳()[\]{}—]|$)/g;
+
 function getFiles(dir, recursive = true) {
   if (!fs.existsSync(dir)) return [];
   const entries = fs.readdirSync(dir, { withFileTypes: true });
@@ -34,7 +41,12 @@ function auditFiles() {
   allFiles.add(path.join(repoRoot, 'src/data/thematicDecks.ts'));
   allFiles.add(path.join(repoRoot, 'src/data/verbSentencesData.ts'));
   
-  for (const d of [path.join(repoRoot, 'src/data/dialogues'), path.join(repoRoot, 'src/data/lessons')]) {
+  for (const d of [
+    path.join(repoRoot, 'src/data/dialogues'),
+    path.join(repoRoot, 'src/data/lessons'),
+    path.join(repoRoot, 'src/data/drills'),
+    path.join(repoRoot, 'src/data/thematicDecks'),
+  ]) {
     for (const f of getFiles(d, true)) {
       allFiles.add(f);
     }
@@ -48,6 +60,7 @@ function auditFiles() {
     const lines = content.split('\n');
 
     lines.forEach((line, lineIdx) => {
+      // 1. Проверка кубуца без вав
       let match;
       ARCHAIC_KUBUTZ_REGEX.lastIndex = 0;
       while ((match = ARCHAIC_KUBUTZ_REGEX.exec(line)) !== null) {
@@ -59,6 +72,39 @@ function auditFiles() {
           file: path.relative(repoRoot, file),
           line: lineIdx + 1,
           char: match[0],
+          type: 'archaic_kubutz',
+          snippet,
+        });
+      }
+
+      // 2. Проверка архаичных огласованных форм без вав
+      ARCHAIC_DEFECTIVE_VOCALIZED_REGEX.lastIndex = 0;
+      while ((match = ARCHAIC_DEFECTIVE_VOCALIZED_REGEX.exec(line)) !== null) {
+        const start = Math.max(0, match.index - 15);
+        const end = Math.min(line.length, match.index + 20);
+        const snippet = line.slice(start, end).trim();
+
+        violations.push({
+          file: path.relative(repoRoot, file),
+          line: lineIdx + 1,
+          char: match[0],
+          type: 'archaic_defective_vocalized',
+          snippet,
+        });
+      }
+
+      // 3. Проверка архаичных форм без огласовок (ктив хасер)
+      ARCHAIC_UNVOCALIZED_REGEX.lastIndex = 0;
+      while ((match = ARCHAIC_UNVOCALIZED_REGEX.exec(line)) !== null) {
+        const start = Math.max(0, match.index - 15);
+        const end = Math.min(line.length, match.index + 20);
+        const snippet = line.slice(start, end).trim();
+
+        violations.push({
+          file: path.relative(repoRoot, file),
+          line: lineIdx + 1,
+          char: match[0],
+          type: 'archaic_unvocalized_haser',
           snippet,
         });
       }
@@ -74,13 +120,9 @@ if (violations.length === 0) {
   console.log('✅ Аудит орфографии современного иврита (כתיב מלא): нарушений не найдено.');
   process.exit(0);
 } else {
-  console.error(`❌ Обнаружено ${violations.length} нарушений стандарта כתיב מלא (архаичный кубуц без вав):`);
-  const sample = violations.slice(0, 15);
-  for (const v of sample) {
-    console.error(`  - ${v.file}:${v.line} -> «${v.snippet}»`);
-  }
-  if (violations.length > 15) {
-    console.error(`  ... и ещё ${violations.length - 15} нарушений.`);
+  console.error(`❌ Обнаружено ${violations.length} нарушений стандарта כתיב מלא:`);
+  for (const v of violations) {
+    console.error(`  - [${v.type}] ${v.file}:${v.line} -> «${v.snippet}»`);
   }
   process.exit(1);
 }

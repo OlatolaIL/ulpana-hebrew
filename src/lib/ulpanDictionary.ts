@@ -804,6 +804,30 @@ function exactMatchesHebrew(target: string, query: string): boolean {
 }
 
 /**
+ * Строгое совпадение с огласовками (разрешение омографов типа שָׁם vs שֵׁם)
+ * Нормализуем через NFD для канонического порядка знаков огласовок
+ */
+function exactVocalizedMatches(target: string, query: string): boolean {
+  if (!target || !query) return false;
+  return target.trim().normalize('NFD') === query.trim().normalize('NFD');
+}
+
+/**
+ * Карта нормализации орфографии для предотвращения сбоев поиска по ктив-חסר
+ */
+const ORTHOGRAPHY_ALIASES: Record<string, string> = {
+  'תכנית': 'תוכנית',
+  'תכניות': 'תוכניות',
+  'אכל': 'אוכל',
+  'חמר': 'חומר',
+  'טפס': 'טופס',
+  'בץ': 'בוץ',
+  'דפק': 'דופק',
+  'אסף': 'אוסף',
+  'תחבשת': 'תחבושת',
+};
+
+/**
  * Безопасное сопоставление כתיב מלא / כתיב חסר (например רהוט ↔ ריהוט, חלצה ↔ חולצה).
  * ВАЖНО:
  * - Применяется только к словам от 4 букв (в 2-3 буквенных словах выпадение буквы ломает корень).
@@ -826,6 +850,8 @@ function fuzzySpellingMatches(target: string, query: string): boolean {
 /**
  * Быстрый поиск слова в оффлайн-базе Ульпана (словарь + авторские диалоги + 100 уроков + эвристика приставок)
  * Выполняется строго поэтапно:
+ *   0-A. Точный огласованный поиск (если запрос с никудом — защищает от омографов)
+ *   0-B. Мгновенный поиск по Pealim (с алиасами כתיב מלא)
  *   1. Точный поиск по всей базе (Exact match)
  *   2. Поиск с валидным отделением приставок (основа >= 3 букв)
  *   3. Безопасное ктив-мале / חסר сопоставление (только если точных совпадений нет нигде)
@@ -834,6 +860,8 @@ export function lookupOfflineWord(rawQuery: string): DictionaryEntry | null {
   if (!rawQuery) return null;
   const clean = stripNikkud(rawQuery.trim().toLowerCase());
   if (!clean) return null;
+  const trimmed = rawQuery.trim();
+  const hasNikkud = /[\u0591-\u05BD\u05BF\u05C1-\u05C2\u05C4-\u05C5\u05C7]/.test(trimmed);
 
   const searchInSources = (
     matcher: (target: string, q: string) => boolean,
@@ -919,12 +947,26 @@ export function lookupOfflineWord(rawQuery: string): DictionaryEntry | null {
     return null;
   };
 
-  // ЭТАП 0: Мгновенный поиск по мастер-лексикону Pealim (10 286 слов)
-  const trimmed = rawQuery.trim();
-  const pealimDirect = PEALIM_MASTER_LEXICON[clean] || PEALIM_MASTER_LEXICON[trimmed];
+  // ЭТАП 0-A: Если запрос содержит огласовки — ищем строгое огласованное совпадение (защита от омографов)
+  if (hasNikkud) {
+    const vocalizedMatch = searchInSources(exactVocalizedMatches, trimmed);
+    if (vocalizedMatch) {
+      return vocalizedMatch;
+    }
+  }
+
+  // ЭТАП 0-B: Мгновенный поиск по мастер-лексикону Pealim (10 286 слов) с алиасами
+  const aliasClean = ORTHOGRAPHY_ALIASES[clean] || clean;
+  const pealimDirect = PEALIM_MASTER_LEXICON[aliasClean] || PEALIM_MASTER_LEXICON[clean] || PEALIM_MASTER_LEXICON[trimmed];
   if (pealimDirect) {
+    // Если у пользователя был запрос с огласовками, а Pealim вернул омограф с другими огласовками — ищем альтернативу
+    if (hasNikkud && !exactVocalizedMatches(pealimDirect.hebrew, trimmed)) {
+      const altMatch = searchInSources(exactVocalizedMatches, trimmed);
+      if (altMatch) return altMatch;
+    }
+
     // Обогащаем примером из уроков, если он есть
-    const withExample = searchInSources(exactMatchesHebrew, clean);
+    const withExample = searchInSources(exactMatchesHebrew, aliasClean) || searchInSources(exactMatchesHebrew, clean);
     const hasPealimNikkud = /[\u0591-\u05BD\u05BF\u05C1-\u05C2\u05C4-\u05C5\u05C7]/.test(pealimDirect.hebrew);
     const hasLessonNikkud = Boolean(withExample?.hebrew && /[\u0591-\u05BD\u05BF\u05C1-\u05C2\u05C4-\u05C5\u05C7]/.test(withExample.hebrew));
 
@@ -946,7 +988,8 @@ export function lookupOfflineWord(rawQuery: string): DictionaryEntry | null {
   for (const prefix of prefixes) {
     if (clean.startsWith(prefix) && clean.length >= 4) {
       const subClean = clean.slice(1);
-      const pealimSub = PEALIM_MASTER_LEXICON[subClean];
+      const subAlias = ORTHOGRAPHY_ALIASES[subClean] || subClean;
+      const pealimSub = PEALIM_MASTER_LEXICON[subAlias] || PEALIM_MASTER_LEXICON[subClean];
       if (pealimSub) {
         return pealimSub;
       }
@@ -963,7 +1006,8 @@ export function lookupOfflineWord(rawQuery: string): DictionaryEntry | null {
     const p2 = clean[1];
     if (['ו', 'ש'].includes(p1) && ['ה', 'ב', 'ל', 'מ', 'כ'].includes(p2)) {
       const sub2 = clean.slice(2);
-      const pealimSub2 = PEALIM_MASTER_LEXICON[sub2];
+      const sub2Alias = ORTHOGRAPHY_ALIASES[sub2] || sub2;
+      const pealimSub2 = PEALIM_MASTER_LEXICON[sub2Alias] || PEALIM_MASTER_LEXICON[sub2];
       if (pealimSub2) {
         return pealimSub2;
       }

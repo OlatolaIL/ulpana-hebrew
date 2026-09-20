@@ -61,7 +61,7 @@ export const HEALTH_DECKS: ThematicDeck[] = [
   {
     id: 'medical-clinic-bet',
     title: 'Медицина и Поликлиника (Купат Холим)',
-    titleHebrew: 'רְפוּאָה וּקֻפַּת חוֹלִים',
+    titleHebrew: 'רְפוּאָה וְקוּפַּת חוֹלִים',
     description: '30 слов: запись к врачу, направления, анализы, страховка и диагнозы.',
     level: 'bet',
     category: 'health',

@@ -18,7 +18,7 @@ import {
   Users,
 } from 'lucide-react';
 import { Word, UserProfile, RootRelatedWord } from '@/types';
-import { stripNikkud, tokenizeText, TextToken } from '@/lib/transcription';
+import { stripNikkud, tokenizeText, cleanHebrewToken, TextToken } from '@/lib/transcription';
 import { speakHebrew, speakRussian, stopSpeech } from '@/lib/speech';
 import { findOfflineVerbConjugation } from '@/lib/verbConjugations';
 import { WordLookupModal } from '@/components/WordLookupModal';
@@ -310,7 +310,8 @@ export const ComplexDrillMode: React.FC<ComplexDrillModeProps> = ({
     playCycleIdRef.current += 1;
     stopSpeech();
 
-    setSelectedLookupWord(token.cleanText || token.text);
+    const vocalizedClean = cleanHebrewToken(token.text);
+    setSelectedLookupWord(vocalizedClean || token.cleanText || token.text);
     setLookupContext(activeDrill.sentenceHe);
     setLookupSentenceTranslation(activeDrill.sentenceRu);
     setLookupSentenceTranscription(activeDrill.sentenceTranscription);
@@ -330,7 +331,7 @@ export const ComplexDrillMode: React.FC<ComplexDrillModeProps> = ({
     playCycleIdRef.current += 1;
     stopSpeech();
 
-    setSelectedLookupWord(rw.hebrewPlain || stripNikkud(rw.hebrew));
+    setSelectedLookupWord(rw.hebrew || rw.hebrewPlain || stripNikkud(rw.hebrew));
     setLookupContext(undefined);
     setLookupSentenceTranslation(undefined);
     setLookupSentenceTranscription(undefined);

@@ -55,3 +55,42 @@ test('R-04, R-05, R-06: Static audit: no archaic kubutz without vav in curriculu
   }
   assert.ok(output.includes('нарушений не найдено'), 'Audit must report 0 violations');
 });
+
+test('R-20 & R-04: lookupOfflineWord supports vocalized exact match and orthography aliases', () => {
+  // 1. Homograph resolution by vocalization: שָׁם (там) vs שֵׁם (имя)
+  const shamMatch = lookupOfflineWord('שָׁם');
+  assert.ok(shamMatch, 'lookupOfflineWord("שָׁם") must return a match');
+  assert.equal(shamMatch.transcription.toLowerCase(), 'шам', 'Transcription must be "шам" for "שָׁם"');
+  assert.ok(shamMatch.translation.includes('там'), `Translation must include "там", got: "${shamMatch.translation}"`);
+
+  const shemMatch = lookupOfflineWord('שֵׁם');
+  assert.ok(shemMatch, 'lookupOfflineWord("שֵׁם") must return a match');
+  assert.equal(shemMatch.transcription.toLowerCase(), 'шем', 'Transcription must be "шем" for "שֵׁם"');
+  assert.ok(shemMatch.translation.includes('имя'), `Translation must include "имя", got: "${shemMatch.translation}"`);
+
+  // 2. Orthography aliases: unvocalized defective spelling maps to modern full spelling in Pealim
+  const tochnitMatch = lookupOfflineWord('תכנית');
+  assert.ok(tochnitMatch, 'lookupOfflineWord("תכנית") must find entry via alias to תוכנית');
+  assert.ok(tochnitMatch.hebrew.includes('תּוֹכְנִית') || tochnitMatch.hebrewPlain === 'תוכנית');
+
+  const chomerMatch = lookupOfflineWord('חמר');
+  assert.ok(chomerMatch, 'lookupOfflineWord("חמר") must find entry via alias to חומר');
+
+  const tofesMatch = lookupOfflineWord('טפס');
+  assert.ok(tofesMatch, 'lookupOfflineWord("טפס") must find entry via alias to טופס');
+});
+
+test('R-20: Homographs registry contains key Alef/Bet homograph pairs', () => {
+  const { findHomographEntry } = require('../src/data/homographsRegistry.ts');
+
+  const shamEntry = findHomographEntry('שם');
+  assert.ok(shamEntry, 'Entry for "שם" must exist in homographs registry');
+  assert.equal(shamEntry.variants.length, 2, 'Entry for "שם" must have 2 variants');
+  assert.ok(shamEntry.variants.some((v) => v.translation.includes('там')));
+  assert.ok(shamEntry.variants.some((v) => v.translation.includes('имя')));
+
+  const seferEntry = findHomographEntry('ספר');
+  assert.ok(seferEntry, 'Entry for "ספר" must exist in homographs registry');
+  assert.ok(seferEntry.variants.some((v) => v.translation.includes('книга')));
+  assert.ok(seferEntry.variants.some((v) => v.translation.includes('парикмахер')));
+});

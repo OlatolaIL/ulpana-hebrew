@@ -220,7 +220,7 @@ export function AdminMarketingHub() {
   const [quickChannel, setQuickChannel] = useState<'youtube' | 'telegram' | 'facebook'>('youtube');
   const [quickTitle, setQuickTitle] = useState('🇮🇱 Как не впасть в ступор, когда звонит израильский курьер #Shorts');
   const [quickDesc, setQuickDesc] = useState('');
-  const [quickVideo, setQuickVideo] = useState('public/demo/reels_duolingo_vs_reality.mp4');
+  const [quickVideo, setQuickVideo] = useState('public/demo/promo/reels_youtube.mp4');
   const [isQuickPublishing, setIsQuickPublishing] = useState(false);
   const [quickResult, setQuickResult] = useState<{ success: boolean; message: string; url?: string } | null>(null);
 
@@ -1878,8 +1878,20 @@ export function AdminMarketingHub() {
                     onChange={(e) => setQuickVideo(e.target.value)}
                     className="w-full bg-zinc-800 rounded-xl p-2.5 text-zinc-200 border border-zinc-700 outline-none"
                   >
-                    <option value="public/demo/reels_duolingo_vs_reality.mp4">
-                      reels_duolingo_vs_reality.mp4 (Duolingo vs Реальность, 9:16 Shorts)
+                    <option value="public/demo/promo/reels_youtube.mp4">
+                      promo/reels_youtube.mp4 (Wolt: плашка YOUTUBE, 9:16 Shorts)
+                    </option>
+                    <option value="public/demo/promo/reels_tg.mp4">
+                      promo/reels_tg.mp4 (Wolt: плашка TG для Telegram)
+                    </option>
+                    <option value="public/demo/promo/reels_tiktok.mp4">
+                      promo/reels_tiktok.mp4 (Wolt: плашка TIKTOK)
+                    </option>
+                    <option value="public/demo/promo/reels_insta.mp4">
+                      promo/reels_insta.mp4 (Wolt: плашка INSTA)
+                    </option>
+                    <option value="public/demo/promo/reels_fb.mp4">
+                      promo/reels_fb.mp4 (Wolt: плашка FB)
                     </option>
                     <option value="public/demo/tutorials/stage_05_dialogue_v2.mp4">
                       tutorials/stage_05_dialogue_v2.mp4 (Диалог с Бариста)

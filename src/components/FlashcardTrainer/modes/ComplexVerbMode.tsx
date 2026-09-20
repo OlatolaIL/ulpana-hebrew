@@ -14,7 +14,7 @@ import {
   Check,
 } from 'lucide-react';
 import { Word, UserProfile, RootRelatedWord } from '@/types';
-import { stripNikkud, tokenizeText, TextToken } from '@/lib/transcription';
+import { stripNikkud, tokenizeText, cleanHebrewToken, TextToken } from '@/lib/transcription';
 import { speakHebrew, speakRussian, stopSpeech } from '@/lib/speech';
 import {
   getVerbDrillSentences,
@@ -301,7 +301,8 @@ export const ComplexVerbMode: React.FC<ComplexVerbModeProps> = ({
     setAutoCountdown(null);
     stopSpeech();
 
-    setSelectedLookupWord(token.cleanText);
+    const vocalizedClean = cleanHebrewToken(token.text);
+    setSelectedLookupWord(vocalizedClean || token.cleanText || token.text);
     setLookupContext(activeSentence.sentenceHe);
     setLookupSentenceTranslation(activeSentence.sentenceRu);
     setLookupSentenceTranscription(activeSentence.sentenceTranscription);
@@ -316,7 +317,7 @@ export const ComplexVerbMode: React.FC<ComplexVerbModeProps> = ({
     setAutoCountdown(null);
     stopSpeech();
 
-    setSelectedLookupWord(rw.hebrewPlain || stripNikkud(rw.hebrew));
+    setSelectedLookupWord(rw.hebrew || rw.hebrewPlain || stripNikkud(rw.hebrew));
   };
 
   // Озвучка отдельного слова из семьи корня

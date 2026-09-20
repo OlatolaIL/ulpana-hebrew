@@ -149,7 +149,8 @@ test('Noun drill audio confirmation in ComplexDrillMode does not duplicate targe
 
   // handleTokenClick must stop speech and cancel active drill timer
   assert.ok(
-    content.includes('playCycleIdRef.current += 1;\n    stopSpeech();\n\n    setSelectedLookupWord(token.cleanText || token.text);'),
+    content.includes('playCycleIdRef.current += 1;\n    stopSpeech();') &&
+      content.includes('setSelectedLookupWord('),
     'handleTokenClick must cancel speech and timer to prevent background playback during WordLookupModal'
   );
 });

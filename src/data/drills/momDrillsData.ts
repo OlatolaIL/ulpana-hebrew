@@ -286,7 +286,7 @@ export const MOM_DRILLS_DATA: Record<string, ComplexDrillItem> = {
     sentenceRu: 'У ребёнка высокая температура.',
     singularHe: 'חוֹם',
     singularTranscription: 'хом',
-    pluralHe: 'חֻמִּים',
+    pluralHe: 'חוּמִּים',
     pluralTranscription: 'хумӣм',
     gender: 'm',
     minLesson: 0,

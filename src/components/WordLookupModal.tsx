@@ -12,6 +12,7 @@ import { findOfflineVerbConjugation } from '@/lib/verbConjugations';
 import { VerbConjugationView } from '@/components/VerbConjugationView';
 import { useModalHistory } from '@/lib/useHistoryState';
 import { TierBadge } from '@/components/TierBadge';
+import { findHomographEntry } from '@/data/homographsRegistry';
 
 interface WordLookupModalProps {
   word: string;
@@ -364,6 +365,92 @@ export const WordLookupModal: React.FC<WordLookupModalProps> = ({
                       </div>
                     )}
                   </div>
+
+                  {/* Образовательный блок омографов (если слово пишется одинаково без огласовок) */}
+                  {(() => {
+                    const homograph = findHomographEntry(stripNikkud(wordData?.hebrew || word));
+                    if (!homograph || homograph.variants.length <= 1) return null;
+                    return (
+                      <div className="bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/60 rounded-xl p-3.5 space-y-2.5 text-xs">
+                        <div className="flex items-center gap-1.5 font-bold text-amber-800 dark:text-amber-300">
+                          <BookOpen className="w-4 h-4 text-amber-600 shrink-0" />
+                          <span>Внимание: омограф ({homograph.clean})</span>
+                        </div>
+                        {homograph.note && (
+                          <p className="text-zinc-600 dark:text-zinc-300 text-[11px] leading-relaxed">
+                            {homograph.note}
+                          </p>
+                        )}
+                        <div className="space-y-1.5">
+                          {homograph.variants.map((v, vIdx) => {
+                            const currentTarget = (wordData?.hebrew || word).trim().normalize('NFD');
+                            const variantTarget = v.hebrew.trim().normalize('NFD');
+                            const isCurrent =
+                              currentTarget === variantTarget ||
+                              Boolean(
+                                wordData?.transcription &&
+                                wordData.transcription.toLowerCase() === v.transcription.toLowerCase()
+                              );
+                            return (
+                              <div
+                                key={vIdx}
+                                onClick={() => {
+                                  setWordData({
+                                    hebrew: v.hebrew,
+                                    transcription: v.transcription,
+                                    translation: v.translation,
+                                    partOfSpeech: v.partOfSpeech || 'other',
+                                    root: wordData?.root || null,
+                                    audio: null,
+                                    exampleSentence: v.exampleSentence || null,
+                                  });
+                                  setIsAdded(
+                                    isWordInPersonalDict(v.hebrew, userProfile?.personalVocabulary)
+                                  );
+                                }}
+                                className={`p-2 rounded-lg border transition cursor-pointer flex items-center justify-between gap-2 ${
+                                  isCurrent
+                                    ? 'bg-amber-100/90 dark:bg-amber-900/50 border-amber-400 dark:border-amber-700 shadow-2xs font-semibold'
+                                    : 'bg-white dark:bg-zinc-800/80 border-zinc-200 dark:border-zinc-700 hover:border-amber-300 dark:hover:border-amber-700'
+                                }`}
+                              >
+                                <div className="flex items-center gap-2 min-w-0 flex-wrap">
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleSpeak(v.hebrew);
+                                    }}
+                                    className="p-1 rounded-full text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/40 shrink-0 cursor-pointer"
+                                    title="Озвучить вариант"
+                                  >
+                                    <Volume2 className="w-3.5 h-3.5" />
+                                  </button>
+                                  <span
+                                    dir="rtl"
+                                    className="font-hebrew text-sm font-bold text-zinc-900 dark:text-zinc-100"
+                                  >
+                                    {v.hebrew}
+                                  </span>
+                                  <span className="text-zinc-500 dark:text-zinc-400 text-[11px]">
+                                    [{v.transcription}]
+                                  </span>
+                                  <span className="text-zinc-700 dark:text-zinc-300 text-[11px] truncate">
+                                    — {v.translation}
+                                  </span>
+                                </div>
+                                {isCurrent && (
+                                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500 text-white font-bold shrink-0">
+                                    в контексте
+                                  </span>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })()}
 
                   {/* Кнопка таблицы спряжений для глаголов */}
                   {isVerb && (
