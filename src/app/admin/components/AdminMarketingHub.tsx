@@ -136,6 +136,7 @@ export function AdminMarketingHub() {
   // Communities state (Мониторинг сообществ в радаре)
   const [communities, setCommunities] = useState<TargetCommunity[]>([]);
   const [commLoading, setCommLoading] = useState(false);
+  const [selectedPlatformFilter, setSelectedPlatformFilter] = useState<'all' | 'telegram' | 'whatsapp' | 'facebook'>('all');
   const [isAddCommModalOpen, setIsAddCommModalOpen] = useState(false);
   const [newCommTitle, setNewCommTitle] = useState('');
   const [newCommUsername, setNewCommUsername] = useState('');
@@ -352,26 +353,13 @@ export function AdminMarketingHub() {
     }
   };
 
-  // Run Manual Scan
-  const handleRunScan = async () => {
+  // Refresh Radar (Синхронизация реальных лидов и каналов без генерации тестовых моков)
+  const handleRefreshRadar = async () => {
     setIsScanning(true);
     try {
-      // Отправляем тестовый скан входящих сообщений
-      const testMsg = 'Девочки, сегодня курьер из Вольта позвонил, начал быстро тараторить, я растерялась, ни слова не поняла... Как вы с ними говорите?';
-      const res = await fetch('/api/admin/marketing/radar/scan', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          text: testMsg,
-          chat: 'WhatsApp: Репатрианты Хайфа',
-          author: 'Елена (+972 54-999-8877)',
-        }),
-      });
-      if (res.ok) {
-        fetchLeads();
-      }
+      await Promise.all([fetchLeads(), fetchCommunities()]);
     } catch (e) {
-      console.error('Error running scan', e);
+      console.error('Error refreshing radar', e);
     } finally {
       setIsScanning(false);
     }
@@ -468,8 +456,14 @@ export function AdminMarketingHub() {
     return true;
   });
 
+  const filteredCommunities = communities.filter((c) => {
+    if (selectedPlatformFilter !== 'all' && c.platform !== selectedPlatformFilter) return false;
+    return true;
+  });
+
   const filteredLeads = leads.filter((l) => {
     if (leadStatusFilter !== 'all' && l.status !== leadStatusFilter) return false;
+    if (selectedPlatformFilter !== 'all' && l.sourceChannel !== selectedPlatformFilter) return false;
     return true;
   });
 
@@ -801,16 +795,17 @@ export function AdminMarketingHub() {
 
             <button
               type="button"
-              onClick={handleRunScan}
-              disabled={isScanning}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-black text-xs font-bold transition shadow-lg shadow-amber-600/20 cursor-pointer"
+              onClick={handleRefreshRadar}
+              disabled={isScanning || leadLoading || commLoading}
+              className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-100 text-xs font-bold transition border border-zinc-700 shadow-md cursor-pointer"
+              title="Обновить перехваченные сообщения и список каналов"
             >
-              <Sparkles className={`w-3.5 h-3.5 ${isScanning ? 'animate-spin' : ''}`} />
-              <span>{isScanning ? 'ИИ анализирует чаты...' : '⚡ Сканировать сейчас'}</span>
+              <RefreshCw className={`w-3.5 h-3.5 ${(isScanning || leadLoading || commLoading) ? 'animate-spin text-emerald-400' : ''}`} />
+              <span>{(isScanning || leadLoading || commLoading) ? 'Синхронизация...' : '🔄 Обновить радар'}</span>
             </button>
           </div>
 
-          {/* Блок мониторинга сообществ на Hetzner 24/7 */}
+          {/* Блок мониторинга сообществ (Плоская таблица и честные статусы) */}
           <div className="bg-zinc-900/90 rounded-2xl border border-zinc-800 p-5 space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-2.5">
@@ -819,13 +814,13 @@ export function AdminMarketingHub() {
                 </div>
                 <div>
                   <h3 className="text-sm font-bold text-zinc-100 flex items-center gap-2">
-                    <span>Целевые чаты и каналы в мониторинге (Hetzner 24/7)</span>
+                    <span>Целевые чаты и каналы партизанского маркетинга</span>
                     <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
                       🟢 {communities.filter((c) => c.status === 'active').length} активно
                     </span>
                   </h3>
                   <p className="text-xs text-zinc-400">
-                    Автономный демон Telegram MTProto слушает новые сообщения по триггерам болей и передаёт в радар
+                    Перехват Telegram работает 24/7 на Hetzner через MTProto. Группы WhatsApp и Facebook в режиме ручного учёта.
                   </p>
                 </div>
               </div>
@@ -836,7 +831,7 @@ export function AdminMarketingHub() {
                   onClick={fetchCommunities}
                   disabled={commLoading}
                   className="p-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 transition cursor-pointer"
-                  title="Обновить список"
+                  title="Обновить список сообществ"
                 >
                   <RefreshCw className={`w-4 h-4 ${commLoading ? 'animate-spin' : ''}`} />
                 </button>
@@ -851,202 +846,360 @@ export function AdminMarketingHub() {
               </div>
             </div>
 
-            {communities.length === 0 ? (
+            {/* Фильтры сетей (Все / Telegram / WhatsApp / Facebook) */}
+            <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-zinc-800/80">
+              <button
+                type="button"
+                onClick={() => setSelectedPlatformFilter('all')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition cursor-pointer ${
+                  selectedPlatformFilter === 'all'
+                    ? 'bg-zinc-200 text-zinc-900 shadow'
+                    : 'bg-zinc-800 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-750'
+                }`}
+              >
+                Все сети ({communities.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelectedPlatformFilter('telegram')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition cursor-pointer ${
+                  selectedPlatformFilter === 'telegram'
+                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/25'
+                    : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'
+                }`}
+              >
+                <span>✈️ Telegram ({communities.filter((c) => c.platform === 'telegram').length})</span>
+                <span className="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                  🟢 Hetzner 24/7
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelectedPlatformFilter('whatsapp')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition cursor-pointer ${
+                  selectedPlatformFilter === 'whatsapp'
+                    ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/25'
+                    : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'
+                }`}
+              >
+                <span>💬 WhatsApp ({communities.filter((c) => c.platform === 'whatsapp').length})</span>
+                <span className="px-1.5 py-0.2 rounded-full text-[10px] font-medium bg-zinc-700 text-zinc-300">
+                  ⚪ Ручной
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelectedPlatformFilter('facebook')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition cursor-pointer ${
+                  selectedPlatformFilter === 'facebook'
+                    ? 'bg-blue-700 text-white shadow-lg shadow-blue-700/25'
+                    : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'
+                }`}
+              >
+                <span>📘 Facebook ({communities.filter((c) => c.platform === 'facebook').length})</span>
+                <span className="px-1.5 py-0.2 rounded-full text-[10px] font-medium bg-zinc-700 text-zinc-300">
+                  ⚪ Ручной
+                </span>
+              </button>
+            </div>
+
+            {/* Плоская таблица сообществ */}
+            {filteredCommunities.length === 0 ? (
               <div className="text-center py-6 text-zinc-500 text-xs">
-                Список сообществ пуст. Добавьте первую группу для мониторинга.
+                Сообществ в выбранной категории не найдено.
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                {communities.map((c) => (
-                  <div
-                    key={c.id}
-                    className={`p-4 rounded-xl border transition flex flex-col justify-between ${
-                      c.status === 'active'
-                        ? 'bg-zinc-950/70 border-zinc-700/80 shadow-md'
-                        : 'bg-zinc-950/30 border-zinc-800/60 opacity-60'
-                    }`}
-                  >
-                    <div className="space-y-2">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex items-center gap-1.5 text-xs font-bold text-zinc-200">
-                          <span>{c.platform === 'whatsapp' ? '💬' : c.platform === 'facebook' ? '📘' : '✈️'}</span>
-                          <span className="truncate max-w-[170px]" title={c.title}>{c.title}</span>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => handleToggleCommunityStatus(c.id, c.status)}
-                          className={`px-2 py-0.5 rounded-full text-[10px] font-semibold cursor-pointer transition ${
-                            c.status === 'active'
-                              ? 'bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30 border border-emerald-500/30'
-                              : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700 border border-zinc-700'
+              <div className="overflow-x-auto rounded-xl border border-zinc-800/80">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="bg-zinc-950/80 text-zinc-400 border-b border-zinc-800">
+                      <th className="px-3.5 py-2.5 font-semibold">Сеть</th>
+                      <th className="px-3.5 py-2.5 font-semibold">Сообщество / Ссылка</th>
+                      <th className="px-3.5 py-2.5 font-semibold">Категория болей</th>
+                      <th className="px-3.5 py-2.5 font-semibold">Аудитория</th>
+                      <th className="px-3.5 py-2.5 font-semibold">Статус автоматики</th>
+                      <th className="px-3.5 py-2.5 font-semibold text-center">Эфир</th>
+                      <th className="px-3.5 py-2.5 font-semibold text-center">Лидов</th>
+                      <th className="px-3.5 py-2.5 font-semibold text-right">Действия</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-zinc-800/60 bg-zinc-950/40">
+                    {filteredCommunities.map((c) => {
+                      const leadCountForChat = leads.filter(
+                        (l) => l.sourceChatName === c.username || l.sourceChatName === c.title || l.sourceChatName === `@${c.username}`
+                      ).length;
+
+                      return (
+                        <tr
+                          key={c.id}
+                          className={`hover:bg-zinc-800/40 transition ${
+                            c.status === 'paused' ? 'opacity-60 bg-zinc-950/30' : ''
                           }`}
                         >
-                          {c.status === 'active' ? '🟢 В эфире' : '⏸ Пауза'}
-                        </button>
-                      </div>
+                          {/* 1. Сеть */}
+                          <td className="px-3.5 py-3 whitespace-nowrap">
+                            {c.platform === 'telegram' ? (
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg text-xs font-semibold bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                                ✈️ Telegram
+                              </span>
+                            ) : c.platform === 'whatsapp' ? (
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                                💬 WhatsApp
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg text-xs font-semibold bg-blue-600/10 text-blue-300 border border-blue-600/20">
+                                📘 Facebook
+                              </span>
+                            )}
+                          </td>
 
-                      <div className="text-xs text-zinc-400 font-mono flex items-center justify-between">
-                        <a
-                          href={c.inviteUrl || (c.platform === 'telegram' ? `https://t.me/${c.username}` : '#')}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-blue-400 hover:text-blue-300 hover:underline flex items-center gap-1"
-                        >
-                          <span>{c.platform === 'telegram' ? `@${c.username}` : c.username}</span>
-                          <ExternalLink className="w-3 h-3" />
-                        </a>
-                        <span className="text-[11px] text-zinc-500">👥 {c.membersCount}</span>
-                      </div>
+                          {/* 2. Сообщество / Ссылка */}
+                          <td className="px-3.5 py-3">
+                            <div className="font-bold text-zinc-100">{c.title}</div>
+                            <div className="flex items-center gap-1.5 text-zinc-400 font-mono text-[11px] mt-0.5">
+                              <a
+                                href={c.inviteUrl || (c.platform === 'telegram' ? `https://t.me/${c.username}` : '#')}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-blue-400 hover:text-blue-300 hover:underline inline-flex items-center gap-1"
+                              >
+                                <span>{c.platform === 'telegram' ? `@${c.username}` : c.username}</span>
+                                <ExternalLink className="w-3 h-3" />
+                              </a>
+                              {c.notes && (
+                                <span className="text-zinc-500 text-[10px] hidden md:inline truncate max-w-[200px]" title={c.notes}>
+                                  • {c.notes}
+                                </span>
+                              )}
+                            </div>
+                          </td>
 
-                      {c.notes && (
-                        <p className="text-[11px] text-zinc-400 line-clamp-2 leading-relaxed">
-                          {c.notes}
-                        </p>
-                      )}
-                    </div>
+                          {/* 3. Категория */}
+                          <td className="px-3.5 py-3 whitespace-nowrap">
+                            <span className="px-2 py-0.5 rounded-md text-[11px] font-medium bg-zinc-800 text-zinc-300 border border-zinc-700/60">
+                              {c.categoryLabel || c.category}
+                            </span>
+                          </td>
 
-                    <div className="flex items-center justify-between pt-3 mt-2 border-t border-zinc-800/80">
-                      <span className="text-[11px] font-semibold text-amber-400 flex items-center gap-1">
-                        🔥 {c.leadCount || 0} лидов
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteCommunity(c.id)}
-                        className="text-zinc-600 hover:text-red-400 p-1 transition cursor-pointer"
-                        title="Удалить из мониторинга"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </div>
-                ))}
+                          {/* 4. Аудитория */}
+                          <td className="px-3.5 py-3 whitespace-nowrap text-zinc-300 font-medium">
+                            👥 {c.membersCount}
+                          </td>
+
+                          {/* 5. Статус автоматики */}
+                          <td className="px-3.5 py-3 whitespace-nowrap">
+                            {c.platform === 'telegram' ? (
+                              c.status === 'active' ? (
+                                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                                  <span>🟢 Hetzner 24/7 (Автоперехват)</span>
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-zinc-800 text-zinc-400 border border-zinc-700">
+                                  ⏸ Приостановлен
+                                </span>
+                              )
+                            ) : (
+                              <span
+                                className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-zinc-800/80 text-zinc-400 border border-zinc-700/60"
+                                title="Автоматический перехват не подключен. Группа для ручного учёта и посева."
+                              >
+                                ⚪ Ручной учёт (автомат off)
+                              </span>
+                            )}
+                          </td>
+
+                          {/* 6. Эфир */}
+                          <td className="px-3.5 py-3 text-center whitespace-nowrap">
+                            <button
+                              type="button"
+                              onClick={() => handleToggleCommunityStatus(c.id, c.status)}
+                              className={`px-2.5 py-0.5 rounded-lg text-[11px] font-semibold cursor-pointer transition ${
+                                c.status === 'active'
+                                  ? 'bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30 border border-emerald-500/30'
+                                  : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700 border border-zinc-700'
+                              }`}
+                            >
+                              {c.status === 'active' ? '🟢 В эфире' : '⏸ Пауза'}
+                            </button>
+                          </td>
+
+                          {/* 7. Лидов */}
+                          <td className="px-3.5 py-3 text-center whitespace-nowrap font-bold text-zinc-200">
+                            {leadCountForChat > 0 ? (
+                              <span className="text-amber-400">🔥 {leadCountForChat}</span>
+                            ) : (
+                              <span className="text-zinc-500">0</span>
+                            )}
+                          </td>
+
+                          {/* 8. Действия */}
+                          <td className="px-3.5 py-3 text-right whitespace-nowrap">
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteCommunity(c.id)}
+                              className="text-zinc-500 hover:text-red-400 p-1.5 transition cursor-pointer"
+                              title="Удалить из списка"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
             )}
           </div>
 
-          <div className="grid grid-cols-1 gap-4">
-            {filteredLeads.map((lead) => (
-              <div
-                key={lead.id}
-                className={`bg-zinc-900 rounded-2xl border p-5 transition shadow-lg ${
-                  lead.status === 'new'
-                    ? 'border-amber-500/50 shadow-amber-500/5'
-                    : lead.status === 'replied'
-                    ? 'border-emerald-500/30 opacity-80'
-                    : 'border-zinc-800 opacity-50'
-                }`}
-              >
-                <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-zinc-800">
-                  <div className="flex items-center gap-2">
-                    <span className="px-2 py-0.5 rounded-md text-[11px] font-bold bg-zinc-800 text-zinc-300">
-                      {lead.sourceChatName}
-                    </span>
-                    <span className="text-xs text-zinc-400">• {lead.authorName} ({lead.authorContact || '—'})</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold text-amber-400 flex items-center gap-1">
-                      🔥 {lead.aiAnalysis.confidence}/10
-                    </span>
-                    <span
-                      className={`px-2 py-0.5 rounded-full text-[11px] font-semibold ${
-                        lead.status === 'new'
-                          ? 'bg-amber-500/20 text-amber-300'
-                          : lead.status === 'replied'
-                          ? 'bg-emerald-500/20 text-emerald-300'
-                          : 'bg-zinc-800 text-zinc-500'
-                      }`}
-                    >
-                      {lead.status === 'new' ? '🟡 Новый' : lead.status === 'replied' ? '🟢 Отвечено' : '⚪ В архиве'}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="py-3">
-                  <p className="text-sm text-zinc-200 italic bg-zinc-950/60 p-3 rounded-xl border border-zinc-800/80">
-                    «{lead.rawText}»
-                  </p>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 py-2 text-xs">
-                  <div className="bg-zinc-950/40 p-3 rounded-xl border border-zinc-800/60">
-                    <span className="font-bold text-zinc-400 block mb-1">🧠 Анализ боли (Groq / Gemini):</span>
-                    <p className="text-zinc-200">{lead.aiAnalysis.painSummary}</p>
-                    <div className="mt-2 flex items-center gap-1.5 text-blue-400">
-                      <span className="font-bold">Целевой экран:</span>
-                      <code className="font-mono bg-blue-500/10 px-1.5 py-0.5 rounded text-[11px]">
-                        {lead.aiAnalysis.targetDeepLink}
-                      </code>
-                    </div>
-                  </div>
-
-                  <div className="bg-zinc-950/40 p-3 rounded-xl border border-zinc-800/60 flex flex-col justify-between">
-                    <div>
-                      <span className="font-bold text-zinc-400 block mb-1">✍️ Рекомендуемый черновик ответа:</span>
-                      <p className="text-zinc-300 text-xs leading-relaxed">{lead.aiAnalysis.suggestedReply}</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-zinc-800/80 mt-2">
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => copyToClipboard(lead.aiAnalysis.suggestedReply, `lead-${lead.id}`)}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition cursor-pointer shadow-md shadow-blue-600/20"
-                    >
-                      {copiedId === `lead-${lead.id}` ? (
-                        <Check className="w-3.5 h-3.5 text-emerald-300" />
-                      ) : (
-                        <Copy className="w-3.5 h-3.5" />
-                      )}
-                      <span>{copiedId === `lead-${lead.id}` ? 'Скопировано!' : 'Скопировать ответ'}</span>
-                    </button>
-
-                    {lead.authorContact && (
-                      <a
-                        href={
-                          lead.authorContact.startsWith('+')
-                            ? `https://wa.me/${lead.authorContact.replace(/[^0-9]/g, '')}`
-                            : lead.authorContact.startsWith('@')
-                            ? `https://t.me/${lead.authorContact.replace('@', '')}`
-                            : `https://${lead.authorContact}`
-                        }
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-semibold transition border border-zinc-700"
-                      >
-                        <ExternalLink className="w-3.5 h-3.5" />
-                        <span>Открыть чат / Ответить</span>
-                      </a>
-                    )}
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    {lead.status !== 'replied' && (
-                      <button
-                        type="button"
-                        onClick={() => handleUpdateLeadStatus(lead.id, 'replied')}
-                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs font-semibold transition cursor-pointer"
-                      >
-                        <CheckCircle2 className="w-3.5 h-3.5" />
-                        <span>Отвечено</span>
-                      </button>
-                    )}
-                    {lead.status !== 'archived' && (
-                      <button
-                        type="button"
-                        onClick={() => handleUpdateLeadStatus(lead.id, 'archived')}
-                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-400 text-xs font-semibold transition cursor-pointer"
-                      >
-                        <Archive className="w-3.5 h-3.5" />
-                        <span>В архив</span>
-                      </button>
-                    )}
-                  </div>
+          {/* Перехваченные обращения (Leads Feed) */}
+          {filteredLeads.length === 0 ? (
+            <div className="bg-zinc-900/60 rounded-2xl border border-zinc-800/80 p-8 text-center space-y-3">
+              <div className="w-12 h-12 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto text-xl">
+                🛡️
+              </div>
+              <div className="space-y-1.5 max-w-lg mx-auto">
+                <h4 className="text-sm font-bold text-zinc-200">
+                  {selectedPlatformFilter === 'all' || selectedPlatformFilter === 'telegram'
+                    ? 'Радар Telegram активен 24/7 на Hetzner'
+                    : `Ручной учёт сообщений (${selectedPlatformFilter === 'whatsapp' ? 'WhatsApp' : 'Facebook'})`}
+                </h4>
+                <p className="text-xs text-zinc-400 leading-relaxed">
+                  {selectedPlatformFilter === 'all' || selectedPlatformFilter === 'telegram'
+                    ? 'Фоновый демон MTProto круглосуточно слушает входящие сообщения в целевых Telegram-группах. Как только участник задаст вопрос с маркерами языковых болей (курьер, садик, собеседование, ульпан), сообщение появится здесь с готовым черновиком ответа и придёт ботом в Telegram.'
+                    : 'Для этой сети автоматический перехват не подключен. Здесь будут отображаться только реальные сообщения, зафиксированные вручную.'}
+                </p>
+                <div className="pt-2 text-[11px] text-zinc-500">
+                  Синтетические моки отключены: отображаются исключительно подлинные перехваченные данные.
                 </div>
               </div>
-            ))}
-          </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-4">
+              {filteredLeads.map((lead) => (
+                <div
+                  key={lead.id}
+                  className={`bg-zinc-900 rounded-2xl border p-5 transition shadow-lg ${
+                    lead.status === 'new'
+                      ? 'border-amber-500/50 shadow-amber-500/5'
+                      : lead.status === 'replied'
+                      ? 'border-emerald-500/30 opacity-80'
+                      : 'border-zinc-800 opacity-50'
+                  }`}
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-zinc-800">
+                    <div className="flex items-center gap-2">
+                      <span className="px-2 py-0.5 rounded-md text-[11px] font-bold bg-zinc-800 text-zinc-300">
+                        {lead.sourceChatName}
+                      </span>
+                      <span className="text-xs text-zinc-400">• {lead.authorName} ({lead.authorContact || '—'})</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold text-amber-400 flex items-center gap-1">
+                        🔥 {lead.aiAnalysis.confidence}/10
+                      </span>
+                      <span
+                        className={`px-2 py-0.5 rounded-full text-[11px] font-semibold ${
+                          lead.status === 'new'
+                            ? 'bg-amber-500/20 text-amber-300'
+                            : lead.status === 'replied'
+                            ? 'bg-emerald-500/20 text-emerald-300'
+                            : 'bg-zinc-800 text-zinc-500'
+                        }`}
+                      >
+                        {lead.status === 'new' ? '🟡 Новый' : lead.status === 'replied' ? '🟢 Отвечено' : '⚪ В архиве'}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="py-3">
+                    <p className="text-sm text-zinc-200 italic bg-zinc-950/60 p-3 rounded-xl border border-zinc-800/80">
+                      «{lead.rawText}»
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 py-2 text-xs">
+                    <div className="bg-zinc-950/40 p-3 rounded-xl border border-zinc-800/60">
+                      <span className="font-bold text-zinc-400 block mb-1">🧠 Анализ боли (Groq / Gemini):</span>
+                      <p className="text-zinc-200">{lead.aiAnalysis.painSummary}</p>
+                      <div className="mt-2 flex items-center gap-1.5 text-blue-400">
+                        <span className="font-bold">Целевой экран:</span>
+                        <code className="font-mono bg-blue-500/10 px-1.5 py-0.5 rounded text-[11px]">
+                          {lead.aiAnalysis.targetDeepLink}
+                        </code>
+                      </div>
+                    </div>
+
+                    <div className="bg-zinc-950/40 p-3 rounded-xl border border-zinc-800/60 flex flex-col justify-between">
+                      <div>
+                        <span className="font-bold text-zinc-400 block mb-1">✍️ Рекомендуемый черновик ответа:</span>
+                        <p className="text-zinc-300 text-xs leading-relaxed">{lead.aiAnalysis.suggestedReply}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-zinc-800/80 mt-2">
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => copyToClipboard(lead.aiAnalysis.suggestedReply, `lead-${lead.id}`)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition cursor-pointer shadow-md shadow-blue-600/20"
+                      >
+                        {copiedId === `lead-${lead.id}` ? (
+                          <Check className="w-3.5 h-3.5 text-emerald-300" />
+                        ) : (
+                          <Copy className="w-3.5 h-3.5" />
+                        )}
+                        <span>{copiedId === `lead-${lead.id}` ? 'Скопировано!' : 'Скопировать ответ'}</span>
+                      </button>
+
+                      {lead.authorContact && (
+                        <a
+                          href={
+                            lead.authorContact.startsWith('+')
+                              ? `https://wa.me/${lead.authorContact.replace(/[^0-9]/g, '')}`
+                              : lead.authorContact.startsWith('@')
+                              ? `https://t.me/${lead.authorContact.replace('@', '')}`
+                              : `https://${lead.authorContact}`
+                          }
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-semibold transition border border-zinc-700"
+                        >
+                          <ExternalLink className="w-3.5 h-3.5" />
+                          <span>Открыть чат / Ответить</span>
+                        </a>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      {lead.status !== 'replied' && (
+                        <button
+                          type="button"
+                          onClick={() => handleUpdateLeadStatus(lead.id, 'replied')}
+                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs font-semibold transition cursor-pointer"
+                        >
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          <span>Отвечено</span>
+                        </button>
+                      )}
+                      {lead.status !== 'archived' && (
+                        <button
+                          type="button"
+                          onClick={() => handleUpdateLeadStatus(lead.id, 'archived')}
+                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-400 text-xs font-semibold transition cursor-pointer"
+                        >
+                          <Archive className="w-3.5 h-3.5" />
+                          <span>В архив</span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
