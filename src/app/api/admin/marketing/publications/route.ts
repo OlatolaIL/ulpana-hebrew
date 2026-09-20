@@ -10,6 +10,10 @@ export interface PublicationItem {
   channelAccount: string;
   format: 'short_video' | 'post' | 'story' | 'storytelling' | 'poll';
   title: string;
+  campaignTitle?: string;
+  version?: string;
+  videoPath?: string;
+  caption?: string;
   targetDeepLink: string;
   promoCode: string;
   fullUrlWithPromo: string;
@@ -76,6 +80,10 @@ export async function POST(req: NextRequest) {
       channelAccount,
       format,
       title,
+      campaignTitle,
+      version,
+      videoPath,
+      caption,
       targetDeepLink,
       promoCode,
       livePostUrl,
@@ -110,6 +118,10 @@ export async function POST(req: NextRequest) {
           channelAccount: channelAccount ?? items[idx].channelAccount,
           format: format || items[idx].format,
           title: title || items[idx].title,
+          campaignTitle: campaignTitle !== undefined ? campaignTitle : items[idx].campaignTitle,
+          version: version !== undefined ? version : items[idx].version,
+          videoPath: videoPath !== undefined ? videoPath : items[idx].videoPath,
+          caption: caption !== undefined ? caption : items[idx].caption,
           targetDeepLink: cleanLink,
           promoCode: cleanPromo,
           fullUrlWithPromo: fullUrl,
@@ -130,6 +142,10 @@ export async function POST(req: NextRequest) {
       channelAccount: channelAccount || '',
       format: format || 'post',
       title: title.trim(),
+      campaignTitle: campaignTitle ? String(campaignTitle).trim() : undefined,
+      version: version ? String(version).trim() : undefined,
+      videoPath: videoPath ? String(videoPath).trim() : undefined,
+      caption: caption ? String(caption).trim() : undefined,
       targetDeepLink: cleanLink,
       promoCode: cleanPromo,
       fullUrlWithPromo: fullUrl,

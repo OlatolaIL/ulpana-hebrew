@@ -209,6 +209,28 @@ async function initializeDatabase() {
       );
     `);
 
+    // 11. Таблица лидов партизанского маркетинга и радара сообществ
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS ulpana_marketing_leads (
+        id TEXT PRIMARY KEY,
+        timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        source_channel TEXT NOT NULL,
+        source_chat_name TEXT NOT NULL,
+        author_name TEXT NOT NULL,
+        author_contact TEXT,
+        post_url TEXT,
+        raw_text TEXT NOT NULL,
+        ai_analysis JSONB NOT NULL,
+        status TEXT NOT NULL DEFAULT 'new',
+        replied_at TIMESTAMPTZ,
+        notes TEXT,
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        updated_at TIMESTAMPTZ DEFAULT NOW()
+      );
+      CREATE INDEX IF NOT EXISTS ulpana_marketing_leads_status_idx ON ulpana_marketing_leads(status);
+      CREATE INDEX IF NOT EXISTS ulpana_marketing_leads_channel_idx ON ulpana_marketing_leads(source_channel);
+    `);
+
     await db.query('COMMIT');
     initialized = true;
     console.log('[DB] Database tables initialized successfully.');

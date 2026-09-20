@@ -27,6 +27,10 @@ import {
   HelpCircle,
   Users,
   Globe,
+  Play,
+  Download,
+  Film,
+  X,
 } from 'lucide-react';
 
 export interface TargetCommunity {
@@ -69,6 +73,10 @@ interface PublicationItem {
   channelAccount: string;
   format: 'short_video' | 'post' | 'story' | 'storytelling' | 'poll';
   title: string;
+  campaignTitle?: string;
+  version?: string;
+  videoPath?: string;
+  caption?: string;
   targetDeepLink: string;
   promoCode: string;
   fullUrlWithPromo: string;
@@ -86,6 +94,7 @@ interface LeadItem {
   sourceChatName: string;
   authorName: string;
   authorContact?: string;
+  postUrl?: string;
   rawText: string;
   aiAnalysis: {
     isTargetLead: boolean;
@@ -112,10 +121,18 @@ export function AdminMarketingHub() {
   const [pubLoading, setPubLoading] = useState(false);
   const [channelFilter, setChannelFilter] = useState<string>('all');
   const [pubStatusFilter, setPubStatusFilter] = useState<string>('all');
+  const [campaignFilter, setCampaignFilter] = useState<string>('all');
   const [isAddPubModalOpen, setIsAddPubModalOpen] = useState(false);
+  const [previewVideo, setPreviewVideo] = useState<{ url: string; title: string; version?: string; channel?: string } | null>(null);
+  const [copiedCaptionId, setCopiedCaptionId] = useState<string | null>(null);
+  const [publishingRowId, setPublishingRowId] = useState<string | null>(null);
 
   // New Publication form
   const [newPubTitle, setNewPubTitle] = useState('');
+  const [newPubCampaign, setNewPubCampaign] = useState('');
+  const [newPubVersion, setNewPubVersion] = useState('v2.0');
+  const [newPubVideoPath, setNewPubVideoPath] = useState('');
+  const [newPubCaption, setNewPubCaption] = useState('');
   const [newPubChannel, setNewPubChannel] = useState<'tiktok' | 'youtube' | 'telegram' | 'facebook' | 'instagram'>('tiktok');
   const [newPubAccount, setNewPubAccount] = useState('@ulpanaalef');
   const [newPubFormat, setNewPubFormat] = useState<'short_video' | 'post' | 'story' | 'storytelling' | 'poll'>('short_video');
@@ -154,6 +171,45 @@ export function AdminMarketingHub() {
     navigator.clipboard.writeText(text);
     setCopiedId(id);
     setTimeout(() => setCopiedId(null), 2000);
+  };
+
+  const copyCaption = (captionText: string, id: string) => {
+    navigator.clipboard.writeText(captionText);
+    setCopiedCaptionId(id);
+    setTimeout(() => setCopiedCaptionId(null), 2000);
+  };
+
+  const handlePublishRow = async (pub: PublicationItem) => {
+    if (!['youtube', 'telegram', 'facebook'].includes(pub.channel)) return;
+    setPublishingRowId(pub.id);
+    try {
+      const res = await fetch('/api/admin/marketing/publish', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          channel: pub.channel,
+          publicationId: pub.id,
+          title: pub.title,
+          description: pub.caption || pub.title,
+          campaignTitle: pub.campaignTitle,
+          version: pub.version,
+          videoPath: pub.videoPath,
+          privacy: 'public',
+          register: true,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        fetchPublications();
+        checkHealth();
+      } else {
+        alert(data.error || 'Не удалось опубликовать материал');
+      }
+    } catch (err: any) {
+      alert(`Сетевая ошибка: ${err.message}`);
+    } finally {
+      setPublishingRowId(null);
+    }
   };
 
   // Quick Publish state (1-клик выгрузка на боевом сервере)
@@ -248,6 +304,10 @@ export function AdminMarketingHub() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           title: newPubTitle,
+          campaignTitle: newPubCampaign || undefined,
+          version: newPubVersion || undefined,
+          videoPath: newPubVideoPath || undefined,
+          caption: newPubCaption || undefined,
           channel: newPubChannel,
           channelAccount: newPubAccount,
           format: newPubFormat,
@@ -262,6 +322,10 @@ export function AdminMarketingHub() {
       if (res.ok) {
         setIsAddPubModalOpen(false);
         setNewPubTitle('');
+        setNewPubCampaign('');
+        setNewPubVersion('v2.0');
+        setNewPubVideoPath('');
+        setNewPubCaption('');
         setNewPubLiveUrl('');
         setNewPubNotes('');
         fetchPublications();
@@ -450,9 +514,14 @@ export function AdminMarketingHub() {
     }
   };
 
+  const availableCampaigns = Array.from(
+    new Set(publications.map((p) => p.campaignTitle).filter(Boolean))
+  ) as string[];
+
   const filteredPublications = publications.filter((p) => {
     if (channelFilter !== 'all' && p.channel !== channelFilter) return false;
     if (pubStatusFilter !== 'all' && p.status !== pubStatusFilter) return false;
+    if (campaignFilter !== 'all' && p.campaignTitle !== campaignFilter) return false;
     return true;
   });
 
@@ -614,22 +683,56 @@ export function AdminMarketingHub() {
       {subTab === 'registry' && (
         <div className="space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-xs text-zinc-400 font-medium">Площадка:</span>
-              {['all', 'tiktok', 'telegram', 'youtube', 'facebook'].map((ch) => (
-                <button
-                  key={ch}
-                  type="button"
-                  onClick={() => setChannelFilter(ch)}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition cursor-pointer ${
-                    channelFilter === ch
-                      ? 'bg-zinc-200 text-zinc-900 dark:bg-zinc-100'
-                      : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'
-                  }`}
+            <div className="flex items-center gap-3 flex-wrap">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="text-xs text-zinc-400 font-medium">Площадка:</span>
+                {['all', 'tiktok', 'telegram', 'youtube', 'facebook', 'instagram'].map((ch) => (
+                  <button
+                    key={ch}
+                    type="button"
+                    onClick={() => setChannelFilter(ch)}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition cursor-pointer ${
+                      channelFilter === ch
+                        ? 'bg-zinc-200 text-zinc-900 dark:bg-zinc-100'
+                        : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'
+                    }`}
+                  >
+                    {ch === 'all' ? 'Все' : ch.toUpperCase()}
+                  </button>
+                ))}
+              </div>
+
+              {availableCampaigns.length > 0 && (
+                <div className="flex items-center gap-1.5 border-l border-zinc-800 pl-3">
+                  <span className="text-xs text-zinc-400 font-medium">Кампания:</span>
+                  <select
+                    value={campaignFilter}
+                    onChange={(e) => setCampaignFilter(e.target.value)}
+                    className="bg-zinc-800 text-xs font-semibold text-zinc-200 rounded-lg px-2.5 py-1 border border-zinc-700 outline-none"
+                  >
+                    <option value="all">Все кампании ({publications.length})</option>
+                    {availableCampaigns.map((camp) => (
+                      <option key={camp} value={camp}>
+                        {camp}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              <div className="flex items-center gap-1.5 border-l border-zinc-800 pl-3">
+                <span className="text-xs text-zinc-400 font-medium">Статус:</span>
+                <select
+                  value={pubStatusFilter}
+                  onChange={(e) => setPubStatusFilter(e.target.value)}
+                  className="bg-zinc-800 text-xs font-semibold text-zinc-200 rounded-lg px-2.5 py-1 border border-zinc-700 outline-none"
                 >
-                  {ch === 'all' ? 'Все' : ch.toUpperCase()}
-                </button>
-              ))}
+                  <option value="all">Любой статус</option>
+                  <option value="published">🟢 Опубликованные</option>
+                  <option value="scheduled">🟡 Запланированные</option>
+                  <option value="draft">⚪ Черновики / Готовы</option>
+                </select>
+              </div>
             </div>
 
             <div className="flex items-center gap-2">
@@ -661,12 +764,12 @@ export function AdminMarketingHub() {
               <table className="w-full text-left text-xs text-zinc-300">
                 <thead className="bg-zinc-950/80 text-zinc-400 font-semibold border-b border-zinc-800 uppercase tracking-wider text-[11px]">
                   <tr>
-                    <th className="px-4 py-3">Дата</th>
-                    <th className="px-4 py-3">Площадка</th>
-                    <th className="px-4 py-3">Тема и формат</th>
+                    <th className="px-4 py-3">Дата и Канал</th>
+                    <th className="px-4 py-3">Кампания и Версия</th>
+                    <th className="px-4 py-3">Видео под канал</th>
+                    <th className="px-4 py-3">Текст поста (Copywriting)</th>
                     <th className="px-4 py-3">Целевой Deep Link</th>
                     <th className="px-4 py-3">Промокод</th>
-                    <th className="px-4 py-3">Ссылка на материал</th>
                     <th className="px-4 py-3">Статус</th>
                     <th className="px-4 py-3 text-right">Действия</th>
                   </tr>
@@ -674,16 +777,88 @@ export function AdminMarketingHub() {
                 <tbody className="divide-y divide-zinc-800/60 font-medium">
                   {filteredPublications.map((pub) => (
                     <tr key={pub.id} className="hover:bg-zinc-800/40 transition">
-                      <td className="px-4 py-3 text-zinc-400 whitespace-nowrap">{pub.date}</td>
                       <td className="px-4 py-3 whitespace-nowrap">
-                        <div className="flex flex-col gap-0.5">
-                          {getChannelBadge(pub.channel)}
+                        <div className="flex flex-col gap-1">
+                          <div className="flex items-center gap-1.5">
+                            {getChannelBadge(pub.channel)}
+                          </div>
                           <span className="text-[10px] text-zinc-500">{pub.channelAccount}</span>
+                          <span className="text-[10px] text-zinc-400">{pub.date}</span>
                         </div>
                       </td>
                       <td className="px-4 py-3 max-w-xs">
-                        <p className="font-bold text-zinc-100">{pub.title}</p>
-                        <span className="text-[10px] text-zinc-500">{pub.format}</span>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="font-bold text-zinc-100 text-xs">
+                            {pub.campaignTitle || 'Общая'}
+                          </span>
+                          {pub.version && (
+                            <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                              {pub.version}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-zinc-300 text-xs mt-0.5 line-clamp-2">{pub.title}</p>
+                        <span className="text-[10px] text-zinc-500 uppercase">{pub.format}</span>
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        {pub.videoPath ? (
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setPreviewVideo({
+                                  url: pub.videoPath!,
+                                  title: pub.title,
+                                  version: pub.version,
+                                  channel: pub.channel,
+                                })
+                              }
+                              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 border border-blue-500/30 text-xs font-semibold transition cursor-pointer"
+                              title="Смотреть видео прямо в админке"
+                            >
+                              <Play className="w-3.5 h-3.5 fill-blue-300 text-blue-300" />
+                              <span>Плеер</span>
+                            </button>
+                            <a
+                              href={pub.videoPath}
+                              download
+                              className="p-1 rounded-lg hover:bg-zinc-800 text-zinc-400 hover:text-white transition cursor-pointer"
+                              title="Скачать исходный видеофайл .mp4"
+                            >
+                              <Download className="w-3.5 h-3.5" />
+                            </a>
+                          </div>
+                        ) : (
+                          <span className="text-zinc-600 text-xs">—</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 max-w-sm">
+                        <div className="flex flex-col gap-1">
+                          <button
+                            type="button"
+                            onClick={() => copyCaption(pub.caption || pub.title, pub.id)}
+                            className="inline-flex items-center gap-1.5 px-2 py-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-semibold transition cursor-pointer border border-zinc-700 w-fit"
+                            title="Скопировать готовый авторский текст поста с хэштегами"
+                          >
+                            {copiedCaptionId === pub.id ? (
+                              <>
+                                <Check className="w-3.5 h-3.5 text-emerald-400" />
+                                <span className="text-emerald-400 font-bold">Скопировано!</span>
+                              </>
+                            ) : (
+                              <>
+                                <Copy className="w-3.5 h-3.5 text-zinc-400" />
+                                <span>📋 Скопировать текст</span>
+                              </>
+                            )}
+                          </button>
+                          <p
+                            className="text-[11px] text-zinc-400 line-clamp-2 leading-relaxed"
+                            title={pub.caption || pub.title}
+                          >
+                            {pub.caption || pub.title}
+                          </p>
+                        </div>
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap">
                         <button
@@ -700,46 +875,70 @@ export function AdminMarketingHub() {
                           <span className="font-mono text-[11px]">{pub.targetDeepLink}</span>
                         </button>
                       </td>
-                      <td className="px-4 py-3 whitespace-nowrap font-mono font-bold text-amber-400">
-                        {pub.promoCode || '—'}
-                      </td>
                       <td className="px-4 py-3 whitespace-nowrap">
-                        {pub.livePostUrl ? (
-                          <a
-                            href={pub.livePostUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 text-blue-400 hover:text-blue-300 font-semibold"
-                          >
-                            <span>Смотреть</span>
-                            <ExternalLink className="w-3 h-3" />
-                          </a>
-                        ) : (
-                          <span className="text-zinc-600">—</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        <span
-                          className={`px-2 py-0.5 rounded-full text-[11px] font-semibold ${
-                            pub.status === 'published'
-                              ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
-                              : pub.status === 'scheduled'
-                              ? 'bg-amber-500/10 text-amber-400 border border-amber-500/30'
-                              : 'bg-zinc-800 text-zinc-400'
-                          }`}
-                        >
-                          {pub.status === 'published' ? '🟢 Вышел' : pub.status === 'scheduled' ? '🟡 План' : '⚪ Черновик'}
+                        <span className="font-mono font-bold text-amber-400 px-2 py-0.5 rounded bg-amber-500/10 border border-amber-500/20 text-xs">
+                          {pub.promoCode || '—'}
                         </span>
                       </td>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <div className="flex flex-col gap-1">
+                          <span
+                            className={`px-2 py-0.5 rounded-full text-[11px] font-semibold text-center ${
+                              pub.status === 'published'
+                                ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
+                                : pub.status === 'scheduled'
+                                ? 'bg-amber-500/10 text-amber-400 border border-amber-500/30'
+                                : 'bg-zinc-800 text-zinc-400 border border-zinc-700'
+                            }`}
+                          >
+                            {pub.status === 'published'
+                              ? '🟢 Вышел'
+                              : pub.status === 'scheduled'
+                              ? '🟡 План'
+                              : '⚪ Готов'}
+                          </span>
+                          {pub.livePostUrl ? (
+                            <a
+                              href={pub.livePostUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 text-blue-400 hover:text-blue-300 font-semibold text-xs"
+                            >
+                              <span>В эфире</span>
+                              <ExternalLink className="w-3 h-3" />
+                            </a>
+                          ) : null}
+                        </div>
+                      </td>
                       <td className="px-4 py-3 text-right whitespace-nowrap">
-                        <button
-                          type="button"
-                          onClick={() => handleDeletePublication(pub.id)}
-                          className="text-zinc-500 hover:text-red-400 p-1 transition cursor-pointer"
-                          title="Удалить публикацию"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        <div className="flex items-center justify-end gap-1.5">
+                          {pub.status !== 'published' &&
+                            ['youtube', 'telegram', 'facebook'].includes(pub.channel) && (
+                              <button
+                                type="button"
+                                onClick={() => handlePublishRow(pub)}
+                                disabled={publishingRowId === pub.id}
+                                className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-gradient-to-r from-red-600 to-amber-600 hover:from-red-500 hover:to-amber-500 text-white text-[11px] font-bold transition shadow shadow-red-600/20 cursor-pointer disabled:opacity-50"
+                                title="Опубликовать этот пост через API боевого сервера в 1 клик"
+                              >
+                                <Flame
+                                  className={`w-3.5 h-3.5 ${
+                                    publishingRowId === pub.id ? 'animate-spin' : ''
+                                  }`}
+                                />
+                                <span>{publishingRowId === pub.id ? '...' : '⚡ В 1 клик'}</span>
+                              </button>
+                            )}
+
+                          <button
+                            type="button"
+                            onClick={() => handleDeletePublication(pub.id)}
+                            className="text-zinc-500 hover:text-red-400 p-1.5 rounded-lg hover:bg-zinc-800 transition cursor-pointer"
+                            title="Удалить публикацию"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -1090,7 +1289,20 @@ export function AdminMarketingHub() {
                 >
                   <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-zinc-800">
                     <div className="flex items-center gap-2">
-                      <span className="px-2 py-0.5 rounded-md text-[11px] font-bold bg-zinc-800 text-zinc-300">
+                      <span
+                        className={`px-2 py-0.5 rounded-md text-[11px] font-bold ${
+                          lead.sourceChannel === 'facebook'
+                            ? 'bg-blue-600/20 text-blue-300 border border-blue-500/30'
+                            : lead.sourceChannel === 'telegram'
+                            ? 'bg-sky-500/20 text-sky-300 border border-sky-500/30'
+                            : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                        }`}
+                      >
+                        {lead.sourceChannel === 'facebook'
+                          ? '📘 FB: '
+                          : lead.sourceChannel === 'telegram'
+                          ? '✈️ TG: '
+                          : '💬 WA: '}
                         {lead.sourceChatName}
                       </span>
                       <span className="text-xs text-zinc-400">• {lead.authorName} ({lead.authorContact || '—'})</span>
@@ -1153,6 +1365,18 @@ export function AdminMarketingHub() {
                         )}
                         <span>{copiedId === `lead-${lead.id}` ? 'Скопировано!' : 'Скопировать ответ'}</span>
                       </button>
+
+                      {lead.postUrl && (
+                        <a
+                          href={lead.postUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 text-xs font-semibold transition border border-blue-500/30"
+                        >
+                          <ExternalLink className="w-3.5 h-3.5" />
+                          <span>Открыть пост</span>
+                        </a>
+                      )}
 
                       {lead.authorContact && (
                         <a
@@ -1385,6 +1609,51 @@ export function AdminMarketingHub() {
                   onChange={(e) => setNewPubDeepLink(e.target.value)}
                   placeholder="/lessons/1/call или /decks/it-interview"
                   className="w-full bg-zinc-800 rounded-xl p-2.5 text-zinc-200 border border-zinc-700 outline-none font-mono"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-zinc-400 font-semibold mb-1">Кампания / Тема:</label>
+                  <input
+                    type="text"
+                    placeholder="Например: Этап 5: Диалоги"
+                    value={newPubCampaign}
+                    onChange={(e) => setNewPubCampaign(e.target.value)}
+                    className="w-full bg-zinc-800 rounded-xl p-2.5 text-zinc-200 border border-zinc-700 outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-zinc-400 font-semibold mb-1">Версия:</label>
+                  <input
+                    type="text"
+                    placeholder="v2.0"
+                    value={newPubVersion}
+                    onChange={(e) => setNewPubVersion(e.target.value)}
+                    className="w-full bg-zinc-800 rounded-xl p-2.5 text-zinc-200 border border-zinc-700 outline-none font-mono"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-zinc-400 font-semibold mb-1">Путь к видеофайлу на сервере:</label>
+                <input
+                  type="text"
+                  placeholder="/demo/tutorials/stage_05_dialogue_v2.mp4"
+                  value={newPubVideoPath}
+                  onChange={(e) => setNewPubVideoPath(e.target.value)}
+                  className="w-full bg-zinc-800 rounded-xl p-2.5 text-zinc-200 border border-zinc-700 outline-none font-mono"
+                />
+              </div>
+
+              <div>
+                <label className="block text-zinc-400 font-semibold mb-1">Готовый текст поста (Copywriting):</label>
+                <textarea
+                  rows={3}
+                  placeholder="Адаптированный текст с хэштегами и призывом к действию под эту соцсеть..."
+                  value={newPubCaption}
+                  onChange={(e) => setNewPubCaption(e.target.value)}
+                  className="w-full bg-zinc-800 rounded-xl p-2.5 text-zinc-200 border border-zinc-700 outline-none resize-none"
                 />
               </div>
 
@@ -1667,6 +1936,68 @@ export function AdminMarketingHub() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* МОДАЛКА: ВСТРОЕННЫЙ ВИДЕОПЛЕЕР ПРЕДПРОСМОТРА */}
+      {previewVideo && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in">
+          <div className="bg-zinc-900 rounded-2xl border border-zinc-700 max-w-lg w-full overflow-hidden shadow-2xl space-y-0">
+            <div className="flex items-center justify-between p-4 border-b border-zinc-800 bg-zinc-950/80">
+              <div className="flex items-center gap-2 overflow-hidden">
+                {previewVideo.channel && getChannelBadge(previewVideo.channel)}
+                {previewVideo.version && (
+                  <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-mono">
+                    {previewVideo.version}
+                  </span>
+                )}
+                <h3 className="font-bold text-sm text-zinc-100 truncate" title={previewVideo.title}>
+                  {previewVideo.title}
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPreviewVideo(null)}
+                className="p-1.5 rounded-lg hover:bg-zinc-800 text-zinc-400 hover:text-white transition cursor-pointer"
+                title="Закрыть плеер"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-4 bg-black flex justify-center items-center min-h-[300px]">
+              <video
+                src={previewVideo.url}
+                controls
+                autoPlay
+                playsInline
+                className="max-h-[65vh] max-w-full rounded-xl shadow-2xl border border-zinc-800 object-contain"
+              />
+            </div>
+
+            <div className="p-3 bg-zinc-950 flex items-center justify-between border-t border-zinc-800 text-xs">
+              <span className="text-zinc-500 font-mono text-[11px] truncate max-w-[200px]" title={previewVideo.url}>
+                {previewVideo.url}
+              </span>
+              <div className="flex items-center gap-2">
+                <a
+                  href={previewVideo.url}
+                  download
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 transition font-semibold cursor-pointer border border-zinc-700"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>Скачать .mp4</span>
+                </a>
+                <button
+                  type="button"
+                  onClick={() => setPreviewVideo(null)}
+                  className="px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold transition cursor-pointer"
+                >
+                  Закрыть
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

@@ -81,7 +81,7 @@
     "id": "fb_israel_russian",
     "title": "Facebook: Русскоязычный Израиль / Олим",
     "username": "groups/olim.israel.community",
-    "inviteUrl": "https://facebook.com/groups/",
+    "inviteUrl": "https://facebook.com/groups/olim.israel.community",
     "platform": "facebook",
     "category": "repatriation",
     "categoryLabel": "Репатриация и адаптация",
@@ -89,5 +89,31 @@
     "status": "active",
     "leadCount": 0,
     "notes": "Крупнейшее сообщество в Facebook. Посты о поиске ульпанов, курсов и репетиторов."
+  },
+  {
+    "id": "fb_pumpkin_latte",
+    "title": "Facebook: Тыквенный латте",
+    "username": "groups/pumpkinlatte",
+    "inviteUrl": "https://facebook.com/groups/pumpkinlatte",
+    "platform": "facebook",
+    "category": "repatriation",
+    "categoryLabel": "Быт и адаптация олим",
+    "membersCount": "100,000+",
+    "status": "active",
+    "leadCount": 0,
+    "notes": "Главная группа новой волны репатриации. Бытовой ступор (курьеры, банки, звонки, аренда)."
+  },
+  {
+    "id": "fb_moms_israel",
+    "title": "Facebook: Мамы Израиля",
+    "username": "groups/moms.israel",
+    "inviteUrl": "https://facebook.com/groups/moms.israel",
+    "platform": "facebook",
+    "category": "moms",
+    "categoryLabel": "Семья и садики",
+    "membersCount": "35,000+",
+    "status": "active",
+    "leadCount": 0,
+    "notes": "Родительские тревоги: звонки воспитательницы (гоненет), школьные чаты, педиатры."
   }
 ]

@@ -5,9 +5,12 @@ import path from 'path';
 
 export interface PublishRequestBody {
   channel: 'youtube' | 'telegram' | 'facebook';
+  publicationId?: string;
   videoPath?: string;
   title: string;
   description?: string;
+  campaignTitle?: string;
+  version?: string;
   tags?: string[];
   privacy?: 'public' | 'unlisted' | 'private';
   register?: boolean;
@@ -18,6 +21,7 @@ const DATA_DIR = path.join(process.cwd(), 'growth', 'data');
 const PUBLICATIONS_FILE = path.join(DATA_DIR, 'publications.json');
 
 function registerPublication(pub: {
+  publicationId?: string;
   channel: 'youtube' | 'telegram' | 'facebook';
   title: string;
   format: 'short_video' | 'post';
@@ -25,6 +29,10 @@ function registerPublication(pub: {
   livePostUrl: string;
   promoCode: string;
   notes: string;
+  videoPath?: string;
+  caption?: string;
+  campaignTitle?: string;
+  version?: string;
 }) {
   try {
     if (!fs.existsSync(DATA_DIR)) {
@@ -35,6 +43,22 @@ function registerPublication(pub: {
       items = JSON.parse(fs.readFileSync(PUBLICATIONS_FILE, 'utf8'));
     }
 
+    if (pub.publicationId) {
+      const idx = items.findIndex((i: any) => i.id === pub.publicationId);
+      if (idx !== -1) {
+        items[idx] = {
+          ...items[idx],
+          livePostUrl: pub.livePostUrl,
+          status: 'published',
+          videoPath: pub.videoPath || items[idx].videoPath,
+          caption: pub.caption || items[idx].caption,
+          updatedAt: new Date().toISOString(),
+        };
+        fs.writeFileSync(PUBLICATIONS_FILE, JSON.stringify(items, null, 2), 'utf8');
+        return;
+      }
+    }
+
     const newPub = {
       id: `pub-${pub.channel.slice(0, 2)}-${Date.now().toString().slice(-4)}`,
       date: new Date().toISOString().split('T')[0],
@@ -42,6 +66,10 @@ function registerPublication(pub: {
       channelAccount: pub.channelAccount,
       format: pub.format,
       title: pub.title,
+      campaignTitle: pub.campaignTitle,
+      version: pub.version,
+      videoPath: pub.videoPath,
+      caption: pub.caption,
       targetDeepLink: '/lessons/1/call',
       promoCode: pub.promoCode,
       fullUrlWithPromo: `https://ulpana-hebrew.vercel.app/lessons/1/call?promo=${pub.promoCode}`,
@@ -89,7 +117,18 @@ export async function POST(req: NextRequest) {
     }
 
     const body = (await req.json()) as PublishRequestBody;
-    const { channel, title, description, tags, privacy = 'public', register = true } = body;
+    const {
+      channel,
+      title,
+      description,
+      tags,
+      privacy = 'public',
+      register = true,
+      publicationId,
+      campaignTitle,
+      version,
+      videoPath,
+    } = body;
 
     if (!channel || !title) {
       return NextResponse.json(
@@ -219,8 +258,13 @@ export async function POST(req: NextRequest) {
 
       if (register) {
         registerPublication({
+          publicationId,
           channel: 'youtube',
           title,
+          campaignTitle,
+          version,
+          videoPath: videoFilePath,
+          caption: description || title,
           format: 'short_video',
           channelAccount: 'Ульпан Алеф',
           livePostUrl: shortsUrl,
@@ -286,8 +330,13 @@ export async function POST(req: NextRequest) {
         const liveUrl = `https://t.me/ulpana_il/${tgData.result.message_id}`;
         if (register) {
           registerPublication({
+            publicationId,
             channel: 'telegram',
             title,
+            campaignTitle,
+            version,
+            videoPath: videoFilePath || undefined,
+            caption: description || title,
             format: 'short_video',
             channelAccount: '@ulpana_il',
             livePostUrl: liveUrl,
@@ -329,8 +378,12 @@ export async function POST(req: NextRequest) {
       const liveUrl = `https://t.me/ulpana_il/${tgData.result.message_id}`;
       if (register) {
         registerPublication({
+          publicationId,
           channel: 'telegram',
           title,
+          campaignTitle,
+          version,
+          caption: description || title,
           format: 'post',
           channelAccount: '@ulpana_il',
           livePostUrl: liveUrl,
@@ -386,8 +439,12 @@ export async function POST(req: NextRequest) {
 
       if (register) {
         registerPublication({
+          publicationId,
           channel: 'facebook',
           title,
+          campaignTitle,
+          version,
+          caption: description || title,
           format: 'post',
           channelAccount: 'Ulpana - Иврит без паники',
           livePostUrl: liveUrl,

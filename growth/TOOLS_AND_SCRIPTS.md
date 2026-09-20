@@ -73,6 +73,32 @@
   node growth/scripts/post_to_youtube.cjs --title="Заголовок #Shorts" --tags="иврит,ульпан,shorts" --send
   ```
 
+### Г. Скрипт партизанского радара групп Facebook: `growth/scripts/facebook_radar.cjs`
+* **Первичная авторизация (открывает окно Chrome для входа и сохраняет cookies):**
+  ```bash
+  node growth/scripts/facebook_radar.cjs --auth
+  ```
+* **Основной цикл сканирования групп раз в 12 часов (щадящий режим + пуш на боевой):**
+  ```bash
+  node growth/scripts/facebook_radar.cjs --scan
+  ```
+* **Быстрое сканирование для проверки (сокращенные паузы):**
+  ```bash
+  node growth/scripts/facebook_radar.cjs --scan --fast
+  ```
+* **Тестовый прогон на демо-данных без входа в соцсеть:**
+  ```bash
+  node growth/scripts/facebook_radar.cjs --dry-run
+  ```
+* **Проверка ИИ-анализа и отправки для конкретной реплики:**
+  ```bash
+  node growth/scripts/facebook_radar.cjs --test-msg="Воспитательница звонит из садика, ступор от страха"
+  ```
+* **Сводка найденных лидов:**
+  ```bash
+  node growth/scripts/facebook_radar.cjs --summary
+  ```
+
 ---
 
 ## 🌐 2. Автопостинг на боевом сервере (Production / Vercel Serverless)
