@@ -1,0 +1,93 @@
+[
+  {
+    "id": "ole_hadash_chat",
+    "title": "Оле Хадаш / Репатриация в Израиль",
+    "username": "ole_hadash_chat",
+    "inviteUrl": "https://t.me/ole_hadash_chat",
+    "platform": "telegram",
+    "category": "repatriation",
+    "categoryLabel": "Репатриация и адаптация",
+    "membersCount": "15,000+",
+    "status": "active",
+    "leadCount": 1,
+    "notes": "Крупнейший чат новых репатриантов. Высокий поток вопросов про ульпаны, курьеров и документы."
+  },
+  {
+    "id": "haifa_olim",
+    "title": "Русскоязычная Хайфа и Крайот",
+    "username": "haifa_olim",
+    "inviteUrl": "https://t.me/haifa_olim",
+    "platform": "telegram",
+    "category": "city_haifa",
+    "categoryLabel": "Хайфа и Север",
+    "membersCount": "8,500+",
+    "status": "active",
+    "leadCount": 1,
+    "notes": "Плотный анклав олим. Вопросы по больничным кассам (Клалит/Макаби), аренде и садикам."
+  },
+  {
+    "id": "netanya_center",
+    "title": "Нетания и Бат-Ям | Чат Олим",
+    "username": "netanya_chat",
+    "inviteUrl": "https://t.me/netanya_chat",
+    "platform": "telegram",
+    "category": "city_center",
+    "categoryLabel": "Центр Израиля",
+    "membersCount": "6,200+",
+    "status": "active",
+    "leadCount": 0,
+    "notes": "Бытовые вопросы, коммунальные счета, преодоление языкового барьера."
+  },
+  {
+    "id": "moms_israel",
+    "title": "Мамы Израиля: Садики и Школы",
+    "username": "moms_israel_chat",
+    "inviteUrl": "https://t.me/moms_israel_chat",
+    "platform": "telegram",
+    "category": "moms",
+    "categoryLabel": "Семья и дети",
+    "membersCount": "12,000+",
+    "status": "active",
+    "leadCount": 0,
+    "notes": "Звонки воспитательницы (гоненет), родительские чаты, педиатры."
+  },
+  {
+    "id": "it_israel_jobs",
+    "title": "Израиль IT: Собеседования и иврит",
+    "username": "it_israel_jobs",
+    "inviteUrl": "https://t.me/it_israel_jobs",
+    "platform": "telegram",
+    "category": "it_jobs",
+    "categoryLabel": "Хайтек и работа",
+    "membersCount": "9,000+",
+    "status": "active",
+    "leadCount": 1,
+    "notes": "Страх иврита на HR-скринингах и митингах. Таргет под колоду IT-собеседований."
+  },
+  {
+    "id": "wa_olim_haifa",
+    "title": "WhatsApp: Олим Хайфа и Север",
+    "username": "chat.whatsapp.com/olim_haifa",
+    "inviteUrl": "https://chat.whatsapp.com/",
+    "platform": "whatsapp",
+    "category": "city_haifa",
+    "categoryLabel": "Хайфа и Север",
+    "membersCount": "~1,024",
+    "status": "active",
+    "leadCount": 1,
+    "notes": "Закрытая WhatsApp-группа взаимопомощи олим. Вопросы по ивриту в больницах и инстанциях."
+  },
+  {
+    "id": "fb_israel_russian",
+    "title": "Facebook: Русскоязычный Израиль / Олим",
+    "username": "groups/olim.israel.community",
+    "inviteUrl": "https://facebook.com/groups/",
+    "platform": "facebook",
+    "category": "repatriation",
+    "categoryLabel": "Репатриация и адаптация",
+    "membersCount": "45,000+",
+    "status": "active",
+    "leadCount": 0,
+    "notes": "Крупнейшее сообщество в Facebook. Посты о поиске ульпанов, курсов и репетиторов."
+  }
+]

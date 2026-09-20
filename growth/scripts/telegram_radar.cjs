@@ -32,6 +32,7 @@ try {
 const DATA_DIR = path.join(__dirname, '..', 'data');
 const LEADS_FILE = path.join(DATA_DIR, 'leads.json');
 const SESSION_FILE = path.join(DATA_DIR, 'tg_session.txt');
+const COMMUNITIES_FILE = path.join(DATA_DIR, 'target_communities.json');
 
 // 2. Ситечко триггерных слов (Regex)
 const TRIGGER_PATTERNS = [
@@ -71,7 +72,38 @@ function matchesTrigger(text) {
   return TRIGGER_PATTERNS.some((pattern) => pattern.test(text));
 }
 
-// 3. Работа с базой лидов
+// 3. Работа с базой сообществ и лидов
+function loadTargetCommunities() {
+  if (!fs.existsSync(COMMUNITIES_FILE)) return [];
+  try {
+    return JSON.parse(fs.readFileSync(COMMUNITIES_FILE, 'utf-8'));
+  } catch {
+    return [];
+  }
+}
+
+function incrementCommunityLeadCount(chatIdentifier) {
+  if (!fs.existsSync(COMMUNITIES_FILE) || !chatIdentifier) return;
+  try {
+    const communities = JSON.parse(fs.readFileSync(COMMUNITIES_FILE, 'utf-8'));
+    const cleanId = String(chatIdentifier).replace(/^@/, '').toLowerCase();
+    let updated = false;
+    for (const c of communities) {
+      const u = (c.username || '').toLowerCase();
+      const t = (c.title || '').toLowerCase();
+      if (u === cleanId || cleanId.includes(u) || t.includes(cleanId) || cleanId.includes(t)) {
+        c.leadCount = (c.leadCount || 0) + 1;
+        updated = true;
+      }
+    }
+    if (updated) {
+      fs.writeFileSync(COMMUNITIES_FILE, JSON.stringify(communities, null, 2), 'utf-8');
+    }
+  } catch (e) {
+    console.error('⚠️ Ошибка обновления счетчика лидов сообщества:', e.message);
+  }
+}
+
 function loadLeads() {
   if (!fs.existsSync(LEADS_FILE)) return [];
   try {
@@ -89,6 +121,7 @@ function saveLead(newLead) {
   if (!exists) {
     leads.unshift(newLead);
     fs.writeFileSync(LEADS_FILE, JSON.stringify(leads, null, 2), 'utf-8');
+    incrementCommunityLeadCount(newLead.sourceChatName);
     return true;
   }
   return false;
@@ -304,9 +337,9 @@ async function main() {
     process.exit(1);
   }
 
-  const { TelegramClient } = gramjs;
-  const { StringSession } = gramjs.sessions;
-  const { NewMessage } = gramjs.events;
+  const { TelegramClient } = require('telegram');
+  const { StringSession } = require('telegram/sessions');
+  const { NewMessage } = require('telegram/events');
 
   let sessionString = process.env.TELEGRAM_SESSION_STRING?.trim() || '';
   if (!sessionString && fs.existsSync(SESSION_FILE)) {
@@ -333,76 +366,122 @@ async function main() {
   fs.writeFileSync(SESSION_FILE, currentSession, 'utf-8');
   console.log(`💾 Сессия сохранена в ${SESSION_FILE} (не будет повторного ввода кода)`);
 
-  console.log(`🎯 Целевой чат для мониторинга: @${targetChat}`);
+  // Получаем список диалогов пользователя
+  console.log('📋 Загрузка списка доступных чатов и групп...');
+  const dialogs = await client.getDialogs({ limit: 40 });
+  const groupDialogs = dialogs.filter((d) => d.isGroup || d.isChannel);
 
-  if (isDryRun) {
-    console.log('✨ Режим --dry-run: соединение проверено, выходим.');
-    await client.disconnect();
-    return;
+  console.log(`\n👥 Ваши активные группы и каналы (${groupDialogs.length}):`);
+  groupDialogs.slice(0, 15).forEach((g, i) => {
+    const uName = g.entity?.username ? `@${g.entity.username}` : '(без @username)';
+    console.log(`   ${i + 1}. "${g.title}" [${uName}, ID: ${g.id}]`);
+  });
+
+  const communities = loadTargetCommunities();
+  const activeComms = communities.filter((c) => c.status === 'active');
+  console.log(`\n📡 Целевые сообщества из CRM админки (${communities.length} всего, ${activeComms.length} в эфире):`);
+  activeComms.forEach((c, i) => {
+    console.log(`   ${i + 1}. [${c.categoryLabel || c.category}] "${c.title}" (@${c.username}) — лидов: ${c.leadCount || 0}`);
+  });
+
+  // Поиск целевого чата
+  let targetEntity = null;
+  const cleanTarget = targetChat.replace(/^@/, '').toLowerCase();
+
+  // 1. Поиск среди уже подключенных диалогов
+  targetEntity = groupDialogs.find((d) => {
+    const u = (d.entity?.username || '').toLowerCase();
+    const t = (d.title || '').toLowerCase();
+    return u === cleanTarget || t.includes(cleanTarget);
+  })?.entity;
+
+  // 2. Если не найден в диалогах, пробуем резолв через getEntity
+  if (!targetEntity) {
+    try {
+      targetEntity = await client.getEntity(targetChat);
+      console.log(`✅ Чат @${targetChat} успешно найден на сервере!`);
+    } catch (e) {
+      console.warn(`⚠️ Чат @${targetChat} не найден или аккаунт ещё не вступил в него.`);
+      console.log('💡 Сторож переключается в режим мониторинга ВСЕХ ваших активных групп!');
+    }
+  } else {
+    console.log(`✅ Целевой чат выбран: "${targetEntity.title || targetEntity.username}"`);
   }
+
+  // Фильтр для NewMessage
+  const eventFilter = targetEntity ? new NewMessage({ chats: [targetEntity] }) : new NewMessage({});
 
   // Слушатель входящих сообщений
   client.addEventHandler(async (event) => {
-    const message = event.message;
-    if (!message || !message.message) return;
-
-    const text = message.message;
-    if (!matchesTrigger(text)) {
-      return; // Пропускаем сообщения без ключевых слов
-    }
-
-    console.log('\n🎯 [ТРИГГЕР] Найдено совпадение в сообщении!');
-    console.log(`   Текст: "${text.slice(0, 80)}..."`);
-
-    let authorName = 'Пользователь';
-    let authorContact = 'Скрыт';
-    let messageUrl = null;
-
     try {
-      const sender = await message.getSender();
-      if (sender) {
-        authorName = [sender.firstName, sender.lastName].filter(Boolean).join(' ') || sender.username || 'Пользователь';
-        authorContact = sender.username ? `@${sender.username}` : (sender.phone ? `+${sender.phone}` : `ID: ${sender.id}`);
+      const message = event.message;
+      if (!message || !message.message) return;
+
+      // Игнорируем личные переписки, слушаем только группы и каналы
+      if (!event.isGroup && !event.isChannel) return;
+
+      const text = message.message;
+      if (!matchesTrigger(text)) {
+        return; // Пропускаем сообщения без ключевых слов
       }
-    } catch (e) {
-      // Игнорируем ошибки получения отправителя
-    }
 
-    try {
-      const chat = await message.getChat();
-      if (chat && chat.username) {
-        messageUrl = `https://t.me/${chat.username}/${message.id}`;
+      let chatTitle = 'Группа Telegram';
+      let messageUrl = null;
+      try {
+        const chat = await message.getChat();
+        if (chat) {
+          chatTitle = chat.title || chat.username || 'Группа Telegram';
+          if (chat.username) {
+            messageUrl = `https://t.me/${chat.username}/${message.id}`;
+          }
+        }
+      } catch (e) {}
+
+      console.log(`\n🎯 [ТРИГГЕР в "${chatTitle}"]`);
+      console.log(`   Текст: "${text.slice(0, 90)}..."`);
+
+      let authorName = 'Пользователь';
+      let authorContact = 'Скрыт';
+
+      try {
+        const sender = await message.getSender();
+        if (sender) {
+          authorName = [sender.firstName, sender.lastName].filter(Boolean).join(' ') || sender.username || 'Пользователь';
+          authorContact = sender.username ? `@${sender.username}` : (sender.phone ? `+${sender.phone}` : `ID: ${sender.id}`);
+        }
+      } catch (e) {}
+
+      // ИИ-анализ боли
+      const aiAnalysis = await analyzePainWithAI(text);
+      if (!aiAnalysis.isTargetLead) {
+        console.log('⚪ ИИ определил сообщение как нецелевое.');
+        return;
       }
-    } catch (e) {}
 
-    // ИИ-анализ боли
-    const aiAnalysis = await analyzePainWithAI(text);
-    if (!aiAnalysis.isTargetLead) {
-      console.log('⚪ ИИ определил сообщение как нецелевое.');
-      return;
+      const lead = {
+        id: `lead-tg-${Date.now()}`,
+        timestamp: new Date().toISOString(),
+        sourceChannel: 'telegram',
+        sourceChatName: chatTitle,
+        authorName,
+        authorContact,
+        rawText: text,
+        aiAnalysis,
+        messageUrl,
+        status: 'new',
+      };
+
+      const isNew = saveLead(lead);
+      if (isNew) {
+        console.log(`🔥 [ЛИД ЗАФИКСИРОВАН] ${authorName} | Боль: ${aiAnalysis.painSummary}`);
+        await sendAlertToFounder(lead);
+      }
+    } catch (err) {
+      console.error('⚠️ Ошибка обработки сообщения:', err.message);
     }
+  }, eventFilter);
 
-    const lead = {
-      id: `lead-tg-${Date.now()}`,
-      timestamp: new Date().toISOString(),
-      sourceChannel: 'telegram',
-      sourceChatName: `@${targetChat}`,
-      authorName,
-      authorContact,
-      rawText: text,
-      aiAnalysis,
-      messageUrl,
-      status: 'new',
-    };
-
-    const isNew = saveLead(lead);
-    if (isNew) {
-      console.log(`🔥 [ЛИД ЗАФИКСИРОВАН] ${authorName} | Боль: ${aiAnalysis.painSummary}`);
-      await sendAlertToFounder(lead);
-    }
-  }, new NewMessage({ chats: [targetChat] }));
-
-  console.log('👂 Слушатель запущен (Listen-Only). Ожидание входящих сообщений в чате...');
+  console.log('\n👂 Слушатель запущен (Listen-Only). Ожидание входящих сообщений...');
   console.log('Нажмите Ctrl+C для остановки.');
 }
 

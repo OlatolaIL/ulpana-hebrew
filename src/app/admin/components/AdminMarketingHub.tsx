@@ -25,7 +25,23 @@ import {
   Archive,
   Layers,
   HelpCircle,
+  Users,
+  Globe,
 } from 'lucide-react';
+
+export interface TargetCommunity {
+  id: string;
+  title: string;
+  username: string;
+  inviteUrl: string;
+  platform: 'telegram' | 'whatsapp' | 'facebook';
+  category: 'repatriation' | 'moms' | 'city_haifa' | 'city_center' | 'it_jobs' | 'other';
+  categoryLabel?: string;
+  membersCount: string;
+  status: 'active' | 'paused' | 'backlog';
+  leadCount: number;
+  notes?: string;
+}
 
 interface ServiceHealth {
   status: 'ok' | 'warning' | 'error' | 'disabled' | 'manual_mode';
@@ -117,6 +133,19 @@ export function AdminMarketingHub() {
   const [scanFrequency, setScanFrequency] = useState<'daily' | '6hours' | 'manual'>('daily');
   const [isScanning, setIsScanning] = useState(false);
 
+  // Communities state (Мониторинг сообществ в радаре)
+  const [communities, setCommunities] = useState<TargetCommunity[]>([]);
+  const [commLoading, setCommLoading] = useState(false);
+  const [isAddCommModalOpen, setIsAddCommModalOpen] = useState(false);
+  const [newCommTitle, setNewCommTitle] = useState('');
+  const [newCommUsername, setNewCommUsername] = useState('');
+  const [newCommInviteUrl, setNewCommInviteUrl] = useState('');
+  const [newCommPlatform, setNewCommPlatform] = useState<'telegram' | 'whatsapp' | 'facebook'>('telegram');
+  const [newCommCategory, setNewCommCategory] = useState<'repatriation' | 'moms' | 'city_haifa' | 'city_center' | 'it_jobs' | 'other'>('repatriation');
+  const [newCommMembers, setNewCommMembers] = useState('~1 000');
+  const [newCommNotes, setNewCommNotes] = useState('');
+  const [commSaving, setCommSaving] = useState(false);
+
   // Copy helper
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
@@ -183,11 +212,28 @@ export function AdminMarketingHub() {
     }
   }, []);
 
+  // Fetch Communities
+  const fetchCommunities = useCallback(async () => {
+    setCommLoading(true);
+    try {
+      const res = await fetch('/api/admin/marketing/communities');
+      if (res.ok) {
+        const data = await res.json();
+        setCommunities(data.communities || []);
+      }
+    } catch (e) {
+      console.error('Failed to fetch communities', e);
+    } finally {
+      setCommLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     checkHealth();
     fetchPublications();
     fetchLeads();
-  }, [checkHealth, fetchPublications, fetchLeads]);
+    fetchCommunities();
+  }, [checkHealth, fetchPublications, fetchLeads, fetchCommunities]);
 
   // Create Publication
   const handleCreatePublication = async (e: React.FormEvent) => {
@@ -328,6 +374,73 @@ export function AdminMarketingHub() {
       console.error('Error running scan', e);
     } finally {
       setIsScanning(false);
+    }
+  };
+
+  // Community Management Handlers
+  const handleAddCommunity = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newCommTitle.trim() || !newCommUsername.trim()) return;
+    setCommSaving(true);
+    try {
+      const res = await fetch('/api/admin/marketing/communities', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: newCommTitle,
+          username: newCommUsername,
+          inviteUrl: newCommInviteUrl,
+          platform: newCommPlatform,
+          category: newCommCategory,
+          membersCount: newCommMembers,
+          notes: newCommNotes,
+        }),
+      });
+      if (res.ok) {
+        setIsAddCommModalOpen(false);
+        setNewCommTitle('');
+        setNewCommUsername('');
+        setNewCommInviteUrl('');
+        setNewCommNotes('');
+        setNewCommMembers('~1 000');
+        fetchCommunities();
+      }
+    } catch (e) {
+      console.error('Failed to add community', e);
+    } finally {
+      setCommSaving(false);
+    }
+  };
+
+  const handleToggleCommunityStatus = async (id: string, currentStatus: string) => {
+    const newStatus = currentStatus === 'active' ? 'paused' : 'active';
+    try {
+      const res = await fetch('/api/admin/marketing/communities', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, status: newStatus }),
+      });
+      if (res.ok) {
+        setCommunities((prev) =>
+          prev.map((c) => (c.id === id ? { ...c, status: newStatus as any } : c))
+        );
+      }
+    } catch (e) {
+      console.error('Failed to toggle community status', e);
+    }
+  };
+
+  const handleDeleteCommunity = async (id: string) => {
+    if (!confirm('Удалить группу из списка мониторинга?')) return;
+    try {
+      const res = await fetch(`/api/admin/marketing/communities?id=${id}`, {
+        method: 'DELETE',
+      });
+      if (res.ok) {
+        setCommunities((prev) => prev.filter((c) => c.id !== id));
+      }
+    } catch (e) {
+      console.error('Failed to delete community', e);
     }
   };
 
@@ -695,6 +808,120 @@ export function AdminMarketingHub() {
               <Sparkles className={`w-3.5 h-3.5 ${isScanning ? 'animate-spin' : ''}`} />
               <span>{isScanning ? 'ИИ анализирует чаты...' : '⚡ Сканировать сейчас'}</span>
             </button>
+          </div>
+
+          {/* Блок мониторинга сообществ на Hetzner 24/7 */}
+          <div className="bg-zinc-900/90 rounded-2xl border border-zinc-800 p-5 space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400">
+                  <Users className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-zinc-100 flex items-center gap-2">
+                    <span>Целевые чаты и каналы в мониторинге (Hetzner 24/7)</span>
+                    <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                      🟢 {communities.filter((c) => c.status === 'active').length} активно
+                    </span>
+                  </h3>
+                  <p className="text-xs text-zinc-400">
+                    Автономный демон Telegram MTProto слушает новые сообщения по триггерам болей и передаёт в радар
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={fetchCommunities}
+                  disabled={commLoading}
+                  className="p-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 transition cursor-pointer"
+                  title="Обновить список"
+                >
+                  <RefreshCw className={`w-4 h-4 ${commLoading ? 'animate-spin' : ''}`} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsAddCommModalOpen(true)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition shadow-lg shadow-blue-600/20 cursor-pointer"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>+ Добавить сообщество</span>
+                </button>
+              </div>
+            </div>
+
+            {communities.length === 0 ? (
+              <div className="text-center py-6 text-zinc-500 text-xs">
+                Список сообществ пуст. Добавьте первую группу для мониторинга.
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {communities.map((c) => (
+                  <div
+                    key={c.id}
+                    className={`p-4 rounded-xl border transition flex flex-col justify-between ${
+                      c.status === 'active'
+                        ? 'bg-zinc-950/70 border-zinc-700/80 shadow-md'
+                        : 'bg-zinc-950/30 border-zinc-800/60 opacity-60'
+                    }`}
+                  >
+                    <div className="space-y-2">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-center gap-1.5 text-xs font-bold text-zinc-200">
+                          <span>{c.platform === 'whatsapp' ? '💬' : c.platform === 'facebook' ? '📘' : '✈️'}</span>
+                          <span className="truncate max-w-[170px]" title={c.title}>{c.title}</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleToggleCommunityStatus(c.id, c.status)}
+                          className={`px-2 py-0.5 rounded-full text-[10px] font-semibold cursor-pointer transition ${
+                            c.status === 'active'
+                              ? 'bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30 border border-emerald-500/30'
+                              : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700 border border-zinc-700'
+                          }`}
+                        >
+                          {c.status === 'active' ? '🟢 В эфире' : '⏸ Пауза'}
+                        </button>
+                      </div>
+
+                      <div className="text-xs text-zinc-400 font-mono flex items-center justify-between">
+                        <a
+                          href={c.inviteUrl || (c.platform === 'telegram' ? `https://t.me/${c.username}` : '#')}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-400 hover:text-blue-300 hover:underline flex items-center gap-1"
+                        >
+                          <span>{c.platform === 'telegram' ? `@${c.username}` : c.username}</span>
+                          <ExternalLink className="w-3 h-3" />
+                        </a>
+                        <span className="text-[11px] text-zinc-500">👥 {c.membersCount}</span>
+                      </div>
+
+                      {c.notes && (
+                        <p className="text-[11px] text-zinc-400 line-clamp-2 leading-relaxed">
+                          {c.notes}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="flex items-center justify-between pt-3 mt-2 border-t border-zinc-800/80">
+                      <span className="text-[11px] font-semibold text-amber-400 flex items-center gap-1">
+                        🔥 {c.leadCount || 0} лидов
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteCommunity(c.id)}
+                        className="text-zinc-600 hover:text-red-400 p-1 transition cursor-pointer"
+                        title="Удалить из мониторинга"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="grid grid-cols-1 gap-4">
@@ -1153,6 +1380,137 @@ export function AdminMarketingHub() {
                 >
                   <Flame className="w-4 h-4" />
                   <span>{isQuickPublishing ? 'Выгрузка на сервер...' : '🚀 Запустить публикацию'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* МОДАЛКА: ДОБАВИТЬ СООБЩЕСТВО В МОНИТОРИНГ РАДАРА */}
+      {isAddCommModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-zinc-900 rounded-2xl border border-zinc-800 p-6 max-w-md w-full shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
+              <h3 className="text-base font-bold text-zinc-100 flex items-center gap-2">
+                <Users className="w-5 h-5 text-blue-400" />
+                <span>Добавить группу / канал для радара</span>
+              </h3>
+              <button
+                type="button"
+                onClick={() => setIsAddCommModalOpen(false)}
+                className="text-zinc-500 hover:text-zinc-300 cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleAddCommunity} className="space-y-3 text-xs">
+              <div>
+                <label className="block text-zinc-400 font-semibold mb-1">Название группы / чата:</label>
+                <input
+                  type="text"
+                  value={newCommTitle}
+                  onChange={(e) => setNewCommTitle(e.target.value)}
+                  placeholder="Например: Чат репатриантов Тель-Авива"
+                  required
+                  className="w-full bg-zinc-800 rounded-xl p-2.5 text-zinc-200 border border-zinc-700 outline-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-zinc-400 font-semibold mb-1">Сеть / Платформа:</label>
+                  <select
+                    value={newCommPlatform}
+                    onChange={(e) => setNewCommPlatform(e.target.value as any)}
+                    className="w-full bg-zinc-800 rounded-xl p-2.5 text-zinc-200 border border-zinc-700 outline-none font-semibold"
+                  >
+                    <option value="telegram">✈️ Telegram (Супергруппа)</option>
+                    <option value="whatsapp">💬 WhatsApp (Группа олим)</option>
+                    <option value="facebook">📘 Facebook (Группа)</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-zinc-400 font-semibold mb-1">
+                    {newCommPlatform === 'telegram' ? 'Telegram @username:' : newCommPlatform === 'whatsapp' ? 'Имя / Чат ID:' : 'Группа / Страница:'}
+                  </label>
+                  <input
+                    type="text"
+                    value={newCommUsername}
+                    onChange={(e) => setNewCommUsername(e.target.value)}
+                    placeholder={newCommPlatform === 'telegram' ? 'ole_hadash_chat' : newCommPlatform === 'whatsapp' ? 'Чат Репатрианты' : 'groups/olim.israel'}
+                    required
+                    className="w-full bg-zinc-800 rounded-xl p-2.5 text-zinc-200 border border-zinc-700 outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-zinc-400 font-semibold mb-1">Категория:</label>
+                  <select
+                    value={newCommCategory}
+                    onChange={(e) => setNewCommCategory(e.target.value as any)}
+                    className="w-full bg-zinc-800 rounded-xl p-2.5 text-zinc-200 border border-zinc-700 outline-none font-semibold"
+                  >
+                    <option value="repatriation">Репатриация и адаптация</option>
+                    <option value="moms">Семья и дети (Мамы)</option>
+                    <option value="city_haifa">Хайфа и Север</option>
+                    <option value="city_center">Центр (Тель-Авив / Нетания)</option>
+                    <option value="it_jobs">Хайтек и работа</option>
+                    <option value="other">Общее</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-zinc-400 font-semibold mb-1">Аудитория (примерно):</label>
+                  <input
+                    type="text"
+                    value={newCommMembers}
+                    onChange={(e) => setNewCommMembers(e.target.value)}
+                    placeholder="~5,000"
+                    className="w-full bg-zinc-800 rounded-xl p-2.5 text-zinc-200 border border-zinc-700 outline-none"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-zinc-400 font-semibold mb-1">Ссылка на вступление (опционально):</label>
+                <input
+                  type="url"
+                  value={newCommInviteUrl}
+                  onChange={(e) => setNewCommInviteUrl(e.target.value)}
+                  placeholder="https://t.me/..."
+                  className="w-full bg-zinc-800 rounded-xl p-2.5 text-zinc-200 border border-zinc-700 outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-zinc-400 font-semibold mb-1">Заметки / фокус болей:</label>
+                <textarea
+                  rows={2}
+                  value={newCommNotes}
+                  onChange={(e) => setNewCommNotes(e.target.value)}
+                  placeholder="Какие боли тут обсуждают чаще всего..."
+                  className="w-full bg-zinc-800 rounded-xl p-2.5 text-zinc-200 border border-zinc-700 outline-none resize-none"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-zinc-800">
+                <button
+                  type="button"
+                  onClick={() => setIsAddCommModalOpen(false)}
+                  className="px-4 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-semibold cursor-pointer"
+                >
+                  Отмена
+                </button>
+                <button
+                  type="submit"
+                  disabled={commSaving}
+                  className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold cursor-pointer disabled:opacity-50"
+                >
+                  <span>{commSaving ? 'Сохранение...' : 'Добавить в радар'}</span>
                 </button>
               </div>
             </form>
