@@ -23,6 +23,34 @@ export interface HomographEntry {
 }
 
 export const HOMOGRAPHS_REGISTRY: Record<string, HomographEntry> = {
+  'את': {
+    clean: 'את',
+    note: 'Без огласовок пишется одинаково (את). Означает либо местоимение «ты» (обращение к женщине), либо предлог прямого дополнения.',
+    variants: [
+      {
+        hebrew: 'אַתְּ',
+        transcription: 'ат',
+        translation: 'ты (обращение к женщине, местоимение)',
+        partOfSpeech: 'pronoun',
+        exampleSentence: {
+          hebrew: 'אַתְּ מְדַבֶּרֶת עִבְרִית?',
+          transcription: 'ат мэдабéрет иврӣт?',
+          translation: 'Ты говоришь на иврите?',
+        },
+      },
+      {
+        hebrew: 'אֶת',
+        transcription: 'эт',
+        translation: 'предлог винительного падежа (прямого дополнения)',
+        partOfSpeech: 'preposition',
+        exampleSentence: {
+          hebrew: 'אֲנִי רוֹצֶה אֶת זֶה.',
+          transcription: 'ани роцэ́ эт зэ.',
+          translation: 'Я хочу это.',
+        },
+      },
+    ],
+  },
   'שם': {
     clean: 'שם',
     note: 'Без огласовок пишется одинаково (שם). Значение зависит от огласовок и контекста.',

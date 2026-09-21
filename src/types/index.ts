@@ -414,6 +414,7 @@ export interface UserSession {
   subscriptionExpiresAt?: number | null;
   isChannelSubscriber?: boolean;
   channelVerifiedAt?: number | null;
+  promoPending?: string | null;
 }
 
 export type AccessRequirement =
@@ -467,6 +468,7 @@ export interface UserProfile {
   subscriptionExpiresAt?: number | null;
   isChannelSubscriber?: boolean;
   channelVerifiedAt?: number | null;
+  promoPending?: string | null;
   name: string;
   gender: UserGender;
   aiProvider: AiProvider;

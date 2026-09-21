@@ -46,11 +46,13 @@ export const ThematicDecksView: React.FC<ThematicDecksViewProps> = ({
     return false;
   });
 
+  const effectivePromo = userProfile.promoPending || (typeof window !== 'undefined' ? localStorage.getItem('ulpana_pending_promo') : null);
+
   // Модалка списка слов
   const [listModalDeck, setListModalDeck] = useState<ThematicDeck | null>(() => {
     if (initialDeckId) {
       const found = ALL_DECKS.find((d) => d.id === initialDeckId) || null;
-      if (found && isDeckAuthRequired(found.id, Boolean(userProfile.isLoggedIn))) {
+      if (found && isDeckAuthRequired(found.id, Boolean(userProfile.isLoggedIn), effectivePromo)) {
         return null;
       }
       return found;
@@ -67,14 +69,14 @@ export const ThematicDecksView: React.FC<ThematicDecksViewProps> = ({
     if (initialDeckId) {
       const found = ALL_DECKS.find((d) => d.id === initialDeckId);
       if (found) {
-        if (isDeckAuthRequired(found.id, Boolean(userProfile.isLoggedIn))) {
+        if (isDeckAuthRequired(found.id, Boolean(userProfile.isLoggedIn), effectivePromo)) {
           onRequireAuth?.(found);
         } else {
           setListModalDeck(found);
         }
       }
     }
-  }, [initialDeckId, userProfile.isLoggedIn, onRequireAuth]);
+  }, [initialDeckId, userProfile.isLoggedIn, effectivePromo, onRequireAuth]);
 
   // Модалка спряжений Pealim
   const [pealimModal, setPealimModal] = useState<{
@@ -127,7 +129,7 @@ export const ThematicDecksView: React.FC<ThematicDecksViewProps> = ({
   };
 
   const handleOpenListModal = (deck: ThematicDeck) => {
-    if (isDeckAuthRequired(deck.id, Boolean(userProfile.isLoggedIn))) {
+    if (isDeckAuthRequired(deck.id, Boolean(userProfile.isLoggedIn), effectivePromo)) {
       onRequireAuth?.(deck);
       return;
     }

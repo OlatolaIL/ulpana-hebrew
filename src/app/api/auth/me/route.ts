@@ -50,10 +50,29 @@ export async function GET(req: NextRequest) {
         // Авто-активация промокода после окончания беты
         const promoPending: string | null = row.promo_pending ?? null;
         if (!IS_EARLY_ACCESS_FREE && promoPending && tier !== 'pro') {
-          const promoRes = await db.query(
+          const upperPending = promoPending.toUpperCase();
+          let promoRes = await db.query(
             'SELECT * FROM ulpana_promo_codes WHERE UPPER(code) = $1 AND is_active = true',
-            [promoPending.toUpperCase()]
+            [upperPending]
           );
+          if (promoRes.rows.length === 0 && (upperPending === 'LATTE_MAMA' || upperPending === 'MOMS' || upperPending === 'TG_MAMA')) {
+            const channel = upperPending === 'TG_MAMA' ? 'tg' : upperPending === 'LATTE_MAMA' ? 'fb' : 'other';
+            const postDesc = upperPending === 'TG_MAMA'
+              ? 'Пост для мам в Telegram-канале @ulpana_il'
+              : upperPending === 'LATTE_MAMA'
+              ? 'Пост для мам в Facebook «Тыквенный латте»'
+              : 'Спецкод: Мамы Израиля';
+            await db.query(
+              `INSERT INTO ulpana_promo_codes (id, code, days_valid, max_uses, used_count, is_active, code_type, channel, description)
+               VALUES ($1, $2, $3, $4, 0, true, 'post', $5, $6)
+               ON CONFLICT (code) DO NOTHING`,
+              [`promo_${upperPending.toLowerCase()}_system`, upperPending, 30, 1000, channel, postDesc]
+            );
+            promoRes = await db.query(
+              'SELECT * FROM ulpana_promo_codes WHERE UPPER(code) = $1 AND is_active = true',
+              [upperPending]
+            );
+          }
           if (promoRes.rows.length > 0) {
             const promo = promoRes.rows[0];
             const limitOk = !promo.max_uses || promo.used_count < promo.max_uses;
@@ -103,6 +122,7 @@ export async function GET(req: NextRequest) {
             subscriptionExpiresAt: freshExpires,
             isChannelSubscriber: Boolean(row.is_channel_subscriber),
             channelVerifiedAt: row.channel_verified_at ? new Date(row.channel_verified_at).getTime() : null,
+            promoPending: null,
           };
         } else {
           updatedSession = {
@@ -116,6 +136,7 @@ export async function GET(req: NextRequest) {
             subscriptionExpiresAt: expiresAt,
             isChannelSubscriber: Boolean(row.is_channel_subscriber),
             channelVerifiedAt: row.channel_verified_at ? new Date(row.channel_verified_at).getTime() : null,
+            promoPending: row.promo_pending || null,
           };
         }
       }

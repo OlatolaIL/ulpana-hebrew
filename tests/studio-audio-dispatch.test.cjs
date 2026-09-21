@@ -192,3 +192,23 @@ test('getCuratedSentenceAudio: returns pre-rendered audio for all 9 slang senten
   // Обычное предложение без сленга возвращает null (идёт в стандартный TTS)
   assert.equal(getCuratedSentenceAudio('שלום מה נשמע הבוקר'), null);
 });
+
+test('getStudioAudioForWord: homographs disambiguation (את - ат vs эт)', () => {
+  const atAudioExpected = 'https://audio.pealim.com/v0/sv/sv6n9j9pyogt.mp3';
+  const etAudioExpected = 'https://audio.pealim.com/v0/11/117v9h4zrv9ra.mp3';
+
+  // 1. Урок 1: форма אַתְּ (шева + дагеш) обязана возвращать аутентичное аудио [ат]
+  const atLessonAudio = getStudioAudioForWord('אַתְּ');
+  assert.equal(atLessonAudio, atAudioExpected, 'אַתְּ (sheva + dagesh) must return studio audio for [ат]');
+
+  // 2. Каталог Pealim: форма אַתְּ (дагеш + шева) обязана возвращать аутентичное аудио [ат]
+  const atCatalogAudio = getStudioAudioForWord('אַתְּ');
+  assert.equal(atCatalogAudio, atAudioExpected, 'אַתְּ (dagesh + sheva) must return studio audio for [ат]');
+
+  // 3. Предлог אֶת (с сеголем) обязан возвращать студийное аудио [эт]
+  const etVocalizedAudio = getStudioAudioForWord('אֶת');
+  assert.equal(etVocalizedAudio, etAudioExpected, 'אֶת (with segol) must return studio audio for [эт]');
+
+  // 4. Гарантируем, что [ат] и [эт] не равны друг другу
+  assert.notEqual(atLessonAudio, etVocalizedAudio, '[ат] and [эт] audio must be different');
+});

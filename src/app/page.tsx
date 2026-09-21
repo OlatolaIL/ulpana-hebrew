@@ -815,6 +815,7 @@ export default function Home() {
       ...profile,
       subscriptionTier: updatedSession.subscriptionTier,
       subscriptionExpiresAt: updatedSession.subscriptionExpiresAt,
+      promoPending: updatedSession.promoPending,
     };
     handleUpdateProfile(updated);
   };

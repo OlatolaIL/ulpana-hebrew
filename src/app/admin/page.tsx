@@ -122,6 +122,10 @@ interface PromoCode {
   maxUses: number;
   usedCount: number;
   isActive: boolean;
+  codeType?: 'general' | 'post';
+  channel?: string;
+  postLink?: string | null;
+  description?: string | null;
   createdAt: string;
 }
 
@@ -166,13 +170,16 @@ interface AdminEssay {
 }
 
 const CHANNEL_PRESETS = [
-  { code: 'FB', name: 'Facebook', days: 30, uses: 100, desc: 'Кнопка на странице FB / реклама' },
-  { code: 'INSTA', name: 'Instagram', days: 14, uses: 500, desc: 'Ссылка в шапке профиля (био) / Reels' },
-  { code: 'TIKTOK', name: 'TikTok', days: 14, uses: 500, desc: 'Ссылка в описании профиля (био) / видео' },
-  { code: 'YT', name: 'YouTube', days: 30, uses: 500, desc: 'Описание видео, Shorts и закрепленный комментарий' },
-  { code: 'LATTE', name: 'Тыквенный латте', days: 14, uses: 500, desc: 'Посты и комментарии в группе FB' },
-  { code: 'MOMS', name: 'Мамы Израиля', days: 30, uses: 300, desc: 'Группы мам и родительские чаты' },
-  { code: 'OLE2026', name: 'Оле Хадаш', days: 30, uses: 1000, desc: 'Сообщества новых репатриантов' },
+  { code: 'TG_GENERAL', name: 'Telegram (Общий)', channel: 'tg', type: 'general' as const, days: 14, uses: 500, desc: 'Ссылка в описании / закреп канала @ulpana_il' },
+  { code: 'TG_MAMA', name: 'Telegram (Пост для мам)', channel: 'tg', type: 'post' as const, days: 30, uses: 1000, desc: 'Пост для мам в канале @ulpana_il' },
+  { code: 'LATTE_MAMA', name: 'FB Тыквенный латте (Мамы)', channel: 'fb', type: 'post' as const, days: 30, uses: 1000, desc: 'Пост Сергея для мам в группе «Тыквенный латте»' },
+  { code: 'FB', name: 'Facebook (Общий)', channel: 'fb', type: 'general' as const, days: 30, uses: 100, desc: 'Кнопка на странице FB / реклама' },
+  { code: 'INSTA', name: 'Instagram', channel: 'insta', type: 'general' as const, days: 14, uses: 500, desc: 'Ссылка в шапке профиля (био) / Reels' },
+  { code: 'TIKTOK', name: 'TikTok', channel: 'tiktok', type: 'general' as const, days: 14, uses: 500, desc: 'Ссылка в описании профиля (био) / видео' },
+  { code: 'YT', name: 'YouTube', channel: 'yt', type: 'general' as const, days: 30, uses: 500, desc: 'Описание видео, Shorts и закрепленный комментарий' },
+  { code: 'LATTE', name: 'Тыквенный латте (Общий)', channel: 'fb', type: 'general' as const, days: 14, uses: 500, desc: 'Общий код для группы «Тыквенный латте»' },
+  { code: 'MOMS', name: 'Мамы Израиля (Общий)', channel: 'other', type: 'general' as const, days: 30, uses: 500, desc: 'Общий промокод для мам' },
+  { code: 'OLE2026', name: 'Оле Хадаш', channel: 'other', type: 'general' as const, days: 30, uses: 1000, desc: 'Сообщества новых репатриантов' },
 ];
 
 export default function AdminPage() {
@@ -215,6 +222,12 @@ export default function AdminPage() {
   const [newPromoCode, setNewPromoCode] = useState('');
   const [newPromoDays, setNewPromoDays] = useState('30');
   const [newPromoUses, setNewPromoUses] = useState('100');
+  const [newPromoType, setNewPromoType] = useState<'general' | 'post'>('general');
+  const [newPromoChannel, setNewPromoChannel] = useState<string>('tg');
+  const [newPromoPostLink, setNewPromoPostLink] = useState<string>('');
+  const [newPromoDesc, setNewPromoDesc] = useState<string>('');
+  const [promoFilterChannel, setPromoFilterChannel] = useState<string>('all');
+  const [promoFilterType, setPromoFilterType] = useState<string>('all');
   const [promoCreating, setPromoCreating] = useState(false);
   const [promoSuccess, setPromoSuccess] = useState<string | null>(null);
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
@@ -536,6 +549,9 @@ export default function AdminPage() {
     setNewPromoCode(preset.code);
     setNewPromoDays(String(preset.days));
     setNewPromoUses(String(preset.uses));
+    setNewPromoType(preset.type || 'general');
+    setNewPromoChannel(preset.channel || 'tg');
+    setNewPromoDesc(preset.desc || '');
   };
 
   // Batch create all missing marketing channels in 1 click
@@ -546,7 +562,7 @@ export default function AdminPage() {
       const existingCodes = new Set(promos.map((p) => p.code.toUpperCase()));
       const toCreate = CHANNEL_PRESETS.filter((p) => !existingCodes.has(p.code));
       if (toCreate.length === 0) {
-        alert('Все стандартные канальные промокоды (FB, INSTA, YT, LATTE, MOMS, OLE2026) уже созданы!');
+        alert('Все стандартные канальные промокоды (TG, FB, INSTA, YT, LATTE, MOMS, OLE2026) уже созданы!');
         return;
       }
       for (const item of toCreate) {
@@ -557,6 +573,9 @@ export default function AdminPage() {
             code: item.code,
             daysValid: item.days,
             maxUses: item.uses,
+            codeType: item.type,
+            channel: item.channel,
+            description: item.desc,
           }),
         });
       }
@@ -584,12 +603,19 @@ export default function AdminPage() {
           code: newPromoCode,
           daysValid: parseInt(newPromoDays, 10),
           maxUses: parseInt(newPromoUses, 10),
+          codeType: newPromoType,
+          channel: newPromoChannel,
+          postLink: newPromoType === 'post' ? newPromoPostLink.trim() || null : null,
+          description: newPromoDesc.trim() || null,
         }),
       });
       const data = await res.json();
       if (res.ok) {
         setPromoSuccess(`Промокод "${data.promo.code}" успешно создан!`);
         setNewPromoCode('');
+        setNewPromoPostLink('');
+        setNewPromoDesc('');
+        setNewPromoType('general');
         setIsPromoModalOpen(false);
         fetchPromos();
       } else {

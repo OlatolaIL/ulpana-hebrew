@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=390, height=844, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Ульпан Алеф — Картофельный фреш</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700;800;900&family=Heebo:wght@400;500;700;900&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body {
+      background-color: #000;
+      color: #fff;
+      font-family: 'Rubik', sans-serif;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100vw;
+      height: 100vh;
+    }
+
+    #phone-container {
+      width: 390px;
+      height: 844px;
+      position: relative;
+      overflow: hidden;
+      background: #060913;
+    }
+
+    /* R-25: СТРОГО absolute inset 0, visibility hidden */
+    .scene {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0;
+      pointer-events: none;
+      visibility: hidden;
+      transition: opacity 0.4s ease, visibility 0.4s ease;
+      overflow: hidden;
+    }
+
+    .scene.active {
+      opacity: 1;
+      pointer-events: auto;
+      visibility: visible;
+    }
+
+    /* Анимация Ken Burns */
+    .ken-burns {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transform: scale(1.02);
+      animation: kenBurnsZoom 8s ease-in-out infinite alternate;
+    }
+
+    @keyframes kenBurnsZoom {
+      0% { transform: scale(1.02) translate(0, 0); }
+      100% { transform: scale(1.12) translate(-2%, -2%); }
+    }
+
+    /* Градиентные затемнения для читаемости текста */
+    .vignette {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.1) 25%, rgba(0,0,0,0.2) 70%, rgba(0,0,0,0.85) 100%);
+      pointer-events: none;
+    }
+
+    /* Верхняя динамическая плашка */
+    .top-badge-wrap {
+      position: absolute;
+      top: 18px;
+      left: 0;
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      z-index: 1000;
+      padding: 0 16px;
+    }
+
+    .top-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 17px;
+      font-weight: 900;
+      text-transform: uppercase;
+      padding: 10px 18px;
+      border-radius: 14px;
+      background: rgba(10, 15, 30, 0.92);
+      border: 2px solid #facc15;
+      color: #fff;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.6), 0 0 20px rgba(250, 204, 21, 0.35);
+      animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+      text-align: center;
+    }
+
+    @keyframes popIn {
+      0% { transform: scale(0.8); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    /* Комикс-диалоги */
+    .dialogue-overlay {
+      position: absolute;
+      bottom: 40px;
+      left: 16px;
+      right: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      z-index: 500;
+    }
+
+    .comic-bubble {
+      padding: 14px 18px;
+      border-radius: 18px;
+      font-size: 16px;
+      font-weight: 700;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+      position: relative;
+      animation: bubbleSlideUp 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    }
+
+    @keyframes bubbleSlideUp {
+      0% { opacity: 0; transform: translateY(20px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+
+    .bubble-student {
+      background: rgba(30, 58, 138, 0.95);
+      border: 2px solid #60a5fa;
+      color: #fff;
+      align-self: flex-start;
+      max-width: 90%;
+    }
+
+    .bubble-student .speaker {
+      font-size: 11px;
+      text-transform: uppercase;
+      color: #93c5fd;
+      margin-bottom: 4px;
+      font-weight: 800;
+    }
+
+    .bubble-student .hebrew-text {
+      font-family: 'Heebo', sans-serif;
+      font-size: 20px;
+      direction: rtl;
+      font-weight: 900;
+      color: #facc15;
+    }
+
+    .bubble-vendor {
+      background: rgba(185, 28, 28, 0.95);
+      border: 2px solid #ef4444;
+      color: #fff;
+      align-self: flex-end;
+      max-width: 90%;
+      text-align: right;
+    }
+
+    .bubble-vendor .speaker {
+      font-size: 11px;
+      text-transform: uppercase;
+      color: #fca5a5;
+      margin-bottom: 4px;
+      font-weight: 800;
+    }
+
+    .bubble-vendor .vendor-text {
+      font-size: 18px;
+      font-weight: 900;
+      line-height: 1.3;
+      color: #fff;
+    }
+
+    /* Punch-in zoom для резкого комичного наезда камеры на продавца */
+    .punch-zoom {
+      transform: scale(1.32) translate(-2%, -3%) !important;
+      transition: transform 0.12s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
+    }
+
+    /* Подсветка карточек при разборе Pealim */
+    .word-card {
+      transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), border-color 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .word-card.active-card {
+      transform: scale(1.06) !important;
+      border-color: #facc15 !important;
+      box-shadow: 0 0 35px rgba(250, 204, 21, 0.65), 0 10px 25px rgba(0,0,0,0.6) !important;
+      background: rgba(250, 204, 21, 0.15) !important;
+    }
+
+    /* ========================================================
+       СЦЕНА 4: РАЗБОР СЕМЕЙСТВА «ЯБЛОК» (ИНФОГРАФИКА)
+       ======================================================== */
+    #scene-breakdown {
+      background: linear-gradient(180deg, #091326 0%, #040915 100%);
+      display: flex;
+      flex-direction: column;
+      padding: 85px 16px 20px;
+      gap: 12px;
+      justify-content: space-between;
+    }
+
+    .cards-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      margin: auto 0;
+    }
+
+    .word-card {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: 18px;
+      padding: 16px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      backdrop-filter: blur(12px);
+      box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+    }
+
+    .card-apple {
+      border-left: 6px solid #22c55e;
+    }
+
+    .card-orange {
+      border-left: 6px solid #f97316;
+      background: rgba(249, 115, 22, 0.08);
+      border-color: rgba(249, 115, 22, 0.4);
+    }
+
+    .card-potato {
+      border-left: 6px solid #eab308;
+    }
+
+    .word-left {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .word-icon {
+      font-size: 32px;
+      margin-right: 8px;
+    }
+
+    .word-hebrew {
+      font-family: 'Heebo', sans-serif;
+      font-size: 28px;
+      font-weight: 900;
+      direction: rtl;
+      line-height: 1.1;
+      color: #fff;
+    }
+
+    .word-trans {
+      font-size: 13px;
+      color: #cbd5e1;
+      font-weight: 600;
+    }
+
+    .word-meaning {
+      font-size: 17px;
+      font-weight: 800;
+      color: #facc15;
+    }
+
+    .word-note {
+      font-size: 11px;
+      color: #94a3b8;
+      font-style: italic;
+    }
+
+    .pealim-tag {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      padding: 10px;
+      font-size: 12px;
+      color: #93c5fd;
+      font-weight: 700;
+    }
+
+    /* ========================================================
+       СЦЕНА 5: ФИНАЛЬНЫЙ СПЛЭШ
+       ======================================================== */
+    #scene-outro {
+      background: radial-gradient(circle at center, #172554 0%, #030712 100%);
+      display: flex;
+      flex-direction: column;
+      padding: 85px 20px 30px;
+      justify-content: space-between;
+      text-align: center;
+    }
+
+    .outro-logo-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .outro-icon {
+      width: 64px;
+      height: 64px;
+      background: linear-gradient(135deg, #2563eb, #3b82f6);
+      border-radius: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 32px;
+      box-shadow: 0 10px 25px rgba(37, 99, 235, 0.5);
+    }
+
+    .outro-brand {
+      font-size: 28px;
+      font-weight: 900;
+      letter-spacing: -0.5px;
+      color: #fff;
+    }
+
+    .outro-brand span { color: #60a5fa; }
+
+    .outro-pitch {
+      font-size: 26px;
+      font-weight: 900;
+      color: #facc15;
+      line-height: 1.25;
+      text-transform: uppercase;
+      margin: 12px 0 6px;
+      text-shadow: 0 2px 10px rgba(0,0,0,0.5);
+    }
+
+    .outro-subpitch {
+      font-size: 14px;
+      color: #cbd5e1;
+      font-weight: 500;
+      line-height: 1.4;
+    }
+
+    .outro-features {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin: 14px 0;
+    }
+
+    .feature-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      padding: 10px 14px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #f1f5f9;
+      text-align: left;
+    }
+
+    .cta-button {
+      background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+      color: #ffffff;
+      font-size: 20px;
+      font-weight: 900;
+      padding: 16px 24px;
+      border-radius: 16px;
+      box-shadow: 0 12px 30px rgba(34, 197, 94, 0.4);
+      animation: pulseBtn 1.5s infinite alternate;
+      border: none;
+      cursor: pointer;
+      display: block;
+      width: 100%;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    @keyframes pulseBtn {
+      0% { transform: scale(1); }
+      100% { transform: scale(1.04); box-shadow: 0 14px 35px rgba(34, 197, 94, 0.7); }
+    }
+
+    /* Зарезервированное место под промо-плашку FFmpeg */
+    .promo-spacer {
+      height: 110px;
+      width: 100%;
+    }
+  </style>
+</head>
+<body>
+  <div id="phone-container">
+    <!-- Динамический заголовок вверху -->
+    <div class="top-badge-wrap">
+      <div id="top-badge" class="top-badge">
+        <span id="top-badge-text">☀️ ТЕЛЬ-АВИВ • ЛАРЁК СОКОВ 🥤</span>
+      </div>
+    </div>
+
+    <!-- СЦЕНА 1: ЛАРЁК СОКОВ -->
+    <div id="scene-stall" class="scene active">
+      <img src="assets/scene_01_stall.jpg" class="ken-burns" alt="Juice Stall">
+      <div class="vignette"></div>
+    </div>
+
+    <!-- СЦЕНА 2: ШОК ПРОДАВЦА С КАРТОШКОЙ -->
+    <div id="scene-vendor" class="scene">
+      <img src="assets/scene_02_vendor.jpg" class="ken-burns" alt="Vendor with Potato">
+      <div class="vignette"></div>
+      <div class="dialogue-overlay">
+        <div id="bubble-student" class="comic-bubble bubble-student">
+          <div class="speaker">Репатриант (уверенно):</div>
+          <div class="hebrew-text">«?אֶפְשָׁר מִיץ... תַּפּוּחֵי אֲדָמָה סָחוּט טָרִי»</div>
+          <div style="font-size: 13px; color: #cbd5e1; margin-top: 3px;">(«Можно свежевыжатый сок из картошки?») 🥔🥤</div>
+        </div>
+
+        <div id="bubble-vendor" class="comic-bubble bubble-vendor" style="display: none;">
+          <div class="speaker">Продавец (в полном шоке):</div>
+          <div class="hebrew-text" style="color: #fff; font-size: 20px;">«!אַחִי, אַתָּה רוֹצֶה אֶת זֶה עִם קֶרַח אוֹ עִם שָׁמִיר»</div>
+          <div style="font-size: 13px; color: #fecaca; margin-top: 3px; font-weight: 600;">(«Ахи, тебе со льдом или с укропом?!») 😳</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- СЦЕНА 3: ТОТ САМЫЙ КАРТОФЕЛЬНЫЙ ФРЕШ -->
+    <div id="scene-drink" class="scene">
+      <img src="assets/scene_03_drink.jpg" class="ken-burns" alt="Potato Fresh Drink">
+      <div class="vignette"></div>
+      <div class="dialogue-overlay">
+        <div class="comic-bubble" style="background: rgba(0,0,0,0.85); border: 2px solid #facc15; text-align: center;">
+          <div style="font-size: 22px; font-weight: 900; color: #facc15;">🥔🥤 КАРТОФЕЛЬНЫЙ ФРЕШ!</div>
+          <div style="font-size: 14px; color: #e2e8f0; margin-top: 4px;">Хотел апельсиновый сок (תַּפּוּזִים), а заказал картофельный (תַּפּוּחֵי אֲדָמָה)!</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- СЦЕНА 4: РАЗБОР СЕМЕЙСТВА «ЯБЛОК» -->
+    <div id="scene-breakdown" class="scene">
+      <div class="cards-stack">
+        <!-- ЯБЛОКО -->
+        <div id="card-apple" class="word-card card-apple">
+          <div style="display: flex; align-items: center;">
+            <div class="word-icon">🍏</div>
+            <div class="word-left">
+              <div class="word-hebrew">תַּפּוּחַ</div>
+              <div class="word-trans">[тапу́ах]</div>
+            </div>
+          </div>
+          <div class="word-meaning">ЯБЛОКО</div>
+        </div>
+
+        <!-- АПЕЛЬСИН -->
+        <div id="card-orange" class="word-card card-orange">
+          <div style="display: flex; align-items: center;">
+            <div class="word-icon">🍊</div>
+            <div class="word-left">
+              <div class="word-hebrew">תַּפּוּז</div>
+              <div class="word-trans">[тапу́з]</div>
+            </div>
+          </div>
+          <div>
+            <div class="word-meaning" style="color: #fb923c;">АПЕЛЬСИН</div>
+            <div class="word-note">תפוח + זהב (золотое!)</div>
+          </div>
+        </div>
+
+        <!-- КАРТОШКА -->
+        <div id="card-potato" class="word-card card-potato">
+          <div style="display: flex; align-items: center;">
+            <div class="word-icon">🥔</div>
+            <div class="word-left">
+              <div class="word-hebrew">תַּפּוּחַ אֲדָמָה</div>
+              <div class="word-trans">[тапу́ах адама́]</div>
+            </div>
+          </div>
+          <div>
+            <div class="word-meaning" style="color: #fde047;">КАРТОШКА</div>
+            <div class="word-note">земляное яблоко</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="pealim-tag">
+        <span>🔍 Единый мастер-словарь Pealim • כתיב מלא с огласовками</span>
+      </div>
+    </div>
+
+    <!-- СЦЕНА 5: ФИНАЛЬНЫЙ СПЛЭШ -->
+    <div id="scene-outro" class="scene">
+      <div class="outro-logo-wrap">
+        <div class="outro-icon">🇮🇱</div>
+        <div class="outro-brand">УЛЬПАН <span>АЛЕФ</span></div>
+      </div>
+
+      <div>
+        <div class="outro-pitch">НЕ КРАСНЕЙ В ИЗРАИЛЕ! 😳❌</div>
+        <div class="outro-subpitch">Учи живой язык улиц и реальных ситуаций без неловких ошибок</div>
+      </div>
+
+      <div class="outro-features">
+        <div class="feature-item">⚡ <b>Разбор каждого слова</b> в предложении в 1 клик</div>
+        <div class="feature-item">📞 <b>Симулятор звонков:</b> курьер, поликлиника, банк</div>
+        <div class="feature-item">🎧 <b>Слуховой тренажёр:</b> учи в наушниках без экрана</div>
+      </div>
+
+      <button class="cta-button">ПОПРОБОВАТЬ БЕСПЛАТНО 🚀</button>
+
+      <div class="promo-spacer"></div>
+    </div>
+  </div>
+
+  <script>
+    window.startPotatoTimeline = function(timings) {
+      console.log('Starting potato timeline with timings:', timings);
+
+      const topBadge = document.getElementById('top-badge');
+      const topBadgeText = document.getElementById('top-badge-text');
+
+      const scenes = {
+        stall: document.getElementById('scene-stall'),
+        vendor: document.getElementById('scene-vendor'),
+        drink: document.getElementById('scene-drink'),
+        breakdown: document.getElementById('scene-breakdown'),
+        outro: document.getElementById('scene-outro'),
+      };
+
+      const bubbleStudent = document.getElementById('bubble-student');
+      const bubbleVendor = document.getElementById('bubble-vendor');
+      const cardApple = document.getElementById('card-apple');
+      const cardOrange = document.getElementById('card-orange');
+      const cardPotato = document.getElementById('card-potato');
+
+      function activateScene(key, badgeText) {
+        Object.values(scenes).forEach(s => s.classList.remove('active'));
+        if (scenes[key]) scenes[key].classList.add('active');
+        if (badgeText && topBadgeText) topBadgeText.innerHTML = badgeText;
+      }
+
+      function highlightCard(cardEl) {
+        [cardApple, cardOrange, cardPotato].forEach(c => c?.classList.remove('active-card'));
+        if (cardEl) cardEl.classList.add('active-card');
+      }
+
+      // 1. Старт: Ларёк
+      topBadge.style.display = 'inline-flex';
+      activateScene('stall', '☀️ ТЕЛЬ-АВИВ • ЛАРЁК СОКОВ 🥤');
+
+      // 2. Ученик заказывает
+      setTimeout(() => {
+        activateScene('vendor', '🥔 «МНЕ СОК ИЗ КАРТОШКИ!» 😳');
+        if (bubbleStudent) bubbleStudent.style.display = 'block';
+        if (bubbleVendor) bubbleVendor.style.display = 'none';
+      }, timings.tStudent);
+
+      // 2b. Реакция продавца: PUNCH-IN ZOOM + субтитр
+      setTimeout(() => {
+        const vendorImg = document.querySelector('#scene-vendor .ken-burns');
+        if (vendorImg) vendorImg.classList.add('punch-zoom');
+        if (bubbleVendor) bubbleVendor.style.display = 'block';
+      }, timings.tVendor);
+
+      // 3. Тот самый фреш
+      setTimeout(() => {
+        activateScene('drink', '🥤 КАРТОФЕЛЬНЫЙ ФРЕШ! 🤦‍♂️');
+      }, timings.tDrink);
+
+      // 4. Разбор семейства яблок
+      setTimeout(() => {
+        activateScene('breakdown', '🍏 СЕМЕЙСТВО «ЯБЛОК» В ИВРИТЕ');
+      }, timings.tBreakdown);
+
+      // 4b. Динамическая подсветка карточек по таймингам Pealim SSOT
+      setTimeout(() => highlightCard(cardApple), timings.tBreakdown + 6800);
+      setTimeout(() => highlightCard(cardOrange), timings.tBreakdown + 11100);
+      setTimeout(() => highlightCard(cardPotato), timings.tBreakdown + 18950);
+
+      // 5. Outro (скрываем верхнюю плашку, чтобы не дублировать)
+      setTimeout(() => {
+        topBadge.style.display = 'none';
+        activateScene('outro');
+      }, timings.tOutro);
+    };
+  </script>
+</body>
+</html>

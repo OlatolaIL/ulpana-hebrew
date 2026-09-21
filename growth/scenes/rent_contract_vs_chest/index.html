@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=390, height=844, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Не красней в Израиле: חוזה vs חזה — Ульпан Алеф</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700;800;900&family=Montserrat:wght@700;800;900&display=swap" rel="stylesheet">
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body {
+      width: 390px;
+      height: 844px;
+      overflow: hidden;
+      background: #090d16;
+      font-family: 'Rubik', sans-serif;
+      color: #fff;
+      position: relative;
+    }
+
+    #phone-container {
+      width: 390px;
+      height: 844px;
+      position: relative;
+      overflow: hidden;
+      background: #0d1527;
+    }
+
+    /* Верхние титры в стиле TikTok / Reels */
+    .reels-subtitles {
+      position: absolute;
+      top: 24px;
+      left: 14px;
+      right: 14px;
+      z-index: 1000;
+      text-align: center;
+      pointer-events: none;
+    }
+
+    .sub-badge {
+      display: inline-block;
+      font-family: 'Montserrat', sans-serif;
+      font-size: 20px;
+      font-weight: 900;
+      text-transform: uppercase;
+      padding: 10px 18px;
+      border-radius: 14px;
+      background: rgba(10, 15, 30, 0.92);
+      border: 2px solid #facc15;
+      color: #fff;
+      text-shadow: 0 2px 8px rgba(0,0,0,0.8);
+      box-shadow: 0 10px 25px rgba(0,0,0,0.6), 0 0 25px rgba(250, 204, 21, 0.35);
+      transform: scale(0.95);
+      animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    }
+
+    .sub-badge span.highlight { color: #facc15; }
+    .sub-badge span.red { color: #ef4444; }
+    .sub-badge span.green { color: #22c55e; }
+
+    @keyframes popIn {
+      0% { transform: scale(0.7); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    /* R-25: СТРОГО absolute inset 0, visibility hidden */
+    .scene {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0;
+      pointer-events: none;
+      visibility: hidden;
+      transition: opacity 0.35s ease, transform 0.35s ease, visibility 0.35s;
+      transform: scale(0.98);
+    }
+
+    .scene.active {
+      opacity: 1;
+      pointer-events: auto;
+      visibility: visible;
+      transform: scale(1);
+    }
+
+    /* ========================================================
+       СЦЕНА 1: СЪЁМ КВАРТИРЫ (Введение)
+       ======================================================== */
+    #scene-intro {
+      background: linear-gradient(180deg, #111e38 0%, #0b1324 100%);
+      display: flex;
+      flex-direction: column;
+      padding: 85px 18px 24px;
+      gap: 16px;
+    }
+
+    .apt-card {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: 20px;
+      padding: 18px 20px;
+      backdrop-filter: blur(12px);
+      box-shadow: 0 15px 35px rgba(0,0,0,0.4);
+    }
+
+    .apt-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #1e3a8a;
+      color: #93c5fd;
+      font-size: 13px;
+      font-weight: 700;
+      padding: 5px 12px;
+      border-radius: 20px;
+      margin-bottom: 10px;
+    }
+
+    .apt-title {
+      font-size: 24px;
+      font-weight: 800;
+      color: #ffffff;
+      line-height: 1.25;
+      margin-bottom: 6px;
+    }
+
+    .apt-price {
+      font-size: 28px;
+      font-weight: 900;
+      color: #22c55e;
+      margin-bottom: 14px;
+    }
+
+    .apt-price span {
+      font-size: 16px;
+      color: #94a3b8;
+      font-weight: 500;
+    }
+
+    .apt-features-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+
+    .apt-feat {
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 8px;
+      padding: 6px 10px;
+      font-size: 12px;
+      font-weight: 600;
+      color: #e2e8f0;
+    }
+
+    .doc-preview {
+      background: #ffffff;
+      color: #1e293b;
+      border-radius: 14px;
+      padding: 16px 18px;
+      border-left: 6px solid #2563eb;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.25);
+    }
+
+    .doc-header {
+      font-size: 13px;
+      color: #64748b;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+    }
+
+    .doc-title {
+      font-size: 22px;
+      font-weight: 900;
+      color: #0f172a;
+      direction: rtl;
+    }
+
+    .host-row {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 16px;
+      padding: 14px 18px;
+    }
+
+    .host-avatar {
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #f59e0b, #d97706);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 26px;
+      border: 2px solid #fbbf24;
+      flex-shrink: 0;
+    }
+
+    .host-info h4 {
+      font-size: 17px;
+      font-weight: 700;
+      color: #f8fafc;
+      margin-bottom: 2px;
+    }
+
+    .host-info p {
+      font-size: 13px;
+      color: #94a3b8;
+    }
+
+    /* ========================================================
+       СЦЕНА 2: ШОК-МОМЕНТ (חָזֶה вместо חוֹזֶה)
+       ======================================================== */
+    #scene-fail {
+      background: radial-gradient(circle at center, #26122c 0%, #0d0814 100%);
+      display: flex;
+      flex-direction: column;
+      padding: 85px 18px 24px;
+      gap: 16px;
+    }
+
+    .shake-active {
+      animation: screenShake 0.4s ease-in-out;
+    }
+
+    @keyframes screenShake {
+      0%, 100% { transform: translateX(0); }
+      20%, 60% { transform: translateX(-8px) rotate(-1deg); }
+      40%, 80% { transform: translateX(8px) rotate(1deg); }
+    }
+
+    .dialogue-box {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .bubble {
+      padding: 16px 20px;
+      border-radius: 20px;
+      max-width: 90%;
+      position: relative;
+      animation: popIn 0.35s ease forwards;
+    }
+
+    .bubble-student {
+      align-self: flex-start;
+      background: #1e293b;
+      border: 2px solid #3b82f6;
+      border-bottom-left-radius: 4px;
+      color: #fff;
+    }
+
+    .bubble-sender {
+      font-size: 12px;
+      font-weight: 700;
+      color: #60a5fa;
+      margin-bottom: 6px;
+      text-transform: uppercase;
+    }
+
+    .bubble-hebrew {
+      font-size: 24px;
+      font-weight: 800;
+      direction: rtl;
+      line-height: 1.4;
+    }
+
+    .bubble-hebrew .wrong-word {
+      color: #ef4444;
+      background: rgba(239, 68, 68, 0.25);
+      padding: 2px 8px;
+      border-radius: 8px;
+      border: 2px solid #ef4444;
+      display: inline-block;
+      animation: pulseRed 1s infinite alternate;
+    }
+
+    @keyframes pulseRed {
+      0% { transform: scale(1); }
+      100% { transform: scale(1.08); }
+    }
+
+    .bubble-landlady {
+      align-self: flex-end;
+      background: #7f1d1d;
+      border: 2px solid #ef4444;
+      border-bottom-right-radius: 4px;
+      color: #fff;
+      box-shadow: 0 10px 25px rgba(239, 68, 68, 0.4);
+    }
+
+    .bubble-landlady .bubble-sender {
+      color: #fca5a5;
+    }
+
+    .bubble-landlady .bubble-hebrew {
+      font-size: 34px;
+      font-weight: 900;
+      color: #ffffff;
+      text-align: center;
+    }
+
+    .fail-center-card {
+      background: rgba(239, 68, 68, 0.12);
+      border: 2px solid #ef4444;
+      border-radius: 18px;
+      padding: 16px 18px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .fail-center-title {
+      font-size: 18px;
+      font-weight: 900;
+      color: #fca5a5;
+      text-transform: uppercase;
+    }
+
+    .fail-center-row {
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      background: rgba(0, 0, 0, 0.35);
+      border-radius: 12px;
+      padding: 10px;
+    }
+
+    .fail-item {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .fail-item .word {
+      font-size: 22px;
+      font-weight: 900;
+    }
+
+    .fail-item .mean {
+      font-size: 13px;
+      color: #cbd5e1;
+    }
+
+    /* ========================================================
+       СЦЕНА 3: УЛЬПАН АЛЕФ — ИНТЕРАКТИВНЫЙ РАЗБОР
+       ======================================================== */
+    #scene-solution {
+      background: linear-gradient(180deg, #091326 0%, #040915 100%);
+      display: flex;
+      flex-direction: column;
+      padding: 85px 18px 24px;
+      gap: 14px;
+    }
+
+    .compare-container {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .compare-card {
+      border-radius: 18px;
+      padding: 16px 18px;
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.3s ease;
+    }
+
+    .card-correct {
+      background: linear-gradient(135deg, rgba(34, 197, 94, 0.18) 0%, rgba(16, 185, 129, 0.1) 100%);
+      border: 2px solid #22c55e;
+      box-shadow: 0 10px 25px rgba(34, 197, 94, 0.25);
+    }
+
+    .card-wrong {
+      background: linear-gradient(135deg, rgba(239, 68, 68, 0.18) 0%, rgba(185, 28, 28, 0.1) 100%);
+      border: 2px solid #ef4444;
+    }
+
+    .card-label {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+
+    .card-status {
+      font-size: 12px;
+      font-weight: 800;
+      text-transform: uppercase;
+      padding: 4px 10px;
+      border-radius: 8px;
+    }
+
+    .status-correct { background: #22c55e; color: #052e16; }
+    .status-wrong { background: #ef4444; color: #450a0a; }
+
+    .card-hebrew {
+      font-size: 40px;
+      font-weight: 900;
+      direction: rtl;
+      line-height: 1.2;
+      margin-bottom: 4px;
+    }
+
+    .card-hebrew .vav-highlight {
+      color: #facc15;
+      text-shadow: 0 0 14px rgba(250, 204, 21, 0.9);
+      text-decoration: underline;
+    }
+
+    .card-trans {
+      font-size: 15px;
+      color: #cbd5e1;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .card-meaning {
+      font-size: 20px;
+      font-weight: 800;
+      color: #ffffff;
+    }
+
+    .card-example {
+      font-size: 14px;
+      color: #94a3b8;
+      margin-top: 6px;
+      direction: rtl;
+      background: rgba(0,0,0,0.25);
+      padding: 4px 8px;
+      border-radius: 6px;
+    }
+
+    .audio-indicator {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      color: #86efac;
+      font-weight: 700;
+    }
+
+    .audio-wave-bar {
+      display: inline-block;
+      width: 4px;
+      height: 14px;
+      background: #22c55e;
+      border-radius: 2px;
+      animation: waveBounce 0.8s infinite alternate;
+    }
+
+    .audio-wave-bar:nth-child(2) { height: 20px; animation-delay: 0.2s; }
+    .audio-wave-bar:nth-child(3) { height: 12px; animation-delay: 0.4s; }
+
+    @keyframes waveBounce {
+      0% { transform: scaleY(0.4); }
+      100% { transform: scaleY(1.3); }
+    }
+
+    .pealim-tag {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      padding: 12px;
+      font-size: 13px;
+      color: #93c5fd;
+      font-weight: 700;
+    }
+
+    /* Виртуальный тач-курсор */
+    #touch-cursor {
+      position: absolute;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.85);
+      border: 3px solid #3b82f6;
+      box-shadow: 0 0 20px rgba(59, 130, 246, 0.8);
+      pointer-events: none;
+      z-index: 2000;
+      opacity: 0;
+      transform: translate(-50%, -50%) scale(1);
+      transition: transform 0.15s ease, opacity 0.2s ease;
+    }
+
+    #touch-cursor.clicking {
+      transform: translate(-50%, -50%) scale(0.75);
+      background: #60a5fa;
+    }
+
+    /* ========================================================
+       СЦЕНА 4: ФИНАЛЬНЫЙ СПЛЭШ (НЕ КРАСНЕЙ В ИЗРАИЛЕ)
+       ======================================================== */
+    #scene-outro {
+      background: radial-gradient(circle at center, #172554 0%, #030712 100%);
+      display: flex;
+      flex-direction: column;
+      padding: 85px 20px 30px;
+      justify-content: space-between;
+      text-align: center;
+    }
+
+    .outro-logo-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .outro-icon {
+      width: 64px;
+      height: 64px;
+      background: linear-gradient(135deg, #2563eb, #3b82f6);
+      border-radius: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 32px;
+      box-shadow: 0 10px 25px rgba(37, 99, 235, 0.5);
+    }
+
+    .outro-brand {
+      font-size: 28px;
+      font-weight: 900;
+      letter-spacing: -0.5px;
+      color: #fff;
+    }
+
+    .outro-brand span {
+      color: #60a5fa;
+    }
+
+    .outro-pitch {
+      font-size: 26px;
+      font-weight: 900;
+      color: #facc15;
+      line-height: 1.25;
+      text-transform: uppercase;
+      margin: 14px 0 6px;
+      text-shadow: 0 2px 10px rgba(0,0,0,0.5);
+    }
+
+    .outro-subpitch {
+      font-size: 15px;
+      color: #cbd5e1;
+      font-weight: 500;
+      line-height: 1.4;
+    }
+
+    .outro-features {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin: 18px 0;
+    }
+
+    .feature-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      padding: 10px 14px;
+      font-size: 14px;
+      font-weight: 600;
+      color: #f1f5f9;
+      text-align: left;
+    }
+
+    .cta-button {
+      background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+      color: #ffffff;
+      font-size: 20px;
+      font-weight: 900;
+      padding: 18px 24px;
+      border-radius: 16px;
+      box-shadow: 0 12px 30px rgba(34, 197, 94, 0.4);
+      animation: pulseBtn 1.5s infinite alternate;
+      border: none;
+      cursor: pointer;
+      display: block;
+      width: 100%;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    @keyframes pulseBtn {
+      0% { transform: scale(1); box-shadow: 0 8px 20px rgba(34, 197, 94, 0.4); }
+      100% { transform: scale(1.04); box-shadow: 0 14px 35px rgba(34, 197, 94, 0.7); }
+    }
+
+    /* Место под динамическую промо-плашку FFmpeg */
+    .promo-spacer {
+      height: 110px;
+      width: 100%;
+    }
+  </style>
+</head>
+<body>
+  <div id="phone-container">
+    <!-- Динамические титры -->
+    <div class="reels-subtitles">
+      <div id="sub-badge" class="sub-badge">
+        <span id="sub-text">СЪЁМ КВАРТИРЫ В ИЗРАИЛЕ 🔑</span>
+      </div>
+    </div>
+
+    <!-- Тач курсор -->
+    <div id="touch-cursor"></div>
+
+    <!-- СЦЕНА 1: СЪЁМ КВАРТИРЫ -->
+    <div id="scene-intro" class="scene active">
+      <div class="apt-card">
+        <div class="apt-badge">📍 ТЕЛЬ-АВИВ • ФЛОРЕНТИН</div>
+        <div class="apt-title">דירת 3 חדרים מרווחת</div>
+        <div class="apt-price">₪6,800 <span>/ חודש</span></div>
+
+        <div class="apt-features-row">
+          <span class="apt-feat">🔑 3 комнаты</span>
+          <span class="apt-feat">📐 85 м²</span>
+          <span class="apt-feat">❄️ Мазган</span>
+          <span class="apt-feat">📦 Лифт</span>
+        </div>
+
+        <div class="doc-preview">
+          <div class="doc-header">Официальный документ</div>
+          <div class="doc-title">חוֹזֶה שְׂכִירוּת דִּירָה</div>
+        </div>
+      </div>
+
+      <div class="host-row">
+        <div class="host-avatar">👩‍💼</div>
+        <div class="host-info">
+          <h4>Ривка • Хозяйка квартиры</h4>
+          <p>«Шалом! Всё готово к подписанию»</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- СЦЕНА 2: ШОК-МОМЕНТ -->
+    <div id="scene-fail" class="scene">
+      <div class="dialogue-box">
+        <div class="bubble bubble-student">
+          <div class="bubble-sender">Ученик (уверенно):</div>
+          <div class="bubble-hebrew">
+            שָׁלוֹם! בָּאתִי לַחְתּוֹם עַל <span class="wrong-word">הַחָזֶה</span>!
+          </div>
+        </div>
+
+        <div class="bubble bubble-landlady">
+          <div class="bubble-sender">Хозяйка:</div>
+          <div class="bubble-hebrew">?עַל מָה 😳</div>
+        </div>
+      </div>
+
+      <div class="fail-center-card">
+        <div class="fail-center-title">🤦‍♂️ КОНФУЗ ГОДА: ПЕРЕПУТАЛ 1 БУКВУ!</div>
+        <div class="fail-center-row">
+          <div class="fail-item" style="color: #22c55e;">
+            <span class="word">חוֹזֶה</span>
+            <span class="mean">КОНТРАКТ 📄</span>
+          </div>
+          <div style="font-size: 24px; color: #ef4444; font-weight: 900;">≠</div>
+          <div class="fail-item" style="color: #ef4444;">
+            <span class="word">חָזֶה</span>
+            <span class="mean">ГРУДЬ 🤦‍♂️</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- СЦЕНА 3: УЛЬПАН АЛЕФ — ИНТЕРАКТИВНЫЙ РАЗБОР -->
+    <div id="scene-solution" class="scene">
+      <div class="compare-container">
+        <!-- ПРАВИЛЬНОЕ СЛОВО -->
+        <div id="card-correct" class="compare-card card-correct">
+          <div class="card-label">
+            <span class="card-status status-correct">✓ ПРАВИЛЬНО</span>
+            <div class="audio-indicator">
+              <span class="audio-wave-bar"></span>
+              <span class="audio-wave-bar"></span>
+              <span class="audio-wave-bar"></span>
+              <span>Звук Pealim</span>
+            </div>
+          </div>
+          <div class="card-hebrew"><span class="vav-highlight">חוֹ</span>זֶה</div>
+          <div class="card-trans">[хозэ́] • м.р.</div>
+          <div class="card-meaning">ДОГОВОР / КОНТРАКТ 📄</div>
+          <div class="card-example">דוגמה: «חָתַמְתִּי עַל הַחוֹזֶה» (я подписал контракт)</div>
+        </div>
+
+        <!-- НЕПРАВИЛЬНОЕ СЛОВО -->
+        <div class="compare-card card-wrong">
+          <div class="card-label">
+            <span class="card-status status-wrong">✕ ОШИБКА</span>
+          </div>
+          <div class="card-hebrew">חָזֶה</div>
+          <div class="card-trans">[хазэ́] • м.р.</div>
+          <div class="card-meaning">ГРУДЬ / ГРУДИНКА 🍗</div>
+          <div class="card-example">דוגמה: «חֲזֵה עוֹף בַּסּוּפֶּר» (куриная грудка в супермаркете)</div>
+        </div>
+      </div>
+
+      <div class="pealim-tag">
+        <span>🔍 Единый мастер-словарь Pealim • כתיב מלא с огласовками</span>
+      </div>
+    </div>
+
+    <!-- СЦЕНА 4: ФИНАЛЬНЫЙ СПЛЭШ -->
+    <div id="scene-outro" class="scene">
+      <div class="outro-logo-wrap">
+        <div class="outro-icon">🇮🇱</div>
+        <div class="outro-brand">УЛЬПАН <span>АЛЕФ</span></div>
+      </div>
+
+      <div>
+        <div class="outro-pitch">НЕ КРАСНЕЙ В ИЗРАИЛЕ! 😳❌</div>
+        <div class="outro-subpitch">Учи живой язык улиц и реальных ситуаций без неловких ошибок</div>
+      </div>
+
+      <div class="outro-features">
+        <div class="feature-item">⚡ <b>Разбор каждого слова</b> в предложении в 1 клик</div>
+        <div class="feature-item">📞 <b>Симулятор звонков:</b> курьер, поликлиника, банк</div>
+        <div class="feature-item">🎧 <b>Слуховой тренажёр:</b> учи в наушниках без экрана</div>
+      </div>
+
+      <button class="cta-button">ПОПРОБОВАТЬ БЕСПЛАТНО 🚀</button>
+
+      <div class="promo-spacer"></div>
+    </div>
+  </div>
+
+  <script>
+    // Скрипт таймлайна для Playwright
+    window.startReelsTimeline = function(timings) {
+      console.log('Starting timeline with timings:', timings);
+
+      const subText = document.getElementById('sub-text');
+      const scenes = {
+        intro: document.getElementById('scene-intro'),
+        fail: document.getElementById('scene-fail'),
+        solution: document.getElementById('scene-solution'),
+        outro: document.getElementById('scene-outro'),
+      };
+      const cursor = document.getElementById('touch-cursor');
+
+      function activateScene(sceneKey, subHtml) {
+        Object.values(scenes).forEach(s => s.classList.remove('active'));
+        if (scenes[sceneKey]) scenes[sceneKey].classList.add('active');
+        if (subHtml) subText.innerHTML = subHtml;
+      }
+
+      // 1. Старт: Введение (Съём квартиры)
+      const subBadge = document.getElementById('sub-badge');
+      if (subBadge) subBadge.style.display = 'inline-block';
+      activateScene('intro', 'СЪЁМ КВАРТИРЫ В ИЗРАИЛЕ 🔑');
+
+      // 2. Момент конфуза
+      setTimeout(() => {
+        activateScene('fail', '<span class="red">«Я ПРИШЁЛ ПОДПИСАТЬ ГРУДЬ!» 😳</span>');
+        scenes.fail.classList.add('shake-active');
+      }, timings.tFail);
+
+      // 3. Ульпан Алеф: Интерактивный разбор
+      setTimeout(() => {
+        activateScene('solution', '<span class="highlight">ОДНА БУКВА МЕНЯЕТ ВСЁ! 📄</span>');
+
+        // Анимация клика курсора на правильное слово
+        setTimeout(() => {
+          const card = document.getElementById('card-correct');
+          if (card) {
+            const rect = card.getBoundingClientRect();
+            cursor.style.left = (rect.left + rect.width / 2) + 'px';
+            cursor.style.top = (rect.top + rect.height / 2) + 'px';
+            cursor.style.opacity = '1';
+
+            setTimeout(() => {
+              cursor.classList.add('clicking');
+              setTimeout(() => {
+                cursor.classList.remove('clicking');
+                cursor.style.opacity = '0';
+              }, 250);
+            }, 300);
+          }
+        }, 600);
+      }, timings.tSolution);
+
+      // 4. Финал / Outro — скрываем верхнюю плашку, чтобы не дублировать
+      setTimeout(() => {
+        if (subBadge) subBadge.style.display = 'none';
+        activateScene('outro');
+      }, timings.tOutro);
+    };
+  </script>
+</body>
+</html>

@@ -38,10 +38,30 @@ export async function POST(req: NextRequest) {
     }
 
     // Валидируем: код должен существовать и быть активным
-    const promoRes = await db.query(
+    let promoRes = await db.query(
       'SELECT * FROM ulpana_promo_codes WHERE UPPER(code) = $1 AND is_active = true',
       [normalizedCode]
     );
+
+    // Авто-инициализация системных промокодов LATTE_MAMA, TG_MAMA и MOMS при первом обращении
+    if (promoRes.rows.length === 0 && (normalizedCode === 'LATTE_MAMA' || normalizedCode === 'MOMS' || normalizedCode === 'TG_MAMA')) {
+      const channel = normalizedCode === 'TG_MAMA' ? 'tg' : normalizedCode === 'LATTE_MAMA' ? 'fb' : 'other';
+      const postDesc = normalizedCode === 'TG_MAMA'
+        ? 'Пост для мам в Telegram-канале @ulpana_il'
+        : normalizedCode === 'LATTE_MAMA'
+        ? 'Пост для мам в Facebook «Тыквенный латте»'
+        : 'Спецкод: Мамы Израиля';
+      await db.query(
+        `INSERT INTO ulpana_promo_codes (id, code, days_valid, max_uses, used_count, is_active, code_type, channel, description)
+         VALUES ($1, $2, $3, $4, 0, true, 'post', $5, $6)
+         ON CONFLICT (code) DO NOTHING`,
+        [`promo_${normalizedCode.toLowerCase()}_system`, normalizedCode, 30, 1000, channel, postDesc]
+      );
+      promoRes = await db.query(
+        'SELECT * FROM ulpana_promo_codes WHERE UPPER(code) = $1 AND is_active = true',
+        [normalizedCode]
+      );
+    }
 
     if (promoRes.rows.length === 0) {
       return NextResponse.json({ error: 'Неверный или недействительный промокод' }, { status: 400 });

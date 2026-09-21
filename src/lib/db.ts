@@ -117,6 +117,10 @@ async function initializeDatabase() {
         is_active BOOLEAN DEFAULT TRUE,
         created_at TIMESTAMPTZ DEFAULT NOW()
       );
+      ALTER TABLE ulpana_promo_codes ADD COLUMN IF NOT EXISTS code_type TEXT DEFAULT 'general';
+      ALTER TABLE ulpana_promo_codes ADD COLUMN IF NOT EXISTS channel TEXT DEFAULT 'tg';
+      ALTER TABLE ulpana_promo_codes ADD COLUMN IF NOT EXISTS post_link TEXT DEFAULT NULL;
+      ALTER TABLE ulpana_promo_codes ADD COLUMN IF NOT EXISTS description TEXT DEFAULT NULL;
     `);
 
     // 5. Таблица токенов авторизации через Telegram-бота (DeepLink 1-Click)

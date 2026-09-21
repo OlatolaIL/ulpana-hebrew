@@ -40,8 +40,10 @@ export const DeckCard: React.FC<DeckCardProps> = ({
   const isAccounting = deck.category === 'accounting';
   const isLibrarian = deck.category === 'librarian';
   const isCarWash = deck.category === 'carWash';
+  const isMom = deck.category === 'mom';
 
   const getCategoryBadgeLabel = () => {
+    if (isMom) return '👩‍👧 Мама в Израиле';
     if (isCaregiver) return '👩‍⚕️ Метапелет';
     if (isAutoRepair) return '🔧 Автомастерская';
     if (isKindergarten) return '👶 Детский сад';
@@ -53,6 +55,7 @@ export const DeckCard: React.FC<DeckCardProps> = ({
   };
 
   const getCategoryBadgeStyle = () => {
+    if (isMom) return 'bg-pink-50 dark:bg-pink-950/60 text-pink-700 dark:text-pink-300 border border-pink-200/60 dark:border-pink-800';
     if (isCaregiver) return 'bg-teal-50 dark:bg-teal-950/60 text-teal-700 dark:text-teal-300 border border-teal-200/60 dark:border-teal-800';
     if (isAutoRepair) return 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200/60 dark:border-amber-800';
     if (isKindergarten) return 'bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border border-rose-200/60 dark:border-rose-800';
@@ -65,6 +68,7 @@ export const DeckCard: React.FC<DeckCardProps> = ({
   };
 
   const getIconWrapperStyle = () => {
+    if (isMom) return 'bg-pink-100 dark:bg-pink-900/50 text-pink-600 dark:text-pink-400';
     if (isCaregiver) return 'bg-teal-100 dark:bg-teal-900/50 text-teal-600 dark:text-teal-400';
     if (isAutoRepair) return 'bg-amber-100 dark:bg-amber-900/50 text-amber-600 dark:text-amber-400';
     if (isKindergarten) return 'bg-rose-100 dark:bg-rose-900/50 text-rose-600 dark:text-rose-400';
@@ -76,7 +80,9 @@ export const DeckCard: React.FC<DeckCardProps> = ({
     return 'bg-purple-100 dark:bg-purple-900/50 text-purple-600 dark:text-purple-400';
   };
 
-  const isAuthRequired = isDeckAuthRequired(deck.id, Boolean(userProfile.isLoggedIn));
+  const effectivePromo = userProfile.promoPending || (typeof window !== 'undefined' ? localStorage.getItem('ulpana_pending_promo') : null);
+  const isAlwaysFree = isDeckAlwaysFree(deck.id, effectivePromo);
+  const isAuthRequired = isDeckAuthRequired(deck.id, Boolean(userProfile.isLoggedIn), effectivePromo);
 
   const handleCardClick = () => {
     if (isAuthRequired) {
@@ -125,12 +131,8 @@ export const DeckCard: React.FC<DeckCardProps> = ({
               <h3 className="font-bold text-slate-900 dark:text-white text-sm sm:text-base truncate group-hover:text-blue-600 dark:group-hover:text-blue-400 transition">
                 {deck.title}
               </h3>
-              {isDeckAlwaysFree(deck.id) ? (
-                <TierBadge
-                  tier="always-free"
-                  size="xs"
-                  customLabel="Бесплатно"
-                />
+              {isAlwaysFree ? (
+                <TierBadge tier="always-free" size="xs" />
               ) : isAuthRequired ? (
                 <TierBadge
                   tier="free-registration"
@@ -176,6 +178,8 @@ export const DeckCard: React.FC<DeckCardProps> = ({
           className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 text-white shadow-xs transition active:scale-98 cursor-pointer ${
             isAuthRequired
               ? 'bg-indigo-600 hover:bg-indigo-700'
+              : isMom
+              ? 'bg-pink-600 hover:bg-pink-700'
               : isAlef
               ? 'bg-blue-600 hover:bg-blue-700'
               : 'bg-purple-600 hover:bg-purple-700'

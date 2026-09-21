@@ -675,8 +675,14 @@ function syncMasterLexicon() {
 
     if (plain) lexicon[plain] = item;
     if (cleanKey) lexicon[cleanKey] = item;
-    if (entry.hebrew) lexicon[entry.hebrew] = item;
-    if (key) lexicon[key] = item;
+    if (entry.hebrew) {
+      lexicon[entry.hebrew] = item;
+      lexicon[entry.hebrew.normalize('NFC')] = item;
+    }
+    if (key) {
+      lexicon[key] = item;
+      lexicon[key.normalize('NFC')] = item;
+    }
 
     if (entry.root) {
       const cleanRoot = entry.root.replace(/[^א-ת]/g, '');
@@ -904,6 +910,31 @@ async function scrapeAllWords(options = {}) {
       if (!masterDict[key].pealimPath && item.path) masterDict[key].pealimPath = item.path;
       if (!masterDict[key].root && item.root) masterDict[key].root = item.root;
       if (!masterDict[key].binyan && item.binyan) masterDict[key].binyan = item.binyan;
+
+      // Если в каталоге встретился омограф с иными огласовками/значением (например, אַתְּ vs אֶת),
+      // сохраняем его под точным огласованным ключом, чтобы омографы не терялись
+      if (item.hebrew && item.hebrew !== masterDict[key].hebrew) {
+        const vocalizedKey = item.hebrew.normalize('NFC');
+        if (!masterDict[vocalizedKey]) {
+          masterDict[vocalizedKey] = {
+            hebrew: item.hebrew,
+            hebrewPlain: item.hebrewPlain,
+            transcription: item.transcription,
+            translation: item.meaning,
+            partOfSpeech: item.partOfSpeech,
+            binyan: item.binyan || null,
+            gender: item.gender || null,
+            root: item.root || null,
+            audio: item.audio || null,
+            slug: item.slug,
+            pealimPath: item.path,
+            rootFamily: [],
+            conjugation: null,
+            source: 'pealim_catalog',
+          };
+          initialNew++;
+        }
+      }
     }
   }
   if (initialNew > 0) {

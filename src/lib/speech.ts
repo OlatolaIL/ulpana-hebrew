@@ -296,6 +296,9 @@ const CURATED_STUDIO_AUDIO: Record<string, string> = {
   'בָּאסָה': '/audio/words/baasa.mp3',
   'יאללה': '/audio/words/yalla.mp3',
   'יַאלְלָה': '/audio/words/yalla.mp3',
+  // Огласованные формы омографа את (местоимение «ты» ж.р., Pealim ID 4645)
+  'אַתְּ': 'https://audio.pealim.com/v0/sv/sv6n9j9pyogt.mp3',
+  'אַתְּ': 'https://audio.pealim.com/v0/sv/sv6n9j9pyogt.mp3',
 };
 
 /**
@@ -340,18 +343,35 @@ export function getCuratedSentenceAudio(sentence: string): string | null {
 
 /**
  * Поиск студийной аудиозаписи слова из мастер-словаря Pealim (только для точных словарных форм)
+ * СТРОГИЙ ПРИОРИТЕТ: огласованная форма (NFC) проверяется первой, чтобы исключить коллизии омографов (את - ат / эт)
  */
 export function getStudioAudioForWord(word: string): string | null {
   if (!word) return null;
-  const clean = stripNikkud(word).trim();
+  const trimmed = word.trim();
+  const nfcWord = trimmed.normalize('NFC');
+  const clean = stripNikkud(trimmed).trim();
   if (!clean || clean.includes(' ')) return null;
 
-  // 1. Проверяем наличие в кастомном реестре исключений (сленг)
-  const normalizedKey = clean.replace(/["״׳']/g, '');
-  if (CURATED_STUDIO_AUDIO[clean] || CURATED_STUDIO_AUDIO[word.trim()] || CURATED_STUDIO_AUDIO[normalizedKey]) {
-    return CURATED_STUDIO_AUDIO[clean] || CURATED_STUDIO_AUDIO[word.trim()] || CURATED_STUDIO_AUDIO[normalizedKey];
+  // 1. Приоритет точного огласованного совпадения в кастомном реестре (сленг и омографы)
+  if (CURATED_STUDIO_AUDIO[nfcWord] || CURATED_STUDIO_AUDIO[trimmed]) {
+    return CURATED_STUDIO_AUDIO[nfcWord] || CURATED_STUDIO_AUDIO[trimmed];
   }
 
+  // 2. Приоритет точного огласованного совпадения в мастере Pealim (NFC и сырая форма)
+  try {
+    const vocalizedEntry = PEALIM_MASTER_LEXICON[nfcWord] || PEALIM_MASTER_LEXICON[trimmed];
+    if (vocalizedEntry?.audio) {
+      return vocalizedEntry.audio;
+    }
+  } catch {}
+
+  // 3. Проверяем наличие в кастомном реестре исключений по неогласованной форме
+  const normalizedKey = clean.replace(/["״׳']/g, '');
+  if (CURATED_STUDIO_AUDIO[clean] || CURATED_STUDIO_AUDIO[normalizedKey]) {
+    return CURATED_STUDIO_AUDIO[clean] || CURATED_STUDIO_AUDIO[normalizedKey];
+  }
+
+  // 4. Поиск по неогласованной форме в мастере Pealim (фолбэк только если огласовка не дала результата)
   try {
     const entry = PEALIM_MASTER_LEXICON[clean];
     return entry?.audio || null;
@@ -557,7 +577,7 @@ export function speakHebrew(
     // 2. Проверяем наличие студийного аудио для одиночных слов или предгенерированных предложений со сленгом (R-24)
     if (options.preferStudioAudio !== false && typeof Audio !== 'undefined') {
       const cleanWord = stripNikkud(text).trim();
-      const studioWordAudioUrl = !cleanWord.includes(' ') ? getStudioAudioForWord(cleanWord) : null;
+      const studioWordAudioUrl = !cleanWord.includes(' ') ? getStudioAudioForWord(text) : null;
       const curatedSentenceAudioUrl = !studioWordAudioUrl ? getCuratedSentenceAudio(text) : null;
       const targetAudioUrl = studioWordAudioUrl || curatedSentenceAudioUrl;
 
