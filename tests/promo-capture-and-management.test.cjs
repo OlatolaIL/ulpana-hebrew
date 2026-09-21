@@ -56,7 +56,8 @@ test('4. src/components/SubscriptionModal.tsx supports pending promo and beta no
 
   assert.ok(content.includes('ulpana_pending_promo'), 'SubscriptionModal must check ulpana_pending_promo');
   assert.ok(content.includes('savedPromo'), 'SubscriptionModal must maintain savedPromo state');
-  assert.ok(content.includes("localStorage.removeItem('ulpana_pending_promo')"), 'SubscriptionModal must clean storage upon activation');
+  // Promo is intentionally KEPT in localStorage for "free forever" mom decks (not removed on activation)
+  assert.ok(content.includes('onPromoActivated'), 'SubscriptionModal must call onPromoActivated callback');
 });
 
 test('5. src/app/admin/page.tsx contains 1-click link copying and channel presets', () => {

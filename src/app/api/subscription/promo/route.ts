@@ -78,12 +78,25 @@ export async function POST(req: NextRequest) {
         `UPDATE ulpana_users SET promo_pending = $1, updated_at = NOW() WHERE id = $2`,
         [normalizedCode, session.id]
       );
-      return NextResponse.json({
+      const updatedUser: UserSession = {
+        ...session,
+        promoPending: normalizedCode,
+      };
+      const token = await createSessionToken(updatedUser);
+      const response = NextResponse.json({
         success: true,
         pending: true,
         message: `Промокод «${normalizedCode}» зафиксирован! PRO-доступ активируется автоматически после окончания беты.`,
-        user: session,
+        user: updatedUser,
       });
+      response.cookies.set('ulpana_session', token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 30 * 24 * 60 * 60,
+        path: '/',
+      });
+      return response;
     }
 
     // Обычный режим: активируем сразу

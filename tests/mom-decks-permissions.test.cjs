@@ -66,8 +66,8 @@ test('Mom Decks: without mom promo, mom decks require auth and are not always fr
   }
 });
 
-test('Mom Decks: with promo LATTE_MAMA or MOMS, all 7 mom decks are always_free', () => {
-  for (const code of ['LATTE_MAMA', 'latte_mama', 'MOMS', 'moms']) {
+test('Mom Decks: with promo LATTE_MAMA, MOMS, or TG_MAMA, all 7 mom decks are always_free', () => {
+  for (const code of ['LATTE_MAMA', 'latte_mama', 'MOMS', 'moms', 'TG_MAMA', 'tg_mama']) {
     for (const deckId of MOM_DECK_IDS) {
       assert.equal(
         isDeckAlwaysFree(deckId, code),

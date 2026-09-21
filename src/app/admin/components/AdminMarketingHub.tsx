@@ -33,6 +33,8 @@ import {
   X,
   ChevronDown,
   ChevronUp,
+  Edit3,
+  Image as ImageIcon,
 } from 'lucide-react';
 
 export interface TargetCommunity {
@@ -147,6 +149,24 @@ export function AdminMarketingHub() {
   const [newPubStatus, setNewPubStatus] = useState<'draft' | 'scheduled' | 'published'>('published');
   const [newPubNotes, setNewPubNotes] = useState('');
   const [pubSaving, setPubSaving] = useState(false);
+
+  // Edit Publication state
+  const [editingPub, setEditingPub] = useState<PublicationItem | null>(null);
+  const [editPubTitle, setEditPubTitle] = useState('');
+  const [editPubCampaign, setEditPubCampaign] = useState('');
+  const [editPubVersion, setEditPubVersion] = useState('');
+  const [editPubVideoPath, setEditPubVideoPath] = useState('');
+  const [editPubImagePath, setEditPubImagePath] = useState('');
+  const [editPubCaption, setEditPubCaption] = useState('');
+  const [editPubChannel, setEditPubChannel] = useState<'tiktok' | 'youtube' | 'telegram' | 'facebook' | 'instagram'>('facebook');
+  const [editPubAccount, setEditPubAccount] = useState('');
+  const [editPubFormat, setEditPubFormat] = useState<'short_video' | 'post' | 'story' | 'storytelling' | 'poll'>('post');
+  const [editPubDeepLink, setEditPubDeepLink] = useState('/decks/moms');
+  const [editPubPromo, setEditPubPromo] = useState('LATTE_MAMA');
+  const [editPubLiveUrl, setEditPubLiveUrl] = useState('');
+  const [editPubStatus, setEditPubStatus] = useState<'draft' | 'scheduled' | 'published' | 'archived'>('draft');
+  const [editPubNotes, setEditPubNotes] = useState('');
+  const [editPubSaving, setEditPubSaving] = useState(false);
 
   // Leads state
   const [leads, setLeads] = useState<LeadItem[]>([]);
@@ -392,6 +412,83 @@ export function AdminMarketingHub() {
       console.error('Error creating publication', e);
     } finally {
       setPubSaving(false);
+    }
+  };
+
+  // Photo presets for quick selection
+  const MARKETING_PHOTO_PRESETS = [
+    {
+      name: '🏫 У ворот детского сада (גן ילדים)',
+      path: '/images/marketing/latte_mama_kindergarten.jpg',
+      desc: 'Мама и дочка у ворот с аутентичной ивритской вывеской «גן ילדים»',
+    },
+    {
+      name: '🌳 В парке с коляской',
+      path: '/images/marketing/latte_mama_park.jpg',
+      desc: 'Утренняя прогулка с коляской в тенистом парке',
+    },
+    {
+      name: '☕ На кухне с блокнотом и кофе',
+      path: '/images/marketing/latte_mama_kitchen.jpg',
+      desc: 'Чашка кофе, конспект иврита и смартфон',
+    },
+  ];
+
+  const handleOpenEditModal = (pub: PublicationItem) => {
+    setEditingPub(pub);
+    setEditPubTitle(pub.title || '');
+    setEditPubCampaign(pub.campaignTitle || '');
+    setEditPubVersion(pub.version || '');
+    setEditPubVideoPath(pub.videoPath || '');
+    setEditPubImagePath(pub.imagePath || '');
+    setEditPubCaption(pub.caption || '');
+    setEditPubChannel(pub.channel);
+    setEditPubAccount(pub.channelAccount || '');
+    setEditPubFormat(pub.format);
+    setEditPubDeepLink(pub.targetDeepLink || '/decks/moms');
+    setEditPubPromo(pub.promoCode || '');
+    setEditPubLiveUrl(pub.livePostUrl || '');
+    setEditPubStatus(pub.status || 'draft');
+    setEditPubNotes(pub.notes || '');
+  };
+
+  const handleSaveEditPublication = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingPub || !editPubTitle.trim()) return;
+    setEditPubSaving(true);
+    try {
+      const res = await fetch('/api/admin/marketing/publications', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: editingPub.id,
+          title: editPubTitle.trim(),
+          campaignTitle: editPubCampaign ? editPubCampaign.trim() : undefined,
+          version: editPubVersion ? editPubVersion.trim() : undefined,
+          videoPath: editPubVideoPath ? editPubVideoPath.trim() : undefined,
+          imagePath: editPubImagePath ? editPubImagePath.trim() : undefined,
+          caption: editPubCaption ? editPubCaption.trim() : undefined,
+          channel: editPubChannel,
+          channelAccount: editPubAccount.trim(),
+          format: editPubFormat,
+          targetDeepLink: editPubDeepLink.trim(),
+          promoCode: editPubPromo.trim(),
+          livePostUrl: editPubLiveUrl.trim(),
+          status: editPubStatus,
+          notes: editPubNotes ? editPubNotes.trim() : undefined,
+        }),
+      });
+      if (res.ok) {
+        setEditingPub(null);
+        fetchPublications();
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Ошибка при сохранении публикации');
+      }
+    } catch (err: any) {
+      alert(`Ошибка сети: ${err.message}`);
+    } finally {
+      setEditPubSaving(false);
     }
   };
 
@@ -1137,6 +1234,16 @@ export function AdminMarketingHub() {
                                 <span>{publishingRowId === pub.id ? '...' : '⚡ В 1 клик'}</span>
                               </button>
                             )}
+
+                          <button
+                            type="button"
+                            onClick={() => handleOpenEditModal(pub)}
+                            className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-[11px] font-semibold transition border border-zinc-700 cursor-pointer shadow-xs"
+                            title="Редактировать текст, фото, ссылку и параметры публикации"
+                          >
+                            <Edit3 className="w-3.5 h-3.5 text-blue-400" />
+                            <span>Редактировать</span>
+                          </button>
 
                           <button
                             type="button"
@@ -1908,6 +2015,215 @@ export function AdminMarketingHub() {
           </div>
         </div>
       )}
+
+      {/* МОДАЛКА: РЕДАКТИРОВАТЬ ПУБЛИКАЦИЮ И ЗАМЕНИТЬ ФОТО/ТЕКСТ */}
+      {editingPub && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-zinc-900 rounded-2xl border border-zinc-800 p-6 max-w-2xl w-full shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
+              <h3 className="text-base font-bold text-zinc-100 flex items-center gap-2">
+                <Edit3 className="w-4 h-4 text-blue-400" />
+                <span>Редактирование публикации</span>
+              </h3>
+              <button
+                type="button"
+                onClick={() => setEditingPub(null)}
+                className="text-zinc-500 hover:text-zinc-300 cursor-pointer text-sm p-1"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEditPublication} className="space-y-4 text-xs">
+              {/* Тема / Заголовок */}
+              <div>
+                <label className="block text-zinc-400 font-semibold mb-1">Заголовок публикации:</label>
+                <input
+                  type="text"
+                  required
+                  value={editPubTitle}
+                  onChange={(e) => setEditPubTitle(e.target.value)}
+                  className="w-full bg-zinc-800 rounded-xl p-2.5 text-zinc-100 font-medium border border-zinc-700 outline-none focus:border-blue-500"
+                />
+              </div>
+
+              {/* Блок управления фото (Замена и предпросмотр) */}
+              <div className="p-3 rounded-xl bg-zinc-950/60 border border-zinc-800 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-zinc-300 flex items-center gap-1.5">
+                    <ImageIcon className="w-4 h-4 text-amber-400" />
+                    <span>Изображение публикации:</span>
+                  </span>
+                  {editPubImagePath && (
+                    <button
+                      type="button"
+                      onClick={() => setEditPubImagePath('')}
+                      className="text-[11px] text-zinc-500 hover:text-red-400"
+                    >
+                      Очистить фото
+                    </button>
+                  )}
+                </div>
+
+                {/* Быстрый выбор сгенерированных пресетов */}
+                <div className="space-y-1.5">
+                  <span className="text-[11px] text-zinc-400">Быстрый выбор фото:</span>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    {MARKETING_PHOTO_PRESETS.map((p) => {
+                      const isSelected = editPubImagePath === p.path;
+                      return (
+                        <button
+                          key={p.path}
+                          type="button"
+                          onClick={() => setEditPubImagePath(p.path)}
+                          className={`p-2 rounded-xl text-left transition border cursor-pointer flex flex-col justify-between gap-1.5 ${
+                            isSelected
+                              ? 'bg-blue-600/20 border-blue-500 text-blue-200 shadow-xs'
+                              : 'bg-zinc-800/80 hover:bg-zinc-800 border-zinc-700 text-zinc-300'
+                          }`}
+                        >
+                          <span className="font-bold text-[11px] leading-tight line-clamp-1">{p.name}</span>
+                          <span className="text-[10px] text-zinc-400 line-clamp-2">{p.desc}</span>
+                          {isSelected && (
+                            <span className="text-[10px] font-bold text-emerald-400 flex items-center gap-0.5">
+                              <Check className="w-3 h-3" /> Выбрано
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Путь к файлу вручную */}
+                <div>
+                  <label className="block text-[11px] text-zinc-400 mb-1">Путь к файлу на сервере:</label>
+                  <input
+                    type="text"
+                    placeholder="/images/marketing/...jpg"
+                    value={editPubImagePath}
+                    onChange={(e) => setEditPubImagePath(e.target.value)}
+                    className="w-full bg-zinc-800 rounded-xl p-2 text-zinc-200 border border-zinc-700 outline-none font-mono text-[11px]"
+                  />
+                </div>
+
+                {/* Предпросмотр выбранного фото */}
+                {editPubImagePath && (
+                  <div className="flex items-center gap-3 pt-1">
+                    <img
+                      src={editPubImagePath}
+                      alt="Предпросмотр"
+                      className="w-24 h-16 object-cover rounded-lg border border-zinc-700 shadow-md"
+                    />
+                    <div className="text-[11px] text-zinc-400">
+                      <p className="font-semibold text-zinc-200">Предпросмотр изображения</p>
+                      <p className="font-mono text-[10px] text-zinc-500 truncate max-w-xs">{editPubImagePath}</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Текст публикации (Caption) */}
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-zinc-400 font-semibold">Текст публикации (Пост / Описание):</label>
+                  <span className="text-zinc-500 text-[11px]">{editPubCaption.length} символов</span>
+                </div>
+                <textarea
+                  rows={9}
+                  value={editPubCaption}
+                  onChange={(e) => setEditPubCaption(e.target.value)}
+                  placeholder="Текст публикации..."
+                  className="w-full bg-zinc-800 rounded-xl p-3 text-zinc-100 border border-zinc-700 outline-none focus:border-blue-500 font-sans leading-relaxed text-xs resize-y"
+                />
+              </div>
+
+              {/* Площадка, Промокод и Статус */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-zinc-400 font-semibold mb-1">Площадка:</label>
+                  <select
+                    value={editPubChannel}
+                    onChange={(e) => setEditPubChannel(e.target.value as any)}
+                    className="w-full bg-zinc-800 rounded-xl p-2 text-zinc-200 border border-zinc-700 outline-none"
+                  >
+                    <option value="facebook">📘 Facebook</option>
+                    <option value="telegram">✈️ Telegram</option>
+                    <option value="youtube">▶️ YouTube</option>
+                    <option value="instagram">📸 Instagram</option>
+                    <option value="tiktok">🎵 TikTok</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-zinc-400 font-semibold mb-1">Промокод:</label>
+                  <input
+                    type="text"
+                    value={editPubPromo}
+                    onChange={(e) => setEditPubPromo(e.target.value.toUpperCase())}
+                    className="w-full bg-zinc-800 rounded-xl p-2 text-zinc-200 border border-zinc-700 outline-none font-mono"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-zinc-400 font-semibold mb-1">Статус:</label>
+                  <select
+                    value={editPubStatus}
+                    onChange={(e) => setEditPubStatus(e.target.value as any)}
+                    className="w-full bg-zinc-800 rounded-xl p-2 text-zinc-200 border border-zinc-700 outline-none font-semibold"
+                  >
+                    <option value="draft">⚪ Черновик / Готов</option>
+                    <option value="scheduled">🟡 Запланирован</option>
+                    <option value="published">🟢 Опубликован в эфире</option>
+                    <option value="archived">📦 В архив</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-zinc-400 font-semibold mb-1">Целевой экран (Deep Link):</label>
+                <input
+                  type="text"
+                  value={editPubDeepLink}
+                  onChange={(e) => setEditPubDeepLink(e.target.value)}
+                  placeholder="/decks/moms"
+                  className="w-full bg-zinc-800 rounded-xl p-2 text-zinc-200 border border-zinc-700 outline-none font-mono"
+                />
+              </div>
+
+              <div>
+                <label className="block text-zinc-400 font-semibold mb-1">Ссылка на эфирный пост (URL):</label>
+                <input
+                  type="url"
+                  value={editPubLiveUrl}
+                  onChange={(e) => setEditPubLiveUrl(e.target.value)}
+                  placeholder="https://facebook.com/groups/..."
+                  className="w-full bg-zinc-800 rounded-xl p-2 text-zinc-200 border border-zinc-700 outline-none font-mono"
+                />
+              </div>
+
+              {/* Кнопки действий */}
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-zinc-800">
+                <button
+                  type="button"
+                  onClick={() => setEditingPub(null)}
+                  className="px-4 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-semibold cursor-pointer"
+                >
+                  Отмена
+                </button>
+                <button
+                  type="submit"
+                  disabled={editPubSaving}
+                  className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold cursor-pointer transition disabled:opacity-50"
+                >
+                  {editPubSaving ? 'Сохранение...' : 'Сохранить изменения'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* МОДАЛКА: БЫСТРАЯ ПУБЛИКАЦИЯ (1-КЛИК ПОСТИНГ НА БОЕВОМ СЕРВЕРЕ) */}
       {isQuickPublishModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">

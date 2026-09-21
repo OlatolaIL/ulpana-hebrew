@@ -51,6 +51,12 @@ const FILTER_OPTIONS: FilterOption[] = [
     inactiveClass: 'bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100',
   },
   {
+    id: 'mom',
+    label: '👩‍👧 Мама в Израиле',
+    activeClass: 'bg-pink-600 text-white shadow-xs font-black shadow-pink-600/30 ring-2 ring-pink-400/50',
+    inactiveClass: 'bg-pink-50 dark:bg-pink-950/50 text-pink-700 dark:text-pink-300 hover:bg-pink-100 border border-pink-200/60 dark:border-pink-900/60',
+  },
+  {
     id: 'food',
     label: '🥐 Еда и кафе',
     activeClass: 'bg-amber-600 text-white shadow-xs',
@@ -116,12 +122,6 @@ const FILTER_OPTIONS: FilterOption[] = [
     activeClass: 'bg-sky-600 text-white shadow-xs',
     inactiveClass: 'bg-sky-50 dark:bg-sky-950/50 text-sky-700 dark:text-sky-300 hover:bg-sky-100',
   },
-  {
-    id: 'mom',
-    label: '👩‍👧 Мама в Израиле',
-    activeClass: 'bg-pink-600 text-white shadow-xs',
-    inactiveClass: 'bg-pink-50 dark:bg-pink-950/50 text-pink-700 dark:text-pink-300 hover:bg-pink-100',
-  },
 ];
 
 interface DeckFilterBarProps {
@@ -135,8 +135,19 @@ export const DeckFilterBar: React.FC<DeckFilterBarProps> = ({
   onFilterChange,
   totalDecksCount,
 }) => {
+  const containerRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    if (containerRef.current) {
+      const activeEl = containerRef.current.querySelector<HTMLButtonElement>('[data-active="true"]');
+      if (activeEl) {
+        activeEl.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+      }
+    }
+  }, [filter]);
+
   return (
-    <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar font-hebrew">
+    <div ref={containerRef} className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar font-hebrew scroll-smooth">
       {FILTER_OPTIONS.map((opt) => {
         const isActive = filter === opt.id;
         const label = opt.id === 'all' ? `${opt.label} (${totalDecksCount})` : opt.label;
@@ -144,8 +155,9 @@ export const DeckFilterBar: React.FC<DeckFilterBarProps> = ({
           <button
             key={opt.id}
             type="button"
+            data-active={isActive ? 'true' : undefined}
             onClick={() => onFilterChange(opt.id)}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition cursor-pointer ${
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition cursor-pointer shrink-0 ${
               isActive ? opt.activeClass : opt.inactiveClass
             }`}
           >

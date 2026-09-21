@@ -12,11 +12,26 @@ import { VerbConjugationView } from '@/components/VerbConjugationView';
 import { useModalHistory } from '@/lib/useHistoryState';
 import { TierBadge } from './TierBadge';
 import { useBannerCooldown } from '@/lib/useBannerCooldown';
-import { isDeckAuthRequired } from '@/lib/permissions';
+import { isDeckAuthRequired, isMomPromo } from '@/lib/permissions';
 import { DeckCard, DeckFilterBar, DeckWordsModal, DeckStats, DeckFilter } from './ThematicDecks';
 
 // Все колоды: тематические + профессиональные (слова могут пересекаться между профессиями)
 export const ALL_DECKS = [...THEMATIC_DECKS, ...PROFESSIONAL_DECKS];
+
+const resolveInitialFilter = (deckOrCategory?: string | null): DeckFilter => {
+  if (!deckOrCategory) return 'all';
+  const norm = deckOrCategory.toLowerCase().trim();
+  if (norm === 'moms' || norm === 'mom') return 'mom';
+  if (norm === 'caregiver' || norm === 'autorepair' || norm === 'kindergarten' || norm === 'doctor' || norm === 'accounting' || norm === 'librarian' || norm === 'carwash') {
+    return norm as DeckFilter;
+  }
+  if (norm === 'verbs' || norm === 'food' || norm === 'body' || norm === 'city' || norm === 'slang' || norm === 'alef' || norm === 'bet') {
+    return norm as DeckFilter;
+  }
+  const found = ALL_DECKS.find((d) => d.id === deckOrCategory);
+  if (found?.category === 'mom') return 'mom';
+  return 'all';
+};
 
 interface ThematicDecksViewProps {
   userProfile: UserProfile;
@@ -35,7 +50,7 @@ export const ThematicDecksView: React.FC<ThematicDecksViewProps> = ({
   onCloseInitialDeck,
   onRequireAuth,
 }) => {
-  const [filter, setFilter] = useState<DeckFilter>('all');
+  const [filter, setFilter] = useState<DeckFilter>(() => resolveInitialFilter(initialDeckId));
   const { isVisible: isBetaBannerVisible, dismiss: dismissBetaBanner } = useBannerCooldown('thematic_decks_beta');
 
   // Режим перемешивания слов для колод
@@ -67,8 +82,15 @@ export const ThematicDecksView: React.FC<ThematicDecksViewProps> = ({
 
   useEffect(() => {
     if (initialDeckId) {
+      const resolved = resolveInitialFilter(initialDeckId);
+      if (resolved !== 'all') {
+        setFilter(resolved);
+      }
       const found = ALL_DECKS.find((d) => d.id === initialDeckId);
       if (found) {
+        if (found.category === 'mom') {
+          setFilter('mom');
+        }
         if (isDeckAuthRequired(found.id, Boolean(userProfile.isLoggedIn), effectivePromo)) {
           onRequireAuth?.(found);
         } else {
@@ -232,6 +254,26 @@ export const ThematicDecksView: React.FC<ThematicDecksViewProps> = ({
               <X className="w-3.5 h-3.5" />
             </button>
           </div>
+        </div>
+      )}
+
+      {/* Баннер активности промокода для мам */}
+      {isMomPromo(effectivePromo) && (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 p-3.5 rounded-2xl bg-gradient-to-r from-pink-500/15 via-rose-500/10 to-pink-500/15 border border-pink-500/40 text-pink-950 dark:text-pink-100 text-xs animate-in fade-in">
+          <div className="flex items-center gap-2.5 min-w-0 flex-1">
+            <span className="text-xl shrink-0">👩‍👧</span>
+            <div>
+              <p className="font-bold text-pink-700 dark:text-pink-300">
+                Промокод «{effectivePromo}» активен!
+              </p>
+              <p className="text-pink-900/90 dark:text-pink-200/90 mt-0.5 leading-relaxed">
+                Все 7 колод направления «Мама в Израиле» (детский сад, поликлиника, аптека, школа, чаты и площадки) открыты для вас <strong>навсегда бесплатно</strong>.
+              </p>
+            </div>
+          </div>
+          <span className="self-end sm:self-auto px-2.5 py-1 rounded-full bg-pink-500/20 text-pink-700 dark:text-pink-300 font-extrabold text-[11px] border border-pink-500/30 whitespace-nowrap">
+            Бесплатно навсегда
+          </span>
         </div>
       )}
 

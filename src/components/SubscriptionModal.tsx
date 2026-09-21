@@ -65,16 +65,28 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
       const data = await res.json();
       if (res.ok && data.success) {
         setSuccessMsg(data.message);
+        const cleanCode = promoCode.trim().toUpperCase();
         if (data.pending) {
           // Бета: код зафиксирован в БД
           setPendingSaved(true);
-          try { localStorage.removeItem('ulpana_pending_promo'); } catch {}
+          try {
+            localStorage.setItem('ulpana_pending_promo', cleanCode);
+            localStorage.setItem('ulpana_referral_source', cleanCode);
+          } catch {}
+          confetti({ particleCount: 80, spread: 60, origin: { y: 0.6 } });
+          const userWithPromo: UserSession = {
+            ...(data.user || userProfile),
+            promoPending: cleanCode,
+          };
+          onPromoActivated(userWithPromo);
         } else {
           // После беты: PRO активирован
           confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
           onPromoActivated(data.user);
           setPromoCode('');
-          try { localStorage.removeItem('ulpana_pending_promo'); } catch {}
+          try {
+            localStorage.setItem('ulpana_pending_promo', cleanCode);
+          } catch {}
         }
       } else {
         if (data.requireAuth) {

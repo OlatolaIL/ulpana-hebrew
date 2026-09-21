@@ -328,15 +328,23 @@ export default function Home() {
         const response = await fetch('/api/auth/me', { cache: 'no-store' });
         if (!response.ok) throw new Error('Не удалось проверить сессию.');
         const data = await response.json();
+        const pendingPromo = promoParam || (typeof window !== 'undefined' ? localStorage.getItem('ulpana_pending_promo') : null);
         if (data.authenticated && data.user) {
           const loaded = await hydrateAccount(data.user);
           if (cancelled) return;
-          const updated = applyVipProfileEnhancements({ ...loaded, gender: data.gender || loaded.gender, fontStyle: data.fontStyle || loaded.fontStyle });
+          const updated = applyVipProfileEnhancements({
+            ...loaded,
+            gender: data.gender || loaded.gender,
+            fontStyle: data.fontStyle || loaded.fontStyle,
+            promoPending: loaded.promoPending || pendingPromo || undefined,
+          });
           setProfile(updated); saveUserProfile(updated); initializeNavigation(updated);
           if (updated.cloudSyncPending) void syncToCloud(updated);
         } else if (!cancelled) {
           if (cached.id) saveUserProfile(cached);
-          const guest = cached.id ? createGuestProfile() : cached;
+          const guest = cached.id
+            ? { ...createGuestProfile(), promoPending: pendingPromo || undefined }
+            : { ...cached, promoPending: cached.promoPending || pendingPromo || undefined };
           setProfile(guest); saveUserProfile(guest); initializeNavigation(guest);
         }
       } catch (error) {

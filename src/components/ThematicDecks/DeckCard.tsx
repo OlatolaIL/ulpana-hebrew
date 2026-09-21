@@ -1,7 +1,7 @@
 import React from 'react';
 import { Play, List, LogIn } from 'lucide-react';
 import { ThematicDeck, UserProfile, Word } from '@/types';
-import { isDeckAlwaysFree, isDeckAuthRequired } from '@/lib/permissions';
+import { isDeckAlwaysFree, isDeckAuthRequired, isMomPromo } from '@/lib/permissions';
 import { TierBadge } from '../TierBadge';
 import { DeckIcon } from './DeckIcon';
 import { shuffleWords, sortWordsBySRSPriority } from '@/lib/storage';
@@ -132,7 +132,11 @@ export const DeckCard: React.FC<DeckCardProps> = ({
                 {deck.title}
               </h3>
               {isAlwaysFree ? (
-                <TierBadge tier="always-free" size="xs" />
+                <TierBadge
+                  tier="always-free"
+                  size="xs"
+                  customLabel={isMom && isMomPromo(effectivePromo) ? 'Бесплатно навсегда' : undefined}
+                />
               ) : isAuthRequired ? (
                 <TierBadge
                   tier="free-registration"
