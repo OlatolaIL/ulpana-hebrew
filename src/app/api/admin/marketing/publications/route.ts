@@ -13,6 +13,7 @@ export interface PublicationItem {
   campaignTitle?: string;
   version?: string;
   videoPath?: string;
+  imagePath?: string;
   caption?: string;
   targetDeepLink: string;
   promoCode: string;
@@ -83,6 +84,7 @@ export async function POST(req: NextRequest) {
       campaignTitle,
       version,
       videoPath,
+      imagePath,
       caption,
       targetDeepLink,
       promoCode,
@@ -121,6 +123,7 @@ export async function POST(req: NextRequest) {
           campaignTitle: campaignTitle !== undefined ? campaignTitle : items[idx].campaignTitle,
           version: version !== undefined ? version : items[idx].version,
           videoPath: videoPath !== undefined ? videoPath : items[idx].videoPath,
+          imagePath: imagePath !== undefined ? imagePath : items[idx].imagePath,
           caption: caption !== undefined ? caption : items[idx].caption,
           targetDeepLink: cleanLink,
           promoCode: cleanPromo,
@@ -145,6 +148,7 @@ export async function POST(req: NextRequest) {
       campaignTitle: campaignTitle ? String(campaignTitle).trim() : undefined,
       version: version ? String(version).trim() : undefined,
       videoPath: videoPath ? String(videoPath).trim() : undefined,
+      imagePath: imagePath ? String(imagePath).trim() : undefined,
       caption: caption ? String(caption).trim() : undefined,
       targetDeepLink: cleanLink,
       promoCode: cleanPromo,

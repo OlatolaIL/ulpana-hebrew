@@ -15,6 +15,23 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ isDbConnected: false, promos: [] });
     }
 
+    // Авто-сидинг стандартных канальных и целевых промокодов, если их ещё нет
+    const standardPresets = [
+      { code: 'TG_GENERAL', days: 14, uses: 500, type: 'general', channel: 'tg', desc: 'Ссылка в описании / закреп канала @ulpana_il' },
+      { code: 'TG_MAMA', days: 30, uses: 1000, type: 'post', channel: 'tg', desc: 'Пост для мам в канале @ulpana_il' },
+      { code: 'LATTE_MAMA', days: 30, uses: 1000, type: 'post', channel: 'fb', desc: 'Пост Сергея для мам в группе «Тыквенный латте»' },
+      { code: 'MOMS', days: 30, uses: 500, type: 'general', channel: 'other', desc: 'Общий промокод для мам Израиля' },
+    ];
+
+    for (const p of standardPresets) {
+      await db.query(
+        `INSERT INTO ulpana_promo_codes (id, code, days_valid, max_uses, used_count, is_active, code_type, channel, description)
+         VALUES ($1, $2, $3, $4, 0, true, $5, $6, $7)
+         ON CONFLICT (code) DO NOTHING`,
+        [`promo_${p.code.toLowerCase()}_system`, p.code, p.days, p.uses, p.type, p.channel, p.desc]
+      );
+    }
+
     const res = await db.query('SELECT * FROM ulpana_promo_codes ORDER BY created_at DESC');
 
     const promos = res.rows.map((r) => ({

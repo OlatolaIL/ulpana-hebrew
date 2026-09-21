@@ -78,6 +78,7 @@ interface PublicationItem {
   campaignTitle?: string;
   version?: string;
   videoPath?: string;
+  imagePath?: string;
   caption?: string;
   targetDeepLink: string;
   promoCode: string;
@@ -135,6 +136,7 @@ export function AdminMarketingHub() {
   const [newPubCampaign, setNewPubCampaign] = useState('');
   const [newPubVersion, setNewPubVersion] = useState('v2.0');
   const [newPubVideoPath, setNewPubVideoPath] = useState('');
+  const [newPubImagePath, setNewPubImagePath] = useState('');
   const [newPubCaption, setNewPubCaption] = useState('');
   const [newPubChannel, setNewPubChannel] = useState<'tiktok' | 'youtube' | 'telegram' | 'facebook' | 'instagram'>('tiktok');
   const [newPubAccount, setNewPubAccount] = useState('@ulpanaalef');
@@ -240,21 +242,72 @@ export function AdminMarketingHub() {
     }
   }, []);
 
-  // Fetch Publications
+  // DB Promos tracking
+  const [dbPromos, setDbPromos] = useState<string[]>([]);
+  const [creatingPromoForPubId, setCreatingPromoForPubId] = useState<string | null>(null);
+
+  // Fetch Publications & Promos status
   const fetchPublications = useCallback(async () => {
     setPubLoading(true);
     try {
-      const res = await fetch('/api/admin/marketing/publications');
-      if (res.ok) {
-        const data = await res.json();
+      const [pubRes, promoRes] = await Promise.all([
+        fetch('/api/admin/marketing/publications'),
+        fetch('/api/admin/promos')
+      ]);
+      if (pubRes.ok) {
+        const data = await pubRes.json();
         setPublications(data.publications || []);
       }
+      if (promoRes.ok) {
+        const pData = await promoRes.json();
+        setDbPromos((pData.promos || []).map((p: any) => String(p.code || '').toUpperCase()));
+      }
     } catch (e) {
-      console.error('Failed to fetch publications', e);
+      console.error('Failed to fetch publications or promos', e);
     } finally {
       setPubLoading(false);
     }
   }, []);
+
+  // 1-Click create promo code in DB for publication
+  const handleQuickCreatePromoForPub = async (pub: PublicationItem) => {
+    if (!pub.promoCode) return;
+    setCreatingPromoForPubId(pub.id);
+    const channelMap: Record<string, string> = {
+      telegram: 'tg',
+      facebook: 'fb',
+      instagram: 'insta',
+      tiktok: 'tiktok',
+      youtube: 'yt',
+    };
+    const cleanChannel = channelMap[pub.channel] || 'other';
+    try {
+      const res = await fetch('/api/admin/promos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          code: pub.promoCode.toUpperCase(),
+          codeType: 'post',
+          channel: cleanChannel,
+          description: `${pub.campaignTitle || pub.title} (${pub.channelAccount})`,
+          postLink: pub.livePostUrl || null,
+          daysValid: 30,
+          maxUses: 1000,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setDbPromos((prev) => [...prev, pub.promoCode.toUpperCase()]);
+        alert(`Промокод "${pub.promoCode}" успешно создан в базе данных и привязан к публикации!`);
+      } else {
+        alert(data.error || 'Ошибка при создании промокода');
+      }
+    } catch (err: any) {
+      alert(`Ошибка связи с сервером: ${err.message}`);
+    } finally {
+      setCreatingPromoForPubId(null);
+    }
+  };
 
   // Fetch Leads
   const fetchLeads = useCallback(async () => {
@@ -310,6 +363,7 @@ export function AdminMarketingHub() {
           campaignTitle: newPubCampaign || undefined,
           version: newPubVersion || undefined,
           videoPath: newPubVideoPath || undefined,
+          imagePath: newPubImagePath || undefined,
           caption: newPubCaption || undefined,
           channel: newPubChannel,
           channelAccount: newPubAccount,
@@ -328,6 +382,7 @@ export function AdminMarketingHub() {
         setNewPubCampaign('');
         setNewPubVersion('v2.0');
         setNewPubVideoPath('');
+        setNewPubImagePath('');
         setNewPubCaption('');
         setNewPubLiveUrl('');
         setNewPubNotes('');
@@ -930,6 +985,27 @@ export function AdminMarketingHub() {
                               <Download className="w-3.5 h-3.5" />
                             </a>
                           </div>
+                        ) : pub.imagePath ? (
+                          <div className="flex items-center gap-1.5">
+                            <a
+                              href={pub.imagePath}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-600/20 hover:bg-amber-600/30 text-amber-300 border border-amber-500/30 text-xs font-semibold transition cursor-pointer"
+                              title="Открыть фото в полном размере"
+                            >
+                              <Film className="w-3.5 h-3.5 text-amber-300" />
+                              <span>Фото</span>
+                            </a>
+                            <a
+                              href={pub.imagePath}
+                              download
+                              className="p-1 rounded-lg hover:bg-zinc-800 text-zinc-400 hover:text-white transition cursor-pointer"
+                              title="Скачать фото для поста"
+                            >
+                              <Download className="w-3.5 h-3.5" />
+                            </a>
+                          </div>
                         ) : (
                           <span className="text-zinc-600 text-xs">—</span>
                         )}
@@ -977,10 +1053,38 @@ export function AdminMarketingHub() {
                             )}
                             <span className="font-mono text-[11px]">{pub.targetDeepLink}</span>
                           </button>
+
                           {pub.promoCode && (
-                            <span className="font-mono font-bold text-amber-400 px-2 py-0.5 rounded bg-amber-500/10 border border-amber-500/20 text-[10px] w-fit">
-                              Код: {pub.promoCode}
-                            </span>
+                            <div className="flex items-center gap-1.5">
+                              {dbPromos.includes(pub.promoCode.toUpperCase()) ? (
+                                <span
+                                  className="font-mono font-bold text-emerald-400 px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20 text-[10px] w-fit flex items-center gap-1"
+                                  title="Промокод существует и активен в базе данных"
+                                >
+                                  <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                                  <span>Код: {pub.promoCode}</span>
+                                </span>
+                              ) : (
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  <span
+                                    className="font-mono font-bold text-amber-400 px-1.5 py-0.5 rounded bg-amber-500/10 border border-amber-500/20 text-[10px] w-fit"
+                                    title="Код ещё не создан в базе промокодов"
+                                  >
+                                    Код: {pub.promoCode}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleQuickCreatePromoForPub(pub)}
+                                    disabled={creatingPromoForPubId === pub.id}
+                                    className="flex items-center gap-1 px-2 py-0.5 rounded bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold text-[10px] transition disabled:opacity-50 cursor-pointer shadow-xs"
+                                    title="Создать промокод в базе данных и привязать к этой публикации в 1 клик"
+                                  >
+                                    <Sparkles className="w-2.5 h-2.5" />
+                                    <span>{creatingPromoForPubId === pub.id ? 'Создаём...' : '+ Создать в БД'}</span>
+                                  </button>
+                                </div>
+                              )}
+                            </div>
                           )}
                         </div>
                       </td>
@@ -1739,15 +1843,27 @@ export function AdminMarketingHub() {
                 </div>
               </div>
 
-              <div>
-                <label className="block text-zinc-400 font-semibold mb-1">Путь к видеофайлу на сервере:</label>
-                <input
-                  type="text"
-                  placeholder="/demo/tutorials/stage_05_dialogue_v2.mp4"
-                  value={newPubVideoPath}
-                  onChange={(e) => setNewPubVideoPath(e.target.value)}
-                  className="w-full bg-zinc-800 rounded-xl p-2.5 text-zinc-200 border border-zinc-700 outline-none font-mono"
-                />
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-zinc-400 font-semibold mb-1">Видеофайл (.mp4):</label>
+                  <input
+                    type="text"
+                    placeholder="/demo/tutorials/...mp4"
+                    value={newPubVideoPath}
+                    onChange={(e) => setNewPubVideoPath(e.target.value)}
+                    className="w-full bg-zinc-800 rounded-xl p-2.5 text-zinc-200 border border-zinc-700 outline-none font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="block text-zinc-400 font-semibold mb-1">Фотография (.jpg):</label>
+                  <input
+                    type="text"
+                    placeholder="/images/marketing/...jpg"
+                    value={newPubImagePath}
+                    onChange={(e) => setNewPubImagePath(e.target.value)}
+                    className="w-full bg-zinc-800 rounded-xl p-2.5 text-zinc-200 border border-zinc-700 outline-none font-mono"
+                  />
+                </div>
               </div>
 
               <div>
