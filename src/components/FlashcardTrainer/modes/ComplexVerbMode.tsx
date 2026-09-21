@@ -24,6 +24,7 @@ import {
 import { findOfflineVerbConjugation } from '@/lib/verbConjugations';
 import { WordLookupModal } from '@/components/WordLookupModal';
 import { addWordToPersonalDict, isWordInPersonalDict, loadUserProfile } from '@/lib/storage';
+import { adaptSentenceForGender } from '@/lib/drills/sentenceGenderAdapter';
 
 interface ComplexVerbModeProps {
   currentWord: Word;
@@ -96,9 +97,23 @@ export const ComplexVerbMode: React.FC<ComplexVerbModeProps> = ({
 
   // Активная фраза в зависимости от выбранного времени
   const activeSentence = useMemo(() => {
-    const match = drillSentences.find((s) => s.tense === selectedTense);
-    return match || drillSentences[0];
-  }, [drillSentences, selectedTense]);
+    const match = drillSentences.find((s) => s.tense === selectedTense) || drillSentences[0];
+    if (userProfile.gender === 'female' && match?.sentenceHe) {
+      const adapted = adaptSentenceForGender(
+        match.sentenceHe,
+        match.sentenceTranscription || '',
+        'female'
+      );
+      if (adapted.sentenceHe !== match.sentenceHe) {
+        return {
+          ...match,
+          sentenceHe: adapted.sentenceHe,
+          sentenceTranscription: adapted.sentenceTranscription,
+        };
+      }
+    }
+    return match;
+  }, [drillSentences, selectedTense, userProfile.gender]);
 
   // Инфинитив на иврите и его русский перевод
   const verbInfinitiveHe = activeSentence.verbInfinitive || currentWord.hebrew;
@@ -220,7 +235,7 @@ export const ComplexVerbMode: React.FC<ComplexVerbModeProps> = ({
     setPhase('listening_he');
     setCountdown(pauseDurationSec);
 
-    speakHebrew(targetSentence.sentenceHe, { rate: speechRate }).then(() => {
+    speakHebrew(targetSentence.sentenceHe, { rate: speechRate, gender: userProfile.gender }).then(() => {
       if (!isMountedRef.current || playCycleIdRef.current !== currentCycleId) return;
 
       // Шаг 2: Активная пауза студента (3–5 секунд)

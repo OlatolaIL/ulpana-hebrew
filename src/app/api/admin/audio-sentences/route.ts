@@ -5,6 +5,7 @@ import {
   getAudioSettings,
   saveAudioSettings,
   synthesizeSentenceAudio,
+  synthesizeSentenceAudioEdge,
 } from '@/lib/audioSentencesCatalog';
 
 export async function GET(req: NextRequest) {
@@ -20,6 +21,7 @@ export async function GET(req: NextRequest) {
     const search = (searchParams.get('search') || '').trim().toLowerCase();
     const status = (searchParams.get('status') || 'all').toLowerCase(); // 'all' | 'generated' | 'missing'
     const category = (searchParams.get('category') || 'all').toLowerCase(); // 'all' | 'verb' | 'noun' | ...
+    const genderFilter = (searchParams.get('gender') || 'all').toLowerCase(); // 'all' | 'sensitive' | 'female' | 'male' | 'neutral'
 
     // Получаем все фразы системы
     const allSentences = getAllSystemSentences();
@@ -27,8 +29,14 @@ export async function GET(req: NextRequest) {
     // Статистика по всему каталогу
     const totalCount = allSentences.length;
     let totalGenerated = 0;
+    let totalSensitive = 0;
+    let totalSensitiveFemaleGenerated = 0;
     for (const item of allSentences) {
       if (item.hasAudio) totalGenerated++;
+      if (item.isGenderSensitive) {
+        totalSensitive++;
+        if (item.femaleVariant?.hasAudio) totalSensitiveFemaleGenerated++;
+      }
     }
     const totalMissing = totalCount - totalGenerated;
 
@@ -47,7 +55,22 @@ export async function GET(req: NextRequest) {
       filtered = filtered.filter((s) => !s.hasAudio);
     }
 
-    // 3. Поиск по ивриту (с огласовками и без), русскому переводу, теме и словарному слову
+    // 3. Фильтр по грамматическому роду
+    if (genderFilter === 'sensitive') {
+      filtered = filtered.filter((s) => s.isGenderSensitive);
+    } else if (genderFilter === 'female') {
+      filtered = filtered.filter(
+        (s) => s.genderCategory === 'third_person_f' || s.genderCategory === 'second_person_f'
+      );
+    } else if (genderFilter === 'male') {
+      filtered = filtered.filter(
+        (s) => s.genderCategory === 'third_person_m' || s.genderCategory === 'second_person_m'
+      );
+    } else if (genderFilter === 'neutral') {
+      filtered = filtered.filter((s) => s.genderCategory === 'neutral');
+    }
+
+    // 4. Поиск по ивриту (с огласовками и без), русскому переводу, теме и словарному слову
     if (search) {
       filtered = filtered.filter((s) => {
         return (
@@ -78,6 +101,8 @@ export async function GET(req: NextRequest) {
         total: totalCount,
         generated: totalGenerated,
         missing: totalMissing,
+        sensitive: totalSensitive,
+        sensitiveFemaleGenerated: totalSensitiveFemaleGenerated,
       },
       settings: getAudioSettings(),
     });
@@ -102,7 +127,8 @@ export async function POST(req: NextRequest) {
 
     // 1. Сохранение глобального переключателя движка озвучки
     if (action === 'set_engine') {
-      const engine = body.engine === 'google_cloud' ? 'google_cloud' : 'current';
+      const allowedEngines = ['current', 'google_cloud', 'edge_neural'];
+      const engine = allowedEngines.includes(body.engine) ? body.engine : 'current';
       const updated = saveAudioSettings({ sentenceAudioEngine: engine });
       return NextResponse.json({ ok: true, settings: updated });
     }
@@ -126,7 +152,10 @@ export async function POST(req: NextRequest) {
       const allSentences = getAllSystemSentences();
       const sentenceMap = new Map(allSentences.map((s) => [s.id, s]));
 
+      const targetEngine = body.engine || getAudioSettings().sentenceAudioEngine;
+      const targetVariant = body.variant || 'male'; // 'male' | 'female' | 'both'
       const results = [];
+
       for (const id of idsToGenerate) {
         const item = sentenceMap.get(id);
         if (!item) {
@@ -134,13 +163,51 @@ export async function POST(req: NextRequest) {
           continue;
         }
 
-        const genRes = await synthesizeSentenceAudio(item.sentenceHe, item.fileName);
+        // Если запрошена генерация только женской версии
+        if (targetVariant === 'female' && item.femaleVariant) {
+          const genRes = await synthesizeSentenceAudioEdge(
+            item.femaleVariant.sentenceHe,
+            item.femaleVariant.fileName,
+            'he-IL-HilaNeural',
+            true
+          );
+          results.push({
+            id,
+            variant: 'female',
+            success: genRes.success,
+            bytes: genRes.bytes,
+            audioUrl: item.femaleVariant.audioUrl,
+            error: genRes.error,
+          });
+          continue;
+        }
+
+        // Генерация мужской / основной фразы
+        let mainRes;
+        if (targetEngine === 'edge_neural') {
+          const voice = item.defaultVoice || 'he-IL-AvriNeural';
+          mainRes = await synthesizeSentenceAudioEdge(item.sentenceHe, item.fileName, voice, false);
+        } else {
+          mainRes = await synthesizeSentenceAudio(item.sentenceHe, item.fileName);
+        }
+
+        // Если запрошено 'both' и фраза чувствительна к полу — генерируем также женский вариант
+        if (targetVariant === 'both' && item.isGenderSensitive && item.femaleVariant) {
+          await synthesizeSentenceAudioEdge(
+            item.femaleVariant.sentenceHe,
+            item.femaleVariant.fileName,
+            'he-IL-HilaNeural',
+            true
+          );
+        }
+
         results.push({
           id,
-          success: genRes.success,
-          bytes: genRes.bytes,
+          variant: 'main',
+          success: mainRes.success,
+          bytes: mainRes.bytes,
           audioUrl: item.audioUrl,
-          error: genRes.error,
+          error: mainRes.error,
         });
       }
 

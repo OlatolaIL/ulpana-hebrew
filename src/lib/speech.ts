@@ -340,17 +340,17 @@ let isManifestLoading = false;
 /**
  * Читает выбранный администратором глобальный движок озвучки предложений
  */
-export function getSentenceAudioEngine(): 'current' | 'google_cloud' {
+export function getSentenceAudioEngine(): 'current' | 'google_cloud' | 'edge_neural' {
   if (typeof window === 'undefined') return 'current';
   try {
-    return (localStorage.getItem('sentence_audio_engine') as 'google_cloud' | 'current') || 'current';
+    return (localStorage.getItem('sentence_audio_engine') as 'edge_neural' | 'google_cloud' | 'current') || 'current';
   } catch {
     return 'current';
   }
 }
 
 /**
- * Фоновая предзагрузка манифеста предгенерированных предложений Google Cloud TTS
+ * Фоновая предзагрузка манифеста предгенерированных предложений Google Cloud / Edge Neural TTS
  */
 export function loadSentenceManifest(): void {
   if (cachedSentenceManifest || isManifestLoading || typeof window === 'undefined') return;
@@ -370,9 +370,9 @@ export function loadSentenceManifest(): void {
 
 /**
  * Поиск предгенерированной аудиозаписи для предложения со сленгом (R-24)
- * или студийного Google Cloud TTS (при включенном глобальном переключателе)
+ * или студийного TTS (Edge Neural / Google Cloud при включенном глобальном переключателе)
  */
-export function getCuratedSentenceAudio(sentence: string): string | null {
+export function getCuratedSentenceAudio(sentence: string, gender: 'male' | 'female' = 'male'): string | null {
   if (!sentence || typeof sentence !== 'string') return null;
   const key = normalizeSentenceKey(sentence);
 
@@ -381,14 +381,25 @@ export function getCuratedSentenceAudio(sentence: string): string | null {
     return CURATED_SENTENCE_AUDIO[key];
   }
 
-  // 2. Если включен режим Google Cloud TTS для предложений — проверяем манифест
-  if (getSentenceAudioEngine() === 'google_cloud') {
+  // 2. Если включен режим студийных предложений (Google Cloud / Edge Neural) — проверяем манифест
+  const engine = getSentenceAudioEngine();
+  if (engine === 'google_cloud' || engine === 'edge_neural') {
     if (!cachedSentenceManifest) {
       loadSentenceManifest();
     }
-    if (cachedSentenceManifest && cachedSentenceManifest[key]) {
-      const fileName = cachedSentenceManifest[key];
-      return fileName.startsWith('/') ? fileName : `/audio/sentences/${fileName}`;
+    if (cachedSentenceManifest) {
+      // Для женского профиля проверяем женскую дорожку (Hila ♀)
+      if (gender === 'female') {
+        const femaleKey = `${key}::female`;
+        if (cachedSentenceManifest[femaleKey]) {
+          const fileName = cachedSentenceManifest[femaleKey];
+          return fileName.startsWith('/') ? fileName : `/audio/sentences/${fileName}`;
+        }
+      }
+      if (cachedSentenceManifest[key]) {
+        const fileName = cachedSentenceManifest[key];
+        return fileName.startsWith('/') ? fileName : `/audio/sentences/${fileName}`;
+      }
     }
   }
 
@@ -486,15 +497,18 @@ export function speakHebrew(
     }
 
     let userRate = 0.7;
+    let userGender: 'male' | 'female' = 'male';
     try {
       const stored = localStorage.getItem('hebrew_app_profile_v1');
       if (stored) {
         const parsed = JSON.parse(stored);
         if (typeof parsed.speechRate === 'number') userRate = parsed.speechRate;
+        if (parsed.gender === 'female' || parsed.gender === 'male') userGender = parsed.gender;
       }
     } catch {}
 
     const rate = options.rate ?? userRate;
+    const gender = options.gender ?? userGender;
 
     // Вспомогательная функция воспроизведения через браузерный TTS / Fallback Audio
     const playWithTts = () => {
@@ -632,7 +646,7 @@ export function speakHebrew(
     if (options.preferStudioAudio !== false && typeof Audio !== 'undefined') {
       const cleanWord = stripNikkud(text).trim();
       const studioWordAudioUrl = !cleanWord.includes(' ') ? getStudioAudioForWord(text) : null;
-      const curatedSentenceAudioUrl = !studioWordAudioUrl ? getCuratedSentenceAudio(text) : null;
+      const curatedSentenceAudioUrl = !studioWordAudioUrl ? getCuratedSentenceAudio(text, gender) : null;
       const targetAudioUrl = studioWordAudioUrl || curatedSentenceAudioUrl;
 
       if (targetAudioUrl) {

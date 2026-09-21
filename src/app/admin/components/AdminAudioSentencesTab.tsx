@@ -39,10 +39,22 @@ export interface SentenceDrillItem {
   audioUrl: string;
   hasAudio: boolean;
   fileSizeBytes?: number;
+  genderCategory?: string;
+  isGenderSensitive?: boolean;
+  defaultVoice?: string;
+  femaleVariant?: {
+    sentenceHe: string;
+    sentencePlain: string;
+    sentenceTranscription?: string;
+    fileName: string;
+    audioUrl: string;
+    hasAudio: boolean;
+    fileSizeBytes?: number;
+  };
 }
 
 export interface AudioSettings {
-  sentenceAudioEngine: 'current' | 'google_cloud';
+  sentenceAudioEngine: 'current' | 'google_cloud' | 'edge_neural';
   lastUpdated: string;
 }
 
@@ -53,7 +65,13 @@ export function AdminAudioSentencesTab() {
   const [error, setError] = useState<string | null>(null);
 
   // Stats & Settings
-  const [stats, setStats] = useState({ total: 0, generated: 0, missing: 0 });
+  const [stats, setStats] = useState({
+    total: 0,
+    generated: 0,
+    missing: 0,
+    sensitive: 0,
+    sensitiveFemaleGenerated: 0,
+  });
   const [settings, setSettings] = useState<AudioSettings>({
     sentenceAudioEngine: 'current',
     lastUpdated: '',
@@ -64,6 +82,7 @@ export function AdminAudioSentencesTab() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'missing' | 'generated'>('all');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
+  const [genderFilter, setGenderFilter] = useState<'all' | 'sensitive' | 'female' | 'male' | 'neutral'>('all');
 
   // Pagination
   const [page, setPage] = useState(1);
@@ -77,6 +96,7 @@ export function AdminAudioSentencesTab() {
   // Audio Playback
   const [playingCurrentId, setPlayingCurrentId] = useState<string | null>(null);
   const [playingGoogleId, setPlayingGoogleId] = useState<string | null>(null);
+  const [playingCustomUrl, setPlayingCustomUrl] = useState<string | null>(null);
   const googleAudioRef = useRef<HTMLAudioElement | null>(null);
 
   // Single row generation loading
@@ -98,6 +118,7 @@ export function AdminAudioSentencesTab() {
         search: searchQuery,
         status: statusFilter,
         category: categoryFilter,
+        gender: genderFilter,
       });
 
       const res = await fetch(`/api/admin/audio-sentences?${params.toString()}`);
@@ -107,7 +128,15 @@ export function AdminAudioSentencesTab() {
       const data = await res.json();
       if (data.ok) {
         setItems(data.items || []);
-        setStats(data.stats || { total: 0, generated: 0, missing: 0 });
+        setStats(
+          data.stats || {
+            total: 0,
+            generated: 0,
+            missing: 0,
+            sensitive: 0,
+            sensitiveFemaleGenerated: 0,
+          }
+        );
         setSettings(data.settings || { sentenceAudioEngine: 'current', lastUpdated: '' });
         setTotalPages(data.pagination?.totalPages || 1);
         setTotalFiltered(data.pagination?.total || 0);
@@ -120,7 +149,7 @@ export function AdminAudioSentencesTab() {
     } finally {
       setLoading(false);
     }
-  }, [page, limit, searchQuery, statusFilter, categoryFilter]);
+  }, [page, limit, searchQuery, statusFilter, categoryFilter, genderFilter]);
 
   useEffect(() => {
     fetchItems();
@@ -138,7 +167,7 @@ export function AdminAudioSentencesTab() {
   }, []);
 
   // Handle Master Switch toggle
-  const handleToggleEngine = async (newEngine: 'current' | 'google_cloud') => {
+  const handleToggleEngine = async (newEngine: 'current' | 'google_cloud' | 'edge_neural') => {
     if (settings.sentenceAudioEngine === newEngine) return;
     setIsSavingEngine(true);
     try {
@@ -162,6 +191,41 @@ export function AdminAudioSentencesTab() {
     } finally {
       setIsSavingEngine(false);
     }
+  };
+
+  // Play arbitrary audio URL (e.g. female variant Hila)
+  const handlePlayAudioUrl = (url: string, playKey: string) => {
+    stopSpeech();
+    setPlayingCurrentId(null);
+    setPlayingGoogleId(null);
+
+    if (googleAudioRef.current) {
+      googleAudioRef.current.pause();
+      if (playingCustomUrl === playKey) {
+        setPlayingCustomUrl(null);
+        googleAudioRef.current = null;
+        return;
+      }
+    }
+
+    const audio = new Audio(`${url}?t=${Date.now()}`);
+    googleAudioRef.current = audio;
+    setPlayingCustomUrl(playKey);
+
+    audio.onended = () => {
+      setPlayingCustomUrl(null);
+      googleAudioRef.current = null;
+    };
+    audio.onerror = () => {
+      setPlayingCustomUrl(null);
+      googleAudioRef.current = null;
+      alert('Не удалось воспроизвести аудиофайл.');
+    };
+
+    audio.play().catch((err) => {
+      console.warn('Audio play prevented:', err);
+      setPlayingCustomUrl(null);
+    });
   };
 
   // Play Current Sound (as heard in app now via speech.ts)
@@ -377,37 +441,54 @@ export function AdminAudioSentencesTab() {
               )}
             </div>
 
-            <div className="grid grid-cols-2 gap-2 bg-zinc-900/90 p-1.5 rounded-xl border border-zinc-800">
+            <div className="grid grid-cols-3 gap-1.5 bg-zinc-900/90 p-1.5 rounded-xl border border-zinc-800">
               <button
                 type="button"
                 onClick={() => handleToggleEngine('current')}
                 disabled={isSavingEngine}
-                className={`px-3 py-2 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+                className={`px-2 py-2 rounded-lg text-[11px] font-bold transition flex items-center justify-center text-center ${
                   settings.sentenceAudioEngine === 'current'
                     ? 'bg-zinc-700 text-white shadow'
                     : 'text-zinc-400 hover:text-white'
                 }`}
               >
-                <span>Текущий синтез</span>
+                <span>Web Speech</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => handleToggleEngine('google_cloud')}
                 disabled={isSavingEngine}
-                className={`px-3 py-2 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+                className={`px-2 py-2 rounded-lg text-[11px] font-bold transition flex items-center justify-center text-center ${
                   settings.sentenceAudioEngine === 'google_cloud'
-                    ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/30'
+                    ? 'bg-blue-600 text-white shadow-lg'
                     : 'text-zinc-400 hover:text-white'
                 }`}
               >
-                <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-                <span>Google Cloud TTS</span>
+                <span>Google TTS</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleToggleEngine('edge_neural')}
+                disabled={isSavingEngine}
+                className={`px-2 py-2 rounded-lg text-[11px] font-bold transition flex items-center justify-center text-center gap-1 ${
+                  settings.sentenceAudioEngine === 'edge_neural'
+                    ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-lg shadow-purple-500/30'
+                    : 'text-zinc-400 hover:text-white'
+                }`}
+              >
+                <Sparkles className="w-3 h-3 text-amber-300" />
+                <span>Edge Neural</span>
               </button>
             </div>
 
             <div className="text-[11px] text-zinc-400 text-center">
-              {settings.sentenceAudioEngine === 'google_cloud' ? (
+              {settings.sentenceAudioEngine === 'edge_neural' ? (
+                <span className="text-purple-400 font-semibold">
+                  ✓ Ученики слышат Edge Neural: Avri (♂) и Hila (♀)
+                </span>
+              ) : settings.sentenceAudioEngine === 'google_cloud' ? (
                 <span className="text-emerald-400 font-semibold">
                   ✓ Ученики слышат студийные MP3 от Google
                 </span>
@@ -422,7 +503,7 @@ export function AdminAudioSentencesTab() {
       </div>
 
       {/* 2. STATS OVERVIEW */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white dark:bg-zinc-900 p-4 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm flex items-center justify-between">
           <div>
             <div className="text-xs font-bold uppercase tracking-wider text-zinc-400">
@@ -439,8 +520,22 @@ export function AdminAudioSentencesTab() {
 
         <div className="bg-white dark:bg-zinc-900 p-4 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm flex items-center justify-between">
           <div>
+            <div className="text-xs font-bold uppercase tracking-wider text-purple-500">
+              М/Ж варианты
+            </div>
+            <div className="text-2xl font-black text-purple-600 dark:text-purple-400 mt-0.5">
+              {stats.sensitive || 213}
+            </div>
+          </div>
+          <div className="text-xs font-bold text-purple-600 dark:text-purple-400 px-2.5 py-1 rounded-full bg-purple-50 dark:bg-purple-950/50 border border-purple-500/20">
+            Hila ♀: {stats.sensitiveFemaleGenerated || 213}
+          </div>
+        </div>
+
+        <div className="bg-white dark:bg-zinc-900 p-4 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm flex items-center justify-between">
+          <div>
             <div className="text-xs font-bold uppercase tracking-wider text-emerald-500">
-              Сгенерировано Google TTS
+              Сгенерировано MP3
             </div>
             <div className="text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-0.5">
               {stats.generated.toLocaleString()}
@@ -474,15 +569,30 @@ export function AdminAudioSentencesTab() {
             <button
               onClick={() => {
                 setStatusFilter('all');
+                setGenderFilter('all');
                 setPage(1);
               }}
               className={`px-3 py-1.5 rounded-lg text-xs font-bold transition whitespace-nowrap ${
-                statusFilter === 'all'
+                statusFilter === 'all' && genderFilter === 'all'
                   ? 'bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white shadow-sm'
                   : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
               }`}
             >
               Все фразы ({stats.total})
+            </button>
+
+            <button
+              onClick={() => {
+                setGenderFilter(genderFilter === 'sensitive' ? 'all' : 'sensitive');
+                setPage(1);
+              }}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition whitespace-nowrap flex items-center gap-1.5 ${
+                genderFilter === 'sensitive'
+                  ? 'bg-purple-600 text-white shadow-sm'
+                  : 'text-purple-600 dark:text-purple-400 hover:text-purple-700'
+              }`}
+            >
+              <span>♂♀ М/Ж ({stats.sensitive || 213})</span>
             </button>
 
             <button
@@ -680,7 +790,7 @@ export function AdminAudioSentencesTab() {
                   <th className="p-3 min-w-[280px]">Фраза на иврите</th>
                   <th className="p-3 min-w-[240px]">Русский перевод</th>
                   <th className="p-3 w-36 text-center">🔊 Текущий звук</th>
-                  <th className="p-3 w-48 text-center">🌟 Google Cloud TTS</th>
+                  <th className="p-3 w-56 text-center">🌟 Студийный звук (Edge / Google)</th>
                   <th className="p-3 w-32 text-center">Статус</th>
                 </tr>
               </thead>
@@ -689,6 +799,7 @@ export function AdminAudioSentencesTab() {
                   const isSelected = selectedIds.has(item.id);
                   const isPlayingCurrent = playingCurrentId === item.id;
                   const isPlayingGoogle = playingGoogleId === item.id;
+                  const isPlayingFemale = playingCustomUrl === `${item.id}_f`;
                   const isGenerating = generatingIds.has(item.id);
                   const rowNumber = (page - 1) * limit + idx + 1;
 
@@ -730,7 +841,24 @@ export function AdminAudioSentencesTab() {
                               {item.sentenceTranscription}
                             </div>
                           )}
-                          <div className="flex items-center gap-1.5 mt-0.5">
+                          <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                            {item.isGenderSensitive ? (
+                              <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-100 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800">
+                                ♂♀ М/Ж
+                              </span>
+                            ) : item.genderCategory === 'third_person_f' ? (
+                              <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-pink-100 dark:bg-pink-950/60 text-pink-700 dark:text-pink-300 border border-pink-200 dark:border-pink-800">
+                                ♀ Ж
+                              </span>
+                            ) : item.genderCategory === 'third_person_m' ? (
+                              <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+                                ♂ М
+                              </span>
+                            ) : (
+                              <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-zinc-100 dark:bg-zinc-800 text-zinc-500 border border-zinc-200 dark:border-zinc-700">
+                                ⚪ Нейтр.
+                              </span>
+                            )}
                             <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700/60">
                               {item.categoryRu}
                             </span>
@@ -745,6 +873,40 @@ export function AdminAudioSentencesTab() {
                               </span>
                             )}
                           </div>
+
+                          {/* Female variant if gender sensitive */}
+                          {item.isGenderSensitive && item.femaleVariant && (
+                            <div className="mt-2 pt-2 border-t border-purple-100 dark:border-purple-900/40 flex flex-col gap-1">
+                              <div className="flex items-center gap-1.5 text-purple-600 dark:text-purple-400 font-bold text-[11px]">
+                                <span>♀ Для учениц:</span>
+                                {item.femaleVariant.hasAudio && (
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      handlePlayAudioUrl(item.femaleVariant!.audioUrl, `${item.id}_f`)
+                                    }
+                                    className={`px-2 py-0.5 rounded-lg text-[10px] font-bold transition flex items-center gap-1 ${
+                                      isPlayingFemale
+                                        ? 'bg-purple-600 text-white shadow animate-pulse'
+                                        : 'bg-purple-50 dark:bg-purple-950/60 border border-purple-300 dark:border-purple-800 text-purple-700 dark:text-purple-300 hover:bg-purple-100'
+                                    }`}
+                                    title="Слушать женскую дорожку (Hila ♀)"
+                                  >
+                                    <Volume2 className="w-3 h-3" />
+                                    <span>Hila (♀)</span>
+                                  </button>
+                                )}
+                              </div>
+                              <div dir="rtl" className="text-sm font-bold text-zinc-900 dark:text-zinc-100">
+                                {item.femaleVariant.sentenceHe}
+                              </div>
+                              {item.femaleVariant.sentenceTranscription && (
+                                <div className="text-[10px] text-zinc-500 font-serif italic">
+                                  {item.femaleVariant.sentenceTranscription}
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </div>
                       </td>
 
@@ -779,45 +941,66 @@ export function AdminAudioSentencesTab() {
                         </button>
                       </td>
 
-                      {/* Column 2: Google Cloud TTS Preview & Generate */}
+                      {/* Column 2: Studio Audio Preview & Generate */}
                       <td className="p-3 text-center">
                         {item.hasAudio ? (
-                          <div className="inline-flex items-center gap-1.5">
-                            <button
-                              type="button"
-                              onClick={() => handlePlayGoogle(item)}
-                              className={`px-3 py-2 rounded-xl text-xs font-bold transition inline-flex items-center gap-1.5 ${
-                                isPlayingGoogle
-                                  ? 'bg-emerald-600 text-white shadow-md animate-pulse'
-                                  : 'bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/60'
-                              }`}
-                              title="Воспроизвести сгенерированный студийный Google Cloud TTS"
-                            >
-                              {isPlayingGoogle ? (
-                                <>
-                                  <Square className="w-3.5 h-3.5 fill-current" />
-                                  <span>Стоп</span>
-                                </>
-                              ) : (
-                                <>
-                                  <Play className="w-3.5 h-3.5 fill-current" />
-                                  <span>Google TTS</span>
-                                </>
-                              )}
-                            </button>
+                          <div className="flex flex-col items-center gap-1.5">
+                            <div className="inline-flex items-center gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => handlePlayGoogle(item)}
+                                className={`px-2.5 py-1.5 rounded-xl text-xs font-bold transition inline-flex items-center gap-1 ${
+                                  isPlayingGoogle
+                                    ? 'bg-emerald-600 text-white shadow-md animate-pulse'
+                                    : 'bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100'
+                                }`}
+                                title="Воспроизвести основную дорожку (Avri ♂ / Google)"
+                              >
+                                {isPlayingGoogle ? (
+                                  <>
+                                    <Square className="w-3.5 h-3.5 fill-current" />
+                                    <span>Стоп</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Play className="w-3.5 h-3.5 fill-current" />
+                                    <span>{item.isGenderSensitive ? 'Avri (♂)' : 'Слушать'}</span>
+                                  </>
+                                )}
+                              </button>
 
-                            {/* Regenerate Icon */}
-                            <button
-                              type="button"
-                              onClick={() => handleGenerateSingle(item)}
-                              disabled={isGenerating}
-                              className="p-2 rounded-xl text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
-                              title="Перегенерировать этот файл"
-                            >
-                              <RefreshCw
-                                className={`w-3.5 h-3.5 ${isGenerating ? 'animate-spin' : ''}`}
-                              />
-                            </button>
+                              {/* Regenerate Icon */}
+                              <button
+                                type="button"
+                                onClick={() => handleGenerateSingle(item)}
+                                disabled={isGenerating}
+                                className="p-1.5 rounded-xl text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+                                title="Перегенерировать этот файл"
+                              >
+                                <RefreshCw
+                                  className={`w-3.5 h-3.5 ${isGenerating ? 'animate-spin' : ''}`}
+                                />
+                              </button>
+                            </div>
+
+                            {/* Second button for female audio if sensitive */}
+                            {item.isGenderSensitive && item.femaleVariant?.hasAudio && (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  handlePlayAudioUrl(item.femaleVariant!.audioUrl, `${item.id}_f`)
+                                }
+                                className={`px-2.5 py-1 rounded-xl text-[11px] font-bold transition inline-flex items-center gap-1 ${
+                                  isPlayingFemale
+                                    ? 'bg-purple-600 text-white shadow-md animate-pulse'
+                                    : 'bg-purple-50 dark:bg-purple-950/60 border border-purple-400/30 text-purple-700 dark:text-purple-300 hover:bg-purple-100'
+                                }`}
+                                title="Воспроизвести женскую дорожку (Hila ♀)"
+                              >
+                                <Play className="w-3 h-3 fill-current" />
+                                <span>Hila (♀)</span>
+                              </button>
+                            )}
                           </div>
                         ) : (
                           <button

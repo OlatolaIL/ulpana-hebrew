@@ -31,6 +31,7 @@ import {
   PrepositionDrillItem,
 } from '@/types/complexDrills';
 import { getDrillDataForWord } from '@/data/drills';
+import { adaptSentenceForGender } from '@/lib/drills/sentenceGenderAdapter';
 
 interface ComplexDrillModeProps {
   currentWord: Word;
@@ -83,8 +84,9 @@ export const ComplexDrillMode: React.FC<ComplexDrillModeProps> = ({
 
   // Активный drill item
   const activeDrill: ComplexDrillItem = useMemo(() => {
+    let item: ComplexDrillItem;
     if (drillItems.length === 0) {
-      return {
+      item = {
         id: `fallback_${currentWord.id}`,
         type: 'adverb',
         targetWordPlain: currentWord.hebrewPlain || currentWord.hebrew,
@@ -96,13 +98,31 @@ export const ComplexDrillMode: React.FC<ComplexDrillModeProps> = ({
         sentenceRu: currentWord.translation,
         minLesson: 1,
       };
-    }
-    if (drillItems[0].type === 'verb') {
+    } else if (drillItems[0].type === 'verb') {
       const match = (drillItems as VerbDrillItem[]).find((s) => s.tense === selectedTense);
-      return match || drillItems[0];
+      item = match || drillItems[0];
+    } else {
+      item = drillItems[0];
     }
-    return drillItems[0];
-  }, [drillItems, selectedTense, currentWord]);
+
+    // Адаптация под выбранный пол ученика (Инвариант R-17)
+    if (userProfile.gender === 'female' && item.sentenceHe) {
+      const adapted = adaptSentenceForGender(
+        item.sentenceHe,
+        item.sentenceTranscription || '',
+        'female'
+      );
+      if (adapted.sentenceHe !== item.sentenceHe) {
+        return {
+          ...item,
+          sentenceHe: adapted.sentenceHe,
+          sentenceTranscription: adapted.sentenceTranscription,
+        };
+      }
+    }
+
+    return item;
+  }, [drillItems, selectedTense, currentWord, userProfile.gender]);
 
   // Длительность паузы: 3, 4 или 5 секунд
   const [pauseDurationSec, setPauseDurationSec] = useState<number>(4);
@@ -256,7 +276,7 @@ export const ComplexDrillMode: React.FC<ComplexDrillModeProps> = ({
     setPhase('listening_he');
     setCountdown(pauseDurationSec);
 
-    speakHebrew(targetItem.sentenceHe, { rate: speechRate }).then(() => {
+    speakHebrew(targetItem.sentenceHe, { rate: speechRate, gender: userProfile.gender }).then(() => {
       if (!isMountedRef.current || playCycleIdRef.current !== currentCycleId) return;
 
       // Шаг 2: Активная пауза студента (3–5 сек)
