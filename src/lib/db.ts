@@ -236,6 +236,31 @@ async function initializeDatabase() {
       CREATE INDEX IF NOT EXISTS ulpana_marketing_leads_channel_idx ON ulpana_marketing_leads(source_channel);
     `);
 
+    // 12. Таблица публикаций маркетинга (реестр постов, видео, сторис)
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS ulpana_publications (
+        id TEXT PRIMARY KEY,
+        date TEXT NOT NULL,
+        channel TEXT NOT NULL,
+        channel_account TEXT DEFAULT '',
+        format TEXT NOT NULL,
+        title TEXT NOT NULL,
+        campaign_title TEXT,
+        version TEXT,
+        video_path TEXT,
+        image_path TEXT,
+        caption TEXT,
+        target_deep_link TEXT DEFAULT '/lessons/1/call',
+        promo_code TEXT DEFAULT '',
+        full_url_with_promo TEXT DEFAULT '',
+        live_post_url TEXT DEFAULT '',
+        status TEXT DEFAULT 'draft',
+        notes TEXT DEFAULT '',
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        updated_at TIMESTAMPTZ DEFAULT NOW()
+      );
+    `);
+
     await db.query('COMMIT');
     initialized = true;
     console.log('[DB] Database tables initialized successfully.');
