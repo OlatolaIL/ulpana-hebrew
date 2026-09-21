@@ -23,6 +23,8 @@ export function initHebrewVoices(): Promise<SpeechSynthesisVoice | null> {
       return;
     }
 
+    loadSentenceManifest();
+
     const findVoice = () => {
       try {
         const voices = window.speechSynthesis.getVoices();
@@ -332,13 +334,65 @@ export function normalizeSentenceKey(sentence: string): string {
     .trim();
 }
 
+let cachedSentenceManifest: Record<string, string> | null = null;
+let isManifestLoading = false;
+
+/**
+ * Читает выбранный администратором глобальный движок озвучки предложений
+ */
+export function getSentenceAudioEngine(): 'current' | 'google_cloud' {
+  if (typeof window === 'undefined') return 'current';
+  try {
+    return (localStorage.getItem('sentence_audio_engine') as 'google_cloud' | 'current') || 'current';
+  } catch {
+    return 'current';
+  }
+}
+
+/**
+ * Фоновая предзагрузка манифеста предгенерированных предложений Google Cloud TTS
+ */
+export function loadSentenceManifest(): void {
+  if (cachedSentenceManifest || isManifestLoading || typeof window === 'undefined') return;
+  isManifestLoading = true;
+  fetch('/audio/sentences/manifest.json')
+    .then((r) => (r.ok ? r.json() : null))
+    .then((data) => {
+      if (data && typeof data === 'object') {
+        cachedSentenceManifest = data;
+      }
+    })
+    .catch(() => {})
+    .finally(() => {
+      isManifestLoading = false;
+    });
+}
+
 /**
  * Поиск предгенерированной аудиозаписи для предложения со сленгом (R-24)
+ * или студийного Google Cloud TTS (при включенном глобальном переключателе)
  */
 export function getCuratedSentenceAudio(sentence: string): string | null {
   if (!sentence || typeof sentence !== 'string') return null;
   const key = normalizeSentenceKey(sentence);
-  return CURATED_SENTENCE_AUDIO[key] || null;
+
+  // 1. Постоянный базовый реестр сленга (R-24)
+  if (CURATED_SENTENCE_AUDIO[key]) {
+    return CURATED_SENTENCE_AUDIO[key];
+  }
+
+  // 2. Если включен режим Google Cloud TTS для предложений — проверяем манифест
+  if (getSentenceAudioEngine() === 'google_cloud') {
+    if (!cachedSentenceManifest) {
+      loadSentenceManifest();
+    }
+    if (cachedSentenceManifest && cachedSentenceManifest[key]) {
+      const fileName = cachedSentenceManifest[key];
+      return fileName.startsWith('/') ? fileName : `/audio/sentences/${fileName}`;
+    }
+  }
+
+  return null;
 }
 
 /**

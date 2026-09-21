@@ -43,6 +43,7 @@ import {
   Video,
 } from 'lucide-react';
 import { AdminMarketingHub } from './components/AdminMarketingHub';
+import { AdminAudioSentencesTab } from './components/AdminAudioSentencesTab';
 import { getLessonById, LESSONS_CATALOG } from '@/data/lessonsData';
 import { loadLocalCallLogs } from '@/lib/storage';
 import { isVipUser } from '@/lib/vipUsers';
@@ -183,7 +184,7 @@ const CHANNEL_PRESETS = [
 ];
 
 export default function AdminPage() {
-  const [activeTab, setActiveTab] = useState<'stats' | 'users' | 'calls' | 'essays' | 'promos' | 'access' | 'marketing'>('stats');
+  const [activeTab, setActiveTab] = useState<'stats' | 'users' | 'calls' | 'essays' | 'promos' | 'access' | 'marketing' | 'audio'>('stats');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isDbConnected, setIsDbConnected] = useState(true);
@@ -675,6 +676,59 @@ export default function AdminPage() {
     setTimeout(() => setCopiedLink(null), 2500);
   };
 
+  const filteredPromos = promos.filter((p) => {
+    if (promoFilterType !== 'all') {
+      const pType = p.codeType || 'general';
+      if (pType !== promoFilterType) return false;
+    }
+    if (promoFilterChannel !== 'all') {
+      const pChan = p.channel || 'other';
+      if (pChan !== promoFilterChannel) return false;
+    }
+    return true;
+  });
+
+  const renderChannelBadge = (channel?: string) => {
+    switch (channel) {
+      case 'tg':
+        return (
+          <span className="px-2 py-0.5 rounded-md text-[10px] font-sans font-bold bg-sky-50 text-sky-700 dark:bg-sky-950/60 dark:text-sky-300 border border-sky-200 dark:border-sky-800">
+            Telegram
+          </span>
+        );
+      case 'fb':
+        return (
+          <span className="px-2 py-0.5 rounded-md text-[10px] font-sans font-bold bg-indigo-50 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
+            Facebook
+          </span>
+        );
+      case 'insta':
+        return (
+          <span className="px-2 py-0.5 rounded-md text-[10px] font-sans font-bold bg-pink-50 text-pink-700 dark:bg-pink-950/60 dark:text-pink-300 border border-pink-200 dark:border-pink-800">
+            Instagram
+          </span>
+        );
+      case 'tiktok':
+        return (
+          <span className="px-2 py-0.5 rounded-md text-[10px] font-sans font-bold bg-zinc-800 text-white dark:bg-zinc-700 border border-zinc-900">
+            TikTok
+          </span>
+        );
+      case 'yt':
+        return (
+          <span className="px-2 py-0.5 rounded-md text-[10px] font-sans font-bold bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 border border-rose-200 dark:border-rose-800">
+            YouTube
+          </span>
+        );
+      default:
+        return (
+          <span className="px-2 py-0.5 rounded-md text-[10px] font-sans font-bold bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700">
+            Канал
+          </span>
+        );
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 flex flex-col items-center justify-center p-4">
@@ -876,6 +930,18 @@ export default function AdminPage() {
           >
             <Video className="w-4 h-4" />
             <span>Маркетинг & Контент</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('audio')}
+            className={`px-4 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 transition ${
+              activeTab === 'audio'
+                ? 'bg-blue-600 text-white shadow-sm'
+                : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900'
+            }`}
+          >
+            <Volume2 className="w-4 h-4" />
+            <span>Студия озвучки</span>
           </button>
         </div>
 
@@ -1297,6 +1363,86 @@ export default function AdminPage() {
                   )}
                 </div>
 
+                {/* Type Selection: General vs Post-specific */}
+                <div>
+                  <label className="text-xs font-bold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider block mb-1.5">
+                    Тип промокода
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setNewPromoType('general')}
+                      className={`px-2.5 py-2 rounded-xl text-xs font-bold border transition ${
+                        newPromoType === 'general'
+                          ? 'bg-blue-50 border-blue-500 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300 shadow-sm'
+                          : 'border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50'
+                      }`}
+                    >
+                      🌐 Общий канал
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setNewPromoType('post')}
+                      className={`px-2.5 py-2 rounded-xl text-xs font-bold border transition ${
+                        newPromoType === 'post'
+                          ? 'bg-purple-50 border-purple-500 text-purple-700 dark:bg-purple-950/40 dark:text-purple-300 shadow-sm'
+                          : 'border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50'
+                      }`}
+                    >
+                      🎯 Под публикацию
+                    </button>
+                  </div>
+                </div>
+
+                {/* Channel Selection */}
+                <div>
+                  <label className="text-xs font-bold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider block mb-1.5">
+                    Канал / Платформа
+                  </label>
+                  <select
+                    value={newPromoChannel}
+                    onChange={(e) => setNewPromoChannel(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  >
+                    <option value="tg">Telegram (@ulpana_il)</option>
+                    <option value="fb">Facebook (Тыквенный латте / группы)</option>
+                    <option value="insta">Instagram</option>
+                    <option value="tiktok">TikTok</option>
+                    <option value="yt">YouTube</option>
+                    <option value="other">Другое / Сообщества</option>
+                  </select>
+                </div>
+
+                {/* Conditional Post Link if type is post */}
+                {newPromoType === 'post' && (
+                  <div>
+                    <label className="text-xs font-bold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider block mb-1.5">
+                      Ссылка на публикацию (URL)
+                    </label>
+                    <input
+                      type="url"
+                      placeholder="https://t.me/... или https://facebook.com/..."
+                      value={newPromoPostLink}
+                      onChange={(e) => setNewPromoPostLink(e.target.value)}
+                      className="w-full px-3 py-2 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800 text-xs focus:outline-none focus:ring-2 focus:ring-amber-500"
+                    />
+                  </div>
+                )}
+
+                {/* Description */}
+                <div>
+                  <label className="text-xs font-bold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider block mb-1.5">
+                    Описание / Назначение
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Например: Пост Сергея для мам в Тыквенный латте"
+                    value={newPromoDesc}
+                    onChange={(e) => setNewPromoDesc(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800 text-xs focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  />
+                </div>
+
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="text-xs font-bold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider block mb-1.5">
@@ -1351,24 +1497,52 @@ export default function AdminPage() {
 
             {/* Promo Codes List */}
             <div className="lg:col-span-2 bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-sm overflow-hidden flex flex-col">
-              <div className="p-5 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between flex-wrap gap-3">
-                <div className="flex items-center gap-2">
+              <div className="p-5 border-b border-zinc-200 dark:border-zinc-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-2 flex-wrap">
                   <h2 className="font-bold text-base text-zinc-900 dark:text-zinc-50">
                     Активные промокоды
                   </h2>
-                  <span className="text-xs text-zinc-400 font-medium">({promos.length})</span>
+                  <span className="text-xs text-zinc-400 font-medium">
+                    ({filteredPromos.length}{filteredPromos.length !== promos.length ? ` из ${promos.length}` : ''})
+                  </span>
                 </div>
 
                 <div className="flex items-center gap-2 flex-wrap">
+                  {/* Type Filter */}
+                  <select
+                    value={promoFilterType}
+                    onChange={(e) => setPromoFilterType(e.target.value)}
+                    className="px-2.5 py-1.5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800 text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-amber-500"
+                  >
+                    <option value="all">Все типы</option>
+                    <option value="general">🌐 Общие</option>
+                    <option value="post">🎯 Под посты</option>
+                  </select>
+
+                  {/* Channel Filter */}
+                  <select
+                    value={promoFilterChannel}
+                    onChange={(e) => setPromoFilterChannel(e.target.value)}
+                    className="px-2.5 py-1.5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800 text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-amber-500"
+                  >
+                    <option value="all">Все каналы</option>
+                    <option value="tg">Telegram</option>
+                    <option value="fb">Facebook</option>
+                    <option value="insta">Instagram</option>
+                    <option value="tiktok">TikTok</option>
+                    <option value="yt">YouTube</option>
+                    <option value="other">Другое</option>
+                  </select>
+
                   <button
                     type="button"
                     onClick={handleBatchCreateChannels}
                     disabled={batchCreating}
                     className="px-3 py-1.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-300 font-bold text-xs flex items-center gap-1.5 transition disabled:opacity-50 shadow-sm"
-                    title="Создать все промокоды каналов: INSTA, LATTE, MOMS, OLE2026"
+                    title="Создать все промокоды каналов: TG, FB, INSTA, LATTE, MOMS"
                   >
                     <Sparkles className="w-3.5 h-3.5" />
-                    <span>{batchCreating ? 'Создание...' : '⚡ Создать все каналы (INSTA, LATTE, MOMS)'}</span>
+                    <span>{batchCreating ? 'Создание...' : '⚡ Все каналы'}</span>
                   </button>
                   <button
                     type="button"
@@ -1376,21 +1550,24 @@ export default function AdminPage() {
                     className="px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center gap-1.5 transition shadow-sm active:scale-98"
                   >
                     <Plus className="w-3.5 h-3.5" />
-                    <span>+ Создать (Окно)</span>
+                    <span>+ Создать</span>
                   </button>
                 </div>
               </div>
 
-              {promos.length === 0 ? (
+              {filteredPromos.length === 0 ? (
                 <div className="p-12 text-center text-zinc-400 text-sm">
-                  Промокодов пока нет. Создайте первый промокод в форме слева или через кнопку выше.
+                  {promos.length === 0
+                    ? 'Промокодов пока нет. Создайте первый промокод в форме слева или через кнопку выше.'
+                    : 'Нет промокодов, соответствующих выбранным фильтрам.'}
                 </div>
               ) : (
                 <div className="overflow-x-auto flex-1">
                   <table className="w-full text-left text-sm">
                     <thead className="bg-zinc-50 dark:bg-zinc-800/50 text-zinc-500 dark:text-zinc-400 text-xs uppercase font-semibold">
                       <tr>
-                        <th className="px-5 py-3.5">Код / Канал</th>
+                        <th className="px-5 py-3.5">Код / Описание / Пост</th>
+                        <th className="px-5 py-3.5">Тип / Канал</th>
                         <th className="px-5 py-3.5">Период PRO</th>
                         <th className="px-5 py-3.5">Использовано</th>
                         <th className="px-5 py-3.5">Статус</th>
@@ -1398,14 +1575,15 @@ export default function AdminPage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
-                      {promos.map((p) => {
+                      {filteredPromos.map((p) => {
                         const matchedPreset = CHANNEL_PRESETS.find(
                           (c) => c.code === p.code.toUpperCase()
                         );
+                        const isPost = p.codeType === 'post';
                         return (
                           <tr key={p.id} className="hover:bg-zinc-50/80 dark:hover:bg-zinc-800/40 transition">
-                            <td className="px-5 py-3.5 font-mono font-bold text-zinc-900 dark:text-zinc-100">
-                              <div className="flex items-center gap-2 flex-wrap">
+                            <td className="px-5 py-3.5">
+                              <div className="flex items-center gap-2 flex-wrap font-mono font-bold text-zinc-900 dark:text-zinc-100">
                                 <span>{p.code}</span>
                                 {matchedPreset && (
                                   <span className="px-2 py-0.5 rounded-md text-[10px] font-sans font-semibold bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
@@ -1436,6 +1614,39 @@ export default function AdminPage() {
                                     <Link2 className="w-3.5 h-3.5" />
                                   )}
                                 </button>
+                              </div>
+
+                              {p.description && (
+                                <div className="text-[11px] text-zinc-500 dark:text-zinc-400 font-sans mt-0.5 max-w-sm truncate">
+                                  {p.description}
+                                </div>
+                              )}
+
+                              {p.postLink && (
+                                <a
+                                  href={p.postLink}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-1 text-[11px] text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 font-sans font-medium mt-1 hover:underline"
+                                >
+                                  <ExternalLink className="w-3 h-3" />
+                                  <span>Открыть публикацию</span>
+                                </a>
+                              )}
+                            </td>
+
+                            <td className="px-5 py-3.5">
+                              <div className="flex flex-col gap-1 items-start">
+                                <span
+                                  className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                                    isPost
+                                      ? 'bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 border border-purple-200 dark:border-purple-800'
+                                      : 'bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700'
+                                  }`}
+                                >
+                                  {isPost ? '🎯 Под пост' : '🌐 Общий'}
+                                </span>
+                                {renderChannelBadge(p.channel)}
                               </div>
                             </td>
 
@@ -1564,6 +1775,86 @@ export default function AdminPage() {
                       <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-1 font-mono">
                         Готовая ссылка для рекламы: ?promo={newPromoCode || 'КОД'}
                       </p>
+                    </div>
+
+                    {/* Modal: Type Selection */}
+                    <div>
+                      <label className="text-xs font-bold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider block mb-1.5">
+                        Тип промокода
+                      </label>
+                      <div className="grid grid-cols-2 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setNewPromoType('general')}
+                          className={`px-3 py-2 rounded-xl text-xs font-bold border transition ${
+                            newPromoType === 'general'
+                              ? 'bg-blue-50 border-blue-500 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300 shadow-sm'
+                              : 'border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50'
+                          }`}
+                        >
+                          🌐 Общий канал
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setNewPromoType('post')}
+                          className={`px-3 py-2 rounded-xl text-xs font-bold border transition ${
+                            newPromoType === 'post'
+                              ? 'bg-purple-50 border-purple-500 text-purple-700 dark:bg-purple-950/40 dark:text-purple-300 shadow-sm'
+                              : 'border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50'
+                          }`}
+                        >
+                          🎯 Под публикацию
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Modal: Channel Selection */}
+                    <div>
+                      <label className="text-xs font-bold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider block mb-1.5">
+                        Канал / Платформа
+                      </label>
+                      <select
+                        value={newPromoChannel}
+                        onChange={(e) => setNewPromoChannel(e.target.value)}
+                        className="w-full px-3 py-2 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-amber-500"
+                      >
+                        <option value="tg">Telegram (@ulpana_il)</option>
+                        <option value="fb">Facebook (Тыквенный латте / группы)</option>
+                        <option value="insta">Instagram</option>
+                        <option value="tiktok">TikTok</option>
+                        <option value="yt">YouTube</option>
+                        <option value="other">Другое / Сообщества</option>
+                      </select>
+                    </div>
+
+                    {/* Modal: Conditional Post Link */}
+                    {newPromoType === 'post' && (
+                      <div>
+                        <label className="text-xs font-bold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider block mb-1.5">
+                          Ссылка на публикацию (URL поста)
+                        </label>
+                        <input
+                          type="url"
+                          placeholder="https://t.me/... или https://facebook.com/..."
+                          value={newPromoPostLink}
+                          onChange={(e) => setNewPromoPostLink(e.target.value)}
+                          className="w-full px-3 py-2 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800 text-xs focus:outline-none focus:ring-2 focus:ring-amber-500"
+                        />
+                      </div>
+                    )}
+
+                    {/* Modal: Description */}
+                    <div>
+                      <label className="text-xs font-bold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider block mb-1.5">
+                        Описание / Назначение
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Например: Пост для мам в группе Тыквенный латте"
+                        value={newPromoDesc}
+                        onChange={(e) => setNewPromoDesc(e.target.value)}
+                        className="w-full px-3 py-2 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800 text-xs focus:outline-none focus:ring-2 focus:ring-amber-500"
+                      />
                     </div>
 
                     <div className="grid grid-cols-2 gap-3">
@@ -2498,6 +2789,11 @@ export default function AdminPage() {
         {/* TAB 7: MARKETING & CONTENT HUB */}
         {activeTab === 'marketing' && (
           <AdminMarketingHub />
+        )}
+
+        {/* TAB 8: AUDIO SENTENCES STUDIO */}
+        {activeTab === 'audio' && (
+          <AdminAudioSentencesTab />
         )}
       </main>
 
