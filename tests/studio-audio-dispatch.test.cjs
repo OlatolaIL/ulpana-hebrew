@@ -201,9 +201,9 @@ test('getStudioAudioForWord: homographs disambiguation (את - ат vs эт)', (
   const atLessonAudio = getStudioAudioForWord('אַתְּ');
   assert.equal(atLessonAudio, atAudioExpected, 'אַתְּ (sheva + dagesh) must return studio audio for [ат]');
 
-  // 2. Каталог Pealim: форма אַתְּ (дагеш + шева) обязана возвращать аутентичное аудио [ат]
-  const atCatalogAudio = getStudioAudioForWord('אַתְּ');
-  assert.equal(atCatalogAudio, atAudioExpected, 'אַתְּ (dagesh + sheva) must return studio audio for [ат]');
+  // 2. Каталог Pealim: форма אַתְּ (дагеш + шева) обязана возвращать аутентичное аудио [ат]
+  const atCatalogAudio = getStudioAudioForWord('אַתְּ');
+  assert.equal(atCatalogAudio, atAudioExpected, 'אַתְּ (dagesh + sheva) must return studio audio for [ат]');
 
   // 3. Предлог אֶת (с сеголем) обязан возвращать студийное аудио [эт]
   const etVocalizedAudio = getStudioAudioForWord('אֶת');
@@ -211,4 +211,71 @@ test('getStudioAudioForWord: homographs disambiguation (את - ат vs эт)', (
 
   // 4. Гарантируем, что [ат] и [эт] не равны друг другу
   assert.notEqual(atLessonAudio, etVocalizedAudio, '[ат] and [эт] audio must be different');
+});
+
+// R-17: speakHebrew передаёт speechRate в audio.playbackRate для студийных mp3 (Chirp 3 HD / Pealim)
+test('speakHebrew: studio audio respects playbackRate from rate option (R-17)', async () => {
+  const capturedRates = [];
+  const originalAudio = global.Audio;
+  const originalWindow = global.window;
+
+  global.Audio = class {
+    constructor(src) {
+      this.src = src;
+      this.playbackRate = 1.0; // браузерный дефолт
+      this.onended = null;
+      this.onerror = null;
+    }
+    play() {
+      capturedRates.push(this.playbackRate);
+      queueMicrotask(() => this.onended?.());
+      return Promise.resolve();
+    }
+    pause() {}
+  };
+
+  global.window = {
+    speechSynthesis: {
+      speaking: false,
+      pending: false,
+      cancel() {},
+      getVoices: () => [],
+      speak() {
+        assert.fail('Should not use TTS when studio audio is available');
+      },
+    },
+  };
+
+  try {
+    // 1. Медленная скорость: rate=0.5 — для начинающих
+    await speakHebrew('חתונה', { rate: 0.5 });
+    assert.equal(capturedRates.length, 1, 'One audio element should have played');
+    assert.equal(capturedRates[0], 0.5, 'playbackRate must be 0.5 when rate=0.5');
+
+    // 2. Стандартная скорость: rate=0.7 (дефолт профиля)
+    await speakHebrew('חתונה', { rate: 0.7 });
+    assert.equal(capturedRates.length, 2);
+    assert.equal(capturedRates[1], 0.7, 'playbackRate must be 0.7 when rate=0.7');
+
+    // 3. Нормальная скорость: rate=1.0
+    await speakHebrew('חתונה', { rate: 1.0 });
+    assert.equal(capturedRates.length, 3);
+    assert.equal(capturedRates[2], 1.0, 'playbackRate must be 1.0 when rate=1.0');
+
+    // 4. Превышение верхней границы зажимается до 1.5
+    await speakHebrew('חתונה', { rate: 2.5 });
+    assert.equal(capturedRates.length, 4);
+    assert.equal(capturedRates[3], 1.5, 'playbackRate must be clamped to 1.5 maximum');
+
+    // 5. Нижняя граница зажимается до 0.5
+    await speakHebrew('חתונה', { rate: 0.1 });
+    assert.equal(capturedRates.length, 5);
+    assert.equal(capturedRates[4], 0.5, 'playbackRate must be clamped to 0.5 minimum');
+
+    stopSpeech();
+  } finally {
+    global.Audio = originalAudio;
+    global.window = originalWindow;
+    stopSpeech();
+  }
 });

@@ -671,6 +671,10 @@ export function speakHebrew(
         try {
           audio = new Audio(targetAudioUrl);
           activeStudioAudio = audio;
+          // R-17: применяем скорость воспроизведения из профиля пользователя.
+          // Диапазон 0.5–1.5 — безопасный для HTML5 Audio на всех платформах.
+          // При rate=0.7 (дефолт) диктор звучит на 70% скорости — удобно для начинающих.
+          audio.playbackRate = Math.max(0.5, Math.min(1.5, rate));
           audio.onended = finishStudio;
           audio.onerror = () => {
             if (!isStudioEnded) {
@@ -706,8 +710,9 @@ export function speakHebrew(
             });
           }
 
-          // Страховочный таймаут
-          studioTimeout = setTimeout(finishStudio, 6000);
+          // Страховочный таймаут (увеличен пропорционально замедлению воспроизведения)
+          const studioTimeoutMs = Math.round(6000 / Math.max(0.5, rate));
+          studioTimeout = setTimeout(finishStudio, studioTimeoutMs);
           return;
         } catch {
           // При ошибке Audio переходим к TTS
