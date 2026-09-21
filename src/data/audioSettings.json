@@ -1,4 +1,6 @@
 {
-  "sentenceAudioEngine": "current",
-  "lastUpdated": "2026-09-21T11:12:43.135Z"
+  "sentenceAudioEngine": "google_cloud",
+  "defaultVoiceMale": "he-IL-Chirp3-HD-Fenrir",
+  "defaultVoiceFemale": "he-IL-Chirp3-HD-Aoede",
+  "lastUpdated": "2026-09-21T16:03:36.584Z"
 }

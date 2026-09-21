@@ -341,11 +341,11 @@ let isManifestLoading = false;
  * Читает выбранный администратором глобальный движок озвучки предложений
  */
 export function getSentenceAudioEngine(): 'current' | 'google_cloud' | 'edge_neural' {
-  if (typeof window === 'undefined') return 'current';
+  if (typeof window === 'undefined') return 'google_cloud';
   try {
-    return (localStorage.getItem('sentence_audio_engine') as 'edge_neural' | 'google_cloud' | 'current') || 'current';
+    return (localStorage.getItem('sentence_audio_engine') as 'edge_neural' | 'google_cloud' | 'current') || 'google_cloud';
   } catch {
-    return 'current';
+    return 'google_cloud';
   }
 }
 

@@ -490,7 +490,7 @@ export function AdminAudioSentencesTab() {
                 </span>
               ) : settings.sentenceAudioEngine === 'google_cloud' ? (
                 <span className="text-emerald-400 font-semibold">
-                  ✓ Ученики слышат студийные MP3 от Google
+                  ✓ Ученики слышат Google Cloud Chirp 3 HD: Fenrir (♂) и Aoede (♀)
                 </span>
               ) : (
                 <span className="text-zinc-400">
@@ -964,7 +964,13 @@ export function AdminAudioSentencesTab() {
                                 ) : (
                                   <>
                                     <Play className="w-3.5 h-3.5 fill-current" />
-                                    <span>{item.isGenderSensitive ? 'Avri (♂)' : 'Слушать'}</span>
+                                    <span>
+                                      {item.isGenderSensitive
+                                        ? settings.sentenceAudioEngine === 'google_cloud'
+                                          ? 'Fenrir (♂)'
+                                          : 'Avri (♂)'
+                                        : 'Слушать'}
+                                    </span>
                                   </>
                                 )}
                               </button>
@@ -995,10 +1001,14 @@ export function AdminAudioSentencesTab() {
                                     ? 'bg-purple-600 text-white shadow-md animate-pulse'
                                     : 'bg-purple-50 dark:bg-purple-950/60 border border-purple-400/30 text-purple-700 dark:text-purple-300 hover:bg-purple-100'
                                 }`}
-                                title="Воспроизвести женскую дорожку (Hila ♀)"
+                                title={`Воспроизвести женскую дорожку (${settings.sentenceAudioEngine === 'google_cloud' ? 'Aoede ♀' : 'Hila ♀'})`}
                               >
                                 <Play className="w-3 h-3 fill-current" />
-                                <span>Hila (♀)</span>
+                                <span>
+                                  {settings.sentenceAudioEngine === 'google_cloud'
+                                    ? 'Aoede (♀)'
+                                    : 'Hila (♀)'}
+                                </span>
                               </button>
                             )}
                           </div>

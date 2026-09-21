@@ -75,7 +75,7 @@ export const CAREGIVER_DECKS: ThematicDeck[] = [
       { id: 'cg_b_5', hebrew: 'בֶּטֶן', hebrewPlain: 'בטן', transcription: 'бéтен', translation: 'живот', partOfSpeech: 'noun', gender: 'f', lessonId: 0 },
       { id: 'cg_b_6', hebrew: 'רֹאשׁ', hebrewPlain: 'ראש', transcription: 'рош', translation: 'голова', partOfSpeech: 'noun', gender: 'm', lessonId: 0 },
       { id: 'cg_b_7', hebrew: 'פֶּה', hebrewPlain: 'פה', transcription: 'пэ', translation: 'рот', partOfSpeech: 'noun', gender: 'm', lessonId: 0 },
-      { id: 'cg_b_8', hebrew: 'אוֹזֶן', hebrewPlain: 'אוזן', transcription: 'óзен', translation: 'ухо', partOfSpeech: 'noun', gender: 'f', plural: 'אָזְנַיִּים', lessonId: 0 },
+      { id: 'cg_b_8', hebrew: 'אוֹזֶן', hebrewPlain: 'אוזן', transcription: 'óзен', translation: 'ухо', partOfSpeech: 'noun', gender: 'f', plural: 'אוֹזְנַיִּים', lessonId: 0 },
       { id: 'cg_b_9', hebrew: 'עַיִן', hebrewPlain: 'עין', transcription: 'áин', translation: 'глаз', partOfSpeech: 'noun', gender: 'f', plural: 'עֵינַיִּים', lessonId: 0 },
       { id: 'cg_b_10', hebrew: 'לֵב', hebrewPlain: 'לב', transcription: 'лев', translation: 'сердце', partOfSpeech: 'noun', gender: 'm', lessonId: 0 },
       { id: 'cg_b_11', hebrew: 'רֵיאוֹת', hebrewPlain: 'ריאות', transcription: 'реóт', translation: 'лёгкие', partOfSpeech: 'noun', gender: 'f', lessonId: 0 },

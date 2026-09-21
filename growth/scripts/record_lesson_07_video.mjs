@@ -180,7 +180,7 @@ async function recordLesson07Video(promoCode = 'YOUTUBE', variantName = 'master'
         </div>
 
         <div style="background: linear-gradient(135deg, #2563eb, #1d4ed8); border-radius: 14px; padding: 12px 20px; width: 100%; max-width: 320px; box-shadow: 0 10px 25px -5px rgba(37, 99, 235, 0.5);">
-          <div style="color: #bfdbfe; font-size: 12px; font-weight: 600;">ПРОМОКОД НА 7 ДНЕЙ ПРЕМИУМА:</div>
+          <div style="color: #bfdbfe; font-size: 12px; font-weight: 600;">ПРОМОКОД НА 30 ДНЕЙ ПРЕМИУМА:</div>
           <div id="promo-code-display" style="color: #ffffff; font-size: 28px; font-weight: 900; letter-spacing: 2px; margin: 2px 0;">${window.__CURRENT_PROMO__ || 'YOUTUBE'}</div>
           <div style="color: #93c5fd; font-size: 11px;">Ссылка на этот урок под видео 👇</div>
         </div>
@@ -188,20 +188,49 @@ async function recordLesson07Video(promoCode = 'YOUTUBE', variantName = 'master'
       target.appendChild(cta);
     };
 
-    window.__moveTouch = (x, y) => {
-      window.__ensureTouchPointer();
-      const el = document.getElementById('touch-pointer');
-      if (el) {
-        el.style.left = `${x}px`;
-        el.style.top = `${y}px`;
-        el.style.opacity = '1';
-      }
+    const injectCleanStyle = () => {
+      const target = document.head || document.documentElement;
+      if (!target || document.getElementById('dev-cleaner-style')) return;
+      const s = document.createElement('style');
+      s.id = 'dev-cleaner-style';
+      s.textContent = `
+        nextjs-portal,
+        [data-nextjs-dev-overlay],
+        [data-nextjs-dialog-overlay] {
+          display: none !important;
+          pointer-events: none !important;
+          visibility: hidden !important;
+        }
+      `;
+      target.appendChild(s);
     };
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', injectCleanStyle);
+    } else {
+      injectCleanStyle();
+    }
+
+    // Ускоренное завершение браузерного TTS для записи видео синхронно с дорожкой
+    try {
+      SpeechSynthesis.prototype.speak = function(utterance) {
+        setTimeout(() => {
+          try { if (utterance.onstart) utterance.onstart(new Event('start')); } catch (_) {}
+          setTimeout(() => {
+            try { if (utterance.onend) utterance.onend(new Event('end')); } catch (_) {}
+          }, 30);
+        }, 10);
+      };
+    } catch (_) {}
 
     window.__tapTouch = (x, y) => {
       window.__ensureTouchPointer();
-      window.__moveTouch(x, y);
       const el = document.getElementById('touch-pointer');
+      if (el) {
+        el.style.opacity = '1';
+        el.style.left = `${x}px`;
+        el.style.top = `${y}px`;
+      }
       if (el) {
         el.classList.add('active');
         const target = document.body || document.documentElement;
@@ -226,11 +255,24 @@ async function recordLesson07Video(promoCode = 'YOUTUBE', variantName = 'master'
     };
   }, promoCode);
 
-  // Моки авторизации и AI-оценки
+  // Моки авторизации, облачной синхронизации и AI-оценки
   await page.route('**/api/auth/me', async (route) => {
     await route.fulfill({
       status: 200,
       json: { authenticated: true, user: { id: 'vip-user', name: 'Student', email: 'test@ulpana.me' } },
+    });
+  });
+
+  await page.route('**/api/user/sync', async (route) => {
+    await route.fulfill({
+      status: 200,
+      json: {
+        userId: 'vip-user',
+        revision: 1,
+        lessonProgress: { 7: { completedTabs: ['theory', 'vocab', 'exercises', 'essay'] } },
+        personalVocabulary: [],
+        flashcardStats: {},
+      },
     });
   });
 
@@ -266,16 +308,36 @@ async function recordLesson07Video(promoCode = 'YOUTUBE', variantName = 'master'
     });
   });
 
+  // Мок для симулятора звонков (Этап 6)
+  await page.route('**/api/ai/phone', async (route) => {
+    console.log('  🎯 [MOCK API] /api/ai/phone (Eli landlord answer)');
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        hebrew: 'בֶּטַח! בּוֹא לִרְאוֹת הַיּוֹם בְּשֵׁשׁ.',
+        translation: 'Конечно! Приходи посмотреть сегодня в шесть.',
+        transcription: 'Бе́тах! Бо лиро́т ha-йом бе-шеш.',
+        isCompleted: false,
+        shouldHangUp: false,
+        suggestedReplies: ['מְעוּלֶּה, תּוֹדָה!']
+      }),
+    });
+  });
+
+  await page.route('**/api/ai/phone/debrief', async (route) => {
+    await route.fulfill({ status: 200, json: { ok: true } });
+  });
+
   await page.route('**/api/calls/log', async (route) => {
     await route.fulfill({ status: 200, json: { ok: true } });
   });
 
-  // Загрузка Урока 7: Словарь
   const targetUrl = 'http://localhost:3000/#lesson-7/vocab';
   console.log(`🌐 Загрузка страницы: ${targetUrl}...`);
   await page.goto(targetUrl, { waitUntil: 'domcontentloaded' });
-  await page.locator('button[title*="2. Словарь"]').first().waitFor({ state: 'visible', timeout: 35000 });
-  await sleep(1200);
+  await page.locator('button:has-text("Списком")').waitFor({ state: 'visible', timeout: 20000 });
+  await sleep(1000);
 
   const uiReadyTime = Date.now();
   const uiOffsetSec = Math.max(0, (uiReadyTime - recordingStartTime) / 1000);
@@ -295,11 +357,31 @@ async function recordLesson07Video(promoCode = 'YOUTUBE', variantName = 'master'
             if (typeof window.__tapTouch === 'function') window.__tapTouch(x, y);
           }, { x: centerX, y: centerY });
         } catch (_) {}
-        await el.click({ force: true });
+        try {
+          await el.click({ force: true, timeout: 2000 });
+        } catch (_) {
+          await el.evaluate(b => b.click());
+        }
         return true;
       }
     } catch (err) {
       console.warn(`  ⚠️ Не удалось нажать "${description}":`, err.message);
+      try {
+        const ok = await page.evaluate((desc) => {
+          const btn = Array.from(document.querySelectorAll('button')).find(b => b.innerText.includes(desc) || (b.title && b.title.includes(desc)));
+          if (btn) {
+            const rect = btn.getBoundingClientRect();
+            if (typeof window.__tapTouch === 'function') window.__tapTouch(Math.round(rect.x + rect.width / 2), Math.round(rect.y + rect.height / 2));
+            btn.click();
+            return true;
+          }
+          return false;
+        }, description);
+        if (ok) {
+          console.log(`  👉 [JS CLICK] "${description}" успешен!`);
+          return true;
+        }
+      } catch (_) {}
     }
     return false;
   };
@@ -311,71 +393,94 @@ async function recordLesson07Video(promoCode = 'YOUTUBE', variantName = 'master'
   };
 
   // ========================================================
-  // ПОСЕКУНДНЫЙ ТАЙМЛАЙН СИНХРОНИЗАЦИИ
+  // ПОСЕКУНДНЫЙ ТАЙМЛАЙН СИНХРОНИЗАЦИИ С АУДИОДОРЖКОЙ
   // ========================================================
 
-  // АКТ 1: СЛОВАРЬ (0:00 - 0:11)
+  // АКТ 1: СЛОВАРЬ (0.0s -> 13.2s)
   console.log('📖 [АКТ 1] Словарь: Тапы по карточкам слов...');
+  await waitTo(1.5);
+  await tapElement('button:has-text("Списком")', 'Режим "Списком"');
+
   await waitTo(6.8);
   await tapElement(':has-text("דִּירָה"), [data-word="דִּירָה"]', 'Карточка "דִּירָה"');
 
-  await waitTo(8.4);
-  await tapElement(':has-text("חֲדָרִים"), :has-text("חֶדֶר")', 'Карточка "חֲדָרִים"');
+  await waitTo(8.9);
+  await tapElement(':has-text("חֶדֶר"), :has-text("חֲדָרִים")', 'Карточка "חֲדָרִים"');
 
-  await waitTo(10.5);
+  await waitTo(11.2);
   await tapElement(':has-text("מְקָרֵר")', 'Карточка "מְקָרֵר"');
 
-  // АКТ 2: ДИАЛОГ (0:12 - 0:26)
-  await waitTo(12.0);
+  // АКТ 2: ДИАЛОГ (13.3s -> 30.4s)
+  await waitTo(13.3);
   console.log('💬 [АКТ 2] Переход на вкладку 5. Диалог...');
-  await tapElement('button[title*="5. Диалог"]', 'Вкладка "5. Диалог"');
+  await tapElement('button[title*="Диалог"]', 'Вкладка "5. Диалог"');
   await sleep(600);
 
-  // Клик «Ответить по ролям»
-  await tapElement('button:has-text("Ответить по ролям")', 'Кнопка "Ответить по ролям"');
-  await sleep(600);
+  // Клик «Ответить по ролям» в 14.5s
+  await waitTo(14.5);
+  await tapElement('button:has-text("Ответить по ролям")', 'Ответить по ролям');
+  await sleep(500);
 
-  // Клик «Играть за роль Б» (Арендатор)
-  await tapElement('button:has-text("Играть за роль Б"), button:has-text("Играть за роль")', 'Выбор роли ученика');
+  // Клик «Играть за роль Б» (Арендатор) в 15.5s
+  await waitTo(15.5);
+  await tapElement('button:has-text("Играть за роль Б")', 'Играть за роль Б');
 
-  // Нажатие микрофона в 18.5s
-  await waitTo(18.5);
+  // Нажатие микрофона в 21.2s (реплика Эли звучит с 16.54s до 21.03s)
+  await waitTo(21.2);
   console.log('🎙️ [АКТ 2] Нажатие микрофона и ответ ученика...');
-  await tapElement(
-    'button:has-text("Нажмите и говорите на иврите"), button:has-text("Попробовать снова (голос)")',
-    'Кнопка микрофона'
-  );
+  await tapElement('button:has-text("Нажмите и говорите на иврите")', 'Нажмите и говорите');
 
-  // Завершение ответа в 21.4s
-  await waitTo(21.4);
+  // Завершение ответа в 26.3s (ответ ученика звучит с 21.28s до 26.37s)
+  await waitTo(26.3);
   console.log('⏹️ [АКТ 2] Завершение записи и отправка на оценку...');
-  await tapElement('button:has-text("Готово, проверить ответ")', 'Кнопка проверки ответа');
+  await tapElement('button:has-text("Готово, проверить ответ")', 'Готово, проверить ответ');
 
   // Ожидание бейджа 98%
+  await waitTo(26.8);
   try {
     const badge = page.locator(':has-text("98%"), :has-text("Отлично")').first();
     await badge.waitFor({ state: 'visible', timeout: 5000 });
     console.log('  ✨ Оценка 98% успешно отобразилась!');
   } catch (_) {}
 
-  // АКТ 3: ЗВОНОК С ИИ (0:26 - 0:39)
-  await waitTo(26.8);
+  // АКТ 3: ИМИТАЦИЯ ЗВОНКА С ИИ (30.5s -> 52.3s)
+  await waitTo(30.6);
   console.log('📞 [АКТ 3] Переход на вкладку 6. Звонок...');
-  await tapElement('button[title*="6. Звонок"]', 'Вкладка "6. Звонок"');
-  await sleep(800);
+  await tapElement('button[title*="Звонок"]', 'Вкладка "6. Звонок"');
+  await sleep(600);
 
-  // Тап по кнопке запуска звонка
-  await tapElement(
-    'button:has-text("Позвонить"), button:has-text("Начать звонок"), button:has-text("Позвонить арендодателю"), button[aria-label*="звонок"]',
-    'Кнопка старта звонка'
-  );
+  // Тап по кнопке запуска звонка в 32.5s
+  await waitTo(32.5);
+  await tapElement('button:has-text("Позвонить")', 'Позвонить');
 
-  // Эли отвечает в трубке (35.5s)
-  await waitTo(35.5);
-  console.log('🟢 [АКТ 3] Активный звонок с Эли...');
+  // Эли отвечает в трубке (36.10s -> 40.49s)
+  await waitTo(36.1);
+  console.log('🟢 [АКТ 3] Активный звонок: Эли отвечает в трубке...');
 
-  // АКТ 4: ФИНАЛ И CTA (0:39 - 0:47)
-  await waitTo(39.2);
+  // Ученик отвечает в трубке (40.74s -> 44.89s)
+  await waitTo(40.8);
+  console.log('🗣️ [АКТ 3] Ученик отвечает в трубке...');
+  await page.evaluate(() => {
+    if (typeof window.__phoneSimulatorSendMessage === 'function') {
+      window.__phoneSimulatorSendMessage('שָׁלוֹם! יֵשׁ כְּבָר מְקָרֵר וּמִיטָּה?');
+    }
+  });
+
+  // Эли подтверждает время встречи (45.14s -> 49.49s)
+  await waitTo(45.2);
+  console.log('🟢 [АКТ 3] Эли подтверждает время встречи...');
+
+  // Ученик благодарит (49.69s -> 52.21s)
+  await waitTo(49.7);
+  console.log('✨ [АКТ 3] Ученик благодарит...');
+
+  // Завершение звонка по кнопке
+  await waitTo(52.2);
+  console.log('🔴 [АКТ 3] Положить трубку...');
+  await tapElement('button:has-text("Положить трубку")', 'Положить трубку');
+
+  // АКТ 4: ФИНАЛ И CTA (52.5s -> 58.0s)
+  await waitTo(52.5);
   console.log(`🎁 [АКТ 4] Показ финального промо-оверлея [${promoCode}]...`);
   await page.evaluate((code) => {
     window.__showCta(code);
@@ -398,47 +503,59 @@ async function recordLesson07Video(promoCode = 'YOUTUBE', variantName = 'master'
     .sort((a, b) => b.time - a.time);
 
   if (!webmFiles.length) {
-    throw new Error('WebM файл не найден');
+    throw new Error('Файл WebM не найден после завершения записи!');
   }
 
   const rawVideoPath = webmFiles[0].fullPath;
-  const finalMp4Filename = `lesson_07_${variantName}.mp4`;
-  const finalMp4Path = path.resolve(OUTPUT_DIR, finalMp4Filename);
+  const finalVideoPath = path.join(OUTPUT_DIR, `lesson_07_${variantName}_${promoCode.toLowerCase()}.mp4`);
 
-  console.log(`🎞️ Сведение мастер-видео MP4: ${finalMp4Filename}...`);
+  console.log(`\n🎞️ Финальный рендеринг через FFmpeg:`);
+  console.log(`  Видео: ${rawVideoPath}`);
+  console.log(`  Аудио: ${masterAudioPath}`);
+  console.log(`  Итог:  ${finalVideoPath}`);
+
+  const trimOffsetSec = Math.max(0, uiOffsetSec - 0.2);
+
   const ffmpegArgs = [
     '-y',
-    '-ss', uiOffsetSec.toFixed(3),
+    '-ss', trimOffsetSec.toFixed(3),
     '-i', rawVideoPath,
     '-i', masterAudioPath,
+    '-map', '0:v:0',
+    '-map', '1:a:0',
     '-c:v', 'libx264',
     '-preset', 'fast',
     '-crf', '20',
     '-pix_fmt', 'yuv420p',
+    '-r', '30',
     '-c:a', 'aac',
     '-b:a', '192k',
-    '-t', totalDurationSec.toString(),
-    finalMp4Path,
+    '-ar', '44100',
+    '-shortest',
+    finalVideoPath,
   ];
 
-  const res = cp.spawnSync(FFMPEG_PATH, ffmpegArgs);
-  if (res.status !== 0) {
-    throw new Error(`FFmpeg error: ${res.stderr?.toString()}`);
+  cp.spawnSync(FFMPEG_PATH, ffmpegArgs);
+
+  if (fs.existsSync(finalVideoPath)) {
+    const stat = fs.statSync(finalVideoPath);
+    console.log(`\n🎉 ГОТОВО! Мастер-видео успешно собрано:`);
+    console.log(`   Файл: ${finalVideoPath}`);
+    console.log(`   Размер: ${(stat.size / (1024 * 1024)).toFixed(2)} MB`);
+    return finalVideoPath;
+  } else {
+    throw new Error('FFmpeg не создал итоговый MP4 файл!');
   }
-
-  // Очистка сырого webm
-  try { fs.unlinkSync(rawVideoPath); } catch (_) {}
-
-  const stat = fs.statSync(finalMp4Path);
-  console.log(`\n🎉 ГОТОВО: ${finalMp4Filename} (${(stat.size / 1024 / 1024).toFixed(2)} MB, ${totalDurationSec} сек)`);
-  return finalMp4Path;
 }
 
 if (process.argv[1]?.endsWith('record_lesson_07_video.mjs')) {
-  recordLesson07Video('YOUTUBE', 'youtube_shorts').catch((err) => {
-    console.error('❌ Ошибка записи:', err);
-    process.exit(1);
-  });
+  recordLesson07Video('YOUTUBE', 'master')
+    .then((p) => {
+      console.log(`\n🚀 Успешный релиз: ${p}`);
+      process.exit(0);
+    })
+    .catch((err) => {
+      console.error('❌ Ошибка записи видео:', err);
+      process.exit(1);
+    });
 }
-
-export { recordLesson07Video };

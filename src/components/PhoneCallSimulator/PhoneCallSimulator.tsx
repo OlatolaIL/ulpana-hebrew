@@ -80,6 +80,14 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
   const [lookupSentenceTranslation, setLookupSentenceTranslation] = React.useState<string | undefined>(undefined);
   const [lookupSentenceTranscription, setLookupSentenceTranscription] = React.useState<string | undefined>(undefined);
 
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      (window as any).__phoneSimulatorSendMessage = (text: string) => {
+        handleSendMessage(text);
+      };
+    }
+  }, [handleSendMessage]);
+
   const handleWordClick = (
     token: TextToken,
     fullSentence: string,

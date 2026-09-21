@@ -24,7 +24,7 @@ export interface SentenceGenderInfo {
 // Кэш соответствий мужских и женских форм глаголов настоящего времени из Pealim SSOT
 let verbPresentMap: Map<string, { mHe: string; fHe: string; mTrans: string; fTrans: string }> | null = null;
 
-function getVerbPresentMap() {
+export function getVerbPresentMap() {
   if (verbPresentMap) return verbPresentMap;
   verbPresentMap = new Map();
 
@@ -232,15 +232,6 @@ export function getSentenceGenderInfo(
     };
   }
 
-  const isSecondPersonF = plain.startsWith('את ') || plain.includes(' את ');
-  if (isSecondPersonF) {
-    return {
-      category: 'second_person_f',
-      isGenderSensitive: false,
-      defaultVoice: 'he-IL-HilaNeural',
-    };
-  }
-
   // 3. ТРЕТЬЕ ЛИЦО ЖЕНСКИЙ РОД (Она, Сара, Мама, Девочка)
   if (
     plain.startsWith('היא ') ||
@@ -273,11 +264,26 @@ export function getSentenceGenderInfo(
     };
   }
 
-  // 5. НЕЙТРАЛЬНЫЕ / БЕЗЛИЧНЫЕ
+  // 5. ВТОРОЕ ЛИЦО ЖЕНСКИЙ РОД (אַתְּ - ты ж.р., строго отличаем от предлога אֶת)
+  const isSecondPersonF =
+    sentenceHe.startsWith('אַתְּ ') ||
+    sentenceHe.startsWith('אַתְּ,') ||
+    sentenceHe.includes(' אַתְּ ') ||
+    (plain.startsWith('את ') && !sentenceHe.startsWith('אֶת '));
+
+  if (isSecondPersonF) {
+    return {
+      category: 'second_person_f',
+      isGenderSensitive: false,
+      defaultVoice: 'he-IL-HilaNeural',
+    };
+  }
+
+  // 6. НЕЙТРАЛЬНЫЕ / БЕЗЛИЧНЫЕ (все остальное озвучивается женским голосом Hila)
   return {
     category: 'neutral',
     isGenderSensitive: false,
-    defaultVoice: 'he-IL-AvriNeural',
+    defaultVoice: 'he-IL-HilaNeural',
   };
 }
 

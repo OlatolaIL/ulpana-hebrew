@@ -10,11 +10,11 @@ const repoRoot = path.resolve(__dirname, '..');
 const ARCHAIC_KUBUTZ_REGEX = /([א-הז-ת][\u05BC\u05C1\u05C2]*)\u05BB(?![ְֱֲֳִֵֶַָֹֺֻּֽֿׁׂׅׄ]*ו)/g;
 
 // Регулярное выражение: архаичные огласованные формы с камац-катан/холам-хасер без буквы вав
-// (по стандарту современного иврита R-04/R-05 обязательно пишутся с вав: תוכנית, אוכל, חומר, טופס и т.д.)
-const ARCHAIC_DEFECTIVE_VOCALIZED_REGEX = /(?:[בהוכלמש]?)(?:תָּכְנִית|הָאֹכֶל|הַטֹּפֶס|הַדֹּפֶק|הַבֹּץ|תַּחְבֹּשֶׁת|בָּאֹסֶף|חֹמֶר|מְבֹהָל)/g;
+// (по стандарту современного иврита R-04/R-05 обязательно пишутся с вав: תוכנית, אוכל, חומר, טופס, אוזן, אוזניים и т.д.)
+const ARCHAIC_DEFECTIVE_VOCALIZED_REGEX = /(?:[בהוכלמש]?)(?:תָּכְנִית|הָאֹכֶל|הַטֹּפֶס|הַדֹּפֶק|הַבֹּץ|תַּחְבֹּשֶׁת|בָּאֹסֶף|חֹמֶר|מְבֹהָל|אָזְנַיִם|אָזְנַיִּים|אָזְנֵי|אֹזֶן)/g;
 
 // Регулярное выражение: архаичный ктив хасер без огласовок (прямой запрет R-05)
-const ARCHAIC_UNVOCALIZED_REGEX = /(?:^|[\s"«'״׳()[\]{}—])(?:[בהוכלמש]?)(?:תכנית|ממלץ)(?=[\s.,!?;:"»'״׳()[\]{}—]|$)/g;
+const ARCHAIC_UNVOCALIZED_REGEX = /(?:^|[\s"«'״׳()[\]{}—])(?:[בהוכלמש]?)(?:תכנית|ממלץ|אזנים)(?=[\s.,!?;:"»'״׳()[\]{}—]|$)/g;
 
 function getFiles(dir, recursive = true) {
   if (!fs.existsSync(dir)) return [];
@@ -46,6 +46,7 @@ function auditFiles() {
     path.join(repoRoot, 'src/data/lessons'),
     path.join(repoRoot, 'src/data/drills'),
     path.join(repoRoot, 'src/data/thematicDecks'),
+    path.join(repoRoot, 'src/data/professionalDecks'),
   ]) {
     for (const f of getFiles(d, true)) {
       allFiles.add(f);

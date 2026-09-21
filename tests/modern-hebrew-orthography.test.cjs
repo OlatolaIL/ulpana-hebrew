@@ -20,6 +20,14 @@ test('R-04 & R-05: stripNikkud preserves Modern Hebrew כתיב מלא and conve
     { pointed: 'שׁוּלְחָן', expected: 'שולחן', desc: 'shulchan with shuruk preserves single vav' },
     { pointed: 'שֻׁלְחָן', expected: 'שולחן', desc: 'shulchan with kubutz produces שולחן' },
     { pointed: 'קֻפְסָה', expected: 'קופסה', desc: 'kufsa produces קופסה' },
+    // Critical R-04/R-05 cases: ozen, oznayim, and dual forms (kamatz-katan / cholem-chaser)
+    { pointed: 'אָזְנַיִם', expected: 'אוזניים', desc: 'oznayim with kamatz-katan produces modern full spelling אוזניים' },
+    { pointed: 'אוֹזְנַיִם', expected: 'אוזניים', desc: 'oznayim with single yod produces modern double yod אוזניים' },
+    { pointed: 'אוֹזְנַיִּים', expected: 'אוזניים', desc: 'oznayim with dagesh in yod produces אוזניים' },
+    { pointed: 'אֹזֶן', expected: 'אוזן', desc: 'ozen with cholem-chaser produces modern אוזן' },
+    { pointed: 'אוֹזֶן', expected: 'אוזן', desc: 'ozen with cholem-male produces אוזן' },
+    { pointed: 'אָזְנֵי הָמָן', expected: 'אוזני המן', desc: 'oznei haman with kamatz-katan produces אוזני המן' },
+    { pointed: 'בַּבֹּקֶר', expected: 'בבוקר', desc: 'baboker with cholem-chaser produces בבוקר' },
   ];
 
   for (const c of cases) {
@@ -78,6 +86,14 @@ test('R-20 & R-04: lookupOfflineWord supports vocalized exact match and orthogra
 
   const tofesMatch = lookupOfflineWord('טפס');
   assert.ok(tofesMatch, 'lookupOfflineWord("טפס") must find entry via alias to טופס');
+
+  const oznayimMatch = lookupOfflineWord('אוזניים');
+  assert.ok(oznayimMatch, 'lookupOfflineWord("אוזניים") must find entry for אוזן');
+  assert.ok(oznayimMatch.translation.includes('ухо'), 'Translation must be "ухо"');
+
+  const aznayimMatch = lookupOfflineWord('אזניים');
+  assert.ok(aznayimMatch, 'lookupOfflineWord("אזניים") must find entry for אוזן via alias');
+  assert.ok(aznayimMatch.translation.includes('ухо'), 'Translation must be "ухо"');
 });
 
 test('R-20: Homographs registry contains key Alef/Bet homograph pairs', () => {

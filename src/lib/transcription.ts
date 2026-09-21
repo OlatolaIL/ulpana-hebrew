@@ -10,12 +10,19 @@ const NIKKUD_REGEX = /[\u0591-\u05BD\u05BF\u05C1-\u05C2\u05C4-\u05C5\u05C7]/g;
  */
 export function stripNikkud(text: string): string {
   if (!text) return '';
-  // Согласная буква (кроме вав) с огласовкой кубуц без последующей вав -> добавляем вав
-  const withModernVav = text.replace(
+  // 1. Согласная буква (кроме вав) с огласовкой кубуц без последующей вав -> добавляем вав
+  let res = text.replace(
     /([א-הז-ת][\u05BC\u05C1\u05C2]*)\u05BB(?![ְֱֲֳִֵֶַָֹֺֻּֽֿׁׂׅׄ]*ו)/g,
     (_match, letter) => letter + 'ו'
   );
-  return withModernVav.replace(NIKKUD_REGEX, '');
+  // 2. Архаичные формы без вав с огласовкой камац-катан или холам-хасер (R-04, R-05, R-06):
+  // אָזְנַיִם / אוֹזְנַיִם -> אוזניים, אָזְנֵי -> אוזני, אֹזֶן -> אוזן
+  res = res.replace(/(?:אוֹ|אֹ|אָ)זְנַיִם/g, 'אוזניים');
+  res = res.replace(/(?:אֹ|אָ)זְנ/g, 'אוזנ');
+  res = res.replace(/אֹזֶ/g, 'אוזֶ');
+  res = res.replace(/בַּבֹּקֶר/g, 'בַּבּוֹקֶר');
+
+  return res.replace(NIKKUD_REGEX, '');
 }
 
 export function isHebrewText(text: string): boolean {

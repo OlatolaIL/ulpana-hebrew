@@ -21,7 +21,7 @@ export const HEALTH_DECKS: ThematicDeck[] = [
       { id: 'b_alef_2', hebrew: 'יָד', hebrewPlain: 'יד', transcription: 'яд', translation: 'рука (кисть/рука, ж.р.)', partOfSpeech: 'noun', plural: 'יָדַיִם', lessonId: 0 },
       { id: 'b_alef_3', hebrew: 'רֶגֶל', hebrewPlain: 'רגל', transcription: 'рéгель', translation: 'нога (ж.р.)', partOfSpeech: 'noun', plural: 'רַגְלַיִם', lessonId: 0 },
       { id: 'b_alef_4', hebrew: 'עַיִן', hebrewPlain: 'עין', transcription: 'áйин', translation: 'глаз (ж.р.)', partOfSpeech: 'noun', plural: 'עֵינַיִם', lessonId: 0 },
-      { id: 'b_alef_5', hebrew: 'אוֹזֶן', hebrewPlain: 'אוזן', transcription: 'óзен', translation: 'ухо (ж.р.)', partOfSpeech: 'noun', plural: 'אָזְנַיִּים', lessonId: 0 },
+      { id: 'b_alef_5', hebrew: 'אוֹזֶן', hebrewPlain: 'אוזן', transcription: 'óзен', translation: 'ухо (ж.р.)', partOfSpeech: 'noun', plural: 'אוֹזְנַיִּים', lessonId: 0 },
       { id: 'b_alef_6', hebrew: 'אַף', hebrewPlain: 'אף', transcription: 'аф', translation: 'нос', partOfSpeech: 'noun', lessonId: 0 },
       { id: 'b_alef_7', hebrew: 'פֶּה', hebrewPlain: 'פה', transcription: 'пэ', translation: 'рот', partOfSpeech: 'noun', lessonId: 0 },
       { id: 'b_alef_8', hebrew: 'שֵׁן', hebrewPlain: 'שן', transcription: 'шен', translation: 'зуб (ж.р.)', partOfSpeech: 'noun', plural: 'שִׁינַּיִּים', lessonId: 0 },

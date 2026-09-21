@@ -18038,7 +18038,7 @@ export const NOUN_DRILLS_DATA: Record<string, NounDrillItem> = {
     targetWordTranslation: 'ухо',
     singularHe: 'אוֹזֶן',
     singularTranscription: 'óзен',
-    pluralHe: 'אָזְנַיִם',
+    pluralHe: 'אוֹזְנַיִם',
     pluralTranscription: 'ознáйим',
     gender: 'f',
     isPluralException: true,
