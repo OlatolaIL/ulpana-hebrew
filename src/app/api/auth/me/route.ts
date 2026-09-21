@@ -3,6 +3,7 @@ import { verifySessionToken } from '@/lib/auth';
 import { getDbPool, initDatabase } from '@/lib/db';
 import { isVipUser, VIP_EXPIRES_AT } from '@/lib/vipUsers';
 import { IS_EARLY_ACCESS_FREE } from '@/lib/config';
+import { resolvePromoBundle } from '@/lib/promoBundles';
 
 export async function GET(req: NextRequest) {
   try {
@@ -52,37 +53,47 @@ export async function GET(req: NextRequest) {
         if (!IS_EARLY_ACCESS_FREE && promoPending && tier !== 'pro') {
           const upperPending = promoPending.toUpperCase();
           let promoRes = await db.query(
-            'SELECT * FROM ulpana_promo_codes WHERE UPPER(code) = $1 AND is_active = true',
+            'SELECT p.*, b.name as bundle_name, b.unlocked_lessons as b_lessons, b.unlocked_decks as b_decks, b.unlocked_categories as b_categories FROM ulpana_promo_codes p LEFT JOIN ulpana_promo_bundles b ON b.id = p.bundle_id WHERE UPPER(p.code) = $1 AND p.is_active = true',
             [upperPending]
           );
-          if (promoRes.rows.length === 0 && (upperPending === 'LATTE_MAMA' || upperPending === 'MOMS' || upperPending === 'TG_MAMA')) {
-            const channel = upperPending === 'TG_MAMA' ? 'tg' : upperPending === 'LATTE_MAMA' ? 'fb' : 'other';
-            const postDesc = upperPending === 'TG_MAMA'
-              ? 'Пост для мам в Telegram-канале @ulpana_il'
-              : upperPending === 'LATTE_MAMA'
-              ? 'Пост для мам в Facebook «Тыквенный латте»'
-              : 'Спецкод: Мамы Израиля';
-            await db.query(
-              `INSERT INTO ulpana_promo_codes (id, code, days_valid, max_uses, used_count, is_active, code_type, channel, description)
-               VALUES ($1, $2, $3, $4, 0, true, 'post', $5, $6)
-               ON CONFLICT (code) DO NOTHING`,
-              [`promo_${upperPending.toLowerCase()}_system`, upperPending, 30, 1000, channel, postDesc]
-            );
-            promoRes = await db.query(
-              'SELECT * FROM ulpana_promo_codes WHERE UPPER(code) = $1 AND is_active = true',
-              [upperPending]
-            );
+          if (promoRes.rows.length === 0) {
+            const resolvedBundle = resolvePromoBundle(upperPending);
+            if (resolvedBundle) {
+              const channel = upperPending.includes('TG') ? 'tg' : upperPending.includes('LATTE') || upperPending.includes('FB') ? 'fb' : 'other';
+              const postDesc = `Промокод с доступом: ${resolvedBundle.name}`;
+              await db.query(
+                `INSERT INTO ulpana_promo_codes (id, code, days_valid, max_uses, used_count, is_active, code_type, channel, description, bundle_id)
+                 VALUES ($1, $2, $3, $4, 0, true, 'post', $5, $6, $7)
+                 ON CONFLICT (code) DO UPDATE SET bundle_id = EXCLUDED.bundle_id`,
+                [`promo_${upperPending.toLowerCase()}_system`, upperPending, 30, 1000, channel, postDesc, resolvedBundle.id]
+              );
+              promoRes = await db.query(
+                'SELECT p.*, b.name as bundle_name, b.unlocked_lessons as b_lessons, b.unlocked_decks as b_decks, b.unlocked_categories as b_categories FROM ulpana_promo_codes p LEFT JOIN ulpana_promo_bundles b ON b.id = p.bundle_id WHERE UPPER(p.code) = $1 AND p.is_active = true',
+                [upperPending]
+              );
+            }
           }
           if (promoRes.rows.length > 0) {
             const promo = promoRes.rows[0];
             const limitOk = !promo.max_uses || promo.used_count < promo.max_uses;
             if (limitOk) {
               const newExpiresAt = Date.now() + promo.days_valid * 24 * 60 * 60 * 1000;
+              const unlockedDecks = Array.from(new Set([...(promo.unlocked_decks || []), ...(promo.b_decks || [])]));
+              const unlockedCategories = Array.from(new Set([...(promo.unlocked_categories || []), ...(promo.b_categories || [])]));
+              const unlockedLessons = Array.from(new Set([...(promo.unlocked_lessons || []), ...(promo.b_lessons || [])]));
+
               await db.query(
                 `UPDATE ulpana_users
-                 SET subscription_tier = 'pro', subscription_expires_at = $1, promo_pending = NULL, updated_at = NOW()
-                 WHERE id = $2`,
-                [newExpiresAt, session.id]
+                 SET subscription_tier = 'pro', 
+                     subscription_expires_at = $1, 
+                     promo_pending = NULL,
+                     activated_promos = array_append(COALESCE(activated_promos, '{}'), $2),
+                     unlocked_decks = array_cat(COALESCE(unlocked_decks, '{}'), $3),
+                     unlocked_categories = array_cat(COALESCE(unlocked_categories, '{}'), $4),
+                     unlocked_lessons = array_cat(COALESCE(unlocked_lessons, '{}'), $5),
+                     updated_at = NOW()
+                 WHERE id = $6`,
+                [newExpiresAt, upperPending, unlockedDecks, unlockedCategories, unlockedLessons, session.id]
               );
               await db.query(
                 'UPDATE ulpana_promo_codes SET used_count = used_count + 1 WHERE id = $1',
@@ -113,16 +124,13 @@ export async function GET(req: NextRequest) {
             : null;
           updatedSession = {
             ...session,
-            name: row.name || session.name,
-            username: row.username || session.username,
-            avatarUrl: row.avatar_url || session.avatarUrl,
-            telegramId: row.telegram_id ? Number(row.telegram_id) : session.telegramId,
-            email: row.email || session.email,
             subscriptionTier: tier as 'free' | 'pro' | 'admin',
             subscriptionExpiresAt: freshExpires,
-            isChannelSubscriber: Boolean(row.is_channel_subscriber),
-            channelVerifiedAt: row.channel_verified_at ? new Date(row.channel_verified_at).getTime() : null,
             promoPending: null,
+            activatedPromos: Array.from(new Set([...(row.activated_promos || []), upperPending])),
+            unlockedDecks: row.unlocked_decks || [],
+            unlockedCategories: row.unlocked_categories || [],
+            unlockedLessons: row.unlocked_lessons || [],
           };
         } else {
           updatedSession = {
@@ -137,6 +145,10 @@ export async function GET(req: NextRequest) {
             isChannelSubscriber: Boolean(row.is_channel_subscriber),
             channelVerifiedAt: row.channel_verified_at ? new Date(row.channel_verified_at).getTime() : null,
             promoPending: row.promo_pending || null,
+            activatedPromos: row.activated_promos || [],
+            unlockedDecks: row.unlocked_decks || [],
+            unlockedCategories: row.unlocked_categories || [],
+            unlockedLessons: row.unlocked_lessons || [],
           };
         }
       }

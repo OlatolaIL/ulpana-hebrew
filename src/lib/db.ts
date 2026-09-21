@@ -71,6 +71,10 @@ async function initializeDatabase() {
       ALTER TABLE ulpana_users ADD COLUMN IF NOT EXISTS is_channel_subscriber BOOLEAN DEFAULT FALSE;
       ALTER TABLE ulpana_users ADD COLUMN IF NOT EXISTS channel_verified_at TIMESTAMPTZ;
       ALTER TABLE ulpana_users ADD COLUMN IF NOT EXISTS promo_pending TEXT DEFAULT NULL;
+      ALTER TABLE ulpana_users ADD COLUMN IF NOT EXISTS activated_promos TEXT[] DEFAULT '{}';
+      ALTER TABLE ulpana_users ADD COLUMN IF NOT EXISTS unlocked_decks TEXT[] DEFAULT '{}';
+      ALTER TABLE ulpana_users ADD COLUMN IF NOT EXISTS unlocked_categories TEXT[] DEFAULT '{}';
+      ALTER TABLE ulpana_users ADD COLUMN IF NOT EXISTS unlocked_lessons INT[] DEFAULT '{}';
     `);
 
     // 2. Таблица прогресса по урокам
@@ -106,8 +110,20 @@ async function initializeDatabase() {
       ON ulpana_vocabulary (user_id, hebrew_plain);
     `);
 
-    // 4. Таблица промокодов для PRO-подписки
+    // 4. Таблица пакетов бессрочного доступа (Access Bundles) и промокодов
     await db.query(`
+      CREATE TABLE IF NOT EXISTS ulpana_promo_bundles (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        description TEXT,
+        icon TEXT DEFAULT '🎁',
+        unlocked_lessons INT[] DEFAULT '{}',
+        unlocked_decks TEXT[] DEFAULT '{}',
+        unlocked_categories TEXT[] DEFAULT '{}',
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        updated_at TIMESTAMPTZ DEFAULT NOW()
+      );
+
       CREATE TABLE IF NOT EXISTS ulpana_promo_codes (
         id TEXT PRIMARY KEY,
         code TEXT UNIQUE NOT NULL,
@@ -121,6 +137,10 @@ async function initializeDatabase() {
       ALTER TABLE ulpana_promo_codes ADD COLUMN IF NOT EXISTS channel TEXT DEFAULT 'tg';
       ALTER TABLE ulpana_promo_codes ADD COLUMN IF NOT EXISTS post_link TEXT DEFAULT NULL;
       ALTER TABLE ulpana_promo_codes ADD COLUMN IF NOT EXISTS description TEXT DEFAULT NULL;
+      ALTER TABLE ulpana_promo_codes ADD COLUMN IF NOT EXISTS bundle_id TEXT REFERENCES ulpana_promo_bundles(id) ON DELETE SET NULL;
+      ALTER TABLE ulpana_promo_codes ADD COLUMN IF NOT EXISTS unlocked_lessons INT[] DEFAULT '{}';
+      ALTER TABLE ulpana_promo_codes ADD COLUMN IF NOT EXISTS unlocked_decks TEXT[] DEFAULT '{}';
+      ALTER TABLE ulpana_promo_codes ADD COLUMN IF NOT EXISTS unlocked_categories TEXT[] DEFAULT '{}';
     `);
 
     // 5. Таблица токенов авторизации через Telegram-бота (DeepLink 1-Click)

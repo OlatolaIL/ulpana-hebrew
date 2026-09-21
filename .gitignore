@@ -41,9 +41,13 @@ next-env.d.ts
 
 # demo heavy media
 public/demo/*.mp4
+public/demo/**/*.mp4
 public/demo/*.webm
+public/demo/**/*.webm
 public/demo/*.wav
+public/demo/**/*.wav
 public/demo/audio_cache/
+public/demo/lessons/
 *.mp3
 !public/audio/**
 

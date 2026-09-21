@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAdminRequest } from '@/lib/adminAuth';
 import { getDbPool, initDatabase } from '@/lib/db';
+import { DEFAULT_BUNDLES } from '@/lib/promoBundles';
 
 export async function GET(req: NextRequest) {
   try {
@@ -15,24 +16,48 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ isDbConnected: false, promos: [] });
     }
 
-    // Авто-сидинг стандартных канальных и целевых промокодов, если их ещё нет
+    // Авто-сидинг системных бандлов по умолчанию
+    for (const b of DEFAULT_BUNDLES) {
+      await db.query(
+        `INSERT INTO ulpana_promo_bundles (id, name, description, icon, unlocked_lessons, unlocked_decks, unlocked_categories)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)
+         ON CONFLICT (id) DO NOTHING`,
+        [b.id, b.name, b.description, b.icon, b.unlockedLessons, b.unlockedDecks, b.unlockedCategories]
+      );
+    }
+
+    // Авто-сидинг всех стандартных канальных и целевых промокодов
     const standardPresets = [
-      { code: 'TG_GENERAL', days: 14, uses: 500, type: 'general', channel: 'tg', desc: 'Ссылка в описании / закреп канала @ulpana_il' },
-      { code: 'TG_MAMA', days: 30, uses: 1000, type: 'post', channel: 'tg', desc: 'Пост для мам в канале @ulpana_il' },
-      { code: 'LATTE_MAMA', days: 30, uses: 1000, type: 'post', channel: 'fb', desc: 'Пост Сергея для мам в группе «Тыквенный латте»' },
-      { code: 'MOMS', days: 30, uses: 500, type: 'general', channel: 'other', desc: 'Общий промокод для мам Израиля' },
+      { code: 'TG_GENERAL', days: 14, uses: 500, type: 'general', channel: 'tg', desc: 'Ссылка в описании / закреп канала @ulpana_il', bundleId: null },
+      { code: 'TG_MAMA', days: 30, uses: 1000, type: 'post', channel: 'tg', desc: 'Пост для мам в канале @ulpana_il', bundleId: 'bundle_moms' },
+      { code: 'LATTE_MAMA', days: 30, uses: 1000, type: 'post', channel: 'fb', desc: 'Пост Сергея для мам в группе «Тыквенный латте»', bundleId: 'bundle_moms' },
+      { code: 'MOMS', days: 30, uses: 500, type: 'general', channel: 'other', desc: 'Общий промокод для мам Израиля', bundleId: 'bundle_moms' },
+      { code: 'FB', days: 30, uses: 500, type: 'general', channel: 'fb', desc: 'Для рекламы и постов в Facebook', bundleId: null },
+      { code: 'INSTA', days: 14, uses: 500, type: 'general', channel: 'insta', desc: 'Для ссылки в био и сторис Instagram', bundleId: null },
+      { code: 'TIKTOK', days: 14, uses: 500, type: 'general', channel: 'tiktok', desc: 'Для профиля TikTok', bundleId: null },
+      { code: 'YT', days: 14, uses: 500, type: 'general', channel: 'yt', desc: 'Для описаний видео на YouTube', bundleId: null },
+      { code: 'LATTE', days: 30, uses: 500, type: 'general', channel: 'fb', desc: 'Для участников группы «Тыквенный латте»', bundleId: null },
+      { code: 'OLE2026', days: 30, uses: 1000, type: 'general', channel: 'other', desc: 'Сообщества новых репатриантов', bundleId: null },
     ];
 
     for (const p of standardPresets) {
       await db.query(
-        `INSERT INTO ulpana_promo_codes (id, code, days_valid, max_uses, used_count, is_active, code_type, channel, description)
-         VALUES ($1, $2, $3, $4, 0, true, $5, $6, $7)
-         ON CONFLICT (code) DO NOTHING`,
-        [`promo_${p.code.toLowerCase()}_system`, p.code, p.days, p.uses, p.type, p.channel, p.desc]
+        `INSERT INTO ulpana_promo_codes (id, code, days_valid, max_uses, used_count, is_active, code_type, channel, description, bundle_id)
+         VALUES ($1, $2, $3, $4, 0, true, $5, $6, $7, $8)
+         ON CONFLICT (code) DO UPDATE SET 
+           bundle_id = COALESCE(ulpana_promo_codes.bundle_id, EXCLUDED.bundle_id)`,
+        [`promo_${p.code.toLowerCase()}_system`, p.code, p.days, p.uses, p.type, p.channel, p.desc, p.bundleId]
       );
     }
 
-    const res = await db.query('SELECT * FROM ulpana_promo_codes ORDER BY created_at DESC');
+    const res = await db.query(`
+      SELECT p.*, 
+             b.name AS bundle_name, 
+             b.icon AS bundle_icon
+      FROM ulpana_promo_codes p
+      LEFT JOIN ulpana_promo_bundles b ON b.id = p.bundle_id
+      ORDER BY p.created_at DESC
+    `);
 
     const promos = res.rows.map((r) => ({
       id: r.id,
@@ -45,6 +70,12 @@ export async function GET(req: NextRequest) {
       channel: r.channel || 'tg',
       postLink: r.post_link || null,
       description: r.description || null,
+      bundleId: r.bundle_id || null,
+      bundleName: r.bundle_name || null,
+      bundleIcon: r.bundle_icon || null,
+      unlockedLessons: r.unlocked_lessons || [],
+      unlockedDecks: r.unlocked_decks || [],
+      unlockedCategories: r.unlocked_categories || [],
       createdAt: r.created_at,
     }));
 
@@ -65,7 +96,20 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: auth.error }, { status: auth.status || 403 });
     }
 
-    const { code, daysValid, maxUses, codeType, channel, postLink, description } = await req.json();
+    const {
+      code,
+      daysValid,
+      maxUses,
+      codeType,
+      channel,
+      postLink,
+      description,
+      bundleId,
+      unlockedLessons,
+      unlockedDecks,
+      unlockedCategories,
+    } = await req.json();
+
     const cleanCode = String(code || '').trim().toUpperCase();
     const days = parseInt(String(daysValid || '30'), 10);
     const uses = parseInt(String(maxUses || '100'), 10);
@@ -73,6 +117,10 @@ export async function POST(req: NextRequest) {
     const cleanChannel = String(channel || 'tg').trim().toLowerCase();
     const cleanPostLink = postLink ? String(postLink).trim() : null;
     const cleanDescription = description ? String(description).trim() : null;
+    const cleanBundleId = bundleId ? String(bundleId).trim() : null;
+    const lessons: number[] = Array.isArray(unlockedLessons) ? unlockedLessons.map(Number).filter((n) => !isNaN(n)) : [];
+    const decks: string[] = Array.isArray(unlockedDecks) ? unlockedDecks.map(String) : [];
+    const categories: string[] = Array.isArray(unlockedCategories) ? unlockedCategories.map(String) : [];
 
     if (!cleanCode) {
       return NextResponse.json({ error: 'Код промокода обязателен' }, { status: 400 });
@@ -87,9 +135,13 @@ export async function POST(req: NextRequest) {
     const id = `promo_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
 
     await db.query(
-      `INSERT INTO ulpana_promo_codes (id, code, days_valid, max_uses, used_count, is_active, code_type, channel, post_link, description)
-       VALUES ($1, $2, $3, $4, 0, true, $5, $6, $7, $8)`,
-      [id, cleanCode, days, uses, cleanCodeType, cleanChannel, cleanPostLink, cleanDescription]
+      `INSERT INTO ulpana_promo_codes (
+         id, code, days_valid, max_uses, used_count, is_active, 
+         code_type, channel, post_link, description, 
+         bundle_id, unlocked_lessons, unlocked_decks, unlocked_categories
+       )
+       VALUES ($1, $2, $3, $4, 0, true, $5, $6, $7, $8, $9, $10, $11, $12)`,
+      [id, cleanCode, days, uses, cleanCodeType, cleanChannel, cleanPostLink, cleanDescription, cleanBundleId, lessons, decks, categories]
     );
 
     return NextResponse.json({
@@ -105,6 +157,10 @@ export async function POST(req: NextRequest) {
         channel: cleanChannel,
         postLink: cleanPostLink,
         description: cleanDescription,
+        bundleId: cleanBundleId,
+        unlockedLessons: lessons,
+        unlockedDecks: decks,
+        unlockedCategories: categories,
       },
     });
   } catch (error: any) {

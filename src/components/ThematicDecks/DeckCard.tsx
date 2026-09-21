@@ -81,8 +81,8 @@ export const DeckCard: React.FC<DeckCardProps> = ({
   };
 
   const effectivePromo = userProfile.promoPending || (typeof window !== 'undefined' ? localStorage.getItem('ulpana_pending_promo') : null);
-  const isAlwaysFree = isDeckAlwaysFree(deck.id, effectivePromo);
-  const isAuthRequired = isDeckAuthRequired(deck.id, Boolean(userProfile.isLoggedIn), effectivePromo);
+  const isAlwaysFree = isDeckAlwaysFree(deck.id, effectivePromo, userProfile);
+  const isAuthRequired = isDeckAuthRequired(deck.id, Boolean(userProfile.isLoggedIn), effectivePromo, userProfile);
 
   const handleCardClick = () => {
     if (isAuthRequired) {

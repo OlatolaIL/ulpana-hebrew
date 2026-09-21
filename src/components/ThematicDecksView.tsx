@@ -258,13 +258,13 @@ export const ThematicDecksView: React.FC<ThematicDecksViewProps> = ({
       )}
 
       {/* Баннер активности промокода для мам */}
-      {isMomPromo(effectivePromo) && (
+      {(isMomPromo(effectivePromo) || userProfile.unlockedCategories?.includes('mom') || userProfile.activatedPromos?.some((p) => isMomPromo(p))) && (
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 p-3.5 rounded-2xl bg-gradient-to-r from-pink-500/15 via-rose-500/10 to-pink-500/15 border border-pink-500/40 text-pink-950 dark:text-pink-100 text-xs animate-in fade-in">
           <div className="flex items-center gap-2.5 min-w-0 flex-1">
             <span className="text-xl shrink-0">👩‍👧</span>
             <div>
               <p className="font-bold text-pink-700 dark:text-pink-300">
-                Промокод «{effectivePromo}» активен!
+                {effectivePromo ? `Промокод «${effectivePromo}» активен!` : 'Доступ для мам активирован!'}
               </p>
               <p className="text-pink-900/90 dark:text-pink-200/90 mt-0.5 leading-relaxed">
                 Все 7 колод направления «Мама в Израиле» (детский сад, поликлиника, аптека, школа, чаты и площадки) открыты для вас <strong>навсегда бесплатно</strong>.

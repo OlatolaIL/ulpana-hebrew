@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=390, height=844, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Ульпан Алеф — «Дышите» vs «Целуйтесь»</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700;800;900&family=Heebo:wght@400;500;700;900&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body {
+      background-color: #000;
+      color: #fff;
+      font-family: 'Rubik', sans-serif;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100vw;
+      height: 100vh;
+    }
+
+    #phone-container {
+      width: 390px;
+      height: 844px;
+      position: relative;
+      overflow: hidden;
+      background: #060913;
+    }
+
+    /* R-25: СТРОГО absolute inset 0, visibility hidden */
+    .scene {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0;
+      pointer-events: none;
+      visibility: hidden;
+      transition: opacity 0.3s ease, visibility 0.3s ease;
+      overflow: hidden;
+    }
+
+    .scene.active {
+      opacity: 1;
+      pointer-events: auto;
+      visibility: visible;
+    }
+
+    /* Анимация Ken Burns */
+    .ken-burns {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transform: scale(1.02);
+      animation: kenBurnsZoom 6s ease-in-out infinite alternate;
+    }
+
+    @keyframes kenBurnsZoom {
+      0% { transform: scale(1.02) translate(0, 0); }
+      100% { transform: scale(1.12) translate(-2%, -2%); }
+    }
+
+    /* Punch-in zoom для шока */
+    .punch-zoom {
+      transform: scale(1.28) translate(0%, -2%) !important;
+      transition: transform 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
+    }
+
+    /* Затемнение для читаемости */
+    .vignette {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, rgba(0,0,0,0.65) 0%, rgba(0,0,0,0.05) 25%, rgba(0,0,0,0.2) 60%, rgba(0,0,0,0.9) 100%);
+      pointer-events: none;
+    }
+
+    /* Верхняя динамическая плашка */
+    .top-badge-wrap {
+      position: absolute;
+      top: 20px;
+      left: 0;
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      z-index: 1000;
+      padding: 0 16px;
+    }
+
+    .top-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 16px;
+      font-weight: 900;
+      text-transform: uppercase;
+      padding: 10px 18px;
+      border-radius: 14px;
+      background: rgba(10, 15, 30, 0.94);
+      border: 2px solid #38bdf8;
+      color: #fff;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.6), 0 0 20px rgba(56, 189, 248, 0.35);
+      animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+      text-align: center;
+    }
+
+    @keyframes popIn {
+      0% { transform: scale(0.8); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    /* Комикс-диалоги: КРУПНЫЕ баблы с чётким переводом */
+    .dialogue-overlay {
+      position: absolute;
+      bottom: 30px;
+      left: 14px;
+      right: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      z-index: 500;
+    }
+
+    .comic-bubble {
+      padding: 16px 20px;
+      border-radius: 20px;
+      box-shadow: 0 12px 35px rgba(0,0,0,0.8);
+      position: relative;
+      animation: bubbleSlideUp 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    }
+
+    @keyframes bubbleSlideUp {
+      0% { opacity: 0; transform: translateY(20px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+
+    .bubble-doctor {
+      background: rgba(15, 23, 42, 0.96);
+      border: 2px solid #38bdf8;
+      color: #fff;
+      align-self: flex-start;
+      width: 100%;
+    }
+
+    .bubble-doctor .speaker {
+      font-size: 12px;
+      text-transform: uppercase;
+      color: #7dd3fc;
+      margin-bottom: 6px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .bubble-doctor .hebrew-text {
+      font-family: 'Heebo', sans-serif;
+      font-size: 28px;
+      direction: rtl;
+      font-weight: 900;
+      color: #38bdf8;
+      line-height: 1.2;
+    }
+
+    .bubble-doctor .ru-text {
+      font-size: 18px;
+      font-weight: 900;
+      color: #f8fafc;
+      margin-top: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .bubble-patient {
+      background: rgba(136, 19, 55, 0.96);
+      border: 2px solid #fb7185;
+      color: #fff;
+      align-self: flex-end;
+      width: 100%;
+      text-align: right;
+    }
+
+    .bubble-patient .speaker {
+      font-size: 12px;
+      text-transform: uppercase;
+      color: #fecdd3;
+      margin-bottom: 6px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 6px;
+    }
+
+    .bubble-patient .hebrew-text {
+      font-family: 'Heebo', sans-serif;
+      font-size: 27px;
+      direction: rtl;
+      font-weight: 900;
+      color: #f43f5e;
+      line-height: 1.2;
+    }
+
+    .bubble-patient .ru-text {
+      font-size: 18px;
+      font-weight: 900;
+      color: #ffffff;
+      margin-top: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    /* Анимированная плашка пульса */
+    .pulse-badge {
+      position: absolute;
+      top: 75px;
+      right: 18px;
+      background: rgba(225, 29, 72, 0.85);
+      border: 1px solid #fda4af;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 4px 15px rgba(225, 29, 72, 0.5);
+      animation: heartbeat 1.2s infinite ease-in-out;
+      z-index: 600;
+    }
+
+    @keyframes heartbeat {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.08); }
+    }
+
+    /* Всплывающие комикс-стикеры */
+    .comic-sticker {
+      position: absolute;
+      font-weight: 900;
+      text-transform: uppercase;
+      padding: 10px 16px;
+      border-radius: 14px;
+      z-index: 700;
+      box-shadow: 0 8px 25px rgba(0,0,0,0.7);
+      transform: rotate(-8deg) scale(0);
+      transition: transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .comic-sticker.show {
+      transform: rotate(-8deg) scale(1);
+    }
+
+    .sticker-gasp {
+      top: 140px;
+      left: 18px;
+      background: #facc15;
+      color: #000;
+      border: 2px solid #000;
+      font-size: 20px;
+    }
+
+    .sticker-kiss {
+      top: 210px;
+      right: 18px;
+      background: #e11d48;
+      color: #fff;
+      border: 2px solid #fff;
+      font-size: 19px;
+      transform: rotate(6deg) scale(0);
+    }
+
+    .sticker-kiss.show {
+      transform: rotate(6deg) scale(1);
+    }
+
+    /* ========================================================
+       СЦЕНА 4: ЭКСПРЕСС-РАЗБОР ГЛАГОЛОВ (ИНФОГРАФИКА)
+       ======================================================== */
+    #scene-breakdown {
+      background: linear-gradient(180deg, #091326 0%, #040915 100%);
+      display: flex;
+      flex-direction: column;
+      padding: 85px 16px 20px;
+      gap: 14px;
+      justify-content: space-between;
+    }
+
+    .cards-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      margin: auto 0;
+    }
+
+    .word-card {
+      background: rgba(255, 255, 255, 0.07);
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      border-radius: 20px;
+      padding: 18px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      backdrop-filter: blur(12px);
+      box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+      transition: transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275), border-color 0.25s ease, box-shadow 0.25s ease;
+    }
+
+    .word-card.active-card {
+      transform: scale(1.05) !important;
+      border-color: #facc15 !important;
+      box-shadow: 0 0 35px rgba(250, 204, 21, 0.65), 0 10px 25px rgba(0,0,0,0.6) !important;
+      background: rgba(250, 204, 21, 0.16) !important;
+    }
+
+    .card-breath {
+      border-left: 6px solid #38bdf8;
+    }
+
+    .card-kiss {
+      border-left: 6px solid #f43f5e;
+      background: rgba(244, 63, 94, 0.08);
+      border-color: rgba(244, 63, 94, 0.4);
+    }
+
+    .word-icon {
+      font-size: 40px;
+      margin-right: 14px;
+      filter: drop-shadow(0 4px 8px rgba(0,0,0,0.5));
+    }
+
+    .word-left {
+      text-align: left;
+    }
+
+    .word-hebrew {
+      font-family: 'Heebo', sans-serif;
+      font-size: 30px;
+      font-weight: 900;
+      color: #fff;
+      line-height: 1.1;
+      direction: rtl;
+    }
+
+    .word-trans {
+      font-size: 14px;
+      color: #94a3b8;
+      font-weight: 600;
+      margin-top: 3px;
+    }
+
+    .word-meaning {
+      font-size: 19px;
+      font-weight: 900;
+      color: #38bdf8;
+      text-transform: uppercase;
+      text-align: right;
+    }
+
+    .word-note {
+      font-size: 12px;
+      color: #cbd5e1;
+      text-align: right;
+      margin-top: 4px;
+      font-weight: 600;
+    }
+
+    .root-highlight {
+      display: inline-block;
+      padding: 2px 6px;
+      background: rgba(250, 204, 21, 0.25);
+      color: #facc15;
+      border-radius: 6px;
+      font-weight: 800;
+    }
+
+    .pealim-tag {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      font-size: 11px;
+      color: #64748b;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      padding-top: 8px;
+    }
+
+    /* ========================================================
+       СЦЕНА 5: АУТРО / СПЛЭШ УЛЬПАН АЛЕФ
+       ======================================================== */
+    #scene-outro {
+      background: radial-gradient(circle at 50% 30%, #1e1b4b 0%, #060913 100%);
+      display: flex;
+      flex-direction: column;
+      padding: 80px 20px 24px;
+      text-align: center;
+      justify-content: space-between;
+    }
+
+    .outro-logo-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .outro-icon {
+      font-size: 52px;
+      filter: drop-shadow(0 6px 15px rgba(56, 189, 248, 0.4));
+      animation: bounce 2s infinite ease-in-out;
+    }
+
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-8px); }
+    }
+
+    .outro-brand {
+      font-size: 26px;
+      font-weight: 900;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    .outro-brand span {
+      color: #38bdf8;
+    }
+
+    .outro-pitch {
+      font-size: 24px;
+      font-weight: 900;
+      color: #facc15;
+      text-transform: uppercase;
+      margin: 10px 0 4px;
+      text-shadow: 0 2px 10px rgba(0,0,0,0.5);
+    }
+
+    .outro-subpitch {
+      font-size: 14px;
+      color: #cbd5e1;
+      font-weight: 500;
+      line-height: 1.4;
+    }
+
+    .outro-features {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin: 12px 0;
+    }
+
+    .feature-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      padding: 10px 14px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #f1f5f9;
+      text-align: left;
+    }
+
+    .cta-button {
+      background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+      color: #ffffff;
+      font-size: 20px;
+      font-weight: 900;
+      padding: 16px 24px;
+      border-radius: 16px;
+      box-shadow: 0 12px 30px rgba(2, 132, 199, 0.4);
+      animation: pulseBtn 1.5s infinite alternate;
+      border: none;
+      cursor: pointer;
+      display: block;
+      width: 100%;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    @keyframes pulseBtn {
+      0% { transform: scale(1); }
+      100% { transform: scale(1.04); box-shadow: 0 14px 35px rgba(2, 132, 199, 0.7); }
+    }
+
+    .promo-spacer {
+      height: 110px;
+      width: 100%;
+    }
+  </style>
+</head>
+<body>
+  <div id="phone-container">
+    <!-- Верхний динамический бейдж -->
+    <div class="top-badge-wrap">
+      <div id="top-badge" class="top-badge">
+        <span id="top-badge-text">🩺 «ПОДЫШИТЕ ГЛУБОКО!» 🫁</span>
+      </div>
+    </div>
+
+    <!-- СЦЕНА 1: ОСМОТР У ВРАЧА (0 - 3.5s) -->
+    <div id="scene-exam" class="scene active">
+      <img src="assets/scene_01_exam.jpg" class="ken-burns" alt="Doctor Exam">
+      <div class="vignette"></div>
+      <div class="pulse-badge">💓 75 BPM</div>
+      <div class="dialogue-overlay">
+        <div id="bubble-doctor-exam" class="comic-bubble bubble-doctor">
+          <div class="speaker">🧑‍⚕️ Врач-терапевт:</div>
+          <div class="hebrew-text">«!תִּנְשׁוֹם עָמוֹק»</div>
+          <div class="ru-text">«ПОДЫШИТЕ ГЛУБОКО!» 🫁</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- СЦЕНА 2: ПАЦИЕНТ В ПАНИКЕ (3.5s - 7.5s) -->
+    <div id="scene-panic" class="scene">
+      <img id="img-panic" src="assets/scene_02_kiss_panic.jpg" class="ken-burns" alt="Patient Panic Kiss">
+      <div class="vignette"></div>
+      <div id="sticker-gasp" class="comic-sticker sticker-gasp">GASP! 😱</div>
+      <div id="sticker-kiss" class="comic-sticker sticker-kiss">ЦЕЛОВАТЬСЯ?! 💋</div>
+
+      <div class="dialogue-overlay">
+        <div id="bubble-patient-panic" class="comic-bubble bubble-patient">
+          <div class="speaker">😰 Пациент перепутал глаголы:</div>
+          <div class="hebrew-text">«!דּוֹקְטוֹר, קָשֶׁה לִי מְאוֹד לְנַשֵּׁק»</div>
+          <div class="ru-text">«ДОКТОР, МНЕ ТЯЖЕЛО ЦЕЛОВАТЬСЯ!» 💋😱</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- СЦЕНА 3: РЕАКЦИЯ ВРАЧА (7.5s - 12.0s) -->
+    <div id="scene-doctor-reaction" class="scene">
+      <img src="assets/scene_03_doctor_reaction.jpg" class="ken-burns" alt="Doctor Reaction Glasses">
+      <div class="vignette"></div>
+
+      <div class="dialogue-overlay">
+        <div class="comic-bubble" style="background: rgba(15, 23, 42, 0.96); border: 2px solid #38bdf8; width: 100%;">
+          <div style="font-size: 12px; text-transform: uppercase; color: #7dd3fc; font-weight: 800; margin-bottom: 6px;">
+            🧑‍⚕️ Кардиолог (опускает очки на нос):
+          </div>
+          <div style="font-size: 20px; font-weight: 900; color: #facc15; line-height: 1.35;">
+            «Ну, батенька, с этим вам к семейному психологу... А я кардиолог!» 😂🩺
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- СЦЕНА 4: ЭКСПРЕСС-РАЗБОР PEALIM (12.0s - 17.5s) -->
+    <div id="scene-breakdown" class="scene">
+      <div class="cards-stack">
+        <!-- ДЫШАТЬ -->
+        <div id="card-breath" class="word-card card-breath active-card">
+          <div style="display: flex; align-items: center;">
+            <div class="word-icon">🫁</div>
+            <div class="word-left">
+              <div class="word-hebrew">לִנְשׁוֹם</div>
+              <div class="word-trans">[линшо́м]</div>
+            </div>
+          </div>
+          <div>
+            <div class="word-meaning" style="color: #38bdf8;">ДЫШАТЬ</div>
+            <div class="word-note">Корень: <span class="root-highlight">נ-ש-ם</span></div>
+          </div>
+        </div>
+
+        <!-- ЦЕЛОВАТЬ -->
+        <div id="card-kiss" class="word-card card-kiss">
+          <div style="display: flex; align-items: center;">
+            <div class="word-icon">💋</div>
+            <div class="word-left">
+              <div class="word-hebrew">לְנַשֵּׁק</div>
+              <div class="word-trans">[ленаше́к]</div>
+            </div>
+          </div>
+          <div>
+            <div class="word-meaning" style="color: #fb7185;">ЦЕЛОВАТЬ</div>
+            <div class="word-note">Корень: <span class="root-highlight" style="background: rgba(244,63,94,0.3); color:#fda4af;">נ-ש-ק</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div style="text-align: center; padding: 10px 14px; background: rgba(255,255,255,0.06); border-radius: 14px; border: 1px solid rgba(255,255,255,0.12);">
+        <div style="font-size: 15px; font-weight: 800; color: #facc15;">⚠️ ВСЕГО ОДНА БУКВА КОРНЯ!</div>
+        <div style="font-size: 13px; color: #cbd5e1; margin-top: 2px;">Буква <b>מ'</b> меняется на <b>ק'</b> — и меняется смысл!</div>
+      </div>
+
+      <div class="pealim-tag">
+        <span>🔍 Единый мастер-словарь Pealim • כתיב מלא с огласовками</span>
+      </div>
+    </div>
+
+    <!-- СЦЕНА 5: АУТРО / СПЛЭШ УЛЬПАН АЛЕФ (17.5s - 21.5s) -->
+    <div id="scene-outro" class="scene">
+      <div class="outro-logo-wrap">
+        <div class="outro-icon">🇮🇱</div>
+        <div class="outro-brand">УЛЬПАН <span>АЛЕФ</span></div>
+      </div>
+
+      <div>
+        <div class="outro-pitch">НЕ КРАСНЕЙ В ИЗРАИЛЕ! 🩺❌</div>
+        <div class="outro-subpitch">Учи живой язык поликлиник, банков и улиц без неловких ошибок</div>
+      </div>
+
+      <div class="outro-features">
+        <div class="feature-item">⚡ <b>Разбор каждого слова</b> в предложении в 1 клик</div>
+        <div class="feature-item">📞 <b>Симулятор звонков:</b> курьер, поликлиника, банк</div>
+        <div class="feature-item">🎧 <b>Слуховой комплекс:</b> корни и правильное ударение</div>
+      </div>
+
+      <button class="cta-button">УЧИТЬ БЕСПЛАТНО 🚀</button>
+
+      <div class="promo-spacer"></div>
+    </div>
+  </div>
+
+  <script>
+    window.startDoctorTimeline = function(timings) {
+      console.log('Starting fast doctor timeline with timings:', timings);
+
+      const topBadge = document.getElementById('top-badge');
+      const topBadgeText = document.getElementById('top-badge-text');
+
+      const scenes = {
+        exam: document.getElementById('scene-exam'),
+        panic: document.getElementById('scene-panic'),
+        doctorReaction: document.getElementById('scene-doctor-reaction'),
+        breakdown: document.getElementById('scene-breakdown'),
+        outro: document.getElementById('scene-outro'),
+      };
+
+      const stickerGasp = document.getElementById('sticker-gasp');
+      const stickerKiss = document.getElementById('sticker-kiss');
+      const imgPanic = document.getElementById('img-panic');
+
+      const cardBreath = document.getElementById('card-breath');
+      const cardKiss = document.getElementById('card-kiss');
+
+      function switchScene(sceneName) {
+        Object.values(scenes).forEach(s => s.classList.remove('active'));
+        if (scenes[sceneName]) {
+          scenes[sceneName].classList.add('active');
+        }
+      }
+
+      // 1. Старт: Осмотр (врач сразу командует «תנשום עמוק!»)
+      switchScene('exam');
+      topBadgeText.innerText = '🩺 «ПОДЫШИТЕ ГЛУБОКО!» 🫁';
+      topBadge.style.borderColor = '#38bdf8';
+
+      // 2. Пациент выдает «Тяжело целоваться!»
+      if (timings.cue_02_patient !== undefined) {
+        setTimeout(() => {
+          switchScene('panic');
+          topBadgeText.innerText = '💋 «КАШЭ ЛИ ЛЕНАШЕК?!» 😱';
+          topBadge.style.borderColor = '#f43f5e';
+          if (stickerGasp) stickerGasp.classList.add('show');
+          if (stickerKiss) stickerKiss.classList.add('show');
+          if (imgPanic) imgPanic.classList.add('punch-zoom');
+        }, timings.cue_02_patient);
+      }
+
+      // 3. Врач опускает очки (панчлайн)
+      if (timings.cue_03_doctor_punchline !== undefined) {
+        setTimeout(() => {
+          switchScene('doctorReaction');
+          topBadgeText.innerText = '🧑‍⚕️ РЕАКЦИЯ КАРДИОЛОГА 😂';
+          topBadge.style.borderColor = '#facc15';
+        }, timings.cue_03_doctor_punchline);
+      }
+
+      // 4. Экспресс-разбор Pealim
+      if (timings.cue_04_fast_breakdown !== undefined) {
+        setTimeout(() => {
+          switchScene('breakdown');
+          topBadgeText.innerText = '💡 РАЗБОР: לִנְשׁוֹם VS לְנַשֵּׁק';
+          topBadge.style.borderColor = '#38bdf8';
+
+          cardBreath.classList.add('active-card');
+
+          setTimeout(() => {
+            cardBreath.classList.remove('active-card');
+            cardKiss.classList.add('active-card');
+          }, 2400);
+        }, timings.cue_04_fast_breakdown);
+      }
+
+      // 5. Финальное аутро
+      if (timings.cue_05_outro !== undefined) {
+        setTimeout(() => {
+          switchScene('outro');
+          topBadgeText.innerText = '🇮🇱 УЛЬПАН АЛЕФ • ГОВОРИ УВЕРЕННО!';
+          topBadge.style.borderColor = '#38bdf8';
+        }, timings.cue_05_outro);
+      }
+    };
+  </script>
+</body>
+</html>

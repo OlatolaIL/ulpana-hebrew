@@ -455,13 +455,25 @@ async function runScan(options = {}) {
     process.exit(1);
   }
 
-  const communities = loadTargetCommunities();
+  const groupFilter = options.group ? options.group.toLowerCase() : null;
+  let communities = loadTargetCommunities();
+  if (groupFilter) {
+    communities = communities.filter(
+      (c) =>
+        c.title.toLowerCase().includes(groupFilter) ||
+        c.username.toLowerCase().includes(groupFilter) ||
+        c.id.toLowerCase().includes(groupFilter)
+    );
+  }
   if (communities.length === 0) {
-    console.log('⚠️ Нет активных сообществ Facebook в target_communities.json');
+    console.log(groupFilter 
+      ? `⚠️ Не найдено сообществ Facebook по фильтру "${options.group}"`
+      : '⚠️ Нет активных сообществ Facebook в target_communities.json');
     return;
   }
 
   console.log(`\n🚀 Запуск сканирования групп Facebook (целевых сообществ: ${communities.length})...`);
+  if (groupFilter) console.log(`🎯 Фильтр по группе: "${options.group}"`);
   console.log(`⏱ Режим: ${isFast ? 'Быстрый (тест)' : 'Щадящий (человекоподобный раз в 12 часов)'}`);
 
   const leads = loadLeads();
@@ -492,6 +504,10 @@ async function runScan(options = {}) {
 
     try {
       await page.goto(targetUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
+      const currentUrl = page.url();
+      if (currentUrl.includes('/login') || currentUrl.includes('checkpoint')) {
+        console.warn(`  ⚠️ Facebook перенаправил на вход (${currentUrl}). Возможно, сессия в ${SESSION_FILE} истекла.`);
+      }
       await randomDelay(isFast ? 1000 : 3000, isFast ? 2000 : 5000);
 
       // Плавный скролл 2-3 раза для подгрузки свежих постов
@@ -507,8 +523,13 @@ async function runScan(options = {}) {
         const postContainers = document.querySelectorAll('div[role="feed"] > div, div[data-ad-preview="message"], div[dir="auto"]');
 
         postContainers.forEach((el) => {
-          const text = el.innerText?.trim();
-          if (!text || text.length < 30 || text.length > 2500) return;
+          let text = el.innerText?.trim();
+          if (!text) return;
+          text = text
+            .replace(/(?:^|\n)(?:Facebook\s*)+(?:\n|$)/gi, '\n')
+            .replace(/(?:^|\n)Answer as [^\n]+/gi, '')
+            .trim();
+          if (text.length < 30 || text.length > 2500) return;
 
           const article = el.closest('div[role="article"]') || el;
 
@@ -622,6 +643,8 @@ async function main() {
   const msgArg = args.find((a) => a.startsWith('--test-msg='));
   const remoteArg = args.find((a) => a.startsWith('--remote='));
   const cookieArg = args.find((a) => a.startsWith('--cookie=') || a.startsWith('--set-cookie='));
+  const groupArg = args.find((a) => a.startsWith('--group='));
+  const group = groupArg ? groupArg.slice(groupArg.indexOf('=') + 1).replace(/^["']|["']$/g, '') : undefined;
   const remoteUrl = remoteArg ? remoteArg.split('=')[1] : undefined;
 
   if (cookieArg) {
@@ -714,7 +737,7 @@ async function main() {
   }
 
   if (isScan) {
-    await runScan({ fast: isFast, remoteUrl });
+    await runScan({ fast: isFast, remoteUrl, group });
     return;
   }
 

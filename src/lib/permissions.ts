@@ -19,6 +19,14 @@
  */
 
 import { IS_EARLY_ACCESS_FREE } from './config';
+import {
+  MOM_DECK_IDS,
+  isPromoUnlockingMomDecks,
+  resolvePromoBundle,
+  isLessonUnlockedByBundle,
+} from './promoBundles';
+
+export { MOM_DECK_IDS };
 
 export const FREE_LESSONS_ALEF_MAX = 30;
 
@@ -26,16 +34,6 @@ export const BASE_FREE_DECK_IDS = [
   'verbs-alef-1',
   'shuk-food-alef',
   'cafe-restaurant-alef',
-] as const;
-
-export const MOM_DECK_IDS = [
-  'mom-infant',
-  'mom-pediatrician',
-  'mom-pharmacy',
-  'mom-kindergarten',
-  'mom-school',
-  'mom-whatsapp',
-  'mom-playground',
 ] as const;
 
 // Базовые бесплатные колоды для обратной совместимости
@@ -74,35 +72,92 @@ export function isStageAlwaysFree(lessonId: number, tabId: string): boolean {
 }
 
 /**
- * Проверка, является ли промокод промокодом для мам (LATTE_MAMA, MOMS или TG_MAMA)
+ * Проверка, является ли промокод промокодом для мам.
+ * Динамически проверяется через promoBundles.ts (устраняя хардкод)
  */
 export function isMomPromo(promo?: string | null): boolean {
-  if (!promo) return false;
-  const p = promo.trim().toUpperCase();
-  return p === 'LATTE_MAMA' || p === 'MOMS' || p === 'TG_MAMA';
+  return isPromoUnlockingMomDecks(promo);
 }
 
 /**
  * Проверка, является ли тематическая колода всегда бесплатной:
  * - 3 базовые колоды (verbs-alef-1, shuk-food-alef, cafe-restaurant-alef) — всегда бесплатны для всех.
- * - 7 колод для мам — бесплатны при наличии активированного промокода LATTE_MAMA или MOMS.
+ * - 7 колод для мам — бесплатны при наличии промокода или открытой категории/колоды в профиле.
  */
-export function isDeckAlwaysFree(deckId: string, userPromo?: string | null): boolean {
+export function isDeckAlwaysFree(
+  deckId: string,
+  userPromo?: string | null,
+  userProfile?: {
+    unlockedDecks?: string[];
+    unlockedCategories?: string[];
+    activatedPromos?: string[];
+  } | null
+): boolean {
   if ((BASE_FREE_DECK_IDS as readonly string[]).includes(deckId)) {
     return true;
   }
-  if (isMomDeck(deckId) && isMomPromo(userPromo)) {
+  // 1. Проверка индивидуально открытых колод в профиле
+  if (userProfile?.unlockedDecks && userProfile.unlockedDecks.includes(deckId)) {
     return true;
+  }
+  // 2. Проверка открытых категорий в профиле (например 'mom')
+  if (isMomDeck(deckId) && userProfile?.unlockedCategories?.includes('mom')) {
+    return true;
+  }
+  // 3. Проверка по промокодам профиля или переданному коду
+  if (isMomDeck(deckId)) {
+    if (isMomPromo(userPromo)) return true;
+    if (userProfile?.activatedPromos?.some((p) => isMomPromo(p))) return true;
+  }
+  return false;
+}
+
+/**
+ * Проверка, открывает ли промокод или профиль конкретный урок навсегда
+ */
+export function isLessonPromoFree(
+  lessonId: number,
+  userPromo?: string | null,
+  userProfile?: {
+    unlockedLessons?: number[];
+    activatedPromos?: string[];
+  } | null
+): boolean {
+  if (userProfile?.unlockedLessons && userProfile.unlockedLessons.includes(lessonId)) {
+    return true;
+  }
+  if (userPromo) {
+    const bundle = resolvePromoBundle(userPromo);
+    if (bundle && isLessonUnlockedByBundle(lessonId, bundle)) {
+      return true;
+    }
+  }
+  if (userProfile?.activatedPromos) {
+    for (const promo of userProfile.activatedPromos) {
+      const bundle = resolvePromoBundle(promo);
+      if (bundle && isLessonUnlockedByBundle(lessonId, bundle)) {
+        return true;
+      }
+    }
   }
   return false;
 }
 
 /**
  * Проверка, требуется ли бесплатная регистрация для доступа к колоде
- * (3 базовые колоды открыты гостям, колоды для мам открываются по коду MOMS после регистрации)
+ * (3 базовые колоды открыты гостям, колоды для мам открываются по коду после регистрации)
  */
-export function isDeckAuthRequired(deckId: string, isLoggedIn: boolean, userPromo?: string | null): boolean {
-  if (isDeckAlwaysFree(deckId, userPromo)) {
+export function isDeckAuthRequired(
+  deckId: string,
+  isLoggedIn: boolean,
+  userPromo?: string | null,
+  userProfile?: {
+    unlockedDecks?: string[];
+    unlockedCategories?: string[];
+    activatedPromos?: string[];
+  } | null
+): boolean {
+  if (isDeckAlwaysFree(deckId, userPromo, userProfile)) {
     return false;
   }
   return !isLoggedIn;

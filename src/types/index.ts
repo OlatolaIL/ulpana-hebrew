@@ -415,6 +415,10 @@ export interface UserSession {
   isChannelSubscriber?: boolean;
   channelVerifiedAt?: number | null;
   promoPending?: string | null;
+  activatedPromos?: string[];
+  unlockedDecks?: string[];
+  unlockedCategories?: string[];
+  unlockedLessons?: number[];
 }
 
 export type AccessRequirement =
@@ -439,6 +443,14 @@ export interface PromoCode {
   usedCount: number;
   isActive: boolean;
   expiresAt?: number | null;
+  codeType?: 'general' | 'post';
+  channel?: string;
+  postLink?: string | null;
+  description?: string | null;
+  bundleId?: string | null;
+  unlockedLessons?: number[];
+  unlockedDecks?: string[];
+  unlockedCategories?: string[];
 }
 
 export interface SavedLessonEssay {
@@ -469,6 +481,10 @@ export interface UserProfile {
   isChannelSubscriber?: boolean;
   channelVerifiedAt?: number | null;
   promoPending?: string | null;
+  activatedPromos?: string[];
+  unlockedDecks?: string[];
+  unlockedCategories?: string[];
+  unlockedLessons?: number[];
   name: string;
   gender: UserGender;
   aiProvider: AiProvider;

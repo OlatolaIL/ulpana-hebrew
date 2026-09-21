@@ -3,6 +3,7 @@ import { verifySessionToken, createSessionToken } from '@/lib/auth';
 import { getDbPool } from '@/lib/db';
 import { UserSession } from '@/types';
 import { IS_EARLY_ACCESS_FREE } from '@/lib/config';
+import { resolvePromoBundle } from '@/lib/promoBundles';
 
 export async function POST(req: NextRequest) {
   try {
@@ -39,28 +40,27 @@ export async function POST(req: NextRequest) {
 
     // Валидируем: код должен существовать и быть активным
     let promoRes = await db.query(
-      'SELECT * FROM ulpana_promo_codes WHERE UPPER(code) = $1 AND is_active = true',
+      'SELECT p.*, b.name as bundle_name, b.unlocked_lessons as b_lessons, b.unlocked_decks as b_decks, b.unlocked_categories as b_categories FROM ulpana_promo_codes p LEFT JOIN ulpana_promo_bundles b ON b.id = p.bundle_id WHERE UPPER(p.code) = $1 AND p.is_active = true',
       [normalizedCode]
     );
 
-    // Авто-инициализация системных промокодов LATTE_MAMA, TG_MAMA и MOMS при первом обращении
-    if (promoRes.rows.length === 0 && (normalizedCode === 'LATTE_MAMA' || normalizedCode === 'MOMS' || normalizedCode === 'TG_MAMA')) {
-      const channel = normalizedCode === 'TG_MAMA' ? 'tg' : normalizedCode === 'LATTE_MAMA' ? 'fb' : 'other';
-      const postDesc = normalizedCode === 'TG_MAMA'
-        ? 'Пост для мам в Telegram-канале @ulpana_il'
-        : normalizedCode === 'LATTE_MAMA'
-        ? 'Пост для мам в Facebook «Тыквенный латте»'
-        : 'Спецкод: Мамы Израиля';
-      await db.query(
-        `INSERT INTO ulpana_promo_codes (id, code, days_valid, max_uses, used_count, is_active, code_type, channel, description)
-         VALUES ($1, $2, $3, $4, 0, true, 'post', $5, $6)
-         ON CONFLICT (code) DO NOTHING`,
-        [`promo_${normalizedCode.toLowerCase()}_system`, normalizedCode, 30, 1000, channel, postDesc]
-      );
-      promoRes = await db.query(
-        'SELECT * FROM ulpana_promo_codes WHERE UPPER(code) = $1 AND is_active = true',
-        [normalizedCode]
-      );
+    // Авто-инициализация системного или бандлового промокода при первом обращении (без хардкода строк)
+    if (promoRes.rows.length === 0) {
+      const resolvedBundle = resolvePromoBundle(normalizedCode);
+      if (resolvedBundle) {
+        const channel = normalizedCode.includes('TG') ? 'tg' : normalizedCode.includes('LATTE') || normalizedCode.includes('FB') ? 'fb' : 'other';
+        const postDesc = `Промокод с доступом: ${resolvedBundle.name}`;
+        await db.query(
+          `INSERT INTO ulpana_promo_codes (id, code, days_valid, max_uses, used_count, is_active, code_type, channel, description, bundle_id)
+           VALUES ($1, $2, $3, $4, 0, true, 'post', $5, $6, $7)
+           ON CONFLICT (code) DO UPDATE SET bundle_id = EXCLUDED.bundle_id`,
+          [`promo_${normalizedCode.toLowerCase()}_system`, normalizedCode, 30, 1000, channel, postDesc, resolvedBundle.id]
+        );
+        promoRes = await db.query(
+          'SELECT p.*, b.name as bundle_name, b.unlocked_lessons as b_lessons, b.unlocked_decks as b_decks, b.unlocked_categories as b_categories FROM ulpana_promo_codes p LEFT JOIN ulpana_promo_bundles b ON b.id = p.bundle_id WHERE UPPER(p.code) = $1 AND p.is_active = true',
+          [normalizedCode]
+        );
+      }
     }
 
     if (promoRes.rows.length === 0) {
@@ -72,21 +72,48 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Лимит активаций этого промокода исчерпан' }, { status: 400 });
     }
 
-    // Режим беты: сохраняем код за пользователем, активируем после беты
+    // Собираем разблокируемый контент из бандла и самого промокода
+    const unlockedDecks: string[] = Array.from(new Set([
+      ...(promo.unlocked_decks || []),
+      ...(promo.b_decks || []),
+    ]));
+    const unlockedCategories: string[] = Array.from(new Set([
+      ...(promo.unlocked_categories || []),
+      ...(promo.b_categories || []),
+    ]));
+    const unlockedLessons: number[] = Array.from(new Set([
+      ...(promo.unlocked_lessons || []),
+      ...(promo.b_lessons || []),
+    ]));
+
+    // Режим беты: сохраняем код за пользователем и сразу начисляем постоянные права
     if (IS_EARLY_ACCESS_FREE) {
       await db.query(
-        `UPDATE ulpana_users SET promo_pending = $1, updated_at = NOW() WHERE id = $2`,
-        [normalizedCode, session.id]
+        `UPDATE ulpana_users 
+         SET promo_pending = $1, 
+             activated_promos = array_append(COALESCE(activated_promos, '{}'), $1),
+             unlocked_decks = array_cat(COALESCE(unlocked_decks, '{}'), $2),
+             unlocked_categories = array_cat(COALESCE(unlocked_categories, '{}'), $3),
+             unlocked_lessons = array_cat(COALESCE(unlocked_lessons, '{}'), $4),
+             updated_at = NOW() 
+         WHERE id = $5`,
+        [normalizedCode, unlockedDecks, unlockedCategories, unlockedLessons, session.id]
       );
       const updatedUser: UserSession = {
         ...session,
         promoPending: normalizedCode,
+        activatedPromos: Array.from(new Set([...(session.activatedPromos || []), normalizedCode])),
+        unlockedDecks: Array.from(new Set([...(session.unlockedDecks || []), ...unlockedDecks])),
+        unlockedCategories: Array.from(new Set([...(session.unlockedCategories || []), ...unlockedCategories])),
+        unlockedLessons: Array.from(new Set([...(session.unlockedLessons || []), ...unlockedLessons])),
       };
       const token = await createSessionToken(updatedUser);
       const response = NextResponse.json({
         success: true,
         pending: true,
-        message: `Промокод «${normalizedCode}» зафиксирован! PRO-доступ активируется автоматически после окончания беты.`,
+        message: `Промокод «${normalizedCode}» зафиксирован! PRO-доступ активируется автоматически после окончания беты.${
+          promo.bundle_name ? ` Бессрочно открыт: «${promo.bundle_name}».` : ''
+        }`,
         user: updatedUser,
       });
       response.cookies.set('ulpana_session', token, {
@@ -100,10 +127,6 @@ export async function POST(req: NextRequest) {
     }
 
     // Обычный режим: активируем сразу
-    if (promo.max_uses && promo.used_count >= promo.max_uses) {
-      return NextResponse.json({ error: 'Лимит активаций этого промокода исчерпан' }, { status: 400 });
-    }
-
     const daysToAdd: number = promo.days_valid;
 
     await db.query(
@@ -120,15 +143,27 @@ export async function POST(req: NextRequest) {
 
     await db.query(
       `UPDATE ulpana_users
-       SET subscription_tier = 'pro', subscription_expires_at = $1, promo_pending = NULL, updated_at = NOW()
-       WHERE id = $2`,
-      [newExpiresAt, session.id]
+       SET subscription_tier = 'pro', 
+           subscription_expires_at = $1, 
+           promo_pending = NULL,
+           activated_promos = array_append(COALESCE(activated_promos, '{}'), $2),
+           unlocked_decks = array_cat(COALESCE(unlocked_decks, '{}'), $3),
+           unlocked_categories = array_cat(COALESCE(unlocked_categories, '{}'), $4),
+           unlocked_lessons = array_cat(COALESCE(unlocked_lessons, '{}'), $5),
+           updated_at = NOW()
+       WHERE id = $6`,
+      [newExpiresAt, normalizedCode, unlockedDecks, unlockedCategories, unlockedLessons, session.id]
     );
 
     const updatedSession: UserSession = {
       ...session,
       subscriptionTier: 'pro',
       subscriptionExpiresAt: newExpiresAt,
+      promoPending: null,
+      activatedPromos: Array.from(new Set([...(session.activatedPromos || []), normalizedCode])),
+      unlockedDecks: Array.from(new Set([...(session.unlockedDecks || []), ...unlockedDecks])),
+      unlockedCategories: Array.from(new Set([...(session.unlockedCategories || []), ...unlockedCategories])),
+      unlockedLessons: Array.from(new Set([...(session.unlockedLessons || []), ...unlockedLessons])),
     };
 
     const newToken = await createSessionToken(updatedSession);
@@ -136,7 +171,9 @@ export async function POST(req: NextRequest) {
     const response = NextResponse.json({
       success: true,
       pending: false,
-      message: `Промокод успешно активирован! PRO-доступ предоставлен на ${daysToAdd} дн.`,
+      message: `Промокод успешно активирован! PRO-доступ предоставлен на ${daysToAdd} дн.${
+        promo.bundle_name ? ` Бессрочно открыт: «${promo.bundle_name}».` : ''
+      }`,
       user: updatedSession,
     });
 

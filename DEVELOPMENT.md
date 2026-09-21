@@ -486,4 +486,29 @@ ChatGPT — архитектор и независимая приёмка; Gemin
    - `npm run build`: 45 / 45 pages успешно скомпилированы.
    - `npm run audit:intent`: 100% соблюдение матрицы.
 
+---
 
+### Релиз: Пакеты бессрочного доступа (Access Bundles) и ликвидация хардкода промокодов (21 сентября 2026)
+
+**Задача:** Реализация архитектурного варианта №2: возможность гибко выбирать уроки и типы колод, которые промокод открывает навсегда (независимо от срока PRO); ликвидация любого хардкода промокодов (`LATTE_MAMA`, `TG_MAMA`, `MOMS`) в коде разрешений и карточках; создание отдельной таблицы бандлов в БД и визуализация в админ-панели (R-14, R-23).
+
+**Что сделано и проверено:**
+1. **Модуль `src/lib/promoBundles.ts`:**
+   - Единый источник истины для пакетов доступа: `DEFAULT_BUNDLES` (`bundle_moms`, `bundle_lessons_1_30`, `bundle_professional`, `bundle_all_free`).
+   - Функции резолвинга бандлов и сопоставления контента: `resolvePromoBundle`, `isPromoUnlockingMomDecks`, `isDeckUnlockedByBundle`, `isLessonUnlockedByBundle`.
+2. **База данных (`src/lib/db.ts`):**
+   - Новая таблица `ulpana_promo_bundles` (`id`, `name`, `description`, `icon`, `unlocked_lessons`, `unlocked_decks`, `unlocked_categories`).
+   - Расширение таблицы `ulpana_promo_codes` полями `bundle_id`, `unlocked_lessons`, `unlocked_decks`, `unlocked_categories`.
+   - Расширение таблицы `ulpana_users` полями `activated_promos`, `unlocked_decks`, `unlocked_categories`, `unlocked_lessons` для перманентного сохранения прав даже после окончания PRO.
+3. **Ликвидация хардкода (`src/lib/permissions.ts`, `DeckCard.tsx`, `ThematicDecksView.tsx`):**
+   - Удалены все хардкодные строковые проверки `LATTE_MAMA`, `TG_MAMA`, `MOMS`.
+   - Проверка прав выполняется динамически через профиль пользователя (`userProfile.unlockedCategories`, `userProfile.unlockedDecks`, `userProfile.unlockedLessons`) и `resolvePromoBundle()`.
+4. **Админ-интерфейс (`/admin`):**
+   - На вкладке «Управление доступом» добавлена интерактивная таблица «Пакеты бессрочного доступа (Access Bundles)» с привязанными кодами и быстрым переходом к генерации.
+   - В конструкторе промокодов добавлены выбор системного пакета и режим ручной настройки категорий и диапазонов уроков («⚙️ Настроить темы»).
+   - В таблице промокодов выводится бессрочно открываемый контент.
+5. **Верификация (R-14):**
+   - `node --test tests/mom-decks-permissions.test.cjs tests/promo-bundles.test.cjs`: 10 / 10 passed.
+   - `node --test tests/decision-matrix-invariants.test.cjs`: 13 / 13 passed.
+   - `npx tsc --noEmit`: 0 ошибок.
+   - `npm run audit:intent`: 100% Zero-Drift compliance.

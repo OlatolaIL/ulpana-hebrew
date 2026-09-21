@@ -41,6 +41,7 @@ import {
   Link2,
   X,
   Video,
+  Gift,
 } from 'lucide-react';
 import { AdminMarketingHub } from './components/AdminMarketingHub';
 import { AdminAudioSentencesTab } from './components/AdminAudioSentencesTab';
@@ -55,6 +56,7 @@ import {
   getAccessRequirementLabel,
   getDefaultLessonRequirement,
 } from '@/lib/accessPolicy';
+import { DEFAULT_BUNDLES, PromoAccessBundle } from '@/lib/promoBundles';
 
 interface AdminStats {
   totalUsers: number;
@@ -127,6 +129,12 @@ interface PromoCode {
   channel?: string;
   postLink?: string | null;
   description?: string | null;
+  bundleId?: string | null;
+  bundleName?: string | null;
+  bundleIcon?: string | null;
+  unlockedLessons?: number[];
+  unlockedDecks?: string[];
+  unlockedCategories?: string[];
   createdAt: string;
 }
 
@@ -171,16 +179,16 @@ interface AdminEssay {
 }
 
 const CHANNEL_PRESETS = [
-  { code: 'TG_GENERAL', name: 'Telegram (Общий)', channel: 'tg', type: 'general' as const, days: 14, uses: 500, desc: 'Ссылка в описании / закреп канала @ulpana_il' },
-  { code: 'TG_MAMA', name: 'Telegram (Пост для мам)', channel: 'tg', type: 'post' as const, days: 30, uses: 1000, desc: 'Пост для мам в канале @ulpana_il' },
-  { code: 'LATTE_MAMA', name: 'FB Тыквенный латте (Мамы)', channel: 'fb', type: 'post' as const, days: 30, uses: 1000, desc: 'Пост Сергея для мам в группе «Тыквенный латте»' },
-  { code: 'FB', name: 'Facebook (Общий)', channel: 'fb', type: 'general' as const, days: 30, uses: 100, desc: 'Кнопка на странице FB / реклама' },
-  { code: 'INSTA', name: 'Instagram', channel: 'insta', type: 'general' as const, days: 14, uses: 500, desc: 'Ссылка в шапке профиля (био) / Reels' },
-  { code: 'TIKTOK', name: 'TikTok', channel: 'tiktok', type: 'general' as const, days: 14, uses: 500, desc: 'Ссылка в описании профиля (био) / видео' },
-  { code: 'YT', name: 'YouTube', channel: 'yt', type: 'general' as const, days: 30, uses: 500, desc: 'Описание видео, Shorts и закрепленный комментарий' },
-  { code: 'LATTE', name: 'Тыквенный латте (Общий)', channel: 'fb', type: 'general' as const, days: 14, uses: 500, desc: 'Общий код для группы «Тыквенный латте»' },
-  { code: 'MOMS', name: 'Мамы Израиля (Общий)', channel: 'other', type: 'general' as const, days: 30, uses: 500, desc: 'Общий промокод для мам' },
-  { code: 'OLE2026', name: 'Оле Хадаш', channel: 'other', type: 'general' as const, days: 30, uses: 1000, desc: 'Сообщества новых репатриантов' },
+  { code: 'TG_GENERAL', name: 'Telegram (Общий)', channel: 'tg', type: 'general' as const, days: 14, uses: 500, desc: 'Ссылка в описании / закреп канала @ulpana_il', bundleId: null },
+  { code: 'TG_MAMA', name: 'Telegram (Пост для мам)', channel: 'tg', type: 'post' as const, days: 30, uses: 1000, desc: 'Пост для мам в канале @ulpana_il', bundleId: 'bundle_moms' },
+  { code: 'LATTE_MAMA', name: 'FB Тыквенный латте (Мамы)', channel: 'fb', type: 'post' as const, days: 30, uses: 1000, desc: 'Пост Сергея для мам в группе «Тыквенный латте»', bundleId: 'bundle_moms' },
+  { code: 'FB', name: 'Facebook (Общий)', channel: 'fb', type: 'general' as const, days: 30, uses: 100, desc: 'Кнопка на странице FB / реклама', bundleId: null },
+  { code: 'INSTA', name: 'Instagram', channel: 'insta', type: 'general' as const, days: 14, uses: 500, desc: 'Ссылка в шапке профиля (био) / Reels', bundleId: null },
+  { code: 'TIKTOK', name: 'TikTok', channel: 'tiktok', type: 'general' as const, days: 14, uses: 500, desc: 'Ссылка в описании профиля (био) / видео', bundleId: null },
+  { code: 'YT', name: 'YouTube', channel: 'yt', type: 'general' as const, days: 30, uses: 500, desc: 'Описание видео, Shorts и закрепленный комментарий', bundleId: null },
+  { code: 'LATTE', name: 'Тыквенный латте (Общий)', channel: 'fb', type: 'general' as const, days: 14, uses: 500, desc: 'Общий код для группы «Тыквенный латте»', bundleId: null },
+  { code: 'MOMS', name: 'Мамы Израиля (Общий)', channel: 'other', type: 'general' as const, days: 30, uses: 500, desc: 'Общий промокод для мам', bundleId: 'bundle_moms' },
+  { code: 'OLE2026', name: 'Оле Хадаш', channel: 'other', type: 'general' as const, days: 30, uses: 1000, desc: 'Сообщества новых репатриантов', bundleId: null },
 ];
 
 export default function AdminPage() {
@@ -235,6 +243,14 @@ export default function AdminPage() {
   const [copiedLink, setCopiedLink] = useState<string | null>(null);
   const [isPromoModalOpen, setIsPromoModalOpen] = useState(false);
   const [batchCreating, setBatchCreating] = useState(false);
+
+  // Access Bundles state
+  const [bundles, setBundles] = useState<PromoAccessBundle[]>(DEFAULT_BUNDLES);
+  const [bundlesLoading, setBundlesLoading] = useState(false);
+  const [newPromoBundleId, setNewPromoBundleId] = useState<string>('bundle_moms');
+  const [newPromoCustomMode, setNewPromoCustomMode] = useState<boolean>(false);
+  const [newPromoUnlockedCategories, setNewPromoUnlockedCategories] = useState<string[]>(['mom']);
+  const [newPromoUnlockedLessonsPreset, setNewPromoUnlockedLessonsPreset] = useState<'none' | '1-10' | '1-30' | 'all'>('none');
 
   // Sub action state
   const [actionLoading, setActionLoading] = useState<string | null>(null);
@@ -335,6 +351,22 @@ export default function AdminPage() {
       }
     } catch (e) {
       console.error(e);
+    }
+  }, []);
+
+  const fetchBundles = useCallback(async () => {
+    try {
+      setBundlesLoading(true);
+      const res = await fetch('/api/admin/bundles');
+      if (res.ok) {
+        const data = await res.json();
+        setBundles(data.bundles || DEFAULT_BUNDLES);
+      }
+    } catch (e) {
+      console.error(e);
+      setBundles(DEFAULT_BUNDLES);
+    } finally {
+      setBundlesLoading(false);
     }
   }, []);
 
@@ -447,9 +479,9 @@ export default function AdminPage() {
   const loadAllData = useCallback(async () => {
     setLoading(true);
     setError(null);
-    await Promise.all([fetchStats(), fetchUsers(), fetchCalls(), fetchEssays(), fetchPromos(), fetchAccessRules()]);
+    await Promise.all([fetchStats(), fetchUsers(), fetchCalls(), fetchEssays(), fetchPromos(), fetchAccessRules(), fetchBundles()]);
     setLoading(false);
-  }, [fetchStats, fetchUsers, fetchCalls, fetchEssays, fetchPromos, fetchAccessRules]);
+  }, [fetchStats, fetchUsers, fetchCalls, fetchEssays, fetchPromos, fetchAccessRules, fetchBundles]);
 
   useEffect(() => {
     loadAllData();
@@ -553,6 +585,13 @@ export default function AdminPage() {
     setNewPromoType(preset.type || 'general');
     setNewPromoChannel(preset.channel || 'tg');
     setNewPromoDesc(preset.desc || '');
+    if ((preset as any).bundleId) {
+      setNewPromoBundleId((preset as any).bundleId);
+      setNewPromoCustomMode(false);
+    } else {
+      setNewPromoBundleId('');
+      setNewPromoCustomMode(false);
+    }
   };
 
   // Batch create all missing marketing channels in 1 click
@@ -577,6 +616,7 @@ export default function AdminPage() {
             codeType: item.type,
             channel: item.channel,
             description: item.desc,
+            bundleId: item.bundleId,
           }),
         });
       }
@@ -597,6 +637,13 @@ export default function AdminPage() {
     setPromoCreating(true);
     setPromoSuccess(null);
     try {
+      let unlockedLessons: number[] = [];
+      if (newPromoCustomMode) {
+        if (newPromoUnlockedLessonsPreset === '1-10') unlockedLessons = Array.from({ length: 10 }, (_, i) => i + 1);
+        else if (newPromoUnlockedLessonsPreset === '1-30') unlockedLessons = Array.from({ length: 30 }, (_, i) => i + 1);
+        else if (newPromoUnlockedLessonsPreset === 'all') unlockedLessons = Array.from({ length: 100 }, (_, i) => i + 1);
+      }
+
       const res = await fetch('/api/admin/promos', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -608,6 +655,10 @@ export default function AdminPage() {
           channel: newPromoChannel,
           postLink: newPromoType === 'post' ? newPromoPostLink.trim() || null : null,
           description: newPromoDesc.trim() || null,
+          bundleId: newPromoCustomMode ? null : newPromoBundleId || null,
+          unlockedLessons: newPromoCustomMode ? unlockedLessons : [],
+          unlockedCategories: newPromoCustomMode ? newPromoUnlockedCategories : [],
+          unlockedDecks: [],
         }),
       });
       const data = await res.json();
@@ -619,6 +670,7 @@ export default function AdminPage() {
         setNewPromoType('general');
         setIsPromoModalOpen(false);
         fetchPromos();
+        fetchBundles();
       } else {
         alert(data.error || 'Ошибка при создании промокода');
       }
@@ -1348,7 +1400,13 @@ export default function AdminPage() {
                     required
                     placeholder="Например: INSTA, LATTE или SHALOM"
                     value={newPromoCode}
-                    onChange={(e) => setNewPromoCode(e.target.value.toUpperCase())}
+                    onChange={(e) => {
+                      const val = e.target.value.toUpperCase();
+                      setNewPromoCode(val);
+                      if ((val.includes('MAMA') || val.includes('MOM')) && !newPromoCustomMode) {
+                        setNewPromoBundleId('bundle_moms');
+                      }
+                    }}
                     className="w-full px-4 py-2.5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800 font-mono font-bold uppercase text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
                   />
                   {CHANNEL_PRESETS.find((c) => c.code === newPromoCode) ? (
@@ -1441,6 +1499,109 @@ export default function AdminPage() {
                     onChange={(e) => setNewPromoDesc(e.target.value)}
                     className="w-full px-3 py-2 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800 text-xs focus:outline-none focus:ring-2 focus:ring-amber-500"
                   />
+                </div>
+
+                {/* Бессрочный доступ (Access Bundle) */}
+                <div className="p-3.5 rounded-2xl bg-amber-50/60 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/40 flex flex-col gap-2.5">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-amber-950 dark:text-amber-200 uppercase tracking-wider flex items-center gap-1.5">
+                      <Gift className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+                      <span>Бессрочный доступ (Пакет)</span>
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setNewPromoCustomMode(!newPromoCustomMode)}
+                      className="text-[11px] font-semibold text-amber-700 dark:text-amber-400 hover:underline"
+                    >
+                      {newPromoCustomMode ? '← Готовые пакеты' : '⚙️ Настроить темы'}
+                    </button>
+                  </div>
+
+                  {!newPromoCustomMode ? (
+                    <select
+                      value={newPromoBundleId}
+                      onChange={(e) => setNewPromoBundleId(e.target.value)}
+                      className="w-full px-3 py-2 rounded-xl border border-amber-200 dark:border-amber-900/50 bg-white dark:bg-zinc-800 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-amber-500"
+                    >
+                      <option value="">— Только PRO-период (без бессрочных тем)</option>
+                      {bundles.map((b) => (
+                        <option key={b.id} value={b.id}>
+                          {b.icon} {b.name}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <div className="flex flex-col gap-2 pt-1 border-t border-amber-200/60 dark:border-amber-900/40">
+                      <span className="text-[11px] font-bold text-zinc-700 dark:text-zinc-300">
+                        Категории колод навсегда:
+                      </span>
+                      <div className="grid grid-cols-2 gap-1.5 text-xs">
+                        {[
+                          { id: 'mom', label: '👩‍👧 Мамы (7 колод)' },
+                          { id: 'caregiver', label: '🧓 Метапелет (Уход)' },
+                          { id: 'autoRepair', label: '🚗 Автомеханик' },
+                          { id: 'kindergarten', label: '🎨 Воспитатель' },
+                          { id: 'doctor', label: '🩺 Врач / Клиника' },
+                          { id: 'accounting', label: '📊 Бухгалтерия' },
+                          { id: 'verbs', label: '🔤 Все глаголы' },
+                          { id: 'food', label: '🍳 Еда и ресторан' },
+                        ].map((cat) => {
+                          const isChecked = newPromoUnlockedCategories.includes(cat.id);
+                          return (
+                            <label
+                              key={cat.id}
+                              className={`flex items-center gap-1.5 p-1.5 rounded-lg border cursor-pointer transition ${
+                                isChecked
+                                  ? 'bg-amber-100/80 dark:bg-amber-900/40 border-amber-400 font-bold'
+                                  : 'border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400'
+                              }`}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={isChecked}
+                                onChange={(e) => {
+                                  if (e.target.checked) {
+                                    setNewPromoUnlockedCategories([...newPromoUnlockedCategories, cat.id]);
+                                  } else {
+                                    setNewPromoUnlockedCategories(newPromoUnlockedCategories.filter((c) => c !== cat.id));
+                                  }
+                                }}
+                                className="rounded text-amber-600 focus:ring-amber-500 w-3.5 h-3.5"
+                              />
+                              <span className="text-[11px] truncate">{cat.label}</span>
+                            </label>
+                          );
+                        })}
+                      </div>
+
+                      <div className="mt-1">
+                        <span className="text-[11px] font-bold text-zinc-700 dark:text-zinc-300 block mb-1">
+                          Уроки навсегда:
+                        </span>
+                        <div className="grid grid-cols-4 gap-1 text-[10px]">
+                          {[
+                            { id: 'none', label: 'Нет' },
+                            { id: '1-10', label: '1–10' },
+                            { id: '1-30', label: '1–30' },
+                            { id: 'all', label: 'Все 100' },
+                          ].map((preset) => (
+                            <button
+                              key={preset.id}
+                              type="button"
+                              onClick={() => setNewPromoUnlockedLessonsPreset(preset.id as any)}
+                              className={`py-1 rounded border font-semibold transition ${
+                                newPromoUnlockedLessonsPreset === preset.id
+                                  ? 'bg-amber-500 text-white border-amber-600 font-bold'
+                                  : 'bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400'
+                              }`}
+                            >
+                              {preset.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
@@ -1569,6 +1730,7 @@ export default function AdminPage() {
                         <th className="px-5 py-3.5">Код / Описание / Пост</th>
                         <th className="px-5 py-3.5">Тип / Канал</th>
                         <th className="px-5 py-3.5">Период PRO</th>
+                        <th className="px-5 py-3.5">Бессрочный доступ</th>
                         <th className="px-5 py-3.5">Использовано</th>
                         <th className="px-5 py-3.5">Статус</th>
                         <th className="px-5 py-3.5 text-right">Управление</th>
@@ -1652,6 +1814,22 @@ export default function AdminPage() {
 
                             <td className="px-5 py-3.5 font-semibold text-zinc-700 dark:text-zinc-300">
                               {p.daysValid} дней
+                            </td>
+
+                            <td className="px-5 py-3.5">
+                              {p.bundleName || p.bundleIcon ? (
+                                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-pink-50 text-pink-700 dark:bg-pink-950/60 dark:text-pink-300 border border-pink-200 dark:border-pink-800" title={p.bundleName || ''}>
+                                  <span>{p.bundleIcon || '🎁'}</span>
+                                  <span className="truncate max-w-[140px]">{p.bundleName}</span>
+                                </div>
+                              ) : (p.unlockedCategories && p.unlockedCategories.length > 0) || (p.unlockedLessons && p.unlockedLessons.length > 0) ? (
+                                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
+                                  <span>⚙️</span>
+                                  <span>Кастомный ({[p.unlockedCategories?.length ? `${p.unlockedCategories.length} тем` : null, p.unlockedLessons?.length ? `${p.unlockedLessons.length} ур.` : null].filter(Boolean).join(', ')})</span>
+                                </div>
+                              ) : (
+                                <span className="text-xs text-zinc-400 font-medium">— (только PRO)</span>
+                              )}
                             </td>
 
                             <td className="px-5 py-3.5">
@@ -2615,6 +2793,157 @@ export default function AdminPage() {
                 >
                   Все 100 уроков: Free
                 </button>
+              </div>
+            </div>
+
+            {/* Access Bundles Table */}
+            <div className="bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200 dark:border-zinc-800 p-6 shadow-sm flex flex-col gap-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-pink-100 dark:bg-pink-950/60 text-pink-600 dark:text-pink-400 flex items-center justify-center font-bold">
+                    <Gift className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-base text-zinc-900 dark:text-zinc-50 flex items-center gap-2">
+                      <span>Пакеты бессрочного доступа (Access Bundles)</span>
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-pink-100 dark:bg-pink-950/60 text-pink-700 dark:text-pink-300">
+                        {bundles.length} пакетов
+                      </span>
+                    </h3>
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                      Наборы тем и уроков, которые промокод открывает ученикам навсегда (доступ не сгорает даже после окончания периода PRO).
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveTab('promos');
+                    setIsPromoModalOpen(true);
+                  }}
+                  className="px-4 py-2 rounded-xl text-xs font-bold bg-pink-600 hover:bg-pink-700 text-white transition flex items-center gap-1.5 self-start sm:self-auto shadow-sm"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Создать промокод</span>
+                </button>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="border-b border-zinc-200 dark:border-zinc-800 text-[11px] font-bold uppercase tracking-wider text-zinc-400 bg-zinc-50/50 dark:bg-zinc-800/30">
+                      <th className="px-4 py-3">Пакет</th>
+                      <th className="px-4 py-3">Открытый контент</th>
+                      <th className="px-4 py-3">Привязанные промокоды</th>
+                      <th className="px-4 py-3">Статус</th>
+                      <th className="px-4 py-3 text-right">Действие</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
+                    {bundles.map((bundle) => {
+                      const attachedPromos = promos.filter(
+                        (p) =>
+                          p.bundleId === bundle.id ||
+                          (bundle.id === 'bundle_moms' && ['LATTE_MAMA', 'MOMS', 'TG_MAMA'].includes(p.code))
+                      );
+
+                      return (
+                        <tr key={bundle.id} className="hover:bg-zinc-50 dark:hover:bg-zinc-800/20 transition">
+                          <td className="px-4 py-3.5">
+                            <div className="flex items-center gap-3">
+                              <span className="text-2xl p-2 rounded-2xl bg-zinc-100 dark:bg-zinc-800">
+                                {bundle.icon}
+                              </span>
+                              <div>
+                                <div className="font-bold text-xs text-zinc-900 dark:text-zinc-100">
+                                  {bundle.name}
+                                </div>
+                                <div className="text-[11px] text-zinc-400 max-w-sm mt-0.5 line-clamp-2">
+                                  {bundle.description}
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+
+                          <td className="px-4 py-3.5">
+                            <div className="flex flex-col gap-1 text-xs">
+                              {bundle.unlockedCategories && bundle.unlockedCategories.length > 0 && (
+                                <div className="flex items-center gap-1.5">
+                                  <span className="font-semibold text-zinc-700 dark:text-zinc-300 text-[11px]">Темы:</span>
+                                  <span className="px-2 py-0.5 rounded-md bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/50 text-amber-800 dark:text-amber-200 font-medium text-[11px]">
+                                    {bundle.unlockedCategories.join(', ')}
+                                  </span>
+                                </div>
+                              )}
+                              {bundle.unlockedDecks && bundle.unlockedDecks.length > 0 && (
+                                <div className="flex items-center gap-1.5">
+                                  <span className="font-semibold text-zinc-700 dark:text-zinc-300 text-[11px]">Колоды:</span>
+                                  <span className="px-2 py-0.5 rounded-md bg-pink-50 dark:bg-pink-950/40 border border-pink-200 dark:border-pink-800/50 text-pink-800 dark:text-pink-200 font-medium text-[11px]">
+                                    {bundle.unlockedDecks.length} колод
+                                  </span>
+                                </div>
+                              )}
+                              {bundle.unlockedLessons && bundle.unlockedLessons.length > 0 ? (
+                                <div className="flex items-center gap-1.5">
+                                  <span className="font-semibold text-zinc-700 dark:text-zinc-300 text-[11px]">Уроки:</span>
+                                  <span className="px-2 py-0.5 rounded-md bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/50 text-blue-800 dark:text-blue-200 font-medium text-[11px]">
+                                    {bundle.unlockedLessons.length === 100
+                                      ? 'Все 100 уроков'
+                                      : `1–${bundle.unlockedLessons.length} (${bundle.unlockedLessons.length} ур.)`}
+                                  </span>
+                                </div>
+                              ) : (
+                                !bundle.unlockedCategories?.length && !bundle.unlockedDecks?.length && (
+                                  <span className="text-zinc-400 text-[11px]">Только PRO</span>
+                                )
+                              )}
+                            </div>
+                          </td>
+
+                          <td className="px-4 py-3.5">
+                            {attachedPromos.length > 0 ? (
+                              <div className="flex flex-wrap gap-1.5 max-w-xs">
+                                {attachedPromos.map((p) => (
+                                  <span
+                                    key={p.id || p.code}
+                                    className="px-2 py-0.5 rounded-lg bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 font-mono text-[11px] font-bold text-zinc-800 dark:text-zinc-200"
+                                    title={p.description || p.code}
+                                  >
+                                    {p.code}
+                                  </span>
+                                ))}
+                              </div>
+                            ) : (
+                              <span className="text-[11px] text-zinc-400 italic">Нет привязанных кодов</span>
+                            )}
+                          </td>
+
+                          <td className="px-4 py-3.5">
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700">
+                              {bundle.isSystem ? 'Системный' : 'Кастомный'}
+                            </span>
+                          </td>
+
+                          <td className="px-4 py-3.5 text-right">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setNewPromoBundleId(bundle.id);
+                                setNewPromoCustomMode(false);
+                                setActiveTab('promos');
+                                setIsPromoModalOpen(true);
+                              }}
+                              className="px-3 py-1.5 rounded-xl text-xs font-bold bg-pink-50 dark:bg-pink-950/40 text-pink-700 dark:text-pink-300 hover:bg-pink-100 dark:hover:bg-pink-900/60 border border-pink-200 dark:border-pink-800/60 transition"
+                            >
+                              Выпустить код
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
             </div>
 

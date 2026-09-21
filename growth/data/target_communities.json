@@ -79,16 +79,16 @@
   },
   {
     "id": "fb_israel_russian",
-    "title": "Facebook: Русскоязычный Израиль / Олим",
-    "username": "groups/olim.israel.community",
-    "inviteUrl": "https://facebook.com/groups/olim.israel.community",
+    "title": "Facebook: Русскоязычный Израиль",
+    "username": "groups/israelrus",
+    "inviteUrl": "https://facebook.com/groups/israelrus",
     "platform": "facebook",
     "category": "repatriation",
     "categoryLabel": "Репатриация и адаптация",
-    "membersCount": "45,000+",
+    "membersCount": "100,000+",
     "status": "active",
     "leadCount": 0,
-    "notes": "Крупнейшее сообщество в Facebook. Посты о поиске ульпанов, курсов и репетиторов."
+    "notes": "Крупнейшее русскоязычное сообщество в Facebook. Вопросы адаптации, ульпаны, язык."
   },
   {
     "id": "fb_pumpkin_latte",
@@ -115,5 +115,18 @@
     "status": "active",
     "leadCount": 0,
     "notes": "Родительские тревоги: звонки воспитательницы (гоненет), школьные чаты, педиатры."
+  },
+  {
+    "id": "fb_israel_group_1436515633280540",
+    "title": "Facebook: Израильское сообщество (1436515633280540)",
+    "username": "groups/1436515633280540",
+    "inviteUrl": "https://facebook.com/groups/1436515633280540",
+    "platform": "facebook",
+    "category": "moms",
+    "categoryLabel": "Семья, садики и быт",
+    "membersCount": "50,000+",
+    "status": "active",
+    "leadCount": 0,
+    "notes": "Целевая группа в Facebook. Быт, садики, врачи, адаптация."
   }
 ]
