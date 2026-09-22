@@ -56,7 +56,7 @@ export const ConjugationMode: React.FC<ConjugationModeProps> = ({
   onOpenPealim,
 }) => {
   const isCursive = userProfile.fontStyle === 'cursive';
-  const triad = useMemo(() => extractVerbTriad(currentWord), [currentWord]);
+  const triad = useMemo(() => (currentWord ? extractVerbTriad(currentWord) : null), [currentWord]);
 
   // Выбранный тип вопроса для этого глагола
   const [drillType, setDrillType] = useState<DrillType>('tense_shift');
@@ -64,9 +64,10 @@ export const ConjugationMode: React.FC<ConjugationModeProps> = ({
   const [isAnswered, setIsAnswered] = useState(false);
 
   // Сброс при смене слова
-  const [prevWordId, setPrevWordId] = useState(currentWord.id);
-  if (currentWord.id !== prevWordId) {
-    setPrevWordId(currentWord.id);
+  const currentWordId = currentWord?.id;
+  const [prevWordId, setPrevWordId] = useState(currentWordId);
+  if (currentWordId !== prevWordId) {
+    setPrevWordId(currentWordId);
     setSelectedOptionId(null);
     setIsAnswered(false);
   }
@@ -195,6 +196,8 @@ export const ConjugationMode: React.FC<ConjugationModeProps> = ({
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handleNext, handleSelectOption, isAnswered, options]);
+
+  if (!currentWord) return null;
 
   if (!triad) {
     return (

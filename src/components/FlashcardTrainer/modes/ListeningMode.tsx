@@ -25,6 +25,7 @@ export const ListeningMode: React.FC<ListeningModeProps> = ({
   onAdvanceNext,
   onSpeakHebrew,
 }) => {
+  if (!currentWord) return null;
   return (
     <div className="bg-white dark:bg-zinc-900 rounded-3xl p-6 border border-zinc-200 dark:border-zinc-800 shadow-lg space-y-6">
       <div className="text-center py-4">

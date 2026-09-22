@@ -91,11 +91,13 @@ export const ComplexDrillMode: React.FC<ComplexDrillModeProps> = ({
 
   // Извлекаем обучающие данные из реестра (Инварианты R-01, R-18, полиморфный диспетчер)
   const drillItems = useMemo(() => {
+    if (!currentWord) return [];
     return getDrillDataForWord(currentWord);
   }, [currentWord]);
 
   // Спряжения и семья корня (для глаголов или слов с корнем)
   const conjugation = useMemo(() => {
+    if (!currentWord) return null;
     const raw = currentWord.hebrewPlain || currentWord.hebrew;
     return findOfflineVerbConjugation(raw);
   }, [currentWord]);
@@ -104,13 +106,27 @@ export const ComplexDrillMode: React.FC<ComplexDrillModeProps> = ({
     return conjugation?.rootFamily || [];
   }, [conjugation]);
 
-  const rootLetters = conjugation?.root || currentWord.root;
+  const rootLetters = conjugation?.root || currentWord?.root;
 
   // Выбранное время (для глаголов с несколькими временами)
   const [selectedTense, setSelectedTense] = useState<'present' | 'past' | 'future'>('present');
 
   // Активный drill item
   const activeDrill: ComplexDrillItem = useMemo(() => {
+    if (!currentWord) {
+      return {
+        id: 'fallback_empty',
+        type: 'adverb',
+        targetWordPlain: '',
+        targetWordVocalized: '',
+        targetWordTranscription: '',
+        targetWordTranslation: '',
+        sentenceHe: '',
+        sentenceTranscription: '',
+        sentenceRu: '',
+        minLesson: 1,
+      };
+    }
     let item: ComplexDrillItem;
     if (drillItems.length === 0) {
       item = {
@@ -461,6 +477,8 @@ export const ComplexDrillMode: React.FC<ComplexDrillModeProps> = ({
       triggerAutoAdvance();
     }
   };
+
+  if (!currentWord) return null;
 
   const isCurrentInDict = isWordInPersonalDict(currentWord.hebrew);
 

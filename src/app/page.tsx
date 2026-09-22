@@ -30,6 +30,11 @@ import {
 import { hydrateAccount, syncProfile, resetSyncSession, finishPendingSync, resolveSyncConflict } from '@/lib/profileSync';
 import { initHebrewVoices } from '@/lib/speech';
 import { DETAILED_LESSONS, getLessonById } from '@/data/lessonsData';
+import { THEMATIC_DECKS } from '@/data/thematicDecks';
+import { PROFESSIONAL_DECKS } from '@/data/professionalDecks';
+import { TrainerMode } from '@/components/FlashcardTrainer/types';
+
+const ALL_DECKS = [...THEMATIC_DECKS, ...PROFESSIONAL_DECKS];
 import { isVipUser, VIP_EXPIRES_AT, applyVipProfileEnhancements } from '@/lib/vipUsers';
 import { useModalHistory } from '@/lib/useHistoryState';
 import { isLessonLockedForUser, isLessonAuthRequired } from '@/lib/config';
@@ -78,10 +83,12 @@ export default function Home() {
   const [activeLessonId, setActiveLessonId] = useState<number>(1);
   const [flashcardWords, setFlashcardWords] = useState<Word[]>([]);
   const [flashcardTitle, setFlashcardTitle] = useState<string>('Тренировка карточек');
-  const [flashcardMode, setFlashcardMode] = useState<'flip' | 'builder' | 'listening' | 'auto_audio'>('flip');
-  const [flashcardDirection, setFlashcardDirection] = useState<'he-ru' | 'ru-he'>('he-ru');
+  const [flashcardMode, setFlashcardMode] = useState<TrainerMode>('flip');
+  const [flashcardDirection, setFlashcardDirection] = useState<'he-ru' | 'ru-he' | 'carousel'>('he-ru');
   const [flashcardShuffle, setFlashcardShuffle] = useState<boolean>(false);
   const [flashcardSourceLessonId, setFlashcardSourceLessonId] = useState<number | null>(null);
+  const [flashcardDeckId, setFlashcardDeckId] = useState<string | null>(null);
+  const [flashcardInitialCardIndex, setFlashcardInitialCardIndex] = useState<number>(0);
   const [lessonInitialTab, setLessonInitialTab] = useState<LessonStageTab>('theory');
   const [isMultiLessonSetupOpen, setIsMultiLessonSetupOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -170,6 +177,15 @@ export default function Home() {
       } catch {}
     }
 
+    let recoveredWords: Word[] = [];
+    let recoveredTitle = 'Тренировка карточек';
+    let recoveredMode: TrainerMode = 'flip';
+    let recoveredDirection: 'he-ru' | 'ru-he' | 'carousel' = 'he-ru';
+    let recoveredShuffle = false;
+    let recoveredLessonId: number | null = null;
+    let recoveredDeckId: string | null = null;
+    let recoveredCardIndex = 0;
+
     if (initialHash.startsWith('#lesson-')) {
       const raw = initialHash.replace('#lesson-', '');
       const slashIndex = raw.indexOf('/');
@@ -213,38 +229,78 @@ export default function Home() {
           initialTab = requestedTab || getFirstIncompleteLessonTab(num, userProf);
         }
       }
-    } else if (initialHash === '#flashcards') {
-      let recoveredWords: Word[] = [];
-      let recoveredTitle = 'Тренировка карточек';
-      let recoveredMode: 'flip' | 'builder' | 'listening' | 'auto_audio' = 'flip';
-      let recoveredDirection: 'he-ru' | 'ru-he' = 'he-ru';
-      let recoveredShuffle = false;
-      let recoveredLessonId: number | null = null;
+    } else if (initialHash.startsWith('#flashcards')) {
+      const qIndex = initialHash.indexOf('?');
+      const queryString = qIndex !== -1 ? initialHash.slice(qIndex + 1) : '';
+      const params = new URLSearchParams(queryString);
+      const qLesson = params.get('lesson');
+      const qDeck = params.get('deck');
+      const qSource = params.get('source');
+      const qCard = params.get('card');
+      const qMode = params.get('mode') as TrainerMode | null;
+      const qDir = params.get('dir') as any;
 
-      try {
-        const state = typeof window !== 'undefined' ? window.history.state : null;
-        if (state && Array.isArray(state.flashcardWords) && state.flashcardWords.length > 0) {
-          recoveredWords = state.flashcardWords;
-          if (state.flashcardTitle) recoveredTitle = state.flashcardTitle;
-          if (state.flashcardMode) recoveredMode = state.flashcardMode;
-          if (state.flashcardDirection) recoveredDirection = state.flashcardDirection;
-          if (state.flashcardShuffle !== undefined) recoveredShuffle = state.flashcardShuffle;
-          if (state.flashcardSourceLessonId !== undefined) recoveredLessonId = state.flashcardSourceLessonId;
-        } else if (typeof window !== 'undefined') {
-          const raw = sessionStorage.getItem('ulpana_active_flashcards');
-          if (raw) {
-            const parsed = JSON.parse(raw);
-            if (Array.isArray(parsed.words) && parsed.words.length > 0) {
-              recoveredWords = parsed.words;
-              if (parsed.title) recoveredTitle = parsed.title;
-              if (parsed.mode) recoveredMode = parsed.mode;
-              if (parsed.direction) recoveredDirection = parsed.direction;
-              if (parsed.shuffle !== undefined) recoveredShuffle = parsed.shuffle;
-              if (parsed.lessonId !== undefined) recoveredLessonId = parsed.lessonId;
-            }
+      if (qCard) {
+        const cNum = parseInt(qCard, 10);
+        if (!isNaN(cNum) && cNum >= 1) recoveredCardIndex = cNum - 1;
+      }
+      if (qMode) recoveredMode = qMode;
+      if (qDir) recoveredDirection = qDir;
+
+      // 1. Попытка детерминированного восстановления из параметров URL
+      if (qLesson) {
+        const num = parseInt(qLesson, 10);
+        if (!isNaN(num)) {
+          const lData = getLessonById(num) || DETAILED_LESSONS[num];
+          if (lData && Array.isArray(lData.vocabulary) && lData.vocabulary.length > 0) {
+            recoveredWords = lData.vocabulary;
+            recoveredTitle = `Урок ${num}: Карточки словаря`;
+            recoveredLessonId = num;
           }
         }
-      } catch {}
+      } else if (qDeck) {
+        const found = ALL_DECKS.find((d) => d.id === qDeck);
+        if (found && Array.isArray(found.words) && found.words.length > 0) {
+          recoveredWords = found.words;
+          recoveredTitle = found.title;
+          recoveredDeckId = qDeck;
+        }
+      } else if (qSource === 'personal' && verifiedProfile?.personalVocabulary?.length) {
+        recoveredWords = verifiedProfile.personalVocabulary;
+        recoveredTitle = 'Мой личный словарь';
+      }
+
+      // 2. Попытка восстановить из history.state или sessionStorage, если слов еще нет
+      if (recoveredWords.length === 0) {
+        try {
+          const state = typeof window !== 'undefined' ? window.history.state : null;
+          if (state && Array.isArray(state.flashcardWords) && state.flashcardWords.length > 0) {
+            recoveredWords = state.flashcardWords;
+            if (state.flashcardTitle) recoveredTitle = state.flashcardTitle;
+            if (state.flashcardMode) recoveredMode = state.flashcardMode;
+            if (state.flashcardDirection) recoveredDirection = state.flashcardDirection;
+            if (state.flashcardShuffle !== undefined) recoveredShuffle = state.flashcardShuffle;
+            if (state.flashcardSourceLessonId !== undefined) recoveredLessonId = state.flashcardSourceLessonId;
+            if (state.flashcardDeckId !== undefined) recoveredDeckId = state.flashcardDeckId;
+            if (state.flashcardInitialCardIndex !== undefined) recoveredCardIndex = state.flashcardInitialCardIndex;
+          } else if (typeof window !== 'undefined') {
+            const raw = sessionStorage.getItem('ulpana_active_flashcards');
+            if (raw) {
+              const parsed = JSON.parse(raw);
+              if (Array.isArray(parsed.words) && parsed.words.length > 0) {
+                recoveredWords = parsed.words;
+                if (parsed.title) recoveredTitle = parsed.title;
+                if (parsed.mode) recoveredMode = parsed.mode;
+                if (parsed.direction) recoveredDirection = parsed.direction;
+                if (parsed.shuffle !== undefined) recoveredShuffle = parsed.shuffle;
+                if (parsed.lessonId !== undefined) recoveredLessonId = parsed.lessonId;
+                if (parsed.deckId !== undefined) recoveredDeckId = parsed.deckId;
+                if (parsed.cardIndex !== undefined) recoveredCardIndex = parsed.cardIndex;
+              }
+            }
+          }
+        } catch {}
+      }
 
       if (recoveredWords.length > 0) {
         initialView = 'flashcards';
@@ -254,6 +310,8 @@ export default function Home() {
         setFlashcardDirection(recoveredDirection);
         setFlashcardShuffle(recoveredShuffle);
         setFlashcardSourceLessonId(recoveredLessonId);
+        setFlashcardDeckId(recoveredDeckId);
+        setFlashcardInitialCardIndex(recoveredCardIndex);
       } else {
         // Нет сохраненных слов для тренировки — перенаправляем в словарик вместо зависшего экрана
         initialView = 'dictionary';
@@ -278,7 +336,19 @@ export default function Home() {
     }
 
     window.history.replaceState(
-      { view: initialView, lessonId: initialLessonId, tab: initialTab },
+      {
+        view: initialView,
+        lessonId: initialLessonId,
+        tab: initialTab,
+        flashcardWords: recoveredWords.length > 0 ? recoveredWords : flashcardWords,
+        flashcardTitle: recoveredTitle,
+        flashcardMode: recoveredMode,
+        flashcardDirection: recoveredDirection,
+        flashcardShuffle: recoveredShuffle,
+        flashcardSourceLessonId: recoveredLessonId,
+        flashcardDeckId: recoveredDeckId,
+        flashcardInitialCardIndex: recoveredCardIndex,
+      },
       '',
       initialHash || '#map'
     );
@@ -382,10 +452,12 @@ export default function Home() {
         tab?: LessonStageTab;
         flashcardWords?: Word[];
         flashcardTitle?: string;
-        flashcardMode?: 'flip' | 'builder' | 'listening' | 'auto_audio';
-        flashcardDirection?: 'he-ru' | 'ru-he';
+        flashcardMode?: TrainerMode;
+        flashcardDirection?: 'he-ru' | 'ru-he' | 'carousel';
         flashcardShuffle?: boolean;
         flashcardSourceLessonId?: number | null;
+        flashcardDeckId?: string | null;
+        flashcardCardIndex?: number;
         replace?: boolean;
       }
     ) => {
@@ -400,10 +472,16 @@ export default function Home() {
       if (options?.flashcardSourceLessonId !== undefined) {
         setFlashcardSourceLessonId(options.flashcardSourceLessonId);
       }
+      if (options?.flashcardDeckId !== undefined) {
+        setFlashcardDeckId(options.flashcardDeckId);
+      }
+      if (options?.flashcardCardIndex !== undefined) {
+        setFlashcardInitialCardIndex(options.flashcardCardIndex);
+      }
 
       window.scrollTo({ top: 0, behavior: 'smooth' });
 
-      // Генерация hash для чистого URL
+      // Генерация hash для чистого и уникального URL
       let hash = '#map';
       if (view === 'lesson') {
         const targetLesson = options?.lessonId !== undefined ? options.lessonId : activeLessonId;
@@ -411,9 +489,32 @@ export default function Home() {
         const tabSuffix = targetTab && targetTab !== 'theory' ? `/${targetTab}` : '';
         hash = `#lesson-${targetLesson}${tabSuffix}`;
       } else if (view === 'flashcards') {
-        hash = '#flashcards';
+        const p = new URLSearchParams();
+        const srcLesson = options?.flashcardSourceLessonId !== undefined ? options.flashcardSourceLessonId : flashcardSourceLessonId;
+        const srcDeck = options?.flashcardDeckId !== undefined ? options.flashcardDeckId : (flashcardDeckId || activeDeckId);
+        const cardIdx = options?.flashcardCardIndex !== undefined ? options.flashcardCardIndex : flashcardInitialCardIndex;
+        const fMode = options?.flashcardMode || flashcardMode;
+        const fDir = options?.flashcardDirection || flashcardDirection;
+
+        if (srcLesson) {
+          p.set('lesson', srcLesson.toString());
+        } else if (srcDeck) {
+          p.set('deck', srcDeck);
+        }
+        if (typeof cardIdx === 'number' && cardIdx > 0) {
+          p.set('card', (cardIdx + 1).toString());
+        }
+        if (fMode && fMode !== 'flip') {
+          p.set('mode', fMode);
+        }
+        if (fDir && fDir !== 'he-ru') {
+          p.set('dir', fDir);
+        }
+        const qs = p.toString();
+        hash = qs ? `#flashcards?${qs}` : '#flashcards';
       } else if (view === 'dictionary') {
-        hash = '#dictionary';
+        const dId = activeDeckId;
+        hash = dId ? `#deck-${dId}` : '#dictionary';
       } else if (view === 'alphabet') {
         hash = '#alphabet';
       }
@@ -428,6 +529,10 @@ export default function Home() {
           options?.flashcardSourceLessonId !== undefined
             ? options.flashcardSourceLessonId
             : flashcardSourceLessonId,
+        flashcardDeckId:
+          options?.flashcardDeckId !== undefined ? options.flashcardDeckId : flashcardDeckId,
+        flashcardInitialCardIndex:
+          options?.flashcardCardIndex !== undefined ? options.flashcardCardIndex : flashcardInitialCardIndex,
         flashcardTitle: options?.flashcardTitle || flashcardTitle,
         flashcardMode: options?.flashcardMode || flashcardMode,
         flashcardDirection: options?.flashcardDirection || flashcardDirection,
@@ -447,6 +552,8 @@ export default function Home() {
                   direction: options?.flashcardDirection || flashcardDirection,
                   shuffle: options?.flashcardShuffle !== undefined ? options.flashcardShuffle : flashcardShuffle,
                   lessonId: options?.flashcardSourceLessonId !== undefined ? options.flashcardSourceLessonId : flashcardSourceLessonId,
+                  deckId: options?.flashcardDeckId !== undefined ? options.flashcardDeckId : flashcardDeckId,
+                  cardIndex: options?.flashcardCardIndex !== undefined ? options.flashcardCardIndex : flashcardInitialCardIndex,
                 })
               );
             } catch {}
@@ -464,7 +571,47 @@ export default function Home() {
         }
       }
     },
-    [activeLessonId, lessonInitialTab, flashcardWords, flashcardShuffle, flashcardSourceLessonId, flashcardTitle, flashcardMode, flashcardDirection]
+    [activeLessonId, lessonInitialTab, flashcardWords, flashcardShuffle, flashcardSourceLessonId, flashcardDeckId, flashcardInitialCardIndex, flashcardTitle, flashcardMode, flashcardDirection, activeDeckId]
+  );
+
+  // Мягкое обновление URL при смене карточки или режима (без спама записей в историю)
+  const handleFlashcardCardChange = useCallback(
+    (index: number, mode: TrainerMode, word?: Word) => {
+      setFlashcardInitialCardIndex(index);
+      setFlashcardMode(mode);
+      if (typeof window === 'undefined') return;
+
+      const p = new URLSearchParams();
+      if (flashcardSourceLessonId) {
+        p.set('lesson', flashcardSourceLessonId.toString());
+      } else if (flashcardDeckId || activeDeckId) {
+        p.set('deck', (flashcardDeckId || activeDeckId)!);
+      }
+      p.set('card', (index + 1).toString());
+      if (mode && mode !== 'flip') {
+        p.set('mode', mode);
+      }
+      if (flashcardDirection && flashcardDirection !== 'he-ru') {
+        p.set('dir', flashcardDirection);
+      }
+      const newHash = `#flashcards?${p.toString()}`;
+
+      const currentState = window.history.state || {};
+      window.history.replaceState(
+        {
+          ...currentState,
+          flashcardInitialCardIndex: index,
+          flashcardMode: mode,
+          flashcardWords,
+          flashcardTitle,
+          flashcardSourceLessonId,
+          flashcardDeckId: flashcardDeckId || activeDeckId,
+        },
+        '',
+        newHash
+      );
+    },
+    [flashcardSourceLessonId, flashcardDeckId, activeDeckId, flashcardDirection, flashcardWords, flashcardTitle]
   );
 
   // Обработка истории браузера (popstate) при свайпе назад / системной кнопке Назад
@@ -490,61 +637,164 @@ export default function Home() {
         return;
       }
 
+      const curHash = window.location.hash || '';
       const state = event.state;
-      if (state && state.view) {
-        setCurrentView(state.view);
-        if (state.lessonId) setActiveLessonId(state.lessonId);
-        if (state.tab) setLessonInitialTab(state.tab);
-        if (state.flashcardWords) setFlashcardWords(state.flashcardWords);
-        if (state.flashcardTitle) setFlashcardTitle(state.flashcardTitle);
-        if (state.flashcardMode) setFlashcardMode(state.flashcardMode);
-        if (state.flashcardDirection) setFlashcardDirection(state.flashcardDirection);
-        if (state.flashcardShuffle !== undefined) setFlashcardShuffle(state.flashcardShuffle);
-        if (state.flashcardSourceLessonId !== undefined) {
-          setFlashcardSourceLessonId(state.flashcardSourceLessonId);
+
+      // 2. Если popstate вернул нас на карточки (#flashcards)
+      if (curHash.startsWith('#flashcards') || state?.view === 'flashcards') {
+        const qIndex = curHash.indexOf('?');
+        const queryString = qIndex !== -1 ? curHash.slice(qIndex + 1) : '';
+        const params = new URLSearchParams(queryString);
+        const qLesson = params.get('lesson');
+        const qDeck = params.get('deck');
+        const qSource = params.get('source');
+        const qCard = params.get('card');
+        const qMode = params.get('mode') as TrainerMode | null;
+        const qDir = params.get('dir') as any;
+
+        let recoveredWords: Word[] = [];
+        let recoveredTitle = state?.flashcardTitle || flashcardTitle;
+        let recoveredMode: TrainerMode = qMode || state?.flashcardMode || flashcardMode;
+        let recoveredDirection = qDir || state?.flashcardDirection || flashcardDirection;
+        let recoveredShuffle = state?.flashcardShuffle ?? flashcardShuffle;
+        let recoveredLessonId: number | null = state?.flashcardSourceLessonId ?? flashcardSourceLessonId;
+        let recoveredDeckId: string | null = state?.flashcardDeckId ?? flashcardDeckId;
+        let recoveredCardIndex = state?.flashcardInitialCardIndex ?? 0;
+
+        if (qCard) {
+          const cNum = parseInt(qCard, 10);
+          if (!isNaN(cNum) && cNum >= 1) recoveredCardIndex = cNum - 1;
         }
-      } else {
-        // Фоллбек: разбираем hash
-        const curHash = window.location.hash;
-        if (curHash.startsWith('#lesson-')) {
-          const id = parseInt(curHash.replace('#lesson-', ''), 10);
-          setCurrentView('lesson');
-          if (!isNaN(id)) setActiveLessonId(id);
-        } else if (curHash === '#flashcards') {
-          let hasWords = false;
+
+        // Приоритет 1: детерминированное восстановление по URL параметрам
+        if (qLesson) {
+          const num = parseInt(qLesson, 10);
+          if (!isNaN(num)) {
+            const lData = getLessonById(num) || DETAILED_LESSONS[num];
+            if (lData && Array.isArray(lData.vocabulary) && lData.vocabulary.length > 0) {
+              recoveredWords = lData.vocabulary;
+              recoveredTitle = `Урок ${num}: Карточки словаря`;
+              recoveredLessonId = num;
+            }
+          }
+        } else if (qDeck) {
+          const found = ALL_DECKS.find((d) => d.id === qDeck);
+          if (found && Array.isArray(found.words) && found.words.length > 0) {
+            recoveredWords = found.words;
+            recoveredTitle = found.title;
+            recoveredDeckId = qDeck;
+          }
+        } else if (qSource === 'personal' && profile?.personalVocabulary?.length) {
+          recoveredWords = profile.personalVocabulary;
+          recoveredTitle = 'Мой личный словарь';
+        }
+
+        // Приоритет 2: восстановление из event.state
+        if (recoveredWords.length === 0 && state && Array.isArray(state.flashcardWords) && state.flashcardWords.length > 0) {
+          recoveredWords = state.flashcardWords;
+        }
+
+        // Приоритет 3: восстановление из sessionStorage
+        if (recoveredWords.length === 0 && typeof window !== 'undefined') {
           try {
             const raw = sessionStorage.getItem('ulpana_active_flashcards');
             if (raw) {
               const parsed = JSON.parse(raw);
               if (Array.isArray(parsed.words) && parsed.words.length > 0) {
-                setFlashcardWords(parsed.words);
-                if (parsed.title) setFlashcardTitle(parsed.title);
-                if (parsed.mode) setFlashcardMode(parsed.mode);
-                if (parsed.direction) setFlashcardDirection(parsed.direction);
-                if (parsed.shuffle !== undefined) setFlashcardShuffle(parsed.shuffle);
-                if (parsed.lessonId !== undefined) setFlashcardSourceLessonId(parsed.lessonId);
-                hasWords = true;
+                recoveredWords = parsed.words;
+                if (parsed.title) recoveredTitle = parsed.title;
+                if (parsed.mode) recoveredMode = parsed.mode;
+                if (parsed.direction) recoveredDirection = parsed.direction;
+                if (parsed.shuffle !== undefined) recoveredShuffle = parsed.shuffle;
+                if (parsed.lessonId !== undefined) recoveredLessonId = parsed.lessonId;
+                if (parsed.deckId !== undefined) recoveredDeckId = parsed.deckId;
+                if (parsed.cardIndex !== undefined) recoveredCardIndex = parsed.cardIndex;
               }
             }
           } catch {}
-          if (hasWords) {
-            setCurrentView('flashcards');
-          } else {
-            setCurrentView('dictionary');
-          }
-        } else if (curHash === '#dictionary') {
-          setCurrentView('dictionary');
-        } else if (curHash === '#alphabet') {
-          setCurrentView('alphabet');
-        } else {
-          setCurrentView('map');
         }
+
+        // Приоритет 4: текущие слова в компоненте
+        if (recoveredWords.length === 0 && flashcardWords.length > 0) {
+          recoveredWords = flashcardWords;
+        }
+
+        if (recoveredWords.length > 0) {
+          setCurrentView('flashcards');
+          setFlashcardWords(recoveredWords);
+          setFlashcardTitle(recoveredTitle);
+          setFlashcardMode(recoveredMode);
+          setFlashcardDirection(recoveredDirection);
+          setFlashcardShuffle(recoveredShuffle);
+          setFlashcardSourceLessonId(recoveredLessonId);
+          setFlashcardDeckId(recoveredDeckId);
+          setFlashcardInitialCardIndex(recoveredCardIndex);
+        } else {
+          setCurrentView('dictionary');
+        }
+        return;
       }
+
+      // 3. Другие разделы по хэшу или state
+      if (curHash.startsWith('#lesson-') || state?.view === 'lesson') {
+        const raw = curHash.replace('#lesson-', '');
+        const slashIndex = raw.indexOf('/');
+        const num = parseInt(slashIndex === -1 ? raw : raw.slice(0, slashIndex), 10);
+        const tabSlug = slashIndex === -1 ? '' : raw.slice(slashIndex + 1).toLowerCase();
+
+        const tabMap: Record<string, LessonStageTab> = {
+          theory: 'theory', vocab: 'vocab', exercises: 'exercises', essay: 'essay', chat: 'chat', phone: 'phone',
+        };
+        const requestedTab = tabMap[tabSlug] || state?.tab || 'theory';
+
+        setCurrentView('lesson');
+        if (!isNaN(num) && num >= 1 && num <= 100) {
+          setActiveLessonId(num);
+        } else if (state?.lessonId) {
+          setActiveLessonId(state.lessonId);
+        }
+        setLessonInitialTab(requestedTab);
+        return;
+      }
+
+      if (curHash.startsWith('#deck-') || curHash.startsWith('#decks/')) {
+        const rawDeckId = curHash.startsWith('#deck-')
+          ? curHash.replace('#deck-', '')
+          : curHash.replace('#decks/', '');
+        setCurrentView('dictionary');
+        setActiveDeckId(rawDeckId);
+        return;
+      }
+
+      if (curHash === '#dictionary' || state?.view === 'dictionary') {
+        setCurrentView('dictionary');
+        return;
+      }
+
+      if (curHash === '#alphabet' || state?.view === 'alphabet') {
+        setCurrentView('alphabet');
+        return;
+      }
+
+      setCurrentView('map');
     };
 
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
-  }, [isSettingsOpen, isAuthModalOpen, isSubscriptionModalOpen, isMultiLessonSetupOpen]);
+  }, [
+    isSettingsOpen,
+    isAuthModalOpen,
+    isSubscriptionModalOpen,
+    isMultiLessonSetupOpen,
+    flashcardTitle,
+    flashcardMode,
+    flashcardDirection,
+    flashcardShuffle,
+    flashcardSourceLessonId,
+    flashcardDeckId,
+    flashcardWords,
+    profile,
+  ]);
 
   const handleCloseFlashcards = useCallback(() => {
     if (typeof window !== 'undefined') {
@@ -553,11 +803,14 @@ export default function Home() {
       } catch {}
     }
     if (flashcardSourceLessonId) {
-      navigateTo('lesson', { lessonId: flashcardSourceLessonId });
+      navigateTo('lesson', { lessonId: flashcardSourceLessonId, tab: 'vocab' });
+    } else if (flashcardDeckId) {
+      setActiveDeckId(flashcardDeckId);
+      navigateTo('dictionary');
     } else {
       navigateTo('dictionary');
     }
-  }, [flashcardSourceLessonId, navigateTo]);
+  }, [flashcardSourceLessonId, flashcardDeckId, navigateTo]);
   const handleCloseLesson = useCallback(() => {
     navigateTo('map');
   }, [navigateTo]);
@@ -711,15 +964,19 @@ export default function Home() {
   const handleStartFlashcards = (
     wordsToTrain: Word[],
     title?: string,
-    mode?: 'flip' | 'builder' | 'listening' | 'auto_audio',
+    mode?: TrainerMode,
     lessonId?: number,
-    direction?: 'he-ru' | 'ru-he',
-    shuffle?: boolean
+    direction?: 'he-ru' | 'ru-he' | 'carousel',
+    shuffle?: boolean,
+    deckId?: string,
+    cardIndex?: number
   ) => {
     const customTitle =
       title ||
       (lessonId
         ? `Урок ${lessonId}: Карточки словаря`
+        : deckId
+        ? (ALL_DECKS.find((d) => d.id === deckId)?.title || 'Тренировка карточек')
         : 'Тренировка карточек');
 
     navigateTo('flashcards', {
@@ -727,6 +984,8 @@ export default function Home() {
       flashcardTitle: customTitle,
       flashcardMode: mode || 'flip',
       flashcardSourceLessonId: lessonId || null,
+      flashcardDeckId: deckId || (lessonId ? null : activeDeckId),
+      flashcardCardIndex: cardIndex ?? 0,
       flashcardDirection: direction || flashcardDirection || 'he-ru',
       flashcardShuffle: shuffle ?? false,
     });
@@ -952,6 +1211,9 @@ export default function Home() {
               initialDirection={flashcardDirection}
               initialShuffle={flashcardShuffle}
               lessonId={flashcardSourceLessonId || undefined}
+              deckId={flashcardDeckId || undefined}
+              initialCardIndex={flashcardInitialCardIndex}
+              onCardChange={handleFlashcardCardChange}
               onContinueLesson={handleContinueLessonFromFlashcards}
               onClose={handleCloseFlashcards}
               onUpdateProfile={handleUpdateProfile}
@@ -968,8 +1230,8 @@ export default function Home() {
             userProfile={profile}
             initialDeckId={activeDeckId}
             onUpdateProfile={handleUpdateProfile}
-            onStartPractice={(words, title, mode, shuffle, direction) =>
-              handleStartFlashcards(words, title, mode, undefined, direction, shuffle)
+            onStartPractice={(words, title, mode, shuffle, direction, deckId) =>
+              handleStartFlashcards(words, title, mode, undefined, direction, shuffle, deckId)
             }
             onOpenMultiLessonSetup={() => setIsMultiLessonSetupOpen(true)}
             onRequireAuth={handleRequireDeckAuth}

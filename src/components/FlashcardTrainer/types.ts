@@ -19,6 +19,9 @@ export interface FlashcardTrainerProps {
   initialDirection?: 'he-ru' | 'ru-he' | 'carousel';
   initialShuffle?: boolean;
   lessonId?: number;
+  deckId?: string;
+  initialCardIndex?: number;
+  onCardChange?: (index: number, mode: TrainerMode, word?: Word) => void;
   onContinueLesson?: (
     lessonId: number,
     nextTab: 'theory' | 'vocab' | 'exercises' | 'chat' | 'phone'

@@ -19,7 +19,7 @@ interface DeckCardProps {
   userProfile: UserProfile;
   shuffleDecks: boolean;
   onOpenListModal: (deck: ThematicDeck) => void;
-  onStartTraining: (words: Word[], deckTitle: string, shuffle?: boolean) => void;
+  onStartTraining: (words: Word[], deckTitle: string, shuffle?: boolean, deckId?: string) => void;
   onRequireAuth?: (deck: ThematicDeck) => void;
 }
 
@@ -105,7 +105,7 @@ export const DeckCard: React.FC<DeckCardProps> = ({
           userProfile.flashcardStats,
           userProfile.flashcardProgress
         );
-    onStartTraining(words, deck.title, shuffleDecks);
+    onStartTraining(words, deck.title, shuffleDecks, deck.id);
   };
 
   return (

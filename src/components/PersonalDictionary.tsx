@@ -42,9 +42,10 @@ interface PersonalDictionaryProps {
   onStartPractice: (
     words: Word[],
     title?: string,
-    mode?: 'flip' | 'builder' | 'listening' | 'auto_audio',
+    mode?: 'flip' | 'builder' | 'listening' | 'auto_audio' | 'conjugation' | 'complex',
     shuffle?: boolean,
-    direction?: 'he-ru' | 'ru-he'
+    direction?: 'he-ru' | 'ru-he' | 'carousel',
+    deckId?: string
   ) => void;
   onOpenMultiLessonSetup?: () => void;
   initialTab?: DictTab;
@@ -326,8 +327,8 @@ export const PersonalDictionary: React.FC<PersonalDictionaryProps> = ({
           userProfile={userProfile}
           initialDeckId={selectedThematicDeckId}
           onCloseInitialDeck={() => setSelectedThematicDeckId(null)}
-          onStartTraining={(deckWords, title, shuffle) =>
-            onStartPractice(deckWords, title, undefined, shuffle)
+          onStartTraining={(deckWords, title, shuffle, deckId) =>
+            onStartPractice(deckWords, title, undefined, shuffle, undefined, deckId)
           }
           onUpdateVocabulary={(newWords) => {
             onUpdateProfile(loadUserProfile());

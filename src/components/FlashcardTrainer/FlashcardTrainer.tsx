@@ -56,6 +56,9 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
   initialDirection,
   initialShuffle,
   lessonId,
+  deckId,
+  initialCardIndex,
+  onCardChange,
   onContinueLesson,
 }) => {
   const [masterWords, setMasterWords] = useState<Word[]>(() => {
@@ -83,7 +86,12 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
   const [mode, setMode] = useState<TrainerMode>(initialMode || 'flip');
   const [isShuffled, setIsShuffled] = useState(Boolean(initialShuffle));
   const [shuffleToast, setShuffleToast] = useState(false);
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const [currentIndex, setCurrentIndex] = useState(() => {
+    if (typeof initialCardIndex === 'number' && initialCardIndex >= 0) {
+      return initialCardIndex;
+    }
+    return 0;
+  });
   const [isFlipped, setIsFlipped] = useState(false);
 
   // Активный набор слов: выбранная часть либо все слова колоды
@@ -298,11 +306,32 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
     setPealimModalVerb((prev) => (prev ? { ...prev, loading: false } : null));
   };
 
-  const currentWord = words[currentIndex];
+  const safeIndex = words.length > 0 ? Math.min(Math.max(0, currentIndex), words.length - 1) : 0;
+  const currentWord = words[safeIndex];
   const isCurrentCardFrontRussian =
     cardDirection === 'ru-he' ||
     (cardDirection === 'carousel' &&
-      (carouselDirections[currentIndex] ?? (currentIndex % 2 === 1)));
+      (carouselDirections[safeIndex] ?? (safeIndex % 2 === 1)));
+
+  // Уведомление внешнего роутера об изменении активной карточки и режима
+  useEffect(() => {
+    if (words.length > 0 && currentWord) {
+      onCardChange?.(safeIndex, mode, currentWord);
+    }
+  }, [safeIndex, mode, words, onCardChange, currentWord]);
+
+  // Синхронизация индекса при смене initialCardIndex извне (например, по URL)
+  useEffect(() => {
+    if (
+      typeof initialCardIndex === 'number' &&
+      initialCardIndex >= 0 &&
+      initialCardIndex !== currentIndex
+    ) {
+      if (words.length > 0 && initialCardIndex < words.length) {
+        setCurrentIndex(initialCardIndex);
+      }
+    }
+  }, [initialCardIndex, currentIndex, words.length]);
 
   // Перезапуск цикла воспроизведения со случайным перемешиванием слов и направлений
   const reshuffleAndRestartLoop = () => {
@@ -940,7 +969,7 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
   }
 
   // Если в наборе нет слов — показываем понятное пустое состояние с кнопками перехода, а не победный экран с 0 слов
-  if (masterWords.length === 0) {
+  if (masterWords.length === 0 || words.length === 0) {
     return (
       <div className="bg-white dark:bg-zinc-900 rounded-3xl p-6 sm:p-8 border border-zinc-200 dark:border-zinc-800 shadow-xl max-w-lg mx-auto text-center space-y-6 animate-in zoom-in-95">
         <div className="w-20 h-20 mx-auto rounded-full bg-amber-100 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center shadow-inner">

@@ -39,9 +39,10 @@ export const FlipCardMode: React.FC<FlipCardModeProps> = ({
   const isCursive = userProfile.fontStyle === 'cursive';
   const [isTipOpen, setIsTipOpen] = useState(false);
   const [selectedLookupWord, setSelectedLookupWord] = useState<string | null>(null);
-  const tip = detectLinguisticTip(currentWord);
+  const tip = currentWord ? detectLinguisticTip(currentWord) : null;
 
   const triad = useMemo(() => {
+    if (!currentWord) return null;
     if (
       currentWord.partOfSpeech === 'verb' ||
       currentWord.hebrew.startsWith('לִ') ||
@@ -54,6 +55,8 @@ export const FlipCardMode: React.FC<FlipCardModeProps> = ({
     }
     return null;
   }, [currentWord]);
+
+  if (!currentWord) return null;
 
   return (
     <div className="space-y-3 sm:space-y-4">

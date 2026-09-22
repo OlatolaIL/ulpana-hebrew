@@ -36,7 +36,7 @@ interface DeckWordsModalProps {
   userProfile: UserProfile;
   shuffleDecks: boolean;
   onClose: () => void;
-  onStartTraining: (words: Word[], deckTitle: string, shuffle?: boolean) => void;
+  onStartTraining: (words: Word[], deckTitle: string, shuffle?: boolean, deckId?: string) => void;
   onUpdateVocabulary: (newWords: Word[]) => void;
   onOpenPealim: (word: Word) => void;
 }
@@ -668,7 +668,7 @@ export const DeckWordsModal: React.FC<DeckWordsModalProps> = ({
                 onClick={() => {
                   const selectedWords = deck.words.filter((w) => selectedWordIds.has(w.id));
                   if (selectedWords.length > 0) {
-                    onStartTraining(shuffleWords(selectedWords), deck.title, true);
+                    onStartTraining(shuffleWords(selectedWords), deck.title, true, deck.id);
                     onClose();
                   }
                 }}
@@ -711,7 +711,8 @@ export const DeckWordsModal: React.FC<DeckWordsModalProps> = ({
                           userProfile.flashcardProgress
                         ),
                     deck.title,
-                    shuffleDecks
+                    shuffleDecks,
+                    deck.id
                   );
                   onClose();
                 }

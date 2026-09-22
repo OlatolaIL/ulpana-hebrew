@@ -66,7 +66,9 @@ export const AutoAudioMode: React.FC<AutoAudioModeProps> = ({
   onShuffleWords,
 }) => {
   const isCursive = userProfile.fontStyle === 'cursive';
-  const triad = useMemo(() => extractVerbTriad(currentWord), [currentWord]);
+  const triad = useMemo(() => (currentWord ? extractVerbTriad(currentWord) : null), [currentWord]);
+
+  if (!currentWord) return null;
 
   return (
     <div className="space-y-4">

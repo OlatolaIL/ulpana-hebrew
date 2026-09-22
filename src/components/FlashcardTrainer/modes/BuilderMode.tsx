@@ -54,6 +54,8 @@ export const BuilderMode: React.FC<BuilderModeProps> = ({
   onNextWord,
   onSpeakHebrew,
 }) => {
+  if (!currentWord) return null;
+
   const targetText = getCleanHebrewTarget(currentWord);
   const hasSpaces = targetText.includes(' ');
   const isCursive = userProfile.fontStyle === 'cursive';

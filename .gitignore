@@ -48,6 +48,7 @@ public/demo/*.wav
 public/demo/**/*.wav
 public/demo/audio_cache/
 public/demo/lessons/
+public/demo/frames/
 *.mp3
 !public/audio/**
 

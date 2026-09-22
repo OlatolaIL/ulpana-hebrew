@@ -35,7 +35,7 @@ const resolveInitialFilter = (deckOrCategory?: string | null): DeckFilter => {
 
 interface ThematicDecksViewProps {
   userProfile: UserProfile;
-  onStartTraining: (words: Word[], deckTitle: string, shuffle?: boolean) => void;
+  onStartTraining: (words: Word[], deckTitle: string, shuffle?: boolean, deckId?: string) => void;
   onUpdateVocabulary: (newWords: Word[]) => void;
   initialDeckId?: string | null;
   onCloseInitialDeck?: () => void;
