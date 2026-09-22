@@ -40,7 +40,7 @@ for (let b = 0; b < totalBatches; b++) {
     }
 
     console.log(`Committing batch ${b + 1}/${totalBatches}...`);
-    execSync(`git commit -m "feat(audio): deploy Google Cloud Chirp 3 HD audio batch ${b + 1}/${totalBatches}"`, { stdio: 'inherit' });
+    execSync(`git commit -m "feat(audio): deploy Microsoft Edge Neural TTS audio batch ${b + 1}/${totalBatches} (Avri & Hila)"`, { stdio: 'inherit' });
 
     console.log(`Pushing batch ${b + 1}/${totalBatches} to origin main...`);
     execSync(`git push origin main`, { stdio: 'inherit' });

@@ -14,28 +14,32 @@ const repoRoot = path.resolve(__dirname, '..');
 const SENTENCES_DIR = path.resolve(repoRoot, 'public/audio/sentences');
 const MANIFEST_PATH = path.resolve(SENTENCES_DIR, 'manifest.json');
 
+const { MsEdgeTTS, OUTPUT_FORMAT } = require('msedge-tts');
+
 const args = process.argv.slice(2);
 const tokenArg = args.find((a) => a.startsWith('--token='));
 const projectArg = args.find((a) => a.startsWith('--project='));
 const concurrencyArg = args.find((a) => a.startsWith('--concurrency='));
+const engineArg = args.find((a) => a.startsWith('--engine='));
 const isForce = args.includes('--force');
 const isResume = args.includes('--resume');
 const isMaleOnly = args.includes('--male-only');
 const isFemaleOnly = args.includes('--female-only');
 const limitArg = args.find((a) => a.startsWith('--limit='));
 
+const engine = engineArg ? engineArg.replace('--engine=', '').trim() : 'edge';
 const token = tokenArg ? tokenArg.replace('--token=', '').trim() : process.env.GCP_ACCESS_TOKEN || '';
 const projectId = projectArg ? projectArg.replace('--project=', '').trim() : process.env.GCP_PROJECT_ID || 'project-aebc6692-f6eb-4d2f-b1b';
-const concurrency = concurrencyArg ? parseInt(concurrencyArg.replace('--concurrency=', ''), 10) : 4;
+const concurrency = concurrencyArg ? parseInt(concurrencyArg.replace('--concurrency=', ''), 10) : 6;
 const limit = limitArg ? parseInt(limitArg.replace('--limit=', ''), 10) : Infinity;
 
-if (!token) {
-  console.error('❌ ОШИБКА: Не передан OAuth2 токен Google Cloud (--token=ya29...)');
+if (engine === 'gcp' && !token) {
+  console.error('❌ ОШИБКА: Для GCP требуется OAuth2 токен Google Cloud (--token=ya29...)');
   process.exit(1);
 }
 
-const MALE_VOICE = 'he-IL-Chirp3-HD-Fenrir';
-const FEMALE_VOICE = 'he-IL-Chirp3-HD-Aoede';
+const MALE_VOICE = engine === 'edge' ? 'he-IL-AvriNeural' : 'he-IL-Chirp3-HD-Fenrir';
+const FEMALE_VOICE = engine === 'edge' ? 'he-IL-HilaNeural' : 'he-IL-Chirp3-HD-Aoede';
 
 function normalizeSentenceKey(text) {
   return text
@@ -79,6 +83,35 @@ function parseTsv(filePath) {
     }
   }
   return items;
+}
+
+async function synthesizeEdge(text, destPath, voiceName, maxRetries = 3) {
+  const clean = text
+    .replace(/[؟？]/g, '?')
+    .replace(/[！]/g, '!')
+    .replace(/["״׳«»]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const tts = new MsEdgeTTS();
+      await tts.setMetadata(voiceName, OUTPUT_FORMAT.AUDIO_24KHZ_48KBITRATE_MONO_MP3);
+      const { audioStream } = tts.toStream(clean);
+      const chunks = [];
+      for await (const chunk of audioStream) {
+        chunks.push(chunk);
+      }
+      const buf = Buffer.concat(chunks);
+      if (buf.length < 100) throw new Error('Empty buffer');
+
+      fs.writeFileSync(destPath, buf);
+      return buf.length;
+    } catch (e) {
+      if (attempt === maxRetries) throw e;
+      await new Promise((r) => setTimeout(r, 400 * attempt));
+    }
+  }
 }
 
 async function synthesizeGcp(text, destPath, voiceName, maxRetries = 6) {
@@ -138,12 +171,19 @@ async function synthesizeGcp(text, destPath, voiceName, maxRetries = 6) {
   }
 }
 
+async function synthesizeAudio(text, destPath, voiceName) {
+  if (engine === 'edge') {
+    return synthesizeEdge(text, destPath, voiceName);
+  }
+  return synthesizeGcp(text, destPath, voiceName);
+}
+
 async function main() {
   console.log('================================================================');
-  console.log('🎙️  МАССОВАЯ ГЕНЕРАЦИЯ АУДИО ИЗ МАНИФЕСТОВ GOOGLE CLOUD CHIRP 3 HD');
+  console.log(`🎙️  МАССОВАЯ ГЕНЕРАЦИЯ АУДИО ИЗ МАНИФЕСТОВ (${engine.toUpperCase()} TTS)`);
   console.log(`    Мужской голос (♂): ${MALE_VOICE}`);
   console.log(`    Женский голос (♀): ${FEMALE_VOICE}`);
-  console.log(`    Project ID:        ${projectId}`);
+  if (engine === 'gcp') console.log(`    Project ID:        ${projectId}`);
   console.log('================================================================\n');
 
   const maleTsvPath = path.resolve(repoRoot, 'public/sentences_male_manifest.tsv');
@@ -214,7 +254,7 @@ async function main() {
     await Promise.all(
       batch.map(async (task) => {
         try {
-          const bytes = await synthesizeGcp(task.sentenceHe, task.destPath, task.voice);
+          const bytes = await synthesizeAudio(task.sentenceHe, task.destPath, task.voice);
           completed++;
           totalBytes += bytes;
 

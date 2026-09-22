@@ -614,3 +614,29 @@ ChatGPT — архитектор и независимая приёмка; Gemin
    - `node --test tests/decision-matrix-invariants.test.cjs`: 13 / 13 passed.
    - `npm run audit:intent`: 100% Zero-Drift compliance.
 
+---
+
+### Релиз: Полная миграция аудиобанка курса на Microsoft Azure / Edge Neural TTS (22 сентября 2026)
+
+**Задача:** Ликвидация дефектов синтеза Google Cloud Chirp 3 HD (проглатывание согласных `ם`, искажение сеголатных ударений `מַיִם`, искажение имён `דָּוִד`, сжатие фраз до 0.4с); перевод 100% предложений курса (2 688 файлов) на эталонный нейросетевой комплекс Microsoft Azure / Edge Neural TTS (`he-IL-AvriNeural` ♂, `he-IL-HilaNeural` ♀); фиксация движка в качестве основного стандарта платформы (R-13, R-17, R-24).
+
+**Что сделано и проверено:**
+1. **Диагностика дефектов Chirp 3 HD:**
+   - Выявлена первопричина: сырой токенизатор Chirp 3 HD сбоил на Unicode-символах огласовок `\u0591-\u05C7`, ускорял речь в 3-4 раза и выкидывал согласные буквы. Средний размер файлов составлял всего 7-8 КБ.
+2. **Переход на Microsoft Azure / Edge Neural TTS:**
+   - Скрипт `scripts/generate_from_manifests.cjs` переведён на нейросетевой комплекс Microsoft с прямой поддержкой огласованного иврита.
+   - Сгенерировано **2 688 MP3-файлов** (общий объём базы вырос с 19.2 МБ до **41.80 МБ**, средний размер файла — 15–16 КБ, естественная длительность 2.3–2.8с):
+     - ♂ **565 мужских фраз:** голос `he-IL-AvriNeural` (1-е/2-е/3-е лицо мужского рода, включая контрольные фразы «אֲנִי רוֹצֶה מַיִם קָרִים», «דָּוִד הוֹלֵךְ לָאוּלְפָּן»).
+     - ♀ **2 123 женских и нейтральных фраз:** голос `he-IL-HilaNeural` (женские варианты 1-го/2-го лица, 3-е лицо ж.р., все существительные, прилагательные, предлоги и безличные фразы).
+3. **Обновление системных настроек и манифеста:**
+   - `src/data/audioSettings.json`: `"sentenceAudioEngine": "edge_neural"`, `"defaultVoiceMale": "he-IL-AvriNeural"`, `"defaultVoiceFemale": "he-IL-HilaNeural"`.
+   - `src/lib/speech.ts`: дефолтный возврат `getSentenceAudioEngine()` установлен в `'edge_neural'`.
+   - `public/audio/sentences/manifest.json`: синхронизирован со всеми 2 688 файлами.
+   - `DECISION_MATRIX.md`: обновлена до версии v1.7.0, отказ от Chirp 3 HD зафиксирован в Superseded Log.
+4. **Верификация (R-13, R-17, R-22):**
+   - `npm run audit:intent`: 100% Zero-Drift compliance (все 2 535 карточек ComplexDrills покрыты).
+   - `npm run typecheck`: 0 ошибок компиляции TypeScript.
+   - `tests/decision-matrix-invariants.test.cjs`: 13 / 13 passed.
+   - `tests/audio-sentences-studio.test.cjs`: 4 / 4 passed.
+   - `tests/pilot-mechanics-01-05.test.cjs`: 11 / 11 passed.
+
