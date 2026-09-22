@@ -20,190 +20,87 @@ function findLesson(num) {
   return lesson;
 }
 
-test('phone scenario female adaptation in Lesson 2 returns female verb and maintains male forms for male student', () => {
-  const lesson2 = findLesson(2);
-  const femaleScenario = getLessonPhoneScenario(lesson2, 'female');
-  const maleScenario = getLessonPhoneScenario(lesson2, 'male');
+const { getPhoneLessonContract } = require('../src/data/phoneScenarios.ts');
+const replyText = s => s.suggestedReplies.map(r => r.hebrew).join(' ');
 
-  // Female student checks
-  assert.equal(
-    femaleScenario.suggestedReplies[0].hebrew,
-    'שָׁלוֹם, אֲנִי רוֹצָה קָפֶה גָּדוֹל עִם חָלָב, בְּבַקָּשָׁה.'
-  );
-  assert.equal(
-    femaleScenario.suggestedReplies[0].transcription,
-    'шалóм, анӣ роцá кафэ́ гадóль им халáв, бэвакашá.'
-  );
-  assert.equal(femaleScenario.completionCondition, 'Ученица сделала заказ кофе и узнала стоимость.');
-  // Initial greeting adapted for female listener (present tense)
-  assert.ok(femaleScenario.initialGreeting.hebrew.includes('מָה אַתְּ רוֹצָה'));
-  assert.ok(femaleScenario.initialGreeting.transcription.includes('ма ат роцá'));
-
-  // Male student checks - completely preserved
-  assert.equal(
-    maleScenario.suggestedReplies[0].hebrew,
-    'שָׁלוֹם, אֲנִי רוֹצֶה קָפֶה גָּדוֹל עִם חָלָב, בְּבַקָּשָׁה.'
-  );
-  assert.equal(
-    maleScenario.suggestedReplies[0].transcription,
-    'шалóм, анӣ роцé кафэ́ гадóль им халáв, бэвакашá.'
-  );
-  assert.equal(maleScenario.completionCondition, 'Ученик сделал заказ кофе и узнал стоимость.');
-  assert.ok(maleScenario.initialGreeting.hebrew.includes('מָה אַתָּה רוֹצֶה'));
-  assert.ok(maleScenario.initialGreeting.transcription.includes('ма атá роцé'));
+test('phone drink and grocery replies follow learner gender without changing the male seller', () => {
+  for (const id of [5]) {
+    const female = getLessonPhoneScenario(findLesson(id), 'female');
+    const male = getLessonPhoneScenario(findLesson(id), 'male');
+    assert.equal(female.callerGender, 'male');
+    assert.equal(male.callerGender, 'male');
+    assert.match(replyText(female), /אֲנִי רוֹצָה/);
+    assert.doesNotMatch(replyText(female), /אֲנִי רוֹצֶה/);
+    assert.match(replyText(male), /אֲנִי רוֹצֶה/);
+    assert.doesNotMatch(replyText(male), /אֲנִי רוֹצָה/);
+    assert.match(female.completionCondition, /цен/);
+    assert.doesNotMatch(female.initialGreeting.hebrew, /אַתְּ רוֹצֶה|אַתָּה רוֹצָה/);
+  }
+  const cafe = getLessonPhoneScenario(findLesson(2), 'female');
+  assert.match(cafe.callerRole, /Бариста/);
+  assert.equal(cafe.callerGender, 'male');
+  assert.doesNotMatch(replyText(cafe), /אֲנִי רוֹצֶה/);
+  assert.match(replyText(cafe), /גָּדוֹל.*חָלָב/);
+  assert.match(replyText(cafe), /קָפֶה|תֵּה/);
+  assert.match(cafe.completionCondition, /подтвержд/);
+  assert.match(getPhoneLessonContract(2).facts.join(' '), /маленький кофе.*10.*большой.*15/);
+  assert.doesNotMatch(getPhoneLessonContract(2).studentDetails.join(' '), /цен|стоимост/);
 });
 
-test('phone scenario female adaptation in Lesson 3 adapts studentObjective, completionCondition and suggestedReplies', () => {
-  const lesson3 = findLesson(3);
-  const femaleScenario = getLessonPhoneScenario(lesson3, 'female');
-  const maleScenario = getLessonPhoneScenario(lesson3, 'male');
-
-  // Female student checks
-  assert.ok(femaleScenario.studentObjective.includes('אֲנִי גָּרָה בְּ...'));
-  assert.ok(!femaleScenario.studentObjective.includes('אֲנִי גָּר בְּ...'));
-  assert.equal(femaleScenario.completionCondition, 'Ученица назвала страну или город.');
-  assert.equal(
-    femaleScenario.suggestedReplies[1].hebrew,
-    'שָׁלוֹם דָּנִי! הַכֹּל טוֹב. אֲנִי גָּרָה בְּתֵל אָבִיב.'
-  );
-  assert.equal(
-    femaleScenario.suggestedReplies[1].transcription,
-    'шалóм Дáни! hакóль тов. анӣ гарá бэ-Тэль Авӣв.'
-  );
-  assert.ok(femaleScenario.goals.some((g) => g.includes('אֲנִי גָּרָה בְּתֵל אָבִיב')));
-
-  // Male student checks
-  assert.ok(maleScenario.studentObjective.includes('אֲנִי גָּר בְּ...'));
-  assert.equal(maleScenario.completionCondition, 'Ученик назвал страну или город.');
-  assert.equal(
-    maleScenario.suggestedReplies[1].hebrew,
-    'שָׁלוֹם דָּנִי! הַכֹּל טוֹב. אֲנִי גָּר בְּתֵל אָבִיב.'
-  );
-  assert.equal(
-    maleScenario.suggestedReplies[1].transcription,
-    'шалóм Дáни! hакóль тов. анӣ гар бэ-Тэль Авӣв.'
-  );
+test('phone Lesson 3 offers gender-neutral origin and residence examples without assigning a biography', () => {
+  const female = getLessonPhoneScenario(findLesson(3), 'female');
+  const male = getLessonPhoneScenario(findLesson(3), 'male');
+  assert.equal(female.callerGender, 'male');
+  assert.equal(female.callerName, male.callerName);
+  assert.match(replyText(female), /אֲנִי מֵרוּסְיָה/);
+  assert.match(replyText(female), /עַכְשָׁו אֲנִי בְּתֵל אָבִיב/);
+  assert.doesNotMatch(replyText(female), /אֲנִי גָּר בְּ/);
+  assert.match(replyText(male), /אֲנִי מֵרוּסְיָה/);
+  assert.match(replyText(male), /עַכְשָׁו אֲנִי בְּתֵל אָבִיב/);
+  assert.doesNotMatch(replyText(male), /אֲנִי גָּרָה/);
+  assert.match(female.completionCondition, /происхожд/);
+  assert.match(female.completionCondition, /мест[ое] жительств/);
+  assert.match(getPhoneLessonContract(3).forbiddenActions.join(' '), /Приписывать.*без.*ответ/);
 });
 
-test('phone scenario female adaptation in Lesson 4 adapts female verbs while preserving caller Sarah role and gender', () => {
-  const lesson4 = findLesson(4);
-  const femaleScenario = getLessonPhoneScenario(lesson4, 'female');
-  const maleScenario = getLessonPhoneScenario(lesson4, 'male');
-
-  // Caller is Sarah - constant for both genders
-  assert.equal(femaleScenario.callerName, 'שָׂרָה');
-  assert.equal(femaleScenario.callerNameRu, 'Сара (студентка из ульпана)');
-  assert.equal(femaleScenario.suggestedReplies[0].hebrew, 'הַלּוֹ שָׂרָה! הַכֹּל טוֹב, תּוֹדָה. מָה שְׁלוֹמֵךְ?');
-  assert.equal(femaleScenario.completionCondition, 'Ученица назвала страну/город или языки.');
-
-  // Female student replies
-  assert.equal(
-    femaleScenario.suggestedReplies[1].hebrew,
-    'אֲנִי מֵרוּסְיָה וְעַכְשָׁו אֲנִי גָּרָה בְּתֵל אָבִיב.'
-  );
-  assert.equal(
-    femaleScenario.suggestedReplies[1].transcription,
-    'анӣ мэ-Рýсья вэ-ахшáв анӣ гарá бэ-Тэль Авӣв.'
-  );
-  assert.equal(
-    femaleScenario.suggestedReplies[2].hebrew,
-    'אֲנִי מְדַבֶּרֶת רוּסִית, אַנְגְּלִית וּקְצָת עִבְרִית.'
-  );
-  assert.equal(
-    femaleScenario.suggestedReplies[2].transcription,
-    'анӣ мэдабэ́рэт русӣт, англӣт вэ-кцат иврӣт.'
-  );
-
-  // Male student replies
-  assert.equal(
-    maleScenario.suggestedReplies[1].hebrew,
-    'אֲנִי מֵרוּסְיָה וְעַכְשָׁו אֲנִי גָּר בְּתֵל אָבִיב.'
-  );
-  assert.equal(
-    maleScenario.suggestedReplies[1].transcription,
-    'анӣ мэ-Рýсья вэ-ахшáв анӣ гар бэ-Тэль Авӣв.'
-  );
-  assert.equal(
-    maleScenario.suggestedReplies[2].hebrew,
-    'אֲנִי מְדַבֵּר רוּסִית, אַנְגְּלִית וּקְצָת עִבְרִית.'
-  );
-  assert.equal(
-    maleScenario.suggestedReplies[2].transcription,
-    'анӣ мэдабэ́р русӣт, англӣт вэ-кцат иврӣт.'
-  );
+test('phone Lesson 4 keeps female Michal and demonstratives for objects for both learner genders', () => {
+  for (const gender of ['male', 'female']) {
+    const scenario = getLessonPhoneScenario(findLesson(4), gender);
+    assert.equal(scenario.callerGender, 'female');
+    assert.match(scenario.callerRole, /Михаль/);
+    assert.match(scenario.initialGreeting.hebrew, /זֹאת מִיכַל/);
+    assert.doesNotMatch(scenario.initialGreeting.hebrew, /זֶה מִיכַל/);
+    assert.match(replyText(scenario), /סֵפֶר|מַחְבֶּרֶת/);
+    assert.match(scenario.goals.join(' '), /זה.*זאת/);
+    assert.match(scenario.goals.join(' '), /אלה/);
+    assert.doesNotMatch(scenario.studentObjective, /стран|язык/);
+    assert.match(scenario.situationSummary, /представьте.*книга.*тетрадь.*карандаши/);
+    assert.match(scenario.situationSummary, /изображение не требуется/);
+  }
 });
 
-test('phone scenario female adaptation in Lesson 5 adapts student replies and preserves male address לְךָ to seller David', () => {
-  const lesson5 = findLesson(5);
-  const femaleScenario = getLessonPhoneScenario(lesson5, 'female');
-  const maleScenario = getLessonPhoneScenario(lesson5, 'male');
-
-  // Both scenarios share seller David
-  assert.equal(femaleScenario.callerName, 'דָּוִד');
-  assert.equal(maleScenario.callerName, 'דָּוִד');
-  assert.equal(femaleScenario.avatarEmoji, '🛒');
-  assert.equal(maleScenario.avatarEmoji, '🛒');
-
-  // Female student checks
-  assert.ok(femaleScenario.studentObjective.includes('«אֲנִי רוֹצָה לֶחֶם וּגְבִינָה»'));
-  assert.ok(!femaleScenario.studentObjective.includes('«אֲנִי רוֹצֶה לֶחֶם וּגְבִינָה»'));
-  assert.equal(
-    femaleScenario.completionCondition,
-    'Покупательница назвала нужные продукты («רוצה לחם/גבינה/עגבניות»), уточнила количество или спросила цену («כמה זה עולה»).'
-  );
-  assert.ok(!/(^|\s)назвал(\s|,|$)/.test(femaleScenario.completionCondition));
-  assert.ok(!/(^|\s)уточнил(\s|,|$)/.test(femaleScenario.completionCondition));
-  assert.ok(!/(^|\s)спросил(\s|,|$)/.test(femaleScenario.completionCondition));
-  assert.equal(
-    femaleScenario.suggestedReplies[0].hebrew,
-    'שָׁלוֹם דָּוִד! אֲנִי רוֹצָה לֶחֶם, גְּבִינָה וְקִילוֹ עַגְבָנִיּוֹת.'
-  );
-  assert.equal(
-    femaleScenario.suggestedReplies[0].transcription,
-    'шалóм Давӣд! анӣ роцá лэ́хем, гвинá вэ-кӣло агванийóт.'
-  );
-  // Crucial: student is speaking to male seller David, so לְךָ must NOT become לָךְ
-  assert.equal(femaleScenario.suggestedReplies[1].hebrew, 'כַּמָּה זֶה עוֹלֶה? אֶפְשָׁר גַּם שַׂקִּית, בְּבַקָּשָׁה? תּוֹדָה רַבָּה לְךָ!');
-  assert.equal(femaleScenario.suggestedReplies[1].transcription, 'кáма зэ олé? эфшáр гам сакӣт, бэвакашá? тодá рабá лэхá!');
-
-  // Useful word adapted for female speaker
-  const femaleWantWord = femaleScenario.usefulWords.find((w) => w.hebrew === 'אֲנִי רוֹצָה');
-  assert.ok(femaleWantWord, 'useful word for female student should be אֲנִי רוֹצָה');
-  assert.equal(femaleWantWord.hebrew, 'אֲנִי רוֹצָה');
-  assert.equal(femaleWantWord.transcription, 'анӣ роцá');
-
-  // Address to male seller remains לְךָ
-  const thanksWord = femaleScenario.usefulWords.find((w) => w.hebrew.includes('תּוֹדָה רַבָּה לְךָ'));
-  assert.ok(thanksWord, 'useful word for thanking male seller should be תּוֹדָה רַבָּה לְךָ');
-  assert.equal(thanksWord.hebrew, 'תּוֹדָה רַבָּה לְךָ');
-  assert.equal(thanksWord.transcription, 'тодá рабá лэхá');
-
-  // Male student checks
-  assert.ok(maleScenario.studentObjective.includes('«אֲנִי רוֹצֶה לֶחֶם וּגְבִינָה»'));
-  assert.ok(maleScenario.completionCondition.includes('Покупатель назвал нужные продукты («רוצה לחם/גבינה/עגבניות»)'));
-  assert.equal(
-    maleScenario.suggestedReplies[0].hebrew,
-    'שָׁלוֹם דָּוִד! אֲנִי רוֹצֶה לֶחֶם, גְּבִינָה וְקִילוֹ עַגְבָנִיּוֹת.'
-  );
-  assert.equal(
-    maleScenario.suggestedReplies[0].transcription,
-    'шалóм Давӣд! анӣ роцé лэ́хем, гвинá вэ-кӣло агванийóт.'
-  );
+test('phone grocery thanks addresses male David even when the learner is female', () => {
+  for (const gender of ['male', 'female']) {
+    const scenario = getLessonPhoneScenario(findLesson(5), gender);
+    assert.match(scenario.callerRole, /Продавец.*Давид/);
+    assert.match(replyText(scenario), /תּוֹדָה רַבָּה לְךָ/);
+    assert.doesNotMatch(replyText(scenario), /תּוֹדָה רַבָּה לָךְ/);
+    assert.match(replyText(scenario), /לֶחֶם|גְּבִינָה|עַגְבָנִיּוֹת/);
+    assert.doesNotMatch(replyText(scenario), /רוֹצ[ֶָ]ה מִסְפָּר/);
+  }
 });
 
-test('non-regression: phone scenario for Lesson 1 and Lesson 6 female adaptation', () => {
-  const lesson1 = findLesson(1);
-  const l1Female = getLessonPhoneScenario(lesson1, 'female');
-  assert.equal(l1Female.studentObjective, 'Поздороваться, сказать что всё отлично, и назвать своё имя.');
-  assert.equal(l1Female.completionCondition, 'Ученица ответила на приветствие и назвала имя.');
-  assert.equal(l1Female.suggestedReplies[0].hebrew, 'הַלּוֹ נוֹעַם, שָׁלוֹם! הַכֹּל טוֹב, תּוֹדָה.');
-  assert.equal(l1Female.suggestedReplies[1].hebrew, 'נָעִים מְאוֹד, אֲנִי שָׂרָה. יוֹם טוֹב!');
-
-  const lesson6 = findLesson(6);
-  const l6Female = getLessonPhoneScenario(lesson6, 'female');
-  assert.equal(l6Female.callerName, 'רוֹנִי');
-  assert.equal(l6Female.suggestedReplies[0].hebrew, 'שָׁלוֹם רוֹנִי! כֵּן, זֹאת הַמִּשְׁפָּחָה שֶׁלִּי.');
-  assert.equal(l6Female.studentObjective, 'Подтвердить, что на фото ваша семья (זֹאת הַמִּשְׁפָּחָה שֶׁלִּי), назвать кого-то из родных или поблагодарить друга.');
+test('phone Lessons 1 and 6 preserve introductory and family goals without invented private facts', () => {
+  const first = getLessonPhoneScenario(findLesson(1), 'female');
+  assert.match(first.studentObjective, /Поздороваться/);
+  assert.match(first.completionCondition, /имя/);
+  assert.match(first.completionCondition, /как дела/);
+  assert.match(replyText(first), /שָׁלוֹם|הַכֹּל טוֹב/);
+  const family = getLessonPhoneScenario(findLesson(6), 'female');
+  assert.match(family.callerRole, /Рони/);
+  assert.match(family.situationSummary, /получения.*фотографии/);
+  assert.match(family.completionCondition, /другая семья/);
+  assert.match(getPhoneLessonContract(6).forbiddenActions.join(' '), /Предполагать наличие родителей/);
 });
 
 test('listening exercises hide tested Hebrew word before answering and reveal it after answering (Lessons 1-5)', () => {
@@ -338,8 +235,21 @@ async function runInteractiveComponentFlow({
 
   const container = dom.window.document.getElementById('root');
   const root = createRoot(container);
+  const confettiPath = require.resolve('canvas-confetti');
+  const exercisesPath = require.resolve('../src/components/LessonExercises.tsx');
+  const savedConfettiEntry = require.cache[confettiPath];
+  const savedExercisesEntry = require.cache[exercisesPath];
 
   try {
+    // Particle rendering is an external boundary: jsdom has no canvas context.
+    // Load only this interactive component with the stub, then restore its cache.
+    const mockConfetti = () => Promise.resolve();
+    mockConfetti.reset = () => {};
+    mockConfetti.default = mockConfetti;
+    require.cache[confettiPath] = { id: confettiPath, filename: confettiPath, loaded: true, exports: mockConfetti };
+    delete require.cache[exercisesPath];
+    const { LessonExercises: InteractiveExercises } = require('../src/components/LessonExercises.tsx');
+
     const fullLesson = findLesson(lessonNumber);
     const listeningIndex = fullLesson.exercises.findIndex((e) => e.id === listeningId);
     assert.ok(listeningIndex >= 0, `Exercise ${listeningId} not found in lesson ${lessonNumber}`);
@@ -354,7 +264,7 @@ async function runInteractiveComponentFlow({
 
     await act(async () => {
       root.render(
-        React.createElement(LessonExercises, {
+        React.createElement(InteractiveExercises, {
           lesson: lessonForTest,
           userProfile: createGuestProfile(),
         })
@@ -499,6 +409,10 @@ async function runInteractiveComponentFlow({
     global.IS_REACT_ACT_ENVIRONMENT = originalActEnv;
     global.addEventListener = originalAddEventListener;
     global.removeEventListener = originalRemoveEventListener;
+    if (savedConfettiEntry) require.cache[confettiPath] = savedConfettiEntry;
+    else delete require.cache[confettiPath];
+    if (savedExercisesEntry) require.cache[exercisesPath] = savedExercisesEntry;
+    else delete require.cache[exercisesPath];
   }
 }
 

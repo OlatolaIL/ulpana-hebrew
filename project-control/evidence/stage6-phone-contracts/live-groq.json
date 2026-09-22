@@ -1,0 +1,134 @@
+{
+  "kind": "live-phone-evaluation",
+  "date": "2026-09-22T10:41:11.582Z",
+  "baseCommit": "f13d586756a45be3050cd10cf33ee06b3dda4cf5",
+  "provider": "groq",
+  "model": "qwen/qwen3.8-27b",
+  "sourceHashes": {
+    "src/lib/phoneConversation.ts": "39e77b41935222584e669f6b24dda42116234a30bc6f8f76f8dbb137178e310c",
+    "src/lib/slotMemory.ts": "d0ed054cff9aeb228d611cf6a1397784d15f244f74b34175b43127ee05988fb5",
+    "src/data/phone/lessons01_50.ts": "0a15cc249524d1290d7b25c9039f54d3e4bb264bcc321c0faf9d6487c36cb0ea",
+    "src/data/phone/lessons51_100.ts": "9ef493d17341925fad06f7a8d46c08f2332f7f4c97bfae2927925e19d96163cc"
+  },
+  "cases": [
+    {
+      "id": "rental-counter-question-and-refusal",
+      "lesson": 7,
+      "gender": "male",
+      "turns": [
+        {
+          "student": "שלום, יש בדירה מקרר ומיטה?",
+          "accepted": false,
+          "status": 429,
+          "latencyMs": 338,
+          "error": "provider_http_429"
+        }
+      ],
+      "initialGreeting": {
+        "hebrew": "שָׁלוֹם! יֵשׁ לִי כַּמָּה דִּירוֹת לְהַשְׂכָּרָה בַּמֶּרְכָּז. כַּמָּה חֲדָרִים אַתָּה מְחַפֵּשׂ?",
+        "transcription": "шалóм! йеш ли кáма дирóт лэ-hаскарá ба-меркáз. кáма хадарӣм атá мэхапэ́с?",
+        "translation": "Здравствуйте! У меня есть несколько квартир в аренду в центре. Сколько комнат вы ищете?"
+      }
+    },
+    {
+      "id": "rental-female-role-correction",
+      "lesson": 7,
+      "gender": "female",
+      "turns": [
+        {
+          "student": "שלום, אני משכירה דירה.",
+          "accepted": false,
+          "status": 429,
+          "latencyMs": 175,
+          "error": "provider_http_429"
+        }
+      ],
+      "initialGreeting": {
+        "hebrew": "שָׁלוֹם! יֵשׁ לִי כַּמָּה דִּירוֹת לְהַשְׂכָּרָה בַּמֶּרְכָּז. כַּמָּה חֲדָרִים אַתְּ מְחַפֶּשֶׂת?",
+        "transcription": "шалóм! йеш ли кáма дирóт лэ-hаскарá ба-меркáз. кáма хадарӣм ат мэхапэ́сэт?",
+        "translation": "Здравствуйте! У меня есть несколько квартир в аренду в центре. Сколько комнат вы ищете?"
+      }
+    },
+    {
+      "id": "coffee-all-details-and-correction",
+      "lesson": 2,
+      "gender": "female",
+      "turns": [
+        {
+          "student": "שלום, אני רוצה תה בלי סוכר, בבקשה.",
+          "accepted": false,
+          "status": 429,
+          "latencyMs": 122,
+          "error": "provider_http_429"
+        }
+      ],
+      "initialGreeting": {
+        "hebrew": "שָׁלוֹם, קָפֶה אֲרוֹמָה! מָה לְהַזְמִין?",
+        "transcription": "шалóм, кафэ́ арóма! ма лэhазмӣн?",
+        "translation": "Здравствуйте, кафе Арома! Что заказать?"
+      }
+    },
+    {
+      "id": "apartment-owner-27",
+      "lesson": 27,
+      "gender": "female",
+      "turns": [
+        {
+          "student": "שלום, יש מזגן בדירה?",
+          "accepted": false,
+          "status": 429,
+          "latencyMs": 135,
+          "error": "provider_http_429"
+        }
+      ],
+      "initialGreeting": {
+        "hebrew": "שָׁלוֹם, זֶה מֹשֶׁה, בַּעַל הַדִּירָה. אֵיךְ אֶפְשָׁר לַעֲזֹר?",
+        "transcription": "шалóм, зэ Мóше, бáаль hа-дирá. эйх эфшáр лаазóр?",
+        "translation": "Здравствуйте, это Моше, хозяин квартиры. Чем могу помочь?"
+      }
+    },
+    {
+      "id": "doctor-keeps-patient-role",
+      "lesson": 14,
+      "gender": "male",
+      "turns": [
+        {
+          "student": "שלום, כואב לי הראש.",
+          "accepted": false,
+          "status": 429,
+          "latencyMs": 125,
+          "error": "provider_http_429"
+        }
+      ],
+      "initialGreeting": {
+        "hebrew": "שָׁלוֹם, זֶה דּוֹקְטוֹר לֵוִי. מָה כּוֹאֵב?",
+        "transcription": "шалóм, зэ дóктор Лéви. ма коэ́в?",
+        "translation": "Здравствуйте, это доктор Леви. Что болит?"
+      }
+    },
+    {
+      "id": "booking-tamar",
+      "lesson": 57,
+      "gender": "male",
+      "turns": [
+        {
+          "student": "שלום, אפשר להזמין שולחן לארבעה אנשים?",
+          "accepted": false,
+          "status": 429,
+          "latencyMs": 128,
+          "error": "provider_http_429"
+        }
+      ],
+      "initialGreeting": {
+        "hebrew": "שָׁלוֹם, מִסְעֶדֶת שֶׁלָּנוּ. לְמָתַי הַהַזְמָנָה?",
+        "transcription": "шалóм, мисъэ́дет шелáну. лэ-матáй hа-hазманá?",
+        "translation": "Здравствуйте, ресторан «Шелану». На какое время бронь?"
+      }
+    }
+  ],
+  "requests": 6,
+  "limitations": [
+    "Representative cases only; deterministic acceptance does not certify semantic or linguistic correctness.",
+    "Synthetic students; no real learner data. No debrief/audio/ASR is tested."
+  ]
+}

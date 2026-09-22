@@ -353,7 +353,7 @@ test('POST /api/ai/phone preserves normative "у-" transcription and provides po
       const prompt =
         provider === 'groq'
           ? callData.body.messages.find((m) => m.role === 'system').content
-          : callData.body.contents[0].parts[0].text;
+          : callData.body.systemInstruction.parts[0].text;
 
       // Prompt must NOT contain forced-ve instructions
       const forcedVeLines = prompt.split('\n').filter((l) => FORCED_VE_REGEX.test(l));

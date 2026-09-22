@@ -127,7 +127,7 @@ test('Noun drill audio confirmation in ComplexDrillMode does not duplicate targe
   const fs = require('fs');
   const path = require('path');
   const modePath = path.join(__dirname, '..', 'src', 'components', 'FlashcardTrainer', 'modes', 'ComplexDrillMode.tsx');
-  const content = fs.readFileSync(modePath, 'utf8');
+  const content = fs.readFileSync(modePath, 'utf8').replace(/\r\n/g, '\n');
 
   // Must not concatenate singular and plural directly in confirmation speech
   assert.ok(

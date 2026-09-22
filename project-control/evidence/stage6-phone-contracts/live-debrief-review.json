@@ -1,0 +1,304 @@
+{
+  "kind": "live-debrief-evaluation",
+  "date": "2026-09-22T10:56:14.767Z",
+  "sourceHashes": {
+    "src/app/api/ai/phone/debrief/route.ts": "e44d3f1650a51ab4dfb0fa36529a689dbdc0051555c8ebeadf4d7bfddb846648",
+    "src/lib/phoneGoalEvidence.ts": "ccee5ac9514fe4dd5fc553cac5b58d2bafa84a414c739e0f5d1916cdf28f6bb2",
+    "src/data/phone/lessons01_50.ts": "64aa0cfa1bc6e129de2f352b3f68feb92fd1e6576c9f2abbef5f0e957ed45c61"
+  },
+  "cases": [
+    {
+      "id": "introduction-complete",
+      "lesson": 1,
+      "expectedSuccess": true,
+      "transcript": [
+        {
+          "role": "assistant",
+          "hebrew": "שלום, זה נועם. מה נשמע?"
+        },
+        {
+          "role": "user",
+          "hebrew": "שלום, הכל בסדר. קוראים לי דנה."
+        },
+        {
+          "role": "assistant",
+          "hebrew": "נעים מאוד, דנה!"
+        },
+        {
+          "role": "user",
+          "hebrew": "תודה, להתראות."
+        },
+        {
+          "role": "assistant",
+          "hebrew": "להתראות!"
+        }
+      ],
+      "status": 200,
+      "latencyMs": 3084,
+      "report": {
+        "overallScore": 100,
+        "grammarScore": 100,
+        "isSuccess": true,
+        "summaryRu": "Отличная работа! Вы блестяще справились со всеми задачами звонка: поздоровались, ответили как дела и назвали своё имя.",
+        "turnReviews": [
+          {
+            "userHebrew": "שלום, הכל בסדר. קוראים לי דנה.",
+            "assessment": "perfect",
+            "commentRu": "Прекрасный ответ! Вы идеально выполнили все коммуникативные задачи урока в одном предложении.",
+            "grammarErrors": [],
+            "betterAlternative": "שָׁלוֹם, הַכֹּל בְּסֵדֶר. אֲנִי דָּנָה. (Привет, всё в порядке. Я Дана.)"
+          },
+          {
+            "userHebrew": "תודה, להתראות.",
+            "assessment": "perfect",
+            "commentRu": "Вежливое и естественное завершение короткого телефонного разговора.",
+            "grammarErrors": [],
+            "betterAlternative": "תוֹדָה רַבָּה, לְהִתְרָאוֹת! (Большое спасибо, до свидания!)"
+          }
+        ],
+        "spokenTip": "В израильской культуре общения телефонные разговоры с соседями обычно очень короткие, дружелюбные и неформальные. Фраза «הכל בסדר» отлично подходит для быстрого ответа на вопрос о делах.",
+        "recommendedWords": [
+          {
+            "hebrew": "שָׁלוֹם",
+            "transcription": "шалом",
+            "translation": "здравствуйте / мир"
+          },
+          {
+            "hebrew": "מַה נִּשְׁמָע?",
+            "transcription": "мах нишма?",
+            "translation": "как дела? / что слышно?"
+          },
+          {
+            "hebrew": "נָעִים מְאֹד",
+            "transcription": "наим меод",
+            "translation": "очень приятно"
+          }
+        ],
+        "goalChecks": [
+          {
+            "goalIndex": 0,
+            "met": true,
+            "evidence": [
+              {
+                "role": "user",
+                "quote": "שלום, הכל בסדר. קוראים לי דנה."
+              }
+            ]
+          },
+          {
+            "goalIndex": 1,
+            "met": true,
+            "evidence": [
+              {
+                "role": "user",
+                "quote": "שלום, הכל בסדר. קוראים לי דנה."
+              }
+            ]
+          },
+          {
+            "goalIndex": 2,
+            "met": true,
+            "evidence": [
+              {
+                "role": "user",
+                "quote": "שלום, הכל בסדר. קוראים לי דנה."
+              }
+            ]
+          }
+        ]
+      },
+      "expectationMet": true
+    },
+    {
+      "id": "rental-explicit-refusal",
+      "lesson": 7,
+      "expectedSuccess": true,
+      "transcript": [
+        {
+          "role": "assistant",
+          "hebrew": "שלום, כמה חדרים את מחפשת?"
+        },
+        {
+          "role": "user",
+          "hebrew": "אני מחפשת שני חדרים. יש מקרר?"
+        },
+        {
+          "role": "assistant",
+          "hebrew": "כן, יש מקרר ומיטה. אפשר היום בשבע בערב, זה מתאים לך?"
+        },
+        {
+          "role": "user",
+          "hebrew": "לא תודה, אני לא רוצה לראות את הדירה. להתראות."
+        },
+        {
+          "role": "assistant",
+          "hebrew": "להתראות!"
+        }
+      ],
+      "status": 200,
+      "latencyMs": 2647,
+      "report": {
+        "overallScore": 100,
+        "grammarScore": 100,
+        "isSuccess": true,
+        "summaryRu": "Отличная работа! Вы прекрасно справились с поставленной задачей: чётко назвали нужное количество комнат, задали вопрос про мебель и вежливо, но уверенно отказались от просмотра.",
+        "turnReviews": [
+          {
+            "userHebrew": "אני מחפשת שני חדרים. יש מקרר?",
+            "assessment": "perfect",
+            "commentRu": "Прекрасно! Вы сразу указали количество комнат и задали вопрос о наличии холодильника, используя изученные конструкции.",
+            "grammarErrors": [],
+            "betterAlternative": "אֲנִי מְחַפֶּשֶׂת דִּירַת שְׁנֵי חֲדָרִים, יֵשׁ מְקָרֵר? (Я ищу двухкомнатную квартиру, есть холодильник?)"
+          },
+          {
+            "userHebrew": "לא תודה, אני לא רוצה לראות את הדירה. להתראות.",
+            "assessment": "perfect",
+            "commentRu": "Очень вежливый и чёткий отказ от просмотра. Задача выполнена полностью.",
+            "grammarErrors": [],
+            "betterAlternative": "לֹא תּוֹדָה, וִתַּרְתִּי, תּוֹדָה עַל הַזְּמַן! (Нет спасибо, я отказалась, спасибо за время!)"
+          }
+        ],
+        "spokenTip": "В израильских телефонных разговорах по аренде принято сразу переходить к делу и чётко обозначать свои условия или отказ без лишних долгих извинений.",
+        "recommendedWords": [
+          {
+            "hebrew": "מְקָרֵר",
+            "transcription": "мэкарэр",
+            "translation": "холодильник"
+          },
+          {
+            "hebrew": "לִרְאוֹת",
+            "transcription": "лирвот",
+            "translation": "смотреть"
+          }
+        ],
+        "goalChecks": [
+          {
+            "goalIndex": 0,
+            "met": true,
+            "evidence": [
+              {
+                "role": "user",
+                "quote": "אני מחפשת שני חדרים. יש מקרר?"
+              }
+            ]
+          },
+          {
+            "goalIndex": 1,
+            "met": true,
+            "evidence": [
+              {
+                "role": "user",
+                "quote": "אני מחפשת שני חדרים. יש מקרר?"
+              }
+            ]
+          },
+          {
+            "goalIndex": 2,
+            "met": true,
+            "evidence": [
+              {
+                "role": "user",
+                "quote": "לא תודה, אני לא רוצה לראות את הדירה. להתראות."
+              }
+            ]
+          }
+        ]
+      },
+      "expectationMet": true
+    },
+    {
+      "id": "rental-incomplete-goodbye",
+      "lesson": 7,
+      "expectedSuccess": false,
+      "transcript": [
+        {
+          "role": "assistant",
+          "hebrew": "שלום, כמה חדרים את מחפשת?"
+        },
+        {
+          "role": "user",
+          "hebrew": "תודה, להתראות."
+        },
+        {
+          "role": "assistant",
+          "hebrew": "להתראות!"
+        }
+      ],
+      "status": 200,
+      "latencyMs": 2465,
+      "report": {
+        "overallScore": 30,
+        "grammarScore": 100,
+        "isSuccess": false,
+        "summaryRu": "К сожалению, разговор завершился слишком быстро, и мы не успели обсудить детали аренды квартиры с Эли. В следующий раз смело называй нужное количество комнат сразу после приветствия!",
+        "turnReviews": [
+          {
+            "userHebrew": "תודה, להתראות.",
+            "assessment": "needs_improvement",
+            "commentRu": "Ты вежливо попрощалась, но разговор только начался! Важно сначала ответить на вопрос арендодателя о количестве комнат.",
+            "grammarErrors": [],
+            "betterAlternative": "אֲנִי מְחַפֶּשֶׂת דִּירָה עִם שְׁנֵי חֲדָרִים. (Я ищу квартиру с двумя комнатами.)"
+          }
+        ],
+        "spokenTip": "В Израиле телефонные разговоры по аренде квартир обычно очень короткие и конкретные. Хозяин сразу спрашивает о комнатах, поэтому лучше называть запрос в первой же реплике.",
+        "recommendedWords": [
+          {
+            "hebrew": "כַּמָּה חֲדָרִים?",
+            "transcription": "кама хадарим?",
+            "translation": "сколько комнат?"
+          },
+          {
+            "hebrew": "מְקָרֵר",
+            "transcription": "мекарер",
+            "translation": "холодильник"
+          },
+          {
+            "hebrew": "בִּקּוּר",
+            "transcription": "бикур",
+            "translation": "просмотр (визит)"
+          }
+        ],
+        "goalChecks": [
+          {
+            "goalIndex": 0,
+            "met": false,
+            "evidence": []
+          },
+          {
+            "goalIndex": 1,
+            "met": false,
+            "evidence": []
+          },
+          {
+            "goalIndex": 2,
+            "met": false,
+            "evidence": []
+          }
+        ]
+      },
+      "expectationMet": true
+    }
+  ],
+  "requests": [
+    {
+      "host": "generativelanguage.googleapis.com",
+      "status": 200,
+      "latencyMs": 3064
+    },
+    {
+      "host": "generativelanguage.googleapis.com",
+      "status": 200,
+      "latencyMs": 2643
+    },
+    {
+      "host": "generativelanguage.googleapis.com",
+      "status": 200,
+      "latencyMs": 2459
+    }
+  ],
+  "validationWarnings": [],
+  "limitations": [
+    "Auth/rate/DB are stubbed; provider requests and debrief validation are real.",
+    "Synthetic transcripts, no audio/ASR. A three-case smoke check is not full grading calibration."
+  ]
+}

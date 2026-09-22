@@ -1,0 +1,76 @@
+
+> ulpana-hebrew@0.1.0 build
+> next build --webpack
+
+▲ Next.js 16.3.5 (webpack)
+✓ Running next.config.ts took 29ms
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 17.3s
+  Running TypeScript ...
+  Finished TypeScript in 7.7s ...
+  Collecting page data using 7 workers ...
+  Generating static pages using 7 workers (0/46) ...
+  Generating static pages using 7 workers (11/46)
+  Generating static pages using 7 workers (22/46)
+  Generating static pages using 7 workers (34/46)
+✓ Generating static pages using 7 workers (46/46) in 3.2s
+  Finalizing page optimization ...
+  Collecting build traces ...
+
+Route (app)
+┌ ○ /
+├ ○ /_not-found
+├ ○ /admin
+├ ƒ /api/admin/access-rules
+├ ƒ /api/admin/audio-sentences
+├ ƒ /api/admin/bundles
+├ ƒ /api/admin/calls
+├ ƒ /api/admin/essays
+├ ƒ /api/admin/marketing/communities
+├ ƒ /api/admin/marketing/health
+├ ƒ /api/admin/marketing/publications
+├ ƒ /api/admin/marketing/publish
+├ ƒ /api/admin/marketing/radar
+├ ƒ /api/admin/marketing/radar/scan
+├ ƒ /api/admin/promos
+├ ƒ /api/admin/stats
+├ ƒ /api/admin/users
+├ ƒ /api/ai/chat
+├ ƒ /api/ai/conjugate
+├ ƒ /api/ai/dialogue/evaluate
+├ ƒ /api/ai/essay/evaluate
+├ ƒ /api/ai/lookup
+├ ƒ /api/ai/phone
+├ ƒ /api/ai/phone/debrief
+├ ƒ /api/ai/transcribe
+├ ƒ /api/audio/file
+├ ƒ /api/audio/recording
+├ ƒ /api/audio/upload
+├ ƒ /api/auth/google
+├ ƒ /api/auth/logout
+├ ƒ /api/auth/me
+├ ƒ /api/auth/telegram
+├ ƒ /api/auth/telegram/check-channel
+├ ƒ /api/auth/telegram/token
+├ ƒ /api/auth/telegram/webhook
+├ ƒ /api/auth/token-login
+├ ƒ /api/calls/log
+├ ƒ /api/essays/log
+├ ƒ /api/feedback
+├ ƒ /api/healthz
+├ ƒ /api/subscription/promo
+├ ƒ /api/user/link/google
+├ ƒ /api/user/link/telegram
+├ ƒ /api/user/sync
+├ ƒ /decks/[id]
+├ ○ /dialogues
+├ ƒ /dialogues/[id]
+├ ƒ /lesson/[id]
+├ ƒ /lessons/[id]
+├ ƒ /lessons/[id]/call
+└ ƒ /lessons/[id]/stage/[stageId]
+
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand

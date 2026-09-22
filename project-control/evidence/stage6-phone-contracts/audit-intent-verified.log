@@ -1,0 +1,66 @@
+
+> ulpana-hebrew@0.1.0 audit:intent
+> node scripts/audit_intent_compliance.cjs
+
+====================================================
+🔍 АУДИТ СОБЛЮДЕНИЯ МАТРИЦЫ РЕШЕНИЙ (INTENT AUDIT)
+====================================================
+
+▶ [Вопрос 2] Сломали что-то или нет?
+🟢 Ничего не сломано. Все критические инварианты зелёные.
+
+▶ [Вопрос 1] Мы работали по матрице или нет?
+Активные файлы в работе:
+  M DECISION_MATRIX.md
+   M DEVELOPMENT.md
+   M docs/mechanics/stage-06-phone-call.md
+   M project-control/overview.md
+   M project-control/state.json
+   M public/audio/sentences/manifest.json
+   M scripts/simulate-phone-conversations.cjs
+   M src/app/api/ai/phone/debrief/route.ts
+   M src/app/api/ai/phone/route.ts
+   M src/components/PhoneCallSimulator/usePhoneCall.ts
+   M src/data/audioSettings.json
+   M src/data/phoneScenarios.ts
+   M src/lib/slotMemory.ts
+   M src/types/index.ts
+   M tests/ai-evaluation.test.cjs
+   M tests/complex-drills-invariants.test.cjs
+   M tests/lesson-05-practice-alignment.test.cjs
+   M tests/phone-conversation-simulator.test.cjs
+   M tests/pilot-mechanics-01-05.test.cjs
+   M tests/runtime-normative-vav.test.cjs
+  ?? project-control/evidence/stage6-phone-contracts/
+  ?? project-control/tasks/stage6-phone-contracts.md
+  ?? scripts/evaluate-phone-debrief-live.cjs
+  ?? scripts/evaluate-phone-live.cjs
+  ?? src/data/phone/
+  ?? src/lib/phoneConversation.ts
+  ?? src/lib/phoneGoalEvidence.ts
+  ?? tests/phone-contract-runtime.test.cjs
+  ?? tests/phone-debrief-contracts.test.cjs
+  ?? tests/phone-goal-evidence.test.cjs
+  ?? tests/phone-provider-contracts.test.cjs
+  ?? tests/phone-slot-memory.test.cjs
+
+🟢 Критические структурные инварианты матрицы (R-01, R-03, R-16: отсутствие запрещенных файлов и утечек секретов) соблюдены.
+
+▶ [Вопрос 3] Актуальность матрицы и предложения по изменению:
+🟢 Матрица DECISION_MATRIX.md (v1.7.1) активна и содержит актуальный Superseded Log.
+🟢 Все существующие паспорта механик целостны и синхронизированы с кодовой базой.
+
+▶ [Zero-Drift ComplexDrills: Покрытие слухового комплекса]
+========================================================================
+📊 АУДИТ ПОКРЫТИЯ СЛУХОВОГО ТРЕНАЖЁРА «КОМПЛЕКС» (ComplexDrills)
+========================================================================
+
+🟢 Уроки курса 1–100               : 1205 / 1205 (100.0%) | Не хватает уникальных: 0
+🟢 Тематические колоды             :  455 / 455  (100.0%) | Не хватает уникальных: 0
+🟢 Профессиональные колоды         :  875 / 875  (100.0%) | Не хватает уникальных: 0
+------------------------------------------------------------------------
+🟢 ВСЯ СИСТЕМА (Уроки + Колоды)    : 2535 / 2535 (100.0%) | Не хватает уникальных: 0
+
+✅ Аудит покрытия успешно завершён.
+
+====================================================

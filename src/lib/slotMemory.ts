@@ -1,4 +1,5 @@
 import { stripNikkud } from './transcription';
+import type { PhoneMemoryScope } from '@/data/phone/contracts';
 
 export interface ClosedSlots {
   name?: string;
@@ -14,114 +15,80 @@ export interface SlotMemoryResult {
   promptConstraint: string;
 }
 
-/**
- * Извлекает уже названные сущности (слоты) из истории сообщений пользователя.
- * Реализует инвариант P-03 (Slot Memory).
- */
+/** Conservative facts only; uncertainty must leave the slot open. */
+const NON_NAMES = new Set([
+  'צריך', 'צריכה', 'רוצה', 'גר', 'גרה', 'מחפש', 'מחפשת', 'עובד', 'עובדת',
+  'לומד', 'לומדת', 'מדבר', 'מדברת', 'אוהב', 'אוהבת', 'מגיע', 'מגיעה',
+  'בא', 'באה', 'יכול', 'יכולה', 'חושב', 'חושבת', 'מבקש', 'מבקשת',
+  'מתקשר', 'מתקשרת', 'משכיר', 'משכירה', 'שוכר', 'שוכרת', 'מזמין', 'מזמינה',
+  'לא', 'כן', 'פה', 'כאן', 'שם', 'בסדר', 'טוב', 'מוכן', 'מוכנה',
+]);
+const BEVERAGE = /(?:^|\s)(?:ה?קפה|ה?תה|אספרסו|קפוצינו)(?=\s|$)/;
+const OTHER_OBJECT = /(?:^|\s)[בהל]?(?:שולחן|דירה|חדר|מיטה|ארון|מקרר|חבילה|בית)(?=\s|$)/;
+const APARTMENT = /(?:^|\s)(?:בדירה|דירה)\s+(?:מספר\s+)?([0-9]{1,4}|אחת|אחד|שתיים|שתים|שניים|שנים|שלוש|ארבע|חמש|שש|שבע|שמונה|תשע|עשר)(?=\s|$)/g;
+const NEGATED = /(?:^|\s)(?:לא|איני|אינני)(?=\s|$)/;
+const QUESTION_START = /^(?:ו)?(?:האם|מה|מי|איפה|מתי|למה|איך|כמה|איזה|איזו|יש|אפשר)(?:\s|$)/;
+
 export function extractClosedSlots(
   messages: Array<{ role: string; content?: string; hebrew?: string }>,
-  knownStudentName?: string
+  knownStudentName?: string,
+  scope?: PhoneMemoryScope
 ): ClosedSlots {
   const slots: ClosedSlots = {};
-
-  // Собираем все реплики пользователя
-  const userTexts = messages
-    .filter((m) => m.role === 'user')
-    .map((m) => (m.content || m.hebrew || '').trim())
-    .filter(Boolean);
-
-  if (userTexts.length === 0) {
-    return slots;
-  }
-
-  const combinedUserText = userTexts.join(' ');
-  const stripped = stripNikkud(combinedUserText).toLowerCase();
-
-  // 1. Имя ученика (Name slot)
-  // Приоритет 1: эксплицитные паттерны "קוראים לי X" или "שמי X"
-  const explicitNameMatch = stripped.match(/(?:קוראים\s+לי|שמי)\s+([א-ת]{2,15})/);
-  if (explicitNameMatch && !['גר', 'גרה', 'רוצה', 'מחפש', 'מחפשת', 'בסדר', 'טוב'].includes(explicitNameMatch[1])) {
-    slots.name = explicitNameMatch[1];
-  } else {
-    // Приоритет 2: "אני <Имя>" с фильтрацией глаголов/местоимений
-    const aniMatches = [...stripped.matchAll(/אני\s+([א-ת]{2,15})/g)];
-    const stopWords = ['גר', 'גרה', 'רוצה', 'מחפש', 'מחפשת', 'בסדר', 'טוב', 'פה', 'שם', 'לא', 'כן', 'כאן', 'מדבר', 'מדברת', 'אוהב', 'אוהבת', 'לומד', 'לומדת'];
-    for (const match of aniMatches) {
-      const candidate = match[1];
-      if (!stopWords.includes(candidate)) {
-        slots.name = candidate;
-        break;
+  let inferredCoffee = false;
+  for (const message of messages) {
+    if (message.role !== 'user') continue;
+    const text = stripNikkud(message.content || message.hebrew || '').toLowerCase();
+    // Later explicit selections replace earlier selections, even within one turn.
+    const clauses = text.replace(/(?:^|\s)(?:סליחה|בעצם|אלא)(?=\s|$)/g, '. ')
+      .match(/[^.!?;,]+[.!?;,]?/g) || [];
+    for (const rawClause of clauses) {
+      const clause = rawClause.replace(/[.!?;,]+$/, '').trim();
+      if (!clause || rawClause.trim().endsWith('?') || QUESTION_START.test(clause)) continue;
+      if (NEGATED.test(clause)) {
+        // A rejected choice is unknown, not the opposite choice and not a stale fact.
+        if (scope === 'coffee' || (scope === undefined && inferredCoffee)) {
+          if (/סוכר/.test(clause)) delete slots.coffee_sugar;
+          if (/גדול|קטן|קטנה|בינוני/.test(clause)) delete slots.coffee_size;
+          if (/חלב/.test(clause)) delete slots.coffee_milk;
+        }
+        continue;
+      }
+      const explicit = clause.match(/(?:^|\s)(?:קוראים לי|שמי)\s+([א-ת]{2,15})(?=\s|$)/);
+      // Bare "אני + word" is not a name: require the introduction's social cue.
+      const introduction = clause.match(/^(?:שלום\s+)?אני\s+([א-ת]{2,15})\s+נעים מאוד(?:\s|$)/);
+      const name = explicit?.[1] || introduction?.[1];
+      if (name && !NON_NAMES.has(name)) slots.name = name;
+      if (!slots.name && knownStudentName) {
+        const profileName = stripNikkud(knownStudentName).toLowerCase();
+        if (profileName.length >= 2 && (' ' + clause + ' ').includes(' ' + profileName + ' ') &&
+          /(?:^|\s)(?:אני|קוראים לי|שמי)\s/.test(clause)) slots.name = knownStudentName;
+      }
+      if ((scope === undefined || scope === 'social') &&
+        /(?:^|\s)(?:הכל טוב|הכול טוב|הכל בסדר|הכול בסדר|בסדר גמור)(?=\s|$)/.test(clause)) {
+        slots.wellbeing = 'הַכֹּל טוֹב / בְּסֵדֶר';
+      }
+      // Rental room counts are not the student's apartment number.
+      if (scope === undefined || scope === 'social' || scope === 'delivery') {
+        for (const match of clause.matchAll(APARTMENT)) {
+          const following = clause.slice((match.index || 0) + match[0].length);
+          if (!/^\s+חדרים(?:\s|$)/.test(following)) slots.apartment = match[1];
+        }
+      }
+      if (scope === undefined && BEVERAGE.test(clause)) inferredCoffee = true;
+      if (!(scope === 'coffee' || (scope === undefined && inferredCoffee)) || OTHER_OBJECT.test(clause) || /(?:^|\s)או(?:\s|$)/.test(clause)) continue;
+      for (const match of clause.matchAll(/(?:^|\s)(בלי סוכר|ללא סוכר|עם סוכר|אחד סוכר|שני סוכר|גדול|גדולה|קטן|קטנה|בינוני|בינונית|חלב סויה|חלב שיבולת שועל|שיבולת שועל|בלי חלב|ללא חלב|עם חלב)(?=\s|$)/g)) {
+        const value = match[1];
+        if (value.includes('סוכר')) slots.coffee_sugar = /^(בלי|ללא)/.test(value) ? 'בְּלִי סוּכָּר' : 'עִם סוּכָּר';
+        else if (/^גדול/.test(value)) slots.coffee_size = 'גָּדוֹל';
+        else if (/^קט/.test(value)) slots.coffee_size = 'קָטָן';
+        else if (/^בינונ/.test(value)) slots.coffee_size = 'בֵּינוֹנִי';
+        else if (value.includes('סויה')) slots.coffee_milk = 'חֲלַב סוֹיָה';
+        else if (value.includes('שיבולת')) slots.coffee_milk = 'שִׁבּוֹלֶת שׁוּעָל';
+        else slots.coffee_milk = /^(בלי|ללא)/.test(value) ? 'בְּלִי חָלָב' : 'עִם חָלָב';
       }
     }
   }
-
-  if (!slots.name && knownStudentName) {
-    // Если в тексте встречается известное имя профиля
-    const strippedName = stripNikkud(knownStudentName).toLowerCase();
-    if (strippedName.length >= 2 && stripped.includes(strippedName)) {
-      slots.name = knownStudentName;
-    }
-  }
-
-  // 2. Самочувствие / Приветствие (Wellbeing slot)
-  if (
-    stripped.includes('הכל טוב') ||
-    stripped.includes('הכל בסדר') ||
-    stripped.includes('בסדר גמור') ||
-    stripped.includes('מצוין') ||
-    stripped.includes('מעולה') ||
-    stripped.includes('יופי') ||
-    stripped.includes('סבבה') ||
-    stripped.includes('עכל בסדר') ||
-    stripped.includes('הכול טוב')
-  ) {
-    slots.wellbeing = 'הַכֹּל טוֹב / בְּסֵדֶר';
-  }
-
-  // 3. Квартира / адрес / проживание (Apartment slot)
-  // Паттерны: "בדירה 2", "דירה שתיים", "אני גר בדירה...", "גר בדירה שתיים"
-  const aptMatch = stripped.match(/(?:בדירה|דירה)\s+([א-ת0-9]+)/);
-  if (aptMatch) {
-    slots.apartment = aptMatch[1];
-  } else if (
-    stripped.includes('גר בדירה') ||
-    stripped.includes('גרה בדירה') ||
-    stripped.includes('שתיים') ||
-    stripped.includes('חמש') ||
-    stripped.includes('ארבע') ||
-    stripped.includes('שלוש')
-  ) {
-    const numMatch = stripped.match(/(?:גר|גרה|אני)?\s*(?:בדירה|בבית|ב)?\s*(אחת|שתיים|שלוש|ארבע|חמש|שש|שבע|שמונה|תשע|עשר|[1-9])/);
-    if (numMatch && numMatch[1]) {
-      slots.apartment = numMatch[1];
-    }
-  }
-
-  // 4. Кофе / Сахар (Coffee / Sugar slots)
-  if (stripped.includes('בלי סוכר') || stripped.includes('ללא סוכר')) {
-    slots.coffee_sugar = 'בְּלִי סוּכָּר';
-  } else if (stripped.includes('עם סוכר') || stripped.includes('אחד סוכר') || stripped.includes('שני סוכר')) {
-    slots.coffee_sugar = 'עִם סוּכָּר';
-  }
-
-  // 5. Размер порции (Coffee / Food Size slot)
-  if (stripped.includes('גדול') || stripped.includes('גדולה')) {
-    slots.coffee_size = 'גָּדוֹל';
-  } else if (stripped.includes('קטן') || stripped.includes('קטנה')) {
-    slots.coffee_size = 'קָטָן';
-  } else if (stripped.includes('בינוני')) {
-    slots.coffee_size = 'בֵּינוֹנִי';
-  }
-
-  // 6. Молоко (Milk slot)
-  if (stripped.includes('חלב סויה')) {
-    slots.coffee_milk = 'חֲלַב סוֹיָה';
-  } else if (stripped.includes('שיבולת שועל')) {
-    slots.coffee_milk = 'שִׁבּוֹלֶת שׁוּעָל';
-  } else if (stripped.includes('בלי חלב')) {
-    slots.coffee_milk = 'בְּלִי חָלָב';
-  }
-
   return slots;
 }
 
@@ -173,73 +140,48 @@ ${knownDetails.map((d) => `- ${d}`).join('\n')}
 
 СТРОГИЕ ЗАПРЕТЫ ДЛЯ ЭТОГО РАУНДА:
 ${prohibitions.map((p) => `- ${p}`).join('\n')}
-Подтверди услышанную деталь и задай следующий вопрос ТОЛЬКО о незакрытых пунктах ситуации!
+Учитывай эти детали. Если вопрос уместен, спрашивай только о разрешённых незакрытых деталях; при завершении не задавай новых вопросов.
 `;
 }
 
-/**
- * Детерминированный предохранитель (Guardrail) на выходе:
- * если нейросеть всё же сгенерировала запрещенный вопрос по закрытому слоту,
- * аккуратно вырезает его из иврита, транскрипции и перевода.
+/** Detect known repeated questions without rewriting assertions or unknown phrasing. */
+export function hasRepeatedSlotQuestion(hebrew: string, slots: ClosedSlots): boolean {
+  const parts = stripNikkud(hebrew).match(/[^.!?]+[.!?]?/g) || [];
+  return parts.some((part) => {
+    const question = part.trim();
+    if (slots.name && (question.endsWith('?') || /^(?:איך|מה|מי)\s/.test(question)) &&
+      /(?:איך קוראים לך|מה שמך|מי זה)(?:\s|[?!.]|$)/.test(question)) return true;
+    if (!question.endsWith('?')) return false;
+    return Boolean(
+      (slots.wellbeing && /(?:מה נשמע|מה שלומך|הכל טוב|הכול טוב)/.test(question)) ||
+      (slots.apartment && /(?:באיזו דירה|באיזה דירה|מה מספר הדירה|מה מספר דירתך)/.test(question)) ||
+      (slots.coffee_sugar && /(?:^|\s)(?:ועם|עם|בלי|כמה) סוכר(?=[\s?]|$)/.test(question)) ||
+      (slots.coffee_size && /(?:גדול או קטן|קטן או גדול|איזה גודל)/.test(question)) ||
+      (slots.coffee_milk && /(?:איזה חלב|איזה סוג חלב|עם חלב|בלי חלב)/.test(question))
+    );
+  });
+}
+
+type SpokenReply = { hebrew: string; transcription: string; translation: string };
+
+/** Legacy compatibility. Runtime should reject/regenerate with hasRepeatedSlotQuestion.
+ * Only remove whole questions aligned in all three languages; ambiguous alignment
+ * is returned intact rather than corrupting the spoken meaning.
  */
-export function filterRepeatedSlotQuestions(
-  reply: { hebrew: string; transcription: string; translation: string },
-  slots: ClosedSlots
-): { hebrew: string; transcription: string; translation: string } {
-  let { hebrew, transcription, translation } = reply;
-
-  if (slots.name) {
-    // Вырезаем «איך קוראים לך / לך?» или «מה שמך?»
-    const nameQuestionsHeb = [
-      /אֵ?יךְ?\s+קוֹ?רְ?אִ?ים\s+לְ?ךָ\??/gi,
-      /אֵ?יךְ?\s+קוֹ?רְ?אִ?ים\s+לָ?ךְ\??/gi,
-      /מָ?ה\s+שִׁ?מְ?ךָ\??/gi,
-      /מָ?ה\s+שְׁ?מֵ?ךְ\??/gi,
-      /מִ?י\s+זֶ?ה\??/gi,
-    ];
-
-    for (const regex of nameQuestionsHeb) {
-      hebrew = hebrew.replace(regex, '').trim();
-    }
-
-    // Вырезаем транскрипцию вопроса об имени
-    transcription = transcription
-      .replace(/эйх\s+кор[ъь]?ӣм\s+(?:лэхá|лах)\??/gi, '')
-      .replace(/э́йх\s+кор[ъь]?ӣм\s+(?:лэха́|лах)\??/gi, '')
-      .replace(/ма\s+шимхá\??/gi, '')
-      .trim();
-
-    // Вырезаем перевод вопроса об имени
-    translation = translation
-      .replace(/как\s+тебя\s+зовут\??/gi, '')
-      .replace(/как\s+вас\s+зовут\??/gi, '')
-      .replace(/кто\s+это\??/gi, '')
-      .trim();
-  }
-
-  if (slots.coffee_sugar) {
-    // Вырезаем вопрос о сахаре
-    hebrew = hebrew
-      .replace(/עִ?ם\s+סוּ?כָּ?ר\??/gi, '')
-      .replace(/כַּ?מָּ?ה\s+סוּ?כָּ?ר\??/gi, '')
-      .replace(/וְ?עִ?ם\s+סוּ?כָּ?ר\??/gi, '')
-      .trim();
-
-    transcription = transcription
-      .replace(/(?:вэ-)?им\s+сукáр\??/gi, '')
-      .replace(/кáма\s+сукáр\??/gi, '')
-      .trim();
-
-    translation = translation
-      .replace(/(?:и\s+)?с\s+сахаром\??/gi, '')
-      .replace(/сколько\s+сахара\??/gi, '')
-      .trim();
-  }
-
-  // Убираем двойные пробелы и висячие знаки препинания после вырезания
-  hebrew = hebrew.replace(/\s{2,}/g, ' ').replace(/\s+([.?!,])/g, '$1').trim();
-  transcription = transcription.replace(/\s{2,}/g, ' ').replace(/\s+([.?!,])/g, '$1').trim();
-  translation = translation.replace(/\s{2,}/g, ' ').replace(/\s+([.?!,])/g, '$1').trim();
-
-  return { hebrew, transcription, translation };
+export function filterRepeatedSlotQuestions(reply: SpokenReply, slots: ClosedSlots): SpokenReply {
+  const segments = (text: string) => (text.match(/[^.!?]+[.!?]?/g) || []).map((s) => s.trim()).filter(Boolean);
+  const hebrew = segments(reply.hebrew);
+  const transcription = segments(reply.transcription);
+  const translation = segments(reply.translation);
+  if (hebrew.length !== transcription.length || hebrew.length !== translation.length) return reply;
+  const keep = hebrew.map((text, index) => !(
+    text.endsWith('?') && transcription[index].endsWith('?') && translation[index].endsWith('?') &&
+    /^(?:איך קוראים לך|מה שמך|מי זה|ו?עם סוכר|כמה סוכר)\?$/.test(stripNikkud(text)) &&
+    hasRepeatedSlotQuestion(text, { name: slots.name, coffee_sugar: slots.coffee_sugar })
+  ));
+  return {
+    hebrew: hebrew.filter((_, i) => keep[i]).join(' '),
+    transcription: transcription.filter((_, i) => keep[i]).join(' '),
+    translation: translation.filter((_, i) => keep[i]).join(' '),
+  };
 }

@@ -9,13 +9,27 @@ const request = (path, body) => new NextRequest(`http://localhost${path}`, { met
 test('phone review rejects incomplete model reports and never boosts a low grammar score', async () => {
   const { POST } = require('../src/app/api/ai/phone/debrief/route.ts');
   const originalFetch = global.fetch;
-  const oldGroq = process.env.GROQ_API_KEY;
-  const oldGemini = process.env.GEMINI_API_KEY;
-  process.env.GROQ_API_KEY = 'synthetic-provider-key'; delete process.env.GEMINI_API_KEY;
-  const report = { overallScore: 30, grammarScore: 20, isSuccess: false, summaryRu: 'Требуется повторение', turnReviews: [{ userHebrew: 'שלום', assessment: 'needs_improvement', commentRu: 'Нужно продолжить ответ' }] };
+  const envKeys = ['NODE_ENV', 'DATABASE_URL', 'POSTGRES_URL', 'GROQ_API_KEY', 'GEMINI_API_KEY',
+    'GEMINI_PRIMARY_API_KEY', 'GEMINI_AI_STUDIO_KEY', 'GEMINI_FALLBACK_API_KEY',
+    'GEMINI_MODEL', 'GEMINI_FALLBACK_MODEL', 'GROQ_MODEL', 'GROQ_FALLBACK_MODEL'];
+  const savedEnv = new Map(envKeys.map(key => [key, process.env[key]]));
+  for (const key of envKeys) delete process.env[key];
+  process.env.NODE_ENV = 'test';
+  process.env.GROQ_API_KEY = 'synthetic-provider-key';
+  const { getPhoneLessonContract } = require('../src/data/phoneScenarios.ts');
+  const goalChecks = getPhoneLessonContract(1).goals.map((_, goalIndex) => ({
+    goalIndex, met: goalIndex === 0, evidence: goalIndex === 0 ? [{ role: 'user', quote: 'שלום' }] : [],
+  }));
+  const report = { overallScore: 30, grammarScore: 20, isSuccess: false, summaryRu: 'Требуется повторение', goalChecks,
+    turnReviews: [{ userHebrew: 'שלום', assessment: 'needs_improvement', commentRu: 'Нужно продолжить ответ', grammarErrors: [] }] };
   try {
     const payload = { lessonNumber: 1, level: 'alef', transcript: [{ role: 'assistant', hebrew: 'שלום' }, { role: 'user', hebrew: 'שלום' }] };
-    for (const bad of [{}, { ...report, turnReviews: [] }, { ...report, overallScore: 110 }]) {
+    for (const bad of [{}, { ...report, turnReviews: [] }, { ...report, overallScore: 110 },
+      { ...report, goalChecks: undefined },
+      { ...report, isSuccess: true, goalChecks: goalChecks.map(g => ({ ...g, met: true, evidence: [] })) },
+      { ...report, isSuccess: true, goalChecks: goalChecks.map(g => ({ ...g, met: true, evidence: [{ role: 'user', quote: 'קוראים לי דנה' }] })) },
+      { ...report, isSuccess: true, goalChecks: goalChecks.map(g => ({ ...g, met: true, evidence: [{ role: 'assistant', quote: 'שלום' }] })) },
+    ]) {
       global.fetch = async () => Response.json({ choices: [{ message: { content: JSON.stringify(bad) } }] });
       assert.equal((await POST(request('/api/ai/phone/debrief', payload))).status, 503);
     }
@@ -28,10 +42,18 @@ test('phone review rejects incomplete model reports and never boosts a low gramm
     assert.equal(checked.isSuccess, false);
     assert.equal(checked.turnReviews.length, 1);
     assert.equal(checked.pronunciationScore, undefined);
+    assert.equal(checked.goalChecks.filter(g => g.met).length, 1);
+    // A model's high grade and success flag do not override unmet lesson goals.
+    global.fetch = async () => Response.json({ choices: [{ message: { content: JSON.stringify({ ...report, overallScore: 95, grammarScore: 95, isSuccess: true }) } }] });
+    const unconfirmed = await POST(request('/api/ai/phone/debrief', payload));
+    assert.equal(unconfirmed.status, 200);
+    assert.equal((await unconfirmed.json()).isSuccess, false);
   } finally {
     global.fetch = originalFetch;
-    if (oldGroq === undefined) delete process.env.GROQ_API_KEY; else process.env.GROQ_API_KEY = oldGroq;
-    if (oldGemini === undefined) delete process.env.GEMINI_API_KEY; else process.env.GEMINI_API_KEY = oldGemini;
+    for (const [key, value] of savedEnv) {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    }
   }
 });
 

@@ -1,0 +1,18 @@
+[
+  {
+    "path": "src/lib/phoneConversation.ts",
+    "matches": true
+  },
+  {
+    "path": "src/lib/slotMemory.ts",
+    "matches": true
+  },
+  {
+    "path": "src/data/phone/lessons01_50.ts",
+    "matches": true
+  },
+  {
+    "path": "src/data/phone/lessons51_100.ts",
+    "matches": true
+  }
+]

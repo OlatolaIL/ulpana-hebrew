@@ -307,6 +307,11 @@ export interface PhoneDebriefReport {
   turnReviews: PhoneDebriefTurnReview[];
   spokenTip?: string;
   recommendedWords?: PhoneScenarioWord[];
+  goalChecks?: Array<{
+    goalIndex: number;
+    met: boolean;
+    evidence: Array<{ role: 'user' | 'assistant'; quote: string }>;
+  }>;
 }
 
 export interface PhoneScenario {

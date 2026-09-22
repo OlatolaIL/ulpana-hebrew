@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef, useMemo, useCallback, useSyncExternalStore } from 'react';
-import confetti from 'canvas-confetti';
 import { Lesson, UserProfile, Word, ChatMessage, PhoneDebriefReport } from '@/types';
 import { getLessonPhoneScenario } from '@/data/phoneScenarios';
 import { phoneAudio } from '@/lib/phoneAudio';
@@ -355,9 +354,9 @@ export function usePhoneCall({
           }, silenceDelayMs);
         }
       },
-      (error: any) => {
+      (error: unknown) => {
         console.warn('Speech recognition warning:', error);
-        const errStr = typeof error === 'string' ? error : (error?.message || error?.name || String(error || ''));
+        const errStr = error instanceof Error ? error.message || error.name : String(error || '');
         const lower = errStr.toLowerCase();
         if (
           lower.includes('not-allowed') ||
@@ -689,7 +688,12 @@ export function usePhoneCall({
       timestamp: Date.now(),
     };
 
-    const newHistory = [...messagesRef.current, userMsg];
+    // A failed provider request leaves its user turn visible. A spoken retry replaces
+    // that pending turn, rather than counting the same unanswered turn twice.
+    const acknowledgedHistory = messagesRef.current.at(-1)?.role === 'user'
+      ? messagesRef.current.slice(0, -1)
+      : messagesRef.current;
+    const newHistory = [...acknowledgedHistory, userMsg];
     setBothMessages(newHistory);
 
     const tStart = typeof performance !== 'undefined' ? performance.now() : Date.now();
@@ -776,10 +780,10 @@ export function usePhoneCall({
 
       // Озвучиваем ответ ИИ (если willHangUp = true, после реплики ИИ сам повесит трубку)
       playAiVoice(aiMsg.hebrew, willHangUp);
-    } catch (err: any) {
+    } catch (err) {
       if (generation !== callGenerationRef.current) return;
       console.error('Phone AI Error:', err);
-      const isTimeout = err?.name === 'TimeoutError' || err?.name === 'AbortError';
+      const isTimeout = err instanceof Error && (err.name === 'TimeoutError' || err.name === 'AbortError');
       const latencyMs = Math.round((typeof performance !== 'undefined' ? performance.now() : Date.now()) - tStart);
       callFlightRecorder.record('ERROR', `Phone API error (${latencyMs}ms)`, {
         latencyMs,
@@ -789,8 +793,8 @@ export function usePhoneCall({
 
       setSpeechNotice(
         isTimeout
-          ? 'Задержка сети: собеседник не ответил вовремя. Попробуйте повторить фразу или ввести текст клавиатурой.'
-          : 'Ответ собеседника не получен из-за сбоя связи. Можно повторить фразу или ввести текст.'
+          ? 'Задержка сети: собеседник не ответил вовремя. Разговор сохранён. Повторите фразу голосом.'
+          : 'Ответ собеседника не получен. Разговор сохранён. Повторите фразу голосом.'
       );
       setTimeout(() => {
         if (callActiveRef.current && !isMutedRef.current && !isAiHangingUpRef.current) {

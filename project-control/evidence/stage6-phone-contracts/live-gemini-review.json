@@ -1,0 +1,841 @@
+{
+  "kind": "live-phone-evaluation",
+  "date": "2026-09-22T10:53:08.894Z",
+  "baseCommit": "f13d586756a45be3050cd10cf33ee06b3dda4cf5",
+  "provider": "gemini",
+  "model": "gemini-3.5-flash-lite",
+  "sourceHashes": {
+    "src/lib/phoneConversation.ts": "e7d53995449a03eecd75fb6c3a31342c3e455b9ae448a9ee921f411903601d61",
+    "src/lib/slotMemory.ts": "d0ed054cff9aeb228d611cf6a1397784d15f244f74b34175b43127ee05988fb5",
+    "src/data/phone/lessons01_50.ts": "64aa0cfa1bc6e129de2f352b3f68feb92fd1e6576c9f2abbef5f0e957ed45c61",
+    "src/data/phone/lessons51_100.ts": "7a635402b07dabb276c2ca728c54e0de4e790f92eecc025e6b54437fea5436e0"
+  },
+  "cases": [
+    {
+      "id": "rental-counter-question-and-refusal",
+      "lesson": 7,
+      "gender": "male",
+      "turns": [
+        {
+          "student": "שלום, יש בדירה מקרר ומיטה?",
+          "accepted": true,
+          "status": 200,
+          "latencyMs": 2054,
+          "reply": {
+            "hebrew": "כֵּן, בְּכָל הַדִּירוֹת יֵשׁ מְקָרֵר, שׁוּלְחָן וּמִיטָּה. כַּמָּה חֲדָרִים אַתָּה רוֹצֶה?",
+            "transcription": "ken, bэ-khol ha-dirot yesh mэkarer, shulkhan u-mita. kama khadarim ata rotse?",
+            "translation": "Да, во всех квартирах есть холодильник, стол и кровать. Сколько комнат ты хочешь?",
+            "questionForStudent": 0,
+            "isCompleted": false,
+            "shouldHangUp": false,
+            "suggestedReplies": [
+              {
+                "hebrew": "אֲנִי רוֹצֶה שְׁנֵי חֲדָרִים.",
+                "transcription": "ani rotse shnei khadarim.",
+                "translation": "Я хочу две комнаты."
+              },
+              {
+                "hebrew": "אֲנִי רוֹצֶה שְׁלוֹשָׁה חֲדָרִים.",
+                "transcription": "ani rotse shlosha khadarim.",
+                "translation": "Я хочу три комнаты."
+              }
+            ]
+          },
+          "endReason": null,
+          "normalizedReply": {
+            "hebrew": "כֵּן, בְּכָל הַדִּירוֹת יֵשׁ מְקָרֵר, שׁוּלְחָן וּמִיטָּה. כַּמָּה חֲדָרִים אַתָּה רוֹצֶה?",
+            "transcription": "кен, бехал hадирот еш мекарер, шулхан у-мита. кама хадарим ата роцэ́?",
+            "translation": "Да, во всех квартирах есть холодильник, стол и кровать. Сколько комнат ты хочешь?",
+            "isCompleted": false,
+            "shouldHangUp": false,
+            "endReason": null,
+            "suggestedReplies": [
+              {
+                "hebrew": "אֲנִי רוֹצֶה שְׁנֵי חֲדָרִים.",
+                "transcription": "ани роцэ́ шеней хадарим.",
+                "translation": "Я хочу две комнаты."
+              },
+              {
+                "hebrew": "אֲנִי רוֹצֶה שְׁלוֹשָׁה חֲדָרִים.",
+                "transcription": "ани роцэ́ шелоша хадарим.",
+                "translation": "Я хочу три комнаты."
+              }
+            ]
+          }
+        },
+        {
+          "student": "אני מחפש דירה של שני חדרים. כמה זה עולה?",
+          "accepted": true,
+          "status": 200,
+          "latencyMs": 1825,
+          "reply": {
+            "hebrew": "הַדִּירָה עֹלָה אַרְבַּע אֲלָפִים וַחֲמֵּשֶׁת מְאוֹת שְׁקָלִים בְּחֹדֶשׁ. הַאִם נוֹחָה לְךָ הַצְפָּיָה הַיּוֹם בְּשָׁעָה מְתַעֲרֶה אוֹ מָחָר?",
+            "transcription": "haddira ola arba alafim va-hameshet me'ot shkalim be-hodesh. ha-im noha le-kha ha-tsfiya ha-yom be-sha'a metsayeret o mahar?",
+            "translation": "Квартира стоит четыре тысячи пятьсот шекелей в месяц. Тебе удобен просмотр сегодня или завтра?",
+            "questionForStudent": 1,
+            "isCompleted": false,
+            "shouldHangUp": false,
+            "suggestedReplies": []
+          },
+          "endReason": null,
+          "normalizedReply": {
+            "hebrew": "הַדִּירָה עֹלָה אַרְבַּע אֲלָפִים וַחֲמֵּשֶׁת מְאוֹת שְׁקָלִים בְּחֹדֶשׁ. הַאִם נוֹחָה לְךָ הַצְפָּיָה הַיּוֹם בְּשָׁעָה מְתַעֲרֶה אוֹ מָחָר?",
+            "transcription": "hадира ола арбá алафим вахамешет меот шекалим беходеш. hаим ноха лэхá hацпая hайом бешаа метааре о махар?",
+            "translation": "Квартира стоит четыре тысячи пятьсот шекелей в месяц. Тебе удобен просмотр сегодня или завтра?",
+            "isCompleted": false,
+            "shouldHangUp": false,
+            "endReason": null,
+            "suggestedReplies": []
+          }
+        },
+        {
+          "student": "היום לא. אפשר מחר?",
+          "accepted": true,
+          "status": 200,
+          "latencyMs": 1599,
+          "reply": {
+            "hebrew": "כֵּן, מָחָר בְּשָׁעָה שְׁמוֹנֶה עֶשְׂרֵה נוֹחַ?",
+            "transcription": "ken, makhar bэ-sha'a shmone-esre noakh?",
+            "translation": "Да, завтра в восемнадцать часов удобно?",
+            "questionForStudent": 2,
+            "isCompleted": false,
+            "shouldHangUp": false,
+            "suggestedReplies": [
+              {
+                "hebrew": "כֵּן, מָחָר בְּשָׁעָה שְׁמוֹנֶה עֶשְׂרֵה נוֹחַ מְאוֹד.",
+                "transcription": "ken, makhar bэ-sha'a shmone-esre noakh mэ'od.",
+                "translation": "Да, завтра в восемнадцать часов очень удобно."
+              },
+              {
+                "hebrew": "לֹא, מָחָר לֹא נוֹחַ.",
+                "transcription": "lo, makhar lo noakh.",
+                "translation": "Нет, завтра не удобно."
+              }
+            ]
+          },
+          "endReason": null,
+          "normalizedReply": {
+            "hebrew": "כֵּן, מָחָר בְּשָׁעָה שְׁמוֹנֶה עֶשְׂרֵה נוֹחַ?",
+            "transcription": "кен, махар бешаа шемоне эсре ноха?",
+            "translation": "Да, завтра в восемнадцать часов удобно?",
+            "isCompleted": false,
+            "shouldHangUp": false,
+            "endReason": null,
+            "suggestedReplies": [
+              {
+                "hebrew": "כֵּן, מָחָר בְּשָׁעָה שְׁמוֹנֶה עֶשְׂרֵה נוֹחַ מְאוֹד.",
+                "transcription": "кен, махар бешаа шемоне эсре ноха мэóд.",
+                "translation": "Да, завтра в восемнадцать часов очень удобно."
+              },
+              {
+                "hebrew": "לֹא, מָחָר לֹא נוֹחַ.",
+                "transcription": "ло, махар ло ноха.",
+                "translation": "Нет, завтра не удобно."
+              }
+            ]
+          }
+        },
+        {
+          "student": "תודה, להתראות",
+          "accepted": true,
+          "status": 200,
+          "latencyMs": 1123,
+          "reply": {
+            "hebrew": "לְהִתְרָאוֹת!",
+            "transcription": "леhитрао́т!",
+            "translation": "До свидания!",
+            "questionForStudent": null,
+            "isCompleted": true,
+            "shouldHangUp": true,
+            "suggestedReplies": []
+          },
+          "endReason": "student_goodbye",
+          "normalizedReply": {
+            "hebrew": "לְהִתְרָאוֹת!",
+            "transcription": "лэhитраóт!",
+            "translation": "До свидания!",
+            "isCompleted": true,
+            "shouldHangUp": true,
+            "endReason": "student_goodbye",
+            "suggestedReplies": []
+          }
+        }
+      ],
+      "initialGreeting": {
+        "hebrew": "שָׁלוֹם! יֵשׁ לִי כַּמָּה דִּירוֹת לְהַשְׂכָּרָה בַּמֶּרְכָּז. כַּמָּה חֲדָרִים אַתָּה מְחַפֵּשׂ?",
+        "transcription": "шалóм! йеш ли кáма дирóт лэ-hаскарá ба-меркáз. кáма хадарӣм атá мэхапэ́с?",
+        "translation": "Здравствуйте! У меня есть несколько квартир в аренду в центре. Сколько комнат вы ищете?"
+      }
+    },
+    {
+      "id": "rental-female-role-correction",
+      "lesson": 7,
+      "gender": "female",
+      "turns": [
+        {
+          "student": "שלום, אני משכירה דירה.",
+          "accepted": true,
+          "status": 200,
+          "latencyMs": 1721,
+          "reply": {
+            "hebrew": "סְלִיחָה, אֲנִי מַשְׂכִּיר דִּירוֹת, לֹא שׂוֹכֵר. כַּמָּה חֲדָרִים אַתְּ רוֹצָה?",
+            "transcription": "сдиха́, ани́ маски́р диро́т, ло сохе́р. ка́ма хадари́м ат роца́?",
+            "translation": "Извините, я сдаю квартиры, а не снимаю. Сколько комнат ты хочешь?",
+            "questionForStudent": 0,
+            "isCompleted": false,
+            "shouldHangUp": false,
+            "suggestedReplies": [
+              {
+                "hebrew": "אֲנִי רוֹצָה שְׁנֵי חֲדָרִים.",
+                "transcription": "ани́ роца́ шне́й хадари́м.",
+                "translation": "Я хочу две комнаты."
+              },
+              {
+                "hebrew": "אֲנִי רוֹצָה שְׁלוֹשָׁה חֲדָרִים.",
+                "transcription": "ани́ роца́ шлоша́ хадари́м.",
+                "translation": "Я хочу три комнаты."
+              }
+            ]
+          },
+          "endReason": null,
+          "normalizedReply": {
+            "hebrew": "סְלִיחָה, אֲנִי מַשְׂכִּיר דִּירוֹת, לֹא שׂוֹכֵר. כַּמָּה חֲדָרִים אַתְּ רוֹצָה?",
+            "transcription": "слихá, ани́ маски́р диро́т, ло сохе́р. ка́ма хадари́м ат роцэ́?",
+            "translation": "Извините, я сдаю квартиры, а не снимаю. Сколько комнат ты хочешь?",
+            "isCompleted": false,
+            "shouldHangUp": false,
+            "endReason": null,
+            "suggestedReplies": [
+              {
+                "hebrew": "אֲנִי רוֹצָה שְׁנֵי חֲדָרִים.",
+                "transcription": "ани́ роцэ́ шне́й хадари́м.",
+                "translation": "Я хочу две комнаты."
+              },
+              {
+                "hebrew": "אֲנִי רוֹצָה שְׁלוֹשָׁה חֲדָרִים.",
+                "transcription": "ани́ роцэ́ шлоша́ хадари́м.",
+                "translation": "Я хочу три комнаты."
+              }
+            ]
+          }
+        },
+        {
+          "student": "סליחה, אני מחפשת דירה של שלושה חדרים. יש מקרר?",
+          "accepted": false,
+          "status": 200,
+          "latencyMs": 2234,
+          "reply": {
+            "hebrew": "כֵּן, יֵשׁ מְקָרֵר. אַתְּ רוֹצָה לִרְאוֹת אֶT הַדִּירָה הַיּוֹם בְּשָׁעָה שְׁבַע עֶשְׂרֵה אוֹ מָחָר בְּשָׁעָה שְׁמוֹנֶה עֶשְׂרֵה?",
+            "transcription": "ken, jesh mekarer. at rotza lir'ot et ha-dira ha-yom be-shaa shva esre o mahar be-shaa shmona esre?",
+            "translation": "Да, есть холодильник. Ты хочешь посмотреть квартиру сегодня в 19:00 или завтра в 18:00?",
+            "questionForStudent": 1,
+            "isCompleted": false,
+            "shouldHangUp": false,
+            "suggestedReplies": [
+              {
+                "hebrew": "הַיּוֹם בְּשָׁעָה שְׁבַע עֶשְׂרֵה, בְּסֵדֶר.",
+                "transcription": "ha-yom be-shaa shva esre, beseder.",
+                "translation": "Сегодня в 19:00, хорошо."
+              },
+              {
+                "hebrew": "מָחָר בְּשָׁעָה שְׁמוֹנֶה עֶשְׂרֵה, בְּסֵדֶר.",
+                "transcription": "mahar be-shaa shmona esre, beseder.",
+                "translation": "Завтра в 18:00, хорошо."
+              }
+            ]
+          },
+          "error": "Mixed script in Hebrew reply"
+        }
+      ],
+      "initialGreeting": {
+        "hebrew": "שָׁלוֹם! יֵשׁ לִי כַּמָּה דִּירוֹת לְהַשְׂכָּרָה בַּמֶּרְכָּז. כַּמָּה חֲדָרִים אַתְּ מְחַפֶּשֶׂת?",
+        "transcription": "шалóм! йеш ли кáма дирóт лэ-hаскарá ба-меркáз. кáма хадарӣм ат мэхапэ́сэт?",
+        "translation": "Здравствуйте! У меня есть несколько квартир в аренду в центре. Сколько комнат вы ищете?"
+      }
+    },
+    {
+      "id": "coffee-all-details-and-correction",
+      "lesson": 2,
+      "gender": "female",
+      "turns": [
+        {
+          "student": "שלום, אני רוצה תה בלי סוכר, בבקשה.",
+          "accepted": true,
+          "status": 200,
+          "latencyMs": 1835,
+          "reply": {
+            "hebrew": "בְּסֵדֶר, תֵּה עִם חָלָב אוֹ בְּלִי חָלָב?",
+            "transcription": "bэ-sэдэр, тэ-э им ха-лав о бэ-ли ха-лав?",
+            "translation": "Хорошо, чай с молоком или без молока?",
+            "questionForStudent": 2,
+            "isCompleted": false,
+            "shouldHangUp": false,
+            "suggestedReplies": [
+              {
+                "hebrew": "בְּלִי חָלָב, בְּבַקָּשָׁה.",
+                "transcription": "бэ-ли ха-лав, бэ-ва-қа-ша.",
+                "translation": "Без молока, пожалуйста."
+              },
+              {
+                "hebrew": "עִם חָלָב, בְּבַקָּשָׁה.",
+                "transcription": "им ха-лав, бэ-ва-қа-ша.",
+                "translation": "С молоком, пожалуйста."
+              }
+            ]
+          },
+          "endReason": null,
+          "normalizedReply": {
+            "hebrew": "בְּסֵדֶר, תֵּה עִם חָלָב אוֹ בְּלִי חָלָב?",
+            "transcription": "бэсэ́дер, те им халав о бели халав?",
+            "translation": "Хорошо, чай с молоком или без молока?",
+            "isCompleted": false,
+            "shouldHangUp": false,
+            "endReason": null,
+            "suggestedReplies": [
+              {
+                "hebrew": "בְּלִי חָלָב, בְּבַקָּשָׁה.",
+                "transcription": "бэ-ли ха-лав, бэвакашá.",
+                "translation": "Без молока, пожалуйста."
+              },
+              {
+                "hebrew": "עִם חָלָב, בְּבַקָּשָׁה.",
+                "transcription": "им ха-лав, бэвакашá.",
+                "translation": "С молоком, пожалуйста."
+              }
+            ]
+          }
+        },
+        {
+          "student": "סליחה, עם סוכר. כמה זה עולה?",
+          "accepted": true,
+          "status": 200,
+          "latencyMs": 1639,
+          "reply": {
+            "hebrew": "עֲשָׂרָה שְׁקָלִים, בְּבַקָּשָׁה. לְהַזְמִין?",
+            "transcription": "асара шкалим, бэвакаша. лэhазмин?",
+            "translation": "Десять шекелей, пожалуйста. Заказать?",
+            "questionForStudent": 3,
+            "isCompleted": false,
+            "shouldHangUp": false,
+            "suggestedReplies": [
+              {
+                "hebrew": "כֵּן, בְּבַקָּשָׁה",
+                "transcription": "кэн, бэвакаша",
+                "translation": "Да, пожалуйста"
+              }
+            ]
+          },
+          "endReason": null,
+          "normalizedReply": {
+            "hebrew": "עֲשָׂרָה שְׁקָלִים, בְּבַקָּשָׁה. לְהַזְמִין?",
+            "transcription": "асара шкалим, бэвакашá. лэhазмин?",
+            "translation": "Десять шекелей, пожалуйста. Заказать?",
+            "isCompleted": false,
+            "shouldHangUp": false,
+            "endReason": null,
+            "suggestedReplies": [
+              {
+                "hebrew": "כֵּן, בְּבַקָּשָׁה",
+                "transcription": "кэн, бэвакашá",
+                "translation": "Да, пожалуйста"
+              }
+            ]
+          }
+        },
+        {
+          "student": "תודה רבה, אפשר גם מים?",
+          "accepted": true,
+          "status": 200,
+          "latencyMs": 1747,
+          "reply": {
+            "hebrew": "בְּסֵדֶר, מַיִם עוֹלִים חֲמִשָּׁה שְׁקָלִים. לְהַזְמִין?",
+            "transcription": "бэ-сэ́дэр, ма́йим оли́м хамиשׁа́ шквали́м. лэ-hазми́н?",
+            "translation": "Хорошо, вода стоит пять шекелей. Заказать?",
+            "questionForStudent": 3,
+            "isCompleted": false,
+            "shouldHangUp": false,
+            "suggestedReplies": [
+              {
+                "hebrew": "כֵּן, תּוֹדָה",
+                "transcription": "кэн, тода́",
+                "translation": "Да, спасибо"
+              },
+              {
+                "hebrew": "לֹא, תּוֹדָה",
+                "transcription": "ло, тода́",
+                "translation": "Нет, спасибо"
+              }
+            ]
+          },
+          "endReason": null,
+          "normalizedReply": {
+            "hebrew": "בְּסֵדֶר, מַיִם עוֹלִים חֲמִשָּׁה שְׁקָלִים. לְהַזְמִין?",
+            "transcription": "бэсэ́дер, ма́йим оли́м хамиשׁа́ шквали́м. лэ-hазми́н?",
+            "translation": "Хорошо, вода стоит пять шекелей. Заказать?",
+            "isCompleted": false,
+            "shouldHangUp": false,
+            "endReason": null,
+            "suggestedReplies": [
+              {
+                "hebrew": "כֵּן, תּוֹדָה",
+                "transcription": "кэн, тодá",
+                "translation": "Да, спасибо"
+              },
+              {
+                "hebrew": "לֹא, תּוֹדָה",
+                "transcription": "ло, тодá",
+                "translation": "Нет, спасибо"
+              }
+            ]
+          }
+        },
+        {
+          "student": "כן, תודה, להתראות",
+          "accepted": true,
+          "status": 200,
+          "latencyMs": 1204,
+          "reply": {
+            "hebrew": "בְּסֵדֶר, תּוֹדָה רַבָּה, לְהִתְרָאוֹת!",
+            "transcription": "бэ-сэ́дэр, тодо́ раба́, лэ-hитрао́т!",
+            "translation": "Хорошо, большое спасибо, до свидания!",
+            "questionForStudent": null,
+            "isCompleted": true,
+            "shouldHangUp": true,
+            "suggestedReplies": []
+          },
+          "endReason": "turn_limit",
+          "normalizedReply": {
+            "hebrew": "בְּסֵדֶר, תּוֹדָה רַבָּה, לְהִתְרָאוֹת!",
+            "transcription": "бэсэ́дер, тодá рабá, лэhитраóт!",
+            "translation": "Хорошо, большое спасибо, до свидания!",
+            "isCompleted": true,
+            "shouldHangUp": true,
+            "endReason": "turn_limit",
+            "suggestedReplies": []
+          }
+        }
+      ],
+      "initialGreeting": {
+        "hebrew": "שָׁלוֹם, קָפֶה אֲרוֹמָה! מָה לְהַזְמִין?",
+        "transcription": "шалóм, кафэ́ арóма! ма лэhазмӣн?",
+        "translation": "Здравствуйте, кафе Арома! Что заказать?"
+      }
+    },
+    {
+      "id": "apartment-owner-27",
+      "lesson": 27,
+      "gender": "female",
+      "turns": [
+        {
+          "student": "שלום, יש מזגן בדירה?",
+          "accepted": true,
+          "status": 200,
+          "latencyMs": 1459,
+          "reply": {
+            "hebrew": "כֵּן, יֵשׁ מַזְגָּן בַּדִּירָה. הַדִּירָה עוֹלָה חֲמֵשֶׁת אַלְפֵי שְׁקָלִים בְּחֹדֶשׁ.",
+            "transcription": "ken, yesh mazgan ba-dira. ha-dira ola khameshet alfei shkalim b-khodesh.",
+            "translation": "Да, в квартире есть кондиционер. Квартира стоит пять тысяч шекелей в месяц.",
+            "questionForStudent": 0,
+            "isCompleted": false,
+            "shouldHangUp": false,
+            "suggestedReplies": [
+              {
+                "hebrew": "אֲנִי צְרִיכָה חוֹזֶה לְשָׁנָה.",
+                "transcription": "ani tzerikha khoze le-shana.",
+                "translation": "Мне нужен договор на год."
+              }
+            ]
+          },
+          "endReason": null,
+          "normalizedReply": {
+            "hebrew": "כֵּן, יֵשׁ מַזְגָּן בַּדִּירָה. הַדִּירָה עוֹלָה חֲמֵשֶׁת אַלְפֵי שְׁקָלִים בְּחֹדֶשׁ.",
+            "transcription": "кен, еш мазган ба-дирá. hадира ола хамешет алфей шекалим беходеш.",
+            "translation": "Да, в квартире есть кондиционер. Квартира стоит пять тысяч шекелей в месяц.",
+            "isCompleted": false,
+            "shouldHangUp": false,
+            "endReason": null,
+            "suggestedReplies": [
+              {
+                "hebrew": "אֲנִי צְרִיכָה חוֹזֶה לְשָׁנָה.",
+                "transcription": "ани црихá хозе лешана.",
+                "translation": "Мне нужен договор на год."
+              }
+            ]
+          }
+        },
+        {
+          "student": "כמה ארנונה?",
+          "accepted": true,
+          "status": 200,
+          "latencyMs": 1855,
+          "reply": {
+            "hebrew": "הָאַרְנוֹנָה שְׁלֹשׁ מֵאוֹת שְׁקָלִים בְּחֹדֶשׁ.",
+            "transcription": "ha-arnona shlosh me'ot shkalim bə-ḥodesh.",
+            "translation": "Арнона триста шекелей в месяц.",
+            "questionForStudent": 0,
+            "isCompleted": false,
+            "shouldHangUp": false,
+            "suggestedReplies": [
+              {
+                "hebrew": "לְכַמָּה זְמַן הַחֹוזֶה?",
+                "transcription": "lə-kamma zman ha-ḥoze?",
+                "translation": "На какое время договор?"
+              }
+            ]
+          },
+          "endReason": null,
+          "normalizedReply": {
+            "hebrew": "הָאַרְנוֹנָה שְׁלֹשׁ מֵאוֹת שְׁקָלִים בְּחֹדֶשׁ.",
+            "transcription": "hаарнона шелош меот шекалим беходеш.",
+            "translation": "Арнона триста шекелей в месяц.",
+            "isCompleted": false,
+            "shouldHangUp": false,
+            "endReason": null,
+            "suggestedReplies": [
+              {
+                "hebrew": "לְכַמָּה זְמַן הַחֹוזֶה?",
+                "transcription": "лехама зман hаховзе?",
+                "translation": "На какое время договор?"
+              }
+            ]
+          }
+        },
+        {
+          "student": "תודה רבה, אפשר לראות מחר?",
+          "accepted": false,
+          "status": 200,
+          "latencyMs": 1523,
+          "reply": {
+            "hebrew": "כֵּן, בְּבַקָּשָׁה, מָתַי אַתְּ רוֹצָה לָבוֹא?",
+            "transcription": "ken, bə-va-qasha, matay at rotsa lavo?",
+            "translation": "Да, пожалуйста, когда ты хочешь прийти?",
+            "questionForStudent": null,
+            "isCompleted": false,
+            "shouldHangUp": false,
+            "suggestedReplies": []
+          },
+          "error": "Question outside student details"
+        }
+      ],
+      "initialGreeting": {
+        "hebrew": "שָׁלוֹם, זֶה מֹשֶׁה, בַּעַל הַדִּירָה. אֵיךְ אֶפְשָׁר לַעֲזֹר?",
+        "transcription": "шалóм, зэ Мошé, бáаль hа-дирá. эйх эфшáр лаазóр?",
+        "translation": "Здравствуйте, это Моше, хозяин квартиры. Чем могу помочь?"
+      }
+    },
+    {
+      "id": "doctor-keeps-patient-role",
+      "lesson": 14,
+      "gender": "male",
+      "turns": [
+        {
+          "student": "שלום, כואב לי הראש.",
+          "accepted": true,
+          "status": 200,
+          "latencyMs": 1732,
+          "reply": {
+            "hebrew": "בְּסֵדֶר, יֵשׁ לְךָ חוֹם?",
+            "transcription": "бэ-сэ́дэр, еш лэ-ха́ хом?",
+            "translation": "Хорошо, у тебя есть температура?",
+            "questionForStudent": 1,
+            "isCompleted": false,
+            "shouldHangUp": false,
+            "suggestedReplies": [
+              {
+                "hebrew": "כֵּן, יֵשׁ לִי חוֹם.",
+                "transcription": "кэн, еш ли хом.",
+                "translation": "Да, у меня есть температура."
+              },
+              {
+                "hebrew": "לֹא, אֵין לִי חוֹם.",
+                "transcription": "ло, эн ли хом.",
+                "translation": "Нет, у меня нет температуры."
+              }
+            ]
+          },
+          "endReason": null,
+          "normalizedReply": {
+            "hebrew": "בְּסֵדֶר, יֵשׁ לְךָ חוֹם?",
+            "transcription": "бэсэ́дер, еш лэхá хом?",
+            "translation": "Хорошо, у тебя есть температура?",
+            "isCompleted": false,
+            "shouldHangUp": false,
+            "endReason": null,
+            "suggestedReplies": [
+              {
+                "hebrew": "כֵּן, יֵשׁ לִי חוֹם.",
+                "transcription": "кэн, еш ли хом.",
+                "translation": "Да, у меня есть температура."
+              },
+              {
+                "hebrew": "לֹא, אֵין לִי חוֹם.",
+                "transcription": "ло, эн ли хом.",
+                "translation": "Нет, у меня нет температуры."
+              }
+            ]
+          }
+        },
+        {
+          "student": "יש לי חום. מה לעשות?",
+          "accepted": true,
+          "status": 200,
+          "latencyMs": 1451,
+          "reply": {
+            "hebrew": "בְּסֵדֶר, כַּמָּה זְמַן זֶה נִמְשָׁךְ?",
+            "transcription": "бе-сэ́дэр, ка́мма зман зэ нимша́х?",
+            "translation": "Хорошо, как долго это продолжается?",
+            "questionForStudent": 2,
+            "isCompleted": false,
+            "shouldHangUp": false,
+            "suggestedReplies": [
+              {
+                "hebrew": "זֶה יוֹמַיִם.",
+                "transcription": "зэ йома́им.",
+                "translation": "Это два дня."
+              },
+              {
+                "hebrew": "הַיּוֹם.",
+                "transcription": "хай-йо́м.",
+                "translation": "Сегодня."
+              }
+            ]
+          },
+          "endReason": null,
+          "normalizedReply": {
+            "hebrew": "בְּסֵדֶר, כַּמָּה זְמַן זֶה נִמְשָׁךְ?",
+            "transcription": "бэсэ́дер, ка́мма зман зэ нимша́х?",
+            "translation": "Хорошо, как долго это продолжается?",
+            "isCompleted": false,
+            "shouldHangUp": false,
+            "endReason": null,
+            "suggestedReplies": [
+              {
+                "hebrew": "זֶה יוֹמַיִם.",
+                "transcription": "зэ йома́им.",
+                "translation": "Это два дня."
+              },
+              {
+                "hebrew": "הַיּוֹם.",
+                "transcription": "хай-йо́м.",
+                "translation": "Сегодня."
+              }
+            ]
+          }
+        },
+        {
+          "student": "תודה רבה, להתראות",
+          "accepted": true,
+          "status": 200,
+          "latencyMs": 1192,
+          "reply": {
+            "hebrew": "לְהִתְרָאוֹת.",
+            "transcription": "ле-hитрао́т.",
+            "translation": "До свидания.",
+            "questionForStudent": null,
+            "isCompleted": true,
+            "shouldHangUp": true,
+            "suggestedReplies": []
+          },
+          "endReason": "student_goodbye",
+          "normalizedReply": {
+            "hebrew": "לְהִתְרָאוֹת.",
+            "transcription": "лэhитраóт.",
+            "translation": "До свидания.",
+            "isCompleted": true,
+            "shouldHangUp": true,
+            "endReason": "student_goodbye",
+            "suggestedReplies": []
+          }
+        }
+      ],
+      "initialGreeting": {
+        "hebrew": "שָׁלוֹם, זֶה דּוֹקְטוֹר לֵוִי. מָה כּוֹאֵב?",
+        "transcription": "шалóм, зэ дóктор Лéви. ма коэ́в?",
+        "translation": "Здравствуйте, это доктор Леви. Что болит?"
+      }
+    },
+    {
+      "id": "booking-tamar",
+      "lesson": 57,
+      "gender": "male",
+      "turns": [
+        {
+          "student": "שלום, אפשר להזמין שולחן לארבעה אנשים?",
+          "accepted": true,
+          "status": 200,
+          "latencyMs": 1769,
+          "reply": {
+            "hebrew": "בְּשָׁעָה טוֹבָה. בַּחֲמִישִׁי יֵשׁ לָנוּ מָקוֹם בְּשָׁעָה שְׁמוֹנֶה בָּעֶרֶב אוֹ בְּשָׁעָה שֵׁשׁ בָּעֶרֶב. מָה אַתָּה מַעֲדִיף?",
+            "transcription": "бэ-шаа това. ба-хамиши еш лану маком бэ-шаа шмоне ба-эрев о бэ-шаа шеш ба-эрев. ма ата маадиф?",
+            "translation": "В добрый час. В четверг у нас есть места в восемь вечера или в шесть вечера. Что ты предпочитаешь?",
+            "questionForStudent": 0,
+            "isCompleted": false,
+            "shouldHangUp": false,
+            "suggestedReplies": [
+              {
+                "hebrew": "בְּשָׁעָה שְׁמוֹנֶה בָּעֶרֶב.",
+                "transcription": "бэ-шаа шмоне ба-эрев.",
+                "translation": "В восемь вечера."
+              },
+              {
+                "hebrew": "בְּשָׁעָה שֵׁשׁ בָּעֶרֶב.",
+                "transcription": "бэ-шаа шеш ба-эрев.",
+                "translation": "В шесть вечера."
+              }
+            ]
+          },
+          "endReason": null,
+          "normalizedReply": {
+            "hebrew": "בְּשָׁעָה טוֹבָה. בַּחֲמִישִׁי יֵשׁ לָנוּ מָקוֹם בְּשָׁעָה שְׁמוֹנֶה בָּעֶרֶב אוֹ בְּשָׁעָה שֵׁשׁ בָּעֶרֶב. מָה אַתָּה מַעֲדִיף?",
+            "transcription": "бэ-шаа това. ба-хамиши еш лану маком бэ-шаа шмоне ба-эрев о бэ-шаа шеш ба-эрев. ма ата маадиф?",
+            "translation": "В добрый час. В четверг у нас есть места в восемь вечера или в шесть вечера. Что ты предпочитаешь?",
+            "isCompleted": false,
+            "shouldHangUp": false,
+            "endReason": null,
+            "suggestedReplies": [
+              {
+                "hebrew": "בְּשָׁעָה שְׁמוֹנֶה בָּעֶרֶב.",
+                "transcription": "бэ-шаа шмоне ба-эрев.",
+                "translation": "В восемь вечера."
+              },
+              {
+                "hebrew": "בְּשָׁעָה שֵׁשׁ בָּעֶרֶב.",
+                "transcription": "бэ-шаа шеш ба-эрев.",
+                "translation": "В шесть вечера."
+              }
+            ]
+          }
+        },
+        {
+          "student": "מחר בשמונה, בבקשה.",
+          "accepted": true,
+          "status": 200,
+          "latencyMs": 1877,
+          "reply": {
+            "hebrew": "בְּסֵדֶר, מָחָר בְּשָׁמוֹנֶה בָּעֶרֶב. אַתָּה רוֹצֶה שׁוּלְחָן בַּבַּחוּץ אוֹ בִּפְנִים בַּסָּלוֹן?",
+            "transcription": "бэ-сэ́дэр, маха́р бэ-шмо́нэ ба-э́рэв. ата́ роцэ шульха́н ба-ба́хуц о би-пни́м ба-сало́н?",
+            "translation": "Хорошо, завтра в восемь вечера. Ты хочешь столик на улице или внутри в зале?",
+            "questionForStudent": 2,
+            "isCompleted": false,
+            "shouldHangUp": false,
+            "suggestedReplies": [
+              {
+                "hebrew": "בַּבַּחוּץ, בְּבַקָּשָׁה.",
+                "transcription": "ба-ба́хуц, бэ-вакаּша́.",
+                "translation": "На улице, пожалуйста."
+              },
+              {
+                "hebrew": "בִּפְנִים, בְּבַקָּשָׁה.",
+                "transcription": "би-пни́м, бэ-вакаּша́.",
+                "translation": "Внутри, пожалуйста."
+              }
+            ]
+          },
+          "endReason": null,
+          "normalizedReply": {
+            "hebrew": "בְּסֵדֶר, מָחָר בְּשָׁמוֹנֶה בָּעֶרֶב. אַתָּה רוֹצֶה שׁוּלְחָן בַּבַּחוּץ אוֹ בִּפְנִים בַּסָּלוֹן?",
+            "transcription": "бэсэ́дер, маха́р бэ-шмо́нэ ба-э́рэв. ата́ роцэ́ шульха́н ба-ба́хуц о би-пни́м ба-сало́н?",
+            "translation": "Хорошо, завтра в восемь вечера. Ты хочешь столик на улице или внутри в зале?",
+            "isCompleted": false,
+            "shouldHangUp": false,
+            "endReason": null,
+            "suggestedReplies": [
+              {
+                "hebrew": "בַּבַּחוּץ, בְּבַקָּשָׁה.",
+                "transcription": "ба-ба́хуц, бэвакашá.",
+                "translation": "На улице, пожалуйста."
+              },
+              {
+                "hebrew": "בִּפְנִים, בְּבַקָּשָׁה.",
+                "transcription": "би-пни́м, бэвакашá.",
+                "translation": "Внутри, пожалуйста."
+              }
+            ]
+          }
+        },
+        {
+          "student": "לא היום, מחר.",
+          "accepted": true,
+          "status": 200,
+          "latencyMs": 1982,
+          "reply": {
+            "hebrew": "בְּסֵדֶר, מָחָר בְּשָׁמוֹנֶה בָּעֶרֶב. אַתָּה רוֹצֶה שׁוּלְחָן בַּבַּחוּץ אוֹ בִּפְנִים בַּסָּלוֹן?",
+            "transcription": "бэ-сэдэp, махаp бэ-шмонэ ба-эвэp. ата роцэ шулхан ба-бахуц о би-фним ба-салон?",
+            "translation": "Хорошо, завтра в восемь вечера. Вы хотите столик на улице или внутри в зале?",
+            "questionForStudent": 2,
+            "isCompleted": false,
+            "shouldHangUp": false,
+            "suggestedReplies": [
+              {
+                "hebrew": "בַּבַּחוּץ, בְּבַקָּשָׁה.",
+                "transcription": "ба-бахуц, бэ-вакаша.",
+                "translation": "На улице, пожалуйста."
+              },
+              {
+                "hebrew": "בִּפְנִים, בְּבַקָּשָׁה.",
+                "transcription": "би-фним, бэ-вакаша.",
+                "translation": "Внутри, пожалуйста."
+              }
+            ]
+          },
+          "endReason": null,
+          "normalizedReply": {
+            "hebrew": "בְּסֵדֶר, מָחָר בְּשָׁמוֹנֶה בָּעֶרֶב. אַתָּה רוֹצֶה שׁוּלְחָן בַּבַּחוּץ אוֹ בִּפְנִים בַּסָּלוֹן?",
+            "transcription": "бэсэ́дер, махар бешамоне баерев. ата роцэ́ шулхан бабахуц о бифним басалон?",
+            "translation": "Хорошо, завтра в восемь вечера. Вы хотите столик на улице или внутри в зале?",
+            "isCompleted": false,
+            "shouldHangUp": false,
+            "endReason": null,
+            "suggestedReplies": [
+              {
+                "hebrew": "בַּבַּחוּץ, בְּבַקָּשָׁה.",
+                "transcription": "ба-бахуц, бэвакашá.",
+                "translation": "На улице, пожалуйста."
+              },
+              {
+                "hebrew": "בִּפְנִים, בְּבַקָּשָׁה.",
+                "transcription": "би-фним, бэвакашá.",
+                "translation": "Внутри, пожалуйста."
+              }
+            ]
+          }
+        },
+        {
+          "student": "תודה, להתראות",
+          "accepted": true,
+          "status": 200,
+          "latencyMs": 1191,
+          "reply": {
+            "hebrew": "לְהִתְרָאוֹת!",
+            "transcription": "лэhитрао́т!",
+            "translation": "До свидания!",
+            "questionForStudent": null,
+            "isCompleted": true,
+            "shouldHangUp": true,
+            "suggestedReplies": []
+          },
+          "endReason": "student_goodbye",
+          "normalizedReply": {
+            "hebrew": "לְהִתְרָאוֹת!",
+            "transcription": "лэhитраóт!",
+            "translation": "До свидания!",
+            "isCompleted": true,
+            "shouldHangUp": true,
+            "endReason": "student_goodbye",
+            "suggestedReplies": []
+          }
+        }
+      ],
+      "initialGreeting": {
+        "hebrew": "שָׁלוֹם, מִסְעֶדֶת שֶׁלָּנוּ. לְמָתַי הַהַזְמָנָה?",
+        "transcription": "шалóм, мисъэ́дет шелáну. лэ-матáй hа-hазманá?",
+        "translation": "Здравствуйте, ресторан «Шелану». На какое время бронь?"
+      }
+    }
+  ],
+  "requests": 20,
+  "limitations": [
+    "Representative cases only; deterministic acceptance does not certify semantic or linguistic correctness.",
+    "Synthetic students; no real learner data. No debrief/audio/ASR is tested."
+  ]
+}

@@ -320,45 +320,36 @@ test('Lesson 5 interactive mechanics in jsdom: ex5-2, ex5-6, ex5-7 negative & po
   }
 });
 
-test('Lesson 5 phone scenario: grocery store seller David for male and female students', () => {
-  const lesson5 = DETAILED_LESSONS[5];
-
-  // Base bespoke scenario
-  const bespoke5 = BESPOKE_PHONE_SCENARIOS[5];
-  assert.ok(bespoke5, 'BESPOKE_PHONE_SCENARIOS[5] must exist');
-  assert.equal(bespoke5.callerName, 'דָּוִד');
-  assert.equal(bespoke5.avatarEmoji, '🛒');
-  assert.ok(!bespoke5.situationSummary.includes('такси'));
-  assert.ok(bespoke5.situationSummary.includes('продуктов'));
-
-  // Male student
-  const male = getLessonPhoneScenario(lesson5, 'male');
-  assert.equal(male.callerName, 'דָּוִד');
-  assert.equal(male.avatarEmoji, '🛒');
-  assert.equal(male.callerRole, 'Продавец в продуктовой лавке');
-  assert.equal(male.userRole, 'Покупатель');
-  assert.ok(male.studentObjective.includes('«אֲנִי רוֹצֶה לֶחֶם וּגְבִינָה»'));
-  assert.ok(male.completionCondition.includes('Покупатель назвал'));
-  assert.equal(male.initialGreeting.hebrew, 'הַלּוֹ? שָׁלוֹם! זֶה דָּוִד מֵהַסּוּפֶּרְמַרְקֶט. מָה אַתָּה רוֹצֶה לִקְנוֹת?');
-  assert.equal(male.suggestedReplies[0].hebrew, 'שָׁלוֹם דָּוִד! אֲנִי רוֹצֶה לֶחֶם, גְּבִינָה וְקִילוֹ עַגְבָנִיּוֹת.');
-  assert.equal(male.suggestedReplies[1].hebrew, 'כַּמָּה זֶה עוֹלֶה? אֶפְשָׁר גַּם שַׂקִּית, בְּבַקָּשָׁה? תּוֹדָה רַבָּה לְךָ!');
-  assert.ok(male.usefulWords.some(w => w.hebrew === 'אֲנִי רוֹצֶה' && w.translation.includes('м.р.')));
-  assert.ok(male.usefulWords.some(w => w.hebrew === 'תּוֹדָה רַבָּה לְךָ'));
-
-  // Female student
-  const female = getLessonPhoneScenario(lesson5, 'female');
-  assert.equal(female.callerName, 'דָּוִד');
-  assert.equal(female.avatarEmoji, '🛒');
-  assert.equal(female.callerRole, 'Продавец в продуктовой лавке');
-  assert.equal(female.userRole, 'Покупательница');
-  assert.ok(female.studentObjective.includes('«אֲנִי רוֹצָה לֶחֶם וּגְבִינָה»'));
-  assert.ok(female.completionCondition.includes('Покупательница назвала'));
-  assert.equal(female.initialGreeting.hebrew, 'הַלּוֹ? שָׁלוֹם! זֶה דָּוִד מֵהַסּוּפֶּרְמַרְקֶט. מָה אַתְּ רוֹצָה לִקְנוֹת?');
-  assert.equal(female.suggestedReplies[0].hebrew, 'שָׁלוֹם דָּוִד! אֲנִי רוֹצָה לֶחֶם, גְּבִינָה וְקִילוֹ עַגְבָנִיּוֹת.');
-  // Crucial: student is speaking to male seller David, so לְךָ must NOT become לָךְ
-  assert.equal(female.suggestedReplies[1].hebrew, 'כַּמָּה זֶה עוֹלֶה? אֶפְשָׁר גַּם שַׂקִּית, בְּבַקָּשָׁה? תּוֹדָה רַבָּה לְךָ!');
-  assert.ok(female.usefulWords.some(w => w.hebrew === 'אֲנִי רוֹצָה' && w.translation.includes('ж.р.')));
-  assert.ok(female.usefulWords.some(w => w.hebrew === 'תּוֹדָה רַבָּה לְךָ'));
+test('Lesson 5 phone call covers product quantities, seller-owned prices and bag choice', () => {
+  const { getPhoneLessonContract } = require('../src/data/phoneScenarios.ts');
+  const contract = getPhoneLessonContract(5);
+  for (const gender of ['male', 'female']) {
+    const scenario = getLessonPhoneScenario(DETAILED_LESSONS[5], gender);
+    assert.equal(scenario.callerGender, 'male');
+    assert.match(scenario.callerRole, /Продавец.*Давид/);
+    assert.match(scenario.userRole, /Покупател/);
+    assert.match(scenario.situationSummary, /заказ продуктов/);
+    assert.doesNotMatch(scenario.situationSummary + scenario.callerRole, /такси|водитель|автобус|поезд/i);
+    assert.match(scenario.studentObjective, /продукт.*количеств/);
+    assert.match(scenario.studentObjective, /цен/);
+    assert.match(scenario.studentObjective, /пакет/);
+    assert.match(scenario.completionCondition, /количеств.*согласован/);
+    assert.match(scenario.completionCondition, /цена сообщена/);
+    assert.match(scenario.completionCondition, /решение о пакете принято/);
+    const answers = scenario.suggestedReplies.map(r => r.hebrew).join(' ');
+    assert.match(answers, gender === 'female' ? /אֲנִי רוֹצָה/ : /אֲנִי רוֹצֶה/);
+    assert.doesNotMatch(answers, gender === 'female' ? /אֲנִי רוֹצֶה/ : /אֲנִי רוֹצָה/);
+    assert.match(answers, /לֶחֶם|גְּבִינָה|עַגְבָנִיּוֹת/);
+    assert.match(answers, /קִילוֹ|אֶחָד|אַחַת|שְׁנֵי|שְׁתֵּי/);
+    assert.match(answers, /תּוֹדָה רַבָּה לְךָ/);
+    assert.doesNotMatch(answers, /תּוֹדָה רַבָּה לָךְ/);
+  }
+  assert.match(contract.facts.join(' '), /Хлеб стоит 10.*сыр.*10.*помидоры.*10/);
+  assert.match(contract.facts.join(' '), /Пакет бесплатный/);
+  assert.match(contract.studentDetails.join(' '), /продукты.*количество.*пакет/);
+  assert.doesNotMatch(contract.studentDetails.join(' '), /цен|стоимост|сколько стоит/);
+  assert.match(contract.forbiddenActions.join(' '), /пакет повторно/);
+  assert.match(contract.forbiddenActions.join(' '), /физически передал продукты/);
 });
 
 test('Course structure check: exactly 1200 exercises in DETAILED_LESSONS and presence of bespoke phone scenarios 1-5', () => {

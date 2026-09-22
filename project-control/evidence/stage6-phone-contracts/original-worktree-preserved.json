@@ -1,0 +1,174 @@
+{
+  "originalHead": "f13d586756a45be3050cd10cf33ee06b3dda4cf5",
+  "status": [
+    " M growth/data/leads.json",
+    " M growth/scripts/generate_lesson_07_audio.mjs",
+    " M public/audio/sentences/manifest.json",
+    " M public/audio/sentences/s_000d6b29826e.mp3",
+    " M public/audio/sentences/s_10818fe8b7b5.mp3",
+    " M public/audio/sentences/s_14b093f29d13.mp3",
+    " M public/audio/sentences/s_1647b880a309.mp3",
+    " M public/audio/sentences/s_1e67d051d77a.mp3",
+    " M public/audio/sentences/s_1ee0a2585162.mp3",
+    " M public/audio/sentences/s_1fcbc4103a52.mp3",
+    " M public/audio/sentences/s_2176f676702d.mp3",
+    " M public/audio/sentences/s_2704764a89d4.mp3",
+    " M public/audio/sentences/s_2ac2f8e82ac0.mp3",
+    " M public/audio/sentences/s_2d5bdf45d444.mp3",
+    " M public/audio/sentences/s_2e9018e115f3.mp3",
+    " M public/audio/sentences/s_2fbbd44d9e20.mp3",
+    " M public/audio/sentences/s_31d7b63df9a0.mp3",
+    " M public/audio/sentences/s_35d5a6d3ebdd.mp3",
+    " M public/audio/sentences/s_365710b030dd.mp3",
+    " M public/audio/sentences/s_368fd9910df2.mp3",
+    " M public/audio/sentences/s_369e880ba198.mp3",
+    " M public/audio/sentences/s_37791da597fd.mp3",
+    " M public/audio/sentences/s_37c8e1e72688.mp3",
+    " M public/audio/sentences/s_3cbbad7fc65c.mp3",
+    " M public/audio/sentences/s_3fa5bbd3cfed.mp3",
+    " M public/audio/sentences/s_4660b711c2eb.mp3",
+    " M public/audio/sentences/s_4787ccaf8c74.mp3",
+    " M public/audio/sentences/s_49a72ad7d505.mp3",
+    " M public/audio/sentences/s_502f448f83b6.mp3",
+    " M public/audio/sentences/s_50789cd1649c.mp3",
+    " M public/audio/sentences/s_52bd2b295824.mp3",
+    " M public/audio/sentences/s_551b7f3ceab3.mp3",
+    " M public/audio/sentences/s_5590eb07f3b1.mp3",
+    " M public/audio/sentences/s_57bf3dfbaf21.mp3",
+    " M public/audio/sentences/s_58352ce0f037.mp3",
+    " M public/audio/sentences/s_5911a2bcde72.mp3",
+    " M public/audio/sentences/s_5e595daa913c.mp3",
+    " M public/audio/sentences/s_5f53089f53ef.mp3",
+    " M public/audio/sentences/s_63486cc9984a.mp3",
+    " M public/audio/sentences/s_68b7fd412e98.mp3",
+    " M public/audio/sentences/s_70ab7adc961f.mp3",
+    " M public/audio/sentences/s_71c99a22be37.mp3",
+    " M public/audio/sentences/s_74b9849aebad.mp3",
+    " M public/audio/sentences/s_761fcde099ed.mp3",
+    " M public/audio/sentences/s_762ab08947e4.mp3",
+    " M public/audio/sentences/s_777b51538467.mp3",
+    " M public/audio/sentences/s_77a9d985c8f1.mp3",
+    " M public/audio/sentences/s_7f71b41b8cde.mp3",
+    " M public/audio/sentences/s_875ce64b2ff4.mp3",
+    " M public/audio/sentences/s_8b8c86ec2baa.mp3",
+    " M public/audio/sentences/s_8c6b631aaa8d.mp3",
+    " M public/audio/sentences/s_8f382e7d6b60.mp3",
+    " M public/audio/sentences/s_8fcdadc94cd5.mp3",
+    " M public/audio/sentences/s_908bef7712ff.mp3",
+    " M public/audio/sentences/s_99bcdc441866.mp3",
+    " M public/audio/sentences/s_9ae4ec1590ee.mp3",
+    " M public/audio/sentences/s_a475370eeff9.mp3",
+    " M public/audio/sentences/s_ad8ff92b0b84.mp3",
+    " M public/audio/sentences/s_aefa6a571973.mp3",
+    " M public/audio/sentences/s_b9ed15db09af.mp3",
+    " M public/audio/sentences/s_bd5a68f75669.mp3",
+    " M public/audio/sentences/s_c03218b3b37a.mp3",
+    " M public/audio/sentences/s_c04fc65caf4b.mp3",
+    " M public/audio/sentences/s_c1bae8c6807d.mp3",
+    " M public/audio/sentences/s_c54baac25928.mp3",
+    " M public/audio/sentences/s_c7a31b84a733.mp3",
+    " M public/audio/sentences/s_c9bcc6d381ff.mp3",
+    " M public/audio/sentences/s_cb3ba63b8447.mp3",
+    " M public/audio/sentences/s_cf936877b858.mp3",
+    " M public/audio/sentences/s_d3c9af19666d.mp3",
+    " M public/audio/sentences/s_d4e8c96b4c69.mp3",
+    " M public/audio/sentences/s_dc9a751c95be.mp3",
+    " M public/audio/sentences/s_e16eea64a75b.mp3",
+    " M public/audio/sentences/s_e1b587661b36.mp3",
+    " M public/audio/sentences/s_e1ef394f00a4.mp3",
+    " M public/audio/sentences/s_e40f0dfd46a7.mp3",
+    " M public/audio/sentences/s_ebd98533b73a.mp3",
+    " M public/audio/sentences/s_ee6ecbd7bcbc.mp3",
+    " M public/audio/sentences/s_f503cb575a6f.mp3",
+    " M public/audio/sentences/s_f61cb755cd17.mp3",
+    " M public/audio/sentences/s_f7e76f15f0fc.mp3",
+    " M public/audio/sentences/s_fef892741e56.mp3",
+    " M public/audio/sentences/tinok_bakbuk_google_tts.mp3",
+    "?? public/audio/sentences/audio_metadata.json",
+    "?? public/audio/sentences/s_3a6dcb6e5948.mp3",
+    "?? public/audio/sentences/s_45f02036ea44.mp3",
+    "?? public/demo/frames/",
+    "?? scratch/",
+    "?? scripts/generate_mom_drills_gemini.cjs"
+  ],
+  "checkedFiles": 19,
+  "allHashesUnchanged": true,
+  "files": [
+    {
+      "path": "growth/data/leads.json",
+      "unchanged": true
+    },
+    {
+      "path": "growth/scripts/generate_lesson_07_audio.mjs",
+      "unchanged": true
+    },
+    {
+      "path": "public/demo/frames/bg_phone_39s.png",
+      "unchanged": true
+    },
+    {
+      "path": "public/demo/frames/cta_FB.png",
+      "unchanged": true
+    },
+    {
+      "path": "public/demo/frames/cta_INSTA.png",
+      "unchanged": true
+    },
+    {
+      "path": "public/demo/frames/cta_TG.png",
+      "unchanged": true
+    },
+    {
+      "path": "public/demo/frames/cta_TIKTOK.png",
+      "unchanged": true
+    },
+    {
+      "path": "public/demo/frames/frame_01_vocab.png",
+      "unchanged": true
+    },
+    {
+      "path": "public/demo/frames/frame_02_dialogue.png",
+      "unchanged": true
+    },
+    {
+      "path": "public/demo/frames/frame_03_phone.png",
+      "unchanged": true
+    },
+    {
+      "path": "public/demo/frames/frame_04_promo.png",
+      "unchanged": true
+    },
+    {
+      "path": "public/demo/frames/frame_57s_01_vocab.png",
+      "unchanged": true
+    },
+    {
+      "path": "public/demo/frames/frame_57s_02_dialogue_eli.png",
+      "unchanged": true
+    },
+    {
+      "path": "public/demo/frames/frame_57s_03_dialogue_student.png",
+      "unchanged": true
+    },
+    {
+      "path": "public/demo/frames/frame_57s_04_dialogue_badge.png",
+      "unchanged": true
+    },
+    {
+      "path": "public/demo/frames/frame_57s_05_phone_active.png",
+      "unchanged": true
+    },
+    {
+      "path": "public/demo/frames/frame_57s_06_phone_confirm.png",
+      "unchanged": true
+    },
+    {
+      "path": "public/demo/frames/frame_57s_07_cta_insta.png",
+      "unchanged": true
+    },
+    {
+      "path": "public/demo/frames/frame_insta_43s.png",
+      "unchanged": true
+    }
+  ]
+}

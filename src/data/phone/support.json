@@ -1,0 +1,381 @@
+{
+  "1": {
+    "avatarEmoji": "👋",
+    "usefulWords": [
+      {
+        "hebrew": "שָׁלוֹם",
+        "transcription": "шалóм",
+        "translation": "привет / здравствуйте / мир"
+      },
+      {
+        "hebrew": "בּוֹקֶר טוֹב",
+        "transcription": "бóкер тов",
+        "translation": "доброе утро"
+      },
+      {
+        "hebrew": "מָה נִשְׁמַע?",
+        "transcription": "ма нишмá?",
+        "translation": "как дела? / что слышно?"
+      },
+      {
+        "hebrew": "הַכֹּל טוֹב",
+        "transcription": "hакóль тов",
+        "translation": "всё отлично / всё хорошо"
+      },
+      {
+        "hebrew": "נָעִים מְאוֹד",
+        "transcription": "наӣм мэóд",
+        "translation": "очень приятно"
+      },
+      {
+        "hebrew": "קוֹרְאִים לִי...",
+        "transcription": "коръӣм ли...",
+        "translation": "меня зовут..."
+      },
+      {
+        "hebrew": "דִּירָה",
+        "transcription": "дирá",
+        "translation": "квартира",
+        "isNew": true
+      },
+      {
+        "hebrew": "לְהִתְרָאוֹת",
+        "transcription": "лэhитраóт",
+        "translation": "до свидания"
+      }
+    ]
+  },
+  "2": {
+    "avatarEmoji": "☕",
+    "usefulWords": [
+      {
+        "hebrew": "גָּדוֹל",
+        "transcription": "гадóль",
+        "translation": "большой (размер порции)",
+        "isNew": true
+      },
+      {
+        "hebrew": "קָטָן",
+        "transcription": "катáн",
+        "translation": "маленький",
+        "isNew": true
+      },
+      {
+        "hebrew": "כַּמָּה זֶה עוֹלֶה?",
+        "transcription": "кáма зэ олé?",
+        "translation": "сколько это стоит?",
+        "isNew": true
+      },
+      {
+        "hebrew": "לְהַזְמִין",
+        "transcription": "лэhазмӣн",
+        "translation": "заказать / делать заказ",
+        "isNew": true
+      },
+      {
+        "hebrew": "אֶפְשָׁר...",
+        "transcription": "эфшáр...",
+        "translation": "можно... / разрешите...",
+        "isNew": true
+      },
+      {
+        "hebrew": "בְּלִי סוּכָּר",
+        "transcription": "бли сукáр",
+        "translation": "без сахара (בְּלִי = без)",
+        "isNew": true
+      },
+      {
+        "hebrew": "לָקַחַת (טֵייק אַוֵויי)",
+        "transcription": "лакáхат (тейк авэ́й)",
+        "translation": "навынос (с собой)",
+        "isNew": true
+      },
+      {
+        "hebrew": "קָפֶה עִם חָלָב",
+        "transcription": "кафэ́ им халáв",
+        "translation": "кофе с молоком"
+      },
+      {
+        "hebrew": "קְרוּאָסוֹן / עוּגָה",
+        "transcription": "круасóн / угá",
+        "translation": "круассан / пирожное"
+      },
+      {
+        "hebrew": "חֶשְׁבּוֹן",
+        "transcription": "хэжбóн",
+        "translation": "счет"
+      }
+    ]
+  },
+  "3": {
+    "avatarEmoji": "🏢",
+    "usefulWords": [
+      {
+        "hebrew": "נָעִים מְאוֹד",
+        "transcription": "наӣм мэóд",
+        "translation": "очень приятно",
+        "isNew": true
+      },
+      {
+        "hebrew": "מֵאֵיפֹה אַתָּה?",
+        "transcription": "мэ-э́йфо атá?",
+        "translation": "откуда ты?",
+        "isNew": true
+      },
+      {
+        "hebrew": "מֵרוּסְיָה / מִ...",
+        "transcription": "мэ-Рýсья / ми-...",
+        "translation": "из России / из...",
+        "isNew": true
+      },
+      {
+        "hebrew": "גָּר / גָּרָה",
+        "transcription": "гар / гарá",
+        "translation": "живет (м.р. / ж.р.)",
+        "isNew": true
+      },
+      {
+        "hebrew": "דִּירָה",
+        "transcription": "дирá",
+        "translation": "квартира",
+        "isNew": true
+      },
+      {
+        "hebrew": "שָׁכֵן",
+        "transcription": "шахéн",
+        "translation": "сосед",
+        "isNew": true
+      }
+    ]
+  },
+  "5": {
+    "avatarEmoji": "🛒",
+    "usefulWords": [
+      {
+        "hebrew": "כַּמָּה זֶה עוֹלֶה?",
+        "transcription": "кáма зэ олé?",
+        "translation": "сколько это стоит?"
+      },
+      {
+        "hebrew": "עֲשָׂרָה שְׁקָלִים",
+        "transcription": "асарá шкалӣм",
+        "translation": "десять шекелей (м.р.)"
+      },
+      {
+        "hebrew": "קִילוֹ",
+        "transcription": "кӣло",
+        "translation": "килограмм"
+      },
+      {
+        "hebrew": "שַׂקִּית",
+        "transcription": "сакӣт",
+        "translation": "пакет, кулёк (ж.р.)"
+      },
+      {
+        "hebrew": "אֲנִי רוֹצֶה",
+        "transcription": "анӣ роцé",
+        "translation": "я хочу (м.р.)"
+      },
+      {
+        "hebrew": "תּוֹדָה רַבָּה לְךָ",
+        "transcription": "тодá рабá лэхá",
+        "translation": "большое спасибо тебе (к продавцу-мужчине)"
+      }
+    ]
+  },
+  "6": {
+    "avatarEmoji": "👨‍👩‍👧‍👦",
+    "usefulWords": [
+      {
+        "hebrew": "זֹאת הַמִּשְׁפָּחָה שֶׁלִּי",
+        "transcription": "зот hа-мишпахá шелӣ",
+        "translation": "это моя семья",
+        "isNew": true
+      },
+      {
+        "hebrew": "אַבָּא שֶׁלִּי",
+        "transcription": "áба шелӣ",
+        "translation": "мой папа",
+        "isNew": true
+      },
+      {
+        "hebrew": "אִמָּא שֶׁלִּי",
+        "transcription": "ӣма шелӣ",
+        "translation": "моя мама",
+        "isNew": true
+      },
+      {
+        "hebrew": "אָח שֶׁלִּי",
+        "transcription": "ах шелӣ",
+        "translation": "мой брат",
+        "isNew": true
+      },
+      {
+        "hebrew": "אָחוֹת שֶׁלִּי",
+        "transcription": "ахóт шелӣ",
+        "translation": "моя сестра",
+        "isNew": true
+      }
+    ]
+  },
+  "7": {
+    "avatarEmoji": "🏢",
+    "usefulWords": [
+      {
+        "hebrew": "שָׁלוֹם",
+        "transcription": "шалóм",
+        "translation": "здравствуйте / привет"
+      },
+      {
+        "hebrew": "דִּירָה",
+        "transcription": "дирá",
+        "translation": "квартира"
+      },
+      {
+        "hebrew": "שְׁנֵי חֲדָרִים",
+        "transcription": "шнэй хадарӣм",
+        "translation": "две комнаты",
+        "isNew": true
+      },
+      {
+        "hebrew": "שְׁלוֹשָׁה חֲדָרִים",
+        "transcription": "шлошá хадарӣм",
+        "translation": "три комнаты",
+        "isNew": true
+      },
+      {
+        "hebrew": "מְקָרֵר",
+        "transcription": "мэкарэ́р",
+        "translation": "холодильник",
+        "isNew": true
+      },
+      {
+        "hebrew": "מִיטָּה",
+        "transcription": "митá",
+        "translation": "кровать",
+        "isNew": true
+      },
+      {
+        "hebrew": "שׁוּלְחָן",
+        "transcription": "шульхáн",
+        "translation": "стол",
+        "isNew": true
+      },
+      {
+        "hebrew": "כַּמָּה זֶה עוֹלֶה?",
+        "transcription": "кáма зэ олé?",
+        "translation": "сколько это стоит?"
+      },
+      {
+        "hebrew": "מָתַי אֶפְשָׁר לִרְאוֹת?",
+        "transcription": "матáй эфшáр лиръóт?",
+        "translation": "когда можно посмотреть?"
+      }
+    ]
+  },
+  "15": {
+    "avatarEmoji": "🔑",
+    "usefulWords": [
+      {
+        "hebrew": "פְּנוּיָה",
+        "transcription": "пнуйá",
+        "translation": "свободна (о квартире)",
+        "isNew": true
+      },
+      {
+        "hebrew": "שְׂכַר דִּירָה",
+        "transcription": "схар дирá",
+        "translation": "арендная плата",
+        "isNew": true
+      },
+      {
+        "hebrew": "כַּמָּה זֶה בְּחֹדֶשׁ?",
+        "transcription": "кáма зэ бэ-хóдеш?",
+        "translation": "сколько это в месяц?",
+        "isNew": true
+      },
+      {
+        "hebrew": "מַזְגָן",
+        "transcription": "мазгáн",
+        "translation": "кондиционер",
+        "isNew": true
+      },
+      {
+        "hebrew": "מָתַי אֶפְשָׁר לִרְאוֹת?",
+        "transcription": "матáй эфшáр лиръóт?",
+        "translation": "когда можно посмотреть?",
+        "isNew": true
+      }
+    ]
+  },
+  "25": {
+    "avatarEmoji": "🛵",
+    "usefulWords": [
+      {
+        "hebrew": "הַקּוֹד הוּא...",
+        "transcription": "hа-код hу...",
+        "translation": "код домофона...",
+        "isNew": true
+      },
+      {
+        "hebrew": "קוֹמָה",
+        "transcription": "комá",
+        "translation": "этаж",
+        "isNew": true
+      },
+      {
+        "hebrew": "לְיַד הַדֶּלֶת",
+        "transcription": "лэ-йад hа-дéлет",
+        "translation": "возле двери",
+        "isNew": true
+      },
+      {
+        "hebrew": "תַּשְׁאִיר",
+        "transcription": "ташъӣр",
+        "translation": "оставь",
+        "isNew": true
+      },
+      {
+        "hebrew": "שַׂקִּית",
+        "transcription": "сакӣт",
+        "translation": "пакет",
+        "isNew": true
+      }
+    ]
+  },
+  "40": {
+    "avatarEmoji": "🏥",
+    "usefulWords": [
+      {
+        "hebrew": "לִקְבֹּעַ תּוֹר",
+        "transcription": "ликбóа тор",
+        "translation": "назначить очередь",
+        "isNew": true
+      },
+      {
+        "hebrew": "רוֹפֵא מִשְׁפָּחָה",
+        "transcription": "рофэ́ мишпахá",
+        "translation": "семейный врач (терапевт)",
+        "isNew": true
+      },
+      {
+        "hebrew": "תּוֹר פָּנוּי",
+        "transcription": "тор панӯй",
+        "translation": "свободная очередь",
+        "isNew": true
+      },
+      {
+        "hebrew": "בַּבֹּקֶר",
+        "transcription": "ба-бóкер",
+        "translation": "утром",
+        "isNew": true
+      },
+      {
+        "hebrew": "תְּעוּדַת זֶהוּת",
+        "transcription": "тэудáт зэhӯт",
+        "translation": "удостоверение личности (паспорт)",
+        "isNew": true
+      }
+    ]
+  }
+}
