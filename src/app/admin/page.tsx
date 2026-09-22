@@ -485,6 +485,19 @@ export default function AdminPage() {
 
   useEffect(() => {
     loadAllData();
+
+    const syncTabFromHash = () => {
+      const hash = window.location.hash.replace('#', '').toLowerCase();
+      if (['stats', 'users', 'calls', 'essays', 'promos', 'access', 'marketing', 'audio'].includes(hash)) {
+        setActiveTab(hash as any);
+      } else if (hash === 'voice' || hash === 'tts') {
+        setActiveTab('audio');
+      }
+    };
+
+    syncTabFromHash();
+    window.addEventListener('hashchange', syncTabFromHash);
+    return () => window.removeEventListener('hashchange', syncTabFromHash);
   }, [loadAllData]);
 
   const isChatCall = useCallback((call: AdminCallLog) => {
@@ -876,10 +889,13 @@ export default function AdminPage() {
       {/* Main Container */}
       <main className="max-w-7xl mx-auto w-full px-4 sm:px-6 py-6 flex-1 flex flex-col gap-6">
         {/* Navigation Tabs */}
-        <div className="flex items-center gap-2 border-b border-zinc-200 dark:border-zinc-800 pb-2">
+        <div className="flex items-center gap-2 border-b border-zinc-200 dark:border-zinc-800 pb-2 overflow-x-auto no-scrollbar scroll-smooth">
           <button
-            onClick={() => setActiveTab('stats')}
-            className={`px-4 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 transition ${
+            onClick={() => {
+              setActiveTab('stats');
+              window.location.hash = 'stats';
+            }}
+            className={`shrink-0 px-4 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 transition ${
               activeTab === 'stats'
                 ? 'bg-blue-600 text-white shadow-sm'
                 : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900'
@@ -890,8 +906,11 @@ export default function AdminPage() {
           </button>
 
           <button
-            onClick={() => setActiveTab('users')}
-            className={`px-4 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 transition ${
+            onClick={() => {
+              setActiveTab('users');
+              window.location.hash = 'users';
+            }}
+            className={`shrink-0 px-4 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 transition ${
               activeTab === 'users'
                 ? 'bg-blue-600 text-white shadow-sm'
                 : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900'
@@ -907,8 +926,11 @@ export default function AdminPage() {
           </button>
 
           <button
-            onClick={() => setActiveTab('calls')}
-            className={`px-4 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 transition ${
+            onClick={() => {
+              setActiveTab('calls');
+              window.location.hash = 'calls';
+            }}
+            className={`shrink-0 px-4 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 transition ${
               activeTab === 'calls'
                 ? 'bg-blue-600 text-white shadow-sm'
                 : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900'
@@ -924,8 +946,11 @@ export default function AdminPage() {
           </button>
 
           <button
-            onClick={() => setActiveTab('essays')}
-            className={`px-4 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 transition ${
+            onClick={() => {
+              setActiveTab('essays');
+              window.location.hash = 'essays';
+            }}
+            className={`shrink-0 px-4 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 transition ${
               activeTab === 'essays'
                 ? 'bg-blue-600 text-white shadow-sm'
                 : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900'
@@ -941,8 +966,11 @@ export default function AdminPage() {
           </button>
 
           <button
-            onClick={() => setActiveTab('promos')}
-            className={`px-4 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 transition ${
+            onClick={() => {
+              setActiveTab('promos');
+              window.location.hash = 'promos';
+            }}
+            className={`shrink-0 px-4 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 transition ${
               activeTab === 'promos'
                 ? 'bg-blue-600 text-white shadow-sm'
                 : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900'
@@ -960,9 +988,10 @@ export default function AdminPage() {
           <button
             onClick={() => {
               setActiveTab('access');
+              window.location.hash = 'access';
               fetchAccessRules();
             }}
-            className={`px-4 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 transition ${
+            className={`shrink-0 px-4 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 transition ${
               activeTab === 'access'
                 ? 'bg-blue-600 text-white shadow-sm'
                 : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900'
@@ -973,8 +1002,11 @@ export default function AdminPage() {
           </button>
 
           <button
-            onClick={() => setActiveTab('marketing')}
-            className={`px-4 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 transition ${
+            onClick={() => {
+              setActiveTab('marketing');
+              window.location.hash = 'marketing';
+            }}
+            className={`shrink-0 px-4 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 transition ${
               activeTab === 'marketing'
                 ? 'bg-blue-600 text-white shadow-sm'
                 : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900'
@@ -985,15 +1017,25 @@ export default function AdminPage() {
           </button>
 
           <button
-            onClick={() => setActiveTab('audio')}
-            className={`px-4 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 transition ${
+            onClick={() => {
+              setActiveTab('audio');
+              window.location.hash = 'audio';
+            }}
+            className={`shrink-0 px-4 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 transition ${
               activeTab === 'audio'
-                ? 'bg-blue-600 text-white shadow-sm'
-                : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900'
+                ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md'
+                : 'text-zinc-700 dark:text-zinc-300 hover:bg-purple-50 dark:hover:bg-purple-950/30 border border-purple-300/70 dark:border-purple-800/60'
             }`}
           >
-            <Volume2 className="w-4 h-4" />
-            <span>Студия озвучки</span>
+            <Volume2 className={`w-4 h-4 ${activeTab === 'audio' ? 'text-white' : 'text-purple-600 dark:text-purple-400'}`} />
+            <span>🎙️ Голосовая студия</span>
+            <span className={`text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded ${
+              activeTab === 'audio'
+                ? 'bg-white/20 text-white'
+                : 'bg-purple-100 dark:bg-purple-900/60 text-purple-700 dark:text-purple-300'
+            }`}>
+              TTS
+            </span>
           </button>
         </div>
 
@@ -1073,6 +1115,36 @@ export default function AdminPage() {
                   </div>
                 </div>
               </div>
+            </div>
+
+            {/* Quick-Access Voice Studio Banner */}
+            <div className="bg-gradient-to-r from-purple-900/10 via-indigo-900/10 to-blue-900/10 border border-purple-200 dark:border-purple-800/50 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-purple-600 text-white flex items-center justify-center shrink-0 shadow-sm">
+                  <Volume2 className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="font-bold text-sm text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+                    <span>Голосовая студия и банк озвучки</span>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300">
+                      2 688 фраз
+                    </span>
+                  </div>
+                  <div className="text-xs text-zinc-500 dark:text-zinc-400">
+                    Управление нейросетевыми дикторами (Edge Neural Avri ♂ / Hila ♀), проверка ударений и генерация аудио.
+                  </div>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  setActiveTab('audio');
+                  window.location.hash = 'audio';
+                }}
+                className="shrink-0 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold transition shadow-sm flex items-center gap-2"
+              >
+                <span>Открыть голосовую студию</span>
+                <ChevronRight className="w-4 h-4" />
+              </button>
             </div>
 
             {/* Recent Activity Table */}
