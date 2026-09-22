@@ -163,6 +163,7 @@ export const ComplexDrillMode: React.FC<ComplexDrillModeProps> = ({
   const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [recordedFiles, setRecordedFiles] = useState<{ male: string | null; female: string | null }>({ male: null, female: null });
+  const [audioMeta, setAudioMeta] = useState<Record<string, any> | null>(null);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -175,6 +176,14 @@ export const ComplexDrillMode: React.FC<ComplexDrillModeProps> = ({
       if (window.speechSynthesis) {
         window.speechSynthesis.onvoiceschanged = updateVoices;
       }
+      fetch('/audio/sentences/audio_metadata.json')
+        .then((r) => (r.ok ? r.json() : null))
+        .then((data) => {
+          if (data && typeof data === 'object') {
+            setAudioMeta(data);
+          }
+        })
+        .catch(() => {});
     }
   }, []);
 
@@ -193,6 +202,28 @@ export const ComplexDrillMode: React.FC<ComplexDrillModeProps> = ({
       active = false;
     };
   }, [activeDrill.sentenceHe, isAdmin]);
+
+  // Проверка: озвучена ли текущая фраза студийным ИИ Gemini 3.5 (R-24)
+  const currentSentenceMeta = useMemo(() => {
+    if (!audioMeta || !activeDrill.sentenceHe) return null;
+    const cleanCurrent = stripNikkud(activeDrill.sentenceHe)
+      .replace(/["״׳']/g, '')
+      .replace(/[.,!?:;«»()[\]{}—\-]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+    for (const item of Object.values(audioMeta)) {
+      if (!item || !item.sentenceHe) continue;
+      const cleanItem = stripNikkud(item.sentenceHe)
+        .replace(/["״׳']/g, '')
+        .replace(/[.,!?:;«»()[\]{}—\-]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+      if (cleanItem === cleanCurrent) {
+        return item;
+      }
+    }
+    return null;
+  }, [audioMeta, activeDrill.sentenceHe]);
 
   const handleTestDeviceTts = async (gender: 'male' | 'female') => {
     stopSpeech();
@@ -776,9 +807,9 @@ export const ComplexDrillMode: React.FC<ComplexDrillModeProps> = ({
 
       {/* ГЛАВНЫЙ ЭКРАН СЛУХОВОГО КОМПЛЕКСА */}
       <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-6 sm:p-8 shadow-lg space-y-6 relative overflow-hidden">
-        {/* Индикатор этапа */}
-        <div className="flex items-center justify-between text-xs font-medium text-zinc-500">
-          <div className="flex items-center gap-2">
+        {/* Индикатор этапа и источника аудио */}
+        <div className="flex items-center justify-between text-xs font-medium text-zinc-500 gap-2 flex-wrap">
+          <div className="flex items-center gap-2 flex-wrap">
             {phase === 'listening_he' && (
               <span className="flex items-center gap-1.5 text-blue-600 dark:text-blue-400 font-bold animate-pulse">
                 <Volume2 className="w-4 h-4" /> 1. Слушаем фразу на иврите...
@@ -797,6 +828,19 @@ export const ComplexDrillMode: React.FC<ComplexDrillModeProps> = ({
             {phase === 'revealed' && (
               <span className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-bold">
                 <Check className="w-4 h-4" /> 4. Разбор карточки
+              </span>
+            )}
+
+            {/* МЕТКА ДВИЖКА ОЗВУЧКИ: GEMINI 3.5 VS СТАНДАРТНЫЙ */}
+            {currentSentenceMeta?.status === 'verified_gemini_3.5' ? (
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-gradient-to-r from-purple-500/15 to-amber-500/15 border border-purple-300 dark:border-purple-700/60 text-purple-700 dark:text-purple-300 font-bold text-[10px] shadow-2xs">
+                <Sparkles className="w-3 h-3 text-amber-500 fill-amber-400" />
+                <span>✨ Студия Gemini 3.5 ({currentSentenceMeta.voice || 'Aoede'})</span>
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 text-[10px] font-medium">
+                <Volume2 className="w-3 h-3 opacity-60" />
+                <span>Стандартный синтез</span>
               </span>
             )}
           </div>
