@@ -23,14 +23,8 @@ import {
   speakHebrew,
   speakRussian,
   stopSpeech,
-  getSentenceAudioEngine,
-  setSentenceAudioEngine,
-  getCuratedSentenceAudio,
   getRecordedSentenceAudio,
-  getAvailableHebrewVoices,
-  playFallbackAudio,
 } from '@/lib/speech';
-import { isVipUser } from '@/lib/vipUsers';
 import { findOfflineVerbConjugation } from '@/lib/verbConjugations';
 import { WordLookupModal } from '@/components/WordLookupModal';
 import { addWordToPersonalDict, isWordInPersonalDict } from '@/lib/storage';
@@ -149,33 +143,16 @@ export const ComplexDrillMode: React.FC<ComplexDrillModeProps> = ({
   const [lookupContext, setLookupContext] = useState<string | undefined>(undefined);
   const [lookupSentenceTranslation, setLookupSentenceTranslation] = useState<string | undefined>(undefined);
   const [lookupSentenceTranscription, setLookupSentenceTranscription] = useState<string | undefined>(undefined);
-
   // Ссылки на таймеры
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const autoTimerRef = useRef<NodeJS.Timeout | null>(null);
   const playCycleIdRef = useRef<number>(0);
   const isMountedRef = useRef<boolean>(true);
 
-  // Панель сравнительной озвучки (только для администратора)
-  const isAdmin = isVipUser(userProfile.username, userProfile.telegramId, userProfile.name);
-  const [activeEngine, setActiveEngine] = useState<'current' | 'google_cloud' | 'edge_neural'>('edge_neural');
-  const [testingVoiceId, setTestingVoiceId] = useState<string | null>(null);
-  const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
-  const [statusMessage, setStatusMessage] = useState<string | null>(null);
-  const [recordedFiles, setRecordedFiles] = useState<{ male: string | null; female: string | null }>({ male: null, female: null });
   const [audioMeta, setAudioMeta] = useState<Record<string, any> | null>(null);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      setActiveEngine(getSentenceAudioEngine());
-      const updateVoices = () => {
-        const v = getAvailableHebrewVoices();
-        setAvailableVoices(v);
-      };
-      updateVoices();
-      if (window.speechSynthesis) {
-        window.speechSynthesis.onvoiceschanged = updateVoices;
-      }
       fetch('/audio/sentences/audio_metadata.json')
         .then((r) => (r.ok ? r.json() : null))
         .then((data) => {
@@ -187,21 +164,7 @@ export const ComplexDrillMode: React.FC<ComplexDrillModeProps> = ({
     }
   }, []);
 
-  // Синхронизация файлов из базы для текущей фразы
-  useEffect(() => {
-    let active = true;
-    if (!isAdmin) return;
-    setRecordedFiles({ male: null, female: null });
-    getRecordedSentenceAudio(activeDrill.sentenceHe, 'male').then((maleUrl) => {
-      if (active) setRecordedFiles((prev) => ({ ...prev, male: maleUrl }));
-    });
-    getRecordedSentenceAudio(activeDrill.sentenceHe, 'female').then((femaleUrl) => {
-      if (active) setRecordedFiles((prev) => ({ ...prev, female: femaleUrl }));
-    });
-    return () => {
-      active = false;
-    };
-  }, [activeDrill.sentenceHe, isAdmin]);
+  // Синхронизация файлов из базы для текущей фразы — не нужна без Admin Lab
 
   // Проверка: озвучена ли текущая фраза студийным ИИ Gemini 3.5 (R-24)
   const currentSentenceMeta = useMemo(() => {
@@ -225,85 +188,7 @@ export const ComplexDrillMode: React.FC<ComplexDrillModeProps> = ({
     return null;
   }, [audioMeta, activeDrill.sentenceHe]);
 
-  const handleTestDeviceTts = async (gender: 'male' | 'female') => {
-    stopSpeech();
-    setTestingVoiceId(`device_${gender}`);
-    const selectedVoice = availableVoices.length > 0
-      ? (gender === 'female'
-          ? availableVoices.find((v) => /hila|sara|carmit|female|אישה/i.test(v.name)) || availableVoices[0]
-          : availableVoices.find((v) => /asaf|guy|david|male|גבר/i.test(v.name)) || availableVoices[0])
-      : null;
-    const voiceName = selectedVoice ? selectedVoice.name : 'Системный по умолчанию';
-    setStatusMessage(`📱 Телефон: "${voiceName}" (pitch: ${gender === 'male' ? '0.80' : '1.15'})`);
 
-    try {
-      await speakHebrew(activeDrill.sentenceHe, {
-        preferStudioAudio: false,
-        rate: speechRate,
-        gender,
-        pitch: gender === 'male' ? 0.8 : 1.15,
-      });
-    } finally {
-      setTestingVoiceId(null);
-    }
-  };
-
-  const handleTestRecordedAudio = async (gender: 'male' | 'female') => {
-    stopSpeech();
-    setTestingVoiceId(`recorded_${gender}`);
-    setStatusMessage(null);
-    try {
-      const url = await getRecordedSentenceAudio(activeDrill.sentenceHe, gender);
-      if (url) {
-        const fileName = url.split('/').pop() || url;
-        setStatusMessage(`🎙️ База (${gender === 'male' ? 'Avri ♂' : 'Hila ♀'}): файл ${fileName}`);
-        await new Promise<void>((resolve) => {
-          const a = new Audio(url);
-          a.onended = () => resolve();
-          a.onerror = () => {
-            setStatusMessage(`❌ Ошибка загрузки MP3 файла: ${fileName}`);
-            resolve();
-          };
-          a.play().catch((err) => {
-            setStatusMessage(`❌ Ошибка воспроизведения: ${String(err)}`);
-            resolve();
-          });
-        });
-      } else {
-        setStatusMessage(`⚠️ Для этой фразы (${gender === 'female' ? 'Hila ♀' : 'Avri ♂'}) нет MP3 в манифесте!`);
-      }
-    } finally {
-      setTestingVoiceId(null);
-    }
-  };
-
-  const handleTestGoogleFallback = async () => {
-    stopSpeech();
-    setTestingVoiceId('google');
-    setStatusMessage('🌐 Google Translate TTS: прямое воспроизведение веб-аудио');
-    try {
-      await playFallbackAudio(activeDrill.sentenceHe, speechRate, 'iw');
-    } finally {
-      setTestingVoiceId(null);
-    }
-  };
-
-  const handleSwitchGlobalEngine = async (newEngine: 'current' | 'edge_neural') => {
-    setSentenceAudioEngine(newEngine);
-    setActiveEngine(newEngine);
-    setStatusMessage(
-      newEngine === 'current'
-        ? '✅ Платформа переключена на: 📱 Синтез с телефона (Web Speech API)'
-        : '✅ Платформа переключена на: 🎙️ База MP3 (Edge Neural Avri & Hila)'
-    );
-    try {
-      await fetch('/api/admin/audio-sentences', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'set_engine', engine: newEngine }),
-      });
-    } catch {}
-  };
 
   // Очистка при размонтировании
   useEffect(() => {
@@ -433,10 +318,30 @@ export const ComplexDrillMode: React.FC<ComplexDrillModeProps> = ({
     const currentCycleId = playCycleIdRef.current;
 
     // Шаг 1: Воспроизведение фразы на иврите
+    // Приоритет: студийный MP3 из manifest (Gemini 3.5 / Edge Neural) → TTS браузера
     setPhase('listening_he');
     setCountdown(pauseDurationSec);
 
-    speakHebrew(targetItem.sentenceHe, { rate: speechRate, gender: userProfile.gender }).then(() => {
+    const playHebrewSentence = async (): Promise<void> => {
+      const gender = userProfile.gender ?? 'male';
+      const mp3Url = await getRecordedSentenceAudio(targetItem.sentenceHe, gender);
+      if (mp3Url) {
+        return new Promise<void>((resolve) => {
+          const audio = new Audio(mp3Url);
+          audio.onended = () => resolve();
+          audio.onerror = () => {
+            // Если MP3 не загрузился — TTS как запасной вариант
+            speakHebrew(targetItem.sentenceHe, { rate: speechRate, gender }).then(resolve).catch(resolve);
+          };
+          audio.play().catch(() => {
+            speakHebrew(targetItem.sentenceHe, { rate: speechRate, gender }).then(resolve).catch(resolve);
+          });
+        });
+      }
+      return speakHebrew(targetItem.sentenceHe, { rate: speechRate, gender });
+    };
+
+    playHebrewSentence().then(() => {
       if (!isMountedRef.current || playCycleIdRef.current !== currentCycleId) return;
 
       // Шаг 2: Активная пауза студента (3–5 сек)
@@ -628,182 +533,6 @@ export const ComplexDrillMode: React.FC<ComplexDrillModeProps> = ({
           </button>
         </div>
       </div>
-
-      {/* ПАНЕЛЬ СРАВНИТЕЛЬНОЙ ОЗВУЧКИ (ТОЛЬКО ДЛЯ АДМИНИСТРАТОРА) */}
-      {isAdmin && (
-        <div className="bg-gradient-to-r from-amber-500/10 via-purple-500/10 to-blue-500/10 border border-amber-300 dark:border-amber-700/60 rounded-2xl p-3.5 space-y-3 shadow-xs">
-          <div className="flex items-center justify-between flex-wrap gap-2">
-            <div className="flex items-center gap-2">
-              <span className="px-2 py-0.5 rounded-full bg-amber-500 text-white font-black text-[10px] uppercase tracking-wider">
-                Admin Voice Lab
-              </span>
-              <span className="font-bold text-xs text-zinc-900 dark:text-zinc-100">
-                Сравнение озвучки фразы на разных движках
-              </span>
-            </div>
-            <div className="flex items-center gap-1.5 text-[11px] text-zinc-500 dark:text-zinc-400">
-              <span>Режим платформы:</span>
-              <span className={`px-2 py-0.5 rounded-md font-bold text-[10px] uppercase ${
-                activeEngine === 'current'
-                  ? 'bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300'
-                  : 'bg-purple-100 dark:bg-purple-900/60 text-purple-700 dark:text-purple-300'
-              }`}>
-                {activeEngine === 'current' ? '📱 Телефон (Web Speech)' : '🎙️ База MP3 (Edge Neural)'}
-              </span>
-            </div>
-          </div>
-
-          {/* Диагностика системных голосов устройства */}
-          {availableVoices.length <= 1 ? (
-            <div className="flex items-start gap-2 p-2.5 rounded-xl bg-amber-100/70 dark:bg-amber-950/40 border border-amber-300/60 dark:border-amber-700/50 text-[11px] text-amber-900 dark:text-amber-200">
-              <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" />
-              <div>
-                <span className="font-semibold">Внимание: </span>
-                В вашем браузере/ОС обнаружен всего{' '}
-                <strong>{availableVoices.length === 1 ? `1 системный голос («${availableVoices[0].name}»)` : '0 голосов иврита'}</strong>.
-                Кнопки «Телефон ♂» и «Телефон ♀» используют этот голос, меняя только pitch (высоту тона).
-                Честное разделение ♂/♀ дают кнопки <strong>База Avri / Hila (MP3)</strong> или браузеры Edge (Asaf/Hila) и Safari iOS (Guy/Carmit).
-              </div>
-            </div>
-          ) : (
-            <div className="text-[11px] text-zinc-600 dark:text-zinc-400 flex items-center gap-1.5 px-1">
-              <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-              <span>Доступные голоса ОС: <strong>{availableVoices.map((v) => v.name).join(', ')}</strong></span>
-            </div>
-          )}
-
-          {/* Статус текущего воспроизведения */}
-          {statusMessage && (
-            <div className="px-3 py-1.5 rounded-xl bg-zinc-900/90 text-amber-300 dark:bg-zinc-800 border border-zinc-700 font-mono text-[11px] flex items-center justify-between">
-              <span>{statusMessage}</span>
-              {testingVoiceId && <span className="animate-spin text-xs">⏳</span>}
-            </div>
-          )}
-
-          {/* Кнопки прослушивания разных голосов */}
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-xs">
-            {/* 1. Синтез с телефона (Web Speech) ♂ */}
-            <button
-              type="button"
-              onClick={() => handleTestDeviceTts('male')}
-              disabled={Boolean(testingVoiceId)}
-              className={`p-2.5 rounded-xl border text-center transition flex flex-col items-center justify-center gap-1 cursor-pointer ${
-                testingVoiceId === 'device_male'
-                  ? 'bg-blue-600 text-white border-blue-600 shadow-sm ring-2 ring-blue-300'
-                  : 'bg-white dark:bg-zinc-800/80 hover:bg-blue-50 dark:hover:bg-blue-950/40 border-zinc-200 dark:border-zinc-700 text-zinc-800 dark:text-zinc-200'
-              }`}
-            >
-              <div className="flex items-center gap-1 font-bold text-xs">
-                <span>📱 Телефон ♂</span>
-              </div>
-              <span className="text-[10px] opacity-70">Web Speech (pitch 0.8)</span>
-            </button>
-
-            {/* 2. Синтез с телефона (Web Speech) ♀ */}
-            <button
-              type="button"
-              onClick={() => handleTestDeviceTts('female')}
-              disabled={Boolean(testingVoiceId)}
-              className={`p-2.5 rounded-xl border text-center transition flex flex-col items-center justify-center gap-1 cursor-pointer ${
-                testingVoiceId === 'device_female'
-                  ? 'bg-pink-600 text-white border-pink-600 shadow-sm ring-2 ring-pink-300'
-                  : 'bg-white dark:bg-zinc-800/80 hover:bg-pink-50 dark:hover:bg-pink-950/40 border-zinc-200 dark:border-zinc-700 text-zinc-800 dark:text-zinc-200'
-              }`}
-            >
-              <div className="flex items-center gap-1 font-bold text-xs">
-                <span>📱 Телефон ♀</span>
-              </div>
-              <span className="text-[10px] opacity-70">Web Speech (pitch 1.15)</span>
-            </button>
-
-            {/* 3. Запись в базе (Edge Neural ♂ Avri) */}
-            <button
-              type="button"
-              onClick={() => handleTestRecordedAudio('male')}
-              disabled={Boolean(testingVoiceId)}
-              className={`p-2.5 rounded-xl border text-center transition flex flex-col items-center justify-center gap-1 cursor-pointer ${
-                testingVoiceId === 'recorded_male'
-                  ? 'bg-purple-600 text-white border-purple-600 shadow-sm ring-2 ring-purple-300'
-                  : 'bg-white dark:bg-zinc-800/80 hover:bg-purple-50 dark:hover:bg-purple-950/40 border-zinc-200 dark:border-zinc-700 text-zinc-800 dark:text-zinc-200'
-              }`}
-            >
-              <div className="flex items-center gap-1 font-bold text-xs">
-                <span>🎙️ База ♂ Avri</span>
-              </div>
-              <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-purple-100 dark:bg-purple-900/60 text-purple-700 dark:text-purple-300 truncate max-w-full">
-                {recordedFiles.male ? recordedFiles.male.split('/').pop() : 'Нет в базе'}
-              </span>
-            </button>
-
-            {/* 4. Запись в базе (Edge Neural ♀ Hila) */}
-            <button
-              type="button"
-              onClick={() => handleTestRecordedAudio('female')}
-              disabled={Boolean(testingVoiceId)}
-              className={`p-2.5 rounded-xl border text-center transition flex flex-col items-center justify-center gap-1 cursor-pointer ${
-                testingVoiceId === 'recorded_female'
-                  ? 'bg-purple-600 text-white border-purple-600 shadow-sm ring-2 ring-purple-300'
-                  : 'bg-white dark:bg-zinc-800/80 hover:bg-purple-50 dark:hover:bg-purple-950/40 border-zinc-200 dark:border-zinc-700 text-zinc-800 dark:text-zinc-200'
-              }`}
-            >
-              <div className="flex items-center gap-1 font-bold text-xs">
-                <span>🎙️ База ♀ Hila</span>
-              </div>
-              <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-purple-100 dark:bg-purple-900/60 text-purple-700 dark:text-purple-300 truncate max-w-full">
-                {recordedFiles.female ? recordedFiles.female.split('/').pop() : 'Нет в базе'}
-              </span>
-            </button>
-
-            {/* 5. Google Translate Fallback */}
-            <button
-              type="button"
-              onClick={handleTestGoogleFallback}
-              disabled={Boolean(testingVoiceId)}
-              className={`p-2.5 rounded-xl border text-center transition flex flex-col items-center justify-center gap-1 cursor-pointer ${
-                testingVoiceId === 'google'
-                  ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm ring-2 ring-emerald-300'
-                  : 'bg-white dark:bg-zinc-800/80 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 border-zinc-200 dark:border-zinc-700 text-zinc-800 dark:text-zinc-200'
-              }`}
-            >
-              <div className="flex items-center gap-1 font-bold text-xs">
-                <span>🌐 Google</span>
-              </div>
-              <span className="text-[10px] opacity-70">Fallback TTS</span>
-            </button>
-          </div>
-
-          {/* Быстрое переключение платформы для всего комплекса */}
-          <div className="pt-2 border-t border-amber-200/50 dark:border-amber-800/40 flex items-center justify-between flex-wrap gap-2 text-xs">
-            <span className="text-zinc-600 dark:text-zinc-400 font-medium text-[11px]">
-              Сделать основным движком всего комплекса:
-            </span>
-            <div className="flex items-center gap-1.5">
-              <button
-                type="button"
-                onClick={() => handleSwitchGlobalEngine('current')}
-                className={`px-3 py-1 rounded-lg font-bold text-xs transition cursor-pointer ${
-                  activeEngine === 'current'
-                    ? 'bg-blue-600 text-white shadow-xs'
-                    : 'bg-white dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-700'
-                }`}
-              >
-                📱 Телефон (как в диалогах)
-              </button>
-              <button
-                type="button"
-                onClick={() => handleSwitchGlobalEngine('edge_neural')}
-                className={`px-3 py-1 rounded-lg font-bold text-xs transition cursor-pointer ${
-                  activeEngine === 'edge_neural'
-                    ? 'bg-purple-600 text-white shadow-xs'
-                    : 'bg-white dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-700'
-                }`}
-              >
-                🎙️ База файлов (Edge Neural)
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* ГЛАВНЫЙ ЭКРАН СЛУХОВОГО КОМПЛЕКСА */}
       <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-6 sm:p-8 shadow-lg space-y-6 relative overflow-hidden">
