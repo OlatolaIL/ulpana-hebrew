@@ -65,7 +65,29 @@ export const ComplexDrillMode: React.FC<ComplexDrillModeProps> = ({
   const isCursive = userProfile.fontStyle === 'cursive';
   const showNikkud = userProfile.showNikkud !== false;
   const showTranscription = userProfile.showTranscription !== false;
-  const speechRate = userProfile.speechRate || 0.7;
+
+  // Локальная скорость озвучки в режиме «Комплекс» (не перезаписывает глобальный профиль)
+  const [localSpeechRate, setLocalSpeechRate] = useState<number>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('complex_drill_speech_rate');
+        if (saved) {
+          const val = parseFloat(saved);
+          if (!isNaN(val) && val >= 0.5 && val <= 1.5) return val;
+        }
+      } catch {}
+    }
+    return userProfile.speechRate || 0.7;
+  });
+
+  const handleSetLocalSpeed = (rate: number) => {
+    setLocalSpeechRate(rate);
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('complex_drill_speech_rate', rate.toString());
+      } catch {}
+    }
+  };
 
   // Извлекаем обучающие данные из реестра (Инварианты R-01, R-18, полиморфный диспетчер)
   const drillItems = useMemo(() => {
@@ -240,7 +262,7 @@ export const ComplexDrillMode: React.FC<ComplexDrillModeProps> = ({
       if (targetItem.type === 'verb') {
         // Для глагола: Инфинитив на иврите -> Перевод инфинитива
         const infHe = targetItem.verbInfinitive || currentWord.hebrew;
-        speakHebrew(infHe, { rate: speechRate }).then(() => {
+        speakHebrew(infHe, { rate: localSpeechRate }).then(() => {
           if (!isMountedRef.current || playCycleIdRef.current !== cycleId) return;
           const infRu = currentWord.translation || targetItem.targetWordTranslation;
           speakRussian(infRu, { rate: 0.95 }).then(() => {
@@ -249,13 +271,11 @@ export const ComplexDrillMode: React.FC<ComplexDrillModeProps> = ({
           });
         });
       } else if (targetItem.type === 'noun') {
-        // Для существительного: Озвучиваем разбираемое слово на иврите (без дублирования) -> Перевод + Род
+        // Для существительного: Озвучиваем разбираемое слово на иврите (без дублирования) -> Перевод
         const wordHe = targetItem.targetWordVocalized || targetItem.singularHe;
-        speakHebrew(wordHe, { rate: speechRate }).then(() => {
+        speakHebrew(wordHe, { rate: localSpeechRate }).then(() => {
           if (!isMountedRef.current || playCycleIdRef.current !== cycleId) return;
-          const genderRu = targetItem.gender === 'm' ? 'Мужской род' : 'Женский род';
-          const noteRu = targetItem.pluralNote ? `. ${targetItem.pluralNote}` : '';
-          const confirmText = `${targetItem.targetWordTranslation}. ${genderRu}${noteRu}.`;
+          const confirmText = targetItem.targetWordTranslation;
           speakRussian(confirmText, { rate: 0.95 }).then(() => {
             if (!isMountedRef.current || playCycleIdRef.current !== cycleId) return;
             finishConfirmation();
@@ -263,19 +283,19 @@ export const ComplexDrillMode: React.FC<ComplexDrillModeProps> = ({
         });
       } else if (targetItem.type === 'adjective') {
         // Для прилагательного: Базовая форма на иврите -> Перевод
-        speakHebrew(targetItem.forms.ms.hebrew, { rate: speechRate }).then(() => {
+        speakHebrew(targetItem.forms.ms.hebrew, { rate: localSpeechRate }).then(() => {
           if (!isMountedRef.current || playCycleIdRef.current !== cycleId) return;
-          const confirmText = `${targetItem.targetWordTranslation}. Прилагательное.`;
+          const confirmText = targetItem.targetWordTranslation;
           speakRussian(confirmText, { rate: 0.95 }).then(() => {
             if (!isMountedRef.current || playCycleIdRef.current !== cycleId) return;
             finishConfirmation();
           });
         });
       } else if (targetItem.type === 'preposition') {
-        // Для предлога: Форма со склонением -> Перевод + Лицо
-        speakHebrew(targetItem.inflectedFormHe, { rate: speechRate }).then(() => {
+        // Для предлога: Форма со склонением -> Перевод
+        speakHebrew(targetItem.inflectedFormHe, { rate: localSpeechRate }).then(() => {
           if (!isMountedRef.current || playCycleIdRef.current !== cycleId) return;
-          const confirmText = `${targetItem.targetWordTranslation}. ${targetItem.personTitle}.`;
+          const confirmText = targetItem.targetWordTranslation;
           speakRussian(confirmText, { rate: 0.95 }).then(() => {
             if (!isMountedRef.current || playCycleIdRef.current !== cycleId) return;
             finishConfirmation();
@@ -283,7 +303,7 @@ export const ComplexDrillMode: React.FC<ComplexDrillModeProps> = ({
         });
       } else {
         // Для прочих: Слово на иврите -> Перевод
-        speakHebrew(targetItem.targetWordVocalized, { rate: speechRate }).then(() => {
+        speakHebrew(targetItem.targetWordVocalized, { rate: localSpeechRate }).then(() => {
           if (!isMountedRef.current || playCycleIdRef.current !== cycleId) return;
           speakRussian(targetItem.targetWordTranslation, { rate: 0.95 }).then(() => {
             if (!isMountedRef.current || playCycleIdRef.current !== cycleId) return;
@@ -328,17 +348,18 @@ export const ComplexDrillMode: React.FC<ComplexDrillModeProps> = ({
       if (mp3Url) {
         return new Promise<void>((resolve) => {
           const audio = new Audio(mp3Url);
+          audio.playbackRate = Math.max(0.5, Math.min(1.5, localSpeechRate));
           audio.onended = () => resolve();
           audio.onerror = () => {
             // Если MP3 не загрузился — TTS как запасной вариант
-            speakHebrew(targetItem.sentenceHe, { rate: speechRate, gender }).then(resolve).catch(resolve);
+            speakHebrew(targetItem.sentenceHe, { rate: localSpeechRate, gender }).then(resolve).catch(resolve);
           };
           audio.play().catch(() => {
-            speakHebrew(targetItem.sentenceHe, { rate: speechRate, gender }).then(resolve).catch(resolve);
+            speakHebrew(targetItem.sentenceHe, { rate: localSpeechRate, gender }).then(resolve).catch(resolve);
           });
         });
       }
-      return speakHebrew(targetItem.sentenceHe, { rate: speechRate, gender });
+      return speakHebrew(targetItem.sentenceHe, { rate: localSpeechRate, gender });
     };
 
     playHebrewSentence().then(() => {
@@ -426,7 +447,7 @@ export const ComplexDrillMode: React.FC<ComplexDrillModeProps> = ({
   const handleRootFamilySpeak = (e: React.MouseEvent, hebrew: string) => {
     e.stopPropagation();
     stopSpeech();
-    onSpeakHebrew(hebrew, { rate: speechRate });
+    onSpeakHebrew(hebrew, { rate: localSpeechRate });
   };
 
   const handleToggleAutoAdvance = () => {
@@ -499,17 +520,18 @@ export const ComplexDrillMode: React.FC<ComplexDrillModeProps> = ({
           </div>
         </div>
 
-        {/* ПЕРЕКЛЮЧАТЕЛЬ ДЛИТЕЛЬНОСТИ ПАУЗЫ И АВТО-РЕЖИМ */}
-        <div className="flex items-center gap-2">
+        {/* ПЕРЕКЛЮЧАТЕЛЬ ДЛИТЕЛЬНОСТИ ПАУЗЫ, СКОРОСТИ И АВТО-РЕЖИМ */}
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* 1. Пауза */}
           <div className="flex items-center bg-zinc-100 dark:bg-zinc-800 rounded-xl p-0.5 text-xs">
-            <span className="px-2 text-zinc-500 flex items-center gap-1">
+            <span className="px-2 text-zinc-500 flex items-center gap-1" title="Длительность паузы">
               <Timer className="w-3.5 h-3.5" />
             </span>
             {[3, 4, 5].map((sec) => (
               <button
                 key={sec}
                 onClick={() => setPauseDurationSec(sec)}
-                className={`px-2 py-1 rounded-lg font-bold transition ${
+                className={`px-2 py-1 rounded-lg font-bold transition cursor-pointer ${
                   pauseDurationSec === sec
                     ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 shadow-xs'
                     : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
@@ -520,9 +542,35 @@ export const ComplexDrillMode: React.FC<ComplexDrillModeProps> = ({
             ))}
           </div>
 
+          {/* 2. Скорость речи в Комплексе (R-17, изолированная от глобального профиля) */}
+          <div className="flex items-center bg-zinc-100 dark:bg-zinc-800 rounded-xl p-0.5 text-xs">
+            <span className="px-1.5 text-zinc-500 flex items-center gap-1" title="Скорость озвучки в тренажёре">
+              <Volume2 className="w-3.5 h-3.5" />
+            </span>
+            {[
+              { label: '0.7x', value: 0.7 },
+              { label: '0.85x', value: 0.85 },
+              { label: '1.0x', value: 1.0 },
+            ].map((s) => (
+              <button
+                key={s.value}
+                onClick={() => handleSetLocalSpeed(s.value)}
+                className={`px-2 py-1 rounded-lg font-bold transition cursor-pointer ${
+                  localSpeechRate === s.value
+                    ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 shadow-xs'
+                    : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
+                }`}
+                title={`Скорость озвучки: ${s.label}`}
+              >
+                {s.label}
+              </button>
+            ))}
+          </div>
+
+          {/* 3. Авто-переход */}
           <button
             onClick={handleToggleAutoAdvance}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
               autoAdvance
                 ? 'bg-amber-600 text-white shadow-xs'
                 : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200'
@@ -669,10 +717,10 @@ export const ComplexDrillMode: React.FC<ComplexDrillModeProps> = ({
                       onClick={() =>
                         hasDistinctPlural
                           ? speakHebrew(`${activeDrill.singularHe}, ${activeDrill.pluralHe}`, {
-                              rate: speechRate,
+                              rate: localSpeechRate,
                             })
                           : speakHebrew(activeDrill.singularHe, {
-                              rate: speechRate,
+                              rate: localSpeechRate,
                             })
                       }
                       className="p-2 rounded-xl bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 hover:bg-blue-200 transition cursor-pointer"
@@ -687,7 +735,7 @@ export const ComplexDrillMode: React.FC<ComplexDrillModeProps> = ({
                     <div className="grid grid-cols-2 gap-3 text-center">
                       <button
                         type="button"
-                        onClick={() => speakHebrew(activeDrill.singularHe, { rate: speechRate })}
+                        onClick={() => speakHebrew(activeDrill.singularHe, { rate: localSpeechRate })}
                         className="p-3 bg-white dark:bg-zinc-800 rounded-xl border border-blue-100 dark:border-zinc-700 hover:border-blue-300 dark:hover:border-blue-600 transition cursor-pointer text-center group"
                         title="Нажмите для озвучки единственного числа"
                       >
@@ -709,7 +757,7 @@ export const ComplexDrillMode: React.FC<ComplexDrillModeProps> = ({
 
                       <button
                         type="button"
-                        onClick={() => speakHebrew(activeDrill.pluralHe, { rate: speechRate })}
+                        onClick={() => speakHebrew(activeDrill.pluralHe, { rate: localSpeechRate })}
                         className="p-3 bg-white dark:bg-zinc-800 rounded-xl border border-blue-100 dark:border-zinc-700 hover:border-blue-300 dark:hover:border-blue-600 transition cursor-pointer text-center group"
                         title="Нажмите для озвучки множественного числа"
                       >
@@ -734,7 +782,7 @@ export const ComplexDrillMode: React.FC<ComplexDrillModeProps> = ({
                     <div className="text-center">
                       <button
                         type="button"
-                        onClick={() => speakHebrew(activeDrill.singularHe, { rate: speechRate })}
+                        onClick={() => speakHebrew(activeDrill.singularHe, { rate: localSpeechRate })}
                         className="w-full p-3 bg-white dark:bg-zinc-800 rounded-xl border border-blue-100 dark:border-zinc-700 hover:border-blue-300 dark:hover:border-blue-600 transition cursor-pointer text-center group"
                         title="Нажмите для озвучки"
                       >
@@ -786,7 +834,7 @@ export const ComplexDrillMode: React.FC<ComplexDrillModeProps> = ({
                     return (
                       <button
                         key={item.key}
-                        onClick={() => speakHebrew(item.data.hebrew, { rate: speechRate })}
+                        onClick={() => speakHebrew(item.data.hebrew, { rate: localSpeechRate })}
                         className={`p-2.5 rounded-xl text-center transition cursor-pointer border ${
                           isUsed
                             ? 'bg-emerald-600 text-white border-emerald-700 shadow-sm'
@@ -833,7 +881,7 @@ export const ComplexDrillMode: React.FC<ComplexDrillModeProps> = ({
                       return (
                         <button
                           key={idx}
-                          onClick={() => speakHebrew(row.hebrew, { rate: speechRate })}
+                          onClick={() => speakHebrew(row.hebrew, { rate: localSpeechRate })}
                           className={`p-2 rounded-xl text-center transition cursor-pointer border ${
                             isCurrent
                               ? 'bg-purple-600 text-white border-purple-700 shadow-sm'
@@ -897,7 +945,7 @@ export const ComplexDrillMode: React.FC<ComplexDrillModeProps> = ({
                   <div className="flex items-center gap-2">
                     <span className="font-bold text-zinc-600 dark:text-zinc-300">Инфинитив:</span>
                     <button
-                      onClick={() => speakHebrew(activeDrill.verbInfinitive, { rate: speechRate })}
+                      onClick={() => speakHebrew(activeDrill.verbInfinitive, { rate: localSpeechRate })}
                       className="font-black text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
                     >
                       {activeDrill.verbInfinitive} <Volume2 className="w-3.5 h-3.5" />
