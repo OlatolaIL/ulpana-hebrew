@@ -417,6 +417,62 @@ export function getCuratedSentenceAudio(sentence: string, gender: 'male' | 'fema
 }
 
 /**
+ * Принудительный поиск записанного MP3 файла в базе (манифесте) независимо от активного режима платформы.
+ * Возвращает прямой URL на файл (/audio/sentences/s_....mp3) или null, если фразы нет в базе.
+ */
+export async function getRecordedSentenceAudio(
+  sentence: string,
+  gender: 'male' | 'female' = 'male'
+): Promise<string | null> {
+  if (!sentence || typeof sentence !== 'string') return null;
+  const key = normalizeSentenceKey(sentence);
+
+  if (CURATED_SENTENCE_AUDIO[key]) {
+    return CURATED_SENTENCE_AUDIO[key];
+  }
+
+  if (!cachedSentenceManifest) {
+    try {
+      const res = await fetch('/audio/sentences/manifest.json');
+      if (res.ok) {
+        cachedSentenceManifest = await res.json();
+      }
+    } catch {}
+  }
+
+  if (cachedSentenceManifest) {
+    if (gender === 'female') {
+      const femaleKey = `${key}::female`;
+      if (cachedSentenceManifest[femaleKey]) {
+        const fileName = cachedSentenceManifest[femaleKey];
+        return fileName.startsWith('/') ? fileName : `/audio/sentences/${fileName}`;
+      }
+    }
+    if (cachedSentenceManifest[key]) {
+      const fileName = cachedSentenceManifest[key];
+      return fileName.startsWith('/') ? fileName : `/audio/sentences/${fileName}`;
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Получение списка доступных системных голосов иврита на текущем устройстве/браузере
+ */
+export function getAvailableHebrewVoices(): SpeechSynthesisVoice[] {
+  if (typeof window === 'undefined' || !('speechSynthesis' in window)) return [];
+  try {
+    const voices = window.speechSynthesis.getVoices();
+    return voices.filter(
+      (v) => v.lang === 'he-IL' || v.lang === 'he' || (v.lang && v.lang.toLowerCase().startsWith('he'))
+    );
+  } catch {
+    return [];
+  }
+}
+
+/**
  * Поиск студийной аудиозаписи слова из мастер-словаря Pealim (только для точных словарных форм)
  * СТРОГИЙ ПРИОРИТЕТ: огласованная форма (NFC) проверяется первой, чтобы исключить коллизии омографов (את - ат / эт)
  */

@@ -26,6 +26,8 @@ import {
   getSentenceAudioEngine,
   setSentenceAudioEngine,
   getCuratedSentenceAudio,
+  getRecordedSentenceAudio,
+  getAvailableHebrewVoices,
   playFallbackAudio,
 } from '@/lib/speech';
 import { isVipUser } from '@/lib/vipUsers';
@@ -158,21 +160,57 @@ export const ComplexDrillMode: React.FC<ComplexDrillModeProps> = ({
   const isAdmin = isVipUser(userProfile.username, userProfile.telegramId, userProfile.name);
   const [activeEngine, setActiveEngine] = useState<'current' | 'google_cloud' | 'edge_neural'>('edge_neural');
   const [testingVoiceId, setTestingVoiceId] = useState<string | null>(null);
+  const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
+  const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const [recordedFiles, setRecordedFiles] = useState<{ male: string | null; female: string | null }>({ male: null, female: null });
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
       setActiveEngine(getSentenceAudioEngine());
+      const updateVoices = () => {
+        const v = getAvailableHebrewVoices();
+        setAvailableVoices(v);
+      };
+      updateVoices();
+      if (window.speechSynthesis) {
+        window.speechSynthesis.onvoiceschanged = updateVoices;
+      }
     }
   }, []);
+
+  // Синхронизация файлов из базы для текущей фразы
+  useEffect(() => {
+    let active = true;
+    if (!isAdmin) return;
+    setRecordedFiles({ male: null, female: null });
+    getRecordedSentenceAudio(activeDrill.sentenceHe, 'male').then((maleUrl) => {
+      if (active) setRecordedFiles((prev) => ({ ...prev, male: maleUrl }));
+    });
+    getRecordedSentenceAudio(activeDrill.sentenceHe, 'female').then((femaleUrl) => {
+      if (active) setRecordedFiles((prev) => ({ ...prev, female: femaleUrl }));
+    });
+    return () => {
+      active = false;
+    };
+  }, [activeDrill.sentenceHe, isAdmin]);
 
   const handleTestDeviceTts = async (gender: 'male' | 'female') => {
     stopSpeech();
     setTestingVoiceId(`device_${gender}`);
+    const selectedVoice = availableVoices.length > 0
+      ? (gender === 'female'
+          ? availableVoices.find((v) => /hila|sara|carmit|female|אישה/i.test(v.name)) || availableVoices[0]
+          : availableVoices.find((v) => /asaf|guy|david|male|גבר/i.test(v.name)) || availableVoices[0])
+      : null;
+    const voiceName = selectedVoice ? selectedVoice.name : 'Системный по умолчанию';
+    setStatusMessage(`📱 Телефон: "${voiceName}" (pitch: ${gender === 'male' ? '0.80' : '1.15'})`);
+
     try {
       await speakHebrew(activeDrill.sentenceHe, {
         preferStudioAudio: false,
         rate: speechRate,
         gender,
+        pitch: gender === 'male' ? 0.8 : 1.15,
       });
     } finally {
       setTestingVoiceId(null);
@@ -182,21 +220,26 @@ export const ComplexDrillMode: React.FC<ComplexDrillModeProps> = ({
   const handleTestRecordedAudio = async (gender: 'male' | 'female') => {
     stopSpeech();
     setTestingVoiceId(`recorded_${gender}`);
+    setStatusMessage(null);
     try {
-      const url = getCuratedSentenceAudio(activeDrill.sentenceHe, gender);
+      const url = await getRecordedSentenceAudio(activeDrill.sentenceHe, gender);
       if (url) {
+        const fileName = url.split('/').pop() || url;
+        setStatusMessage(`🎙️ База (${gender === 'male' ? 'Avri ♂' : 'Hila ♀'}): файл ${fileName}`);
         await new Promise<void>((resolve) => {
           const a = new Audio(url);
           a.onended = () => resolve();
-          a.onerror = () => resolve();
-          a.play().catch(() => resolve());
+          a.onerror = () => {
+            setStatusMessage(`❌ Ошибка загрузки MP3 файла: ${fileName}`);
+            resolve();
+          };
+          a.play().catch((err) => {
+            setStatusMessage(`❌ Ошибка воспроизведения: ${String(err)}`);
+            resolve();
+          });
         });
       } else {
-        await speakHebrew(activeDrill.sentenceHe, {
-          preferStudioAudio: true,
-          rate: speechRate,
-          gender,
-        });
+        setStatusMessage(`⚠️ Для этой фразы (${gender === 'female' ? 'Hila ♀' : 'Avri ♂'}) нет MP3 в манифесте!`);
       }
     } finally {
       setTestingVoiceId(null);
@@ -206,6 +249,7 @@ export const ComplexDrillMode: React.FC<ComplexDrillModeProps> = ({
   const handleTestGoogleFallback = async () => {
     stopSpeech();
     setTestingVoiceId('google');
+    setStatusMessage('🌐 Google Translate TTS: прямое воспроизведение веб-аудио');
     try {
       await playFallbackAudio(activeDrill.sentenceHe, speechRate, 'iw');
     } finally {
@@ -216,6 +260,11 @@ export const ComplexDrillMode: React.FC<ComplexDrillModeProps> = ({
   const handleSwitchGlobalEngine = async (newEngine: 'current' | 'edge_neural') => {
     setSentenceAudioEngine(newEngine);
     setActiveEngine(newEngine);
+    setStatusMessage(
+      newEngine === 'current'
+        ? '✅ Платформа переключена на: 📱 Синтез с телефона (Web Speech API)'
+        : '✅ Платформа переключена на: 🎙️ База MP3 (Edge Neural Avri & Hila)'
+    );
     try {
       await fetch('/api/admin/audio-sentences', {
         method: 'POST',
@@ -573,6 +622,33 @@ export const ComplexDrillMode: React.FC<ComplexDrillModeProps> = ({
             </div>
           </div>
 
+          {/* Диагностика системных голосов устройства */}
+          {availableVoices.length <= 1 ? (
+            <div className="flex items-start gap-2 p-2.5 rounded-xl bg-amber-100/70 dark:bg-amber-950/40 border border-amber-300/60 dark:border-amber-700/50 text-[11px] text-amber-900 dark:text-amber-200">
+              <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" />
+              <div>
+                <span className="font-semibold">Внимание: </span>
+                В вашем браузере/ОС обнаружен всего{' '}
+                <strong>{availableVoices.length === 1 ? `1 системный голос («${availableVoices[0].name}»)` : '0 голосов иврита'}</strong>.
+                Кнопки «Телефон ♂» и «Телефон ♀» используют этот голос, меняя только pitch (высоту тона).
+                Честное разделение ♂/♀ дают кнопки <strong>База Avri / Hila (MP3)</strong> или браузеры Edge (Asaf/Hila) и Safari iOS (Guy/Carmit).
+              </div>
+            </div>
+          ) : (
+            <div className="text-[11px] text-zinc-600 dark:text-zinc-400 flex items-center gap-1.5 px-1">
+              <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+              <span>Доступные голоса ОС: <strong>{availableVoices.map((v) => v.name).join(', ')}</strong></span>
+            </div>
+          )}
+
+          {/* Статус текущего воспроизведения */}
+          {statusMessage && (
+            <div className="px-3 py-1.5 rounded-xl bg-zinc-900/90 text-amber-300 dark:bg-zinc-800 border border-zinc-700 font-mono text-[11px] flex items-center justify-between">
+              <span>{statusMessage}</span>
+              {testingVoiceId && <span className="animate-spin text-xs">⏳</span>}
+            </div>
+          )}
+
           {/* Кнопки прослушивания разных голосов */}
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-xs">
             {/* 1. Синтез с телефона (Web Speech) ♂ */}
@@ -580,16 +656,16 @@ export const ComplexDrillMode: React.FC<ComplexDrillModeProps> = ({
               type="button"
               onClick={() => handleTestDeviceTts('male')}
               disabled={Boolean(testingVoiceId)}
-              className={`p-2 rounded-xl border text-center transition flex flex-col items-center justify-center gap-1 cursor-pointer ${
+              className={`p-2.5 rounded-xl border text-center transition flex flex-col items-center justify-center gap-1 cursor-pointer ${
                 testingVoiceId === 'device_male'
-                  ? 'bg-blue-600 text-white border-blue-600 shadow-sm animate-pulse'
+                  ? 'bg-blue-600 text-white border-blue-600 shadow-sm ring-2 ring-blue-300'
                   : 'bg-white dark:bg-zinc-800/80 hover:bg-blue-50 dark:hover:bg-blue-950/40 border-zinc-200 dark:border-zinc-700 text-zinc-800 dark:text-zinc-200'
               }`}
             >
               <div className="flex items-center gap-1 font-bold text-xs">
                 <span>📱 Телефон ♂</span>
               </div>
-              <span className="text-[10px] opacity-70">Как в диалоге</span>
+              <span className="text-[10px] opacity-70">Web Speech (pitch 0.8)</span>
             </button>
 
             {/* 2. Синтез с телефона (Web Speech) ♀ */}
@@ -597,16 +673,16 @@ export const ComplexDrillMode: React.FC<ComplexDrillModeProps> = ({
               type="button"
               onClick={() => handleTestDeviceTts('female')}
               disabled={Boolean(testingVoiceId)}
-              className={`p-2 rounded-xl border text-center transition flex flex-col items-center justify-center gap-1 cursor-pointer ${
+              className={`p-2.5 rounded-xl border text-center transition flex flex-col items-center justify-center gap-1 cursor-pointer ${
                 testingVoiceId === 'device_female'
-                  ? 'bg-pink-600 text-white border-pink-600 shadow-sm animate-pulse'
+                  ? 'bg-pink-600 text-white border-pink-600 shadow-sm ring-2 ring-pink-300'
                   : 'bg-white dark:bg-zinc-800/80 hover:bg-pink-50 dark:hover:bg-pink-950/40 border-zinc-200 dark:border-zinc-700 text-zinc-800 dark:text-zinc-200'
               }`}
             >
               <div className="flex items-center gap-1 font-bold text-xs">
                 <span>📱 Телефон ♀</span>
               </div>
-              <span className="text-[10px] opacity-70">Как в диалоге</span>
+              <span className="text-[10px] opacity-70">Web Speech (pitch 1.15)</span>
             </button>
 
             {/* 3. Запись в базе (Edge Neural ♂ Avri) */}
@@ -614,16 +690,18 @@ export const ComplexDrillMode: React.FC<ComplexDrillModeProps> = ({
               type="button"
               onClick={() => handleTestRecordedAudio('male')}
               disabled={Boolean(testingVoiceId)}
-              className={`p-2 rounded-xl border text-center transition flex flex-col items-center justify-center gap-1 cursor-pointer ${
+              className={`p-2.5 rounded-xl border text-center transition flex flex-col items-center justify-center gap-1 cursor-pointer ${
                 testingVoiceId === 'recorded_male'
-                  ? 'bg-purple-600 text-white border-purple-600 shadow-sm animate-pulse'
+                  ? 'bg-purple-600 text-white border-purple-600 shadow-sm ring-2 ring-purple-300'
                   : 'bg-white dark:bg-zinc-800/80 hover:bg-purple-50 dark:hover:bg-purple-950/40 border-zinc-200 dark:border-zinc-700 text-zinc-800 dark:text-zinc-200'
               }`}
             >
               <div className="flex items-center gap-1 font-bold text-xs">
                 <span>🎙️ База ♂ Avri</span>
               </div>
-              <span className="text-[10px] opacity-70">Файл MP3</span>
+              <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-purple-100 dark:bg-purple-900/60 text-purple-700 dark:text-purple-300 truncate max-w-full">
+                {recordedFiles.male ? recordedFiles.male.split('/').pop() : 'Нет в базе'}
+              </span>
             </button>
 
             {/* 4. Запись в базе (Edge Neural ♀ Hila) */}
@@ -631,16 +709,18 @@ export const ComplexDrillMode: React.FC<ComplexDrillModeProps> = ({
               type="button"
               onClick={() => handleTestRecordedAudio('female')}
               disabled={Boolean(testingVoiceId)}
-              className={`p-2 rounded-xl border text-center transition flex flex-col items-center justify-center gap-1 cursor-pointer ${
+              className={`p-2.5 rounded-xl border text-center transition flex flex-col items-center justify-center gap-1 cursor-pointer ${
                 testingVoiceId === 'recorded_female'
-                  ? 'bg-purple-600 text-white border-purple-600 shadow-sm animate-pulse'
+                  ? 'bg-purple-600 text-white border-purple-600 shadow-sm ring-2 ring-purple-300'
                   : 'bg-white dark:bg-zinc-800/80 hover:bg-purple-50 dark:hover:bg-purple-950/40 border-zinc-200 dark:border-zinc-700 text-zinc-800 dark:text-zinc-200'
               }`}
             >
               <div className="flex items-center gap-1 font-bold text-xs">
                 <span>🎙️ База ♀ Hila</span>
               </div>
-              <span className="text-[10px] opacity-70">Файл MP3</span>
+              <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-purple-100 dark:bg-purple-900/60 text-purple-700 dark:text-purple-300 truncate max-w-full">
+                {recordedFiles.female ? recordedFiles.female.split('/').pop() : 'Нет в базе'}
+              </span>
             </button>
 
             {/* 5. Google Translate Fallback */}
@@ -648,9 +728,9 @@ export const ComplexDrillMode: React.FC<ComplexDrillModeProps> = ({
               type="button"
               onClick={handleTestGoogleFallback}
               disabled={Boolean(testingVoiceId)}
-              className={`p-2 rounded-xl border text-center transition flex flex-col items-center justify-center gap-1 cursor-pointer ${
+              className={`p-2.5 rounded-xl border text-center transition flex flex-col items-center justify-center gap-1 cursor-pointer ${
                 testingVoiceId === 'google'
-                  ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm animate-pulse'
+                  ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm ring-2 ring-emerald-300'
                   : 'bg-white dark:bg-zinc-800/80 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 border-zinc-200 dark:border-zinc-700 text-zinc-800 dark:text-zinc-200'
               }`}
             >
