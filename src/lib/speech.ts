@@ -350,6 +350,16 @@ export function getSentenceAudioEngine(): 'current' | 'google_cloud' | 'edge_neu
 }
 
 /**
+ * Устанавливает выбранный администратором глобальный движок озвучки предложений
+ */
+export function setSentenceAudioEngine(engine: 'current' | 'google_cloud' | 'edge_neural'): void {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem('sentence_audio_engine', engine);
+  } catch {}
+}
+
+/**
  * Фоновая предзагрузка манифеста предгенерированных предложений Google Cloud / Edge Neural TTS
  */
 export function loadSentenceManifest(): void {
