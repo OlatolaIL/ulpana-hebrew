@@ -313,25 +313,34 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
     (cardDirection === 'carousel' &&
       (carouselDirections[safeIndex] ?? (safeIndex % 2 === 1)));
 
+  const lastReportedIndexRef = useRef<number>(safeIndex);
+  const prevInitialCardIndexRef = useRef<number | undefined>(initialCardIndex);
+
   // Уведомление внешнего роутера об изменении активной карточки и режима
   useEffect(() => {
     if (words.length > 0 && currentWord) {
+      lastReportedIndexRef.current = safeIndex;
       onCardChange?.(safeIndex, mode, currentWord);
     }
   }, [safeIndex, mode, words, onCardChange, currentWord]);
 
-  // Синхронизация индекса при смене initialCardIndex извне (например, по URL)
+  // Синхронизация индекса при смене initialCardIndex извне (например, по URL или кнопке Назад браузера)
   useEffect(() => {
     if (
       typeof initialCardIndex === 'number' &&
       initialCardIndex >= 0 &&
-      initialCardIndex !== currentIndex
+      initialCardIndex !== prevInitialCardIndexRef.current
     ) {
-      if (words.length > 0 && initialCardIndex < words.length) {
-        setCurrentIndex(initialCardIndex);
+      prevInitialCardIndexRef.current = initialCardIndex;
+      // Применяем переход ТОЛЬКО если это внешняя смена, а не эхо нашего собственного перелистывания:
+      if (initialCardIndex !== lastReportedIndexRef.current) {
+        lastReportedIndexRef.current = initialCardIndex;
+        if (words.length > 0 && initialCardIndex < words.length) {
+          setCurrentIndex(initialCardIndex);
+        }
       }
     }
-  }, [initialCardIndex, currentIndex, words.length]);
+  }, [initialCardIndex, words.length]);
 
   // Перезапуск цикла воспроизведения со случайным перемешиванием слов и направлений
   const reshuffleAndRestartLoop = () => {

@@ -152,3 +152,27 @@ test('3. page.tsx contains deep URL parsing and history management for flashcard
   assert.ok(content.includes('ALL_DECKS'), 'Must reference ALL_DECKS for deterministic word recovery');
   assert.ok(content.includes('DETAILED_LESSONS'), 'Must reference DETAILED_LESSONS for deterministic word recovery');
 });
+
+test('4. FlashcardTrainer guards initialCardIndex synchronization against internal navigation echoes', () => {
+  const trainerPath = path.join(__dirname, '..', 'src', 'components', 'FlashcardTrainer', 'FlashcardTrainer.tsx');
+  const content = fs.readFileSync(trainerPath, 'utf-8').replace(/\r\n/g, '\n');
+
+  assert.ok(
+    content.includes('lastReportedIndexRef = useRef<number>(safeIndex);'),
+    'FlashcardTrainer must track lastReportedIndexRef to prevent echo resets'
+  );
+  assert.ok(
+    content.includes('prevInitialCardIndexRef = useRef<number | undefined>(initialCardIndex);'),
+    'FlashcardTrainer must track prevInitialCardIndexRef for external change detection'
+  );
+  assert.ok(
+    content.includes('initialCardIndex !== lastReportedIndexRef.current'),
+    'FlashcardTrainer must guard against resetting currentIndex when initialCardIndex matches last reported index'
+  );
+  // currentIndex must not be in the dependency array of initialCardIndex sync effect
+  assert.ok(
+    content.includes('}, [initialCardIndex, words.length]);'),
+    'initialCardIndex sync effect must not depend on currentIndex to prevent re-entrant reset loops'
+  );
+});
+

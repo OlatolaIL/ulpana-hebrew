@@ -669,3 +669,33 @@ ChatGPT — архитектор и независимая приёмка; Gemin
 4. Создан регрессионный тест `tests/complex-drill-lifecycle.test.cjs` (3/3 passed).
 5. Верификация: `npm test` (289/289 passed), `npm run audit:intent` (100% зелёный статус, 2535/2535 слов покрыты в ComplexDrills).
 
+---
+
+### Фикс: Устранение зацикливания/отката карточек между индексами во всех режимах колод (23 сентября 2026)
+
+**Проблема:** При переходе к следующей карточке в любом режиме в колоде («Комплекс», «Слово», «Тест», «Спринт» и др.) происходило циклическое переключение (bounce) между предыдущей и следующей карточкой, сопровождаемое перезапуском звука и невозможностью перейти дальше.
+**Первопричина:**
+В `src/components/FlashcardTrainer/FlashcardTrainer.tsx` хук синхронизации внешнего URL-параметра `initialCardIndex` имел `currentIndex` в массиве зависимостей:
+```ts
+useEffect(() => {
+  if (typeof initialCardIndex === 'number' && initialCardIndex >= 0 && initialCardIndex !== currentIndex) {
+    setCurrentIndex(initialCardIndex);
+  }
+}, [initialCardIndex, currentIndex, words.length]);
+```
+При нажатии «Далее» внутренний `currentIndex` менялся (например, с 0 на 1). В том же кадре хук немедленно перезапускался из-за изменения `currentIndex`, но проп `initialCardIndex` от родителя (`page.tsx`) ещё оставался равен `0`. Условие `0 !== 1` срабатывало, и хук вызывал `setCurrentIndex(0)`, моментально возвращая карточку назад на 0. В следующем тике родитель успевал отреагировать на `onCardChange` и передать `initialCardIndex = 1`, что вызывало повторный бросок карточки на 1. Возникал бесконечный асинхронный пинг-понг между карточками с перезапуском аудио.
+
+**Что сделано и проверено:**
+1. В `src/components/FlashcardTrainer/FlashcardTrainer.tsx`:
+   - Внедрены рефы `lastReportedIndexRef` и `prevInitialCardIndexRef`.
+   - В `onCardChange` фиксируется актуально отправленный наверх индекс: `lastReportedIndexRef.current = safeIndex`.
+   - Из массива зависимостей хука синхронизации исключён `currentIndex`: зависимости стали `[initialCardIndex, words.length]`.
+   - Добавлен барьер от эхо-отката (`echo guard`): переход по `initialCardIndex` применяется ТОЛЬКО если проп действительно изменился извне (`initialCardIndex !== prevInitialCardIndexRef.current`) И не является эхом нашего собственного перелистывания (`initialCardIndex !== lastReportedIndexRef.current`).
+2. В `tests/flashcard-deep-routing.test.cjs` добавлен тест 4:
+   - Проверяет наличие `lastReportedIndexRef`, `prevInitialCardIndexRef`, echo guard и отсутствие `currentIndex` в зависимостях эффекта.
+3. Верификация:
+   - `tests/flashcard-deep-routing.test.cjs`: 4/4 passed.
+   - `npm test`: 290/290 passed (100%).
+   - `npm run audit:intent`: 100% Zero-Drift, все критические инварианты зелёные.
+
+
