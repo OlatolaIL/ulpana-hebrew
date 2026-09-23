@@ -311,37 +311,37 @@ export function usePhoneCall({
 
     // Сторожевой таймер (12 сек): предотвращает бесконечное зависание микрофона на мобильных
     watchdogTimeoutRef.current = setTimeout(() => {
-      if (
+      const generation = typeof callGenerationRef !== 'undefined' ? callGenerationRef.current : 0;
+      const isCallStillValid = () => (
+        (typeof callGenerationRef === 'undefined' || generation === callGenerationRef.current) &&
         callActiveRef.current &&
         shouldListenRef.current &&
         !isSendingRef.current &&
         !isAiSpeakingRef.current &&
         !isMutedRef.current
-      ) {
+      );
+
+      const scheduleWatchdogCheck = (delayMs = 6000) => {
+        if (watchdogTimeoutRef.current) {
+          clearTimeout(watchdogTimeoutRef.current);
+        }
+        watchdogTimeoutRef.current = setTimeout(() => {
+          if (!isCallStillValid()) return;
+          if (recognizerRef.current?.isSpeechActive()) {
+            callFlightRecorder.record('VAD', 'Watchdog deferred again: speech still active', {}, 'info');
+            scheduleWatchdogCheck(6000);
+          } else {
+            setSpeechNotice('Собеседник вас не расслышал. Скажите фразу громче');
+            startListening(true);
+          }
+        }, delayMs);
+      };
+
+      if (isCallStillValid()) {
         // Если ученик активно говорит или идет финализация/обработка STT — не прерываем речь!
         if (recognizerRef.current?.isSpeechActive()) {
           callFlightRecorder.record('VAD', 'Watchdog deferred: user is actively speaking or STT is running', {}, 'info');
-          // Повторное вооружение watchdog после defer (проверка через 6с), чтобы защита не выключалась навсегда
-          const rearmWatchdog = () => {
-            watchdogTimeoutRef.current = setTimeout(() => {
-              if (
-                callActiveRef.current &&
-                shouldListenRef.current &&
-                !isSendingRef.current &&
-                !isAiSpeakingRef.current &&
-                !isMutedRef.current
-              ) {
-                if (recognizerRef.current?.isSpeechActive()) {
-                  callFlightRecorder.record('VAD', 'Watchdog deferred again: speech still active', {}, 'info');
-                  rearmWatchdog();
-                } else {
-                  setSpeechNotice('Собеседник вас не расслышал. Скажите фразу громче');
-                  startListening(true);
-                }
-              }
-            }, 6000);
-          };
-          rearmWatchdog();
+          scheduleWatchdogCheck(6000);
           return;
         }
 
@@ -362,33 +362,11 @@ export function usePhoneCall({
           if (watchdogRestartTimeoutRef.current) {
             clearTimeout(watchdogRestartTimeoutRef.current);
           }
-          const generation = typeof callGenerationRef !== 'undefined' ? callGenerationRef.current : 0;
           watchdogRestartTimeoutRef.current = setTimeout(() => {
-            if (
-              (typeof callGenerationRef === 'undefined' || generation === callGenerationRef.current) &&
-              callActiveRef.current &&
-              shouldListenRef.current &&
-              !isSendingRef.current &&
-              !isAiSpeakingRef.current &&
-              !isMutedRef.current
-            ) {
+            if (isCallStillValid()) {
               if (recognizerRef.current?.isSpeechActive()) {
                 callFlightRecorder.record('VAD', 'Watchdog restart canceled: speech is active', {}, 'info');
-                // Повторное вооружение watchdog после отмены рестарта
-                watchdogTimeoutRef.current = setTimeout(() => {
-                  if (
-                    callActiveRef.current &&
-                    shouldListenRef.current &&
-                    !isSendingRef.current &&
-                    !isAiSpeakingRef.current &&
-                    !isMutedRef.current
-                  ) {
-                    if (!recognizerRef.current?.isSpeechActive()) {
-                      setSpeechNotice('Собеседник вас не расслышал. Скажите фразу громче');
-                      startListening(true);
-                    }
-                  }
-                }, 6000);
+                scheduleWatchdogCheck(6000);
                 return;
               }
               const deferredText = (liveTranscriptRef.current || '').trim();

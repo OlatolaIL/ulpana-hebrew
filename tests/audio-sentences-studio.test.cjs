@@ -45,7 +45,8 @@ test('Audio Settings: getAudioSettings and saveAudioSettings manage global engin
   assert.ok(
     currentSettings.sentenceAudioEngine === 'current' ||
       currentSettings.sentenceAudioEngine === 'google_cloud' ||
-      currentSettings.sentenceAudioEngine === 'edge_neural',
+      currentSettings.sentenceAudioEngine === 'edge_neural' ||
+      currentSettings.sentenceAudioEngine === 'gemini_3.5_tts',
     'Engine must be valid value'
   );
 

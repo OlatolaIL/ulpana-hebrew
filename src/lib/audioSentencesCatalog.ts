@@ -44,7 +44,7 @@ export interface SentenceDrillItem {
 }
 
 export interface AudioSettings {
-  sentenceAudioEngine: 'current' | 'google_cloud' | 'edge_neural';
+  sentenceAudioEngine: 'current' | 'google_cloud' | 'edge_neural' | 'gemini_3.5_tts';
   defaultVoiceMale?: string;
   defaultVoiceFemale?: string;
   lastUpdated: string;

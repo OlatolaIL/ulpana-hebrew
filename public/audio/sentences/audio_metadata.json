@@ -2697,5 +2697,17 @@
     "modelFamily": "gemini-3.5",
     "status": "verified_gemini_3.5",
     "generatedAt": "2026-09-23T18:05:19.324Z"
+  },
+  "s_be0d4a72c26d.mp3": {
+    "id": "tsv_female_106",
+    "sentenceHe": "אֶתְמוֹל נִסִּיתִי מָנָה חֲדָשָׁה בַּמִּסְעָדָה.",
+    "sentenceRu": "Вчера я попробовал новое блюдо в ресторане.",
+    "sentenceTranscription": "этмóль нисӣ́ти манá хадашá ба-мисадá.",
+    "gender": "female",
+    "voice": "Aoede",
+    "engine": "gemini-3.1-flash-tts-preview",
+    "modelFamily": "gemini-3.5",
+    "status": "verified_gemini_3.5",
+    "generatedAt": "2026-09-23T19:05:06.865Z"
   }
 }

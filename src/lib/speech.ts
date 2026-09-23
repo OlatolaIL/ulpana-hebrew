@@ -1333,10 +1333,19 @@ export interface TranscriptionResult {
   latencyMs?: number;
 }
 
+export interface RecorderSegment {
+  readonly id: number;
+  recorder: MediaRecorder;
+  chunks: Blob[];
+  mimeType: string;
+  isClosed: boolean;
+}
+
 export interface RecognizerSession {
   readonly id: number;
   state: RecognizerState;
   audioChunks: Blob[];
+  activeSegment: RecorderSegment | null;
   mimeType: string;
   onResult: ((transcript: string, isFinal: boolean) => void) | null;
   onError: ((error: string) => void) | null;
@@ -1353,6 +1362,7 @@ export interface RecognizerSession {
 export class HebrewSpeechRecognizer {
   private recognition: any = null;
   private sessionCounter = 0;
+  private segmentCounter = 0;
   private activeSession: RecognizerSession | null = null;
   private mediaStream: MediaStream | null = null;
   private audioContext: AudioContext | null = null;
@@ -1371,6 +1381,7 @@ export class HebrewSpeechRecognizer {
         id: ++this.sessionCounter,
         state: 'listening',
         audioChunks: [],
+        activeSegment: null,
         mimeType: '',
         onResult: null,
         onError: null,
@@ -1388,11 +1399,17 @@ export class HebrewSpeechRecognizer {
   }
 
   public get audioChunks(): Blob[] {
+    if (this.activeSession?.activeSegment) {
+      return this.activeSession.activeSegment.chunks;
+    }
     return this.activeSession ? this.activeSession.audioChunks : [];
   }
   public set audioChunks(chunks: Blob[]) {
     this.ensureActiveSession();
     this.activeSession!.audioChunks = chunks;
+    if (this.activeSession!.activeSegment) {
+      this.activeSession!.activeSegment.chunks = chunks;
+    }
   }
 
   public get mediaRecorder(): MediaRecorder | null {
@@ -1535,6 +1552,7 @@ export class HebrewSpeechRecognizer {
       oldSession.onError = null;
       const oldRecorder = oldSession.recorder;
       oldSession.recorder = null;
+      oldSession.activeSegment = null;
       if (oldRecorder && oldRecorder.state !== 'inactive') {
         try {
           oldRecorder.stop();
@@ -1547,6 +1565,7 @@ export class HebrewSpeechRecognizer {
       id: sessionId,
       state: 'listening',
       audioChunks: [],
+      activeSegment: null,
       mimeType: '',
       onResult,
       onError,
@@ -1631,26 +1650,39 @@ export class HebrewSpeechRecognizer {
     if (this.isSessionClosed(session)) return;
 
     try {
+      const mimeType = session.mimeType || 'audio/webm';
       const recorder = session.mimeType
         ? new MediaRecorder(stream, { mimeType: session.mimeType })
         : new MediaRecorder(stream);
+      const segment: RecorderSegment = {
+        id: ++this.segmentCounter,
+        recorder,
+        chunks: [],
+        mimeType: session.mimeType || recorder.mimeType || mimeType,
+        isClosed: false,
+      };
+      session.activeSegment = segment;
       session.recorder = recorder;
+      session.audioChunks = segment.chunks;
       session.state = 'listening';
       session.hasDetectedSpeech = false;
 
       recorder.ondataavailable = (e) => {
-        // Scoped strictly to this session
+        // Scoped strictly to this segment and session
         if (this.isSessionClosed(session)) return;
         if (e.data && e.data.size > 0) {
-          session.audioChunks.push(e.data);
+          segment.chunks.push(e.data);
         }
       };
 
       recorder.onstop = async () => {
+        segment.isClosed = true;
         if (this.isSessionClosed(session)) return;
         if (this.activeSession?.id !== session.id) return;
+        if (session.activeSegment?.id !== segment.id) return;
 
-        const recordedChunks = [...session.audioChunks];
+        const recordedChunks = [...segment.chunks];
+        segment.chunks = [];
         session.audioChunks = [];
 
         let recordedBlob: Blob | null = null;
@@ -1719,13 +1751,25 @@ export class HebrewSpeechRecognizer {
   private restartRecorderForSession(session: RecognizerSession): void {
     if (this.isSessionClosed(session) || !this.mediaStream || !this.mediaStream.active) return;
     try {
+      const oldSegment = session.activeSegment;
       const oldRecorder = session.recorder;
+      if (oldSegment) {
+        oldSegment.isClosed = true;
+      }
       if (oldRecorder && oldRecorder.state !== 'inactive') {
-        // Do not discard in-flight chunks from the previous recorder
+        // Do not discard in-flight chunks from the previous recorder:
+        // they go strictly into oldSegment.chunks, NEVER leaking into the new recorder's buffer!
         oldRecorder.ondataavailable = (e) => {
           if (this.isSessionClosed(session)) return;
-          if (e.data && e.data.size > 0) {
-            session.audioChunks.push(e.data);
+          if (e.data && e.data.size > 0 && oldSegment) {
+            oldSegment.chunks.push(e.data);
+            if (session.preservedBlob) {
+              try {
+                session.preservedBlob = new Blob([...oldSegment.chunks], {
+                  type: oldSegment.mimeType || session.mimeType || 'audio/webm',
+                });
+              } catch {}
+            }
           }
         };
         oldRecorder.onstop = null;
@@ -1937,6 +1981,7 @@ export class HebrewSpeechRecognizer {
         ambientFloor: Math.round(this.ambientNoiseFloor),
       }, 'warn');
       session.audioChunks = [];
+      if (session.activeSegment) session.activeSegment.chunks = [];
       session.lastTranscript = '';
       session.hasDetectedSpeech = false;
       session.silenceStartTime = null;
@@ -1955,7 +2000,9 @@ export class HebrewSpeechRecognizer {
     if (session.recorder && session.recorder.state !== 'inactive') {
       try {
         const rec = session.recorder;
+        const currentSegment = session.activeSegment;
         const prevOnDataAvailable = rec.ondataavailable;
+        let timedOut = false;
 
         await new Promise<void>((resolve) => {
           let resolved = false;
@@ -1969,13 +2016,20 @@ export class HebrewSpeechRecognizer {
 
           // Событийное ожидание: завершается немедленно при доставке dataavailable,
           // с резервным таймаутом 600мс для обработки задержек 250-500мс
-          const timer = setTimeout(finish, 600);
+          const timer = setTimeout(() => {
+            timedOut = true;
+            finish();
+          }, 600);
 
           rec.ondataavailable = (e: any) => {
             if (prevOnDataAvailable) {
               try { prevOnDataAvailable.call(rec, e); } catch {}
             } else if (e.data && e.data.size > 0) {
-              session.audioChunks.push(e.data);
+              if (currentSegment) {
+                currentSegment.chunks.push(e.data);
+              } else {
+                session.audioChunks.push(e.data);
+              }
             }
             finish();
           };
@@ -1989,9 +2043,18 @@ export class HebrewSpeechRecognizer {
 
         if (this.isSessionClosed(session)) return;
 
-        if (session.audioChunks.length > 0) {
-          const blobType = session.mimeType || session.recorder.mimeType || 'audio/webm';
-          const audioBlob = new Blob([...session.audioChunks], { type: blobType });
+        const targetChunks = currentSegment ? currentSegment.chunks : session.audioChunks;
+        const blobType = session.mimeType || session.recorder?.mimeType || 'audio/webm';
+
+        // Если финализация завершилась по таймауту (>600мс), фиксируем в аудите и обеспечиваем сохранение данных
+        if (timedOut) {
+          callFlightRecorder.record('VAD', 'Finalization requestData timed out after 600ms; proceeding with preserved chunks', {
+            chunkCount: targetChunks.length,
+          }, 'warn');
+        }
+
+        if (targetChunks.length > 0) {
+          const audioBlob = new Blob([...targetChunks], { type: blobType });
           let audioUrl: string | null = null;
           try {
             audioUrl = URL.createObjectURL(audioBlob);
@@ -2024,6 +2087,7 @@ export class HebrewSpeechRecognizer {
 
             if (success && text && text.trim().length >= 2 && !isWhisperSilenceHallucination(text.trim())) {
               session.audioChunks = []; // очищаем буфер только при успешном распознавании
+              if (currentSegment) currentSegment.chunks = [];
               session.lastTranscript = '';
               session.hasDetectedSpeech = false;
               session.silenceStartTime = null;
@@ -2051,6 +2115,7 @@ export class HebrewSpeechRecognizer {
           }
           // Если аудио оказалось слишком коротким или распознана тишина — сбрасываем чанки и перезапускаем рекордер
           session.audioChunks = [];
+          if (currentSegment) currentSegment.chunks = [];
           this.restartRecorderForSession(session);
         }
       } catch (err) {
@@ -2174,6 +2239,11 @@ export class HebrewSpeechRecognizer {
       session.onError = null;
       session.onEnd = null;
       session.audioChunks = [];
+      if (session.activeSegment) {
+        session.activeSegment.chunks = [];
+        session.activeSegment.isClosed = true;
+      }
+      session.activeSegment = null;
       if (session.preservedUrl) {
         try { URL.revokeObjectURL(session.preservedUrl); } catch {}
       }
