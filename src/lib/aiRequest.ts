@@ -8,11 +8,42 @@ import { RequestBodyError } from './requestBody';
 import type { UserSession } from '@/types';
 import { FREE_GUEST_LESSONS_LIMIT } from './config';
 
+export type AiErrorCategory =
+  | 'app_rate_limit'
+  | 'provider_rate_limit'
+  | 'auth_config'
+  | 'invalid_audio'
+  | 'provider_timeout'
+  | 'provider_unavailable'
+  | 'malformed_json'
+  | 'validation_rejected';
+
+export function classifyHttpError(status: number): AiErrorCategory {
+  if (status === 401 || status === 403) return 'auth_config';
+  if (status === 429) return 'provider_rate_limit';
+  if (status === 400 || status === 422) return 'validation_rejected';
+  if (status === 408 || status === 504) return 'provider_timeout';
+  if (status >= 500) return 'provider_unavailable';
+  return 'provider_unavailable';
+}
+
 export class AiRequestError extends Error {
   status: number;
-  constructor(message: string, status: number) {
+  category?: AiErrorCategory;
+  requestId?: string;
+  retryable?: boolean;
+  constructor(
+    message: string,
+    status: number,
+    category?: AiErrorCategory,
+    requestId?: string,
+    retryable?: boolean
+  ) {
     super(message);
     this.status = status;
+    this.category = category;
+    this.requestId = requestId;
+    this.retryable = retryable;
   }
 }
 
@@ -88,24 +119,42 @@ export async function readAiJson<T>(req: NextRequest): Promise<T> {
   return body as T;
 }
 
-export function aiErrorResponse(error: unknown): NextResponse {
+export function aiErrorResponse(error: unknown, reqId?: string): NextResponse {
+  const isCustom = error instanceof AiRequestError || error instanceof RequestBodyError;
+  const status = isCustom ? error.status : 503;
+  const requestId = (error instanceof AiRequestError && error.requestId) || reqId || `req_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+  const category = (error instanceof AiRequestError && error.category) || (status === 429 ? 'app_rate_limit' : status >= 500 ? 'provider_unavailable' : 'validation_rejected');
+  const message = isCustom ? error.message : 'Сервис временно недоступен. Попробуйте снова; оценка не выставлена.';
+
   return NextResponse.json(
-    { error: error instanceof AiRequestError || error instanceof RequestBodyError ? error.message : 'Сервис временно недоступен. Попробуйте снова; оценка не выставлена.' },
-    { status: error instanceof AiRequestError || error instanceof RequestBodyError ? error.status : 503 },
+    {
+      error: message,
+      code: category,
+      category,
+      requestId,
+      retryable: status === 429 || status >= 500,
+    },
+    {
+      status,
+      headers: {
+        'x-request-id': requestId,
+      },
+    },
   );
 }
 
-export function fetchAi(input: string | URL | Request, init?: RequestInit): Promise<Response> {
+export function fetchAi(input: string | URL | Request, init?: RequestInit, timeoutMs?: number): Promise<Response> {
+  const defaultTimeout = timeoutMs && timeoutMs > 0 ? timeoutMs : 20000;
   if (typeof input === 'string' || input instanceof URL) {
     const url = new URL(input);
     if (url.hostname === 'generativelanguage.googleapis.com' && url.searchParams.has('key')) {
       const headers = new Headers(init?.headers);
       headers.set('x-goog-api-key', url.searchParams.get('key') || '');
       url.searchParams.delete('key');
-      return fetch(url, { ...init, headers, signal: init?.signal || AbortSignal.timeout(20000) });
+      return fetch(url, { ...init, headers, signal: init?.signal || AbortSignal.timeout(defaultTimeout) });
     }
   }
-  return fetch(input, { ...init, signal: init?.signal || AbortSignal.timeout(20000) });
+  return fetch(input, { ...init, signal: init?.signal || AbortSignal.timeout(defaultTimeout) });
 }
 
 /** A transcript contains no evidence about the learner's pronunciation. */

@@ -159,3 +159,57 @@ test('P-03: extractClosedSlots identifies apartment number "שתיים" and coff
   assert.ok(!cleanCoffeeReply.hebrew.includes('סוּכָּר'), 'Must strip sugar question');
   assert.ok(!cleanCoffeeReply.translation.includes('сахаром'), 'Must strip sugar translation');
 });
+
+test('validatePhoneReply enforces gender concordance and sanitizes corrupted suggestions', () => {
+  const { validatePhoneReply } = require('../src/lib/phoneConversation.ts');
+  const contract = getPhoneLessonContract(1);
+  const turns = [{ role: 'user', content: 'שלום' }];
+
+  const validReplyFemale = {
+    hebrew: 'שָׁלוֹם! אַתְּ מְמַיֶּנֶת אֶת הַפְּסוֹלֶת?',
+    translation: 'Привет! Ты сортируешь мусор?',
+    transcription: 'шалóм! ат мэмайнэт эт ха-псолэт?',
+    isCompleted: false,
+    shouldHangUp: false,
+    questionForStudent: 0,
+    suggestedReplies: [
+      { hebrew: 'כֵּן, בֶּטַח', translation: 'Да, конечно', transcription: 'кен, бэтах' },
+      { hebrew: 'בַּבְקֻיִּים', translation: 'Бутылки', transcription: 'бутылки' }, // Corrupt non-word
+      { hebrew: 'Yes please', translation: 'Да пожалуйста', transcription: 'йес плиз' }, // Latin letters
+    ],
+  };
+
+  // 1. Valid female reply: corrupted suggestions are cleaned, gender matches female
+  const validated = validatePhoneReply(validReplyFemale, { contract, turns, lessonNumber: 1, gender: 'female' });
+  assert.equal(validated.suggestedReplies.length, 1);
+  assert.equal(validated.suggestedReplies[0].hebrew, 'כֵּן, בֶּטַח');
+
+  // 2. Gender mismatch: masculine address ('את ממיין') sent to a female student must throw
+  const badMaleToFemale = {
+    hebrew: 'שָׁלוֹם! אַתְּ מְמַיֵּן אֶת הַפְּסוֹלֶת?',
+    translation: 'Привет! Ты сортируешь мусор?',
+    transcription: 'шалóм! ат мэмайен эт ха-псолэт?',
+    isCompleted: false,
+    shouldHangUp: false,
+    questionForStudent: 0,
+  };
+  assert.throws(
+    () => validatePhoneReply(badMaleToFemale, { contract, turns, lessonNumber: 1, gender: 'female' }),
+    /Masculine verb addressed to female student/
+  );
+
+  // 3. Gender mismatch: feminine address ('אתה רוצה') sent to a male student must throw
+  const badFemaleToMale = {
+    hebrew: 'שָׁלוֹם! אַתְּ רוֹצָה לְהַזְמִין?',
+    translation: 'Привет! Ты хочешь заказать?',
+    transcription: 'шалóм! ат роцá лэхазмӣн?',
+    isCompleted: false,
+    shouldHangUp: false,
+    questionForStudent: 0,
+  };
+  assert.throws(
+    () => validatePhoneReply(badFemaleToMale, { contract, turns, lessonNumber: 1, gender: 'male' }),
+    /Feminine pronoun addressed to male student/
+  );
+});
+

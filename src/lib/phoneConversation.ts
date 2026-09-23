@@ -90,7 +90,7 @@ ${scenario.systemPromptAddition || ''}`;
 
 /** These are narrow deterministic checks, not a claim of complete semantic understanding. */
 export function validatePhoneReply(parsed: unknown, input: {
-  contract: PhoneLessonContract; turns: PhoneTurn[]; name?: string; lessonNumber: number;
+  contract: PhoneLessonContract; turns: PhoneTurn[]; name?: string; lessonNumber: number; gender?: 'male' | 'female';
 }) {
   if (!parsed || typeof parsed !== 'object') throw new Error('Invalid phone reply');
   const raw = parsed as Record<string, unknown>;
@@ -101,6 +101,20 @@ export function validatePhoneReply(parsed: unknown, input: {
   const hebrew = p.hebrew.trim();
   if (/[A-Za-z\u0400-\u052F\u0600-\u06FF]/.test(hebrew)) throw new Error('Mixed script in Hebrew reply');
   const plain = stripNikkud(hebrew);
+
+  // Проверка согласования рода при обращении к ученику
+  if (input.gender === 'female') {
+    if (/(?:^|\s)אתה(?=\s|[.,!?]|$)/.test(plain)) throw new Error('Masculine pronoun addressed to female student');
+    if (/(?:^|\s)את\s+(?:ממי+ן|מדבר|שומע|יודע|מבין|חושב|אוהב|צריך|יכול)(?=\s|[.,!?]|$)/.test(plain)) {
+      throw new Error('Masculine verb addressed to female student');
+    }
+  } else if (input.gender === 'male') {
+    if (/(?:^|\s)אַתְּ(?=\s|[.,!?]|$)/.test(hebrew)) throw new Error('Feminine pronoun addressed to male student');
+    if (/(?:^|\s)אתה\s+(?:ממי+נת|מדברת|שומעת|יודעת|מבינה|חושבת|אוהבת|צריכה|יכולה)(?=\s|[.,!?]|$)/.test(plain)) {
+      throw new Error('Feminine verb addressed to male student');
+    }
+  }
+
   const state = phoneTurnState(input.turns, input.contract.targetTurns);
   const hasQuestion = /[?？]/.test(hebrew) ||
     /(?:^|[.!]\s*)\s*(?:האם|כמה|מתי|איפה|לאן|מדוע|למה|איזה|איזו|מי|מה|איך)(?=\s)/.test(plain) ||
@@ -125,6 +139,11 @@ export function validatePhoneReply(parsed: unknown, input: {
     const transcription = r.transcription ?? r.cyrillic_transcription;
     const translation = r.translation ?? r.russian_translation;
     if (typeof transcription !== 'string' || !transcription.trim() || typeof translation !== 'string' || !translation.trim()) return [];
+    // Отсекаем подсказки с латиницей в транскрипции (кроме допустимого знака h)
+    if (/[a-gi-zA-Z]/.test(transcription)) return [];
+    // Отсекаем известные поврежденные псевдослова (вроде בַּבְקֻיִּים)
+    const strippedHint = stripNikkud(r.hebrew.trim());
+    if (/בבק[וי]+ים/.test(strippedHint)) return [];
     return [{ hebrew: r.hebrew.trim(), transcription: ensureCyrillicHebrewTranscription(transcription.trim(), r.hebrew), translation: sanitizeRussianTranslation(translation) }];
   }) : [];
   // Flags alone cannot hang up while the character is still asking a question.

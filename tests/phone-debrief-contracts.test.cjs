@@ -179,3 +179,19 @@ test('a missing assessment or explanatory comment is not replaced with a favorab
     assert.equal((await env.request()).status, 503, missing);
   }
 });
+
+test('betterAlternative sanitization rejects Latin characters or alternatives lacking Hebrew', async (t) => {
+  const env = isolatedDebrief(t);
+  const report = validReport();
+  report.turnReviews[0].betterAlternative = 'rega ani ba (Wait I am coming)'; // Contains Latin
+  report.turnReviews[1].betterAlternative = 'Только русский без иврита'; // Lacks Hebrew
+  report.turnReviews[2].betterAlternative = 'רֶגַע, אֲנִי כְּבָר בָּא! (Секунду, я уже иду!)'; // Valid Hebrew + Russian
+  env.result(report);
+  const response = await env.request();
+  assert.equal(response.status, 200);
+  const body = await response.json();
+  assert.equal(body.turnReviews[0].betterAlternative, undefined);
+  assert.equal(body.turnReviews[1].betterAlternative, undefined);
+  assert.equal(body.turnReviews[2].betterAlternative, 'רֶגַע, אֲנִי כְּבָר בָּא! (Секунду, я уже иду!)');
+});
+

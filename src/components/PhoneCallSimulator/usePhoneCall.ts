@@ -142,6 +142,7 @@ export function usePhoneCall({
   const lastRecordedAudioBlobRef = useRef<Blob | null>(null);
   const liveTranscriptRef = useRef('');
   const watchdogTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const watchdogRestartTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const knownWords = useMemo(
     () => getStudentKnownVocabulary(userProfile, 50),
@@ -190,6 +191,8 @@ export function usePhoneCall({
       if (timerRef.current) clearInterval(timerRef.current);
       if (autoListenTimeoutRef.current) clearTimeout(autoListenTimeoutRef.current);
       if (silenceTimeoutRef.current) clearTimeout(silenceTimeoutRef.current);
+      if (watchdogTimeoutRef.current) clearTimeout(watchdogTimeoutRef.current);
+      if (watchdogRestartTimeoutRef.current) clearTimeout(watchdogRestartTimeoutRef.current);
     };
   }, []);
 
@@ -256,6 +259,10 @@ export function usePhoneCall({
       clearTimeout(watchdogTimeoutRef.current);
       watchdogTimeoutRef.current = null;
     }
+    if (watchdogRestartTimeoutRef.current) {
+      clearTimeout(watchdogRestartTimeoutRef.current);
+      watchdogRestartTimeoutRef.current = null;
+    }
     if (recognizerRef.current) {
       recognizerRef.current.stop(true);
     }
@@ -293,6 +300,10 @@ export function usePhoneCall({
       clearTimeout(watchdogTimeoutRef.current);
       watchdogTimeoutRef.current = null;
     }
+    if (watchdogRestartTimeoutRef.current) {
+      clearTimeout(watchdogRestartTimeoutRef.current);
+      watchdogRestartTimeoutRef.current = null;
+    }
 
     // В первых 5 уроках пауза 2 сек, в уроках 6-10 — 1.5 сек, далее 1.3 сек
     const silenceDelayMs = lesson.number && lesson.number <= 5 ? 2000
@@ -307,6 +318,12 @@ export function usePhoneCall({
         !isAiSpeakingRef.current &&
         !isMutedRef.current
       ) {
+        // Если ученик активно говорит или идет финализация/обработка STT — не прерываем речь!
+        if (recognizerRef.current?.isSpeechActive()) {
+          callFlightRecorder.record('VAD', 'Watchdog deferred: user is actively speaking or STT is running', {}, 'info');
+          return;
+        }
+
         const text = (liveTranscriptRef.current || '').trim();
         if (text.length >= 2 && !isEchoFromAi(text) && !isWhisperSilenceHallucination(text)) {
           if (recognizerRef.current) {
@@ -316,8 +333,12 @@ export function usePhoneCall({
           }
         } else {
           setSpeechNotice('Собеседник вас не расслышал. Скажите фразу громче');
-          setTimeout(() => {
-            if (callActiveRef.current && shouldListenRef.current && !isSendingRef.current) {
+          callFlightRecorder.record('VAD', 'Watchdog triggered: no speech after 12s, scheduling restart', {}, 'warn');
+          if (watchdogRestartTimeoutRef.current) {
+            clearTimeout(watchdogRestartTimeoutRef.current);
+          }
+          watchdogRestartTimeoutRef.current = setTimeout(() => {
+            if (callActiveRef.current && shouldListenRef.current && !isSendingRef.current && !isAiSpeakingRef.current) {
               startListening(true);
             }
           }, 1500);
@@ -332,6 +353,10 @@ export function usePhoneCall({
         liveTranscriptRef.current = transcript;
         setLiveTranscript(transcript);
         setSpeechNotice(null);
+        if (watchdogRestartTimeoutRef.current) {
+          clearTimeout(watchdogRestartTimeoutRef.current);
+          watchdogRestartTimeoutRef.current = null;
+        }
 
         // Резервный таймер тишины при паузе после сказанных слов
         if (silenceTimeoutRef.current) clearTimeout(silenceTimeoutRef.current);
@@ -386,6 +411,10 @@ export function usePhoneCall({
         if (watchdogTimeoutRef.current) {
           clearTimeout(watchdogTimeoutRef.current);
           watchdogTimeoutRef.current = null;
+        }
+        if (watchdogRestartTimeoutRef.current) {
+          clearTimeout(watchdogRestartTimeoutRef.current);
+          watchdogRestartTimeoutRef.current = null;
         }
 
         // Завершение сессии распознавания: если все еще слушаем, проверяем наличие фразы
@@ -646,6 +675,7 @@ export function usePhoneCall({
     }
   ) {
     stopListening();
+    setSpeechNotice(null);
     const text = (textToSend || textInput || liveTranscript).trim();
 
     if (!text || loadingAiRef.current || isSendingRef.current || !callActiveRef.current) {
@@ -696,8 +726,10 @@ export function usePhoneCall({
     const newHistory = [...acknowledgedHistory, userMsg];
     setBothMessages(newHistory);
 
+    const requestId = `phone_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
     const tStart = typeof performance !== 'undefined' ? performance.now() : Date.now();
     callFlightRecorder.record('LLM', 'Sending user turn to /api/ai/phone', {
+      requestId,
       round: newHistory.length,
       text,
       provider: userProfile.aiProvider,
@@ -711,9 +743,13 @@ export function usePhoneCall({
 
       const res = await fetch('/api/ai/phone', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        signal: AbortSignal.timeout(20000),
+        headers: {
+          'Content-Type': 'application/json',
+          'x-request-id': requestId,
+        },
+        signal: AbortSignal.timeout(30000),
         body: JSON.stringify({
+          requestId,
           messages: historyPayload,
           lessonNumber: lesson.number,
           level: lesson.level,
@@ -742,17 +778,36 @@ export function usePhoneCall({
       });
 
       const latencyMs = Math.round((typeof performance !== 'undefined' ? performance.now() : Date.now()) - tStart);
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        const serverRequestId = errData.requestId || requestId;
+        const errCategory = errData.category || (res.status === 429 ? 'app_rate_limit' : 'provider_unavailable');
+        const errMsg = errData.error || 'Собеседник сейчас недоступен. Попробуйте ещё раз.';
+
+        callFlightRecorder.record('LLM', `Phone API error ${res.status} (${latencyMs}ms)`, {
+          requestId: serverRequestId,
+          latencyMs,
+          status: res.status,
+          category: errCategory,
+          error: errMsg,
+        }, 'error');
+
+        throw new Error(errMsg);
+      }
+
       callFlightRecorder.record('LLM', `Phone API response status ${res.status} (${latencyMs}ms)`, {
+        requestId,
         latencyMs,
         status: res.status,
-      }, res.ok ? 'success' : 'error');
+      }, 'success');
 
-      if (!res.ok) throw new Error('Собеседник сейчас недоступен. Попробуйте ещё раз.');
       const data = await res.json();
       if (generation !== callGenerationRef.current) return;
       if (typeof data.hebrew !== 'string' || !data.hebrew.trim()) throw new Error('Не удалось получить ответ собеседника.');
 
       callFlightRecorder.record('LLM', 'AI response parsed successfully', {
+        requestId,
         aiHebrew: data.hebrew,
         isCompleted: Boolean(data.isCompleted),
         shouldHangUp: Boolean(data.shouldHangUp),
@@ -785,7 +840,8 @@ export function usePhoneCall({
       console.error('Phone AI Error:', err);
       const isTimeout = err instanceof Error && (err.name === 'TimeoutError' || err.name === 'AbortError');
       const latencyMs = Math.round((typeof performance !== 'undefined' ? performance.now() : Date.now()) - tStart);
-      callFlightRecorder.record('ERROR', `Phone API error (${latencyMs}ms)`, {
+      callFlightRecorder.record('ERROR', `Phone AI error (${latencyMs}ms)`, {
+        requestId,
         latencyMs,
         error: String(err),
         isTimeout,
@@ -819,11 +875,17 @@ export function usePhoneCall({
     ) => {
       setLoadingDebrief(true);
       setSpeechNotice(null);
+      const debriefRequestId = `debrief_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
       try {
         const res = await fetch('/api/ai/phone/debrief', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            'x-request-id': debriefRequestId,
+          },
+          signal: AbortSignal.timeout(30000),
           body: JSON.stringify({
+            requestId: debriefRequestId,
             lessonNumber: lesson.id,
             level: lesson.level,
             userGender: userProfile.gender,

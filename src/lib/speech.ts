@@ -1318,27 +1318,173 @@ export interface SpeechRecognizerOptions {
  * Кроссплатформенный интерфейс распознавания речи (Speech-to-Text) для иврита
  * с поддержкой iPhone/Safari, Android и ПК через MediaRecorder + VAD + AI Transcription.
  */
+export type RecognizerState = 'idle' | 'listening' | 'speech_active' | 'finalizing' | 'transcribing' | 'closed';
+
+export interface TranscriptionResult {
+  success: boolean;
+  text?: string;
+  reason?: 'filtered' | 'silence_hallucination' | 'prompt_hallucination' | 'no_speech_prob' | 'http_error' | 'network_error' | 'empty' | 'offline';
+  status?: number;
+  retryable?: boolean;
+  rawText?: string;
+  engine?: string;
+  requestId?: string;
+  latencyMs?: number;
+}
+
+export interface RecognizerSession {
+  readonly id: number;
+  state: RecognizerState;
+  audioChunks: Blob[];
+  mimeType: string;
+  onResult: ((transcript: string, isFinal: boolean) => void) | null;
+  onError: ((error: string) => void) | null;
+  onEnd: ((lastTranscript: string, audioBlob?: Blob | null, audioUrl?: string | null) => void) | null;
+  options: SpeechRecognizerOptions;
+  hasDetectedSpeech: boolean;
+  silenceStartTime: number | null;
+  lastTranscript: string;
+  preservedBlob: Blob | null;
+  preservedUrl: string | null;
+  recorder: MediaRecorder | null;
+}
+
 export class HebrewSpeechRecognizer {
   private recognition: any = null;
-  private mediaRecorder: MediaRecorder | null = null;
-  private audioChunks: Blob[] = [];
+  private sessionCounter = 0;
+  private activeSession: RecognizerSession | null = null;
   private mediaStream: MediaStream | null = null;
   private audioContext: AudioContext | null = null;
   private analyser: AnalyserNode | null = null;
   private mediaSourceNode: MediaStreamAudioSourceNode | null = null;
   private vadInterval: any = null;
   private isListening = false;
-  private lastTranscript = '';
-  private onResultCb: ((transcript: string, isFinal: boolean) => void) | null = null;
-  private onErrorCb: ((error: string) => void) | null = null;
-  private onEndCb: ((lastTranscript: string, audioBlob?: Blob | null, audioUrl?: string | null) => void) | null = null;
-  private currentOptions: SpeechRecognizerOptions = {};
-  private hasDetectedSpeech = false;
-  private silenceStartTime: number | null = null;
   private isProcessingSilence = false;
   private ambientNoiseFloor = 10;
   private peakAvgInCurrentChunk = 0;
   private peakRmsDbInCurrentChunk = -100;
+
+  private ensureActiveSession(): RecognizerSession {
+    if (!this.activeSession || this.activeSession.state === 'closed') {
+      this.activeSession = {
+        id: ++this.sessionCounter,
+        state: 'listening',
+        audioChunks: [],
+        mimeType: '',
+        onResult: null,
+        onError: null,
+        onEnd: null,
+        options: {},
+        hasDetectedSpeech: false,
+        silenceStartTime: null,
+        lastTranscript: '',
+        preservedBlob: null,
+        preservedUrl: null,
+        recorder: null,
+      };
+    }
+    return this.activeSession;
+  }
+
+  public get audioChunks(): Blob[] {
+    return this.activeSession ? this.activeSession.audioChunks : [];
+  }
+  public set audioChunks(chunks: Blob[]) {
+    this.ensureActiveSession();
+    this.activeSession!.audioChunks = chunks;
+  }
+
+  public get mediaRecorder(): MediaRecorder | null {
+    return this.activeSession ? this.activeSession.recorder : null;
+  }
+  public set mediaRecorder(rec: MediaRecorder | null) {
+    this.ensureActiveSession();
+    this.activeSession!.recorder = rec;
+  }
+
+  public get currentOptions(): SpeechRecognizerOptions {
+    return this.activeSession ? this.activeSession.options : {};
+  }
+  public set currentOptions(opts: SpeechRecognizerOptions) {
+    this.ensureActiveSession();
+    this.activeSession!.options = opts;
+  }
+
+  public get lastTranscript(): string {
+    return this.activeSession ? this.activeSession.lastTranscript : '';
+  }
+  public set lastTranscript(text: string) {
+    if (this.activeSession) {
+      this.activeSession.lastTranscript = text;
+    }
+  }
+
+  public get hasDetectedSpeech(): boolean {
+    return this.activeSession ? this.activeSession.hasDetectedSpeech : false;
+  }
+  public set hasDetectedSpeech(val: boolean) {
+    if (this.activeSession) {
+      this.activeSession.hasDetectedSpeech = val;
+    }
+  }
+
+  public get silenceStartTime(): number | null {
+    return this.activeSession ? this.activeSession.silenceStartTime : null;
+  }
+  public set silenceStartTime(val: number | null) {
+    if (this.activeSession) {
+      this.activeSession.silenceStartTime = val;
+    }
+  }
+
+  public get onResultCb(): ((transcript: string, isFinal: boolean) => void) | null {
+    return this.activeSession ? this.activeSession.onResult : null;
+  }
+  public set onResultCb(cb: ((transcript: string, isFinal: boolean) => void) | null) {
+    if (this.activeSession) {
+      this.activeSession.onResult = cb;
+    }
+  }
+
+  public get onErrorCb(): ((error: string) => void) | null {
+    return this.activeSession ? this.activeSession.onError : null;
+  }
+  public set onErrorCb(cb: ((error: string) => void) | null) {
+    if (this.activeSession) {
+      this.activeSession.onError = cb;
+    }
+  }
+
+  public get onEndCb(): ((lastTranscript: string, audioBlob?: Blob | null, audioUrl?: string | null) => void) | null {
+    return this.activeSession ? this.activeSession.onEnd : null;
+  }
+  public set onEndCb(cb: ((lastTranscript: string, audioBlob?: Blob | null, audioUrl?: string | null) => void) | null) {
+    if (this.activeSession) {
+      this.activeSession.onEnd = cb;
+    }
+  }
+
+  public isSpeechActive(): boolean {
+    if (!this.activeSession) return false;
+    return (
+      this.activeSession.hasDetectedSpeech ||
+      this.activeSession.state === 'speech_active' ||
+      this.activeSession.state === 'finalizing' ||
+      this.activeSession.state === 'transcribing' ||
+      this.isProcessingSilence
+    );
+  }
+
+  public getSessionState(): RecognizerState {
+    return this.activeSession ? this.activeSession.state : 'idle';
+  }
+
+  public getPreservedAudio(): { blob: Blob | null; url: string | null } {
+    return {
+      blob: this.activeSession?.preservedBlob || null,
+      url: this.activeSession?.preservedUrl || null,
+    };
+  }
 
   public isSupported(): boolean {
     if (typeof window === 'undefined') return false;
@@ -1360,14 +1506,39 @@ export class HebrewSpeechRecognizer {
       return;
     }
 
-    this.stop();
+    // Safely isolate old session so its asynchronous stop / ondataavailable cannot corrupt the new session
+    const oldSession = this.activeSession;
+    if (oldSession) {
+      oldSession.state = 'closed';
+      oldSession.onResult = null;
+      oldSession.onError = null;
+      const oldRecorder = oldSession.recorder;
+      oldSession.recorder = null;
+      if (oldRecorder && oldRecorder.state !== 'inactive') {
+        try {
+          oldRecorder.stop();
+        } catch {}
+      }
+    }
 
-    this.onResultCb = onResult;
-    this.onErrorCb = onError;
-    this.onEndCb = onEnd;
-    this.lastTranscript = '';
-    this.currentOptions = options || {};
-    this.audioChunks = [];
+    const sessionId = ++this.sessionCounter;
+    const session: RecognizerSession = {
+      id: sessionId,
+      state: 'listening',
+      audioChunks: [],
+      mimeType: '',
+      onResult,
+      onError,
+      onEnd,
+      options: options || {},
+      hasDetectedSpeech: false,
+      silenceStartTime: null,
+      lastTranscript: '',
+      preservedBlob: null,
+      preservedUrl: null,
+      recorder: null,
+    };
+    this.activeSession = session;
     this.isListening = true;
     this.hasDetectedSpeech = false;
     this.silenceStartTime = null;
@@ -1394,7 +1565,7 @@ export class HebrewSpeechRecognizer {
         }
       }
 
-      if (!this.isListening) {
+      if (!this.isListening || session.state === 'closed') {
         return;
       }
 
@@ -1417,89 +1588,121 @@ export class HebrewSpeechRecognizer {
             mimeType = 'audio/aac';
           }
         }
+        session.mimeType = mimeType;
 
-        const recorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
-        this.audioChunks = [];
-
-        recorder.ondataavailable = (e) => {
-          if (e.data && e.data.size > 0) {
-            this.audioChunks.push(e.data);
-          }
-        };
-
-        recorder.onstop = async () => {
-          if (!this.onEndCb && !this.onResultCb) {
-            this.audioChunks = [];
-            return;
-          }
-          const recordedChunks = [...this.audioChunks];
-          this.audioChunks = [];
-
-          let recordedBlob: Blob | null = null;
-          let recordedUrl: string | null = null;
-
-          const cleanupStream = () => {
-            if (!this.currentOptions.mediaStream && this.mediaStream) {
-              try {
-                this.mediaStream.getTracks().forEach((track) => track.stop());
-              } catch {}
-              this.mediaStream = null;
-            }
-          };
-
-          if (recordedChunks.length > 0) {
-            const blobType = mimeType || recordedChunks[0]?.type || 'audio/webm';
-            const audioBlob = new Blob(recordedChunks, { type: blobType });
-            recordedBlob = audioBlob;
-            try {
-              recordedUrl = URL.createObjectURL(audioBlob);
-              if (this.currentOptions.onAudioRecorded) {
-                this.currentOptions.onAudioRecorded(audioBlob, recordedUrl);
-              }
-            } catch (err) {
-              console.warn('createObjectURL error:', err);
-            }
-
-            // Если записано реальное аудио (более 1000 байт), транскрибируем через Groq Whisper V3
-            if (audioBlob.size > 1000) {
-              const text = await this.transcribeAudioBlob(audioBlob, blobType);
-              if (text && text.trim()) {
-                this.lastTranscript = text.trim();
-                this.onResultCb?.(this.lastTranscript, true);
-                const endCb = this.onEndCb;
-                this.onEndCb = null;
-                endCb?.(this.lastTranscript, recordedBlob, recordedUrl);
-                cleanupStream();
-                return;
-              }
-            }
-          }
-
-          if (!this.onEndCb && !this.onResultCb) {
-            cleanupStream();
-            return;
-          }
-          if (this.lastTranscript && this.lastTranscript.trim()) {
-            callFlightRecorder.record('STT', 'Fallback to device speech recognition', {
-              text: this.lastTranscript.trim(),
-            }, 'warn');
-          }
-          const endCb = this.onEndCb;
-          this.onEndCb = null;
-          endCb?.(this.lastTranscript, recordedBlob, recordedUrl);
-          cleanupStream();
-        };
-
-        this.mediaRecorder = recorder;
-        recorder.start(250);
+        this.startSessionRecorder(session, stream);
       }
     } catch (err: any) {
       console.warn('MediaRecorder / microphone error:', err);
       if (!this.recognition) {
         this.isListening = false;
-        this.onErrorCb?.(err?.message || 'Не удалось получить доступ к микрофону');
+        session.state = 'closed';
+        session.onError?.(err?.message || 'Не удалось получить доступ к микрофону');
       }
     }
+  }
+
+  private isSessionClosed(session: RecognizerSession): boolean {
+    return (session.state as string) === 'closed';
+  }
+
+  private startSessionRecorder(session: RecognizerSession, stream: MediaStream): void {
+    if (this.isSessionClosed(session)) return;
+
+    try {
+      const recorder = session.mimeType
+        ? new MediaRecorder(stream, { mimeType: session.mimeType })
+        : new MediaRecorder(stream);
+      session.recorder = recorder;
+
+      recorder.ondataavailable = (e) => {
+        // Scoped strictly to this session
+        if (this.isSessionClosed(session)) return;
+        if (e.data && e.data.size > 0) {
+          session.audioChunks.push(e.data);
+        }
+      };
+
+      recorder.onstop = async () => {
+        if (this.isSessionClosed(session)) return;
+        if (this.activeSession?.id !== session.id) return;
+
+        const recordedChunks = [...session.audioChunks];
+        session.audioChunks = [];
+
+        let recordedBlob: Blob | null = null;
+        let recordedUrl: string | null = null;
+
+        const cleanupStream = () => {
+          if (!session.options.mediaStream && this.mediaStream) {
+            try {
+              this.mediaStream.getTracks().forEach((track) => track.stop());
+            } catch {}
+            this.mediaStream = null;
+          }
+        };
+
+        if (recordedChunks.length > 0) {
+          const blobType = session.mimeType || recordedChunks[0]?.type || 'audio/webm';
+          const audioBlob = new Blob(recordedChunks, { type: blobType });
+          recordedBlob = audioBlob;
+          try {
+            recordedUrl = URL.createObjectURL(audioBlob);
+            session.options.onAudioRecorded?.(audioBlob, recordedUrl);
+          } catch (err) {
+            console.warn('createObjectURL error:', err);
+          }
+
+          if (audioBlob.size > 1000) {
+            session.state = 'transcribing';
+            const transcribeRes = await this.transcribeAudioBlob(audioBlob, blobType);
+            if (this.isSessionClosed(session)) return;
+
+            const text = typeof transcribeRes === 'string' ? transcribeRes : transcribeRes?.text;
+            const success = typeof transcribeRes === 'string' ? Boolean(transcribeRes.trim()) : Boolean(transcribeRes?.success);
+
+            if (success && text && text.trim()) {
+              session.lastTranscript = text.trim();
+              session.onResult?.(session.lastTranscript, true);
+              const endCb = session.onEnd;
+              session.onEnd = null;
+              session.state = 'closed';
+              endCb?.(session.lastTranscript, recordedBlob, recordedUrl);
+              cleanupStream();
+              return;
+            }
+          }
+        }
+
+        if (this.isSessionClosed(session)) return;
+        if (session.lastTranscript && session.lastTranscript.trim()) {
+          callFlightRecorder.record('STT', 'Fallback to device speech recognition', {
+            text: session.lastTranscript.trim(),
+          }, 'warn');
+        }
+        const endCb = session.onEnd;
+        session.onEnd = null;
+        session.state = 'closed';
+        endCb?.(session.lastTranscript, recordedBlob, recordedUrl);
+        cleanupStream();
+      };
+
+      recorder.start(250);
+    } catch (err: any) {
+      console.warn('Error starting session recorder:', err);
+    }
+  }
+
+  private restartRecorderForSession(session: RecognizerSession): void {
+    if (this.isSessionClosed(session) || !this.mediaStream || !this.mediaStream.active) return;
+    try {
+      if (session.recorder && session.recorder.state !== 'inactive') {
+        session.recorder.ondataavailable = null;
+        session.recorder.onstop = null;
+        try { session.recorder.stop(); } catch {}
+      }
+    } catch {}
+    this.startSessionRecorder(session, this.mediaStream);
   }
 
   private startRecognitionOnly(): void {
@@ -1684,12 +1887,13 @@ export class HebrewSpeechRecognizer {
   }
 
   private async handleSilenceDetected(): Promise<void> {
-    if (!this.currentOptions.onSilenceDetected) {
+    const session = this.activeSession;
+    if (!session || this.isSessionClosed(session) || !session.options.onSilenceDetected) {
       return;
     }
 
     // 0. ENERGY GATE: Проверяем, была ли в записанном аудиочанке реальная энергия человеческой речи
-    const energyThreshold = this.currentOptions.energyThresholdDb ?? -35;
+    const energyThreshold = session.options.energyThresholdDb ?? -35;
     const hasRealSpeechEnergy = this.peakAvgInCurrentChunk >= 15 && this.peakRmsDbInCurrentChunk > energyThreshold;
 
     if (!hasRealSpeechEnergy) {
@@ -1698,12 +1902,14 @@ export class HebrewSpeechRecognizer {
         peakRmsDb: Math.round(this.peakRmsDbInCurrentChunk),
         ambientFloor: Math.round(this.ambientNoiseFloor),
       }, 'warn');
-      this.audioChunks = [];
-      this.lastTranscript = '';
-      this.hasDetectedSpeech = false;
-      this.silenceStartTime = null;
+      session.audioChunks = [];
+      session.lastTranscript = '';
+      session.hasDetectedSpeech = false;
+      session.silenceStartTime = null;
       this.peakAvgInCurrentChunk = 0;
       this.peakRmsDbInCurrentChunk = -100;
+      // При сбросе чанков перезапускаем рекордер, чтобы следующая фраза начиналась с EBML-заголовка
+      this.restartRecorderForSession(session);
       return;
     }
 
@@ -1712,41 +1918,53 @@ export class HebrewSpeechRecognizer {
     this.peakRmsDbInCurrentChunk = -100;
 
     // 1. Пробуем транскрибировать накопленное аудио через Groq Whisper V3 для максимальной полноты фразы
-    if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
+    if (session.recorder && session.recorder.state !== 'inactive') {
       try {
-        this.mediaRecorder.requestData();
+        session.recorder.requestData();
         await new Promise((r) => setTimeout(r, 100));
+        if (this.isSessionClosed(session)) return;
 
-        if (this.audioChunks.length > 0) {
-          const blobType = this.mediaRecorder.mimeType || 'audio/webm';
-          const audioBlob = new Blob([...this.audioChunks], { type: blobType });
+        if (session.audioChunks.length > 0) {
+          const blobType = session.mimeType || session.recorder.mimeType || 'audio/webm';
+          const audioBlob = new Blob([...session.audioChunks], { type: blobType });
           let audioUrl: string | null = null;
           try {
             audioUrl = URL.createObjectURL(audioBlob);
-            if (this.currentOptions.onAudioRecorded) {
-              this.currentOptions.onAudioRecorded(audioBlob, audioUrl);
-            }
+            session.options.onAudioRecorded?.(audioBlob, audioUrl);
           } catch {}
 
           // Если записано реальное аудио (более 1500 байт ~0.3с речи), транскрибируем через Groq Whisper V3
           if (audioBlob.size >= 1500) {
-            const text = await this.transcribeAudioBlob(audioBlob, blobType);
-            if (text && text.trim().length >= 2 && !isWhisperSilenceHallucination(text.trim())) {
-              this.audioChunks = []; // очищаем буфер только при успешном распознавании
-              this.lastTranscript = '';
-              this.hasDetectedSpeech = false;
-              this.silenceStartTime = null;
+            session.state = 'transcribing';
+            const transcribeRes = await this.transcribeAudioBlob(audioBlob, blobType);
+            if (this.isSessionClosed(session)) return;
+
+            const text = typeof transcribeRes === 'string' ? transcribeRes : transcribeRes?.text;
+            const success = typeof transcribeRes === 'string' ? Boolean(transcribeRes.trim()) : Boolean(transcribeRes?.success);
+
+            if (success && text && text.trim().length >= 2 && !isWhisperSilenceHallucination(text.trim())) {
+              session.audioChunks = []; // очищаем буфер только при успешном распознавании
+              session.lastTranscript = '';
+              session.hasDetectedSpeech = false;
+              session.silenceStartTime = null;
+              session.preservedBlob = audioBlob;
+              session.preservedUrl = audioUrl;
               callFlightRecorder.record('VAD', 'VAD phrase accepted for submission', { text: text.trim(), sizeBytes: audioBlob.size }, 'success');
-              this.currentOptions.onSilenceDetected?.(text.trim(), audioBlob, audioUrl);
+              // Перезапускаем рекордер, чтобы следующий фрагмент получил валидные заголовки контейнера
+              this.restartRecorderForSession(session);
+              session.options.onSilenceDetected?.(text.trim(), audioBlob, audioUrl);
               return;
             } else {
-              callFlightRecorder.record('VAD', 'Transcribe returned empty/filtered text, discarding chunk', { rawText: text }, 'warn');
+              session.preservedBlob = audioBlob;
+              session.preservedUrl = audioUrl;
+              callFlightRecorder.record('VAD', 'Transcribe returned empty/filtered text, preserving chunk for retry/fallback', { rawText: text }, 'warn');
             }
           } else {
             callFlightRecorder.record('VAD', 'Noise rejected: chunk too small (<1500b)', { sizeBytes: audioBlob.size }, 'warn');
           }
-          // Если аудио оказалось слишком коротким или распознана тишина — сбрасываем шумы
-          this.audioChunks = [];
+          // Если аудио оказалось слишком коротким или распознана тишина — сбрасываем чанки и перезапускаем рекордер
+          session.audioChunks = [];
+          this.restartRecorderForSession(session);
         }
       } catch (err) {
         console.warn('VAD transcribe fallback error:', err);
@@ -1754,21 +1972,23 @@ export class HebrewSpeechRecognizer {
     }
 
     // 2. Fallback на браузерный Web Speech API (только если есть свежий осмысленный текст)
-    const recognizedText = this.lastTranscript.trim();
+    const recognizedText = session.lastTranscript.trim();
     if (recognizedText && recognizedText.length >= 2 && !isWhisperSilenceHallucination(recognizedText)) {
-      this.lastTranscript = '';
-      this.hasDetectedSpeech = false;
-      this.silenceStartTime = null;
-      this.currentOptions.onSilenceDetected?.(recognizedText, null, null);
+      const fallbackBlob = session.preservedBlob;
+      const fallbackUrl = session.preservedUrl;
+      session.lastTranscript = '';
+      session.hasDetectedSpeech = false;
+      session.silenceStartTime = null;
+      session.options.onSilenceDetected?.(recognizedText, fallbackBlob, fallbackUrl);
     }
   }
 
-  private async transcribeAudioBlob(audioBlob: Blob, mimeType: string): Promise<string | null> {
+  private async transcribeAudioBlob(audioBlob: Blob, mimeType: string): Promise<TranscriptionResult | string | null> {
     const t0 = typeof performance !== 'undefined' ? performance.now() : Date.now();
     try {
       if (typeof navigator !== 'undefined' && navigator.onLine === false) {
         callFlightRecorder.record('STT', 'Whisper STT aborted: device offline', {}, 'warn');
-        return null;
+        return { success: false, reason: 'offline', retryable: true, latencyMs: 0 };
       }
       const formData = new FormData();
       const ext = mimeType.includes('mp4') ? 'm4a' : mimeType.includes('aac') ? 'aac' : 'webm';
@@ -1809,6 +2029,14 @@ export class HebrewSpeechRecognizer {
 
       if (res.ok) {
         const data = await res.json();
+        if (data.filtered) {
+          callFlightRecorder.record('STT', `Whisper silence hallucination filtered (${latencyMs}ms)`, {
+            latencyMs,
+            reason: data.reason,
+            text: data.text,
+          }, 'warn');
+          return { success: false, reason: data.reason || 'silence_hallucination', retryable: false, rawText: data.text, latencyMs };
+        }
         if (data.text && data.text.trim()) {
           const normalized = normalizeHebrewSpeechTranscript(data.text.trim());
           if (!isWhisperSilenceHallucination(normalized)) {
@@ -1817,19 +2045,22 @@ export class HebrewSpeechRecognizer {
               rawText: data.text,
               normalized,
             }, 'success');
-            return normalized;
+            return { success: true, text: normalized, engine: data.engine, latencyMs };
           } else {
             callFlightRecorder.record('STT', `Whisper silence hallucination filtered (${latencyMs}ms)`, {
               latencyMs,
               text: data.text,
             }, 'warn');
+            return { success: false, reason: 'silence_hallucination', retryable: false, rawText: data.text, latencyMs };
           }
         }
+        return { success: false, reason: 'empty', retryable: false, latencyMs };
       } else {
         callFlightRecorder.record('STT', `Whisper STT HTTP error (${latencyMs}ms)`, {
           latencyMs,
           status: res.status,
         }, 'error');
+        return { success: false, reason: 'http_error', status: res.status, retryable: res.status === 429 || res.status >= 500, latencyMs };
       }
     } catch (e: any) {
       const latencyMs = Math.round((typeof performance !== 'undefined' ? performance.now() : Date.now()) - t0);
@@ -1838,16 +2069,33 @@ export class HebrewSpeechRecognizer {
         error: String(e),
       }, 'error');
       console.warn('transcribeAudioBlob error:', e);
+      return { success: false, reason: 'network_error', retryable: true, latencyMs };
     }
-    return null;
   }
 
   public cancel(): void {
     this.isListening = false;
-    this.onResultCb = null;
-    this.onErrorCb = null;
-    this.onEndCb = null;
-    this.audioChunks = [];
+    const session = this.activeSession;
+    if (session) {
+      session.state = 'closed';
+      session.onResult = null;
+      session.onError = null;
+      session.onEnd = null;
+      session.audioChunks = [];
+      session.preservedBlob = null;
+      session.preservedUrl = null;
+      if (session.recorder) {
+        try {
+          session.recorder.ondataavailable = null;
+          session.recorder.onstop = null;
+          if (session.recorder.state !== 'inactive') {
+            session.recorder.stop();
+          }
+        } catch {}
+        session.recorder = null;
+      }
+    }
+    this.activeSession = null;
     this.hasDetectedSpeech = false;
     this.silenceStartTime = null;
     this.isProcessingSilence = false;
@@ -1874,17 +2122,6 @@ export class HebrewSpeechRecognizer {
         this.recognition.abort();
       } catch {}
       this.recognition = null;
-    }
-
-    if (this.mediaRecorder) {
-      try {
-        this.mediaRecorder.onstop = null;
-        this.mediaRecorder.ondataavailable = null;
-        if (this.mediaRecorder.state !== 'inactive') {
-          this.mediaRecorder.stop();
-        }
-      } catch {}
-      this.mediaRecorder = null;
     }
 
     if (this.mediaStream) {
@@ -1911,7 +2148,9 @@ export class HebrewSpeechRecognizer {
       return;
     }
 
-    if (!this.isListening) return;
+    const session = this.activeSession;
+    if (!session || session.state === 'closed') return;
+
     this.isListening = false;
     this.hasDetectedSpeech = false;
     this.silenceStartTime = null;
@@ -1941,20 +2180,21 @@ export class HebrewSpeechRecognizer {
       this.recognition = null;
     }
 
-    if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
+    if (session.recorder && session.recorder.state !== 'inactive') {
       try {
-        this.mediaRecorder.stop();
+        session.recorder.stop();
       } catch (err) {
         console.warn('Error stopping mediaRecorder:', err);
-        const endCb = this.onEndCb;
-        this.onEndCb = null;
-        endCb?.(this.lastTranscript, null, null);
+        const endCb = session.onEnd;
+        session.onEnd = null;
+        session.state = 'closed';
+        endCb?.(session.lastTranscript, null, null);
       }
-      this.mediaRecorder = null;
     } else {
-      const endCb = this.onEndCb;
-      this.onEndCb = null;
-      endCb?.(this.lastTranscript, null, null);
+      const endCb = session.onEnd;
+      session.onEnd = null;
+      session.state = 'closed';
+      endCb?.(session.lastTranscript, null, null);
     }
   }
 }

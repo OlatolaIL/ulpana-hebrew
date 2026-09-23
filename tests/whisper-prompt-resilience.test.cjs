@@ -58,8 +58,8 @@ assert(
 );
 
 assert(
-  routeContent.includes('!groqRes.ok && prompt'),
-  'route.ts должен иметь fail-safe retry без prompt при ошибке Groq'
+  routeContent.includes('groqRes.status === 400 && prompt') || routeContent.includes('!groqRes.ok && prompt'),
+  'route.ts должен иметь fail-safe retry без prompt при ошибке Groq 400 (invalid_prompt)'
 );
 
 assert(

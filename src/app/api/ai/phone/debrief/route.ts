@@ -27,6 +27,17 @@ interface PhoneDebriefRequestBody {
   apiKey?: string;
 }
 
+function sanitizeBetterAlternative(alt: unknown): string | undefined {
+  if (typeof alt !== 'string') return undefined;
+  const trimmed = alt.trim();
+  if (!trimmed) return undefined;
+  // Reject Latin letters (Hebrew text with Russian translation must not contain Latin characters)
+  if (/[a-zA-Z]/.test(trimmed)) return undefined;
+  // Must contain Hebrew characters
+  if (!/[\u0590-\u05FF]/.test(trimmed)) return undefined;
+  return trimmed;
+}
+
 function normalizeReport(
   parsed: PhoneDebriefReport,
   userTurns: Array<{ hebrew: string }>,
@@ -67,7 +78,7 @@ function normalizeReport(
       assessment: grammarErrors.length && assessment === 'perfect' ? 'good' : assessment,
       commentRu: sanitizeRussianTranslation(commentRu),
       grammarErrors,
-      betterAlternative: typeof review.betterAlternative === 'string' && review.betterAlternative.trim() ? review.betterAlternative.trim() : undefined,
+      betterAlternative: sanitizeBetterAlternative(review.betterAlternative),
     };
   });
   // Local checks can lower a supported grade, but cannot invent or inflate one.
@@ -85,8 +96,10 @@ function normalizeReport(
 }
 
 export async function POST(req: NextRequest) {
+  let requestId = req.headers.get('x-request-id') || crypto.randomUUID();
   try {
-    const body = await readAiJson<PhoneDebriefRequestBody>(req);
+    const body = await readAiJson<PhoneDebriefRequestBody & { requestId?: string }>(req);
+    if (body.requestId) requestId = body.requestId;
     const {
       lessonNumber = 1,
       userGender = 'male',
@@ -101,21 +114,21 @@ export async function POST(req: NextRequest) {
     let transcript;
     try {
       transcript = normalizePhoneTurns(rawTranscript).map(t => ({ role: t.role, hebrew: t.content }));
-    } catch { throw new AiRequestError('Некорректная история звонка.', 400); }
+    } catch { throw new AiRequestError('Некорректная история звонка.', 400, 'validation_rejected', requestId); }
 
     // 1. Проверка авторизации: уроки с 3-го требуют бесплатной регистрации
     const sessionCookie = req.cookies.get('ulpana_session')?.value;
     const session = sessionCookie ? await verifySessionToken(sessionCookie) : null;
     if (!session && lessonNumber > FREE_GUEST_LESSONS_LIMIT) {
       return NextResponse.json(
-        textOnlyEvaluation({ error: 'Unauthorized: Требуется бесплатная регистрация для доступа к урокам с 3-го' }),
-        { status: 401 }
+        textOnlyEvaluation({ error: 'Unauthorized: Требуется бесплатная регистрация для доступа к урокам с 3-го', requestId }),
+        { status: 401, headers: { 'x-request-id': requestId } }
       );
     }
     if (!IS_EARLY_ACCESS_FREE && (!session || session.subscriptionTier !== 'pro') && lessonNumber > FREE_LESSONS_LIMIT) {
       return NextResponse.json(
-        textOnlyEvaluation({ error: 'Unauthorized: Требуется подписка PRO для уроков выше 30-го' }),
-        { status: 403 }
+        textOnlyEvaluation({ error: 'Unauthorized: Требуется подписка PRO для уроков выше 30-го', requestId }),
+        { status: 403, headers: { 'x-request-id': requestId } }
       );
     }
 
@@ -125,8 +138,8 @@ export async function POST(req: NextRequest) {
     const rl = checkRateLimit(rateLimitKey, { limit: 20, windowMs: 60 * 1000 });
     if (!rl.allowed) {
       return NextResponse.json(
-        textOnlyEvaluation({ error: `Слишком много запросов. Подождите ${rl.resetInSeconds} сек.` }),
-        { status: 429 }
+        textOnlyEvaluation({ error: `Слишком много запросов. Подождите ${rl.resetInSeconds} сек.`, requestId }),
+        { status: 429, headers: { 'x-request-id': requestId } }
       );
     }
     const { groqKey, geminiKey, geminiKeys } = resolveAiKeys(provider, apiKey);
@@ -142,7 +155,9 @@ export async function POST(req: NextRequest) {
         turnReviews: [],
         spokenTip: 'В Израиле при звонке важно сразу отозваться: «הַלּוֹ, שָׁלוֹם!» (Алло, привет!).',
       };
-      return NextResponse.json(textOnlyEvaluation(emptyReport));
+      return NextResponse.json(textOnlyEvaluation({ ...emptyReport, requestId }), {
+        headers: { 'x-request-id': requestId },
+      });
     }
 
     const transcriptFormatted = transcript
@@ -236,6 +251,7 @@ role принимает ТОЛЬКО "user" (ученик) или "assistant" (�
     // 1. Запрос через Gemini (основной движок)
     const activeGeminiKeys = geminiKeys?.length ? geminiKeys : (geminiKey ? [geminiKey] : []);
     for (const currentGeminiKey of activeGeminiKeys) {
+      const geminiStart = Date.now();
       try {
         const geminiRes = await fetchAi(
           `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel('debrief')}:generateContent`,
@@ -250,6 +266,15 @@ role принимает ТОЛЬКО "user" (ученик) или "assistant" (�
           }
         );
 
+        console.log(JSON.stringify({
+          event: 'phone_debrief_attempt',
+          requestId,
+          provider: 'gemini',
+          model: geminiModel('debrief'),
+          status: geminiRes.status,
+          durationMs: Date.now() - geminiStart,
+        }));
+
         if (geminiRes.ok) {
           const data = await geminiRes.json();
           let text = data.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
@@ -258,10 +283,12 @@ role принимает ТОЛЬКО "user" (ученик) или "assistant" (�
           }
           const parsed = JSON.parse(text);
           if (typeof parsed.isSuccess !== 'boolean' || !Number.isFinite(parsed.overallScore) || typeof parsed.summaryRu !== 'string') throw new Error('Invalid debrief');
-          return NextResponse.json(textOnlyEvaluation(normalize(parsed)));
+          return NextResponse.json(textOnlyEvaluation({ ...normalize(parsed), requestId }), {
+            headers: { 'x-request-id': requestId },
+          });
         }
       } catch (e) {
-        console.warn('Debrief Gemini error:', e);
+        console.warn(`[${requestId}] Debrief Gemini error:`, e);
       }
     }
 
@@ -269,6 +296,7 @@ role принимает ТОЛЬКО "user" (ученик) или "assistant" (�
     if (groqKey) {
       const groqModels = configuredGroqModels('debrief');
       for (const groqModel of groqModels) {
+        const groqStart = Date.now();
         try {
           const res = await fetchAi('https://api.groq.com/openai/v1/chat/completions', {
             method: 'POST',
@@ -288,19 +316,32 @@ role принимает ТОЛЬКО "user" (ученик) или "assistant" (�
             }),
           });
 
+          console.log(JSON.stringify({
+            event: 'phone_debrief_attempt',
+            requestId,
+            provider: 'groq',
+            model: groqModel,
+            status: res.status,
+            durationMs: Date.now() - groqStart,
+          }));
+
           if (res.ok) {
             const data = await res.json();
             const content = data.choices?.[0]?.message?.content || '{}';
             const parsed = JSON.parse(content);
             if (typeof parsed.isSuccess !== 'boolean' || !Number.isFinite(parsed.overallScore) || typeof parsed.summaryRu !== 'string') throw new Error('Invalid debrief');
-            return NextResponse.json(textOnlyEvaluation(normalize(parsed)));
+            return NextResponse.json(textOnlyEvaluation({ ...normalize(parsed), requestId }), {
+              headers: { 'x-request-id': requestId },
+            });
           }
         } catch (e) {
-          console.warn('Debrief Groq error:', e);
+          console.warn(`[${requestId}] Debrief Groq error:`, e);
         }
       }
     }
 
-    return aiErrorResponse(new Error('Debrief unavailable'));
-  } catch (error) { return aiErrorResponse(error); }
+    throw new AiRequestError('Debrief unavailable', 503, 'provider_unavailable', requestId);
+  } catch (error: any) {
+    return aiErrorResponse(error, requestId);
+  }
 }
