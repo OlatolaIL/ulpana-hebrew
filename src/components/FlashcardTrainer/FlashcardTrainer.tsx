@@ -473,6 +473,7 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
 
   const handleNextWord = useCallback(
     (quality = 4) => {
+      stopSpeech();
       handleRecordSRS(quality);
 
       if (currentIndex + 1 < words.length) {
@@ -485,6 +486,7 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
   );
 
   const handlePrevWord = useCallback(() => {
+    stopSpeech();
     if (currentIndex > 0) {
       setCurrentIndex((prev) => prev - 1);
       setIsFlipped(false);
@@ -689,6 +691,7 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
   };
 
   const handleAdvanceNext = () => {
+    stopSpeech();
     if (currentIndex + 1 < words.length) {
       setCurrentIndex((prev) => prev + 1);
     } else if (mode === 'auto_audio' && isAutoLooping) {

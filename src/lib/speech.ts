@@ -743,22 +743,33 @@ export function speakHebrew(
           audio.playbackRate = Math.max(0.5, Math.min(1.5, rate));
           audio.onended = finishStudio;
           audio.onerror = () => {
-            if (!isStudioEnded) {
-              isStudioEnded = true;
-              if (studioTimeout) {
-                clearTimeout(studioTimeout);
-                studioTimeout = null;
-              }
-              if (activeStudioAudio === audio) {
-                activeStudioAudio = null;
-              }
-              playWithTts();
+            if ((audio as any)?._cancelled || isStudioEnded) return;
+            isStudioEnded = true;
+            if (studioTimeout) {
+              clearTimeout(studioTimeout);
+              studioTimeout = null;
             }
+            if (activeStudioAudio === audio) {
+              activeStudioAudio = null;
+            }
+            playWithTts();
           };
 
           const playPromise = audio.play();
           if (playPromise !== undefined) {
             playPromise.catch((err: any) => {
+              if ((audio as any)?._cancelled || err?.name === 'AbortError' || isStudioEnded) {
+                isStudioEnded = true;
+                if (studioTimeout) {
+                  clearTimeout(studioTimeout);
+                  studioTimeout = null;
+                }
+                if (activeStudioAudio === audio) {
+                  activeStudioAudio = null;
+                }
+                resolve();
+                return;
+              }
               if (err?.name === 'NotAllowedError') {
                 notifyAudioBlocked('audio_play_not_allowed');
               }
@@ -822,6 +833,7 @@ export function stopSpeech(): void {
     }
     if (activeStudioAudio) {
       try {
+        (activeStudioAudio as any)._cancelled = true;
         activeStudioAudio.onended = null;
         activeStudioAudio.onerror = null;
         activeStudioAudio.pause();
@@ -1025,6 +1037,18 @@ export function speakRussian(text: string, options: { rate?: number } = {}): Pro
         activeFallbackAudio.src = '';
       } catch {}
       activeFallbackAudio = null;
+    }
+
+    if (activeStudioAudio) {
+      try {
+        (activeStudioAudio as any)._cancelled = true;
+        activeStudioAudio.onended = null;
+        activeStudioAudio.onerror = null;
+        activeStudioAudio.pause();
+        activeStudioAudio.currentTime = 0;
+        activeStudioAudio.src = '';
+      } catch {}
+      activeStudioAudio = null;
     }
 
     const clean = cleanRussianForSpeech(text);

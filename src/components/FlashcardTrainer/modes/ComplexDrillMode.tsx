@@ -181,11 +181,28 @@ export const ComplexDrillMode: React.FC<ComplexDrillModeProps> = ({
   const [lookupContext, setLookupContext] = useState<string | undefined>(undefined);
   const [lookupSentenceTranslation, setLookupSentenceTranslation] = useState<string | undefined>(undefined);
   const [lookupSentenceTranscription, setLookupSentenceTranscription] = useState<string | undefined>(undefined);
-  // Ссылки на таймеры
+  // Ссылки на таймеры и аудио
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const autoTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const currentAudioRef = useRef<HTMLAudioElement | null>(null);
   const playCycleIdRef = useRef<number>(0);
   const isMountedRef = useRef<boolean>(true);
+
+  // Единая гарантированная остановка всех аудио-потоков режима «Комплекс»
+  const stopAllDrillAudio = () => {
+    if (currentAudioRef.current) {
+      try {
+        (currentAudioRef.current as any)._cancelled = true;
+        currentAudioRef.current.onended = null;
+        currentAudioRef.current.onerror = null;
+        currentAudioRef.current.pause();
+        currentAudioRef.current.currentTime = 0;
+        currentAudioRef.current.src = '';
+      } catch {}
+      currentAudioRef.current = null;
+    }
+    stopSpeech();
+  };
 
   const [audioMeta, setAudioMeta] = useState<Record<string, any> | null>(null);
 
@@ -226,18 +243,53 @@ export const ComplexDrillMode: React.FC<ComplexDrillModeProps> = ({
     return null;
   }, [audioMeta, activeDrill.sentenceHe]);
 
-
-
   // Очистка при размонтировании
   useEffect(() => {
     isMountedRef.current = true;
     return () => {
       isMountedRef.current = false;
-      if (timerRef.current) clearInterval(timerRef.current);
-      if (autoTimerRef.current) clearInterval(autoTimerRef.current);
-      stopSpeech();
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+      if (autoTimerRef.current) {
+        clearInterval(autoTimerRef.current);
+        autoTimerRef.current = null;
+      }
+      stopAllDrillAudio();
     };
   }, []);
+
+  // Навигация с гарантированной очисткой всех аудио и таймеров предыдущей карточки
+  const handleAdvance = () => {
+    playCycleIdRef.current += 1;
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+    if (autoTimerRef.current) {
+      clearInterval(autoTimerRef.current);
+      autoTimerRef.current = null;
+    }
+    setAutoCountdown(null);
+    stopAllDrillAudio();
+    onAdvanceNext();
+  };
+
+  const handlePrev = () => {
+    playCycleIdRef.current += 1;
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+    if (autoTimerRef.current) {
+      clearInterval(autoTimerRef.current);
+      autoTimerRef.current = null;
+    }
+    setAutoCountdown(null);
+    stopAllDrillAudio();
+    onPrevWord();
+  };
 
   // Таймер автоперехода
   const triggerAutoAdvance = () => {
@@ -260,7 +312,7 @@ export const ComplexDrillMode: React.FC<ComplexDrillModeProps> = ({
           autoTimerRef.current = null;
         }
         setAutoCountdown(null);
-        onAdvanceNext();
+        handleAdvance();
       } else {
         setAutoCountdown(seconds);
       }
@@ -277,10 +329,10 @@ export const ComplexDrillMode: React.FC<ComplexDrillModeProps> = ({
 
       if (targetItem.type === 'verb') {
         // Для глагола: Инфинитив на иврите -> Перевод инфинитива
-        const infHe = targetItem.verbInfinitive || currentWord.hebrew;
+        const infHe = targetItem.verbInfinitive || targetItem.targetWordVocalized || currentWord.hebrew;
         speakHebrew(infHe, { rate: localSpeechRate }).then(() => {
           if (!isMountedRef.current || playCycleIdRef.current !== cycleId) return;
-          const infRu = currentWord.translation || targetItem.targetWordTranslation;
+          const infRu = targetItem.targetWordTranslation || currentWord.translation;
           speakRussian(infRu, { rate: 0.95 }).then(() => {
             if (!isMountedRef.current || playCycleIdRef.current !== cycleId) return;
             finishConfirmation();
@@ -348,7 +400,7 @@ export const ComplexDrillMode: React.FC<ComplexDrillModeProps> = ({
       autoTimerRef.current = null;
     }
     setAutoCountdown(null);
-    stopSpeech();
+    stopAllDrillAudio();
 
     playCycleIdRef.current += 1;
     const currentCycleId = playCycleIdRef.current;
@@ -361,18 +413,58 @@ export const ComplexDrillMode: React.FC<ComplexDrillModeProps> = ({
     const playHebrewSentence = async (): Promise<void> => {
       const gender = userProfile.gender ?? 'male';
       const mp3Url = await getRecordedSentenceAudio(targetItem.sentenceHe, gender);
+      if (!isMountedRef.current || playCycleIdRef.current !== currentCycleId) return;
+
       if (mp3Url) {
         return new Promise<void>((resolve) => {
+          if (!isMountedRef.current || playCycleIdRef.current !== currentCycleId) {
+            resolve();
+            return;
+          }
           const audio = new Audio(mp3Url);
+          currentAudioRef.current = audio;
           audio.playbackRate = Math.max(0.5, Math.min(1.5, localSpeechRate));
-          audio.onended = () => resolve();
-          audio.onerror = () => {
-            // Если MP3 не загрузился — TTS как запасной вариант
-            speakHebrew(targetItem.sentenceHe, { rate: localSpeechRate, gender }).then(resolve).catch(resolve);
+
+          let isEnded = false;
+          const finish = () => {
+            if (!isEnded) {
+              isEnded = true;
+              if (currentAudioRef.current === audio) {
+                currentAudioRef.current = null;
+              }
+              resolve();
+            }
           };
-          audio.play().catch(() => {
-            speakHebrew(targetItem.sentenceHe, { rate: localSpeechRate, gender }).then(resolve).catch(resolve);
-          });
+
+          audio.onended = finish;
+          audio.onerror = () => {
+            if ((audio as any)?._cancelled || playCycleIdRef.current !== currentCycleId || !isMountedRef.current) {
+              finish();
+              return;
+            }
+            // Если MP3 не загрузился — TTS как запасной вариант (только если цикл всё ещё активен)
+            speakHebrew(targetItem.sentenceHe, { rate: localSpeechRate, gender })
+              .then(finish)
+              .catch(finish);
+          };
+
+          const playPromise = audio.play();
+          if (playPromise !== undefined) {
+            playPromise.catch((err: any) => {
+              if (
+                (audio as any)?._cancelled ||
+                err?.name === 'AbortError' ||
+                playCycleIdRef.current !== currentCycleId ||
+                !isMountedRef.current
+              ) {
+                finish();
+                return;
+              }
+              speakHebrew(targetItem.sentenceHe, { rate: localSpeechRate, gender })
+                .then(finish)
+                .catch(finish);
+            });
+          }
         });
       }
       return speakHebrew(targetItem.sentenceHe, { rate: localSpeechRate, gender });
@@ -388,14 +480,20 @@ export const ComplexDrillMode: React.FC<ComplexDrillModeProps> = ({
 
       timerRef.current = setInterval(() => {
         if (!isMountedRef.current || playCycleIdRef.current !== currentCycleId) {
-          if (timerRef.current) clearInterval(timerRef.current);
+          if (timerRef.current) {
+            clearInterval(timerRef.current);
+            timerRef.current = null;
+          }
           return;
         }
         remaining -= 1;
         setCountdown(remaining);
 
         if (remaining <= 0) {
-          if (timerRef.current) clearInterval(timerRef.current);
+          if (timerRef.current) {
+            clearInterval(timerRef.current);
+            timerRef.current = null;
+          }
           runConfirmationSequence(targetItem, currentCycleId);
         }
       }, 1000);
@@ -404,13 +502,24 @@ export const ComplexDrillMode: React.FC<ComplexDrillModeProps> = ({
 
   // Автостарт при смене слова
   useEffect(() => {
+    setSelectedTense('present');
+    setSelectedLookupWord(null);
+
     if (activeDrill.id.startsWith('fallback_')) {
-      stopSpeech();
+      stopAllDrillAudio();
       return;
     }
     startDrillCycle(activeDrill);
     return () => {
-      stopSpeech();
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+      if (autoTimerRef.current) {
+        clearInterval(autoTimerRef.current);
+        autoTimerRef.current = null;
+      }
+      stopAllDrillAudio();
     };
   }, [currentWord]);
 
@@ -431,6 +540,7 @@ export const ComplexDrillMode: React.FC<ComplexDrillModeProps> = ({
     }
     playCycleIdRef.current += 1;
     stopSpeech();
+    stopAllDrillAudio();
 
     const vocalizedClean = cleanHebrewToken(token.text);
     setSelectedLookupWord(vocalizedClean || token.cleanText || token.text);
@@ -452,6 +562,7 @@ export const ComplexDrillMode: React.FC<ComplexDrillModeProps> = ({
     }
     playCycleIdRef.current += 1;
     stopSpeech();
+    stopAllDrillAudio();
 
     setSelectedLookupWord(rw.hebrew || rw.hebrewPlain || stripNikkud(rw.hebrew));
     setLookupContext(undefined);
@@ -462,7 +573,7 @@ export const ComplexDrillMode: React.FC<ComplexDrillModeProps> = ({
   // Озвучка слова из семьи корня (изолированная озвучка без открытия модалки)
   const handleRootFamilySpeak = (e: React.MouseEvent, hebrew: string) => {
     e.stopPropagation();
-    stopSpeech();
+    stopAllDrillAudio();
     onSpeakHebrew(hebrew, { rate: localSpeechRate });
   };
 
@@ -497,7 +608,7 @@ export const ComplexDrillMode: React.FC<ComplexDrillModeProps> = ({
           </p>
           <div className="pt-2 flex justify-center gap-3">
             <button
-              onClick={onPrevWord}
+              onClick={handlePrev}
               disabled={currentIndex <= 0}
               className="px-4 py-2 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 text-sm font-medium hover:bg-zinc-200 dark:hover:bg-zinc-700 disabled:opacity-40 flex items-center gap-1.5 cursor-pointer"
             >
@@ -505,7 +616,7 @@ export const ComplexDrillMode: React.FC<ComplexDrillModeProps> = ({
               <span>Назад</span>
             </button>
             <button
-              onClick={onAdvanceNext}
+              onClick={handleAdvance}
               className="px-5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-sm font-bold flex items-center gap-1.5 transition shadow-sm cursor-pointer"
             >
               <span>Следующее слово</span>
@@ -1085,7 +1196,7 @@ export const ComplexDrillMode: React.FC<ComplexDrillModeProps> = ({
         {/* НИЖНЯЯ НАВИГАЦИЯ */}
         <div className="flex items-center justify-between pt-2 border-t border-zinc-100 dark:border-zinc-800">
           <button
-            onClick={onPrevWord}
+            onClick={handlePrev}
             disabled={currentIndex === 0}
             className="px-4 py-2.5 rounded-xl border border-zinc-200 dark:border-zinc-700 text-xs font-bold text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5 transition cursor-pointer"
           >
@@ -1099,7 +1210,7 @@ export const ComplexDrillMode: React.FC<ComplexDrillModeProps> = ({
           )}
 
           <button
-            onClick={onAdvanceNext}
+            onClick={handleAdvance}
             className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-md hover:shadow-lg transition flex items-center gap-1.5 cursor-pointer"
           >
             Вперёд <ArrowRight className="w-4 h-4" />

@@ -110,13 +110,22 @@ async function synthesizeWithGemini(text, destPath, apiKey, voiceName = 'Aoede',
       const data = await res.json();
 
       if (res.status === 429 || data.error?.code === 429) {
-        console.warn(`⏳ [Rate Limit 429] Ожидание 10с перед повтором (${attempt}/${maxRetries})...`);
-        await sleep(10000);
+        const errMsg = data.error?.message || '';
+        const isDailyQuota = /quota|exhausted/i.test(errMsg);
+        if (attempt === maxRetries && isDailyQuota) {
+          const quotaErr = new Error(`Gemini API Quota Exhausted: ${errMsg || 'RESOURCE_EXHAUSTED'}`);
+          quotaErr.isQuotaExhausted = true;
+          throw quotaErr;
+        }
+        console.warn(`⏳ [Rate Limit 429] Ожидание 12с перед повтором (${attempt}/${maxRetries})...`);
+        await sleep(12000);
         continue;
       }
 
       if (data.error) {
-        throw new Error(`Gemini API Error: ${data.error.message || JSON.stringify(data.error)}`);
+        const err = new Error(`Gemini API Error: ${data.error.message || JSON.stringify(data.error)}`);
+        if (/quota|exhausted|429/i.test(err.message)) err.isQuotaExhausted = true;
+        throw err;
       }
 
       const candidate = data.candidates?.[0];
@@ -141,12 +150,12 @@ async function synthesizeWithGemini(text, destPath, apiKey, voiceName = 'Aoede',
         '-ar', '44100',
         '-b:a', '128k',
         destPath
-      ]);
+      ], { stdio: 'ignore' });
 
       if (fs.existsSync(tempPcm)) fs.unlinkSync(tempPcm);
       return fs.statSync(destPath).size;
     } catch (err) {
-      if (attempt === maxRetries) throw err;
+      if (err.isQuotaExhausted || attempt === maxRetries) throw err;
       console.warn(`⚠️ Попытка ${attempt} не удалась: ${err.message}. Повтор через 3с...`);
       await sleep(3000);
     }
@@ -155,6 +164,9 @@ async function synthesizeWithGemini(text, destPath, apiKey, voiceName = 'Aoede',
 
 async function main() {
   const isDryRun = process.argv.includes('--dry-run');
+  const limitArg = process.argv.find((arg) => arg.startsWith('--limit='));
+  const limit = limitArg ? parseInt(limitArg.split('=')[1], 10) : 100;
+
   const apiKey = getApiKey();
   const { items, manifest, metadata } = loadCatalog();
 
@@ -166,25 +178,38 @@ async function main() {
   console.log(`Всего предложений в колоде: ${items.length}`);
   console.log(`Уже сгенерировано Gemini 3.5 (кэш): ${alreadyDone.length}`);
   console.log(`Осталось сгенерировать: ${pending.length}`);
+  console.log(`Лимит на текущий запуск: ${limit} фраз`);
   console.log(`Голос: Aoede (нативный израильский женский голос)`);
   console.log(`Режим dry-run: ${isDryRun ? 'ВКЛЮЧЕН (без запросов к API)' : 'ВЫКЛЮЧЕН (боевая генерация)'}`);
   console.log('====================================================\n');
 
+  if (pending.length === 0) {
+    console.log('🎉 Все фразы колоды «Мамы Израиля» (142/142) уже озвучены Gemini 3.5! Работа завершена.');
+    return;
+  }
+
   if (isDryRun) {
     console.log('📋 Список ожидающих генерации фраз:');
-    pending.forEach((p, idx) => {
+    const toShow = pending.slice(0, limit);
+    toShow.forEach((p, idx) => {
       console.log(`  ${idx + 1}. [${p.targetWord}] ${p.sentenceHe} (${p.sentenceRu}) -> ${p.fileName}`);
     });
+    if (pending.length > limit) {
+      console.log(`  ... и ещё ${pending.length - limit} фраз в следующих батчах.`);
+    }
     return;
   }
 
   let successCount = 0;
   let failCount = 0;
+  let quotaHit = false;
 
-  for (let i = 0; i < pending.length; i++) {
-    const item = pending[i];
+  const batch = pending.slice(0, limit);
+
+  for (let i = 0; i < batch.length; i++) {
+    const item = batch[i];
     const targetFile = path.join(SENTENCES_DIR, item.fileName);
-    const progress = `[${String(i + 1).padStart(2, ' ')}/${pending.length}] (всего: ${alreadyDone.length + i + 1}/${items.length})`;
+    const progress = `[${String(i + 1).padStart(2, ' ')}/${batch.length}] (всего: ${alreadyDone.length + i + 1}/${items.length})`;
 
     try {
       const bytes = await synthesizeWithGemini(item.sentenceHe, targetFile, apiKey, 'Aoede');
@@ -214,11 +239,18 @@ async function main() {
         fs.writeFileSync(METADATA_PATH, JSON.stringify(metadata, null, 2), 'utf8');
       }
 
-      // Вежливая пауза между запросами
-      await sleep(600);
+      // Вежливая пауза между запросами (1200 мс для защиты от 15 RPM лимита)
+      await sleep(1200);
     } catch (err) {
       failCount++;
       console.error(`✗ ${progress} Ошибка на фразе "${item.sentenceHe}": ${err.message}`);
+
+      if (err.isQuotaExhausted || /quota|exhausted|429/i.test(err.message)) {
+        console.warn('\n🛑 Достигнут лимит квоты Gemini API (RESOURCE_EXHAUSTED).');
+        console.warn('Сохраняем текущий прогресс и останавливаем текущий запуск до следующего запуска по расписанию.');
+        quotaHit = true;
+        break;
+      }
     }
   }
 
@@ -227,10 +259,16 @@ async function main() {
   fs.writeFileSync(METADATA_PATH, JSON.stringify(metadata, null, 2), 'utf8');
 
   console.log('\n====================================================');
-  console.log(`🎉 ИТОГО: Успешно сгенерировано новых: ${successCount} фраз.`);
-  console.log(`Общее количество озвученных Gemini 3.5: ${alreadyDone.length + successCount} из ${items.length}.`);
-  if (failCount > 0) {
-    console.log(`⚠️ Ошибок: ${failCount}`);
+  console.log(`📊 ИТОГО ЗАПУСКА:`);
+  console.log(`  Успешно сгенерировано новых: ${successCount} фраз.`);
+  console.log(`  Ошибок: ${failCount}`);
+  console.log(`  Общий прогресс колоды: ${alreadyDone.length + successCount} из ${items.length} (${Math.round(((alreadyDone.length + successCount) / items.length) * 100)}%).`);
+  const stillPending = items.length - (alreadyDone.length + successCount);
+  console.log(`  Осталось фраз до полного пакета: ${stillPending}`);
+  if (quotaHit) {
+    console.log(`  Статус: ПРИОСТАНОВЛЕНО ПО ЛИМИТУ КВОТЫ (повтор запланирован по расписанию).`);
+  } else if (stillPending === 0) {
+    console.log(`  🎉 ПОЛНЫЙ ПАКЕТ КОЛОДЫ «МАМЫ ИЗРАИЛЯ» ПОЛНОСТЬЮ СГЕНЕРИРОВАН!`);
   }
   console.log(`Метаданные зафиксированы в: public/audio/sentences/audio_metadata.json`);
   console.log('====================================================');

@@ -648,3 +648,24 @@ ChatGPT — архитектор и независимая приёмка; Gemin
    - `tests/audio-sentences-studio.test.cjs`: 4 / 4 passed.
    - `tests/pilot-mechanics-01-05.test.cjs`: 11 / 11 passed.
 
+---
+
+### Фикс: Ликвидация сбоя и зацикливания аудио при переходе между карточками в режиме «Комплекс» (23 сентября 2026)
+
+**Проблема:** В режиме «Комплекс» (`ComplexDrillMode`) при переходе к следующей карточке (вручную или через автопереход) происходил сбой: звук воспроизводился некорректно, карточки неконтролируемо пролистывались, фазы сменялись за 0 миллисекунд и звук зацикливался.
+**Первопричина:**
+1. Вызов `stopSpeech()` ставил аудио на паузу и сбрасывал `.src`. Браузер реджектил промис `audio.play()` с `AbortError`. В `src/lib/speech.ts` обработчик `.catch` не проверял `AbortError` / флаг отмены и запускал нежелательный TTS-фолбэк `playWithTts()`.
+2. При вызове `speechSynthesis.cancel()` событие `onerror('canceled')` мгновенно (за 0мс) резолвило промис озвучки фразы, вызывая стремительный прогон фазы паузы и переход к подтверждению.
+3. В `ComplexDrillMode.tsx` экземпляр `new Audio` не сохранялся в ref, старый звук накладывался на новый, а таймеры интервалов не очищались при ручной навигации.
+**Что сделано и проверено:**
+1. В `src/lib/speech.ts` добавлен флаг `_cancelled` при остановке аудио в `stopSpeech()` и `speakRussian()`. В `speakHebrew()` добавлен фильтр отмены и `AbortError` в `playPromise.catch` и `onerror`, блокирующий ложный запуск TTS при намеренном прерывании карточки.
+2. В `src/components/FlashcardTrainer/modes/ComplexDrillMode.tsx`:
+   - Внедрен `currentAudioRef` для контроля за `HTMLAudioElement` фразы.
+   - Добавлен метод `stopAllDrillAudio()` с установкой `_cancelled = true`, `.pause()`, сбросом `.src` и вызовом `stopSpeech()`.
+   - В `playHebrewSentence()` добавлена проверка актуальности `playCycleIdRef` после получения MP3 и фильтрация `AbortError`.
+   - Внедрены навигационные обёртки `handleAdvance` и `handlePrev` с инкрементом `playCycleIdRef.current += 1`, очисткой интервалов и отменой аудио. Кнопки интерфейса переведены на эти обработчики.
+   - Взаимодействия с токенами и словами корня переведены на `stopAllDrillAudio()`.
+3. В `src/components/FlashcardTrainer/FlashcardTrainer.tsx` в обработчики навигации (`handleAdvanceNext`, `handlePrevWord`, `handleNextWord`) добавлен вызов `stopSpeech()`.
+4. Создан регрессионный тест `tests/complex-drill-lifecycle.test.cjs` (3/3 passed).
+5. Верификация: `npm test` (289/289 passed), `npm run audit:intent` (100% зелёный статус, 2535/2535 слов покрыты в ComplexDrills).
+
