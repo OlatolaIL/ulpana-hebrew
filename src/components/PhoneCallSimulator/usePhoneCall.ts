@@ -322,20 +322,26 @@ export function usePhoneCall({
         if (recognizerRef.current?.isSpeechActive()) {
           callFlightRecorder.record('VAD', 'Watchdog deferred: user is actively speaking or STT is running', {}, 'info');
           // Повторное вооружение watchdog после defer (проверка через 6с), чтобы защита не выключалась навсегда
-          watchdogTimeoutRef.current = setTimeout(() => {
-            if (
-              callActiveRef.current &&
-              shouldListenRef.current &&
-              !isSendingRef.current &&
-              !isAiSpeakingRef.current &&
-              !isMutedRef.current
-            ) {
-              if (!recognizerRef.current?.isSpeechActive()) {
-                setSpeechNotice('Собеседник вас не расслышал. Скажите фразу громче');
-                startListening(true);
+          const rearmWatchdog = () => {
+            watchdogTimeoutRef.current = setTimeout(() => {
+              if (
+                callActiveRef.current &&
+                shouldListenRef.current &&
+                !isSendingRef.current &&
+                !isAiSpeakingRef.current &&
+                !isMutedRef.current
+              ) {
+                if (recognizerRef.current?.isSpeechActive()) {
+                  callFlightRecorder.record('VAD', 'Watchdog deferred again: speech still active', {}, 'info');
+                  rearmWatchdog();
+                } else {
+                  setSpeechNotice('Собеседник вас не расслышал. Скажите фразу громче');
+                  startListening(true);
+                }
               }
-            }
-          }, 6000);
+            }, 6000);
+          };
+          rearmWatchdog();
           return;
         }
 
@@ -368,6 +374,21 @@ export function usePhoneCall({
             ) {
               if (recognizerRef.current?.isSpeechActive()) {
                 callFlightRecorder.record('VAD', 'Watchdog restart canceled: speech is active', {}, 'info');
+                // Повторное вооружение watchdog после отмены рестарта
+                watchdogTimeoutRef.current = setTimeout(() => {
+                  if (
+                    callActiveRef.current &&
+                    shouldListenRef.current &&
+                    !isSendingRef.current &&
+                    !isAiSpeakingRef.current &&
+                    !isMutedRef.current
+                  ) {
+                    if (!recognizerRef.current?.isSpeechActive()) {
+                      setSpeechNotice('Собеседник вас не расслышал. Скажите фразу громче');
+                      startListening(true);
+                    }
+                  }
+                }, 6000);
                 return;
               }
               const deferredText = (liveTranscriptRef.current || '').trim();

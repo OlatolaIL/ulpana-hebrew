@@ -47,7 +47,9 @@ export function groqModels(task: AiTaskType = 'chat'): string[] {
       ? 'qwen/qwen3.8-27b'
       : task === 'debrief'
         ? 'openai/gpt-oss-120b'
-        : undefined);
+        : task === 'phone'
+          ? 'openai/gpt-oss-20b'
+          : undefined);
   return [...new Set([primary, fallback].filter((model): model is string => Boolean(model)))].slice(0, 2);
 }
 

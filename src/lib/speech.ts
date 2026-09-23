@@ -2174,6 +2174,9 @@ export class HebrewSpeechRecognizer {
       session.onError = null;
       session.onEnd = null;
       session.audioChunks = [];
+      if (session.preservedUrl) {
+        try { URL.revokeObjectURL(session.preservedUrl); } catch {}
+      }
       session.preservedBlob = null;
       session.preservedUrl = null;
       if (session.recorder) {
