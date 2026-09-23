@@ -321,11 +321,30 @@ export function usePhoneCall({
         // Если ученик активно говорит или идет финализация/обработка STT — не прерываем речь!
         if (recognizerRef.current?.isSpeechActive()) {
           callFlightRecorder.record('VAD', 'Watchdog deferred: user is actively speaking or STT is running', {}, 'info');
+          // Повторное вооружение watchdog после defer (проверка через 6с), чтобы защита не выключалась навсегда
+          watchdogTimeoutRef.current = setTimeout(() => {
+            if (
+              callActiveRef.current &&
+              shouldListenRef.current &&
+              !isSendingRef.current &&
+              !isAiSpeakingRef.current &&
+              !isMutedRef.current
+            ) {
+              if (!recognizerRef.current?.isSpeechActive()) {
+                setSpeechNotice('Собеседник вас не расслышал. Скажите фразу громче');
+                startListening(true);
+              }
+            }
+          }, 6000);
           return;
         }
 
         const text = (liveTranscriptRef.current || '').trim();
-        if (text.length >= 2 && !isEchoFromAi(text) && !isWhisperSilenceHallucination(text)) {
+        if (
+          text.length >= 2 &&
+          (typeof isEchoFromAi === 'function' ? !isEchoFromAi(text) : true) &&
+          (typeof isWhisperSilenceHallucination === 'function' ? !isWhisperSilenceHallucination(text) : true)
+        ) {
           if (recognizerRef.current) {
             recognizerRef.current.commitSpeech();
           } else {
@@ -337,8 +356,33 @@ export function usePhoneCall({
           if (watchdogRestartTimeoutRef.current) {
             clearTimeout(watchdogRestartTimeoutRef.current);
           }
+          const generation = typeof callGenerationRef !== 'undefined' ? callGenerationRef.current : 0;
           watchdogRestartTimeoutRef.current = setTimeout(() => {
-            if (callActiveRef.current && shouldListenRef.current && !isSendingRef.current && !isAiSpeakingRef.current) {
+            if (
+              (typeof callGenerationRef === 'undefined' || generation === callGenerationRef.current) &&
+              callActiveRef.current &&
+              shouldListenRef.current &&
+              !isSendingRef.current &&
+              !isAiSpeakingRef.current &&
+              !isMutedRef.current
+            ) {
+              if (recognizerRef.current?.isSpeechActive()) {
+                callFlightRecorder.record('VAD', 'Watchdog restart canceled: speech is active', {}, 'info');
+                return;
+              }
+              const deferredText = (liveTranscriptRef.current || '').trim();
+              if (
+                deferredText.length >= 2 &&
+                (typeof isEchoFromAi === 'function' ? !isEchoFromAi(deferredText) : true) &&
+                (typeof isWhisperSilenceHallucination === 'function' ? !isWhisperSilenceHallucination(deferredText) : true)
+              ) {
+                if (recognizerRef.current) {
+                  recognizerRef.current.commitSpeech();
+                } else {
+                  handleSendMessage(deferredText);
+                }
+                return;
+              }
               startListening(true);
             }
           }, 1500);
@@ -467,6 +511,13 @@ export function usePhoneCall({
             setAudioLevel(level);
           } else {
             setAudioLevel(0);
+          }
+        },
+        onSpeechStart: () => {
+          if (watchdogRestartTimeoutRef.current) {
+            clearTimeout(watchdogRestartTimeoutRef.current);
+            watchdogRestartTimeoutRef.current = null;
+            callFlightRecorder.record('VAD', 'Watchdog restart aborted on VAD speech start', {}, 'info');
           }
         },
         onSilenceDetected: (transcript, audioBlob, audioUrl) => {

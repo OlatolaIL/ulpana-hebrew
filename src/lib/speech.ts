@@ -1311,6 +1311,7 @@ export interface SpeechRecognizerOptions {
   onAudioLevel?: (level: number) => void;
   onSilenceDetected?: (transcript: string, audioBlob?: Blob | null, audioUrl?: string | null) => void;
   onAudioRecorded?: (audioBlob: Blob, audioUrl: string) => void;
+  onSpeechStart?: () => void;
   disableAutoSilenceStop?: boolean; // R-19: Отправка строго по кнопке, без отсечки по паузе
 }
 
@@ -1486,6 +1487,23 @@ export class HebrewSpeechRecognizer {
     };
   }
 
+  public clearPreservedAudio(): void {
+    if (this.activeSession) {
+      if (this.activeSession.preservedUrl) {
+        try { URL.revokeObjectURL(this.activeSession.preservedUrl); } catch {}
+      }
+      this.activeSession.preservedBlob = null;
+      this.activeSession.preservedUrl = null;
+    }
+  }
+
+  public async retryPreservedAudio(): Promise<TranscriptionResult | string | null> {
+    const session = this.activeSession;
+    if (!session || !session.preservedBlob) return null;
+    const mimeType = session.mimeType || session.recorder?.mimeType || 'audio/webm';
+    return this.transcribeAudioBlob(session.preservedBlob, mimeType);
+  }
+
   public isSupported(): boolean {
     if (typeof window === 'undefined') return false;
     return !!(
@@ -1508,6 +1526,9 @@ export class HebrewSpeechRecognizer {
 
     // Safely isolate old session so its asynchronous stop / ondataavailable cannot corrupt the new session
     const oldSession = this.activeSession;
+    const preservedBlob = oldSession?.preservedBlob || null;
+    const preservedUrl = oldSession?.preservedUrl || null;
+
     if (oldSession) {
       oldSession.state = 'closed';
       oldSession.onResult = null;
@@ -1534,8 +1555,8 @@ export class HebrewSpeechRecognizer {
       hasDetectedSpeech: false,
       silenceStartTime: null,
       lastTranscript: '',
-      preservedBlob: null,
-      preservedUrl: null,
+      preservedBlob,
+      preservedUrl,
       recorder: null,
     };
     this.activeSession = session;
@@ -1614,6 +1635,8 @@ export class HebrewSpeechRecognizer {
         ? new MediaRecorder(stream, { mimeType: session.mimeType })
         : new MediaRecorder(stream);
       session.recorder = recorder;
+      session.state = 'listening';
+      session.hasDetectedSpeech = false;
 
       recorder.ondataavailable = (e) => {
         // Scoped strictly to this session
@@ -1696,10 +1719,17 @@ export class HebrewSpeechRecognizer {
   private restartRecorderForSession(session: RecognizerSession): void {
     if (this.isSessionClosed(session) || !this.mediaStream || !this.mediaStream.active) return;
     try {
-      if (session.recorder && session.recorder.state !== 'inactive') {
-        session.recorder.ondataavailable = null;
-        session.recorder.onstop = null;
-        try { session.recorder.stop(); } catch {}
+      const oldRecorder = session.recorder;
+      if (oldRecorder && oldRecorder.state !== 'inactive') {
+        // Do not discard in-flight chunks from the previous recorder
+        oldRecorder.ondataavailable = (e) => {
+          if (this.isSessionClosed(session)) return;
+          if (e.data && e.data.size > 0) {
+            session.audioChunks.push(e.data);
+          }
+        };
+        oldRecorder.onstop = null;
+        try { oldRecorder.stop(); } catch {}
       }
     } catch {}
     this.startSessionRecorder(session, this.mediaStream);
@@ -1852,6 +1882,10 @@ export class HebrewSpeechRecognizer {
                 threshold,
                 ambientFloor: Math.round(this.ambientNoiseFloor),
               }, 'info');
+              if (this.activeSession && !this.isSessionClosed(this.activeSession)) {
+                this.activeSession.state = 'speech_active';
+                this.activeSession.options.onSpeechStart?.();
+              }
             }
             this.hasDetectedSpeech = true;
             this.silenceStartTime = null;
@@ -1920,8 +1954,39 @@ export class HebrewSpeechRecognizer {
     // 1. Пробуем транскрибировать накопленное аудио через Groq Whisper V3 для максимальной полноты фразы
     if (session.recorder && session.recorder.state !== 'inactive') {
       try {
-        session.recorder.requestData();
-        await new Promise((r) => setTimeout(r, 100));
+        const rec = session.recorder;
+        const prevOnDataAvailable = rec.ondataavailable;
+
+        await new Promise<void>((resolve) => {
+          let resolved = false;
+          const finish = () => {
+            if (!resolved) {
+              resolved = true;
+              clearTimeout(timer);
+              resolve();
+            }
+          };
+
+          // Событийное ожидание: завершается немедленно при доставке dataavailable,
+          // с резервным таймаутом 600мс для обработки задержек 250-500мс
+          const timer = setTimeout(finish, 600);
+
+          rec.ondataavailable = (e: any) => {
+            if (prevOnDataAvailable) {
+              try { prevOnDataAvailable.call(rec, e); } catch {}
+            } else if (e.data && e.data.size > 0) {
+              session.audioChunks.push(e.data);
+            }
+            finish();
+          };
+
+          try {
+            rec.requestData();
+          } catch {
+            finish();
+          }
+        });
+
         if (this.isSessionClosed(session)) return;
 
         if (session.audioChunks.length > 0) {
@@ -1936,11 +2001,26 @@ export class HebrewSpeechRecognizer {
           // Если записано реальное аудио (более 1500 байт ~0.3с речи), транскрибируем через Groq Whisper V3
           if (audioBlob.size >= 1500) {
             session.state = 'transcribing';
-            const transcribeRes = await this.transcribeAudioBlob(audioBlob, blobType);
+            let transcribeRes = await this.transcribeAudioBlob(audioBlob, blobType);
             if (this.isSessionClosed(session)) return;
 
-            const text = typeof transcribeRes === 'string' ? transcribeRes : transcribeRes?.text;
-            const success = typeof transcribeRes === 'string' ? Boolean(transcribeRes.trim()) : Boolean(transcribeRes?.success);
+            let text = typeof transcribeRes === 'string' ? transcribeRes : transcribeRes?.text;
+            let success = typeof transcribeRes === 'string' ? Boolean(transcribeRes.trim()) : Boolean(transcribeRes?.success);
+
+            // Ограниченный автоматический повтор при временных сетевых/серверных ошибках (500, 429, network, offline)
+            if (!success && transcribeRes && typeof transcribeRes === 'object' && transcribeRes.retryable) {
+              callFlightRecorder.record('STT', 'Whisper STT failed with retryable error, attempting 1 retry', {
+                reason: transcribeRes.reason,
+                status: transcribeRes.status,
+              }, 'warn');
+              await new Promise((r) => setTimeout(r, 250));
+              if (!this.isSessionClosed(session)) {
+                transcribeRes = await this.transcribeAudioBlob(audioBlob, blobType);
+                if (this.isSessionClosed(session)) return;
+                text = typeof transcribeRes === 'string' ? transcribeRes : transcribeRes?.text;
+                success = typeof transcribeRes === 'string' ? Boolean(transcribeRes.trim()) : Boolean(transcribeRes?.success);
+              }
+            }
 
             if (success && text && text.trim().length >= 2 && !isWhisperSilenceHallucination(text.trim())) {
               session.audioChunks = []; // очищаем буфер только при успешном распознавании
@@ -1949,6 +2029,7 @@ export class HebrewSpeechRecognizer {
               session.silenceStartTime = null;
               session.preservedBlob = audioBlob;
               session.preservedUrl = audioUrl;
+              session.state = 'listening';
               callFlightRecorder.record('VAD', 'VAD phrase accepted for submission', { text: text.trim(), sizeBytes: audioBlob.size }, 'success');
               // Перезапускаем рекордер, чтобы следующий фрагмент получил валидные заголовки контейнера
               this.restartRecorderForSession(session);
@@ -1957,9 +2038,15 @@ export class HebrewSpeechRecognizer {
             } else {
               session.preservedBlob = audioBlob;
               session.preservedUrl = audioUrl;
+              session.state = 'listening';
+              session.hasDetectedSpeech = false;
+              session.silenceStartTime = null;
               callFlightRecorder.record('VAD', 'Transcribe returned empty/filtered text, preserving chunk for retry/fallback', { rawText: text }, 'warn');
             }
           } else {
+            session.state = 'listening';
+            session.hasDetectedSpeech = false;
+            session.silenceStartTime = null;
             callFlightRecorder.record('VAD', 'Noise rejected: chunk too small (<1500b)', { sizeBytes: audioBlob.size }, 'warn');
           }
           // Если аудио оказалось слишком коротким или распознана тишина — сбрасываем чанки и перезапускаем рекордер
@@ -1968,6 +2055,11 @@ export class HebrewSpeechRecognizer {
         }
       } catch (err) {
         console.warn('VAD transcribe fallback error:', err);
+        if (!this.isSessionClosed(session)) {
+          session.state = 'listening';
+          session.hasDetectedSpeech = false;
+          session.silenceStartTime = null;
+        }
       }
     }
 

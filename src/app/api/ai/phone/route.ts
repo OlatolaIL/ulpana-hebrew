@@ -68,6 +68,7 @@ export async function POST(req: NextRequest) {
     const startTime = Date.now();
     const TOTAL_BUDGET_MS = 24000;
     let lastErrorCategory: AiErrorCategory = 'provider_unavailable';
+    let lastRetryAfter: string | undefined = undefined;
 
     // Native system instructions and separate user/model turns; no history-as-instructions.
     for (const key of geminiKeys) {
@@ -91,6 +92,8 @@ export async function POST(req: NextRequest) {
 
           if (!response.ok) {
             lastErrorCategory = classifyHttpError(response.status);
+            const retryAfter = response.headers.get('retry-after') || undefined;
+            if (retryAfter) lastRetryAfter = retryAfter;
             console.warn(JSON.stringify({
               event: 'phone_ai_attempt_failed',
               requestId,
@@ -98,6 +101,7 @@ export async function POST(req: NextRequest) {
               model,
               status: response.status,
               category: lastErrorCategory,
+              retryAfter,
               durationMs: Date.now() - attemptStart,
             }));
             continue;
@@ -145,6 +149,8 @@ export async function POST(req: NextRequest) {
 
           if (!response.ok) {
             lastErrorCategory = classifyHttpError(response.status);
+            const retryAfter = response.headers.get('retry-after') || undefined;
+            if (retryAfter) lastRetryAfter = retryAfter;
             console.warn(JSON.stringify({
               event: 'phone_ai_attempt_failed',
               requestId,
@@ -152,6 +158,7 @@ export async function POST(req: NextRequest) {
               model,
               status: response.status,
               category: lastErrorCategory,
+              retryAfter,
               durationMs: Date.now() - attemptStart,
             }));
             continue;
@@ -178,13 +185,18 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    throw new AiRequestError(
+    const errorObj = new AiRequestError(
       'Собеседник сейчас не смог ответить. Повторите реплику; разговор сохранён.',
       503,
       lastErrorCategory,
       requestId,
       true
     );
+    const errRes = aiErrorResponse(errorObj, requestId);
+    if (lastRetryAfter) {
+      errRes.headers.set('retry-after', lastRetryAfter);
+    }
+    return errRes;
   } catch (error) {
     return aiErrorResponse(error, requestId);
   }
