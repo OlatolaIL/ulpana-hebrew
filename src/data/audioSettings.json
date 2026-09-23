@@ -1,5 +1,5 @@
 {
-  "sentenceAudioEngine": "edge_neural",
+  "sentenceAudioEngine": "gemini_3.5_tts",
   "defaultVoiceMale": "he-IL-AvriNeural",
   "defaultVoiceFemale": "he-IL-HilaNeural",
   "lastUpdated": "2026-09-23T18:32:12.099Z"
