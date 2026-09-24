@@ -1,6 +1,18 @@
 import type { PhoneCallType, PhoneScenarioWord } from '@/types';
 
 export type PhoneMemoryScope = 'social' | 'coffee' | 'rental' | 'delivery' | 'general';
+
+/**
+ * Semantic type of a single lesson goal.
+ * Determines which structural evidence requirements apply in the evaluator.
+ * 'other' = model-assessed with no additional structural constraint.
+ */
+export type GoalType =
+  | 'information_retrieval'  // «Узнать…», «Выяснить…», «Получить информацию/ответ…»
+  | 'student_action'         // «Спросить…», «Попросить…», «Рассказать…», «Сообщить…»
+  | 'agreement'              // «Договориться…», «Согласовать…»
+  | 'acknowledgement'        // «Подтвердить…», «Проверить понимание»
+  | 'other';                 // All other goals; semantic evaluation by model only
 /** Optional authored checks for a known ambiguous information goal. Patterns match
  * complete, unpointed clauses; a short answer is allowed only after its question. */
 export interface PhoneInformationEvidenceRule {
@@ -26,6 +38,10 @@ export interface PhoneLessonContract {
   callerObjective: string;
   studentObjective: string;
   goals: string[];
+  /** Optional explicit type per goal (index-aligned with goals[]).
+   *  When absent, inferGoalType() from goalTypeResolver is used as fallback.
+   *  'other' indices are reported by validate_phone_contracts.cjs for author review. */
+  goalTypes?: GoalType[];
   informationEvidence?: Record<number, PhoneInformationEvidenceRule>;
   completionCondition: string;
   /** Facts the actor owns. Unknown prices/times must not be invented as agreements. */
