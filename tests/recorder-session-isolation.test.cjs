@@ -218,47 +218,197 @@ test('Boundary Isolation: Late stop-tail and requestData do not leak into next r
   globalThis.MediaRecorder = ControlledRecorder;
 
   try {
-    for (const delay of [250, 500, 800]) {
-      recCounter = 0;
-      const r = createIsolatedRecognizer();
-      const options = { mediaStream: fakeStream, onSilenceDetected() {} };
-      await r.start(() => {}, () => {}, () => {}, options);
-      if (r.mediaRecorder) r.mediaRecorder.delay = delay;
-      r.audioChunks = [new Blob(['x'.repeat(2000)])];
-      r.peakAvgInCurrentChunk = 40;
-      r.peakRmsDbInCurrentChunk = -15;
+    for (const sttSuccess of [true, false]) {
+      for (const delay of [250, 500, 800]) {
+        recCounter = 0;
+        const r = createIsolatedRecognizer();
+        const options = { mediaStream: fakeStream, onSilenceDetected() {} };
+        await r.start(() => {}, () => {}, () => {}, options);
+        if (r.mediaRecorder) r.mediaRecorder.delay = delay;
+        r.audioChunks = [new Blob(['x'.repeat(2000)])];
+        r.peakAvgInCurrentChunk = 40;
+        r.peakRmsDbInCurrentChunk = -15;
 
-      let submitted = '';
-      r.transcribeAudioBlob = async (b) => {
-        submitted = await b.text();
-        return { success: true, text: 'שלום' };
-      };
+        let submitted = '';
+        r.transcribeAudioBlob = async (b) => {
+          submitted = await b.text();
+          return sttSuccess
+            ? { success: true, text: 'שלום' }
+            : { success: false, reason: 'http_error', status: 500, retryable: true };
+        };
 
-      await r.handleSilenceDetected();
-      await wait(Math.max(delay + 30, 40));
+        await r.handleSilenceDetected();
+        await wait(Math.max(delay + 30, 40));
 
-      const next = await new Blob(r.audioChunks).text();
-      const oldRecorderDataInNewBuffer = next.includes('OLD_STOP_TAIL') || next.includes('FINAL_WORD');
+        const next = await new Blob(r.audioChunks).text();
+        const oldRecorderDataInNewBuffer = next.includes('OLD_STOP_TAIL') || next.includes('FINAL_WORD');
 
-      // In all cases, next buffer MUST be clean and never contain old recorder chunks
-      assert.equal(
-        oldRecorderDataInNewBuffer,
-        false,
-        `delay ${delay}ms: Old recorder chunks leaked into next buffer! Got: "${next}"`
-      );
-      assert.ok(
-        next.includes('NEW_HEADER'),
-        `delay ${delay}ms: Next buffer must begin with NEW_HEADER! Got: "${next}"`
-      );
+        // In all cases, next buffer MUST be clean and never contain old recorder chunks
+        assert.equal(
+          oldRecorderDataInNewBuffer,
+          false,
+          `delay ${delay}ms (sttSuccess=${sttSuccess}): Old recorder chunks leaked into next buffer! Got: "${next}"`
+        );
+        assert.ok(
+          next.includes('NEW_HEADER'),
+          `delay ${delay}ms (sttSuccess=${sttSuccess}): Next buffer must begin with NEW_HEADER! Got: "${next}"`
+        );
 
-      if (delay <= 500) {
+        // All delays (including 800ms) MUST include the final word and full original audio
+        assert.equal(
+          submitted.length,
+          2010,
+          `delay ${delay}ms (sttSuccess=${sttSuccess}): Submitted bytes must be 2010! Got ${submitted.length}`
+        );
         assert.ok(
           submitted.includes('FINAL_WORD'),
-          `delay ${delay}ms: Submitted audio must include FINAL_WORD!`
+          `delay ${delay}ms (sttSuccess=${sttSuccess}): Submitted audio must include FINAL_WORD!`
         );
+
+        const preserved = await r.getPreservedAudio().blob?.text();
+        assert.equal(
+          preserved?.length,
+          2010,
+          `delay ${delay}ms (sttSuccess=${sttSuccess}): Preserved bytes must be 2010! Got ${preserved?.length}`
+        );
+        assert.ok(
+          preserved?.includes('x'.repeat(2000)),
+          `delay ${delay}ms (sttSuccess=${sttSuccess}): Preserved audio must retain original 2000 bytes!`
+        );
+        assert.ok(
+          preserved?.includes('FINAL_WORD'),
+          `delay ${delay}ms (sttSuccess=${sttSuccess}): Preserved audio must retain FINAL_WORD!`
+        );
+
+        r.cancel();
       }
-      r.cancel();
     }
+  } finally {
+    globalThis.MediaRecorder = origMR;
+  }
+});
+
+test('Boundary Isolation: Separately decodable real audio containers across segment boundaries without corruption or leakage', async () => {
+  const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+  let recCounter = 0;
+
+  // Helper to create a valid minimal 44-byte WAV header for mono 16-bit 16000Hz PCM
+  function createWavHeader(dataLength) {
+    const buffer = Buffer.alloc(44);
+    buffer.write('RIFF', 0, 'ascii');
+    buffer.writeUInt32LE(36 + dataLength, 4);
+    buffer.write('WAVE', 8, 'ascii');
+    buffer.write('fmt ', 12, 'ascii');
+    buffer.writeUInt32LE(16, 16); // subchunk1 size
+    buffer.writeUInt16LE(1, 20); // PCM
+    buffer.writeUInt16LE(1, 22); // 1 channel
+    buffer.writeUInt32LE(16000, 24); // sample rate
+    buffer.writeUInt32LE(32000, 28); // byte rate (16000 * 2)
+    buffer.writeUInt16LE(2, 32); // block align
+    buffer.writeUInt16LE(16, 34); // bits per sample
+    buffer.write('data', 36, 'ascii');
+    buffer.writeUInt32LE(dataLength, 40);
+    return buffer;
+  }
+
+  function validateWavContainer(buf, expectedPayloadLength) {
+    assert.ok(buf.length >= 44, 'Buffer too small to be a valid WAV file');
+    assert.equal(buf.subarray(0, 4).toString('ascii'), 'RIFF', 'Missing RIFF magic');
+    assert.equal(buf.subarray(8, 12).toString('ascii'), 'WAVE', 'Missing WAVE format');
+    assert.equal(buf.subarray(12, 16).toString('ascii'), 'fmt ', 'Missing fmt subchunk');
+    assert.equal(buf.readUInt16LE(20), 1, 'Expected PCM format');
+    assert.equal(buf.readUInt16LE(22), 1, 'Expected 1 channel');
+    assert.equal(buf.readUInt32LE(24), 16000, 'Expected 16kHz sample rate');
+    assert.equal(buf.subarray(36, 40).toString('ascii'), 'data', 'Missing data subchunk');
+    const dataSize = buf.readUInt32LE(40);
+    assert.equal(dataSize, expectedPayloadLength, `Expected data payload ${expectedPayloadLength} bytes`);
+    assert.equal(buf.length, 44 + expectedPayloadLength, 'Total file length mismatch');
+    return true;
+  }
+
+  // Segment 1 payload: 1600 bytes PCM + 400 bytes requestData chunk = 2000 bytes PCM
+  const seg1Header = createWavHeader(2000);
+  const seg1InitialPcm = Buffer.alloc(1600, 0x11);
+  const seg1LatePcm = Buffer.alloc(400, 0x22);
+  const seg1StopTail = Buffer.alloc(128, 0x33);
+
+  // Segment 2 payload: 600 bytes PCM
+  const seg2Header = createWavHeader(600);
+  const seg2Pcm = Buffer.alloc(600, 0x44);
+
+  class RealContainerRecorder {
+    static isTypeSupported() { return true; }
+    constructor() {
+      this.id = ++recCounter;
+      this.state = 'inactive';
+      this.mimeType = 'audio/wav';
+    }
+    start() {
+      this.state = 'recording';
+      if (this.id === 2) {
+        // Segment 2 starts with its own clean WAV header and payload
+        this.ondataavailable?.({ data: new Blob([seg2Header, seg2Pcm]) });
+      }
+    }
+    requestData() {
+      // Simulates browser finalization delivering the last audio slice (400 bytes)
+      setTimeout(() => this.ondataavailable?.({ data: new Blob([seg1LatePcm]) }), 50);
+    }
+    stop() {
+      this.state = 'inactive';
+      // Simulates browser stop tail flushing after segment has closed
+      setTimeout(() => {
+        this.ondataavailable?.({ data: new Blob([seg1StopTail]) });
+        this.onstop?.();
+      }, 10);
+    }
+  }
+
+  const origMR = globalThis.MediaRecorder;
+  globalThis.MediaRecorder = RealContainerRecorder;
+
+  try {
+    const r = createIsolatedRecognizer();
+    const options = { mediaStream: fakeStream, onSilenceDetected() {} };
+    await r.start(() => {}, () => {}, () => {}, options);
+
+    // Initial audio in segment 1: header (44 bytes) + initial PCM (1600 bytes)
+    r.audioChunks = [new Blob([seg1Header, seg1InitialPcm])];
+    r.peakAvgInCurrentChunk = 40;
+    r.peakRmsDbInCurrentChunk = -15;
+
+    let submittedBuf = null;
+    r.transcribeAudioBlob = async (b) => {
+      submittedBuf = Buffer.from(await b.arrayBuffer());
+      return { success: true, text: 'שלום' };
+    };
+
+    await r.handleSilenceDetected();
+    await wait(80);
+
+    // 1. Submitted audio must be a complete, structurally valid WAV container (44 header + 1600 initial + 400 late = 2044 bytes)
+    assert.ok(submittedBuf, 'Submitted audio must not be null');
+    assert.equal(submittedBuf.length, 2044, `Expected 2044 bytes submitted WAV, got ${submittedBuf.length}`);
+    validateWavContainer(submittedBuf, 2000);
+
+    // 2. Preserved audio must decode cleanly and equal the complete Segment 1 container
+    const preservedBlob = r.getPreservedAudio().blob;
+    assert.ok(preservedBlob, 'Preserved blob must exist');
+    const preservedBuf = Buffer.from(await preservedBlob.arrayBuffer());
+    assert.equal(preservedBuf.length, 2044, `Preserved buffer must be 2044 bytes, got ${preservedBuf.length}`);
+    validateWavContainer(preservedBuf, 2000);
+
+    // 3. Segment 2 buffer must be completely isolated and decodable on its own
+    const nextBlob = new Blob(r.audioChunks);
+    const nextBuf = Buffer.from(await nextBlob.arrayBuffer());
+    assert.equal(nextBuf.length, 44 + 600, `Expected 644 bytes in Segment 2 WAV, got ${nextBuf.length}`);
+    validateWavContainer(nextBuf, 600);
+
+    // 4. Verify no bytes from seg1StopTail (0x33) or seg1LatePcm (0x22) leaked into Segment 2 container
+    assert.ok(!nextBuf.includes(seg1StopTail), 'Segment 1 stop tail must not leak into Segment 2 container');
+    assert.ok(!nextBuf.includes(seg1LatePcm), 'Segment 1 late chunk must not leak into Segment 2 container');
+
+    r.cancel();
   } finally {
     globalThis.MediaRecorder = origMR;
   }

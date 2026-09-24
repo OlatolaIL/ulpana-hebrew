@@ -2709,5 +2709,41 @@
     "modelFamily": "gemini-3.5",
     "status": "verified_gemini_3.5",
     "generatedAt": "2026-09-23T19:05:06.865Z"
+  },
+  "s_6df14efe373d_f.mp3": {
+    "id": "tsv_female_107",
+    "sentenceHe": "אֲנִי מְאַחֶלֶת לְךָ הַצְלָחָה רַבָּה.",
+    "sentenceRu": "Я желаю тебе больших успехов.",
+    "sentenceTranscription": "анӣ меахе́лет лехá hацлахá рабá.",
+    "gender": "female",
+    "voice": "Aoede",
+    "engine": "gemini-3.1-flash-tts-preview",
+    "modelFamily": "gemini-3.5",
+    "status": "verified_gemini_3.5",
+    "generatedAt": "2026-09-23T22:05:31.441Z"
+  },
+  "s_992c7aaa31d1.mp3": {
+    "id": "tsv_female_108",
+    "sentenceHe": "אִחַלְנוּ חַג שָׂמֵחַ לְכָל הַמִּשְׁפָּחָה.",
+    "sentenceRu": "Мы пожелали весёлого праздника всей семье.",
+    "sentenceTranscription": "ихáльну хаг самéах ле-холь hа-мишпахá.",
+    "gender": "female",
+    "voice": "Aoede",
+    "engine": "gemini-3.1-flash-tts-preview",
+    "modelFamily": "gemini-3.5",
+    "status": "verified_gemini_3.5",
+    "generatedAt": "2026-09-24T04:01:27.044Z"
+  },
+  "s_b998a70d5bc1.mp3": {
+    "id": "tsv_female_109",
+    "sentenceHe": "הִיא מְסַיֶּמֶת אֶת הָעֲבוֹדָה בַּזְּמַן.",
+    "sentenceRu": "Она вовремя заканчивает работу.",
+    "sentenceTranscription": "hи месаéмет эт hа-аводá ба-змáн.",
+    "gender": "female",
+    "voice": "Aoede",
+    "engine": "gemini-3.1-flash-tts-preview",
+    "modelFamily": "gemini-3.5",
+    "status": "verified_gemini_3.5",
+    "generatedAt": "2026-09-24T04:01:55.489Z"
   }
 }
