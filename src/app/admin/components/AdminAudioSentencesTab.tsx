@@ -490,7 +490,7 @@ export function AdminAudioSentencesTab() {
                 </span>
               ) : settings.sentenceAudioEngine === 'google_cloud' ? (
                 <span className="text-emerald-400 font-semibold">
-                  ✓ Ученики слышат Google Cloud Chirp 3 HD: Fenrir (♂) и Aoede (♀)
+                  ✓ Ученики слышат Gemini 3.8 TTS: Orus (♂) и Aoede (♀)
                 </span>
               ) : (
                 <span className="text-zinc-400">
@@ -967,7 +967,7 @@ export function AdminAudioSentencesTab() {
                                     <span>
                                       {item.isGenderSensitive
                                         ? settings.sentenceAudioEngine === 'google_cloud'
-                                          ? 'Fenrir (♂)'
+                                          ? 'Orus (♂)'
                                           : 'Avri (♂)'
                                         : 'Слушать'}
                                     </span>

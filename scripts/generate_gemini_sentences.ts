@@ -37,7 +37,7 @@ export interface BatchItemMeta {
   sentenceRu: string;
   category: string;
   targetWord?: string;
-  voice: 'Puck' | 'Aoede';
+  voice: 'Orus' | 'Aoede';
   fileName: string;
   hasAudio: boolean;
   sizeBytes?: number;
@@ -80,7 +80,7 @@ export function loadOrInitBatches(): BatchGroup[] {
       const sizeBytes = exists ? fs.statSync(targetFile).size : 0;
 
       // Определение голоса по R-17:
-      // Женский, если женская грамматика или HilaNeural, иначе мужской Puck
+      // Женский, если женская грамматика или HilaNeural, иначе мужской Orus
       const isFemale =
         s.defaultVoice === 'he-IL-HilaNeural' ||
         s.genderCategory === 'second_person_f' ||
@@ -96,7 +96,7 @@ export function loadOrInitBatches(): BatchGroup[] {
         sentenceRu: s.sentenceRu,
         category: s.category,
         targetWord: s.targetWord,
-        voice: isFemale ? 'Aoede' : 'Puck',
+        voice: isFemale ? 'Aoede' : 'Orus',
         fileName: s.fileName,
         hasAudio: exists,
         sizeBytes,

@@ -1357,6 +1357,7 @@ export interface RecognizerSession {
   preservedBlob: Blob | null;
   preservedUrl: string | null;
   recorder: MediaRecorder | null;
+  finalizingSegments?: RecorderSegment[];
 }
 
 export class HebrewSpeechRecognizer {
@@ -1393,6 +1394,7 @@ export class HebrewSpeechRecognizer {
         preservedBlob: null,
         preservedUrl: null,
         recorder: null,
+        finalizingSegments: [],
       };
     }
     return this.activeSession;
@@ -1577,6 +1579,7 @@ export class HebrewSpeechRecognizer {
       preservedBlob,
       preservedUrl,
       recorder: null,
+      finalizingSegments: [],
     };
     this.activeSession = session;
     this.isListening = true;
@@ -1997,11 +2000,43 @@ export class HebrewSpeechRecognizer {
     // 1. Пробуем транскрибировать накопленное аудио через Groq Whisper V3 для максимальной полноты фразы
     if (session.recorder && session.recorder.state !== 'inactive') {
       try {
-        const rec = session.recorder;
-        const currentSegment = session.activeSegment;
-        const prevOnDataAvailable = rec.ondataavailable;
+        const oldRec = session.recorder;
+        const oldSegment = session.activeSegment;
         let timedOut = false;
         session.state = 'finalizing';
+
+        // Изолируем новый сегмент записи: запускаем новый рекордер немедленно,
+        // чтобы последующая речь ученика не терялась и писалась в чистый буфер.
+        if (this.mediaStream && this.mediaStream.active) {
+          this.startSessionRecorder(session, this.mediaStream);
+        } else {
+          session.recorder = null;
+          session.activeSegment = null;
+          session.audioChunks = [];
+        }
+
+        if (!session.finalizingSegments) {
+          session.finalizingSegments = [];
+        }
+        if (oldSegment) {
+          session.finalizingSegments.push(oldSegment);
+        }
+
+        const helperUpdatePreserved = () => {
+          if (this.isSessionClosed(session)) return;
+          if (oldSegment && oldSegment.chunks.length > 0) {
+            const blobType = oldSegment.mimeType || session.mimeType || 'audio/webm';
+            const combinedBlob = new Blob([...oldSegment.chunks], { type: blobType });
+            session.preservedBlob = combinedBlob;
+            try {
+              if (session.preservedUrl) {
+                URL.revokeObjectURL(session.preservedUrl);
+              }
+              session.preservedUrl = URL.createObjectURL(combinedBlob);
+              session.options.onAudioRecorded?.(combinedBlob, session.preservedUrl);
+            } catch {}
+          }
+        };
 
         await new Promise<void>((resolve) => {
           let resolved = false;
@@ -2013,28 +2048,44 @@ export class HebrewSpeechRecognizer {
             }
           };
 
-          // Событийное ожидание: завершается немедленно при доставке dataavailable.
+          // Событийное ожидание: завершается немедленно при доставке dataavailable/stop.
           // Резервный таймаут 1500мс защищает от зависания при системном сбое MediaRecorder.
           const timer = setTimeout(() => {
             timedOut = true;
             finish();
           }, 1500);
 
-          rec.ondataavailable = (e: any) => {
-            if (prevOnDataAvailable) {
-              try { prevOnDataAvailable.call(rec, e); } catch {}
-            } else if (e.data && e.data.size > 0) {
-              if (currentSegment) {
-                currentSegment.chunks.push(e.data);
-              } else {
-                session.audioChunks.push(e.data);
+          oldRec.ondataavailable = (e: any) => {
+            if (this.isSessionClosed(session)) return;
+            if (e.data && e.data.size > 0 && oldSegment) {
+              oldSegment.chunks.push(e.data);
+              // Если финализация уже завершилась по таймауту, дополняем сохранённый Blob
+              // каждым пришедшим байтом, чтобы вся фраза осталась восстановимой для повтора
+              if (timedOut) {
+                helperUpdatePreserved();
               }
+            }
+          };
+
+          oldRec.onstop = () => {
+            if (oldSegment) {
+              oldSegment.isClosed = true;
+              if (timedOut) {
+                helperUpdatePreserved();
+              }
+            }
+            if (session.finalizingSegments && oldSegment) {
+              const idx = session.finalizingSegments.indexOf(oldSegment);
+              if (idx >= 0) session.finalizingSegments.splice(idx, 1);
             }
             finish();
           };
 
           try {
-            rec.requestData();
+            oldRec.requestData();
+          } catch {}
+          try {
+            oldRec.stop();
           } catch {
             finish();
           }
@@ -2042,27 +2093,19 @@ export class HebrewSpeechRecognizer {
 
         if (this.isSessionClosed(session)) return;
 
-        const targetChunks = currentSegment ? currentSegment.chunks : session.audioChunks;
-        const blobType = session.mimeType || session.recorder?.mimeType || 'audio/webm';
+        const targetChunks = oldSegment ? oldSegment.chunks : [];
+        const blobType = oldSegment?.mimeType || session.mimeType || 'audio/webm';
 
         // Таймаут финализации — это отдельный исход: сохраняем запись для восстановления,
         // но категорически НЕ отправляем обрезанную фразу на транскрибацию
         if (timedOut) {
-          callFlightRecorder.record('VAD', 'Finalization requestData timed out; aborting submission to avoid sending truncated phrase, preserving audio for recovery', {
+          callFlightRecorder.record('VAD', 'Finalization requestData/stop timed out; aborting submission to avoid sending truncated phrase, preserving audio for recovery', {
             chunkCount: targetChunks.length,
           }, 'warn');
-          if (targetChunks.length > 0) {
-            const audioBlob = new Blob([...targetChunks], { type: blobType });
-            session.preservedBlob = audioBlob;
-            try {
-              session.preservedUrl = URL.createObjectURL(audioBlob);
-              session.options.onAudioRecorded?.(audioBlob, session.preservedUrl);
-            } catch {}
-          }
+          helperUpdatePreserved();
           session.state = 'listening';
           session.hasDetectedSpeech = false;
           session.silenceStartTime = null;
-          this.restartRecorderForSession(session);
           return;
         }
 
@@ -2080,9 +2123,6 @@ export class HebrewSpeechRecognizer {
 
           // Если записано реальное аудио (более 1500 байт ~0.3с речи), транскрибируем через Groq Whisper V3
           if (audioBlob.size >= 1500) {
-            // Перезапускаем рекордер для нового сегмента до запуска асинхронного STT.
-            // Это гарантирует, что новая речь ученика во время работы STT пишется в свежий сегмент!
-            this.restartRecorderForSession(session);
             session.state = 'transcribing';
 
             let transcribeRes = await this.transcribeAudioBlob(audioBlob, blobType);
@@ -2129,7 +2169,6 @@ export class HebrewSpeechRecognizer {
             session.hasDetectedSpeech = false;
             session.silenceStartTime = null;
             callFlightRecorder.record('VAD', 'Noise rejected: chunk too small (<1500b)', { sizeBytes: audioBlob.size }, 'warn');
-            this.restartRecorderForSession(session);
           }
         }
       } catch (err) {
@@ -2260,6 +2299,20 @@ export class HebrewSpeechRecognizer {
         session.activeSegment.isClosed = true;
       }
       session.activeSegment = null;
+      if (session.finalizingSegments) {
+        for (const seg of session.finalizingSegments) {
+          seg.chunks = [];
+          seg.isClosed = true;
+          try {
+            seg.recorder.ondataavailable = null;
+            seg.recorder.onstop = null;
+            if (seg.recorder.state !== 'inactive') {
+              seg.recorder.stop();
+            }
+          } catch {}
+        }
+        session.finalizingSegments = [];
+      }
       if (session.preservedUrl) {
         try { URL.revokeObjectURL(session.preservedUrl); } catch {}
       }

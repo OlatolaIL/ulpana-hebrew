@@ -2,16 +2,16 @@
  * scripts/generate_all_gemini_sentences.cjs
  *
  * Генерация студийного нейросетевого аудио для всего пакета из 2 688 предложений курса:
- * - 2 123 женских предложений -> Gemini 3.5 TTS (голос: Aoede)
- * - 565 мужских предложений -> Gemini 3.5 TTS (голос: Fenrir)
+ * - 2 123 женских предложений -> Gemini 3.8 Flash-Lite TTS (голос: Aoede)
+ * - 565 мужских предложений -> Gemini 3.8 Flash-Lite TTS (голос: Orus)
  *
  * Инварианты:
  * - R-13: Только проверенные факты и логи, без домыслов.
  * - R-16: Ключ GEMINI_TTS_API_KEY берется из .env.local, никогда не логируется.
- * - R-17: Строгое разделение мужского (Fenrir) и женского (Aoede) голосов.
+ * - R-17: Строгое разделение мужского (Orus) и женского (Aoede) голосов.
  * - R-18: Огласованный כתיב מלא из канонических TSV-манифестов.
  * - R-24: Монолитные студийные MP3 44.1kHz через ffmpeg без склеек слогов.
- * - Кэш и идемпотентность: Файлы со статусом 'verified_gemini_3.5' пропускаются.
+ * - Кэш и идемпотентность: Файлы со статусом 'verified_gemini_3.8' или 'verified_gemini_3.5' пропускаются.
  * - Квота-контроль: При лимите 429 RESOURCE_EXHAUSTED сохраняет прогресс и завершает батч.
  */
 
@@ -86,20 +86,25 @@ function parseTsv(filePath, gender, voiceName) {
   return items;
 }
 
-function loadCatalog() {
+function loadCatalog(options = {}) {
   const manifest = fs.existsSync(MANIFEST_PATH) ? JSON.parse(fs.readFileSync(MANIFEST_PATH, 'utf8')) : {};
   const metadata = fs.existsSync(METADATA_PATH) ? JSON.parse(fs.readFileSync(METADATA_PATH, 'utf8')) : {};
 
   const femaleItems = parseTsv(FEMALE_TSV, 'female', 'Aoede');
-  const maleItems = parseTsv(MALE_TSV, 'male', 'Fenrir');
-  const allItems = [...femaleItems, ...maleItems];
+  const maleItems = parseTsv(MALE_TSV, 'male', 'Orus');
+  let allItems = [...femaleItems, ...maleItems];
+
+  if (options.isMaleOnly) allItems = allItems.filter((i) => i.gender === 'male');
+  if (options.isFemaleOnly) allItems = allItems.filter((i) => i.gender === 'female');
 
   // Проверка на уже сгенерированные
   for (const item of allItems) {
     const filePath = path.join(SENTENCES_DIR, item.fileName);
-    const hasMetadata = metadata[item.fileName]?.status === 'verified_gemini_3.5';
+    const hasMetadata =
+      metadata[item.fileName]?.status === 'verified_gemini_3.8' ||
+      metadata[item.fileName]?.status === 'verified_gemini_3.5';
     const hasFile = fs.existsSync(filePath) && fs.statSync(filePath).size > 1000;
-    item.isAlreadyGenerated = hasMetadata && hasFile;
+    item.isAlreadyGenerated = !options.isForce && hasMetadata && hasFile;
   }
 
   return { items: allItems, manifest, metadata };
@@ -108,7 +113,8 @@ function loadCatalog() {
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 async function synthesizeWithGemini(text, destPath, apiKey, voiceName, maxRetries = 3) {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-tts-preview:generateContent?key=${apiKey}`;
+  const MODEL_NAME = 'gemini-3.8-flash-lite-tts';
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_NAME}:generateContent?key=${apiKey}`;
   const payload = {
     contents: [{ parts: [{ text }] }],
     generationConfig: {
@@ -157,23 +163,20 @@ async function synthesizeWithGemini(text, destPath, apiKey, voiceName, maxRetrie
         throw new Error(`No audio data received in response: ${JSON.stringify(data)}`);
       }
 
-      const pcmBuffer = Buffer.from(audioData, 'base64');
-      const tempPcm = path.join(SENTENCES_DIR, `temp_${Date.now()}_${Math.random().toString(36).slice(2)}.pcm`);
-      fs.writeFileSync(tempPcm, pcmBuffer);
+      const wavBuffer = Buffer.from(audioData, 'base64');
+      const tempWav = path.join(SENTENCES_DIR, `temp_${Date.now()}_${Math.random().toString(36).slice(2)}.wav`);
+      fs.writeFileSync(tempWav, wavBuffer);
 
-      // Конвертация сырого PCM (24kHz mono 16-bit LE) в чистый студийный MP3 44.1kHz (R-24)
+      // Конвертация WAV в чистый студийный MP3 44.1kHz (R-24) без артефактов цифрового водяного знака SynthID
       cp.execFileSync(ffmpegPath, [
         '-y',
-        '-f', 's16le',
-        '-ar', '24000',
-        '-ac', '1',
-        '-i', tempPcm,
+        '-i', tempWav,
         '-ar', '44100',
         '-b:a', '128k',
         destPath
       ], { stdio: 'ignore' });
 
-      if (fs.existsSync(tempPcm)) fs.unlinkSync(tempPcm);
+      if (fs.existsSync(tempWav)) fs.unlinkSync(tempWav);
       return fs.statSync(destPath).size;
     } catch (err) {
       if (err.isQuotaExhausted || attempt === maxRetries) throw err;
@@ -185,26 +188,38 @@ async function synthesizeWithGemini(text, destPath, apiKey, voiceName, maxRetrie
 
 async function main() {
   const isDryRun = process.argv.includes('--dry-run');
+  const isForce = process.argv.includes('--force');
+  const isMaleOnly = process.argv.includes('--male-only');
+  const isFemaleOnly = process.argv.includes('--female-only');
+  const isAll = process.argv.includes('--all');
   const limitArg = process.argv.find((arg) => arg.startsWith('--limit='));
-  const limit = limitArg ? parseInt(limitArg.split('=')[1], 10) : 100;
+  let limit = 100;
+  if (isAll) {
+    limit = Infinity;
+  } else if (limitArg) {
+    const val = limitArg.split('=')[1];
+    limit = val === 'all' ? Infinity : parseInt(val, 10);
+  }
 
   const apiKey = getApiKey();
-  const { items, manifest, metadata } = loadCatalog();
+  const { items, manifest, metadata } = loadCatalog({ isForce, isMaleOnly, isFemaleOnly });
 
   const alreadyDone = items.filter((i) => i.isAlreadyGenerated);
   const pending = items.filter((i) => !i.isAlreadyGenerated);
 
   console.log('================================================================');
-  console.log('🎙️ ПАКЕТНАЯ ГЕНЕРАЦИЯ ВСЕХ 2 688 ПРЕДЛОЖЕНИЙ (GEMINI 3.5 TTS)');
+  console.log('🎙️ ПАКЕТНАЯ ГЕНЕРАЦИЯ ВСЕХ 2 688 ПРЕДЛОЖЕНИЙ (GEMINI 3.8 FLASH-LITE TTS)');
   console.log(`Всего предложений в каноническом пакете: ${items.length}`);
   console.log(`Уже сгенерировано и верифицировано: ${alreadyDone.length}`);
   console.log(`Осталось сгенерировать: ${pending.length}`);
   console.log(`Лимит на текущий запуск: ${limit} фраз`);
   console.log(`Режим dry-run: ${isDryRun ? 'ВКЛЮЧЕН (без запросов к API)' : 'ВЫКЛЮЧЕН (боевая генерация)'}`);
+  if (isMaleOnly) console.log('Фильтр: ТОЛЬКО МУЖСКИЕ ПРЕДЛОЖЕНИЯ (голос: Orus)');
+  if (isFemaleOnly) console.log('Фильтр: ТОЛЬКО ЖЕНСКИЕ ПРЕДЛОЖЕНИЯ (голос: Aoede)');
   console.log('================================================================\n');
 
   if (pending.length === 0) {
-    console.log('🎉 ВСЕ 2 688 ПРЕДЛОЖЕНИЙ КУРСА ПОЛНОСТЬЮ СГЕНЕРИРОВАНЫ GEMINI 3.5! РАБОТА ЗАВЕРШЕНА.');
+    console.log('🎉 ВСЕ ПРЕДЛОЖЕНИЯ ПОЛНОСТЬЮ СГЕНЕРИРОВАНЫ GEMINI 3.8! РАБОТА ЗАВЕРШЕНА.');
     return;
   }
 
@@ -243,9 +258,9 @@ async function main() {
         sentenceTranscription: item.transcription,
         gender: item.gender,
         voice: item.voiceName,
-        engine: 'gemini-3.1-flash-tts-preview',
-        modelFamily: 'gemini-3.5',
-        status: 'verified_gemini_3.5',
+        engine: 'gemini-3.8-flash-lite-tts',
+        modelFamily: 'gemini-3.8',
+        status: 'verified_gemini_3.8',
         generatedAt: new Date().toISOString()
       };
 

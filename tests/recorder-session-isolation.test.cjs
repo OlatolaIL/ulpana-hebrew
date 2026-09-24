@@ -203,14 +203,16 @@ test('Boundary Isolation: Late stop-tail and requestData do not leak into next r
       if (this.id > 1) this.ondataavailable?.({ data: new Blob(['NEW_HEADER']) });
     }
     requestData() {
+      this.flushDue = Date.now() + this.delay;
       setTimeout(() => this.ondataavailable?.({ data: new Blob(['FINAL_WORD']) }), this.delay);
     }
     stop() {
       this.state = 'inactive';
+      const stopDelay = Math.max(10, (this.flushDue || 0) - Date.now() + 10);
       setTimeout(() => {
         this.ondataavailable?.({ data: new Blob(['OLD_STOP_TAIL']) });
         this.onstop?.();
-      }, 10);
+      }, stopDelay);
     }
   }
 
@@ -254,22 +256,26 @@ test('Boundary Isolation: Late stop-tail and requestData do not leak into next r
           `delay ${delay}ms (sttSuccess=${sttSuccess}): Next buffer must begin with NEW_HEADER! Got: "${next}"`
         );
 
-        // All delays (including 800ms) MUST include the final word and full original audio
+        // All delays (including 800ms) MUST include the final word, stop tail, and full original audio (2023 bytes)
         assert.equal(
           submitted.length,
-          2010,
-          `delay ${delay}ms (sttSuccess=${sttSuccess}): Submitted bytes must be 2010! Got ${submitted.length}`
+          2023,
+          `delay ${delay}ms (sttSuccess=${sttSuccess}): Submitted bytes must be 2023! Got ${submitted.length}`
         );
         assert.ok(
           submitted.includes('FINAL_WORD'),
           `delay ${delay}ms (sttSuccess=${sttSuccess}): Submitted audio must include FINAL_WORD!`
         );
+        assert.ok(
+          submitted.includes('OLD_STOP_TAIL'),
+          `delay ${delay}ms (sttSuccess=${sttSuccess}): Submitted audio must include OLD_STOP_TAIL!`
+        );
 
         const preserved = await r.getPreservedAudio().blob?.text();
         assert.equal(
           preserved?.length,
-          2010,
-          `delay ${delay}ms (sttSuccess=${sttSuccess}): Preserved bytes must be 2010! Got ${preserved?.length}`
+          2023,
+          `delay ${delay}ms (sttSuccess=${sttSuccess}): Preserved bytes must be 2023! Got ${preserved?.length}`
         );
         assert.ok(
           preserved?.includes('x'.repeat(2000)),
@@ -278,6 +284,10 @@ test('Boundary Isolation: Late stop-tail and requestData do not leak into next r
         assert.ok(
           preserved?.includes('FINAL_WORD'),
           `delay ${delay}ms (sttSuccess=${sttSuccess}): Preserved audio must retain FINAL_WORD!`
+        );
+        assert.ok(
+          preserved?.includes('OLD_STOP_TAIL'),
+          `delay ${delay}ms (sttSuccess=${sttSuccess}): Preserved audio must retain OLD_STOP_TAIL!`
         );
 
         r.cancel();
@@ -326,8 +336,8 @@ test('Boundary Isolation: Separately decodable real audio containers across segm
     return true;
   }
 
-  // Segment 1 payload: 1600 bytes PCM + 400 bytes requestData chunk = 2000 bytes PCM
-  const seg1Header = createWavHeader(2000);
+  // Segment 1 payload: 1600 bytes PCM + 400 bytes requestData chunk + 128 bytes stopTail = 2128 bytes PCM
+  const seg1Header = createWavHeader(2128);
   const seg1InitialPcm = Buffer.alloc(1600, 0x11);
   const seg1LatePcm = Buffer.alloc(400, 0x22);
   const seg1StopTail = Buffer.alloc(128, 0x33);
@@ -352,15 +362,17 @@ test('Boundary Isolation: Separately decodable real audio containers across segm
     }
     requestData() {
       // Simulates browser finalization delivering the last audio slice (400 bytes)
+      this.flushDue = Date.now() + 50;
       setTimeout(() => this.ondataavailable?.({ data: new Blob([seg1LatePcm]) }), 50);
     }
     stop() {
       this.state = 'inactive';
       // Simulates browser stop tail flushing after segment has closed
+      const stopDelay = Math.max(10, (this.flushDue || 0) - Date.now() + 10);
       setTimeout(() => {
         this.ondataavailable?.({ data: new Blob([seg1StopTail]) });
         this.onstop?.();
-      }, 10);
+      }, stopDelay);
     }
   }
 
@@ -386,17 +398,17 @@ test('Boundary Isolation: Separately decodable real audio containers across segm
     await r.handleSilenceDetected();
     await wait(80);
 
-    // 1. Submitted audio must be a complete, structurally valid WAV container (44 header + 1600 initial + 400 late = 2044 bytes)
+    // 1. Submitted audio must be a complete, structurally valid WAV container (44 header + 1600 initial + 400 late + 128 stop = 2172 bytes)
     assert.ok(submittedBuf, 'Submitted audio must not be null');
-    assert.equal(submittedBuf.length, 2044, `Expected 2044 bytes submitted WAV, got ${submittedBuf.length}`);
-    validateWavContainer(submittedBuf, 2000);
+    assert.equal(submittedBuf.length, 2172, `Expected 2172 bytes submitted WAV, got ${submittedBuf.length}`);
+    validateWavContainer(submittedBuf, 2128);
 
     // 2. Preserved audio must decode cleanly and equal the complete Segment 1 container
     const preservedBlob = r.getPreservedAudio().blob;
     assert.ok(preservedBlob, 'Preserved blob must exist');
     const preservedBuf = Buffer.from(await preservedBlob.arrayBuffer());
-    assert.equal(preservedBuf.length, 2044, `Preserved buffer must be 2044 bytes, got ${preservedBuf.length}`);
-    validateWavContainer(preservedBuf, 2000);
+    assert.equal(preservedBuf.length, 2172, `Preserved buffer must be 2172 bytes, got ${preservedBuf.length}`);
+    validateWavContainer(preservedBuf, 2128);
 
     // 3. Segment 2 buffer must be completely isolated and decodable on its own
     const nextBlob = new Blob(r.audioChunks);
@@ -404,7 +416,9 @@ test('Boundary Isolation: Separately decodable real audio containers across segm
     assert.equal(nextBuf.length, 44 + 600, `Expected 644 bytes in Segment 2 WAV, got ${nextBuf.length}`);
     validateWavContainer(nextBuf, 600);
 
-    // 4. Verify no bytes from seg1StopTail (0x33) or seg1LatePcm (0x22) leaked into Segment 2 container
+    // 4. Verify seg1StopTail (0x33) and seg1LatePcm (0x22) are present in submitted/preserved, and do NOT leak into Segment 2
+    assert.ok(submittedBuf.includes(seg1StopTail), 'Segment 1 stop tail must be included in submitted audio');
+    assert.ok(preservedBuf.includes(seg1StopTail), 'Segment 1 stop tail must be included in preserved audio');
     assert.ok(!nextBuf.includes(seg1StopTail), 'Segment 1 stop tail must not leak into Segment 2 container');
     assert.ok(!nextBuf.includes(seg1LatePcm), 'Segment 1 late chunk must not leak into Segment 2 container');
 
