@@ -1,6 +1,13 @@
 import type { PhoneCallType, PhoneScenarioWord } from '@/types';
 
 export type PhoneMemoryScope = 'social' | 'coffee' | 'rental' | 'delivery' | 'general';
+/** Optional authored checks for a known ambiguous information goal. Patterns match
+ * complete, unpointed clauses; a short answer is allowed only after its question. */
+export interface PhoneInformationEvidenceRule {
+  questionPattern: string;
+  answerPatterns: string[];
+  shortAnswerPatterns: string[];
+}
 export interface PhonePhrase {
   hebrew: string;
   transcription: string;
@@ -19,6 +26,7 @@ export interface PhoneLessonContract {
   callerObjective: string;
   studentObjective: string;
   goals: string[];
+  informationEvidence?: Record<number, PhoneInformationEvidenceRule>;
   completionCondition: string;
   /** Facts the actor owns. Unknown prices/times must not be invented as agreements. */
   facts: string[];

@@ -4,6 +4,7 @@ type Entry = {
   name: string; role: string; gender: 'male' | 'female'; user: string;
   call: 'incoming' | 'outgoing'; situation: string;
   goals: [string, string, string]; facts: string[]; ask: string[];
+  informationEvidence?: PhoneLessonContract['informationEvidence'];
   forbidden: string[]; greeting: [string, string, string];
   reply: [string, string, string]; femaleReply?: [string, string, string]; turns?: 3 | 4;
 };
@@ -17,6 +18,7 @@ function contract(e: Entry): PhoneLessonContract {
     situationSummary: e.situation,
     callerObjective: `В роли «${e.role}» помочь разыграть ситуацию: ${e.situation}`,
     studentObjective: e.goals.join('; '), goals: e.goals,
+    informationEvidence: e.informationEvidence,
     completionCondition: `По смыслу выполнены все задачи: ${e.goals.join('; ')}. Ученик может использовать другие слова. Вежливый отказ допустим там, где предусмотрен целью; непонимание или один короткий ответ не доказывают выполнение остальных задач.`,
     facts: e.facts, studentDetails: e.ask,
     forbiddenActions: [
@@ -282,7 +284,18 @@ export const PHONE_CONTRACTS_51_100: Record<number, PhoneLessonContract> = {
   78: contract({
     name: 'Рут', role: 'Соседка Рут', gender: 'female', user: 'Новый жилец', call: 'incoming',
     situation: 'Рут звонит новому жильцу объяснить учебные правила сортировки отходов в доме.',
-    goals: ['Уточнить назначение оранжевого бака', 'Узнать, куда отнести бумагу', 'Подтвердить, как будете сортировать отходы'],
+      goals: ['Уточнить назначение оранжевого бака', 'Узнать, куда отнести бумагу', 'Подтвердить, как будете сортировать отходы'],
+      informationEvidence: {
+        1: {
+          questionPattern: '(?:^| )(?:נייר|ניר|הנייר|עיתונים|העיתונים)(?: |$)',
+          answerPatterns: [
+            '(?:את )?(?:הנייר|נייר|ניר|העיתונים|עיתונים)(?: הישנים)? (?:זורקים |שמים |יש לזרוק |צריך לזרוק )?(?:ל|ב)פח (?:ה)?כחול',
+            '(?:זורקים|שמים|יש לזרוק|צריך לזרוק) (?:את )?(?:הנייר|נייר|ניר|העיתונים|עיתונים)(?: הישנים)? (?:ל|ב)פח (?:ה)?כחול',
+            '(?:ה)?פח (?:ה)?כחול (?:הוא |מיועד )?(?:לנייר|לניר|לעיתונים)',
+          ],
+          shortAnswerPatterns: ['(?:ל|ב)פח (?:ה)?כחול'],
+        },
+      },
     facts: ['В учебном доме оранжевый бак предназначен для упаковки, синий — для бумаги.', 'Оба бака находятся во дворе возле входа.', 'Для необычных отходов Рут предлагает проверить городские инструкции.'],
     ask: ['Какие отходы хочет выбросить ученик', 'Понятно ли расположение баков'], forbidden: ['Не спрашивать нового жильца правила, которые объясняет Рут.'],
     greeting: ['שָׁלוֹם, זוֹ רוּת. יֵשׁ לָנוּ פַּח כָּתוֹם וּפַח כָּחוֹל בֶּחָצֵר.', 'шалóм, зо Рут. йеш лáну пах катóм у-фах кахóль бэ-хацэ́р.', 'Привет, это Рут. У нас во дворе оранжевый и синий баки.'],
