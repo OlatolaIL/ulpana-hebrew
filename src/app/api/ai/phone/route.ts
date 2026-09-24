@@ -16,6 +16,7 @@ interface PhoneAttemptDiagnostic {
   status?: number;
   category: AiErrorCategory;
   durationMs: number;
+  phase?: 'transport' | 'http' | 'parse' | 'validation';
 }
 
 interface PhoneRequestBody {
@@ -73,7 +74,6 @@ export async function POST(req: NextRequest) {
     const name = typeof body.userName === 'string' ? body.userName.slice(0, 80) : undefined;
     const systemPrompt = buildPhonePrompt({ lessonNumber, gender, name, scenario, contract, turns, vocabulary });
     const { groqKey, geminiKeys } = resolveAiKeys(body.provider || 'gemini', body.apiKey);
-    const validate = (raw: string) => validatePhoneReply(JSON.parse(raw), { contract, turns, name, lessonNumber, gender });
 
     const startTime = Date.now();
     const TOTAL_BUDGET_MS = 24000;
@@ -98,6 +98,8 @@ export async function POST(req: NextRequest) {
         if (remaining < 2500) break geminiLoop;
         const attemptTimeout = Math.min(remaining - 500, 4500);
         const attemptStart = Date.now();
+        let status: number | undefined;
+        let phase: NonNullable<PhoneAttemptDiagnostic['phase']> = 'transport';
 
         try {
           const response = await fetchAi(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
@@ -110,6 +112,8 @@ export async function POST(req: NextRequest) {
             }),
           }, attemptTimeout);
 
+          status = response.status;
+          phase = 'http';
           if (!response.ok) {
             lastErrorCategory = classifyHttpError(response.status);
             const retryAfter = response.headers.get('retry-after') || undefined;
@@ -119,6 +123,7 @@ export async function POST(req: NextRequest) {
               provider: 'gemini',
               model,
               status: response.status,
+              phase,
               category: lastErrorCategory,
               durationMs,
             });
@@ -132,22 +137,33 @@ export async function POST(req: NextRequest) {
               retryAfter,
               durationMs,
             }));
+            if (lastErrorCategory === 'provider_timeout') break geminiLoop;
             continue;
           }
 
+          phase = 'parse';
           const data = await response.json();
-          const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
-          const result = validate(rawText);
+          phase = 'validation';
+          const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+          if (typeof rawText !== 'string') throw new Error('Missing provider content');
+          phase = 'parse';
+          const parsed = JSON.parse(rawText);
+          phase = 'validation';
+          const result = validatePhoneReply(parsed, { contract, turns, name, lessonNumber, gender });
           return NextResponse.json(
             { ...result, engine: `Gemini (${model})`, requestId },
             { headers: { 'x-request-id': requestId } }
           );
         } catch (attemptErr: any) {
-          lastErrorCategory = attemptErr?.name === 'TimeoutError' || attemptErr?.name === 'AbortError' ? 'provider_timeout' : 'provider_unavailable';
+          lastErrorCategory = attemptErr?.name === 'TimeoutError' || attemptErr?.name === 'AbortError' ? 'provider_timeout'
+            : phase === 'parse' && attemptErr instanceof SyntaxError ? 'malformed_json' : phase === 'validation' ? 'validation_rejected' : 'provider_unavailable';
+          if (lastErrorCategory === 'provider_timeout' || lastErrorCategory === 'provider_unavailable') phase = 'transport';
           const durationMs = Date.now() - attemptStart;
           attempts.push({
             provider: 'gemini',
             model,
+            status,
+            phase,
             category: lastErrorCategory,
             durationMs,
           });
@@ -156,6 +172,8 @@ export async function POST(req: NextRequest) {
             requestId,
             provider: 'gemini',
             model,
+            status,
+            phase,
             category: lastErrorCategory,
             durationMs,
           }));
@@ -174,6 +192,8 @@ export async function POST(req: NextRequest) {
         if (remaining < 2500) break;
         const attemptTimeout = Math.min(remaining - 500, 4500);
         const attemptStart = Date.now();
+        let status: number | undefined;
+        let phase: NonNullable<PhoneAttemptDiagnostic['phase']> = 'transport';
 
         try {
           const response = await fetchAi('https://api.groq.com/openai/v1/chat/completions', {
@@ -186,6 +206,8 @@ export async function POST(req: NextRequest) {
             }),
           }, attemptTimeout);
 
+          status = response.status;
+          phase = 'http';
           if (!response.ok) {
             lastErrorCategory = classifyHttpError(response.status);
             const retryAfter = response.headers.get('retry-after') || undefined;
@@ -195,6 +217,7 @@ export async function POST(req: NextRequest) {
               provider: 'groq',
               model,
               status: response.status,
+              phase,
               category: lastErrorCategory,
               durationMs,
             });
@@ -211,19 +234,29 @@ export async function POST(req: NextRequest) {
             continue;
           }
 
+          phase = 'parse';
           const data = await response.json();
-          const rawText = data.choices?.[0]?.message?.content || '{}';
-          const result = validate(rawText);
+          phase = 'validation';
+          const rawText = data?.choices?.[0]?.message?.content;
+          if (typeof rawText !== 'string') throw new Error('Missing provider content');
+          phase = 'parse';
+          const parsed = JSON.parse(rawText);
+          phase = 'validation';
+          const result = validatePhoneReply(parsed, { contract, turns, name, lessonNumber, gender });
           return NextResponse.json(
             { ...result, engine: `Groq (${model})`, requestId },
             { headers: { 'x-request-id': requestId } }
           );
         } catch (attemptErr: any) {
-          lastErrorCategory = attemptErr?.name === 'TimeoutError' || attemptErr?.name === 'AbortError' ? 'provider_timeout' : 'provider_unavailable';
+          lastErrorCategory = attemptErr?.name === 'TimeoutError' || attemptErr?.name === 'AbortError' ? 'provider_timeout'
+            : phase === 'parse' && attemptErr instanceof SyntaxError ? 'malformed_json' : phase === 'validation' ? 'validation_rejected' : 'provider_unavailable';
+          if (lastErrorCategory === 'provider_timeout' || lastErrorCategory === 'provider_unavailable') phase = 'transport';
           const durationMs = Date.now() - attemptStart;
           attempts.push({
             provider: 'groq',
             model,
+            status,
+            phase,
             category: lastErrorCategory,
             durationMs,
           });
@@ -232,6 +265,8 @@ export async function POST(req: NextRequest) {
             requestId,
             provider: 'groq',
             model,
+            status,
+            phase,
             category: lastErrorCategory,
             durationMs,
           }));
