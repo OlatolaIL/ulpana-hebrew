@@ -1,0 +1,387 @@
+{
+  "kind": "live-debrief-evaluation-etap2",
+  "date": "2026-09-24T10:08:08.624Z",
+  "commit": "8ce1fa34755c8aae9d322c55971581907c64bc6e",
+  "branch": "fix/phone-unified-dialogue",
+  "provider": "gemini",
+  "model": "gemini-3.5-flash-lite",
+  "sourceHashes": {
+    "src/lib/phoneGoalEvidence.ts": "c823d7a11b24f461a92d175fd463c487b76e6b2bd889d7f5c6a77c383605317f",
+    "src/lib/goalTypeResolver.ts": "38a93da3451d64ed698beeec97c8d709faeb3672fd67efea25706f3f10e95bde",
+    "src/app/api/ai/phone/debrief/route.ts": "fad0bb45b680eb5fc02c4bd0a9eea1c8bbeca1dfc67fec0b0167b674232a5bad"
+  },
+  "totalCases": 6,
+  "passed": 6,
+  "failed": 0,
+  "errors": 0,
+  "cases": [
+    {
+      "id": "D01-no-answer-from-assistant",
+      "defect": "D01",
+      "description": "Student asked, 503 happened, assistant never replied → met must be false",
+      "expect": [
+        {
+          "goalIndex": 1,
+          "met": false
+        }
+      ],
+      "status": "pass",
+      "httpStatus": 200,
+      "latencyMs": 2350,
+      "rawModelGoalChecks": [
+        {
+          "goalIndex": 0,
+          "met": false,
+          "evidence": []
+        },
+        {
+          "goalIndex": 1,
+          "met": false,
+          "evidence": []
+        },
+        {
+          "goalIndex": 2,
+          "met": false,
+          "evidence": []
+        }
+      ],
+      "validatedGoalChecks": [
+        {
+          "goalIndex": 0,
+          "met": false
+        },
+        {
+          "goalIndex": 1,
+          "met": false
+        },
+        {
+          "goalIndex": 2,
+          "met": false
+        }
+      ],
+      "checkResults": [
+        {
+          "goalIndex": 1,
+          "expectedMet": false,
+          "actualMet": false,
+          "pass": true
+        }
+      ]
+    },
+    {
+      "id": "D14-ain-beia-prefix-allows-valid-answer",
+      "defect": "D14",
+      "description": "Assistant says «אין בעיה. נייר לפח הכחול.» → met must be true",
+      "expect": [
+        {
+          "goalIndex": 1,
+          "met": true
+        }
+      ],
+      "status": "pass",
+      "httpStatus": 200,
+      "latencyMs": 1756,
+      "rawModelGoalChecks": [
+        {
+          "goalIndex": 0,
+          "met": false,
+          "evidence": []
+        },
+        {
+          "goalIndex": 1,
+          "met": true,
+          "evidence": [
+            {
+              "role": "user",
+              "quote": "לְאֵיזֶה פַּח זוֹרְקִים נְיָיר?",
+              "turnIndex": 1
+            },
+            {
+              "role": "assistant",
+              "quote": "אֵין בְּעָיָה. נְיָיר זוֹרְקִים לַפַּח הַכָּחוֹל.",
+              "turnIndex": 2
+            }
+          ]
+        },
+        {
+          "goalIndex": 2,
+          "met": false,
+          "evidence": []
+        }
+      ],
+      "validatedGoalChecks": [
+        {
+          "goalIndex": 0,
+          "met": false
+        },
+        {
+          "goalIndex": 1,
+          "met": true
+        },
+        {
+          "goalIndex": 2,
+          "met": false
+        }
+      ],
+      "checkResults": [
+        {
+          "goalIndex": 1,
+          "expectedMet": true,
+          "actualMet": true,
+          "pass": true
+        }
+      ]
+    },
+    {
+      "id": "D12-conditional-answer-rejected",
+      "defect": "D12",
+      "description": "Conditional assistant answer → met=false",
+      "expect": [
+        {
+          "goalIndex": 1,
+          "met": false
+        }
+      ],
+      "status": "pass",
+      "httpStatus": 200,
+      "latencyMs": 2747,
+      "rawModelGoalChecks": [
+        {
+          "goalIndex": 0,
+          "met": false,
+          "evidence": []
+        },
+        {
+          "goalIndex": 1,
+          "met": false,
+          "evidence": []
+        },
+        {
+          "goalIndex": 2,
+          "met": false,
+          "evidence": []
+        }
+      ],
+      "validatedGoalChecks": [
+        {
+          "goalIndex": 0,
+          "met": false
+        },
+        {
+          "goalIndex": 1,
+          "met": false
+        },
+        {
+          "goalIndex": 2,
+          "met": false
+        }
+      ],
+      "checkResults": [
+        {
+          "goalIndex": 1,
+          "expectedMet": false,
+          "actualMet": false,
+          "pass": true
+        }
+      ]
+    },
+    {
+      "id": "D04-student-action-lesson-7",
+      "defect": "D04",
+      "description": "student_action goal (Сказать, сколько комнат) — met if student spoke it",
+      "expect": [
+        {
+          "goalIndex": 0,
+          "met": true
+        }
+      ],
+      "status": "pass",
+      "httpStatus": 200,
+      "latencyMs": 2344,
+      "rawModelGoalChecks": [
+        {
+          "goalIndex": 0,
+          "met": true,
+          "evidence": [
+            {
+              "role": "user",
+              "quote": "שָׁלוֹם, אֲנִי מְחַפֵּשׁ דִּירָה שֶׁל שְׁנֵי חֲדָרִים.",
+              "turnIndex": 1
+            }
+          ]
+        },
+        {
+          "goalIndex": 1,
+          "met": false,
+          "evidence": []
+        },
+        {
+          "goalIndex": 2,
+          "met": false,
+          "evidence": []
+        }
+      ],
+      "validatedGoalChecks": [
+        {
+          "goalIndex": 0,
+          "met": true
+        },
+        {
+          "goalIndex": 1,
+          "met": false
+        },
+        {
+          "goalIndex": 2,
+          "met": false
+        }
+      ],
+      "checkResults": [
+        {
+          "goalIndex": 0,
+          "expectedMet": true,
+          "actualMet": true,
+          "pass": true
+        }
+      ]
+    },
+    {
+      "id": "D16-mixed-goals",
+      "defect": "D16",
+      "description": "Mixed goals: info goal about rent met, agreement not completed (unmet)",
+      "expect": [
+        {
+          "goalIndex": 0,
+          "met": true
+        }
+      ],
+      "status": "pass",
+      "httpStatus": 200,
+      "latencyMs": 2469,
+      "rawModelGoalChecks": [
+        {
+          "goalIndex": 0,
+          "met": true,
+          "evidence": [
+            {
+              "role": "user",
+              "quote": "שָׁלוֹם, כַּמָּה עוֹלָה הַדִּירָה וְכַמָּה אַרְנוֹנָה?",
+              "turnIndex": 1
+            },
+            {
+              "role": "assistant",
+              "quote": "הַדִּירָה חֲמֵשֶׁת אֲלָפִים שְׁקָלִים בְּחֹדֶשׁ, וְאַרְנוֹנָה שְׁלוֹשׁ מֵאוֹת.",
+              "turnIndex": 2
+            }
+          ]
+        },
+        {
+          "goalIndex": 1,
+          "met": false,
+          "evidence": []
+        },
+        {
+          "goalIndex": 2,
+          "met": false,
+          "evidence": []
+        }
+      ],
+      "validatedGoalChecks": [
+        {
+          "goalIndex": 0,
+          "met": true
+        },
+        {
+          "goalIndex": 1,
+          "met": false
+        },
+        {
+          "goalIndex": 2,
+          "met": false
+        }
+      ],
+      "checkResults": [
+        {
+          "goalIndex": 0,
+          "expectedMet": true,
+          "actualMet": true,
+          "pass": true
+        }
+      ]
+    },
+    {
+      "id": "D31-greeting-fact-lesson-10",
+      "defect": "D31",
+      "description": "Fact in greeting before student question, no authored rule (Lesson 10) → met=true",
+      "expect": [
+        {
+          "goalIndex": 1,
+          "met": true
+        }
+      ],
+      "status": "pass",
+      "httpStatus": 200,
+      "latencyMs": 2382,
+      "rawModelGoalChecks": [
+        {
+          "goalIndex": 0,
+          "met": true,
+          "evidence": [
+            {
+              "role": "user",
+              "quote": "שָׁלוֹם, מֵהַתַּחֲנָה לַמֶּרְכָּז, בְּבַקָּשָׁה. אֵיזֶה אוֹטוֹבּוּס?",
+              "turnIndex": 1
+            }
+          ]
+        },
+        {
+          "goalIndex": 1,
+          "met": true,
+          "evidence": [
+            {
+              "role": "user",
+              "quote": "שָׁלוֹם, מֵהַתַּחֲנָה לַמֶּרְכָּז, בְּבַקָּשָׁה. אֵיזֶה אוֹטוֹבּוּס?",
+              "turnIndex": 1
+            },
+            {
+              "role": "assistant",
+              "quote": "אוֹטוֹבּוּס חָמֵשׁ מֵהַתַּחֲנָה.",
+              "turnIndex": 2
+            }
+          ]
+        },
+        {
+          "goalIndex": 2,
+          "met": false,
+          "evidence": []
+        }
+      ],
+      "validatedGoalChecks": [
+        {
+          "goalIndex": 0,
+          "met": true
+        },
+        {
+          "goalIndex": 1,
+          "met": true
+        },
+        {
+          "goalIndex": 2,
+          "met": false
+        }
+      ],
+      "checkResults": [
+        {
+          "goalIndex": 1,
+          "expectedMet": true,
+          "actualMet": true,
+          "pass": true
+        }
+      ]
+    }
+  ],
+  "limitations": [
+    "Synthetic transcripts only — no real audio, ASR or full call flow.",
+    "Model output is non-deterministic; validator is deterministic.",
+    "Does not certify all 100 lessons. Ambiguous goals (type=other) not covered here."
+  ]
+}
