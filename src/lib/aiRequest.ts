@@ -32,18 +32,21 @@ export class AiRequestError extends Error {
   category?: AiErrorCategory;
   requestId?: string;
   retryable?: boolean;
+  details?: unknown;
   constructor(
     message: string,
     status: number,
     category?: AiErrorCategory,
     requestId?: string,
-    retryable?: boolean
+    retryable?: boolean,
+    details?: unknown
   ) {
     super(message);
     this.status = status;
     this.category = category;
     this.requestId = requestId;
     this.retryable = retryable;
+    this.details = details;
   }
 }
 
@@ -125,6 +128,7 @@ export function aiErrorResponse(error: unknown, reqId?: string): NextResponse {
   const requestId = (error instanceof AiRequestError && error.requestId) || reqId || `req_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
   const category = (error instanceof AiRequestError && error.category) || (status === 429 ? 'app_rate_limit' : status >= 500 ? 'provider_unavailable' : 'validation_rejected');
   const message = isCustom ? error.message : 'Сервис временно недоступен. Попробуйте снова; оценка не выставлена.';
+  const details = (error instanceof AiRequestError && error.details) ? error.details : undefined;
 
   return NextResponse.json(
     {
@@ -133,6 +137,7 @@ export function aiErrorResponse(error: unknown, reqId?: string): NextResponse {
       category,
       requestId,
       retryable: status === 429 || status >= 500,
+      ...(details !== undefined ? { details } : {}),
     },
     {
       status,

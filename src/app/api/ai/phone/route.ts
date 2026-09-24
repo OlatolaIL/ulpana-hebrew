@@ -8,6 +8,16 @@ import { getLessonPhoneScenario, getPhoneLessonContract } from '@/data/phoneScen
 import { DETAILED_LESSONS } from '@/data/lessonsData';
 import { buildPhonePrompt, normalizePhoneTurns, validatePhoneReply } from '@/lib/phoneConversation';
 
+export const maxDuration = 30;
+
+interface PhoneAttemptDiagnostic {
+  provider: 'gemini' | 'groq';
+  model: string;
+  status?: number;
+  category: AiErrorCategory;
+  durationMs: number;
+}
+
 interface PhoneRequestBody {
   requestId?: string;
   messages?: unknown;
@@ -69,14 +79,24 @@ export async function POST(req: NextRequest) {
     const TOTAL_BUDGET_MS = 24000;
     let lastErrorCategory: AiErrorCategory = 'provider_unavailable';
     let lastRetryAfter: string | undefined = undefined;
+    const attempts: PhoneAttemptDiagnostic[] = [];
+
+    if (geminiKeys.length === 0) {
+      attempts.push({
+        provider: 'gemini',
+        model: 'none',
+        category: 'auth_config',
+        durationMs: 0,
+      });
+    }
 
     // Native system instructions and separate user/model turns; no history-as-instructions.
-    for (const key of geminiKeys) {
+    geminiLoop: for (const key of geminiKeys) {
       for (const model of geminiModels('phone')) {
         const elapsed = Date.now() - startTime;
         const remaining = TOTAL_BUDGET_MS - elapsed;
-        if (remaining < 2500) break;
-        const attemptTimeout = Math.min(remaining - 500, 10000);
+        if (remaining < 2500) break geminiLoop;
+        const attemptTimeout = Math.min(remaining - 500, 4500);
         const attemptStart = Date.now();
 
         try {
@@ -94,6 +114,14 @@ export async function POST(req: NextRequest) {
             lastErrorCategory = classifyHttpError(response.status);
             const retryAfter = response.headers.get('retry-after') || undefined;
             if (retryAfter) lastRetryAfter = retryAfter;
+            const durationMs = Date.now() - attemptStart;
+            attempts.push({
+              provider: 'gemini',
+              model,
+              status: response.status,
+              category: lastErrorCategory,
+              durationMs,
+            });
             console.warn(JSON.stringify({
               event: 'phone_ai_attempt_failed',
               requestId,
@@ -102,7 +130,7 @@ export async function POST(req: NextRequest) {
               status: response.status,
               category: lastErrorCategory,
               retryAfter,
-              durationMs: Date.now() - attemptStart,
+              durationMs,
             }));
             continue;
           }
@@ -116,14 +144,25 @@ export async function POST(req: NextRequest) {
           );
         } catch (attemptErr: any) {
           lastErrorCategory = attemptErr?.name === 'TimeoutError' || attemptErr?.name === 'AbortError' ? 'provider_timeout' : 'provider_unavailable';
+          const durationMs = Date.now() - attemptStart;
+          attempts.push({
+            provider: 'gemini',
+            model,
+            category: lastErrorCategory,
+            durationMs,
+          });
           console.warn(JSON.stringify({
             event: 'phone_ai_attempt_exception',
             requestId,
             provider: 'gemini',
             model,
             category: lastErrorCategory,
-            durationMs: Date.now() - attemptStart,
+            durationMs,
           }));
+          // If Gemini timed out, skip retrying remaining Gemini keys to switch to Groq fallback within budget
+          if (lastErrorCategory === 'provider_timeout') {
+            break geminiLoop;
+          }
         }
       }
     }
@@ -133,7 +172,7 @@ export async function POST(req: NextRequest) {
         const elapsed = Date.now() - startTime;
         const remaining = TOTAL_BUDGET_MS - elapsed;
         if (remaining < 2500) break;
-        const attemptTimeout = Math.min(remaining - 500, 10000);
+        const attemptTimeout = Math.min(remaining - 500, 4500);
         const attemptStart = Date.now();
 
         try {
@@ -151,6 +190,14 @@ export async function POST(req: NextRequest) {
             lastErrorCategory = classifyHttpError(response.status);
             const retryAfter = response.headers.get('retry-after') || undefined;
             if (retryAfter) lastRetryAfter = retryAfter;
+            const durationMs = Date.now() - attemptStart;
+            attempts.push({
+              provider: 'groq',
+              model,
+              status: response.status,
+              category: lastErrorCategory,
+              durationMs,
+            });
             console.warn(JSON.stringify({
               event: 'phone_ai_attempt_failed',
               requestId,
@@ -159,7 +206,7 @@ export async function POST(req: NextRequest) {
               status: response.status,
               category: lastErrorCategory,
               retryAfter,
-              durationMs: Date.now() - attemptStart,
+              durationMs,
             }));
             continue;
           }
@@ -173,16 +220,30 @@ export async function POST(req: NextRequest) {
           );
         } catch (attemptErr: any) {
           lastErrorCategory = attemptErr?.name === 'TimeoutError' || attemptErr?.name === 'AbortError' ? 'provider_timeout' : 'provider_unavailable';
+          const durationMs = Date.now() - attemptStart;
+          attempts.push({
+            provider: 'groq',
+            model,
+            category: lastErrorCategory,
+            durationMs,
+          });
           console.warn(JSON.stringify({
             event: 'phone_ai_attempt_exception',
             requestId,
             provider: 'groq',
             model,
             category: lastErrorCategory,
-            durationMs: Date.now() - attemptStart,
+            durationMs,
           }));
         }
       }
+    } else {
+      attempts.push({
+        provider: 'groq',
+        model: 'none',
+        category: 'auth_config',
+        durationMs: 0,
+      });
     }
 
     const errorObj = new AiRequestError(
@@ -190,7 +251,8 @@ export async function POST(req: NextRequest) {
       503,
       lastErrorCategory,
       requestId,
-      true
+      true,
+      { attempts }
     );
     const errRes = aiErrorResponse(errorObj, requestId);
     if (lastRetryAfter) {

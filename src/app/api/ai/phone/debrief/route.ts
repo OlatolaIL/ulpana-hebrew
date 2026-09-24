@@ -10,7 +10,9 @@ import { detectHebrewGrammarErrors, detectHebrewWordOrderErrors } from '@/lib/he
 import { getPhoneLessonContract } from '@/data/phoneScenarios';
 import { DETAILED_LESSONS } from '@/data/lessonsData';
 import { normalizePhoneTurns, phoneGrammarBoundary } from '@/lib/phoneConversation';
-import { validatePhoneGoalEvidence } from '@/lib/phoneGoalEvidence';
+import { validatePhoneGoalEvidence, isInformationRetrievalGoal, GoalEvidence } from '@/lib/phoneGoalEvidence';
+
+export const maxDuration = 30;
 
 interface PhoneDebriefRequestBody {
   lessonNumber: number;
@@ -38,9 +40,30 @@ function sanitizeBetterAlternative(alt: unknown): string | undefined {
   return trimmed;
 }
 
+function sanitizeDebriefTextForUnmetRetrievalGoals(
+  text: string,
+  unmetRetrievalGoals: string[],
+): string {
+  if (!unmetRetrievalGoals.length || !text) return text;
+  let cleaned = text;
+
+  // Patterns that falsely claim an information retrieval goal was met / found out / completed
+  cleaned = cleaned.replace(/(?:,\s*)?(?:и\s+)?успешно\s+справились\s+с\s+задачей\s+узнать[^!?]*?[!.]/giu, '!');
+  cleaned = cleaned.replace(/(?:,\s*)?(?:и\s+)?успешно\s+узнали[^!?]*?[!.]/giu, '!');
+  cleaned = cleaned.replace(/(?:,\s*)?задача\s+по\s+[^.,!?;:]*?выполнена\s+на\s+ура[!.]?/giu, '.');
+  cleaned = cleaned.replace(/(?:,\s*)?задача\s+узнать\s+[^.,!?;:]*?выполнена[!.]?/giu, '.');
+  cleaned = cleaned.replace(/(?:,\s*)?(?:вам\s+)?удалось\s+узнать[^!?]*?[!.]/giu, '!');
+  cleaned = cleaned.replace(/(?:,\s*)?(?:вы\s+)?выяснили[^!?]*?[!.]/giu, '!');
+
+  cleaned = cleaned.replace(/\s{2,}/g, ' ').replace(/\s+([.,!?])/g, '$1').trim();
+  return cleaned;
+}
+
 function normalizeReport(
   parsed: PhoneDebriefReport,
   userTurns: Array<{ hebrew: string }>,
+  contractGoals: string[] = [],
+  goalChecks: GoalEvidence[] = [],
 ): PhoneDebriefReport {
   const validScore = (score: unknown): score is number => typeof score === 'number' && Number.isFinite(score) && score >= 0 && score <= 100;
   if (!parsed || typeof parsed.isSuccess !== 'boolean' || !validScore(parsed.overallScore) || !validScore(parsed.grammarScore) ||
@@ -50,13 +73,17 @@ function normalizeReport(
   const key = (value: string) => (value || '').replace(/[\u0591-\u05C7.,!?;:"]/g, '').replace(/\s+/g, ' ').trim();
   const rawReviews = Array.isArray(parsed.turnReviews) ? parsed.turnReviews : [];
 
+  const unmetRetrievalGoals = goalChecks
+    .filter(g => !g.met && isInformationRetrievalGoal(contractGoals[g.goalIndex] || ''))
+    .map(g => contractGoals[g.goalIndex] || '');
+
   const turnReviews: PhoneDebriefTurnReview[] = userTurns.map((turn, index) => {
     const review = rawReviews[index];
     if (!review || typeof review !== 'object' || key(review.userHebrew) !== key(turn.hebrew)) throw new Error('Missing turn review');
     if (!['perfect', 'good', 'needs_improvement'].includes(review.assessment) ||
         typeof review.commentRu !== 'string' || !review.commentRu.trim()) throw new Error('Incomplete turn assessment');
     const assessment = review.assessment;
-    const commentRu = review.commentRu.trim();
+    let commentRu = review.commentRu.trim();
 
     const errors = [...detectHebrewGrammarErrors(turn.hebrew), ...detectHebrewWordOrderErrors(turn.hebrew)];
     const errorMap = new Map<string, PhoneDebriefGrammarError>();
@@ -73,10 +100,19 @@ function normalizeReport(
     }
     const grammarErrors = [...errorMap.values()];
     totalDetectedErrors += grammarErrors.length;
+
+    let sanitizedComment = sanitizeRussianTranslation(commentRu);
+    if (unmetRetrievalGoals.length > 0) {
+      sanitizedComment = sanitizeDebriefTextForUnmetRetrievalGoals(sanitizedComment, unmetRetrievalGoals);
+      if (sanitizedComment.length < 10) {
+        sanitizedComment = 'Вопрос понятен и сформулирован верно, однако ответ собеседника ещё не получен.';
+      }
+    }
+
     return {
       userHebrew: turn.hebrew,
       assessment: grammarErrors.length && assessment === 'perfect' ? 'good' : assessment,
-      commentRu: sanitizeRussianTranslation(commentRu),
+      commentRu: sanitizedComment,
       grammarErrors,
       betterAlternative: sanitizeBetterAlternative(review.betterAlternative),
     };
@@ -84,11 +120,20 @@ function normalizeReport(
   // Local checks can lower a supported grade, but cannot invent or inflate one.
   const grammarScore = Math.round(Math.min(parsed.grammarScore, Math.max(0, 100 - totalDetectedErrors * 12)));
   const overallScore = Math.round(totalDetectedErrors ? Math.min(parsed.overallScore, (parsed.overallScore * 2 + grammarScore) / 3) : parsed.overallScore);
+
+  let summaryRu = sanitizeRussianTranslation(parsed.summaryRu);
+  if (unmetRetrievalGoals.length > 0) {
+    summaryRu = sanitizeDebriefTextForUnmetRetrievalGoals(summaryRu, unmetRetrievalGoals);
+    if (summaryRu.length < 10) {
+      summaryRu = 'Вы начали разговор и задали вопрос, но звонок завершился до получения ответа.';
+    }
+  }
+
   return {
     overallScore,
     grammarScore,
     isSuccess: parsed.isSuccess && overallScore >= 70,
-    summaryRu: sanitizeRussianTranslation(parsed.summaryRu),
+    summaryRu,
     turnReviews,
     spokenTip: typeof parsed.spokenTip === 'string' ? sanitizeRussianTranslation(parsed.spokenTip) : undefined,
     recommendedWords: Array.isArray(parsed.recommendedWords) ? parsed.recommendedWords.filter(w => w && typeof w.hebrew === 'string' && typeof w.translation === 'string' && typeof w.transcription === 'string').slice(0, 5) : undefined,
@@ -165,8 +210,8 @@ export async function POST(req: NextRequest) {
       .join('\n');
 
     const normalize = (parsed: PhoneDebriefReport) => {
-      const goalChecks = validatePhoneGoalEvidence(parsed.goalChecks, contract.goals.length, transcript);
-      const report = normalizeReport(parsed, userTurns);
+      const goalChecks = validatePhoneGoalEvidence(parsed.goalChecks, contract.goals, transcript);
+      const report = normalizeReport(parsed, userTurns, contract.goals, goalChecks);
       return { ...report, goalChecks, isSuccess: report.isSuccess && goalChecks.every(g => g.met) };
     };
 
@@ -192,9 +237,20 @@ export async function POST(req: NextRequest) {
 Не засчитывай несогласованную встречу, неподтверждённый заказ или сведения, которые произнёс только персонаж.
 Ошибки роли собеседника и сбои распознавания не выдавай за ошибки ученика.
 Проверь каждую цель в goalChecks: goalIndex (номер от 0), met (boolean) и evidence (массив role/quote с точными цитатами).
-role принимает ТОЛЬКО "user" (ученик) или "assistant" (собеседник), не русские названия ролей и не имя. Формат доказательства: {"role":"user","quote":"точный фрагмент реплики ученика"}. Не исправляй цитату; она должна дословно присутствовать в стенограмме. Для недостигнутой цели допустим пустой evidence.
-Для met=true нужна как минимум одна подтверждающая реплика ученика. Для договорённости нужны предложение и явное согласие сторон.
-Если цель не достигнута, met=false. isSuccess=true допустим ТОЛЬКО при выполнении всех целей.
+role принимает ТОЛЬКО "user" (ученик) или "assistant" (собеседник), не русские названия ролей и не имя. Формат доказательства: {"role":"user","quote":"точный фрагмент реплики"}. Не исправляй цитату; она должна дословно присутствовать в стенограмме. Для недостигнутой цели допустим пустой evidence: [].
+
+ПРАВИЛА ОЦЕНКИ ЦЕЛЕЙ (goalChecks):
+1. ЦЕЛИ НА ПОЛУЧЕНИЕ ИНФОРМАЦИИ («Узнать...», «Выяснить...», «Получить информацию/ответ...»):
+   ТРЕБУЮТ РЕАЛЬНО ПОЛУЧЕННЫХ СВЕДЕНИЙ ОТ СОБЕСЕДНИКА.
+   Если ученик только задал вопрос, но собеседник НЕ ответил (или звонок оборвался до ответа) — цель СТРОГО met=false!
+   Вопрос ученика доказывает лишь ПОПЫТКУ, а не получение информации.
+   Для met=true по таким целям ОБЯЗАТЕЛЬНЫ доказательства как от ученика ("user", вопрос), так и от собеседника ("assistant", содержательный ответ с нужными фактами).
+   В summaryRu и turnReviews КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО утверждать, что ученик «узнал» информацию, если ответ собеседника не был получен!
+2. ЦЕЛИ НА РЕЧЕВОЕ ДЕЙСТВИЕ УЧЕНИКА («Спросить...», «Попросить...», «Уточнить...», «Предложить...», «Рассказать...», «Сообщить...»):
+   Считаются выполненными (met=true), если ученик понятно и грамматически корректно выполнил это действие в своей реплике (evidence содержит реплику ученика).
+3. ЦЕЛИ НА ДОГОВОРЁННОСТЬ («Договориться...», «Согласовать...»):
+   Требуют предложения одной стороны и явного согласия другой.
+4. Если цель не достигнута, met=false. isSuccess=true допустим ТОЛЬКО при выполнении всех целей.
 
 ПРАВИЛА ОЦЕНКИ И РАЗБОРА:
 1. "overallScore": от 0 до 100 баллов (общий балл телефонного разговора и решения коммуникативной задачи).

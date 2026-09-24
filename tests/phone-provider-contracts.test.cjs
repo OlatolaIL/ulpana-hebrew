@@ -41,8 +41,10 @@ function isolatedRoute(t) {
   rates.checkRateLimit = () => ({ allowed: true, remaining: 1000, resetInSeconds: 0 });
   const calls = [];
   let responder = () => answer();
+  let fetchOverride = null;
   // Never forward to the original fetch: these tests cannot reach a real provider.
   globalThis.fetch = async (url, options) => {
+    if (fetchOverride) return fetchOverride(url, options);
     const host = new URL(String(url)).hostname;
     assert.ok(['generativelanguage.googleapis.com', 'api.groq.com'].includes(host), 'Unexpected outbound host');
     const provider = host === 'api.groq.com' ? 'groq' : 'gemini';
@@ -57,6 +59,7 @@ function isolatedRoute(t) {
   return {
     calls,
     respond(handler) { responder = handler; },
+    overrideFetch(handler) { fetchOverride = handler; },
     keys(...providers) {
       delete process.env.GEMINI_PRIMARY_API_KEY;
       delete process.env.GROQ_API_KEY;
@@ -165,3 +168,88 @@ test('both provider paths reject questions at the final turn and accept a questi
     assert.equal(Object.hasOwn(value, 'taskAchieved'), false);
   }
 });
+
+test('Gemini timeout immediately triggers Groq fallback and delivers response within budget', async (t) => {
+  const env = isolatedRoute(t);
+  env.keys('gemini', 'groq');
+  env.overrideFetch(async (url) => {
+    const host = new URL(String(url)).hostname;
+    if (host === 'generativelanguage.googleapis.com') {
+      const err = new Error('The operation was aborted');
+      err.name = 'AbortError';
+      throw err;
+    }
+    if (host === 'api.groq.com') {
+      const payload = JSON.stringify(answer('בסדר גמור, אני מבין.'));
+      return new Response(JSON.stringify({ choices: [{ message: { content: payload } }] }), { status: 200 });
+    }
+    throw new Error('Unexpected host');
+  });
+
+  const response = await env.request({ lessonNumber: 7, messages: [{ role: 'user', content: 'שלום' }] });
+  assert.equal(response.status, 200);
+  const data = await response.json();
+  assert.equal(data.hebrew, 'בסדר גמור, אני מבין.');
+  assert.ok(data.engine.includes('Groq'));
+});
+
+test('both providers failing returns 503 with safe sanitized diagnostic attempts and zero leaked secrets', async (t) => {
+  const env = isolatedRoute(t);
+  env.keys('gemini', 'groq');
+  env.overrideFetch(async (url) => {
+    const host = new URL(String(url)).hostname;
+    if (host === 'generativelanguage.googleapis.com') {
+      return new Response(JSON.stringify({ error: 'Service Unavailable' }), { status: 503 });
+    }
+    if (host === 'api.groq.com') {
+      return new Response(JSON.stringify({ error: 'Upstream Rate Limit' }), { status: 429 });
+    }
+    throw new Error('Unexpected host');
+  });
+
+  const response = await env.request({ lessonNumber: 7, messages: [{ role: 'user', content: 'שלום' }] });
+  assert.equal(response.status, 503);
+  const data = await response.json();
+  assert.equal(data.code, 'provider_rate_limit');
+  assert.equal(data.retryable, true);
+  assert.ok(data.details && Array.isArray(data.details.attempts));
+  assert.equal(data.details.attempts.length, 3);
+
+  const [geminiAttempt, groqPrimaryAttempt, groqFallbackAttempt] = data.details.attempts;
+  assert.equal(geminiAttempt.provider, 'gemini');
+  assert.equal(geminiAttempt.status, 503);
+  assert.equal(geminiAttempt.category, 'provider_unavailable');
+  assert.equal(typeof geminiAttempt.durationMs, 'number');
+
+  assert.equal(groqPrimaryAttempt.provider, 'groq');
+  assert.equal(groqPrimaryAttempt.status, 429);
+  assert.equal(groqPrimaryAttempt.category, 'provider_rate_limit');
+  assert.equal(typeof groqPrimaryAttempt.durationMs, 'number');
+
+  assert.equal(groqFallbackAttempt.provider, 'groq');
+  assert.equal(groqFallbackAttempt.model, 'openai/gpt-oss-20b');
+  assert.equal(groqFallbackAttempt.status, 429);
+  assert.equal(groqFallbackAttempt.category, 'provider_rate_limit');
+  assert.equal(typeof groqFallbackAttempt.durationMs, 'number');
+
+  // Verify zero secrets leaked in error response body
+  const bodyText = JSON.stringify(data);
+  assert.ok(!bodyText.includes('key'));
+  assert.ok(!bodyText.includes('synthetic'));
+  assert.ok(!bodyText.includes('Bearer'));
+  assert.ok(!bodyText.includes('authorization'));
+});
+
+test('no configured keys returns 503 with auth_config diagnostics in attempts', async (t) => {
+  const env = isolatedRoute(t);
+  env.keys();
+  const response = await env.request({ lessonNumber: 7, messages: [{ role: 'user', content: 'שלום' }] });
+  assert.equal(response.status, 503);
+  const data = await response.json();
+  assert.ok(data.details && Array.isArray(data.details.attempts));
+  assert.deepEqual(data.details.attempts.map(a => ({ provider: a.provider, category: a.category })), [
+    { provider: 'gemini', category: 'auth_config' },
+    { provider: 'groq', category: 'auth_config' },
+  ]);
+});
+

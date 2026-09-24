@@ -195,3 +195,165 @@ test('betterAlternative sanitization rejects Latin characters or alternatives la
   assert.equal(body.turnReviews[2].betterAlternative, 'רֶגַע, אֲנִי כְּבָר בָּא! (Секунду, я уже иду!)');
 });
 
+test('Lesson 78 regression: unanswered information retrieval goal "узнать" cannot be met=true on student question alone', async (t) => {
+  const env = isolatedDebrief(t);
+  const lesson78Transcript = [
+    { role: 'assistant', hebrew: 'שָׁלוֹם, זוֹ רוּת. יֵשׁ לָנוּ פַּח כָּתוֹם וּפַח כָּחוֹל בֶּחָצֵר.' },
+    { role: 'user', hebrew: 'שלום רות, אני חדשה בבניין, יש לי עיתונים ישנים, לאיזה פח זורקים נייר?' },
+  ];
+  // Model hallucinates met=true for goal 1 citing only student question, with false praise in summary and turnReview:
+  const modelReport = {
+    overallScore: 95,
+    grammarScore: 95,
+    isSuccess: false,
+    summaryRu: 'Вы отлично начали разговор с соседкой и успешно справились с задачей узнать, куда выбросить бумагу! Для полного выполнения задания осталось уточнить назначение оранжевого бака и подтвердить план сортировки.',
+    goalChecks: [
+      { goalIndex: 0, met: false, evidence: [] },
+      {
+        goalIndex: 1,
+        met: true,
+        evidence: [{ role: 'user', quote: 'שלום רות, אני חדשה בבניין, יש לי עיתונים ישנים, לאיזה פח זורקים נייר?' }],
+      },
+      { goalIndex: 2, met: false, evidence: [] },
+    ],
+    turnReviews: [
+      {
+        userHebrew: 'שלום רות, אני חדשה בבניין, יש לי עיתונים ישנים, לאיזה פח זורקים נייר?',
+        assessment: 'perfect',
+        commentRu: 'Прекрасный, вежливый и абсолютно естественный вопрос. Отлично подобраны слова, задача по поиску места для бумаги выполнена на ура!',
+        grammarErrors: [],
+        betterAlternative: 'שָׁלוֹם רוּת, אֲנִי חֲדָשָׁה בַּבִּנְיָן. לְאָן זוֹרְקִים נְיָיר? (Привет, Рут, я новенькая в здании. Куда выбрасывают бумагу?)',
+      },
+    ],
+    spokenTip: 'В Израиле соседи часто общаются очень просто и по-дружески.',
+    recommendedWords: [
+      { hebrew: 'פַּח כָּתוֹם', transcription: 'пах катóм', translation: 'оранжевый бак' },
+    ],
+  };
+
+  env.result(modelReport);
+  const response = await env.request({
+    lessonNumber: 78,
+    userGender: 'female',
+    transcript: lesson78Transcript,
+  });
+
+  assert.equal(response.status, 200);
+  const data = await response.json();
+  // 1. Goal 1 ("Узнать, куда отнести бумагу") must be met: false because no assistant answer was received
+  assert.equal(data.goalChecks[1].met, false, 'Goal 1 (узнать) must not be marked met without assistant answer');
+  assert.equal(data.isSuccess, false);
+
+  // 2. summaryRu must NOT claim that the student learned or completed finding the paper location
+  assert.ok(!data.summaryRu.includes('успешно справились с задачей узнать'), 'summaryRu must not claim goal was met');
+  assert.ok(!data.summaryRu.includes('узнали, куда выбросить бумагу'));
+
+  // 3. turnReview must praise the student question positively without falsely claiming goal completion
+  assert.ok(data.turnReviews[0].commentRu.includes('Прекрасный, вежливый и абсолютно естественный вопрос'), 'Positive question feedback preserved');
+  assert.ok(!data.turnReviews[0].commentRu.includes('задача по поиску места для бумаги выполнена на ура'), 'False goal completion claim stripped from review');
+});
+
+test('Lesson 78 positive scenario: goal "узнать" is met=true when assistant actually answers and provides information', async (t) => {
+  const env = isolatedDebrief(t);
+  const lesson78PositiveTranscript = [
+    { role: 'assistant', hebrew: 'שָׁלוֹם, זוֹ רוּת. יֵשׁ לָנוּ פַּח כָּתוֹם וּפַח כָּחוֹל בֶּחָצֵר.' },
+    { role: 'user', hebrew: 'שלום רות, לאיזה פח זורקים נייר?' },
+    { role: 'assistant', hebrew: 'נְיָיר זוֹרְקִים לַפַּח הַכָּחוֹל.' },
+    { role: 'user', hebrew: 'תודה, עכשיו הכל ברור.' },
+  ];
+  const modelReport = {
+    overallScore: 95,
+    grammarScore: 95,
+    isSuccess: false,
+    summaryRu: 'Вы выяснили, куда выбрасывать бумагу.',
+    goalChecks: [
+      { goalIndex: 0, met: false, evidence: [] },
+      {
+        goalIndex: 1,
+        met: true,
+        evidence: [
+          { role: 'user', quote: 'לאיזה פח זורקים נייר?' },
+          { role: 'assistant', quote: 'נְיָיר זוֹרְקִים לַפַּח הַכָּחוֹל.' },
+        ],
+      },
+      { goalIndex: 2, met: false, evidence: [] },
+    ],
+    turnReviews: [
+      {
+        userHebrew: 'שלום רות, לאיזה פח זורקים נייר?',
+        assessment: 'perfect',
+        commentRu: 'Точный вопрос по делу.',
+        grammarErrors: [],
+      },
+      {
+        userHebrew: 'תודה, עכשיו הכל ברור.',
+        assessment: 'perfect',
+        commentRu: 'Вежливое подтверждение.',
+        grammarErrors: [],
+      },
+    ],
+    spokenTip: 'Короткий ответ — стандарт.',
+    recommendedWords: [
+      { hebrew: 'פַּח כָּחוֹל', transcription: 'пах кахóль', translation: 'синий бак' },
+    ],
+  };
+
+  env.result(modelReport);
+  const response = await env.request({
+    lessonNumber: 78,
+    userGender: 'female',
+    transcript: lesson78PositiveTranscript,
+  });
+
+  assert.equal(response.status, 200);
+  const data = await response.json();
+  assert.equal(data.goalChecks[1].met, true, 'Goal 1 met when assistant answers with facts');
+  assert.equal(data.goalChecks[1].evidence.length, 2);
+});
+
+test('Student action goal ("уточнить/спросить") is met with user utterance evidence alone without assistant quote', async (t) => {
+  const env = isolatedDebrief(t);
+  const contract = getPhoneLessonContract(78);
+  assert.ok(contract.goals[0].startsWith('Уточнить'));
+
+  const transcriptAction = [
+    { role: 'assistant', hebrew: 'שָׁלוֹם, זוֹ רוּת.' },
+    { role: 'user', hebrew: 'מָה זוֹרְקִים לַפַּח הַכָּתוֹם?' },
+  ];
+  const modelReport = {
+    overallScore: 90,
+    grammarScore: 95,
+    isSuccess: false,
+    summaryRu: 'Вы уточнили назначение оранжевого бака.',
+    goalChecks: [
+      {
+        goalIndex: 0,
+        met: true,
+        evidence: [{ role: 'user', quote: 'מָה זוֹרְקִים לַפַּח הַכָּתוֹם?' }],
+      },
+      { goalIndex: 1, met: false, evidence: [] },
+      { goalIndex: 2, met: false, evidence: [] },
+    ],
+    turnReviews: [
+      {
+        userHebrew: 'מָה זוֹרְקִים לַפַּח הַכָּתוֹם?',
+        assessment: 'perfect',
+        commentRu: 'Отличный вопрос о назначении бака.',
+        grammarErrors: [],
+      },
+    ],
+  };
+
+  env.result(modelReport);
+  const response = await env.request({
+    lessonNumber: 78,
+    userGender: 'male',
+    transcript: transcriptAction,
+  });
+
+  assert.equal(response.status, 200);
+  const data = await response.json();
+  assert.equal(data.goalChecks[0].met, true, 'Action goal (уточнить) is met by user asking the question');
+});
+
+
