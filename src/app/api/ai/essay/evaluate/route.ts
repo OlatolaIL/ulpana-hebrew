@@ -68,7 +68,8 @@ const VALID_PROPER_NAMES_AND_PARTICLES = new Set([
  */
 function detectHebrewSpellingErrors(
   userEssay: string,
-  suggestedWords: { hebrew: string; translation?: string }[] = []
+  suggestedWords: { hebrew: string; translation?: string }[] = [],
+  lessonId: number = 1
 ): SpellingCheckItem[] {
   const clean = stripNikkud(userEssay);
   const rawWords = clean.split(/[\s,.;:!?«»"()־-]+/).filter(Boolean);
@@ -125,12 +126,31 @@ function detectHebrewSpellingErrors(
     }
   }
 
-  // 2. Целевые слова текущего урока
-  const cleanTargets = suggestedWords.map((sw) => ({
-    original: sw.hebrew,
-    clean: stripNikkud(sw.hebrew).trim(),
-    translation: sw.translation || '',
-  })).filter((sw) => sw.clean.length >= 2);
+  // 2. Целевые слова текущего урока + накопительный словарь курса (R-07)
+  const cleanTargets: { original: string; clean: string; translation: string }[] = suggestedWords
+    .map((sw) => ({
+      original: sw.hebrew,
+      clean: stripNikkud(sw.hebrew).trim(),
+      translation: sw.translation || '',
+    }))
+    .filter((sw) => sw.clean.length >= 2);
+
+  const maxLesson = Math.max(10, lessonId);
+  for (let id = 1; id <= maxLesson; id++) {
+    const l = getLessonById(id);
+    if (l?.vocabulary) {
+      for (const v of l.vocabulary) {
+        const cleanV = stripNikkud(v.hebrew).trim();
+        if (cleanV.length >= 2 && !cleanTargets.some((t) => t.clean === cleanV)) {
+          cleanTargets.push({
+            original: v.hebrew,
+            clean: cleanV,
+            translation: v.translation || '',
+          });
+        }
+      }
+    }
+  }
 
   for (const userWord of rawWords) {
     if (reportedWords.has(userWord)) continue;
@@ -176,6 +196,8 @@ function detectHebrewSpellingErrors(
           reason = `В слове «${target.original}» пишется буква «ש» (син/шин), а не «ס».`;
         } else if (userWord.includes('כ') && target.clean.includes('ק')) {
           reason = `В слове «${target.original}» пишется буква «ק», а не «כ».`;
+        } else if (userWord.endsWith('א') && target.clean.endsWith('ה')) {
+          reason = `В слове «${target.original}» на конце пишется буква «ה», а не «א».`;
         }
 
         items.push({
@@ -200,6 +222,11 @@ function detectHebrewSpellingErrors(
     if (userWord.includes('ק')) subCandidates.push({ cand: userWord.replace(/ק/g, 'כ'), letterRule: '«כ», а не «ק»' });
     if (userWord.includes('א')) subCandidates.push({ cand: userWord.replace(/א/g, 'ע'), letterRule: '«ע» (аин), а не «א» (алеф)' });
     if (userWord.includes('ע')) subCandidates.push({ cand: userWord.replace(/ע/g, 'א'), letterRule: '«א» (алеф), а не «ע» (аин)' });
+    if (userWord.endsWith('א')) subCandidates.push({ cand: userWord.slice(0, -1) + 'ה', letterRule: '«ה» на конце слова, а не «א»' });
+    if (userWord.endsWith('ה')) subCandidates.push({ cand: userWord.slice(0, -1) + 'א', letterRule: '«א» на конце слова, а не «ה»' });
+    if (userWord.includes('ח')) subCandidates.push({ cand: userWord.replace(/ח/g, 'כ'), letterRule: '«כ» / «ך», а не «ח»' });
+    if (userWord.includes('ב')) subCandidates.push({ cand: userWord.replace(/ב/g, 'ו'), letterRule: '«ו», а не «ב»' });
+    if (userWord.includes('ו')) subCandidates.push({ cand: userWord.replace(/ו/g, 'ב'), letterRule: '«ב», а не «ו»' });
 
     for (const { cand, letterRule } of subCandidates) {
       const match = lookupOfflineWord(cand);
@@ -269,7 +296,7 @@ function evaluateHeuristicEssay(
 
   const detectedWordOrder = detectHebrewWordOrderErrors(userEssay);
   const detectedGrammar = detectHebrewGrammarErrors(userEssay);
-  const detectedSpelling = detectHebrewSpellingErrors(userEssay, prompt.suggestedWords);
+  const detectedSpelling = detectHebrewSpellingErrors(userEssay, prompt.suggestedWords, lessonId);
 
   const wordOrderItems: WordOrderCheckItem[] = detectedWordOrder.map((e) => ({
     ruleNameRu: 'Порядок слов в словосочетании',
@@ -426,7 +453,7 @@ export async function POST(req: NextRequest) {
     // 2. Локальная эвристическая предварительная детекция (safety net)
     const detectedWordOrder = detectHebrewWordOrderErrors(trimmedEssay);
     const detectedGrammar = detectHebrewGrammarErrors(trimmedEssay);
-    const detectedSpelling = detectHebrewSpellingErrors(trimmedEssay, essayPrompt.suggestedWords);
+    const detectedSpelling = detectHebrewSpellingErrors(trimmedEssay, essayPrompt.suggestedWords, lessonId);
 
     // 3. Вызов нейросети (Groq / Gemini) с полным резервным ключом
     const { groqKey, geminiKey, geminiKeys } = resolveAiKeys(provider, apiKey);
