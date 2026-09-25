@@ -51,6 +51,9 @@ public/demo/lessons/
 public/demo/frames/
 *.mp3
 !public/audio/**
+public/audio/sentences/comparison_38_lite/
+public/audio/sentences/male_voice_cast/
+public/audio/sentences/test_38_lite/
 
 # scrapers and indexes
 src/data/pealimCatalogIndex.json

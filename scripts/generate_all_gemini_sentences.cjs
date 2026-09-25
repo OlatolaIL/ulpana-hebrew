@@ -1,9 +1,11 @@
 /**
  * scripts/generate_all_gemini_sentences.cjs
  *
- * Генерация студийного нейросетевого аудио для всего пакета из 2 688 предложений курса:
- * - 2 123 женских предложений -> Gemini 3.8 Flash-Lite TTS (голос: Aoede)
- * - 565 мужских предложений -> Gemini 3.8 Flash-Lite TTS (голос: Orus)
+ * Трехмодельный каскадный генератор студийного нейросетевого аудио для курса «Ульпан Алеф» (2 688 предложений):
+ * 1. gemini-3.8-flash-lite-tts (100 фраз/сутки)
+ * 2. gemini-3.8-flash-tts      (100 фраз/сутки)
+ * 3. gemini-3.1-flash-tts-preview (100 фраз/сутки)
+ * Суммарная пропускная способность: 300 предложений в сутки на одних и тех же голосах курса (Orus ♂ / Aoede ♀).
  *
  * Инварианты:
  * - R-13: Только проверенные факты и логи, без домыслов.
@@ -11,8 +13,7 @@
  * - R-17: Строгое разделение мужского (Orus) и женского (Aoede) голосов.
  * - R-18: Огласованный כתיב מלא из канонических TSV-манифестов.
  * - R-24: Монолитные студийные MP3 44.1kHz через ffmpeg без склеек слогов.
- * - Кэш и идемпотентность: Файлы со статусом 'verified_gemini_3.8' или 'verified_gemini_3.5' пропускаются.
- * - Квота-контроль: При лимите 429 RESOURCE_EXHAUSTED сохраняет прогресс и завершает батч.
+ * - Кэш и идемпотентность: Файлы со статусом 'verified_gemini_3.8', 'verified_gemini_3.1' или 'verified_gemini_3.5' пропускаются.
  */
 
 const fs = require('fs');
@@ -62,7 +63,6 @@ function parseTsv(filePath, gender, voiceName) {
   const lines = content.split(/\r?\n/).filter((l) => l.trim().length > 0);
   const items = [];
 
-  // Header: Index, FileName, SentenceHebrew, Transcription, Russian
   for (let i = 1; i < lines.length; i++) {
     const parts = lines[i].split('\t');
     if (parts.length >= 3) {
@@ -97,11 +97,11 @@ function loadCatalog(options = {}) {
   if (options.isMaleOnly) allItems = allItems.filter((i) => i.gender === 'male');
   if (options.isFemaleOnly) allItems = allItems.filter((i) => i.gender === 'female');
 
-  // Проверка на уже сгенерированные
   for (const item of allItems) {
     const filePath = path.join(SENTENCES_DIR, item.fileName);
     const hasMetadata =
       metadata[item.fileName]?.status === 'verified_gemini_3.8' ||
+      metadata[item.fileName]?.status === 'verified_gemini_3.1' ||
       metadata[item.fileName]?.status === 'verified_gemini_3.5';
     const hasFile = fs.existsSync(filePath) && fs.statSync(filePath).size > 1000;
     item.isAlreadyGenerated = !options.isForce && hasMetadata && hasFile;
@@ -112,91 +112,128 @@ function loadCatalog(options = {}) {
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-async function synthesizeWithGemini(text, destPath, apiKey, voiceName, maxRetries = 3) {
-  const MODEL_NAME = 'gemini-3.8-flash-lite-tts';
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_NAME}:generateContent?key=${apiKey}`;
-  const payload = {
-    contents: [{ parts: [{ text }] }],
-    generationConfig: {
-      responseModalities: ['AUDIO'],
-      speechConfig: {
-        voiceConfig: {
-          prebuiltVoiceConfig: { voiceName }
+const TTS_MODELS = [
+  { id: 'gemini-3.8-flash-lite-tts', family: 'gemini-3.8', status: 'verified_gemini_3.8' },
+  { id: 'gemini-3.8-flash-tts', family: 'gemini-3.8', status: 'verified_gemini_3.8' },
+  { id: 'gemini-3.1-flash-tts-preview', family: 'gemini-3.1', status: 'verified_gemini_3.1' }
+];
+
+let activeModelIdx = 0;
+
+async function synthesizeWithGemini(text, destPath, apiKey, voiceName, maxRetries = 5) {
+  while (activeModelIdx < TTS_MODELS.length) {
+    const currentModel = TTS_MODELS[activeModelIdx];
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${currentModel.id}:generateContent?key=${apiKey}`;
+    const payload = {
+      contents: [{ parts: [{ text }] }],
+      generationConfig: {
+        responseModalities: ['AUDIO'],
+        speechConfig: {
+          voiceConfig: {
+            prebuiltVoiceConfig: { voiceName }
+          }
         }
+      }
+    };
+
+    let attemptSuccess = false;
+    let bytesWritten = 0;
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+
+        if (res.status === 429 || data.error?.code === 429) {
+          const errMsg = data.error?.message || '';
+          const isDailyExhausted = /per_model_per_day|Please retry in/i.test(errMsg);
+
+          if (isDailyExhausted) {
+            console.warn(`🛑 Модель [${currentModel.id}] исчерпала суточный лимит: ${errMsg}`);
+            activeModelIdx++;
+            if (activeModelIdx < TTS_MODELS.length) {
+              console.warn(`🔄 Автопереключение на каскадную модель: [${TTS_MODELS[activeModelIdx].id}]...`);
+              break; // Пробуем следующую модель в каскаде
+            } else {
+              const quotaErr = new Error(`Все модели Gemini TTS в пуле исчерпали суточный лимит (300 фраз).`);
+              quotaErr.isAllModelsExhausted = true;
+              throw quotaErr;
+            }
+          }
+
+          if (attempt === maxRetries) {
+            const quotaErr = new Error(`Gemini API 429 Rate Limit (10 RPM): ${errMsg || 'RESOURCE_EXHAUSTED'}`);
+            quotaErr.isRateLimit = true;
+            throw quotaErr;
+          }
+          console.warn(`⏳ [Rate Limit 429] Окно 10 RPM модели [${currentModel.id}] заполнено. Ожидание 20с (${attempt}/${maxRetries})...`);
+          await sleep(20000);
+          continue;
+        }
+
+        if (data.error) {
+          const err = new Error(`Gemini API Error: ${data.error.message || JSON.stringify(data.error)}`);
+          throw err;
+        }
+
+        const candidate = data.candidates?.[0];
+        const part = candidate?.content?.parts?.[0];
+        const audioData = part?.inlineData?.data;
+
+        if (!audioData) {
+          throw new Error(`No audio data received in response: ${JSON.stringify(data)}`);
+        }
+
+        const audioBuffer = Buffer.from(audioData, 'base64');
+        const mimeType = part?.inlineData?.mimeType || '';
+        const isRawPcm = /l16|pcm|raw/i.test(mimeType) || currentModel.family === 'gemini-3.1';
+        const tempExt = isRawPcm ? 'pcm' : 'wav';
+        const tempFile = path.join(SENTENCES_DIR, `temp_${Date.now()}_${Math.random().toString(36).slice(2)}.${tempExt}`);
+        fs.writeFileSync(tempFile, audioBuffer);
+
+        // Конвертация сырого PCM (24kHz s16le) или WAV в студийный MP3 44.1kHz (R-24)
+        const ffmpegArgs = isRawPcm
+          ? ['-y', '-f', 's16le', '-ar', '24000', '-ac', '1', '-i', tempFile, '-ar', '44100', '-b:a', '128k', destPath]
+          : ['-y', '-i', tempFile, '-ar', '44100', '-b:a', '128k', destPath];
+
+        cp.execFileSync(ffmpegPath, ffmpegArgs, { stdio: 'ignore' });
+
+        if (fs.existsSync(tempFile)) fs.unlinkSync(tempFile);
+        bytesWritten = fs.statSync(destPath).size;
+        attemptSuccess = true;
+        break;
+      } catch (err) {
+        if (err.isAllModelsExhausted) throw err;
+        if (attempt === maxRetries) throw err;
+        console.warn(`⚠️ Ошибка запроса (${attempt}/${maxRetries}): ${err.message}. Повтор через 5с...`);
+        await sleep(5000);
       }
     }
-  };
 
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    try {
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      const data = await res.json();
-
-      if (res.status === 429 || data.error?.code === 429) {
-        const errMsg = data.error?.message || '';
-        const isDailyQuota = /quota|exhausted/i.test(errMsg);
-        if (attempt === maxRetries && isDailyQuota) {
-          const quotaErr = new Error(`Gemini API Quota Exhausted: ${errMsg || 'RESOURCE_EXHAUSTED'}`);
-          quotaErr.isQuotaExhausted = true;
-          throw quotaErr;
-        }
-        console.warn(`⏳ [Rate Limit 429] Ожидание 12с перед повтором (${attempt}/${maxRetries})...`);
-        await sleep(12000);
-        continue;
-      }
-
-      if (data.error) {
-        const err = new Error(`Gemini API Error: ${data.error.message || JSON.stringify(data.error)}`);
-        if (/quota|exhausted|429/i.test(err.message)) err.isQuotaExhausted = true;
-        throw err;
-      }
-
-      const candidate = data.candidates?.[0];
-      const part = candidate?.content?.parts?.[0];
-      const audioData = part?.inlineData?.data;
-
-      if (!audioData) {
-        throw new Error(`No audio data received in response: ${JSON.stringify(data)}`);
-      }
-
-      const wavBuffer = Buffer.from(audioData, 'base64');
-      const tempWav = path.join(SENTENCES_DIR, `temp_${Date.now()}_${Math.random().toString(36).slice(2)}.wav`);
-      fs.writeFileSync(tempWav, wavBuffer);
-
-      // Конвертация WAV в чистый студийный MP3 44.1kHz (R-24) без артефактов цифрового водяного знака SynthID
-      cp.execFileSync(ffmpegPath, [
-        '-y',
-        '-i', tempWav,
-        '-ar', '44100',
-        '-b:a', '128k',
-        destPath
-      ], { stdio: 'ignore' });
-
-      if (fs.existsSync(tempWav)) fs.unlinkSync(tempWav);
-      return fs.statSync(destPath).size;
-    } catch (err) {
-      if (err.isQuotaExhausted || attempt === maxRetries) throw err;
-      console.warn(`⚠️ Попытка ${attempt} не удалась: ${err.message}. Повтор через 3с...`);
-      await sleep(3000);
+    if (attemptSuccess) {
+      return { bytes: bytesWritten, model: currentModel };
     }
   }
+
+  const exhaustedErr = new Error('Все модели Gemini TTS (3.8-lite, 3.8-flash, 3.1) исчерпали свои суточные лимиты.');
+  exhaustedErr.isAllModelsExhausted = true;
+  throw exhaustedErr;
 }
 
 async function main() {
-  const isDryRun = process.argv.includes('--dry-run');
-  const isForce = process.argv.includes('--force');
-  const isMaleOnly = process.argv.includes('--male-only');
-  const isFemaleOnly = process.argv.includes('--female-only');
-  const isAll = process.argv.includes('--all');
-  const limitArg = process.argv.find((arg) => arg.startsWith('--limit='));
-  let limit = 100;
-  if (isAll) {
-    limit = Infinity;
-  } else if (limitArg) {
+  const args = process.argv.slice(2);
+  const isForce = args.includes('--force');
+  const isDryRun = args.includes('--dry-run');
+  const isMaleOnly = args.includes('--male-only');
+  const isFemaleOnly = args.includes('--female-only');
+
+  let limit = Infinity;
+  const limitArg = args.find((a) => a.startsWith('--limit='));
+  if (limitArg) {
     const val = limitArg.split('=')[1];
     limit = val === 'all' ? Infinity : parseInt(val, 10);
   }
@@ -208,7 +245,7 @@ async function main() {
   const pending = items.filter((i) => !i.isAlreadyGenerated);
 
   console.log('================================================================');
-  console.log('🎙️ ПАКЕТНАЯ ГЕНЕРАЦИЯ ВСЕХ 2 688 ПРЕДЛОЖЕНИЙ (GEMINI 3.8 FLASH-LITE TTS)');
+  console.log('🎙️ ТРЕХМОДЕЛЬНАЯ КАСКАДНАЯ ГЕНЕРАЦИЯ (GEMINI 3.8 / 3.8-LITE / 3.1 TTS)');
   console.log(`Всего предложений в каноническом пакете: ${items.length}`);
   console.log(`Уже сгенерировано и верифицировано: ${alreadyDone.length}`);
   console.log(`Осталось сгенерировать: ${pending.length}`);
@@ -219,7 +256,7 @@ async function main() {
   console.log('================================================================\n');
 
   if (pending.length === 0) {
-    console.log('🎉 ВСЕ ПРЕДЛОЖЕНИЯ ПОЛНОСТЬЮ СГЕНЕРИРОВАНЫ GEMINI 3.8! РАБОТА ЗАВЕРШЕНА.');
+    console.log('🎉 ВСЕ ПРЕДЛОЖЕНИЯ ПОЛНОСТЬЮ СГЕНЕРИРОВАНЫ! РАБОТА ЗАВЕРШЕНА.');
     return;
   }
 
@@ -247,7 +284,7 @@ async function main() {
     const progress = `[${String(i + 1).padStart(2, ' ')}/${batch.length}] (всего: ${alreadyDone.length + i + 1}/${items.length})`;
 
     try {
-      const bytes = await synthesizeWithGemini(item.sentenceHe, targetFile, apiKey, item.voiceName);
+      const { bytes, model } = await synthesizeWithGemini(item.sentenceHe, targetFile, apiKey, item.voiceName);
 
       // Обновляем манифест и реестр метаданных
       manifest[item.normKey] = item.fileName;
@@ -258,15 +295,15 @@ async function main() {
         sentenceTranscription: item.transcription,
         gender: item.gender,
         voice: item.voiceName,
-        engine: 'gemini-3.8-flash-lite-tts',
-        modelFamily: 'gemini-3.8',
-        status: 'verified_gemini_3.8',
+        engine: model.id,
+        modelFamily: model.family,
+        status: model.status,
         generatedAt: new Date().toISOString()
       };
 
       successCount++;
       const genderIcon = item.gender === 'female' ? '♀' : '♂';
-      console.log(`✓ ${progress} ${genderIcon} ${item.sentenceHe.padEnd(36)} -> ${item.fileName} (${bytes} байт)`);
+      console.log(`✓ ${progress} ${genderIcon} [${model.id}] ${item.sentenceHe.padEnd(36)} -> ${item.fileName} (${bytes} байт)`);
 
       // Периодическое сохранение каждые 10 записей
       if (successCount % 10 === 0) {
@@ -274,17 +311,22 @@ async function main() {
         fs.writeFileSync(METADATA_PATH, JSON.stringify(metadata, null, 2), 'utf8');
       }
 
-      // Пауза 1200мс между запросами для защиты от RPM лимита
-      await sleep(1200);
+      // Пауза 8500мс между запросами для строгого соблюдения лимита 10 RPM (~7 запросов в минуту)
+      await sleep(8500);
     } catch (err) {
       failCount++;
       console.error(`✗ ${progress} Ошибка на фразе "${item.sentenceHe}": ${err.message}`);
 
-      if (err.isQuotaExhausted || /quota|exhausted|429/i.test(err.message)) {
-        console.warn('\n🛑 Достигнут суточный лимит квоты Gemini API (RESOURCE_EXHAUSTED).');
-        console.warn('Сохраняем текущий прогресс и завершаем запуск до следующей попытки по расписанию.');
+      if (err.isAllModelsExhausted) {
+        console.warn('\n🛑 Достигнут суточный лимит ВСЕХ моделей Gemini TTS в пуле (300 фраз).');
+        console.warn('Сохраняем текущий прогресс. Следующий батч продолжит по расписанию.');
         quotaHit = true;
         break;
+      }
+
+      if (err.isRateLimit || /quota|exhausted|429/i.test(err.message)) {
+        console.warn('⚠️ [Rate Limit] Минутное окно временно заполнено. Пауза 30с перед следующим элементом...');
+        await sleep(30000);
       }
     }
   }
