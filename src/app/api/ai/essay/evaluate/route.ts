@@ -659,19 +659,130 @@ ${detectedGrammar.length > 0 ? `ПРЕДВАРИТЕЛЬНЫЙ ДЕТЕКТОР 
           !parsed.summaryRu.trim() || typeof parsed.taskCompliance?.isRelevant !== 'boolean') {
         throw new Error('Invalid essay assessment');
       }
-      const rawSpellingItems: SpellingCheckItem[] = Array.isArray(parsed.spellingFeedback?.items)
-        ? parsed.spellingFeedback.items
-        : [];
-      const wordOrderItems: WordOrderCheckItem[] = Array.isArray(parsed.wordOrderFeedback?.items)
-        ? parsed.wordOrderFeedback.items
-        : [];
-      const grammarItems: GrammarCheckItem[] = Array.isArray(parsed.grammarFeedback?.items)
-        ? parsed.grammarFeedback.items
+
+      // 1. Извлечение rawSpellingItems с поддержкой camelCase, snake_case и массивов
+      const rawSpelling: any =
+        parsed.spellingFeedback ||
+        parsed.spelling_feedback ||
+        parsed.spellingErrors ||
+        parsed.spelling_errors;
+
+      const rawSpellingArray: any[] = Array.isArray(rawSpelling)
+        ? rawSpelling
+        : Array.isArray(rawSpelling?.items)
+        ? rawSpelling.items
+        : Array.isArray(rawSpelling?.errors)
+        ? rawSpelling.errors
         : [];
 
-      // Синхронизация предварительно найденных орфографических ошибок
+      const rawSpellingItems: SpellingCheckItem[] = [];
+      for (const item of rawSpellingArray) {
+        if (!item || typeof item !== 'object') continue;
+        const wrongWord = String(
+          item.wrongWord || item.wrong_word || item.wrong || item.errorWord || item.error_word || item.error || item.word || item.original || item.originalWord || ''
+        ).trim();
+        const correctWord = String(
+          item.correctWord || item.correct_word || item.correct || item.correction || item.fixedWord || item.fixed_word || item.fixed || ''
+        ).trim();
+        const explanationRu = String(
+          item.explanationRu || item.explanation_ru || item.explanation || item.rule || item.comment || item.reason || ''
+        ).trim();
+
+        if (wrongWord && correctWord) {
+          // Если различие только в огласовках (никуде) - это не орфографическая ошибка
+          if (stripNikkud(wrongWord) === stripNikkud(correctWord)) {
+            continue;
+          }
+          rawSpellingItems.push({ wrongWord, correctWord, explanationRu });
+        }
+      }
+
+      // 2. Извлечение wordOrderItems (camelCase + snake_case)
+      const rawWordOrder: any =
+        parsed.wordOrderFeedback ||
+        parsed.word_order_feedback ||
+        parsed.wordOrderErrors ||
+        parsed.word_order_errors;
+
+      const rawWordOrderArray: any[] = Array.isArray(rawWordOrder)
+        ? rawWordOrder
+        : Array.isArray(rawWordOrder?.items)
+        ? rawWordOrder.items
+        : Array.isArray(rawWordOrder?.errors)
+        ? rawWordOrder.errors
+        : [];
+
+      const wordOrderItems: WordOrderCheckItem[] = [];
+      for (const item of rawWordOrderArray) {
+        if (!item || typeof item !== 'object') continue;
+        const ruleNameRu = String(item.ruleNameRu || item.rule_name_ru || item.rule || item.name || 'Порядок слов в словосочетании').trim();
+        const issueSnippet = String(item.issueSnippet || item.issue_snippet || item.wrong || item.wrongSnippet || item.wrong_snippet || '').trim();
+        const correctionSnippet = String(item.correctionSnippet || item.correction_snippet || item.correct || item.correctSnippet || item.correct_snippet || '').trim();
+        const explanationRu = String(item.explanationRu || item.explanation_ru || item.explanation || item.reason || '').trim();
+        if (issueSnippet || correctionSnippet) {
+          wordOrderItems.push({ ruleNameRu, issueSnippet, correctionSnippet, explanationRu });
+        }
+      }
+
+      // 3. Извлечение grammarItems (camelCase + snake_case)
+      const rawGrammar: any =
+        parsed.grammarFeedback ||
+        parsed.grammar_feedback ||
+        parsed.grammarErrors ||
+        parsed.grammar_errors;
+
+      const rawGrammarArray: any[] = Array.isArray(rawGrammar)
+        ? rawGrammar
+        : Array.isArray(rawGrammar?.items)
+        ? rawGrammar.items
+        : Array.isArray(rawGrammar?.errors)
+        ? rawGrammar.errors
+        : [];
+
+      const grammarItems: GrammarCheckItem[] = [];
+      for (const item of rawGrammarArray) {
+        if (!item || typeof item !== 'object') continue;
+        const type = (item.type || 'syntax') as any;
+        const wrongSnippet = String(item.wrongSnippet || item.wrong_snippet || item.wrong || item.issueSnippet || item.issue_snippet || '').trim();
+        const correctionSnippet = String(item.correctionSnippet || item.correction_snippet || item.correct || item.correctSnippet || item.correct_snippet || '').trim();
+        const explanationRu = String(item.explanationRu || item.explanation_ru || item.explanation || item.reason || '').trim();
+        if (wrongSnippet || correctionSnippet) {
+          grammarItems.push({ type, wrongSnippet, correctionSnippet, explanationRu });
+        }
+      }
+
+      // 4. Разбор эталонной версии от LLM и дифф-сверка
+      const rawCorrected = parsed.correctedVersion || parsed.corrected_version || parsed.correctVersion;
+      let initialCorrectedHebrew = (typeof rawCorrected?.hebrew === 'string' ? rawCorrected.hebrew : '').trim();
+
+      // Дифф-сверка между словами ученика и исправленным вариантом
+      if (initialCorrectedHebrew) {
+        const userWords = trimmedEssay.split(/[\s,.;:!?«»"()־-]+/).map(w => stripNikkud(w).trim()).filter(w => w.length >= 2);
+        const correctedWords = stripNikkud(initialCorrectedHebrew).split(/[\s,.;:!?«»"()־-]+/).map(w => w.trim()).filter(w => w.length >= 2);
+
+        for (const uWord of userWords) {
+          if (VALID_PROPER_NAMES_AND_PARTICLES.has(uWord)) continue;
+          if (lookupOfflineWord(uWord)) continue;
+          if (rawSpellingItems.some(it => stripNikkud(it.wrongWord) === uWord)) continue;
+
+          for (const cWord of correctedWords) {
+            if (cWord === uWord) continue;
+            const dist = levenshteinDistance(uWord, cWord);
+            if (dist >= 1 && dist <= 2) {
+              rawSpellingItems.push({
+                wrongWord: uWord,
+                correctWord: cWord,
+                explanationRu: `Слово пишется как «${cWord}». Обратите внимание на правильный состав букв.`,
+              });
+              break;
+            }
+          }
+        }
+      }
+
+      // 5. Синхронизация предварительно найденных орфографических ошибок
       for (const sp of detectedSpelling) {
-        if (!rawSpellingItems.some((it) => it.wrongWord === sp.wrongWord)) {
+        if (!rawSpellingItems.some((it) => stripNikkud(it.wrongWord) === stripNikkud(sp.wrongWord))) {
           rawSpellingItems.push(sp);
         }
       }
@@ -733,101 +844,111 @@ ${detectedGrammar.length > 0 ? `ПРЕДВАРИТЕЛЬНЫЙ ДЕТЕКТОР 
         ? parsed.vocabularyAnalysis.usedLessonWords
         : [];
 
+      // Устранение противоречий в рецензии (summaryRu):
+      let summaryRu = parsed.summaryRu || 'Ваше сочинение проверено преподавателем ульпана.';
+      if (!hasSpelling && !hasWordOrder && !hasGrammar) {
+        if (/ошибк|исправлен|неточност|замечан/i.test(summaryRu)) {
+          summaryRu = 'Отличное сочинение! Текст написан грамотно, все слова и грамматические формы использованы верно.';
+        }
+      } else if (hasSpelling && !/ошибк|орфограф|написан|букв|замечан/i.test(summaryRu)) {
+        summaryRu = `${summaryRu} Обратите внимание на замечания по написанию слов.`;
+      }
+
+      let finalCorrectedHebrew = initialCorrectedHebrew;
+      const cleanFinalCorrected = stripNikkud(finalCorrectedHebrew);
+      const cleanEssay = stripNikkud(trimmedEssay);
+
+      // 1. Если исправленный иврит отсутствует или полностью повторяет текст ученика с ошибками:
+      if (!finalCorrectedHebrew || (cleanFinalCorrected === cleanEssay && spellingItems.length > 0)) {
+        let fixed = trimmedEssay;
+        for (const sp of spellingItems) {
+          if (sp.wrongWord && sp.correctWord) {
+            const escaped = sp.wrongWord.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            fixed = fixed.replace(new RegExp(escaped, 'g'), stripNikkud(sp.correctWord));
+          }
+        }
+        finalCorrectedHebrew = fixed;
+      }
+
+      // 2. Гарантированно заменяем в finalCorrectedHebrew любые остаточные опечатки ученика
+      for (const sp of spellingItems) {
+        if (sp.wrongWord && sp.correctWord) {
+          const escaped = sp.wrongWord.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          finalCorrectedHebrew = finalCorrectedHebrew.replace(new RegExp(escaped, 'g'), sp.correctWord);
+        }
+      }
+
+      // 3. Обогащаем огласовками из словаря, если текст остался без никуда
+      if (finalCorrectedHebrew && !/[\u0591-\u05BD\u05BF\u05C1-\u05C2\u05C4-\u05C5\u05C7]/.test(finalCorrectedHebrew)) {
+        finalCorrectedHebrew = vocalizeTextFromDictionary(finalCorrectedHebrew, essayPrompt.suggestedWords);
+      }
+
+      // 4. Если исправленный текст все еще пуст, берем эталонное сочинение темы урока
+      if (!finalCorrectedHebrew && essayPrompt.sampleEssay?.hebrew) {
+        finalCorrectedHebrew = essayPrompt.sampleEssay.hebrew;
+      } else if (!finalCorrectedHebrew) {
+        finalCorrectedHebrew = trimmedEssay;
+      }
+
+      const correctedTranslation =
+        (typeof rawCorrected?.translation === 'string' && rawCorrected.translation.trim()) ||
+        essayPrompt.sampleEssay?.translation ||
+        'Эталонный вариант на иврите.';
+
+      let correctedTranscription =
+        (typeof rawCorrected?.transcription === 'string' && rawCorrected.transcription.trim()) ||
+        (essayPrompt.sampleEssay?.hebrew && stripNikkud(essayPrompt.sampleEssay.hebrew) === stripNikkud(finalCorrectedHebrew)
+          ? essayPrompt.sampleEssay.transcription
+          : '') ||
+        '';
+
+      correctedTranscription = ensureCyrillicHebrewTranscription(
+        correctedTranscription,
+        finalCorrectedHebrew
+      );
+
       return {
         score: finalScore,
         rating: finalRating,
-        summaryRu: parsed.summaryRu || 'Ваше сочинение проверено преподавателем ульпана.',
+        summaryRu,
         taskCompliance,
         spellingFeedback: {
           hasErrors: hasSpelling,
           items: spellingItems,
-          generalAdviceRu: parsed.spellingFeedback?.generalAdviceRu || (hasSpelling ? 'Обратите внимание на правильное написание слов и созвучные буквы.' : 'Орфографических ошибок не обнаружено!'),
+          generalAdviceRu: hasSpelling
+            ? (parsed.spellingFeedback?.generalAdviceRu || parsed.spelling_feedback?.general_advice_ru || 'Обратите внимание на правильное написание слов и созвучные буквы.')
+            : 'Орфографических ошибок не обнаружено!',
         },
         wordOrderFeedback: {
           hasErrors: hasWordOrder,
           items: wordOrderItems,
-          generalAdviceRu: parsed.wordOrderFeedback?.generalAdviceRu || (hasWordOrder ? 'В иврите признак следует после предмета, а отрицание «לא» перед глаголом.' : 'Порядок слов верный!'),
+          generalAdviceRu: hasWordOrder
+            ? (parsed.wordOrderFeedback?.generalAdviceRu || parsed.word_order_feedback?.general_advice_ru || 'В иврите признак следует после предмета, а отрицание «לא» перед глаголом.')
+            : 'Порядок слов верный!',
         },
         grammarFeedback: {
           items: grammarItems,
-          genderAgreementRu: parsed.grammarFeedback?.genderAgreementRu,
+          genderAgreementRu: parsed.grammarFeedback?.genderAgreementRu || parsed.grammar_feedback?.gender_agreement_ru,
         },
         vocabularyAnalysis: {
           usedLessonWords: usedWordsList,
           count: typeof parsed.vocabularyAnalysis?.count === 'number' ? parsed.vocabularyAnalysis.count : usedWordsList.length,
-          commentRu: parsed.vocabularyAnalysis?.commentRu || 'Используйте больше изученной лексики.',
+          commentRu: parsed.vocabularyAnalysis?.commentRu || parsed.vocabulary_analysis?.comment_ru || 'Используйте больше изученной лексики.',
         },
-        correctedVersion: (() => {
-          const rawCorrected = parsed.correctedVersion || parsed.corrected_version || parsed.correctVersion;
-
-          let correctedHebrew = (typeof rawCorrected?.hebrew === 'string' ? rawCorrected.hebrew : '').trim();
-          const cleanCorrected = stripNikkud(correctedHebrew);
-          const cleanEssay = stripNikkud(trimmedEssay);
-
-          // 1. Если исправленный иврит отсутствует или полностью повторяет текст ученика с ошибками:
-          if (!correctedHebrew || (cleanCorrected === cleanEssay && spellingItems.length > 0)) {
-            let fixed = trimmedEssay;
-            for (const sp of spellingItems) {
-              if (sp.wrongWord && sp.correctWord) {
-                const escaped = sp.wrongWord.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-                fixed = fixed.replace(new RegExp(escaped, 'g'), stripNikkud(sp.correctWord));
-              }
-            }
-            correctedHebrew = fixed;
-          }
-
-          // 2. Гарантированно заменяем в correctedHebrew любые остаточные опечатки ученика
-          for (const sp of spellingItems) {
-            if (sp.wrongWord && sp.correctWord) {
-              const escaped = sp.wrongWord.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-              correctedHebrew = correctedHebrew.replace(new RegExp(escaped, 'g'), sp.correctWord);
-            }
-          }
-
-          // 3. Обогащаем огласовками из словаря, если текст остался без никуда
-          if (correctedHebrew && !/[\u0591-\u05BD\u05BF\u05C1-\u05C2\u05C4-\u05C5\u05C7]/.test(correctedHebrew)) {
-            correctedHebrew = vocalizeTextFromDictionary(correctedHebrew, essayPrompt.suggestedWords);
-          }
-
-          // 4. Если исправленный текст все еще пуст, берем эталонное сочинение темы урока
-          if (!correctedHebrew && essayPrompt.sampleEssay?.hebrew) {
-            correctedHebrew = essayPrompt.sampleEssay.hebrew;
-          } else if (!correctedHebrew) {
-            correctedHebrew = trimmedEssay;
-          }
-
-          // Перевод: берем перевод модели или эталон темы урока
-          const correctedTranslation =
-            (typeof rawCorrected?.translation === 'string' && rawCorrected.translation.trim()) ||
-            essayPrompt.sampleEssay?.translation ||
-            'Эталонный вариант на иврите.';
-
-          // Транскрипция: модель -> эталон темы урока -> чистая генерация из огласованного текста
-          let correctedTranscription =
-            (typeof rawCorrected?.transcription === 'string' && rawCorrected.transcription.trim()) ||
-            (essayPrompt.sampleEssay?.hebrew && stripNikkud(essayPrompt.sampleEssay.hebrew) === stripNikkud(correctedHebrew)
-              ? essayPrompt.sampleEssay.transcription
-              : '') ||
-            '';
-
-          correctedTranscription = ensureCyrillicHebrewTranscription(
-            correctedTranscription,
-            correctedHebrew
-          );
-
-          return {
-            hebrew: correctedHebrew,
-            transcription: correctedTranscription,
-            translation: correctedTranslation,
-          };
-        })(),
+        correctedVersion: {
+          hebrew: finalCorrectedHebrew,
+          transcription: correctedTranscription,
+          translation: correctedTranslation,
+        },
         valuableTipsRu: Array.isArray(parsed.valuableTipsRu) && parsed.valuableTipsRu.length > 0
           ? parsed.valuableTipsRu
-          : [
-              'В иврите прилагательное всегда ставится после существительного (ספר טוב).',
-              'Отрицание «לא» всегда ставится строго перед глаголом (לא רוצה).',
-              'Конечные буквы-софиты (ם, ן, ץ, ף, ך) пишутся только на конце слов.',
-            ],
+          : (Array.isArray(parsed.valuable_tips_ru) && parsed.valuable_tips_ru.length > 0
+              ? parsed.valuable_tips_ru
+              : [
+                  'В иврите прилагательное всегда ставится после существительного (ספר טוב).',
+                  'Отрицание «לא» всегда ставится строго перед глаголом (לא רוצה).',
+                  'Конечные буквы-софиты (ם, ן, ץ, ף, ך) пишутся только на конце слов.',
+                ]),
       };
     };
 
