@@ -10617,5 +10617,29 @@
     "modelFamily": "gemini-3.8",
     "status": "verified_gemini_3.8",
     "generatedAt": "2026-09-25T12:36:22.900Z"
+  },
+  "s_d0683cd050f1.mp3": {
+    "id": "tsv_female_746",
+    "sentenceHe": "הַנְּסִיעָה הָיְתָה נְעִימָה.",
+    "sentenceRu": "Поездка была приятной.",
+    "sentenceTranscription": "hа-нэсиá hайта нэимá.",
+    "gender": "female",
+    "voice": "Aoede",
+    "engine": "gemini-3.8-flash-lite-tts",
+    "modelFamily": "gemini-3.8",
+    "status": "verified_gemini_3.8",
+    "generatedAt": "2026-09-25T13:35:48.000Z"
+  },
+  "s_a1f71d1fb6dc.mp3": {
+    "id": "tsv_female_747",
+    "sentenceHe": "הַנּוֹסֵעַ יָשַׁב בָּאוֹטוֹבּוּס.",
+    "sentenceRu": "Пассажир сидел в автобусе.",
+    "sentenceTranscription": "hа-носэ́а яшáв ба-отобýс.",
+    "gender": "female",
+    "voice": "Aoede",
+    "engine": "gemini-3.1-flash-tts-preview",
+    "modelFamily": "gemini-3.1",
+    "status": "verified_gemini_3.1",
+    "generatedAt": "2026-09-25T13:36:02.097Z"
   }
 }

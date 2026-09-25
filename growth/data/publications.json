@@ -33,11 +33,11 @@
     "targetDeepLink": "/lesson/69",
     "promoCode": "TG",
     "fullUrlWithPromo": "https://ulpana-hebrew.vercel.app/lesson/69?promo=TG",
-    "livePostUrl": "",
-    "status": "draft",
-    "notes": "Telegram (57.2с): плашка с кодом TG, инлайн-кнопка под постом",
+    "livePostUrl": "https://t.me/ulpana_il/14",
+    "status": "published",
+    "notes": "Telegram: виральный ролик Урока 69 с кодом TG и кнопкой перехода",
     "createdAt": "2026-09-25T12:35:00.000Z",
-    "updatedAt": "2026-09-25T12:45:00.000Z"
+    "updatedAt": "2026-09-25T14:38:00.000Z"
   },
   {
     "id": "pub-reels-l69",
