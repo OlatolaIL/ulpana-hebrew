@@ -111,6 +111,7 @@ export const LessonEssay: React.FC<LessonEssayProps> = ({
   const [isAutoHebrew, setIsAutoHebrew] = useState<boolean>(true);
   const [showVirtualKeyboard, setShowVirtualKeyboard] = useState<boolean>(false);
   const [isMobileDevice, setIsMobileDevice] = useState<boolean>(false);
+  const [useNativeMobileKeyboard, setUseNativeMobileKeyboard] = useState<boolean>(false);
   const [showCheatSheet, setShowCheatSheet] = useState<boolean>(false);
 
   // Определение мобильного устройства (по ширине экрана или сигнатуре смартфона)
@@ -503,11 +504,21 @@ export const LessonEssay: React.FC<LessonEssayProps> = ({
               Ваш текст на иврите
             </span>
 
-            {/* На смартфонах бейдж "Экранная клавиатура (без подсказок)" */}
+            {/* На смартфонах переключатель "Экранная клавиатура / Системная" */}
             {isMobileDevice ? (
-              <span className="text-[10px] px-2 py-0.5 rounded-md bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 font-bold border border-blue-200 dark:border-blue-800">
-                Экранная клавиатура (без подсказок)
-              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  const next = !useNativeMobileKeyboard;
+                  setUseNativeMobileKeyboard(next);
+                  setShowVirtualKeyboard(!next);
+                }}
+                className="px-2.5 py-1 rounded-lg text-[11px] font-bold flex items-center gap-1.5 transition cursor-pointer bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800"
+                title="Переключить между экранными клавишами сайта и системной клавиатурой смартфона"
+              >
+                <Keyboard className="w-3.5 h-3.5" />
+                <span>{useNativeMobileKeyboard ? 'Клавиатура: Системная' : 'Клавиатура: Экранная'}</span>
+              </button>
             ) : (
               <>
                 {/* Переключатель авто-раскладки для ПК */}
@@ -568,7 +579,7 @@ export const LessonEssay: React.FC<LessonEssayProps> = ({
           </div>
         </div>
 
-        {/* Текстовое поле: на ПК и смартфонах с четко видимым синим курсором и навигацией */}
+        {/* Текстовое поле: на ПК и смартфонах без автоисправлений/подчёркиваний браузера */}
         <textarea
           ref={textareaRef}
           dir="rtl"
@@ -578,11 +589,17 @@ export const LessonEssay: React.FC<LessonEssayProps> = ({
             setErrorMessage(null);
           }}
           onKeyDown={handleKeyDown}
-          inputMode={isMobileDevice ? 'none' : undefined}
+          inputMode={isMobileDevice ? (useNativeMobileKeyboard ? 'text' : 'none') : undefined}
+          spellCheck={false}
+          autoCorrect="off"
+          autoCapitalize="off"
+          autoComplete="off"
+          data-gramm="false"
+          data-enable-grammarly="false"
           placeholder={
-            isMobileDevice
+            isMobileDevice && !useNativeMobileKeyboard
               ? 'Нажимайте буквы на экранных клавишах внизу, чтобы составить сочинение...'
-              : 'Печатайте текст сочинения на иврите с клавиатуры компьютера...'
+              : 'Печатайте текст сочинения на иврите...'
           }
           rows={5}
           disabled={loading}

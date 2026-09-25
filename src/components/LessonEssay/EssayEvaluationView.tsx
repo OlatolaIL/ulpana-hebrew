@@ -66,7 +66,10 @@ export const EssayEvaluationView: React.FC<EssayEvaluationViewProps> = ({
       : 'דּוֹרֵשׁ שִׁפּוּר';
 
   const spelling = evaluation.spellingFeedback;
-  const hasSpellingErrors = Boolean(spelling?.hasErrors && spelling.items && spelling.items.length > 0);
+  const spellingItems = (spelling?.items || []).filter(
+    (item) => Boolean(item && (item.wrongWord?.trim() || item.correctWord?.trim()))
+  );
+  const hasSpellingErrors = spellingItems.length > 0;
 
   const compliance = evaluation.taskCompliance;
 
@@ -168,9 +171,9 @@ export const EssayEvaluationView: React.FC<EssayEvaluationViewProps> = ({
           </div>
         </div>
 
-        {hasSpellingErrors && spelling?.items ? (
+        {hasSpellingErrors ? (
           <div className="space-y-2.5">
-            {spelling.items.map((item, idx) => (
+            {spellingItems.map((item, idx) => (
               <div
                 key={idx}
                 className="p-3 rounded-xl bg-rose-50/60 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800/60 space-y-1.5 text-xs sm:text-sm"
@@ -184,9 +187,11 @@ export const EssayEvaluationView: React.FC<EssayEvaluationViewProps> = ({
                     {item.correctWord}
                   </span>
                 </div>
-                <p className="text-zinc-800 dark:text-zinc-200 font-medium leading-snug">
-                  {item.explanationRu}
-                </p>
+                {item.explanationRu && (
+                  <p className="text-zinc-800 dark:text-zinc-200 font-medium leading-snug">
+                    {item.explanationRu}
+                  </p>
+                )}
               </div>
             ))}
           </div>
@@ -197,7 +202,7 @@ export const EssayEvaluationView: React.FC<EssayEvaluationViewProps> = ({
           </div>
         )}
 
-        {spelling?.generalAdviceRu && (
+        {hasSpellingErrors && spelling?.generalAdviceRu && (
           <p className="text-xs text-zinc-500 dark:text-zinc-400 italic pt-1 border-t border-zinc-100 dark:border-zinc-800">
             {spelling.generalAdviceRu}
           </p>
