@@ -99,11 +99,8 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ publications: [] });
     }
 
-    // Seed from JSON file on first access
-    const countRes = await db.query('SELECT COUNT(*) AS cnt FROM ulpana_publications');
-    if (parseInt(countRes.rows[0].cnt) === 0) {
-      await seedFromFile(db);
-    }
+    // Sync any missing publications from JSON file into database (idempotent ON CONFLICT DO NOTHING)
+    await seedFromFile(db);
 
     const result = await db.query(
       'SELECT * FROM ulpana_publications ORDER BY created_at DESC'
