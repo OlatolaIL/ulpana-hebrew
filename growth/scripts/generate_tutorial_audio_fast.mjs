@@ -19,7 +19,8 @@ async function convertMp3ToWav(mp3Path, wavPath, speed = 1.0, pitchFactor = 1.0)
     const sampleRate = 44100;
     const newRate = Math.round(sampleRate * pitchFactor);
     const tempoCorrection = (1 / pitchFactor).toFixed(4);
-    filters.push(`asetrate=${newRate}`, `aresample=${sampleRate}`, `atempo=${tempoCorrection}`);
+    // КРИТИЧЕСКИ ВАЖНО (R-25): Сначала aresample к 44100, иначе asetrate разгоняет 24000 Гц в 1.93 раза!
+    filters.push(`aresample=${sampleRate}`, `asetrate=${newRate}`, `atempo=${tempoCorrection}`, `aresample=${sampleRate}`);
   }
   if (speed !== 1.0) {
     filters.push(`atempo=${speed}`);

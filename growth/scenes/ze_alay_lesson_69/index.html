@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=390, height=844, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Не тупи в кафе: זֶה עָלַי — Ульпан Алеф (Урок 69)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700;800;900&family=Montserrat:wght@700;800;900&family=Heebo:wght@500;700;900&display=swap" rel="stylesheet">
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body {
+      width: 390px;
+      height: 844px;
+      overflow: hidden;
+      background: #090d16;
+      font-family: 'Rubik', sans-serif;
+      color: #fff;
+      position: relative;
+    }
+
+    #phone-container {
+      width: 390px;
+      height: 844px;
+      position: relative;
+      overflow: hidden;
+      background: #0d1527;
+    }
+
+    /* Верхние титры в стиле TikTok / Reels */
+    .reels-subtitles {
+      position: absolute;
+      top: 24px;
+      left: 14px;
+      right: 14px;
+      z-index: 1000;
+      text-align: center;
+      pointer-events: none;
+    }
+
+    .sub-badge {
+      display: inline-block;
+      font-family: 'Montserrat', sans-serif;
+      font-size: 19px;
+      font-weight: 900;
+      text-transform: uppercase;
+      padding: 9px 18px;
+      border-radius: 14px;
+      background: rgba(10, 15, 30, 0.94);
+      border: 2px solid #38bdf8;
+      color: #fff;
+      text-shadow: 0 2px 8px rgba(0,0,0,0.8);
+      box-shadow: 0 10px 25px rgba(0,0,0,0.6), 0 0 25px rgba(56, 189, 248, 0.4);
+      transform: scale(0.95);
+      transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    /* ========================================================
+       R-25: СТРОГО absolute inset 0, visibility hidden
+       ======================================================== */
+    .scene {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0;
+      pointer-events: none;
+      visibility: hidden;
+      transition: opacity 0.35s ease, transform 0.35s ease, visibility 0.35s;
+      transform: scale(0.98);
+      overflow: hidden;
+    }
+
+    .scene.active {
+      opacity: 1;
+      pointer-events: auto;
+      visibility: visible;
+      transform: scale(1);
+    }
+
+    /* ========================================================
+       СЦЕНА 1: КАФЕ В ТЕЛЬ-АВИВЕ (Введение)
+       ======================================================== */
+    #scene-intro {
+      background: radial-gradient(circle at 50% 30%, #1e293b 0%, #090d16 100%);
+      display: flex;
+      flex-direction: column;
+      padding: 85px 18px 24px;
+      gap: 16px;
+    }
+
+    .cafe-card {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 24px;
+      padding: 20px;
+      backdrop-filter: blur(16px);
+      box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .cafe-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .cafe-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #0284c7;
+      color: #e0f2fe;
+      font-size: 13px;
+      font-weight: 700;
+      padding: 4px 12px;
+      border-radius: 20px;
+    }
+
+    .cafe-bill {
+      font-size: 26px;
+      font-weight: 900;
+      color: #38bdf8;
+    }
+
+    .order-items {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      background: rgba(0, 0, 0, 0.3);
+      padding: 12px 14px;
+      border-radius: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .order-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 15px;
+      color: #cbd5e1;
+    }
+
+    .order-row.bold {
+      font-weight: 700;
+      color: #fff;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      padding-top: 6px;
+      margin-top: 2px;
+    }
+
+    /* Баббл израильского друга */
+    .friend-box {
+      margin-top: 10px;
+      background: linear-gradient(135deg, rgba(30, 58, 138, 0.8) 0%, rgba(15, 23, 42, 0.9) 100%);
+      border: 2px solid #38bdf8;
+      border-radius: 20px;
+      padding: 18px 20px;
+      box-shadow: 0 15px 30px rgba(2, 132, 199, 0.25);
+      animation: pulseGlow 2.5s infinite alternate;
+    }
+
+    .friend-profile {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+
+    .friend-avatar {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: #0284c7;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      border: 2px solid #fff;
+    }
+
+    .friend-name {
+      font-size: 16px;
+      font-weight: 800;
+      color: #fff;
+    }
+
+    .friend-role {
+      font-size: 12px;
+      color: #93c5fd;
+    }
+
+    .friend-bubble {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 14px;
+      padding: 14px;
+      text-align: right;
+      direction: rtl;
+    }
+
+    .hebrew-big {
+      font-family: 'Heebo', sans-serif;
+      font-size: 32px;
+      font-weight: 900;
+      color: #facc15;
+      text-shadow: 0 0 15px rgba(250, 204, 21, 0.5);
+      line-height: 1.2;
+    }
+
+    .transcription-small {
+      direction: ltr;
+      text-align: left;
+      font-size: 14px;
+      font-weight: 600;
+      color: #94a3b8;
+      margin-top: 4px;
+    }
+
+    /* ========================================================
+       СЦЕНА 2: ВНУТРЕННИЙ СТУПОР (Паника репатрианта)
+       ======================================================== */
+    #scene-panic {
+      background: radial-gradient(circle at 50% 40%, #450a0a 0%, #180505 100%);
+      display: flex;
+      flex-direction: column;
+      padding: 85px 18px 24px;
+      gap: 16px;
+    }
+
+    .panic-card {
+      background: rgba(239, 68, 68, 0.1);
+      border: 2px dashed rgba(239, 68, 68, 0.5);
+      border-radius: 24px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      animation: shake 0.6s infinite;
+    }
+
+    @keyframes shake {
+      0% { transform: translate(1px, 1px) rotate(0deg); }
+      20% { transform: translate(-2px, -1px) rotate(-0.5deg); }
+      40% { transform: translate(-1px, 2px) rotate(0.5deg); }
+      60% { transform: translate(2px, 1px) rotate(0deg); }
+      80% { transform: translate(1px, -1px) rotate(0.5deg); }
+      100% { transform: translate(1px, 1px) rotate(0deg); }
+    }
+
+    .literal-breakdown {
+      background: rgba(0, 0, 0, 0.4);
+      border-radius: 16px;
+      padding: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-around;
+      text-align: center;
+    }
+
+    .breakdown-part {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .part-hebrew {
+      font-family: 'Heebo', sans-serif;
+      font-size: 28px;
+      font-weight: 800;
+      color: #f87171;
+    }
+
+    .part-ru {
+      font-size: 13px;
+      color: #fca5a5;
+      font-weight: 600;
+    }
+
+    .math-sign {
+      font-size: 24px;
+      font-weight: 900;
+      color: #94a3b8;
+    }
+
+    .stain-alert {
+      background: rgba(0,0,0,0.6);
+      border-radius: 18px;
+      padding: 18px;
+      border: 1px solid rgba(239, 68, 68, 0.4);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      text-align: center;
+    }
+
+    .stain-icon {
+      font-size: 48px;
+    }
+
+    .stain-text {
+      font-size: 20px;
+      font-weight: 900;
+      color: #fecaca;
+    }
+
+    .pulse-meter {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(239, 68, 68, 0.2);
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 800;
+      color: #ef4444;
+      margin-top: 4px;
+    }
+
+    /* ========================================================
+       СЦЕНА 3: УЛЬПАН АЛЕФ (Решение и Урок 69)
+       ======================================================== */
+    #scene-solution {
+      background: #060913;
+      display: flex;
+      flex-direction: column;
+      padding: 70px 14px 20px;
+      gap: 12px;
+    }
+
+    /* Шапка тренажера */
+    .app-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 16px;
+      padding: 10px 14px;
+    }
+
+    .app-logo-badge {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .logo-cube {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, #0284c7 0%, #38bdf8 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 900;
+      font-size: 16px;
+      color: #fff;
+    }
+
+    .app-title {
+      font-size: 14px;
+      font-weight: 800;
+      color: #fff;
+    }
+
+    .lesson-badge {
+      background: #0284c7;
+      color: #fff;
+      font-size: 11px;
+      font-weight: 800;
+      padding: 4px 10px;
+      border-radius: 12px;
+    }
+
+    /* Разбор идиомы */
+    .idiom-card {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      border-radius: 18px;
+      padding: 12px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .idiom-hebrew {
+      font-family: 'Heebo', sans-serif;
+      font-size: 26px;
+      font-weight: 900;
+      color: #38bdf8;
+      text-align: right;
+      direction: rtl;
+    }
+
+    .idiom-meaning {
+      font-size: 16px;
+      font-weight: 800;
+      color: #22c55e;
+    }
+
+    .idiom-literal {
+      font-size: 12px;
+      color: #94a3b8;
+    }
+
+    /* Симулятор звонка (Этап 6) */
+    .phone-simulator {
+      background: #0c1427;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 20px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+    }
+
+    .phone-status-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 8px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .caller-id {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 700;
+      color: #e2e8f0;
+    }
+
+    .call-timer {
+      font-size: 12px;
+      color: #22c55e;
+      font-weight: 800;
+    }
+
+    .dialogue-thread {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .bubble-nadav {
+      background: rgba(30, 41, 59, 0.9);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 14px 14px 14px 2px;
+      padding: 10px 12px;
+      align-self: flex-start;
+      max-width: 85%;
+    }
+
+    .bubble-nadav .text-he {
+      font-family: 'Heebo', sans-serif;
+      font-size: 17px;
+      font-weight: 800;
+      color: #f1f5f9;
+      direction: rtl;
+      text-align: right;
+    }
+
+    .bubble-student {
+      background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+      border-radius: 14px 14px 2px 14px;
+      padding: 10px 12px;
+      align-self: flex-end;
+      max-width: 85%;
+      box-shadow: 0 4px 15px rgba(2, 132, 199, 0.3);
+      opacity: 0;
+      transform: translateY(8px);
+      transition: all 0.3s ease;
+    }
+
+    .bubble-student.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .bubble-student .text-he {
+      font-family: 'Heebo', sans-serif;
+      font-size: 18px;
+      font-weight: 900;
+      color: #fff;
+      direction: rtl;
+      text-align: right;
+    }
+
+    .bubble-student .text-ru {
+      font-size: 11px;
+      color: #bae6fd;
+      margin-top: 2px;
+    }
+
+    /* Кнопка микрофона и тач-палец */
+    .mic-control-area {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      position: relative;
+      margin-top: 4px;
+    }
+
+    .mic-button {
+      width: 58px;
+      height: 58px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #38bdf8 0%, #0284c7 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 26px;
+      box-shadow: 0 0 25px rgba(56, 189, 248, 0.6);
+      cursor: pointer;
+      position: relative;
+    }
+
+    .wave-ripple {
+      position: absolute;
+      inset: -8px;
+      border-radius: 50%;
+      border: 2px solid rgba(56, 189, 248, 0.5);
+      animation: rippleAnim 1.4s infinite;
+      opacity: 0;
+    }
+
+    .mic-button.recording .wave-ripple {
+      opacity: 1;
+    }
+
+    @keyframes rippleAnim {
+      0% { transform: scale(0.9); opacity: 0.8; }
+      100% { transform: scale(1.4); opacity: 0; }
+    }
+
+    /* Анимированный виртуальный палец */
+    .touch-cursor {
+      position: absolute;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.85);
+      border: 2px solid #38bdf8;
+      box-shadow: 0 0 20px #38bdf8;
+      top: 50%;
+      left: 50%;
+      transform: translate(60px, 60px);
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      z-index: 50;
+    }
+
+    .touch-cursor.click {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(0.9);
+    }
+
+    /* Бейдж успеха ИИ */
+    .ai-score-badge {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      background: rgba(34, 197, 94, 0.15);
+      border: 1px solid #22c55e;
+      border-radius: 12px;
+      padding: 8px 12px;
+      font-size: 13px;
+      font-weight: 800;
+      color: #4ade80;
+      opacity: 0;
+      transform: scale(0.9);
+      transition: all 0.3s ease;
+    }
+
+    .ai-score-badge.show {
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    /* ========================================================
+       СЦЕНА 4: АУТРО (Оффер и 30 дней)
+       ======================================================== */
+    #scene-outro {
+      background: radial-gradient(circle at 50% 25%, #1e3a8a 0%, #060913 100%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 70px 20px 40px;
+      gap: 20px;
+      text-align: center;
+    }
+
+    .outro-logo-glow {
+      width: 86px;
+      height: 86px;
+      border-radius: 26px;
+      background: linear-gradient(135deg, #0284c7 0%, #38bdf8 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 48px;
+      box-shadow: 0 0 50px rgba(56, 189, 248, 0.7);
+      margin-bottom: 4px;
+    }
+
+    .outro-title {
+      font-size: 28px;
+      font-weight: 900;
+      color: #fff;
+      line-height: 1.2;
+    }
+
+    .free-trial-banner {
+      background: rgba(250, 204, 21, 0.15);
+      border: 2px solid #facc15;
+      color: #fef08a;
+      border-radius: 18px;
+      padding: 12px 20px;
+      font-size: 20px;
+      font-weight: 900;
+      text-transform: uppercase;
+      box-shadow: 0 0 30px rgba(250, 204, 21, 0.35);
+      animation: pulseGlow 1.8s infinite alternate;
+    }
+
+    .features-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      text-align: left;
+      width: 100%;
+      background: rgba(255, 255, 255, 0.05);
+      padding: 16px;
+      border-radius: 18px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .feat-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 14px;
+      font-weight: 700;
+      color: #cbd5e1;
+    }
+
+    .feat-icon {
+      color: #38bdf8;
+      font-size: 18px;
+    }
+
+    .cta-button {
+      width: 100%;
+      padding: 16px;
+      border-radius: 18px;
+      background: linear-gradient(135deg, #0284c7 0%, #38bdf8 100%);
+      color: #fff;
+      font-size: 18px;
+      font-weight: 900;
+      border: none;
+      box-shadow: 0 10px 30px rgba(2, 132, 199, 0.6);
+      cursor: pointer;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .promo-note {
+      font-size: 13px;
+      color: #94a3b8;
+      font-weight: 600;
+    }
+
+    @keyframes pulseGlow {
+      from { transform: scale(1); filter: drop-shadow(0 0 5px rgba(56, 189, 248, 0.4)); }
+      to { transform: scale(1.02); filter: drop-shadow(0 0 15px rgba(56, 189, 248, 0.8)); }
+    }
+  </style>
+</head>
+<body>
+
+  <div id="phone-container">
+
+    <!-- Верхний динамический титр Reels/TikTok -->
+    <div class="reels-subtitles">
+      <div id="reels-badge" class="sub-badge">В КАФЕ ТЕЛЬ-АВИВА ☕🇮🇱</div>
+    </div>
+
+    <!-- СЦЕНА 1: КАФЕ В ТЕЛЬ-АВИВЕ -->
+    <section id="scene-intro" class="scene active">
+      <div class="cafe-card">
+        <div class="cafe-header">
+          <div class="cafe-badge">☕ Кафе «Дизенгоф»</div>
+          <div class="cafe-bill">₪54.00</div>
+        </div>
+        <div class="order-items">
+          <div class="order-row"><span>קָפֶה הָפוּךְ (Капучино)</span><span>₪16</span></div>
+          <div class="order-row"><span>קְרוּאָסוֹן חֶמְאָה (Круассан)</span><span>₪22</span></div>
+          <div class="order-row"><span>מַיִם מִינֵרָלִיִּים (Вода)</span><span>₪16</span></div>
+          <div class="order-row bold"><span>סַךְ הַכֹּל (Итого)</span><span>₪54</span></div>
+        </div>
+      </div>
+
+      <div class="friend-box">
+        <div class="friend-profile">
+          <div class="friend-avatar">🧑‍🦱</div>
+          <div>
+            <div class="friend-name">Надав (израильский друг)</div>
+            <div class="friend-role">Оплатил счёт картой</div>
+          </div>
+        </div>
+        <div class="friend-bubble">
+          <div class="hebrew-big">!זֶה עָלַי, אָחִי</div>
+          <div class="transcription-small">«зэ алáй, ахӣ!»</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- СЦЕНА 2: ВНУТРЕННИЙ СТУПОР -->
+    <section id="scene-panic" class="scene">
+      <div class="panic-card">
+        <div class="literal-breakdown">
+          <div class="breakdown-part">
+            <span class="part-hebrew">עַל</span>
+            <span class="part-ru">НА</span>
+          </div>
+          <span class="math-sign">+</span>
+          <div class="breakdown-part">
+            <span class="part-hebrew">י</span>
+            <span class="part-ru">МНЕ</span>
+          </div>
+          <span class="math-sign">=</span>
+          <div class="breakdown-part">
+            <span class="part-hebrew">עָלַי</span>
+            <span class="part-ru">НА МНЕ?!</span>
+          </div>
+        </div>
+
+        <div class="stain-alert">
+          <div class="stain-icon">😱👕</div>
+          <div class="stain-text">«ЧТО НА МНЕ?! КОФЕ ПРОЛИЛ?!»</div>
+          <div class="pulse-meter">💓 ПУЛЬС: 145 BPM • ПАНИКА</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- СЦЕНА 3: УЛЬПАН АЛЕФ (Решение и Урок 69) -->
+    <section id="scene-solution" class="scene">
+      <div class="app-header">
+        <div class="app-logo-badge">
+          <div class="logo-cube">א</div>
+          <div class="app-title">Ульпан Алеф</div>
+        </div>
+        <div class="lesson-badge">Урок 69 • Слитные предлоги</div>
+      </div>
+
+      <div class="idiom-card">
+        <div class="idiom-hebrew">!זֶה עָלַי</div>
+        <div class="idiom-meaning">«Я угощаю! / За мой счёт!»</div>
+        <div class="idiom-literal">💡 Буквально: «расходы лежат на мне»</div>
+      </div>
+
+      <div class="phone-simulator">
+        <div class="phone-status-bar">
+          <div class="caller-id">📞 Надав • Урок 69</div>
+          <div class="call-timer">00:04 🟢</div>
+        </div>
+
+        <div class="dialogue-thread">
+          <div class="bubble-nadav">
+            <div class="text-he">כְּבָר שִׁלַּמְתִּי. זֶה עָלַי!</div>
+          </div>
+          <div id="student-bubble" class="bubble-student">
+            <div class="text-he">!תּוֹדָה! אֲבָל בַּפַּעַם הַבָּאָה עָלַי</div>
+            <div class="text-ru">«Спасибо! Но в следующий раз за мной!»</div>
+          </div>
+        </div>
+
+        <div class="mic-control-area">
+          <div id="mic-btn" class="mic-button">
+            🎙️
+            <div class="wave-ripple"></div>
+          </div>
+          <div id="touch-finger" class="touch-cursor"></div>
+        </div>
+
+        <div id="ai-score" class="ai-score-badge">
+          <span>✨ Точность 98% • Вас отлично поняли!</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- СЦЕНА 4: АУТРО -->
+    <section id="scene-outro" class="scene">
+      <div class="outro-logo-glow">א</div>
+      <h1 class="outro-title">ЗАГОВОРИ НА ИВРИТЕ БЕЗ ПАНИКИ</h1>
+
+      <div class="free-trial-banner">
+        🚀 30 ДНЕЙ БЕСПЛАТНО
+      </div>
+
+      <div class="features-list">
+        <div class="feat-item"><span class="feat-icon">📞</span> Симулятор реальных звонков с ИИ</div>
+        <div class="feat-item"><span class="feat-icon">☕</span> Живая речь для кафе, улиц и работы</div>
+        <div class="feat-item"><span class="feat-icon">🎯</span> 100 уроков с пословным разбором</div>
+      </div>
+
+      <button class="cta-button">ПОПРОБОВАТЬ БЕСПЛАТНО 🚀</button>
+      <div class="promo-note">Промокод: <b>ALEF69</b> • Ссылка в описании</div>
+    </section>
+
+  </div>
+
+  <script>
+    // Машина состояний переключения сцен по таймкодам от аудио
+    window.startReelsTimeline = function(timings) {
+      console.log('⏱️ Запуск таймлайна Reels:', timings);
+
+      const sIntro = document.getElementById('scene-intro');
+      const sPanic = document.getElementById('scene-panic');
+      const sSolution = document.getElementById('scene-solution');
+      const sOutro = document.getElementById('scene-outro');
+      const badge = document.getElementById('reels-badge');
+
+      const studentBubble = document.getElementById('student-bubble');
+      const micBtn = document.getElementById('mic-btn');
+      const touchFinger = document.getElementById('touch-finger');
+      const aiScore = document.getElementById('ai-score');
+
+      function switchScene(activeScene, badgeText, badgeColor = '#38bdf8') {
+        [sIntro, sPanic, sSolution, sOutro].forEach(s => s.classList.remove('active'));
+        activeScene.classList.add('active');
+        badge.innerText = badgeText;
+        badge.style.borderColor = badgeColor;
+        badge.style.boxShadow = `0 10px 25px rgba(0,0,0,0.6), 0 0 25px ${badgeColor}66`;
+      }
+
+      // 1. Старт: Кафе
+      switchScene(sIntro, 'В КАФЕ ТЕЛЬ-АВИВА ☕🇮🇱', '#38bdf8');
+
+      // 2. Момент конфуза / паника
+      setTimeout(() => {
+        switchScene(sPanic, 'ЧТО НА МНЕ?! 😱', '#ef4444');
+      }, timings.tPanic || 4200);
+
+      // 3. Решение: Ульпан Алеф (Урок 69)
+      setTimeout(() => {
+        switchScene(sSolution, 'УЛЬПАН АЛЕФ • УРОК 69 💡', '#22c55e');
+
+        // Анимация клика на микрофон через 1.2с после перехода в решение
+        setTimeout(() => {
+          touchFinger.classList.add('click');
+          setTimeout(() => {
+            micBtn.classList.add('recording');
+            touchFinger.classList.remove('click');
+
+            // Появление реплики ученика
+            setTimeout(() => {
+              studentBubble.classList.add('show');
+              micBtn.classList.remove('recording');
+
+              // Появление плашки оценки 98%
+              setTimeout(() => {
+                aiScore.classList.add('show');
+              }, 800);
+
+            }, 1200);
+          }, 350);
+        }, 1200);
+
+      }, timings.tSolution || 7800);
+
+      // 4. Финальный оффер
+      setTimeout(() => {
+        switchScene(sOutro, '30 ДНЕЙ БЕСПЛАТНО 🚀', '#facc15');
+      }, timings.tOutro || 13500);
+    };
+  </script>
+</body>
+</html>

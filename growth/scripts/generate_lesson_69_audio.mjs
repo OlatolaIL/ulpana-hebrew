@@ -126,7 +126,7 @@ async function generateWithGoogleTtsFallback(text, lang, wavPath, speed = 1.0, p
 }
 
 export async function synthesizeCue({ id, text, lang, geminiVoice, speed = 1.0, pitchFactor = 1.0, forceWavName }) {
-  const filename = forceWavName || `rent_${id}.wav`;
+  const filename = forceWavName || `l69_${id}.wav`;
   const wavPath = path.join(CACHE_DIR, filename);
 
   if (fs.existsSync(wavPath) && fs.statSync(wavPath).size > 2000) {
@@ -142,7 +142,6 @@ export async function synthesizeCue({ id, text, lang, geminiVoice, speed = 1.0, 
     console.log(`  -> Попытка через Gemini TTS (голос: ${geminiVoice})...`);
     success = await tryGeminiTts(text, geminiVoice, wavPath);
     if (success && speed !== 1.0) {
-      // Применяем темпо-контроль при необходимости
       const tempSpeed = wavPath + '.speed.wav';
       cp.spawnSync(FFMPEG_PATH, ['-y', '-i', wavPath, '-filter:a', `atempo=${speed}`, tempSpeed]);
       if (fs.existsSync(tempSpeed)) {
@@ -167,34 +166,34 @@ export async function synthesizeCue({ id, text, lang, geminiVoice, speed = 1.0, 
 export const CUES_CONFIG = [
   {
     id: 'cue_01_hook',
-    text: 'Главный страх при съёме квартиры в Израиле...',
+    text: 'В израильском кафе друг улыбается и говорит...',
     lang: 'ru',
     geminiVoice: 'Charon',
-    speed: 1.22,
+    speed: 1.20,
     pitchFactor: 1.0,
     gapAfterSec: 0.25,
   },
   {
-    id: 'cue_02_student',
-    text: 'שָׁלוֹם... בָּאתִי לַחְתּוֹם... עַל הַחָזֶה!',
+    id: 'cue_02_friend',
+    text: 'זֶה עָלַי, אָחִי!',
     lang: 'iw',
-    geminiVoice: 'Puck',
-    speed: 0.78, // Медленная, раздельная речь ученика-репатрианта (темпо-контраст)
-    pitchFactor: 1.02,
-    gapAfterSec: 0.25,
+    geminiVoice: 'Orus',
+    speed: 1.05,
+    pitchFactor: 1.0,
+    gapAfterSec: 0.3,
   },
   {
-    id: 'cue_03_landlady',
-    text: 'עַל מָה?!',
-    lang: 'iw',
-    geminiVoice: 'Aoede',
-    speed: 1.0,
-    pitchFactor: 1.15,
+    id: 'cue_03_panic',
+    text: 'Первая мысль: "Что на мне?! Пятно? Кофе пролил?!"',
+    lang: 'ru',
+    geminiVoice: 'Puck',
+    speed: 1.18,
+    pitchFactor: 1.02,
     gapAfterSec: 0.3,
   },
   {
     id: 'cue_04_explainer',
-    text: 'Одной буквой ошибся — и вместо договора подписал грудь хозяйки! Хо-зэ́ — это контракт, а ха-зэ́ — грудь!',
+    text: 'Спокойно! "Зэ алай" на иврите — это "Я угощаю!". А ответить нужно так:',
     lang: 'ru',
     geminiVoice: 'Charon',
     speed: 1.15,
@@ -202,8 +201,17 @@ export const CUES_CONFIG = [
     gapAfterSec: 0.35,
   },
   {
-    id: 'cue_05_outro',
-    text: 'Не красней в Израиле. Учи иврит с интерактивным разбором и точным звуком в Ульпан Алеф. Ссылка в описании!',
+    id: 'cue_05_student',
+    text: 'תּוֹדָה! אֲבָל בַּפַּעַם הַבָּאָה עָלַי!',
+    lang: 'iw',
+    geminiVoice: 'Aoede',
+    speed: 0.95,
+    pitchFactor: 1.05,
+    gapAfterSec: 0.4,
+  },
+  {
+    id: 'cue_06_outro',
+    text: 'Понимай живой иврит без паники. 100 уроков и тренажёр звонков в Ульпан Алеф. Ссылка в описании!',
     lang: 'ru',
     geminiVoice: 'Charon',
     speed: 1.22,
@@ -213,7 +221,7 @@ export const CUES_CONFIG = [
 ];
 
 async function main() {
-  console.log('🚀 Генерация всех аудиоклипов для вирального ролика «חוֹזֶה vs חָזֶה»...');
+  console.log('🚀 Генерация всех аудиоклипов для вирального ролика Урока 69 «זֶה עָלַי»...');
   for (const cue of CUES_CONFIG) {
     await synthesizeCue(cue);
   }

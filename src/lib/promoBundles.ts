@@ -82,6 +82,13 @@ export const DEFAULT_PROMO_BUNDLE_MAPPINGS: Record<string, string> = {
   LATTE_MAMA: 'bundle_moms',
   MOMS: 'bundle_moms',
   TG_MAMA: 'bundle_moms',
+  ALEF69: 'bundle_all_free',
+  ULPANA69: 'bundle_all_free',
+  YT: 'bundle_all_free',
+  TG: 'bundle_all_free',
+  INSTA: 'bundle_all_free',
+  TIKTOK: 'bundle_all_free',
+  FB: 'bundle_all_free',
 };
 
 /**

@@ -34,9 +34,7 @@ function getGeminiApiKeys() {
 
 async function tryGeminiTts(text, voiceName, wavPath) {
   const keys = getGeminiApiKeys();
-  if (!keys.length) {
-    throw new Error('No Gemini API keys found');
-  }
+  if (!keys.length) return false;
 
   for (let i = 0; i < keys.length; i++) {
     const apiKey = keys[i];
@@ -61,12 +59,7 @@ async function tryGeminiTts(text, voiceName, wavPath) {
       });
       const data = await res.json();
 
-      if (res.status === 429 || data.error?.code === 429) {
-        console.warn(`⏳ [Gemini TTS 429] Rate limit на ключе ${i + 1}. Пробуем следующий...`);
-        continue;
-      }
-      if (data.error?.message?.includes('depleted') || data.error?.message?.includes('quota')) {
-        console.warn(`⚠️ [Gemini TTS] Квота исчерпана на ключе ${i + 1}.`);
+      if (res.status === 429 || data.error?.code === 429 || data.error?.message?.includes('quota')) {
         continue;
       }
 
@@ -87,18 +80,14 @@ async function tryGeminiTts(text, voiceName, wavPath) {
         if (fs.existsSync(tempPcm)) fs.unlinkSync(tempPcm);
         return true;
       }
-      console.warn(`Gemini TTS API error on key ${i + 1}:`, data.error?.message || 'unknown');
-    } catch (err) {
-      console.warn(`Gemini TTS network error on key ${i + 1}:`, err.message);
-    }
+    } catch (_) {}
   }
-
   return false;
 }
 
 async function generateWithGoogleTtsFallback(text, lang, wavPath, speed = 1.0, pitchFactor = 1.0) {
   const mp3Name = path.basename(wavPath, '.wav') + '_google.mp3';
-  console.log(`🔄 Переход на резервный Google TTS для "${text.slice(0, 30)}..." [lang: ${lang}]`);
+  console.log(`  🔄 Google TTS fallback для "${text.slice(0, 30)}..." [lang: ${lang}]`);
   const mp3Path = await fetchTts(text, lang, mp3Name);
 
   const args = ['-y', '-i', mp3Path];
@@ -126,7 +115,7 @@ async function generateWithGoogleTtsFallback(text, lang, wavPath, speed = 1.0, p
 }
 
 export async function synthesizeCue({ id, text, lang, geminiVoice, speed = 1.0, pitchFactor = 1.0, forceWavName }) {
-  const filename = forceWavName || `rent_${id}.wav`;
+  const filename = forceWavName || `tut69_${id}.wav`;
   const wavPath = path.join(CACHE_DIR, filename);
 
   if (fs.existsSync(wavPath) && fs.statSync(wavPath).size > 2000) {
@@ -134,27 +123,20 @@ export async function synthesizeCue({ id, text, lang, geminiVoice, speed = 1.0, 
     return wavPath;
   }
 
-  console.log(`\n🎙️ Синтез "${id}": "${text.slice(0, 45)}..."`);
+  console.log(`🎙️ Синтез "${id}": "${text.slice(0, 45)}..."`);
 
-  // Шаг 1: Пробуем Gemini TTS
   let success = false;
   try {
-    console.log(`  -> Попытка через Gemini TTS (голос: ${geminiVoice})...`);
     success = await tryGeminiTts(text, geminiVoice, wavPath);
     if (success && speed !== 1.0) {
-      // Применяем темпо-контроль при необходимости
       const tempSpeed = wavPath + '.speed.wav';
       cp.spawnSync(FFMPEG_PATH, ['-y', '-i', wavPath, '-filter:a', `atempo=${speed}`, tempSpeed]);
-      if (fs.existsSync(tempSpeed)) {
-        fs.renameSync(tempSpeed, wavPath);
-      }
+      if (fs.existsSync(tempSpeed)) fs.renameSync(tempSpeed, wavPath);
     }
-  } catch (err) {
-    console.warn(`  ⚠️ Ошибка Gemini TTS: ${err.message}`);
+  } catch (_) {
     success = false;
   }
 
-  // Шаг 2: Резервный Google TTS при сбое Gemini
   if (!success) {
     await generateWithGoogleTtsFallback(text, lang, wavPath, speed, pitchFactor);
   }
@@ -164,10 +146,10 @@ export async function synthesizeCue({ id, text, lang, geminiVoice, speed = 1.0, 
   return wavPath;
 }
 
-export const CUES_CONFIG = [
+export const TUTORIAL_69_CUES = [
   {
-    id: 'cue_01_hook',
-    text: 'Главный страх при съёме квартиры в Израиле...',
+    id: '01_vocab_intro',
+    text: 'В кафе или баре вы часто слышите: "Зэ алай!". Это значит "Я угощаю!". В Уроке 69 учим слитные предлоги: алáй — за меня, алéйха — за тебя, алéйну — за нас.',
     lang: 'ru',
     geminiVoice: 'Charon',
     speed: 1.22,
@@ -175,54 +157,99 @@ export const CUES_CONFIG = [
     gapAfterSec: 0.25,
   },
   {
-    id: 'cue_02_student',
-    text: 'שָׁלוֹם... בָּאתִי לַחְתּוֹם... עַל הַחָזֶה!',
+    id: '02_dialogue_friend',
+    text: 'אֲנִי מְשַׁלֵּם עַל הַקָּפֶה, זֶה עָלַי!',
     lang: 'iw',
-    geminiVoice: 'Puck',
-    speed: 0.78, // Медленная, раздельная речь ученика-репатрианта (темпо-контраст)
-    pitchFactor: 1.02,
+    geminiVoice: 'Orus',
+    speed: 1.0,
+    pitchFactor: 1.0,
     gapAfterSec: 0.25,
   },
   {
-    id: 'cue_03_landlady',
-    text: 'עַל מָה?!',
+    id: '03_dialogue_prompt',
+    text: 'Отвечаем голосом. Как правильно сказать: "В следующий раз за мной"?',
+    lang: 'ru',
+    geminiVoice: 'Charon',
+    speed: 1.20,
+    pitchFactor: 1.0,
+    gapAfterSec: 0.25,
+  },
+  {
+    id: '04_dialogue_student',
+    text: 'תּוֹדָה רַבָּה! אֲבָל בַּפַּעַם הַבָּאָה עָלַי!',
     lang: 'iw',
     geminiVoice: 'Aoede',
-    speed: 1.0,
-    pitchFactor: 1.15,
+    speed: 0.95,
+    pitchFactor: 1.05,
+    gapAfterSec: 0.25,
+  },
+  {
+    id: '05_dialogue_eval',
+    text: 'ИИ мгновенно проверяет речь: точность 98 процентов, вас поняли идеально.',
+    lang: 'ru',
+    geminiVoice: 'Charon',
+    speed: 1.22,
+    pitchFactor: 1.0,
     gapAfterSec: 0.3,
   },
   {
-    id: 'cue_04_explainer',
-    text: 'Одной буквой ошибся — и вместо договора подписал грудь хозяйки! Хо-зэ́ — это контракт, а ха-зэ́ — грудь!',
-    lang: 'ru',
-    geminiVoice: 'Charon',
-    speed: 1.15,
+    id: '06_phone_nadav_call',
+    text: 'שָׁלוֹם! כְּבָר שִׁלַּמְתִּי עַל הָאֲרוּחָה. זֶה עָלַי!',
+    lang: 'iw',
+    geminiVoice: 'Orus',
+    speed: 1.05,
     pitchFactor: 1.0,
-    gapAfterSec: 0.35,
+    gapAfterSec: 0.25,
   },
   {
-    id: 'cue_05_outro',
-    text: 'Не красней в Израиле. Учи иврит с интерактивным разбором и точным звуком в Ульпан Алеф. Ссылка в описании!',
+    id: '07_phone_narrator_intro',
+    text: 'А теперь звонок из жизни: друг оплатил общий счёт. Договариваемся на следующую встречу:',
     lang: 'ru',
     geminiVoice: 'Charon',
     speed: 1.22,
     pitchFactor: 1.0,
-    gapAfterSec: 0.5,
+    gapAfterSec: 0.25,
+  },
+  {
+    id: '08_phone_student_reply',
+    text: 'אֲבָל גַּם בַּפַּעַם שֶׁעָבְרָה שִׁלַּמְתָּ! בַּפַּעַם הַבָּאָה אֲנִי מַזְמִין!',
+    lang: 'iw',
+    geminiVoice: 'Aoede',
+    speed: 0.95,
+    pitchFactor: 1.05,
+    gapAfterSec: 0.25,
+  },
+  {
+    id: '09_phone_nadav_ack',
+    text: 'בְּסֵדֶר גָּמוּר, סִגַּרְנוּ!',
+    lang: 'iw',
+    geminiVoice: 'Orus',
+    speed: 1.05,
+    pitchFactor: 1.0,
+    gapAfterSec: 0.3,
+  },
+  {
+    id: '10_outro',
+    text: 'Тренируйте живую речь и звонки в Ульпан Алеф. 30 дней бесплатного доступа по ссылке в описании! Промокод: АЛЕФ69.',
+    lang: 'ru',
+    geminiVoice: 'Charon',
+    speed: 1.25,
+    pitchFactor: 1.0,
+    gapAfterSec: 0.35,
   },
 ];
 
 async function main() {
-  console.log('🚀 Генерация всех аудиоклипов для вирального ролика «חוֹזֶה vs חָזֶה»...');
-  for (const cue of CUES_CONFIG) {
+  console.log('🚀 Синтез аудиоклипов для учебного видео Урока 69...');
+  for (const cue of TUTORIAL_69_CUES) {
     await synthesizeCue(cue);
   }
-  console.log('\n🎉 Все аудиоклипы успешно сгенерированы и сохранены в public/demo/audio_cache!');
+  console.log('\n🎉 Все аудиоклипы учебного видео успешно сгенерированы!');
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   main().catch((err) => {
-    console.error('❌ Фатальная ошибка генерации аудио:', err);
+    console.error('❌ Ошибка синтеза аудио:', err);
     process.exit(1);
   });
 }

@@ -179,13 +179,14 @@ interface AdminEssay {
 }
 
 const CHANNEL_PRESETS = [
+  { code: 'TG', name: 'Telegram (@ulpana_il)', channel: 'tg', type: 'general' as const, days: 30, uses: 1000, desc: 'Для канала Telegram @ulpana_il', bundleId: 'bundle_all_free' },
   { code: 'TG_GENERAL', name: 'Telegram (Общий)', channel: 'tg', type: 'general' as const, days: 14, uses: 500, desc: 'Ссылка в описании / закреп канала @ulpana_il', bundleId: null },
   { code: 'TG_MAMA', name: 'Telegram (Пост для мам)', channel: 'tg', type: 'post' as const, days: 30, uses: 1000, desc: 'Пост для мам в канале @ulpana_il', bundleId: 'bundle_moms' },
   { code: 'LATTE_MAMA', name: 'FB Тыквенный латте (Мамы)', channel: 'fb', type: 'post' as const, days: 30, uses: 1000, desc: 'Пост Сергея для мам в группе «Тыквенный латте»', bundleId: 'bundle_moms' },
-  { code: 'FB', name: 'Facebook (Общий)', channel: 'fb', type: 'general' as const, days: 30, uses: 100, desc: 'Кнопка на странице FB / реклама', bundleId: null },
-  { code: 'INSTA', name: 'Instagram', channel: 'insta', type: 'general' as const, days: 14, uses: 500, desc: 'Ссылка в шапке профиля (био) / Reels', bundleId: null },
-  { code: 'TIKTOK', name: 'TikTok', channel: 'tiktok', type: 'general' as const, days: 14, uses: 500, desc: 'Ссылка в описании профиля (био) / видео', bundleId: null },
-  { code: 'YT', name: 'YouTube', channel: 'yt', type: 'general' as const, days: 30, uses: 500, desc: 'Описание видео, Shorts и закрепленный комментарий', bundleId: null },
+  { code: 'FB', name: 'Facebook (Общий)', channel: 'fb', type: 'general' as const, days: 30, uses: 500, desc: 'Кнопка на странице FB / реклама', bundleId: 'bundle_all_free' },
+  { code: 'INSTA', name: 'Instagram', channel: 'insta', type: 'general' as const, days: 30, uses: 500, desc: 'Ссылка в шапке профиля (био) / Reels', bundleId: 'bundle_all_free' },
+  { code: 'TIKTOK', name: 'TikTok', channel: 'tiktok', type: 'general' as const, days: 30, uses: 500, desc: 'Ссылка в описании профиля (био) / видео', bundleId: 'bundle_all_free' },
+  { code: 'YT', name: 'YouTube', channel: 'yt', type: 'general' as const, days: 30, uses: 500, desc: 'Описание видео, Shorts и закрепленный комментарий', bundleId: 'bundle_all_free' },
   { code: 'LATTE', name: 'Тыквенный латте (Общий)', channel: 'fb', type: 'general' as const, days: 14, uses: 500, desc: 'Общий код для группы «Тыквенный латте»', bundleId: null },
   { code: 'MOMS', name: 'Мамы Израиля (Общий)', channel: 'other', type: 'general' as const, days: 30, uses: 500, desc: 'Общий промокод для мам', bundleId: 'bundle_moms' },
   { code: 'OLE2026', name: 'Оле Хадаш', channel: 'other', type: 'general' as const, days: 30, uses: 1000, desc: 'Сообщества новых репатриантов', bundleId: null },

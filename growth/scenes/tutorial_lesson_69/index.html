@@ -1,0 +1,932 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=390, height=844, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Урок 69: Слитные предлоги «עַל» — Учебный разбор | Ульпан Алеф</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700;800;900&family=Montserrat:wght@700;800;900&family=Heebo:wght@500;700;900&display=swap" rel="stylesheet">
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body {
+      width: 390px;
+      height: 844px;
+      overflow: hidden;
+      background: #060913;
+      font-family: 'Rubik', sans-serif;
+      color: #fff;
+      position: relative;
+    }
+
+    #phone-container {
+      width: 390px;
+      height: 844px;
+      position: relative;
+      overflow: hidden;
+      background: #090e1a;
+    }
+
+    /* Верхний титр в стиле TikTok / Shorts */
+    .reels-subtitles {
+      position: absolute;
+      top: 18px;
+      left: 14px;
+      right: 14px;
+      z-index: 1000;
+      text-align: center;
+      pointer-events: none;
+    }
+
+    .sub-badge {
+      display: inline-block;
+      font-family: 'Montserrat', sans-serif;
+      font-size: 17px;
+      font-weight: 900;
+      text-transform: uppercase;
+      padding: 8px 16px;
+      border-radius: 12px;
+      background: rgba(10, 15, 30, 0.95);
+      border: 2px solid #38bdf8;
+      color: #fff;
+      text-shadow: 0 2px 8px rgba(0,0,0,0.8);
+      box-shadow: 0 10px 25px rgba(0,0,0,0.6), 0 0 20px rgba(56, 189, 248, 0.35);
+      transition: all 0.25s ease;
+    }
+
+    /* R-25: СТРОГО absolute inset 0, visibility hidden */
+    .scene {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0;
+      pointer-events: none;
+      visibility: hidden;
+      transition: opacity 0.35s ease, transform 0.35s ease, visibility 0.35s;
+      transform: scale(0.98);
+      overflow: hidden;
+    }
+
+    .scene.active {
+      opacity: 1;
+      pointer-events: auto;
+      visibility: visible;
+      transform: scale(1);
+    }
+
+    /* Верхняя навигация урока (Табы) */
+    .lesson-nav-header {
+      position: absolute;
+      top: 68px;
+      left: 14px;
+      right: 14px;
+      z-index: 50;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .lesson-meta-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 14px;
+      padding: 8px 12px;
+    }
+
+    .lesson-tag {
+      font-size: 12px;
+      font-weight: 800;
+      color: #38bdf8;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .lesson-title-ru {
+      font-size: 13px;
+      font-weight: 700;
+      color: #e2e8f0;
+    }
+
+    .tabs-row {
+      display: flex;
+      gap: 6px;
+    }
+
+    .tab-pill {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      padding: 7px 4px;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      font-size: 11px;
+      font-weight: 700;
+      color: #94a3b8;
+      transition: all 0.25s ease;
+    }
+
+    .tab-pill.active {
+      background: #0284c7;
+      border-color: #38bdf8;
+      color: #fff;
+      box-shadow: 0 4px 15px rgba(2, 132, 199, 0.4);
+    }
+
+    /* ========================================================
+       СЦЕНА 1: СЛОВАРЬ (Этап 2)
+       ======================================================== */
+    #scene-vocab {
+      background: radial-gradient(circle at 50% 30%, #0f172a 0%, #060913 100%);
+      display: flex;
+      flex-direction: column;
+      padding: 145px 14px 20px;
+      gap: 12px;
+    }
+
+    .vocab-intro-box {
+      background: rgba(2, 132, 199, 0.12);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      border-radius: 16px;
+      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .vocab-intro-icon {
+      font-size: 26px;
+    }
+
+    .vocab-intro-text {
+      font-size: 13px;
+      font-weight: 600;
+      color: #bae6fd;
+      line-height: 1.35;
+    }
+
+    .cards-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .vocab-card {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 18px;
+      padding: 14px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .vocab-card.highlight {
+      background: rgba(2, 132, 199, 0.25);
+      border-color: #38bdf8;
+      box-shadow: 0 0 25px rgba(56, 189, 248, 0.35);
+      transform: scale(1.02);
+    }
+
+    .vocab-left {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .vocab-meaning {
+      font-size: 16px;
+      font-weight: 800;
+      color: #fff;
+    }
+
+    .vocab-transcription {
+      font-size: 13px;
+      font-weight: 600;
+      color: #94a3b8;
+    }
+
+    .vocab-right {
+      text-align: right;
+      direction: rtl;
+    }
+
+    .vocab-hebrew {
+      font-family: 'Heebo', sans-serif;
+      font-size: 26px;
+      font-weight: 900;
+      color: #38bdf8;
+      line-height: 1.1;
+    }
+
+    .vocab-card.special {
+      border: 2px solid #facc15;
+      background: rgba(250, 204, 21, 0.1);
+    }
+
+    .vocab-card.special .vocab-hebrew {
+      color: #facc15;
+    }
+
+    /* ========================================================
+       СЦЕНА 2: ДИАЛОГ В КАФЕ (Этап 5)
+       ======================================================== */
+    #scene-dialogue {
+      background: radial-gradient(circle at 50% 25%, #111e38 0%, #060913 100%);
+      display: flex;
+      flex-direction: column;
+      padding: 145px 14px 20px;
+      gap: 12px;
+    }
+
+    .dialogue-card {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 20px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .speaker-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .speaker-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: #0284c7;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      border: 2px solid #38bdf8;
+    }
+
+    .speaker-info {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .speaker-name {
+      font-size: 14px;
+      font-weight: 800;
+      color: #fff;
+    }
+
+    .speaker-desc {
+      font-size: 11px;
+      color: #94a3b8;
+    }
+
+    .bubble-bot {
+      background: rgba(30, 41, 59, 0.9);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 16px 16px 16px 2px;
+      padding: 12px 14px;
+      text-align: right;
+      direction: rtl;
+    }
+
+    .bubble-bot-he {
+      font-family: 'Heebo', sans-serif;
+      font-size: 20px;
+      font-weight: 800;
+      color: #f8fafc;
+      line-height: 1.3;
+    }
+
+    .bubble-bot-ru {
+      direction: ltr;
+      text-align: left;
+      font-size: 12px;
+      color: #94a3b8;
+      margin-top: 4px;
+    }
+
+    /* Реплика ученика */
+    .bubble-user {
+      background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+      border-radius: 16px 16px 2px 16px;
+      padding: 12px 14px;
+      text-align: right;
+      direction: rtl;
+      align-self: flex-end;
+      max-width: 90%;
+      opacity: 0;
+      transform: translateY(8px);
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 20px rgba(2, 132, 199, 0.35);
+    }
+
+    .bubble-user.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .bubble-user-he {
+      font-family: 'Heebo', sans-serif;
+      font-size: 19px;
+      font-weight: 900;
+      color: #fff;
+      line-height: 1.3;
+    }
+
+    .bubble-user-ru {
+      direction: ltr;
+      text-align: left;
+      font-size: 12px;
+      color: #bae6fd;
+      margin-top: 4px;
+    }
+
+    /* Кнопка микрофона и анимация записи */
+    .mic-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      position: relative;
+      margin-top: 4px;
+    }
+
+    .mic-round-btn {
+      width: 62px;
+      height: 62px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #38bdf8 0%, #0284c7 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      box-shadow: 0 0 25px rgba(56, 189, 248, 0.6);
+      cursor: pointer;
+      position: relative;
+    }
+
+    .mic-ripple {
+      position: absolute;
+      inset: -10px;
+      border-radius: 50%;
+      border: 2px solid rgba(56, 189, 248, 0.6);
+      animation: ripple 1.3s infinite;
+      opacity: 0;
+    }
+
+    .mic-round-btn.recording .mic-ripple {
+      opacity: 1;
+    }
+
+    @keyframes ripple {
+      0% { transform: scale(0.9); opacity: 0.8; }
+      100% { transform: scale(1.4); opacity: 0; }
+    }
+
+    .touch-hand {
+      position: absolute;
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.9);
+      border: 2px solid #38bdf8;
+      box-shadow: 0 0 20px #38bdf8;
+      top: 50%;
+      left: 50%;
+      transform: translate(60px, 60px);
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      z-index: 60;
+    }
+
+    .touch-hand.tap {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(0.9);
+    }
+
+    .eval-badge {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      background: rgba(34, 197, 94, 0.15);
+      border: 1px solid #22c55e;
+      border-radius: 12px;
+      padding: 8px 14px;
+      font-size: 13px;
+      font-weight: 800;
+      color: #4ade80;
+      opacity: 0;
+      transform: scale(0.9);
+      transition: all 0.3s ease;
+    }
+
+    .eval-badge.show {
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    /* ========================================================
+       СЦЕНА 3: ЗВОНОК НАДАВА (Этап 6)
+       ======================================================== */
+    #scene-phone {
+      background: radial-gradient(circle at 50% 20%, #1e1b4b 0%, #060913 100%);
+      display: flex;
+      flex-direction: column;
+      padding: 145px 14px 20px;
+      gap: 12px;
+    }
+
+    .phone-box {
+      background: #0b1329;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: 22px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      box-shadow: 0 15px 35px rgba(0,0,0,0.5);
+    }
+
+    .phone-call-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 10px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .call-caller {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      font-weight: 800;
+      color: #f1f5f9;
+    }
+
+    .call-status-live {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(34, 197, 94, 0.2);
+      border: 1px solid #22c55e;
+      color: #4ade80;
+      font-size: 11px;
+      font-weight: 800;
+      padding: 3px 10px;
+      border-radius: 12px;
+    }
+
+    .thread-phone {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .bubble-nadav-call {
+      background: rgba(30, 41, 59, 0.95);
+      border-radius: 14px 14px 14px 2px;
+      padding: 10px 14px;
+      text-align: right;
+      direction: rtl;
+    }
+
+    .nadav-he {
+      font-family: 'Heebo', sans-serif;
+      font-size: 18px;
+      font-weight: 800;
+      color: #f8fafc;
+    }
+
+    .bubble-student-phone {
+      background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+      border-radius: 14px 14px 2px 14px;
+      padding: 10px 14px;
+      text-align: right;
+      direction: rtl;
+      align-self: flex-end;
+      opacity: 0;
+      transform: translateY(6px);
+      transition: all 0.3s ease;
+    }
+
+    .bubble-student-phone.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .student-phone-he {
+      font-family: 'Heebo', sans-serif;
+      font-size: 18px;
+      font-weight: 900;
+      color: #fff;
+    }
+
+    .bubble-nadav-ack {
+      background: rgba(30, 41, 59, 0.95);
+      border-radius: 14px 14px 14px 2px;
+      padding: 8px 12px;
+      text-align: right;
+      direction: rtl;
+      opacity: 0;
+      transform: translateY(6px);
+      transition: all 0.3s ease;
+    }
+
+    .bubble-nadav-ack.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .debrief-box {
+      background: rgba(34, 197, 94, 0.12);
+      border: 1px solid #22c55e;
+      border-radius: 14px;
+      padding: 10px 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      font-weight: 700;
+      color: #86efac;
+      opacity: 0;
+      transform: scale(0.95);
+      transition: all 0.3s ease;
+    }
+
+    .debrief-box.show {
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    /* ========================================================
+       СЦЕНА 4: ФИНАЛЬНЫЙ СПЛЭШ
+       ======================================================== */
+    #scene-outro {
+      background: radial-gradient(circle at 50% 25%, #1e3a8a 0%, #060913 100%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 70px 20px 40px;
+      gap: 18px;
+      text-align: center;
+    }
+
+    .outro-cube {
+      width: 82px;
+      height: 82px;
+      border-radius: 24px;
+      background: linear-gradient(135deg, #0284c7 0%, #38bdf8 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 46px;
+      font-weight: 900;
+      color: #fff;
+      box-shadow: 0 0 45px rgba(56, 189, 248, 0.65);
+    }
+
+    .outro-h1 {
+      font-size: 26px;
+      font-weight: 900;
+      color: #fff;
+      line-height: 1.25;
+    }
+
+    .trial-pill {
+      background: rgba(250, 204, 21, 0.15);
+      border: 2px solid #facc15;
+      color: #fef08a;
+      border-radius: 16px;
+      padding: 10px 22px;
+      font-size: 18px;
+      font-weight: 900;
+      text-transform: uppercase;
+      box-shadow: 0 0 25px rgba(250, 204, 21, 0.35);
+    }
+
+    .outro-bullets {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      text-align: left;
+      width: 100%;
+      background: rgba(255, 255, 255, 0.05);
+      padding: 14px 16px;
+      border-radius: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .bullet-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 700;
+      color: #cbd5e1;
+    }
+
+    .bullet-icon {
+      color: #38bdf8;
+    }
+
+    .outro-cta-btn {
+      width: 100%;
+      padding: 16px;
+      border-radius: 16px;
+      background: linear-gradient(135deg, #0284c7 0%, #38bdf8 100%);
+      color: #fff;
+      font-size: 17px;
+      font-weight: 900;
+      border: none;
+      box-shadow: 0 10px 25px rgba(2, 132, 199, 0.6);
+      text-transform: uppercase;
+    }
+
+    .outro-promo-text {
+      font-size: 13px;
+      color: #94a3b8;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="phone-container">
+
+    <!-- Верхний динамический бейдж -->
+    <div class="reels-subtitles">
+      <div id="reels-badge" class="sub-badge">УРОК 69 • СЛОВАРЬ 📖</div>
+    </div>
+
+    <!-- Шапка урока и Табы -->
+    <div class="lesson-nav-header">
+      <div class="lesson-meta-bar">
+        <span class="lesson-tag">🇮🇱 УЛЬПАН АЛЕФ</span>
+        <span class="lesson-title-ru">Урок 69: Предлог עַל</span>
+      </div>
+      <div class="tabs-row">
+        <div id="tab-vocab" class="tab-pill active">📖 Словарь</div>
+        <div id="tab-dialogue" class="tab-pill">💬 Диалог</div>
+        <div id="tab-phone" class="tab-pill">📞 Звонок</div>
+      </div>
+    </div>
+
+    <!-- СЦЕНА 1: СЛОВАРЬ (Этап 2) -->
+    <section id="scene-vocab" class="scene active">
+      <div class="vocab-intro-box">
+        <div class="vocab-intro-icon">💡</div>
+        <div class="vocab-intro-text">
+          <b>Спряжение предлога עַל:</b> в иврите означает «на / обо мне / за мой счёт».
+        </div>
+      </div>
+
+      <div class="cards-grid">
+        <div id="card-1" class="vocab-card highlight">
+          <div class="vocab-left">
+            <span class="vocab-meaning">за меня / на мне</span>
+            <span class="vocab-transcription">алáй</span>
+          </div>
+          <div class="vocab-right">
+            <span class="vocab-hebrew">עָלַי</span>
+          </div>
+        </div>
+
+        <div id="card-2" class="vocab-card">
+          <div class="vocab-left">
+            <span class="vocab-meaning">за тебя (м.р.)</span>
+            <span class="vocab-transcription">алéйха</span>
+          </div>
+          <div class="vocab-right">
+            <span class="vocab-hebrew">עָלֶיךָ</span>
+          </div>
+        </div>
+
+        <div id="card-3" class="vocab-card special">
+          <div class="vocab-left">
+            <span class="vocab-meaning">Я угощаю! (культовая фраза)</span>
+            <span class="vocab-transcription">зэ алáй!</span>
+          </div>
+          <div class="vocab-right">
+            <span class="vocab-hebrew">!זֶה עָלַי</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- СЦЕНА 2: ДИАЛОГ (Этап 5) -->
+    <section id="scene-dialogue" class="scene">
+      <div class="dialogue-card">
+        <div class="speaker-row">
+          <div class="speaker-avatar">☕</div>
+          <div class="speaker-info">
+            <span class="speaker-name">Бариста / Друг</span>
+            <span class="speaker-desc">Кафе в Тель-Авиве</span>
+          </div>
+        </div>
+
+        <div class="bubble-bot">
+          <div class="bubble-bot-he">!אֲנִי מְשַׁלֵּם עַל הַקָּפֶה, זֶה עָלַי</div>
+          <div class="bubble-bot-ru">«Я плачу за кофе, я угощаю!»</div>
+        </div>
+
+        <div id="user-bubble" class="bubble-user">
+          <div class="bubble-user-he">!תּוֹדָה רַבָּה! אֲבָל בַּפַּעַם הַבָּאָה עָלַי</div>
+          <div class="bubble-user-ru">«Спасибо большое! Но в следующий раз за мной!»</div>
+        </div>
+
+        <div class="mic-container">
+          <div id="mic-btn" class="mic-round-btn">
+            🎙️
+            <div class="mic-ripple"></div>
+          </div>
+          <div id="touch-hand" class="touch-hand"></div>
+        </div>
+
+        <div id="eval-badge" class="eval-badge">
+          <span>✨ Точность: 98% • Отличное произношение!</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- СЦЕНА 3: ЗВОНОК НАДАВА (Этап 6) -->
+    <section id="scene-phone" class="scene">
+      <div class="phone-box">
+        <div class="phone-call-header">
+          <div class="call-caller">📞 Друг Надав</div>
+          <div class="call-status-live">00:04 🟢 В эфире</div>
+        </div>
+
+        <div class="thread-phone">
+          <div class="bubble-nadav-call">
+            <div class="nadav-he">!שָׁלוֹם! כְּבָר שִׁלַּמְתִּי עַל הָאֲרוּחָה. זֶה עָלַי</div>
+          </div>
+
+          <div id="student-phone" class="bubble-student-phone">
+            <div class="student-phone-he">!אֲבָל גַּם בַּפַּעַם שֶׁעָבְרָה שִׁלַּמְתָּ! בַּפַּעַם הַבָּאָה אֲנִי מַזְמִין</div>
+          </div>
+
+          <div id="nadav-ack" class="bubble-nadav-ack">
+            <div class="nadav-he">!בְּסֵדֶר גָּמוּר, סִגַּרְנוּ</div>
+          </div>
+        </div>
+
+        <div id="debrief-box" class="debrief-box">
+          <span>🎯 Задача выполнена: согласовали оплату следующей встречи</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- СЦЕНА 4: ФИНАЛ -->
+    <section id="scene-outro" class="scene">
+      <div class="outro-cube">א</div>
+      <h1 class="outro-h1">ЖИВОЙ ИВРИТ БЕЗ ПАНИКИ</h1>
+      <div class="trial-pill">🚀 30 ДНЕЙ БЕСПЛАТНО</div>
+
+      <div class="outro-bullets">
+        <div class="bullet-row"><span class="bullet-icon">📞</span> Телефонный тренажёр живых звонков с ИИ</div>
+        <div class="bullet-row"><span class="bullet-icon">☕</span> Симулятор бытовых ситуаций и кафе</div>
+        <div class="bullet-row"><span class="bullet-icon">📚</span> 100 уроков с пословным разбором Pealim</div>
+      </div>
+
+      <button class="outro-cta-btn">ПЕРЕЙТИ К УРОКУ 69 ➡️</button>
+      <div class="outro-promo-text">Промокод: <b>ALEF69</b> • Ссылка в описании</div>
+    </section>
+
+  </div>
+
+  <script>
+    window.startTutorialTimeline = function(timings) {
+      console.log('⏱️ Старт таймлайна учебного видео Урока 69:', timings);
+
+      const sVocab = document.getElementById('scene-vocab');
+      const sDialogue = document.getElementById('scene-dialogue');
+      const sPhone = document.getElementById('scene-phone');
+      const sOutro = document.getElementById('scene-outro');
+
+      const tVocab = document.getElementById('tab-vocab');
+      const tDialogue = document.getElementById('tab-dialogue');
+      const tPhone = document.getElementById('tab-phone');
+      const badge = document.getElementById('reels-badge');
+
+      const card1 = document.getElementById('card-1');
+      const card2 = document.getElementById('card-2');
+      const card3 = document.getElementById('card-3');
+
+      const userBubble = document.getElementById('user-bubble');
+      const micBtn = document.getElementById('mic-btn');
+      const touchHand = document.getElementById('touch-hand');
+      const evalBadge = document.getElementById('eval-badge');
+
+      const studentPhone = document.getElementById('student-phone');
+      const nadavAck = document.getElementById('nadav-ack');
+      const debriefBox = document.getElementById('debrief-box');
+
+      function activateTab(tabEl) {
+        [tVocab, tDialogue, tPhone].forEach(t => t.classList.remove('active'));
+        tabEl.classList.add('active');
+      }
+
+      function switchScene(activeScene, badgeText, badgeColor = '#38bdf8') {
+        [sVocab, sDialogue, sPhone, sOutro].forEach(s => s.classList.remove('active'));
+        activeScene.classList.add('active');
+        badge.innerText = badgeText;
+        badge.style.borderColor = badgeColor;
+        badge.style.boxShadow = `0 10px 25px rgba(0,0,0,0.6), 0 0 20px ${badgeColor}66`;
+      }
+
+      // АКТ 1: Словарь (0s)
+      switchScene(sVocab, 'УРОК 69 • СЛОВАРЬ 📖', '#38bdf8');
+      activateTab(tVocab);
+
+      // Подсветка карточек слов по очереди
+      setTimeout(() => {
+        card1.classList.remove('highlight');
+        card2.classList.add('highlight');
+      }, 3500);
+
+      setTimeout(() => {
+        card2.classList.remove('highlight');
+        card3.classList.add('highlight');
+      }, 7000);
+
+      // АКТ 2: Диалог (старт по tDialogue)
+      setTimeout(() => {
+        switchScene(sDialogue, 'ЭТАП 5 • ДИАЛОГ В КАФЕ ☕', '#0284c7');
+        activateTab(tDialogue);
+
+        // Клик на микрофон перед репликой ученика
+        setTimeout(() => {
+          touchHand.classList.add('tap');
+          setTimeout(() => {
+            micBtn.classList.add('recording');
+            touchHand.classList.remove('tap');
+
+            // Появление реплики ученика
+            setTimeout(() => {
+              userBubble.classList.add('show');
+              micBtn.classList.remove('recording');
+
+              // Оценка ИИ
+              setTimeout(() => {
+                evalBadge.classList.add('show');
+              }, 1200);
+
+            }, 1000);
+          }, 350);
+        }, timings.tDialogueUserOffset || 4500);
+
+      }, timings.tDialogue || 12000);
+
+      // АКТ 3: Звонок Надава (старт по tPhone)
+      setTimeout(() => {
+        switchScene(sPhone, 'ЭТАП 6 • ЗВОНОК С ИИ 📞', '#a855f7');
+        activateTab(tPhone);
+
+        // Реплика ученика в звонке
+        setTimeout(() => {
+          studentPhone.classList.add('show');
+
+          // Ответ Надава
+          setTimeout(() => {
+            nadavAck.classList.add('show');
+
+            // Дебрифинг
+            setTimeout(() => {
+              debriefBox.classList.add('show');
+            }, 1500);
+
+          }, timings.tNadavAckOffset || 4200);
+
+        }, timings.tPhoneStudentOffset || 4000);
+
+      }, timings.tPhone || 27000);
+
+      // АКТ 4: Финал (старт по tOutro)
+      setTimeout(() => {
+        switchScene(sOutro, '30 ДНЕЙ БЕСПЛАТНО 🚀', '#facc15');
+      }, timings.tOutro || 45000);
+    };
+  </script>
+</body>
+</html>

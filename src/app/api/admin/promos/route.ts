@@ -28,14 +28,15 @@ export async function GET(req: NextRequest) {
 
     // Авто-сидинг всех стандартных канальных и целевых промокодов
     const standardPresets = [
+      { code: 'TG', days: 30, uses: 1000, type: 'general', channel: 'tg', desc: 'Для канала Telegram @ulpana_il', bundleId: 'bundle_all_free' },
       { code: 'TG_GENERAL', days: 14, uses: 500, type: 'general', channel: 'tg', desc: 'Ссылка в описании / закреп канала @ulpana_il', bundleId: null },
       { code: 'TG_MAMA', days: 30, uses: 1000, type: 'post', channel: 'tg', desc: 'Пост для мам в канале @ulpana_il', bundleId: 'bundle_moms' },
       { code: 'LATTE_MAMA', days: 30, uses: 1000, type: 'post', channel: 'fb', desc: 'Пост Сергея для мам в группе «Тыквенный латте»', bundleId: 'bundle_moms' },
       { code: 'MOMS', days: 30, uses: 500, type: 'general', channel: 'other', desc: 'Общий промокод для мам Израиля', bundleId: 'bundle_moms' },
-      { code: 'FB', days: 30, uses: 500, type: 'general', channel: 'fb', desc: 'Для рекламы и постов в Facebook', bundleId: null },
-      { code: 'INSTA', days: 14, uses: 500, type: 'general', channel: 'insta', desc: 'Для ссылки в био и сторис Instagram', bundleId: null },
-      { code: 'TIKTOK', days: 14, uses: 500, type: 'general', channel: 'tiktok', desc: 'Для профиля TikTok', bundleId: null },
-      { code: 'YT', days: 14, uses: 500, type: 'general', channel: 'yt', desc: 'Для описаний видео на YouTube', bundleId: null },
+      { code: 'FB', days: 30, uses: 500, type: 'general', channel: 'fb', desc: 'Для рекламы и постов в Facebook', bundleId: 'bundle_all_free' },
+      { code: 'INSTA', days: 30, uses: 500, type: 'general', channel: 'insta', desc: 'Для ссылки в био и сторис Instagram', bundleId: 'bundle_all_free' },
+      { code: 'TIKTOK', days: 30, uses: 500, type: 'general', channel: 'tiktok', desc: 'Для профиля TikTok', bundleId: 'bundle_all_free' },
+      { code: 'YT', days: 30, uses: 500, type: 'general', channel: 'yt', desc: 'Для описаний видео на YouTube', bundleId: 'bundle_all_free' },
       { code: 'LATTE', days: 30, uses: 500, type: 'general', channel: 'fb', desc: 'Для участников группы «Тыквенный латте»', bundleId: null },
       { code: 'OLE2026', days: 30, uses: 1000, type: 'general', channel: 'other', desc: 'Сообщества новых репатриантов', bundleId: null },
     ];

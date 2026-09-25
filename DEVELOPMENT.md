@@ -1,5 +1,18 @@
 # Разработка открытой беты
 
+## Реструктуризация DECISION_MATRIX → v2.0.0 и паспорта L2 — 25.09.2026
+
+1. **Архитектура L0/L1/L2 внедрена:**
+   - [DECISION_MATRIX.md](file:///c:/Users/azrie/Documents/antigravity/goofy-maxwell/DECISION_MATRIX.md) переведена на v2.0.0: Слой 0 (Quick Reference на 26 правил, по 1 строке), Слой 1 (краткие блоки), правила самокоррекции с жестким лимитом $\le 50$ КБ (файл сжат с 65 КБ до 31.5 КБ).
+   - Созданы 3 недостающих паспорта механик Слоя 2:
+     - `docs/mechanics/hebrew-orthography.md` (Блок 2: כתיב מלא, никуд, `stripNikkud`, омографы).
+     - `docs/mechanics/user-profile-audio.md` (Блок 7: контракт `UserProfile`, TTS Orus/Aoede, `CURATED_STUDIO_AUDIO`).
+     - `docs/mechanics/llm-routing.md` (Блок 8: таксономия задач, приоритет Gemini, таймаут 4500 мс, Groq fallback).
+2. **Верификация:**
+   - Тест `tests/decision-matrix-invariants.test.cjs` расширен инвариантами `R-00-A` и `R-00-B` (контроль размера $\le 50$ КБ, число строк L0 $\le 26$, обязательный changelog и самокоррекция).
+   - Все 14 тестов инвариантов зелёные (14/14 PASS).
+   - `npm run audit:intent` зелёный (ComplexDrills 2535/2535 100%).
+
 ## Ограниченный ремонт по поручению пользователя — 24.09.2026
 
 Codex подготовил локальный патч от9b081bd в ветке `codex/phone-review-fixes`, рабочая копия `C:/Users/azrie/.codex/Ulpana2/phone-review-fixes`. Исправлены воспроизведённые ошибки доказательств цели78, ложной похвалы, HTTP408/504 fallback и диагностики ответа.110 профильных тестов, tsc, audit:intent, прежняя acceptance и Chrome WebM PASS. Авторский фильтр78 консервативен; общее смысловое оценивание остаётся модельным. Отчёт: [phone-review-fixes](project-control/results/phone-review-fixes.md). Основной checkout Antigravity не менялся, коммита/слияния/публикации нет. Следующий шаг — ревью основным разработчиком; его роль сохраняется.
@@ -151,6 +164,18 @@ ChatGPT — архитектор и независимая приёмка; Gemin
 - Устранена проблема зависания звонка при медленном ответе/обрыве сети: в `usePhoneCall.ts` добавлен `AbortSignal.timeout(20000)`. При задержке интерфейс выводит сообщение о задержке сети и немедленно разблокирует микрофон для повтора. В паспорте `docs/mechanics/stage-06-phone-call.md` зафиксирован пункт 4 правила P-01.
 - Исправлено методическое нарушение (R-07): в Уроке 1 из целей, подсказок и промпта убраны номер квартиры (`דירה 5`) и непройденный глагол `לָגוּר` (ученик отвечает строго изученным материалом: приветствие, самочувствие `הַכֹּל טוֹב` и имя `אֲנִי דָּוִד / שָׂרָה`). В Уроке 3 фраза `גר בדירה 4` заменена на тему городов урока: `גָּר בְּתֵל אָבִיב`.
 - Актуализированы тесты `tests/pilot-mechanics-01-05.test.cjs`. 152/152 тестов (`npm test`), `npm run typecheck` и `npm run audit:intent` полностью зелёные.
+
+**25.09.2026 — Релиз мультиканального конвейера Урока 69 (< 60с) и автопостинг (YouTube Shorts + Telegram):**
+- **Унификация видеопроизводства под строгий лимит < 60 секунд (R-25):**
+  1. В `growth/scripts/generate_tutorial_69_audio.mjs` и `record_tutorial_69_video.mjs` хронометраж полного обучающего разбора Урока 69 сокращён до **57.2 секунд** (запас 2.8с до строгого лимита YouTube Shorts, без спешки диктора, естественный темп иврита 0.95x–1.05x).
+  2. Заменён черновой плейсхолдер `TEST69` на боевой промокод **`ALEF69`** (в сценах `tutorial_lesson_69` и `ze_alay_lesson_69`, а также зарегистрирован в `src/lib/promoBundles.ts` как бессрочный доступ `bundle_all_free`).
+  3. Пересобраны видеофайлы: `public/demo/tutorial_lesson_69.mp4` (57.2 сек, 2.24 MB) и виральный скетч `public/demo/reels_lesson_69_ze_alay.mp4` (26.0 сек, 1.57 MB).
+- **Сквозная дистрибуция и прямая публикация:**
+  1. **YouTube Shorts:** Видео Урока 69 успешно опубликовано через YouTube Data API v3: `https://www.youtube.com/shorts/UwSOYvXJXB0` (ID: `UwSOYvXJXB0`).
+  2. **Telegram-канал `@ulpana_il`:** Видео Урока 69 с форматированным HTML-постом и инлайн-кнопкой отправлено ботом @Ulpinebot (Message ID: 13, `https://t.me/ulpana_il/13`).
+  3. **Пакет материалов для всех сетей:** Создан документ `growth/content/lesson_69_descriptions.md` со спецификацией текстов и ссылок под Instagram Reels, TikTok, YouTube Shorts, Telegram и Facebook.
+  4. **Реестр публикаций:** В `growth/data/publications.json` синхронизированы все записи с живыми ссылками.
+- **Проверки:** `npm run audit:intent` (100% Zero-Drift, 2535 элементов), `tests/decision-matrix-invariants.test.cjs` (19/19 passing).
 
 **21.09.2026 — Ликвидация аппаратного ускорения x2 в видео и пересборка 57с эталона Урока 7 (R-25):**
 - **Диагностика и устранение первопричины («чипманк-эффект» и спешка x2):**

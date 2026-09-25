@@ -10533,5 +10533,89 @@
     "modelFamily": "gemini-3.8",
     "status": "verified_gemini_3.8",
     "generatedAt": "2026-09-25T10:35:58.989Z"
+  },
+  "s_294ea1390fa0.mp3": {
+    "id": "tsv_female_739",
+    "sentenceHe": "הַמּוּצָר הַזֶּה זוֹל.",
+    "sentenceRu": "Этот товар дешёвый.",
+    "sentenceTranscription": "hа-муцáр hа-зэ золь.",
+    "gender": "female",
+    "voice": "Aoede",
+    "engine": "gemini-3.8-flash-lite-tts",
+    "modelFamily": "gemini-3.8",
+    "status": "verified_gemini_3.8",
+    "generatedAt": "2026-09-25T11:35:48.994Z"
+  },
+  "s_c9d5ed544268.mp3": {
+    "id": "tsv_female_740",
+    "sentenceHe": "עָמַדְתִּי בְּתוֹר לַקּוּפָּה.",
+    "sentenceRu": "Я стоял в очереди к кассе.",
+    "sentenceTranscription": "Амáдти бэ-тор ла-купá.",
+    "gender": "female",
+    "voice": "Aoede",
+    "engine": "gemini-3.1-flash-tts-preview",
+    "modelFamily": "gemini-3.1",
+    "status": "verified_gemini_3.1",
+    "generatedAt": "2026-09-25T11:36:00.799Z"
+  },
+  "s_0fc7baae6e27.mp3": {
+    "id": "tsv_female_741",
+    "sentenceHe": "הַקּוֹנֶה שָׁאַל שְׁאֵלָה.",
+    "sentenceRu": "Покупатель задал вопрос.",
+    "sentenceTranscription": "hа-конэ́ шааль шээлá.",
+    "gender": "female",
+    "voice": "Aoede",
+    "engine": "gemini-3.1-flash-tts-preview",
+    "modelFamily": "gemini-3.1",
+    "status": "verified_gemini_3.1",
+    "generatedAt": "2026-09-25T11:36:11.830Z"
+  },
+  "s_1fc827a1bd94.mp3": {
+    "id": "tsv_female_742",
+    "sentenceHe": "קִיבַּלְתִּי זִיכּוּי מֵהַחֲנוּת.",
+    "sentenceRu": "Я получил возврат средств из магазина.",
+    "sentenceTranscription": "Кибáлти зикýй мэ-hа-ханýт.",
+    "gender": "female",
+    "voice": "Aoede",
+    "engine": "gemini-3.8-flash-lite-tts",
+    "modelFamily": "gemini-3.8",
+    "status": "verified_gemini_3.8",
+    "generatedAt": "2026-09-25T12:35:48.355Z"
+  },
+  "s_0c7a963baab1.mp3": {
+    "id": "tsv_female_743",
+    "sentenceHe": "יֵשׁ לִי רַב קָו.",
+    "sentenceRu": "У меня есть Рав-Кав.",
+    "sentenceTranscription": "Йеш ли рав-кóв.",
+    "gender": "female",
+    "voice": "Aoede",
+    "engine": "gemini-3.8-flash-lite-tts",
+    "modelFamily": "gemini-3.8",
+    "status": "verified_gemini_3.8",
+    "generatedAt": "2026-09-25T12:35:59.606Z"
+  },
+  "s_e607bd74dda8.mp3": {
+    "id": "tsv_female_744",
+    "sentenceHe": "הָרַכֶּבֶת בָּאָה לָרָצִיף.",
+    "sentenceRu": "Поезд прибывает на перрон.",
+    "sentenceTranscription": "hа-ракэ́вет баá ла-рацӣф.",
+    "gender": "female",
+    "voice": "Aoede",
+    "engine": "gemini-3.8-flash-tts",
+    "modelFamily": "gemini-3.8",
+    "status": "verified_gemini_3.8",
+    "generatedAt": "2026-09-25T12:36:11.041Z"
+  },
+  "s_8b8b0ebd6565.mp3": {
+    "id": "tsv_female_745",
+    "sentenceHe": "רָאִיתִי אֶת לוּחַ הַזְּמַנִּים.",
+    "sentenceRu": "Я посмотрел расписание.",
+    "sentenceTranscription": "Раи́ти эт лýах hа-змани́м.",
+    "gender": "female",
+    "voice": "Aoede",
+    "engine": "gemini-3.8-flash-tts",
+    "modelFamily": "gemini-3.8",
+    "status": "verified_gemini_3.8",
+    "generatedAt": "2026-09-25T12:36:22.900Z"
   }
 }
