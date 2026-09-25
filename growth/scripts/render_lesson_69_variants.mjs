@@ -50,7 +50,7 @@ async function renderAllLesson69Variants() {
       '-loop', '1',
       '-t', '8',
       '-i', ctaPngPath,
-      '-filter_complex', '[1:v]scale=780:1688,format=yuva420p,fade=t=in:st=0:d=0.35:alpha=1[cta];[0:v][cta]overlay=0:0:enable=\'gte(t,49.4)\'[v]',
+      '-filter_complex', '[1:v]scale=390:844,format=yuva420p,fade=t=in:st=0:d=0.35:alpha=1[cta];[0:v][cta]overlay=0:0:enable=\'gte(t,49.4)\'[v]',
       '-map', '[v]',
       '-map', '0:a',
       '-c:v', 'libx264',
