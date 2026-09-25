@@ -18,6 +18,7 @@ test('essay evaluation outbound request separates present tense gender agreement
   const savedFetch = global.fetch;
   const savedGroq = process.env.GROQ_API_KEY;
   const savedGemini = process.env.GEMINI_API_KEY;
+  const savedGeminiPrimary = process.env.GEMINI_PRIMARY_API_KEY;
   const savedModel = process.env.GROQ_MODEL;
   const savedFallback = process.env.GROQ_FALLBACK_MODEL;
 
@@ -25,6 +26,7 @@ test('essay evaluation outbound request separates present tense gender agreement
   process.env.GROQ_MODEL = 'synthetic-model';
   process.env.GROQ_FALLBACK_MODEL = 'synthetic-model';
   delete process.env.GEMINI_API_KEY;
+  delete process.env.GEMINI_PRIMARY_API_KEY;
 
   try {
     const interceptedRequests = [];
@@ -166,6 +168,8 @@ test('essay evaluation outbound request separates present tense gender agreement
     else process.env.GROQ_API_KEY = savedGroq;
     if (savedGemini === undefined) delete process.env.GEMINI_API_KEY;
     else process.env.GEMINI_API_KEY = savedGemini;
+    if (savedGeminiPrimary === undefined) delete process.env.GEMINI_PRIMARY_API_KEY;
+    else process.env.GEMINI_PRIMARY_API_KEY = savedGeminiPrimary;
     if (savedModel === undefined) delete process.env.GROQ_MODEL;
     else process.env.GROQ_MODEL = savedModel;
     if (savedFallback === undefined) delete process.env.GROQ_FALLBACK_MODEL;
@@ -178,9 +182,11 @@ test('essay evaluation parses valid synthetic provider response and preserves au
   const savedFetch = global.fetch;
   const savedGroq = process.env.GROQ_API_KEY;
   const savedGemini = process.env.GEMINI_API_KEY;
+  const savedGeminiPrimary = process.env.GEMINI_PRIMARY_API_KEY;
 
   process.env.GROQ_API_KEY = 'synthetic-groq-key';
   delete process.env.GEMINI_API_KEY;
+  delete process.env.GEMINI_PRIMARY_API_KEY;
 
   const mockModelOutput = {
     score: 92,
@@ -237,7 +243,7 @@ test('essay evaluation parses valid synthetic provider response and preserves au
 
     const payload = {
       lessonId: 1,
-      userEssay: 'שלום, אני גרה בתל אביב. אתמול אני גרתי ביроשלים.',
+      userEssay: 'שלום, אני גרה בתל אביב. אתמול אני גרתי בירושלים.',
       userGender: 'female',
     };
 
@@ -258,6 +264,8 @@ test('essay evaluation parses valid synthetic provider response and preserves au
     else process.env.GROQ_API_KEY = savedGroq;
     if (savedGemini === undefined) delete process.env.GEMINI_API_KEY;
     else process.env.GEMINI_API_KEY = savedGemini;
+    if (savedGeminiPrimary === undefined) delete process.env.GEMINI_PRIMARY_API_KEY;
+    else process.env.GEMINI_PRIMARY_API_KEY = savedGeminiPrimary;
   }
 });
 

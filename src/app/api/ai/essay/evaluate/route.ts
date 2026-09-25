@@ -160,10 +160,12 @@ function detectHebrewSpellingErrors(
     if (VALID_PROPER_NAMES_AND_PARTICLES.has(userWord)) continue;
     if (cleanTargets.some((target) => target.clean === userWord)) continue;
 
-    // Пропуск имен с предлогами (бирушалаим, леданиэль и т.д.)
-    if (userWord.length >= 4 && ['ב', 'ל', 'מ', 'ו', 'כ', 'ש'].includes(userWord[0])) {
+    // Пропуск имен и слов с предлогами (бирушалаим, בתל, מהבית и т.д.)
+    if (userWord.length >= 3 && ['ב', 'ל', 'מ', 'ו', 'כ', 'ש'].includes(userWord[0])) {
       const base = userWord.slice(1);
-      if (VALID_PROPER_NAMES_AND_PARTICLES.has(base)) continue;
+      if (VALID_PROPER_NAMES_AND_PARTICLES.has(base) || cleanTargets.some((t) => t.clean === base) || lookupOfflineWord(base)) {
+        continue;
+      }
     }
 
     // Проверка в оффлайн-словаре Ульпана: если слово существует в языке, ошибки нет
@@ -178,14 +180,15 @@ function detectHebrewSpellingErrors(
       const substituteT = userWord.replace(/ת/g, 'ט');
       const substituteTet = userWord.replace(/ט/g, 'ת');
       const substituteS = userWord.replace(/ס/g, 'ש');
+      const isEndHeToAlef = userWord.endsWith('א') && target.clean.endsWith('ה') && userWord.slice(0, -1) === target.clean.slice(0, -1);
 
-      const dist = levenshteinDistance(userWord, target.clean);
       const isPhoneticConfusion =
         substituteT === target.clean ||
         substituteTet === target.clean ||
         substituteS === target.clean ||
-        (dist === 1 && Math.abs(userWord.length - target.clean.length) <= 1);
+        isEndHeToAlef;
 
+      const dist = levenshteinDistance(userWord, target.clean);
       if (isPhoneticConfusion && dist > 0 && dist <= 2) {
         let reason = `Похоже на опечатку в слове «${target.original}» (${target.translation}).`;
         if (userWord.includes('ת') && target.clean.includes('ט')) {
@@ -759,14 +762,17 @@ ${detectedGrammar.length > 0 ? `ПРЕДВАРИТЕЛЬНЫЙ ДЕТЕКТОР 
       if (initialCorrectedHebrew) {
         const userWords = trimmedEssay.split(/[\s,.;:!?«»"()־-]+/).map(w => stripNikkud(w).trim()).filter(w => w.length >= 2);
         const correctedWords = stripNikkud(initialCorrectedHebrew).split(/[\s,.;:!?«»"()־-]+/).map(w => w.trim()).filter(w => w.length >= 2);
+        const correctedSet = new Set(correctedWords);
+        const userSet = new Set(userWords);
 
         for (const uWord of userWords) {
+          if (correctedSet.has(uWord)) continue; // Слово есть в эталоне - это точно не ошибка!
           if (VALID_PROPER_NAMES_AND_PARTICLES.has(uWord)) continue;
           if (lookupOfflineWord(uWord)) continue;
           if (rawSpellingItems.some(it => stripNikkud(it.wrongWord) === uWord)) continue;
 
           for (const cWord of correctedWords) {
-            if (cWord === uWord) continue;
+            if (userSet.has(cWord)) continue; // cWord уже был в тексте ученика
             const dist = levenshteinDistance(uWord, cWord);
             if (dist >= 1 && dist <= 2) {
               rawSpellingItems.push({
