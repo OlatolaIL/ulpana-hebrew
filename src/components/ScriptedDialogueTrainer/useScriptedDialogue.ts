@@ -20,6 +20,10 @@ import {
   HebrewSpeechRecognizer,
 } from '@/lib/speech';
 import {
+  playDialogueTurnAudio,
+  stopDialogueAudio,
+} from '@/lib/dialogueAudio';
+import {
   markLessonTabCompleted,
   addWordToPersonalDict,
   loadUserProfile,
@@ -276,7 +280,7 @@ export function useScriptedDialogue({
   useEffect(() => {
     return () => {
       isCancelledRef.current = true;
-      stopSpeech();
+      stopDialogueAudio();
       if (recognizerRef.current) {
         recognizerRef.current.stop();
       }
@@ -302,14 +306,22 @@ export function useScriptedDialogue({
     return getDialogueTurnVariant(turn, speakerGen, listenerGen);
   };
 
-  // Озвучивание конкретной реплики
+  // Озвучивание конкретной реплики (3-уровневый каскад: Gemini -> Edge Neural -> Web Speech)
   const handlePlayTurn = (turn: ScriptedDialogueTurn) => {
-    stopSpeech();
+    stopDialogueAudio();
     const variant = getTurnText(turn);
     const isSpeakerFemale = turn.speaker === userRoleSide ? userGender === 'female' : opponentGender === 'female';
-    speakHebrew(variant.hebrew, {
-      rate: speechRate,
-      pitch: isSpeakerFemale ? 1.1 : 0.95,
+    const isTurnUser = turn.speaker === userRoleSide;
+    const speakerGender = isSpeakerFemale ? 'female' : 'male';
+    const listenerGender = isTurnUser ? opponentGender : userGender;
+
+    playDialogueTurnAudio({
+      lessonId: lesson.id,
+      turnId: turn.id,
+      speakerGender,
+      listenerGender,
+      text: variant.hebrew,
+      speechRate,
     });
   };
 
@@ -319,7 +331,7 @@ export function useScriptedDialogue({
       isCancelledRef.current = true;
       setIsPlayingAll(false);
       setActiveListeningTurnIndex(null);
-      stopSpeech();
+      stopDialogueAudio();
       return;
     }
 
@@ -339,10 +351,17 @@ export function useScriptedDialogue({
 
       const variant = getTurnText(turn);
       const isFemale = turn.speaker === userRoleSide ? userGender === 'female' : opponentGender === 'female';
+      const isTurnUser = turn.speaker === userRoleSide;
+      const speakerGender = isFemale ? 'female' : 'male';
+      const listenerGender = isTurnUser ? opponentGender : userGender;
 
-      await speakHebrew(variant.hebrew, {
-        rate: speechRate,
-        pitch: isFemale ? 1.1 : 0.95,
+      await playDialogueTurnAudio({
+        lessonId: lesson.id,
+        turnId: turn.id,
+        speakerGender,
+        listenerGender,
+        text: variant.hebrew,
+        speechRate,
       });
 
       // Пауза между репликами
@@ -360,7 +379,7 @@ export function useScriptedDialogue({
     practiceSessionRef.current += 1;
     evaluationControllerRef.current?.abort();
     acceptedTurnsRef.current = {};
-    stopSpeech();
+    stopDialogueAudio();
     isCancelledRef.current = true;
     setIsPlayingAll(false);
     setUserRoleSide(chosenRole);
@@ -480,9 +499,17 @@ export function useScriptedDialogue({
 
       let active = true;
       const timer = setTimeout(async () => {
-        await speakHebrew(variant.hebrew, {
-          rate: speechRate,
-          pitch: isFemale ? 1.1 : 0.95,
+        const isTurnUser = currentTurn.speaker === userRoleSide;
+        const speakerGender = isFemale ? 'female' : 'male';
+        const listenerGender = isTurnUser ? opponentGender : userGender;
+
+        await playDialogueTurnAudio({
+          lessonId: lesson.id,
+          turnId: currentTurn.id,
+          speakerGender,
+          listenerGender,
+          text: variant.hebrew,
+          speechRate,
         });
         if (!active) return;
         setIsOpponentSpeaking(false);
@@ -490,7 +517,7 @@ export function useScriptedDialogue({
         setPracticeTurnIndex((prev) => prev + 1);
       }, 600);
 
-      return () => { active = false; clearTimeout(timer); stopSpeech(); };
+      return () => { active = false; clearTimeout(timer); stopDialogueAudio(); };
     }
   }, [mode, practiceTurnIndex, userRoleSide, dialogue.turns, opponentGender, speechRate]);
 

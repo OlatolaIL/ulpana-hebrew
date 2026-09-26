@@ -778,6 +778,37 @@ useEffect(() => {
    - `npm run audit:intent`: 100% Zero-Drift (2535 / 2535).
    - `npm run build`: 46/46 routes compiled, 0 errors.
 
+---
+
+### Архитектура: 3-уровневый каскад аудио диалогов (3-Tier Audio Cascade, 26 сентября 2026)
+
+**Задача:**
+Перевести озвучку диалогов (Этап 5) с капризного и плоского браузерного Web Speech API на отказоустойчивый студийный 3-уровневый каскад с мужскими и женскими голосами и выраженной вопросительной интонацией:
+1. **Tier 1 (Gemini Studio Audio):** чистовой золотой стандарт максимального качества (по мере верификации файлов).
+2. **Tier 2 (Microsoft Neural TTS):** предзаписанные MP3-файлы на базе `he-IL-AvriNeural` (мужской) и `he-IL-HilaNeural` (женский) с естественными паузами и вопросительным подъёмом тона.
+3. **Tier 3 (Web Speech API устройства):** отказоустойчивая подушка безопасности на клиенте при отсутствии интернета или сетевых ошибках.
+
+**Что сделано и проверено:**
+1. **Модуль каскада (`src/lib/dialogueAudio.ts`):**
+   - Реализована функция `playDialogueTurnAudio(options)` с загрузкой манифеста `/audio/dialogues/manifest.json`.
+   - Поддержка таймаута безопасности (Watchdog на 4 секунды) для защиты от подвисания медленной сети.
+   - Бесшовный аварийный фолбэк на `speakHebrew()` при ошибке 404 или сбое воспроизведения.
+   - Реализована функция `stopDialogueAudio()` для мгновенной остановки HTML5-аудио и Web Speech API.
+2. **Интеграция в тренажёр (`src/components/ScriptedDialogueTrainer/useScriptedDialogue.ts`):**
+   - Точечное одиночное прослушивание реплики (`handlePlayTurn`), непрерывное воспроизведение всего диалога (`handleTogglePlayAll`) и автоматические реплики оппонента в ролевой практике переведены на `playDialogueTurnAudio`.
+   - Полное разделение голосов по полу говорящего (`speakerGender`) и слушающего (`listenerGender`).
+3. **Пакетная генерация базы реплик (`scripts/generate_dialogue_audio.cjs`):**
+   - Сгенерированы 248 файлов реплик Уроков 1–10 для всех 4 комбинаций (`mm`, `mf`, `fm`, `ff`) в `public/audio/dialogues/`.
+   - Внедрён защитный WebSocket watchdog (8с таймаут на реплику) для надёжного пакетного синтеза.
+   - Создан и синхронизирован `public/audio/dialogues/manifest.json` (248 записей).
+4. **Верификация и тесты:**
+   - Новый тест `tests/dialogue-audio-cascade.test.cjs`: 3/3 PASS (детерминированные ключи, физическое наличие 248 MP3 на диске, интеграция хука).
+   - Все тесты: 352 / 352 passed (0 failed).
+   - Invariants test `tests/decision-matrix-invariants.test.cjs`: 14 / 14 passed.
+   - Intent audit `npm run audit:intent`: 100% Zero-Drift (2535 / 2535 ComplexDrills).
+   - Сборка `npm run build`: 46 / 46 страниц скомпилированы без единой ошибки.
+
+
 
 
 
