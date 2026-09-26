@@ -1,0 +1,19 @@
+# Automated and marketing generation (Rule R-23)
+growth/
+
+# Offline reports, state and tracking
+project-control/
+docs/
+logs/
+.agents/
+
+# Testing suites
+tests/
+
+# Maintenance and data generation scripts
+scripts/
+
+# Heavy local demo files
+public/demo/*.mp4
+public/demo/*.webm
+public/demo/*.wav
