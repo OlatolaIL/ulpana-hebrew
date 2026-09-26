@@ -9,6 +9,7 @@ import { PEALIM_MASTER_LEXICON } from './ulpanDictionary';
 
 let preferredHebrewVoice: SpeechSynthesisVoice | null = null;
 let activeUtterance: SpeechSynthesisUtterance | null = null;
+let activeUtterances: SpeechSynthesisUtterance[] = [];
 let speechSafetyTimer: any = null;
 let activeFallbackAudio: HTMLAudioElement | null = null;
 let activeStudioAudio: HTMLAudioElement | null = null;
@@ -138,8 +139,11 @@ export function cleanHebrewForSpeech(text: string): string {
     .replace(/[！]/g, '!')
     // Удаляем любые комментарии и переводы в круглых скобках, например "(одна выпечка)", "(кáма зэ олé? — м.р.)"
     .replace(/\([^)]*\)/g, ' ')
-    // Удаляем кавычки, скобки и стрелки
-    .replace(/["'«»[\]{}()<>→]/g, ' ')
+    // Удаляем скобки и стрелки
+    .replace(/[«»[\]{}()<>→]/g, ' ')
+    // Удаляем кавычки и апострофы ТОЛЬКО если они не находятся внутри ивритского слова
+    // Внутренние гершаим (ארה"ב, צה"ל) и гереш (צ'יפס, ג'וק) сохраняем для естественного синтеза
+    .replace(/(?<![\u0590-\u05FF])["'״׳]|["'״׳](?![\u0590-\u05FF])/g, ' ')
     // Заменяем цифры 0-10 на ивритские числительные (женский род: номера квартир, домов, даты),
     // чтобы синтезатор речи произносил их, а не пропускал
     .replace(/(^|[^\d])(10|[0-9])(?=[^\d]|$)/g, (_m, p1, d) => {
@@ -158,18 +162,45 @@ export function cleanHebrewForSpeech(text: string): string {
       };
       return `${p1} ${digitsMap[d] || d} `;
     })
-    // Сохраняем символы иврита (\u0590-\u05FF), дефис, пробелы и ЗНАКИ ПРЕПИНАНИЯ (.,!?:;)
+    // Сохраняем символы иврита (\u0590-\u05FF), внутренние кавычки/апострофы, дефис, пробелы и ЗНАКИ ПРЕПИНАНИЯ (.,!?:;)
     // чтобы голосовой движок выдерживал паузы между предложениями и делал вопросительную интонацию
-    .replace(/[^\u0590-\u05FF\s.,!?:;-]/g, ' ')
+    .replace(/[^\u0590-\u05FF"'״׳\s.,!?:;-]/g, ' ')
     // Удаляем лишние разделители
     .replace(/[—–_\\|•]/g, ' ')
     .replace(/\s+/g, ' ')
     // Нормализуем пробелы перед и после знаков препинания
     .replace(/\s+([.,!?:;])/g, '$1')
     .replace(/([.,!?:;])(?=[\u0590-\u05FF])/g, '$1 ')
+    // Схлопываем повторяющиеся знаки вопроса или восклицания
+    .replace(/\?+/g, '?')
+    .replace(/!+/g, '!')
     .trim();
 
   return fixHebrewPhonetics(res);
+}
+
+export interface HebrewSpeechSegment {
+  text: string;
+  isQuestion: boolean;
+}
+
+/**
+ * Разбивает высказывание на сегменты предложений для естественной дифференциации
+ * повествовательной и вопросительной интонаций (восходящий тон на вопросах).
+ */
+export function splitHebrewSpeechSegments(text: string): HebrewSpeechSegment[] {
+  if (!text) return [];
+  const matches = text.match(/[^.!?]+(?:[.!?]+|$)/g);
+  if (!matches || matches.length <= 1) {
+    return [{ text, isQuestion: text.includes('?') }];
+  }
+  return matches
+    .map((m) => m.trim())
+    .filter(Boolean)
+    .map((m) => ({
+      text: m,
+      isQuestion: m.includes('?'),
+    }));
 }
 
 /**
@@ -530,6 +561,14 @@ export function speakHebrew(
       speechSafetyTimer = null;
     }
 
+    if (activeUtterances.length > 0) {
+      for (const u of activeUtterances) {
+        u.onend = null;
+        u.onerror = null;
+      }
+      activeUtterances = [];
+    }
+
     if (activeUtterance) {
       activeUtterance.onend = null;
       activeUtterance.onerror = null;
@@ -594,6 +633,13 @@ export function speakHebrew(
       const finish = () => {
         if (!isFinished) {
           isFinished = true;
+          if (activeUtterances.length > 0) {
+            for (const u of activeUtterances) {
+              u.onend = null;
+              u.onerror = null;
+            }
+            activeUtterances = [];
+          }
           activeUtterance = null;
           if (speechSafetyTimer) {
             clearTimeout(speechSafetyTimer);
@@ -604,17 +650,7 @@ export function speakHebrew(
       };
 
       try {
-        const isQuestion = speechText.includes('?');
-        const utterance = new SpeechSynthesisUtterance(speechText);
-        activeUtterance = utterance;
-        utterance.lang = 'he-IL';
-        // Для вопросов темп не должен быть чрезмерно замедленным (>=0.78), чтобы не размывать восходящий тон
-        utterance.rate = isQuestion ? Math.max(rate, 0.78) : rate;
-        const defaultPitch = options.gender === 'male' ? 0.85 : (options.gender === 'female' ? 1.05 : 1.0);
-        // Для вопросов слегка повышаем питч (+12%), создавая естественный вопросительный контур в браузере
-        const questionPitchBonus = isQuestion ? 0.12 : 0;
-        utterance.pitch = options.pitch ?? Math.min(1.4, defaultPitch + questionPitchBonus);
-
+        const segments = splitHebrewSpeechSegments(speechText);
         const voices = window.speechSynthesis.getVoices();
         const heVoices = voices.filter(
           (voice) => voice.lang === 'he-IL' || voice.lang === 'he' || (voice.lang && voice.lang.toLowerCase().startsWith('he'))
@@ -627,38 +663,62 @@ export function speakHebrew(
           matchedVoice = heVoices.find((v) => /hila|sara|carmit|female|אישה/i.test(v.name)) || null;
         }
 
-        if (matchedVoice) {
-          utterance.voice = matchedVoice;
-        } else if (preferredHebrewVoice) {
-          utterance.voice = preferredHebrewVoice;
-        } else if (heVoices.length > 0) {
-          utterance.voice = heVoices[0];
-        }
+        const selectedVoice = matchedVoice || preferredHebrewVoice || (heVoices.length > 0 ? heVoices[0] : null);
 
-        utterance.onend = () => {
-          if (speechSafetyTimer) {
-            clearTimeout(speechSafetyTimer);
-            speechSafetyTimer = null;
-          }
-          finish();
-        };
+        const defaultPitch = options.gender === 'male' ? 0.85 : (options.gender === 'female' ? 1.05 : 1.0);
+        const basePitch = options.pitch ?? defaultPitch;
+        // Для вопросов повышаем питч (+18%) и темп (>=0.82), создавая естественный вопросительный контур в браузере
+        const questionPitchBonus = 0.18;
 
-        utterance.onerror = (e) => {
-          if (speechSafetyTimer) {
-            clearTimeout(speechSafetyTimer);
-            speechSafetyTimer = null;
+        const utterances: SpeechSynthesisUtterance[] = segments.map((seg) => {
+          const u = new SpeechSynthesisUtterance(seg.text);
+          u.lang = 'he-IL';
+          if (selectedVoice) {
+            u.voice = selectedVoice;
           }
-          // Если воспроизведение было отменено пользователем или кодом — НЕ запускаем фолбэк повторно!
-          if (e.error === 'canceled' || e.error === 'interrupted') {
-            finish();
-            return;
-          }
-          if (e.error === 'not-allowed') {
-            notifyAudioBlocked('tts_not_allowed');
-          }
-          console.warn('Browser TTS error, using audio fallback:', e);
-          playFallbackAudio(speechText, rate).then(() => finish());
-        };
+          const isQuestion = seg.isQuestion;
+          // Для вопросов темп не должен быть чрезмерно замедленным (>=0.82), чтобы не размывать восходящий тон
+          u.rate = isQuestion ? Math.max(rate, 0.82) : rate;
+          const appliedBonus = isQuestion ? questionPitchBonus : 0;
+          u.pitch = Math.min(1.45, Math.max(0.6, basePitch + appliedBonus));
+          return u;
+        });
+
+        activeUtterances = utterances;
+        activeUtterance = utterances[utterances.length - 1];
+
+        let completedCount = 0;
+        const totalUtterances = utterances.length;
+
+        utterances.forEach((u) => {
+          u.onend = () => {
+            completedCount++;
+            if (completedCount >= totalUtterances) {
+              if (speechSafetyTimer) {
+                clearTimeout(speechSafetyTimer);
+                speechSafetyTimer = null;
+              }
+              finish();
+            }
+          };
+
+          u.onerror = (e) => {
+            if (speechSafetyTimer) {
+              clearTimeout(speechSafetyTimer);
+              speechSafetyTimer = null;
+            }
+            // Если воспроизведение было отменено пользователем или кодом — НЕ запускаем фолбэк повторно!
+            if (e.error === 'canceled' || e.error === 'interrupted') {
+              finish();
+              return;
+            }
+            if (e.error === 'not-allowed') {
+              notifyAudioBlocked('tts_not_allowed');
+            }
+            console.warn('Browser TTS error, using audio fallback:', e);
+            playFallbackAudio(speechText, rate).then(() => finish());
+          };
+        });
 
         // Защитный таймаут: если speechSynthesis завис (частый баг Chrome/iOS) — один раз переключаемся на audio
         const maxDurationMs = Math.max(3500, speechText.length * 200 + 2000);
@@ -666,11 +726,14 @@ export function speakHebrew(
           if (!isFinished) {
             isFinished = true;
             speechSafetyTimer = null;
-            if (activeUtterance) {
-              activeUtterance.onend = null;
-              activeUtterance.onerror = null;
-              activeUtterance = null;
+            if (activeUtterances.length > 0) {
+              for (const u of activeUtterances) {
+                u.onend = null;
+                u.onerror = null;
+              }
+              activeUtterances = [];
             }
+            activeUtterance = null;
             try {
               window.speechSynthesis.cancel();
             } catch {}
@@ -682,7 +745,9 @@ export function speakHebrew(
         // Никаких setTimeout(..., 15)! Мобильные браузеры (iOS Safari / Android Chrome) требуют
         // воспроизведения звука строго внутри пользовательского жеста (User Activation).
         try {
-          window.speechSynthesis.speak(utterance);
+          for (const u of utterances) {
+            window.speechSynthesis.speak(u);
+          }
           if (window.speechSynthesis.paused) {
             window.speechSynthesis.resume();
           }
@@ -810,6 +875,13 @@ export function stopSpeech(): void {
     if (speechSafetyTimer) {
       clearTimeout(speechSafetyTimer);
       speechSafetyTimer = null;
+    }
+    if (activeUtterances.length > 0) {
+      for (const u of activeUtterances) {
+        u.onend = null;
+        u.onerror = null;
+      }
+      activeUtterances = [];
     }
     if (activeUtterance) {
       activeUtterance.onend = null;

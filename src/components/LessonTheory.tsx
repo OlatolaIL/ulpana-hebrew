@@ -221,15 +221,19 @@ function renderStructuredExplanation(
       const isPlural = /множ/i.test(category);
 
       // Извлекаем пары пример-перевод
-      // Регулярка ищет ивритские слова и последующий русский перевод в скобках
+      // Регулярка ищет ивритские слова (включая аббревиатуры с гершайим " / ״ и апострофы ' / ׳)
+      // и последующий русский перевод в скобках
       const exampleItems: Array<{ hebrew: string; translation: string }> = [];
-      const itemRegex = /([\u0590-\u05FF]+(?:\s+[\u0590-\u05FF]+)*)\s*(?:\(([^)]+)\))?/g;
+      const itemRegex = /([\u0590-\u05FF"״'׳\-־]+(?:\s+[\u0590-\u05FF"״'׳\-־]+)*)\s*(?:\(([^)]+)\))?/g;
       let match;
       while ((match = itemRegex.exec(examplesRaw)) !== null) {
-        exampleItems.push({
-          hebrew: match[1].trim(),
-          translation: match[2] ? match[2].trim() : '',
-        });
+        const rawHebrew = match[1].replace(/^[,\s]+|[,\s]+$/g, '').trim();
+        if (rawHebrew) {
+          exampleItems.push({
+            hebrew: rawHebrew,
+            translation: match[2] ? match[2].trim() : '',
+          });
+        }
       }
 
       renderedElements.push(

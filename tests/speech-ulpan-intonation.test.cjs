@@ -84,4 +84,37 @@ test('Phonetic Safeguard: cleanHebrewForSpeech ensures dagesh in pe for ulpan fo
     speechSource.includes('questionPitchBonus'),
     'speakHebrew must apply questionPitchBonus for interrogative prosody'
   );
+  assert.ok(
+    speechSource.includes('splitHebrewSpeechSegments'),
+    'speech.ts must export splitHebrewSpeechSegments to contrast declarative and interrogative segments'
+  );
 });
+
+test('Dialogue Prosody: splitHebrewSpeechSegments correctly segments multi-sentence turns and isolates questions', () => {
+  const { splitHebrewSpeechSegments, cleanHebrewForSpeech } = require(path.join(repoRoot, 'src/lib/speech.ts'));
+
+  const turnText = 'שָׁלוֹם! בּוֹקֶר טוֹב. אֲנִי נוֹעַם. אֵיךְ קוֹרְאִים לְךָ?';
+  const cleaned = cleanHebrewForSpeech(turnText);
+  const segments = splitHebrewSpeechSegments(cleaned);
+
+  assert.equal(segments.length, 4, 'Multi-sentence turn should be split into 4 segments');
+  assert.equal(segments[0].isQuestion, false, 'Greeting segment should not be a question');
+  assert.equal(segments[1].isQuestion, false, 'Statement segment should not be a question');
+  assert.equal(segments[2].isQuestion, false, 'Self-intro segment should not be a question');
+  assert.equal(segments[3].isQuestion, true, 'Interrogative clause should be marked as question');
+  assert.ok(segments[3].text.includes('?'), 'Interrogative clause must contain question mark');
+
+  // Single question turn
+  const singleQ = 'מָה נִשְׁמַע?';
+  const singleSegs = splitHebrewSpeechSegments(cleanHebrewForSpeech(singleQ));
+  assert.equal(singleSegs.length, 1);
+  assert.equal(singleSegs[0].isQuestion, true);
+
+  // Question followed by question
+  const doubleQ = 'שָׁלוֹם, מָה נִשְׁמַע? הַכֹּל בְּסֵדֶר?';
+  const doubleSegs = splitHebrewSpeechSegments(cleanHebrewForSpeech(doubleQ));
+  assert.equal(doubleSegs.length, 2);
+  assert.equal(doubleSegs[0].isQuestion, true);
+  assert.equal(doubleSegs[1].isQuestion, true);
+});
+
