@@ -667,8 +667,8 @@ export function speakHebrew(
 
         const defaultPitch = options.gender === 'male' ? 0.85 : (options.gender === 'female' ? 1.05 : 1.0);
         const basePitch = options.pitch ?? defaultPitch;
-        // Для вопросов повышаем питч (+18%) и темп (>=0.82), создавая естественный вопросительный контур в браузере
-        const questionPitchBonus = 0.18;
+        // Тональность (pitch) сохраняется стабильной для всех сегментов фразы, без скачков регистра
+        const questionPitchBonus = 0;
 
         const utterances: SpeechSynthesisUtterance[] = segments.map((seg) => {
           const u = new SpeechSynthesisUtterance(seg.text);
@@ -677,7 +677,6 @@ export function speakHebrew(
             u.voice = selectedVoice;
           }
           const isQuestion = seg.isQuestion;
-          // Для вопросов темп не должен быть чрезмерно замедленным (>=0.82), чтобы не размывать восходящий тон
           u.rate = isQuestion ? Math.max(rate, 0.82) : rate;
           const appliedBonus = isQuestion ? questionPitchBonus : 0;
           u.pitch = Math.min(1.45, Math.max(0.6, basePitch + appliedBonus));

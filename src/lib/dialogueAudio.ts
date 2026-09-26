@@ -128,11 +128,13 @@ export async function playDialogueTurnAudio(options: PlayDialogueTurnAudioOption
         audio.playbackRate = Math.min(1.25, Math.max(0.7, speechRate));
       } catch {}
 
-      // Защитный таймаут: если сеть подвисла, не блокируем интерфейс ученика более 4 секунд
-      const safetyWatchdog = setTimeout(() => {
+      // Защитный таймаут на СТАРТ воспроизведения (загрузка файла из сети / разблокировка аудио)
+      let playbackMaxWatchdog: ReturnType<typeof setTimeout> | null = null;
+
+      const loadWatchdog = setTimeout(() => {
         if (!isSettled) {
           isSettled = true;
-          console.warn(`[DialogueAudio] Playback watchdog timed out for ${key}, falling back to Tier 3 TTS`);
+          console.warn(`[DialogueAudio] Audio load timed out for ${key}, falling back to Tier 3 TTS`);
           try {
             audio.pause();
             audio.src = '';
@@ -140,12 +142,30 @@ export async function playDialogueTurnAudio(options: PlayDialogueTurnAudioOption
           if (activeDialogueAudio === audio) activeDialogueAudio = null;
           resolve(false);
         }
-      }, 4000);
+      }, 5000);
+
+      audio.onplay = () => {
+        // Аудио успешно начало играть — сбрасываем таймаут загрузки!
+        clearTimeout(loadWatchdog);
+        // Устанавливаем щедрый предохранитель на максимальную длину реплики (до 30 сек)
+        playbackMaxWatchdog = setTimeout(() => {
+          if (!isSettled) {
+            isSettled = true;
+            try {
+              audio.pause();
+              audio.src = '';
+            } catch {}
+            if (activeDialogueAudio === audio) activeDialogueAudio = null;
+            resolve(true);
+          }
+        }, 30000);
+      };
 
       audio.onended = () => {
         if (!isSettled) {
           isSettled = true;
-          clearTimeout(safetyWatchdog);
+          clearTimeout(loadWatchdog);
+          if (playbackMaxWatchdog) clearTimeout(playbackMaxWatchdog);
           if (activeDialogueAudio === audio) activeDialogueAudio = null;
           resolve(true);
         }
@@ -154,7 +174,8 @@ export async function playDialogueTurnAudio(options: PlayDialogueTurnAudioOption
       audio.onerror = (e) => {
         if (!isSettled) {
           isSettled = true;
-          clearTimeout(safetyWatchdog);
+          clearTimeout(loadWatchdog);
+          if (playbackMaxWatchdog) clearTimeout(playbackMaxWatchdog);
           console.warn(`[DialogueAudio] Audio playback error for ${key} (${audioUrl}), falling back to Tier 3 TTS`, e);
           if (activeDialogueAudio === audio) activeDialogueAudio = null;
           resolve(false);
@@ -164,7 +185,8 @@ export async function playDialogueTurnAudio(options: PlayDialogueTurnAudioOption
       audio.play().catch((playErr) => {
         if (!isSettled) {
           isSettled = true;
-          clearTimeout(safetyWatchdog);
+          clearTimeout(loadWatchdog);
+          if (playbackMaxWatchdog) clearTimeout(playbackMaxWatchdog);
           console.warn(`[DialogueAudio] audio.play() rejected for ${key}:`, playErr);
           if (activeDialogueAudio === audio) activeDialogueAudio = null;
           resolve(false);
