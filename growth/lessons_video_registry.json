@@ -125,6 +125,14 @@
               "resolution": "780x1688",
               "fileSizeBytes": 8508787,
               "generatedAt": "2026-09-27T08:09:30.954Z"
+            },
+            "FB": {
+              "path": "public/demo/lessons/lesson_01_spicy_facebook_reels.mp4",
+              "promoCode": "FB",
+              "durationSec": 31.5,
+              "resolution": "780x1688",
+              "fileSizeBytes": 8478472,
+              "generatedAt": "2026-09-27T08:10:38.893Z"
             }
           }
         }
