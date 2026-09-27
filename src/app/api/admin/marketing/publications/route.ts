@@ -3,7 +3,6 @@ import { verifyAdminRequest } from '@/lib/adminAuth';
 import { getDbPool, initDatabase } from '@/lib/db';
 import fs from 'fs';
 import path from 'path';
-import publicationsSeedJson from '../../../../../../growth/data/publications.json';
 
 export interface PublicationItem {
   id: string;
@@ -37,10 +36,7 @@ async function seedFromFile(db: ReturnType<typeof getDbPool>) {
       items = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
     }
   } catch {
-    // Continue to fallback
-  }
-  if (!items || !items.length) {
-    items = (publicationsSeedJson as unknown as PublicationItem[]) || [];
+    return; // No seed file available
   }
   if (!items.length) return;
 
@@ -108,9 +104,6 @@ export async function GET(req: NextRequest) {
         }
       } catch (e) {
         console.error('[API Admin Marketing Publications GET] Fallback read error:', e);
-      }
-      if (!fallbackItems || !fallbackItems.length) {
-        fallbackItems = (publicationsSeedJson as unknown as PublicationItem[]) || [];
       }
       return NextResponse.json({ publications: fallbackItems });
     }

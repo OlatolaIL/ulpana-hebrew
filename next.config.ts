@@ -23,6 +23,9 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+  outputFileTracingIncludes: {
+    '/api/admin/marketing/publications': ['./growth/data/publications.json'],
+  },
   // Optional build mode for environments which cannot fork worker processes.
   ...(process.env.ULPANA_THREADED_BUILD === '1' ? {
     experimental: { webpackBuildWorker: false, workerThreads: true, cpus: 2, useTypeScriptCli: false },
