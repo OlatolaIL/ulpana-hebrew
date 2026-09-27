@@ -191,42 +191,42 @@
             "YT": {
               "path": "public/demo/lessons/lesson_02_spicy_youtube_shorts.mp4",
               "promoCode": "YT",
-              "durationSec": 30.9,
+              "durationSec": 32,
               "resolution": "780x1688",
-              "fileSizeBytes": 2864432,
-              "generatedAt": "2026-09-27T14:33:56.018Z"
+              "fileSizeBytes": 2869872,
+              "generatedAt": "2026-09-27T19:37:27.409Z"
             },
             "TG": {
               "path": "public/demo/lessons/lesson_02_spicy_telegram.mp4",
               "promoCode": "TG",
-              "durationSec": 28.1,
+              "durationSec": 32,
               "resolution": "780x1688",
-              "fileSizeBytes": 2709598,
-              "generatedAt": "2026-09-27T14:34:31.998Z"
+              "fileSizeBytes": 3114640,
+              "generatedAt": "2026-09-27T19:38:10.662Z"
             },
             "INSTA": {
               "path": "public/demo/lessons/lesson_02_spicy_instagram_reels.mp4",
               "promoCode": "INSTA",
-              "durationSec": 33,
+              "durationSec": 32,
               "resolution": "780x1688",
-              "fileSizeBytes": 3313267,
-              "generatedAt": "2026-09-27T14:35:13.666Z"
+              "fileSizeBytes": 3208486,
+              "generatedAt": "2026-09-27T19:38:53.554Z"
             },
             "TIKTOK": {
               "path": "public/demo/lessons/lesson_02_spicy_tiktok.mp4",
               "promoCode": "TIKTOK",
-              "durationSec": 28.1,
+              "durationSec": 32,
               "resolution": "780x1688",
-              "fileSizeBytes": 2701255,
-              "generatedAt": "2026-09-27T14:35:49.722Z"
+              "fileSizeBytes": 2981318,
+              "generatedAt": "2026-09-27T19:39:36.639Z"
             },
             "FB": {
               "path": "public/demo/lessons/lesson_02_spicy_facebook_reels.mp4",
               "promoCode": "FB",
-              "durationSec": 28.1,
+              "durationSec": 37.6,
               "resolution": "780x1688",
-              "fileSizeBytes": 2623073,
-              "generatedAt": "2026-09-27T14:36:25.842Z"
+              "fileSizeBytes": 3588368,
+              "generatedAt": "2026-09-27T19:40:24.805Z"
             }
           }
         }

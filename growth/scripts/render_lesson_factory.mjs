@@ -132,10 +132,13 @@ function sanitizeWavFile(filePath) {
   } catch (_) {}
 }
 
+const exhaustedGeminiKeys = new Set();
+
 async function tryGeminiTts(text, voiceName = 'Charon', wavPath, speed = 1.15) {
   const keys = getGeminiApiKeys();
   const models = ['gemini-3.8-flash-tts', 'gemini-3.8-flash-lite-tts', 'gemini-3.1-flash-tts-preview'];
   for (let keyIdx = 0; keyIdx < keys.length; keyIdx++) {
+    if (exhaustedGeminiKeys.has(keyIdx)) continue;
     const key = keys[keyIdx];
     for (const model of models) {
       try {
@@ -154,10 +157,9 @@ async function tryGeminiTts(text, voiceName = 'Charon', wavPath, speed = 1.15) {
           body: JSON.stringify(payload),
         });
 
-        if (res.status === 429) {
-          console.log(`  ⏳ [Gemini TTS 429] Ожидание 5 сек (${model}, ключ #${keyIdx + 1})...`);
-          await sleep(5000);
-          continue;
+        if (res.status === 429 || res.status === 402) {
+          exhaustedGeminiKeys.add(keyIdx);
+          break;
         }
 
         if (!res.ok) continue;
@@ -193,6 +195,34 @@ async function tryGeminiTts(text, voiceName = 'Charon', wavPath, speed = 1.15) {
       } catch (_) {}
     }
   }
+
+  // Резервный фолбэк на Edge Neural TTS для персонализированных CTA
+  try {
+    const { MsEdgeTTS, OUTPUT_FORMAT } = require('msedge-tts');
+    const tts = new MsEdgeTTS();
+    await tts.setMetadata('ru-RU-DmitryNeural', OUTPUT_FORMAT.AUDIO_24KHZ_48KBITRATE_MONO_MP3);
+    const cleanText = text.replace(/[*_#]/g, '').trim();
+    const { audioStream } = tts.toStream(cleanText);
+    const chunks = [];
+    for await (const chunk of audioStream) chunks.push(chunk);
+    const tempMp3 = wavPath + '.edge.mp3';
+    fs.writeFileSync(tempMp3, Buffer.concat(chunks));
+    const filterArgs = speed !== 1.0 ? ['-filter:a', `atempo=${speed}`] : [];
+    cp.spawnSync(ffmpeg, [
+      '-y',
+      '-i', tempMp3,
+      ...filterArgs,
+      '-ar', '44100',
+      '-ac', '2',
+      wavPath,
+    ]);
+    try { fs.unlinkSync(tempMp3); } catch (_) {}
+    if (fs.existsSync(wavPath) && fs.statSync(wavPath).size > 5000) {
+      sanitizeWavFile(wavPath);
+      return true;
+    }
+  } catch (_) {}
+
   return false;
 }
 
@@ -229,11 +259,14 @@ const PLATFORMS = [
   },
 ];
 
-function convertToWavIfNeeded(srcPath, outWavPath) {
-  if (fs.existsSync(outWavPath) && fs.statSync(outWavPath).size > 3000) {
-    return true;
-  }
+function convertToWavIfNeeded(srcPath, outWavPath, force = false) {
   if (!fs.existsSync(srcPath)) return false;
+
+  if (!force && fs.existsSync(outWavPath) && fs.statSync(outWavPath).size > 3000) {
+    const srcMtime = fs.statSync(srcPath).mtimeMs;
+    const outMtime = fs.statSync(outWavPath).mtimeMs;
+    if (outMtime >= srcMtime) return true;
+  }
 
   const res = cp.spawnSync(ffmpeg, [
     '-y',
@@ -350,7 +383,6 @@ async function prepareAudioForPlatform(lessonNum, variant, platform) {
 
   const getWav = (cueId) => {
     const wavPath = path.join(CACHE_DIR, `${cueId}.wav`);
-    if (fs.existsSync(wavPath) && fs.statSync(wavPath).size > 3000) return wavPath;
     const mp3Bank = path.join(BANK_DIR, `${cueId}.mp3`);
     const mp3Cache = path.join(CACHE_DIR, `${cueId}.mp3`);
     const srcMp3 = fs.existsSync(mp3Bank) ? mp3Bank : mp3Cache;
@@ -358,6 +390,7 @@ async function prepareAudioForPlatform(lessonNum, variant, platform) {
       convertToWavIfNeeded(srcMp3, wavPath);
       return wavPath;
     }
+    if (fs.existsSync(wavPath) && fs.statSync(wavPath).size > 3000) return wavPath;
     return wavPath;
   };
 

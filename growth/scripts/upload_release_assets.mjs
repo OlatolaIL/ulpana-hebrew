@@ -201,11 +201,16 @@ async function main() {
 
   const release = await getOrCreateRelease(tag, pat);
 
+  const filterArg = args.find((a) => a.startsWith('--filter='));
+  const filterVal = filterArg ? filterArg.split('=')[1].trim() : null;
+
   // Найти файлы для уроков 2-5 (или по фильтру)
   let targetFiles = [];
   if (fs.existsSync(LESSONS_DIR)) {
     const all = fs.readdirSync(LESSONS_DIR).filter((f) => f.endsWith('.mp4'));
-    if (tag.includes('02-05')) {
+    if (filterVal) {
+      targetFiles = all.filter((f) => f.includes(filterVal));
+    } else if (tag.includes('02-05')) {
       targetFiles = all.filter((f) => /^lesson_0[2-5]_/.test(f));
     } else if (tag.includes('lesson-01')) {
       targetFiles = all.filter((f) => /^lesson_01_/.test(f));
