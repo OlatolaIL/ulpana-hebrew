@@ -1,4 +1,26 @@
-[
+export interface PublicationItem {
+  id: string;
+  date: string;
+  channel: 'tiktok' | 'youtube' | 'telegram' | 'facebook' | 'instagram';
+  channelAccount: string;
+  format: 'short_video' | 'post' | 'story' | 'storytelling' | 'poll';
+  title: string;
+  campaignTitle?: string;
+  version?: string;
+  videoPath?: string;
+  imagePath?: string;
+  caption?: string;
+  targetDeepLink: string;
+  promoCode: string;
+  fullUrlWithPromo: string;
+  livePostUrl: string;
+  status: 'draft' | 'scheduled' | 'published' | 'archived';
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export const MARKETING_PUBLICATIONS: PublicationItem[] = [
   {
     "id": "pub-yt-l01-clean",
     "date": "2026-09-27",
@@ -520,4 +542,4 @@
     "createdAt": "2026-09-21T09:10:00.000Z",
     "updatedAt": "2026-09-21T09:10:00.000Z"
   }
-]
+];

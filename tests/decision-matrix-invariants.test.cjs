@@ -255,6 +255,21 @@ test('R-23: Growth Engine isolation and MARKETING_STRATEGY.md passport exist', (
 
   const toolsPath = path.join(repoRoot, 'growth/TOOLS_AND_SCRIPTS.md');
   assert.ok(fs.existsSync(toolsPath), 'growth/TOOLS_AND_SCRIPTS.md must exist');
+
+  // Verify strict isolation: src/ must NEVER import directly from growth/ (breaks Next.js Webpack bundler on Vercel)
+  function checkNoGrowthImports(dir) {
+    for (const file of fs.readdirSync(dir, { withFileTypes: true })) {
+      const full = path.join(dir, file.name);
+      if (file.isDirectory()) {
+        checkNoGrowthImports(full);
+      } else if (file.name.endsWith('.ts') || file.name.endsWith('.tsx') || file.name.endsWith('.js') || file.name.endsWith('.jsx')) {
+        const content = fs.readFileSync(full, 'utf8');
+        const matches = content.match(/from\s+['"][^'"]*growth\/[^'"]*['"]|require\s*\(\s*['"][^'"]*growth\/[^'"]*['"]\s*\)/g);
+        assert.ok(!matches, `File ${full} violates R-23 by importing from growth/: ${matches}`);
+      }
+    }
+  }
+  checkNoGrowthImports(path.join(repoRoot, 'src'));
 });
 
 test('R-24: Curated Studio Audio Registry is defined with word/sentence assets and test suite', () => {

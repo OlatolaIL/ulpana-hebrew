@@ -3,6 +3,7 @@ import { verifyAdminRequest } from '@/lib/adminAuth';
 import { getDbPool, initDatabase } from '@/lib/db';
 import fs from 'fs';
 import path from 'path';
+import { MARKETING_PUBLICATIONS } from '@/data/marketingPublicationsData';
 
 export interface PublicationItem {
   id: string;
@@ -26,19 +27,19 @@ export interface PublicationItem {
   updatedAt: string;
 }
 
-// Seed publications from the JSON file into the database (runs once)
+// Seed publications from the JSON file or compiled module into the database
 async function seedFromFile(db: ReturnType<typeof getDbPool>) {
   if (!db) return;
+  let items: PublicationItem[] = MARKETING_PUBLICATIONS;
   const filePath = path.join(process.cwd(), 'growth', 'data', 'publications.json');
-  let items: PublicationItem[] = [];
   try {
     if (fs.existsSync(filePath)) {
       items = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
     }
   } catch {
-    return; // No seed file available
+    // Keep in-memory MARKETING_PUBLICATIONS
   }
-  if (!items.length) return;
+  if (!items || !items.length) return;
 
   for (const item of items) {
     await db.query(
@@ -96,8 +97,8 @@ export async function GET(req: NextRequest) {
     await initDatabase();
     const db = getDbPool();
     if (!db) {
+      let fallbackItems: PublicationItem[] = MARKETING_PUBLICATIONS;
       const filePath = path.join(process.cwd(), 'growth', 'data', 'publications.json');
-      let fallbackItems: PublicationItem[] = [];
       try {
         if (fs.existsSync(filePath)) {
           fallbackItems = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
