@@ -27,10 +27,35 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://ulpana-hebrew.vercel.app'),
   title: 'Ульпана • Курс иврита (100 уроков: Алеф и Бет)',
   description:
     'Интерактивное обучение ивриту от нуля до уверенного уровня: теория, словари, карточки и живая разговорная практика с искусственным интеллектом.',
   manifest: '/manifest.json',
+  openGraph: {
+    title: 'Ульпана • Курс иврита (100 уроков: Алеф и Бет)',
+    description:
+      'Интерактивное обучение ивриту от нуля до уверенного уровня: теория, словари, карточки и живая разговорная практика с искусственным интеллектом.',
+    url: 'https://ulpana-hebrew.vercel.app',
+    siteName: 'Ульпан Алеф',
+    images: [
+      {
+        url: '/icons/botfather-640x360.png',
+        width: 640,
+        height: 360,
+        alt: 'Ульпана — Иврит без паники',
+      },
+    ],
+    locale: 'ru_RU',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Ульпана • Курс иврита (100 уроков: Алеф и Бет)',
+    description:
+      'Интерактивное обучение ивриту от нуля до уверенного уровня: теория, словари, карточки и живая разговорная практика с искусственным интеллектом.',
+    images: ['/icons/botfather-640x360.png'],
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',

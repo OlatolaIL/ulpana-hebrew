@@ -43,6 +43,8 @@ const fileArg = args.find(a => a.startsWith('--file='));
 const filePath = fileArg ? fileArg.split('=')[1] : null;
 const linkArg = args.find(a => a.startsWith('--link='));
 const customLink = linkArg ? linkArg.slice(linkArg.indexOf('=') + 1) : null;
+const videoArg = args.find(a => a.startsWith('--video='));
+const customVideo = videoArg ? videoArg.slice(videoArg.indexOf('=') + 1) : null;
 
 // Образец аутентичного поста для Facebook «Ульпан Алеф»
 const samplePost = {
@@ -82,6 +84,9 @@ async function main() {
   console.log('=====================================================');
   console.log(`🎯 ЦЕЛЕВАЯ СТРАНИЦА FB ID: ${pageId || 'НЕ ЗАДАН'}`);
   console.log(`🤖 РЕЖИМ: ${isSend ? '🚀 ОТПРАВКА В FACEBOOK' : '👀 ПРЕДПРОСМОТР (DRY RUN)'}`);
+  if (customVideo) {
+    console.log(`🎬 ВИДЕО: ${customVideo}`);
+  }
   console.log('=====================================================\n');
   console.log(messageText);
   console.log('\n-----------------------------------------------------');
@@ -99,9 +104,54 @@ async function main() {
     process.exit(1);
   }
 
-  console.log(`📡 Отправка публикации на страницу Facebook (${pageId})...`);
-
+  let tempVideoPath = null;
   try {
+    let resolvedVideoPath = null;
+    if (customVideo) {
+      if (customVideo.startsWith('http://') || customVideo.startsWith('https://')) {
+        console.log(`📥 Загрузка видео из CDN: ${customVideo}...`);
+        const resp = await fetch(customVideo);
+        if (!resp.ok) throw new Error(`Не удалось скачать видео: HTTP ${resp.status}`);
+        const ab = await resp.arrayBuffer();
+        const os = require('os');
+        tempVideoPath = path.join(os.tmpdir(), `fb_video_${Date.now()}.mp4`);
+        fs.writeFileSync(tempVideoPath, Buffer.from(ab));
+        resolvedVideoPath = tempVideoPath;
+      } else {
+        const direct = path.isAbsolute(customVideo) ? customVideo : path.join(process.cwd(), customVideo);
+        if (fs.existsSync(direct)) resolvedVideoPath = direct;
+      }
+    }
+
+    if (resolvedVideoPath && fs.existsSync(resolvedVideoPath)) {
+      console.log(`📡 Загрузка ВИДЕО на страницу Facebook (${pageId})...`);
+      const formData = new FormData();
+      formData.append('access_token', pageAccessToken);
+      formData.append('title', samplePost.title);
+      formData.append('description', messageText);
+      const buffer = fs.readFileSync(resolvedVideoPath);
+      formData.append('source', new Blob([buffer], { type: 'video/mp4' }), path.basename(resolvedVideoPath));
+
+      const res = await fetch(`https://graph.facebook.com/v26.0/${encodeURIComponent(pageId)}/videos`, {
+        method: 'POST',
+        body: formData
+      });
+
+      const data = await res.json();
+      if (!res.ok || data.error) {
+        console.error('❌ Ошибка Meta Video API:', data.error ? data.error.message : data);
+        process.exit(1);
+      }
+
+      const videoId = data.id;
+      const publicPostUrl = `https://www.facebook.com/${videoId}`;
+      console.log(`🎉 ВИДЕО УСПЕШНО ОПУБЛИКОВАНО В FACEBOOK!`);
+      console.log(`🆔 Video ID: ${videoId}`);
+      console.log(`🔗 Ссылка на видео: ${publicPostUrl}`);
+      return;
+    }
+
+    console.log(`📡 Отправка текстового поста на страницу Facebook (${pageId})...`);
     const postUrl = `https://graph.facebook.com/v26.0/${encodeURIComponent(pageId)}/feed`;
     const bodyParams = new URLSearchParams();
     bodyParams.append('message', messageText);

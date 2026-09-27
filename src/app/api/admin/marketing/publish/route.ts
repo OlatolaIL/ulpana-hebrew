@@ -535,6 +535,78 @@ export async function POST(req: NextRequest) {
         );
       }
 
+      // 1. Попытка загрузить видео, если передан videoPath
+      let videoResult: ResolvedVideo | null = null;
+      try {
+        if (body.videoPath) {
+          videoResult = await resolveServerVideo(body.videoPath);
+        }
+        const videoFilePath = videoResult?.filePath;
+
+        if (videoFilePath && fs.existsSync(videoFilePath)) {
+          const formData = new FormData();
+          formData.append('access_token', pageAccessToken);
+          formData.append('title', title);
+          formData.append('description', description || title);
+          const videoBuffer = fs.readFileSync(videoFilePath);
+          formData.append('source', new Blob([videoBuffer], { type: 'video/mp4' }), path.basename(videoFilePath));
+
+          const fbVideoRes = await fetch(`https://graph.facebook.com/v26.0/${encodeURIComponent(pageId)}/videos`, {
+            method: 'POST',
+            body: formData,
+          });
+
+          const fbVideoData = await fbVideoRes.json();
+          if (!fbVideoRes.ok || fbVideoData.error) {
+            return NextResponse.json(
+              { error: `Ошибка Meta Video API: ${fbVideoData.error?.message || 'Не удалось опубликовать видео'}` },
+              { status: 502 }
+            );
+          }
+
+          const videoId = fbVideoData.id;
+          const liveUrl = `https://www.facebook.com/${videoId}`;
+
+          if (register) {
+            await registerPublication({
+              publicationId,
+              channel: 'facebook',
+              title,
+              campaignTitle,
+              version,
+              videoPath: body.videoPath || videoFilePath,
+              caption: description || title,
+              format: 'short_video',
+              channelAccount: 'Ulpana - Иврит без паники',
+              livePostUrl: liveUrl,
+              promoCode: 'FB',
+              notes: 'Публикация видео/Reels в Facebook через веб-админку (Meta Graph API)',
+            });
+          }
+
+          return NextResponse.json({
+            success: true,
+            channel: 'facebook',
+            videoId,
+            livePostUrl: liveUrl,
+            title,
+          });
+        }
+      } catch (videoErr: any) {
+        console.error('[Publish API] Ошибка загрузки видео в Facebook:', videoErr.message);
+        return NextResponse.json(
+          { error: `Ошибка подготовки видеофайла для Facebook: ${videoErr.message}` },
+          { status: 500 }
+        );
+      } finally {
+        if (videoResult?.isTemp && fs.existsSync(videoResult.filePath)) {
+          try {
+            fs.unlinkSync(videoResult.filePath);
+          } catch {}
+        }
+      }
+
+      // 2. Если видео не указано или не найдено — публикуем обычный ссылочный/текстовый пост
       const postUrl = `https://graph.facebook.com/v26.0/${encodeURIComponent(pageId)}/feed`;
       const bodyParams = new URLSearchParams();
       bodyParams.append('message', description || title);
