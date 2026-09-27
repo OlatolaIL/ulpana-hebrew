@@ -50,11 +50,22 @@ async function seedFromFile(db: ReturnType<typeof getDbPool>) {
           full_url_with_promo, live_post_url, status, notes, created_at, updated_at
         ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)
         ON CONFLICT (id) DO UPDATE SET
+          title = EXCLUDED.title,
+          caption = EXCLUDED.caption,
+          notes = EXCLUDED.notes,
           campaign_title = EXCLUDED.campaign_title,
+          version = EXCLUDED.version,
           video_path = EXCLUDED.video_path,
+          image_path = EXCLUDED.image_path,
+          target_deep_link = EXCLUDED.target_deep_link,
+          promo_code = EXCLUDED.promo_code,
           full_url_with_promo = EXCLUDED.full_url_with_promo,
+          format = EXCLUDED.format,
           updated_at = EXCLUDED.updated_at
-        WHERE ulpana_publications.campaign_title IS DISTINCT FROM EXCLUDED.campaign_title
+        WHERE ulpana_publications.title IS DISTINCT FROM EXCLUDED.title
+           OR ulpana_publications.caption IS DISTINCT FROM EXCLUDED.caption
+           OR ulpana_publications.notes IS DISTINCT FROM EXCLUDED.notes
+           OR ulpana_publications.campaign_title IS DISTINCT FROM EXCLUDED.campaign_title
            OR ulpana_publications.video_path IS DISTINCT FROM EXCLUDED.video_path
            OR ulpana_publications.full_url_with_promo IS DISTINCT FROM EXCLUDED.full_url_with_promo`,
         [
