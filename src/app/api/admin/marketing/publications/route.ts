@@ -42,26 +42,35 @@ async function seedFromFile(db: ReturnType<typeof getDbPool>) {
   if (!items || !items.length) return;
 
   for (const item of items) {
-    await db.query(
-      `INSERT INTO ulpana_publications (
-        id, date, channel, channel_account, format, title, campaign_title, version,
-        video_path, image_path, caption, target_deep_link, promo_code,
-        full_url_with_promo, live_post_url, status, notes, created_at, updated_at
-      ON CONFLICT (id) DO UPDATE SET
-        campaign_title = EXCLUDED.campaign_title,
-        updated_at = EXCLUDED.updated_at
-      WHERE ulpana_publications.campaign_title IS DISTINCT FROM EXCLUDED.campaign_title`,
-      [
-        item.id, item.date, item.channel, item.channelAccount || '',
-        item.format, item.title, item.campaignTitle || null, item.version || null,
-        item.videoPath || null, item.imagePath || null, item.caption || null,
-        item.targetDeepLink || '/lessons/1/call', item.promoCode || '',
-        item.fullUrlWithPromo || '', item.livePostUrl || '',
-        item.status || 'draft', item.notes || '',
-        item.createdAt || new Date().toISOString(),
-        item.updatedAt || new Date().toISOString(),
-      ]
-    );
+    try {
+      await db.query(
+        `INSERT INTO ulpana_publications (
+          id, date, channel, channel_account, format, title, campaign_title, version,
+          video_path, image_path, caption, target_deep_link, promo_code,
+          full_url_with_promo, live_post_url, status, notes, created_at, updated_at
+        ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)
+        ON CONFLICT (id) DO UPDATE SET
+          campaign_title = EXCLUDED.campaign_title,
+          video_path = EXCLUDED.video_path,
+          full_url_with_promo = EXCLUDED.full_url_with_promo,
+          updated_at = EXCLUDED.updated_at
+        WHERE ulpana_publications.campaign_title IS DISTINCT FROM EXCLUDED.campaign_title
+           OR ulpana_publications.video_path IS DISTINCT FROM EXCLUDED.video_path
+           OR ulpana_publications.full_url_with_promo IS DISTINCT FROM EXCLUDED.full_url_with_promo`,
+        [
+          item.id, item.date, item.channel, item.channelAccount || '',
+          item.format, item.title, item.campaignTitle || null, item.version || null,
+          item.videoPath || null, item.imagePath || null, item.caption || null,
+          item.targetDeepLink || '/lessons/1/call', item.promoCode || '',
+          item.fullUrlWithPromo || '', item.livePostUrl || '',
+          item.status || 'draft', item.notes || '',
+          item.createdAt || new Date().toISOString(),
+          item.updatedAt || new Date().toISOString(),
+        ]
+      );
+    } catch (itemErr) {
+      console.warn(`[seedFromFile] Non-fatal item seed error for ${item.id}:`, itemErr);
+    }
   }
 }
 
@@ -111,17 +120,26 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ publications: fallbackItems });
     }
 
-    // Sync any missing publications from JSON file into database (idempotent ON CONFLICT DO NOTHING)
-    await seedFromFile(db);
+    // Sync any missing publications from JSON file into database (idempotent)
+    try {
+      await seedFromFile(db);
+    } catch (seedErr) {
+      console.warn('[API Admin Marketing Publications GET] seedFromFile non-fatal error:', seedErr);
+    }
 
-    const result = await db.query(
-      'SELECT * FROM ulpana_publications ORDER BY created_at DESC'
-    );
-    const publications = result.rows.map(rowToPublication);
-    return NextResponse.json({ publications });
+    try {
+      const result = await db.query(
+        'SELECT * FROM ulpana_publications ORDER BY created_at DESC'
+      );
+      const publications = result.rows.map(rowToPublication);
+      return NextResponse.json({ publications });
+    } catch (queryErr) {
+      console.error('[API Admin Marketing Publications GET] DB query failed, falling back to static publications:', queryErr);
+      return NextResponse.json({ publications: MARKETING_PUBLICATIONS });
+    }
   } catch (error: any) {
     console.error('[API Admin Marketing Publications GET] Error:', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    return NextResponse.json({ publications: MARKETING_PUBLICATIONS, error: 'Fallback to static publications' });
   }
 }
 
