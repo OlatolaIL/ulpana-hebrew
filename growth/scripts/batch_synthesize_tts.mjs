@@ -316,7 +316,28 @@ async function synthesizeGeminiTtsWithCarousel(text, voiceName, langCode, outPat
     return { success: true, model: 'google-cloud-tts', keyIndex: 'gcloud' };
   }
 
-  throw new Error('All carousel keys and models exhausted.');
+  // Резервный фолбэк на Edge Neural TTS (неограниченная квота, студийное качество)
+  try {
+    const { MsEdgeTTS, OUTPUT_FORMAT } = require('msedge-tts');
+    const edgeVoice = isRussian
+      ? 'ru-RU-DmitryNeural'
+      : (voiceName === 'Aoede' ? 'he-IL-HilaNeural' : 'he-IL-AvriNeural');
+    console.warn(`  🔄 Переход на резервный Edge Neural TTS (${edgeVoice})...`);
+    const tts = new MsEdgeTTS();
+    await tts.setMetadata(edgeVoice, OUTPUT_FORMAT.AUDIO_24KHZ_48KBITRATE_MONO_MP3);
+    const cleanText = text.replace(/[*_#]/g, '').trim();
+    const { audioStream } = tts.toStream(cleanText);
+    const chunks = [];
+    for await (const chunk of audioStream) chunks.push(chunk);
+    const rawEdge = Buffer.concat(chunks);
+    fs.writeFileSync(outPath, rawEdge);
+    sanitizeMp3File(outPath);
+    return { success: true, model: 'edge-neural-tts', keyIndex: 'edge' };
+  } catch (edgeErr) {
+    console.error(`  ❌ Edge Neural TTS fallback error: ${edgeErr.message}`);
+  }
+
+  throw new Error('All carousel keys, models and fallbacks exhausted.');
 }
 
 async function main() {

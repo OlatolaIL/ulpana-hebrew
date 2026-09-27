@@ -480,9 +480,9 @@ async function recordPlatformVideo(lessonNum, variant, platform, audioInfo, brow
   };
 }
 
-async function renderLesson(lessonNum, browser, registry) {
+async function renderLesson(lessonNum, browser, registry, targetVariants = ['clean', 'spicy']) {
   console.log(`\n======================================================`);
-  console.log(`🎬 ФАБРИКА-500: СБОРКА УРОКА ${lessonNum} (10 ВИДЕОРОЛИКОВ)`);
+  console.log(`🎬 ФАБРИКА-500: СБОРКА УРОКА ${lessonNum} (${targetVariants.length * 5} ВИДЕОРОЛИКОВ)`);
   console.log(`======================================================`);
 
   if (!registry.lessons[String(lessonNum)]) {
@@ -496,7 +496,7 @@ async function renderLesson(lessonNum, browser, registry) {
     };
   }
 
-  for (const variant of ['clean', 'spicy']) {
+  for (const variant of targetVariants) {
     console.log(`\n▶ [Урок ${lessonNum}] Вариант: ${variant.toUpperCase()}`);
     for (const platform of PLATFORMS) {
       console.log(`  → Платформа [${platform.code}] ${platform.name}...`);
@@ -511,13 +511,15 @@ async function renderLesson(lessonNum, browser, registry) {
     }
   }
 
-  console.log(`✅ [Урок ${lessonNum}] Все 10 роликов собраны!`);
+  console.log(`✅ [Урок ${lessonNum}] Ролики варианта ${targetVariants.join(', ')} собраны!`);
 }
 
 async function main() {
   const args = process.argv.slice(2);
   const lessonArg = args.find((a) => a.startsWith('--lesson='));
   const lessonsArg = args.find((a) => a.startsWith('--lessons='));
+  const variantArg = args.find((a) => a.startsWith('--variant='));
+  const targetVariants = variantArg ? [variantArg.split('=')[1].toLowerCase()] : ['clean', 'spicy'];
 
   let targetLessons = [2];
   if (lessonsArg) {
@@ -532,8 +534,9 @@ async function main() {
   console.log('======================================================');
   console.log(`🏭 ФАБРИКА-500: ПАКЕТНЫЙ РЕНДЕР ВИДЕО`);
   console.log(`Уроки к сборке: ${targetLessons.join(', ')}`);
-  console.log(`Количество роликов на урок: 10 (5 Clean + 5 Spicy)`);
-  console.log(`Всего роликов: ${targetLessons.length * 10}`);
+  console.log(`Варианты к сборке: ${targetVariants.join(', ')}`);
+  console.log(`Количество роликов на урок: ${targetVariants.length * 5}`);
+  console.log(`Всего роликов: ${targetLessons.length * targetVariants.length * 5}`);
   console.log('======================================================\n');
 
   const browser = await chromium.launch({
@@ -551,7 +554,7 @@ async function main() {
   if (!registry.lessons) registry.lessons = {};
 
   for (const lNum of targetLessons) {
-    await renderLesson(lNum, browser, registry);
+    await renderLesson(lNum, browser, registry, targetVariants);
   }
 
   await browser.close();

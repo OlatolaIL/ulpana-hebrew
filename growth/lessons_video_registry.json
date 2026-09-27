@@ -193,40 +193,40 @@
               "promoCode": "YT",
               "durationSec": 30.9,
               "resolution": "780x1688",
-              "fileSizeBytes": 2778944,
-              "generatedAt": "2026-09-27T12:56:29.574Z"
+              "fileSizeBytes": 2864432,
+              "generatedAt": "2026-09-27T14:33:56.018Z"
             },
             "TG": {
               "path": "public/demo/lessons/lesson_02_spicy_telegram.mp4",
               "promoCode": "TG",
               "durationSec": 28.1,
               "resolution": "780x1688",
-              "fileSizeBytes": 2672099,
-              "generatedAt": "2026-09-27T12:57:06.879Z"
+              "fileSizeBytes": 2709598,
+              "generatedAt": "2026-09-27T14:34:31.998Z"
             },
             "INSTA": {
               "path": "public/demo/lessons/lesson_02_spicy_instagram_reels.mp4",
               "promoCode": "INSTA",
               "durationSec": 33,
               "resolution": "780x1688",
-              "fileSizeBytes": 2886559,
-              "generatedAt": "2026-09-27T12:57:49.785Z"
+              "fileSizeBytes": 3313267,
+              "generatedAt": "2026-09-27T14:35:13.666Z"
             },
             "TIKTOK": {
               "path": "public/demo/lessons/lesson_02_spicy_tiktok.mp4",
               "promoCode": "TIKTOK",
               "durationSec": 28.1,
               "resolution": "780x1688",
-              "fileSizeBytes": 2596295,
-              "generatedAt": "2026-09-27T12:58:27.051Z"
+              "fileSizeBytes": 2701255,
+              "generatedAt": "2026-09-27T14:35:49.722Z"
             },
             "FB": {
               "path": "public/demo/lessons/lesson_02_spicy_facebook_reels.mp4",
               "promoCode": "FB",
               "durationSec": 28.1,
               "resolution": "780x1688",
-              "fileSizeBytes": 2581156,
-              "generatedAt": "2026-09-27T12:59:03.519Z"
+              "fileSizeBytes": 2623073,
+              "generatedAt": "2026-09-27T14:36:25.842Z"
             }
           }
         }
