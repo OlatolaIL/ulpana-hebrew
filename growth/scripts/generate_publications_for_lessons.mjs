@@ -186,7 +186,7 @@ export function buildCampaigns() {
           channelAccount: p.account,
           format: p.format,
           title: meta.titles[p.channel],
-          campaignTitle: `Урок ${l}: ${p.channel.toUpperCase()} (${variant === 'clean' ? 'Clean' : 'Spicy'})`,
+          campaignTitle: `Урок ${l}`,
           version: 'v1.0',
           videoPath: videoCdnUrl,
           caption,

@@ -45,14 +45,18 @@ function getGeminiApiKeys() {
     const content = fs.readFileSync(envPath, 'utf8');
     for (const line of content.split('\n')) {
       const trimmed = line.trim();
-      if (
-        trimmed.startsWith('GEMINI_TTS_API_KEY=') ||
-        trimmed.startsWith('GEMINI_PRIMARY_API_KEY=') ||
-        trimmed.startsWith('GEMINI_API_KEY=') ||
-        trimmed.startsWith('GEMINI_SECONDARY_API_KEY=')
-      ) {
-        const val = trimmed.split('=')[1]?.trim().replace(/^['"]|['"]$/g, '');
-        if (val && !keys.includes(val)) keys.push(val);
+      const eq = trimmed.indexOf('=');
+      if (eq > 0) {
+        const k = trimmed.slice(0, eq).trim();
+        const v = trimmed.slice(eq + 1).trim().replace(/^['"]|['"]$/g, '');
+        if (
+          k === 'GEMINI_TTS_API_KEY' ||
+          k === 'GEMINI_PRIMARY_API_KEY' ||
+          k === 'GEMINI_SECONDARY_API_KEY' ||
+          k === 'GEMINI_API_KEY'
+        ) {
+          if (v && !keys.includes(v)) keys.push(v);
+        }
       }
     }
   }
@@ -60,6 +64,30 @@ function getGeminiApiKeys() {
     keys.push(process.env.GEMINI_API_KEY);
   }
   return keys;
+}
+
+const GEMINI_MODELS = [
+  'gemini-3.8-flash-tts',
+  'gemini-3.8-flash-lite-tts',
+  'gemini-3.1-flash-tts-preview'
+];
+const exhaustedSlots = new Set();
+const exhaustedKeys = new Set();
+let globalSlots = null;
+let currentSlotIdx = 0;
+
+function getNextAvailableSlot(slots) {
+  let scanned = 0;
+  while (scanned < slots.length) {
+    const slot = slots[currentSlotIdx % slots.length];
+    const slotKey = `${slot.keyIndex}_${slot.model}`;
+    if (!exhaustedKeys.has(slot.keyIndex) && !exhaustedSlots.has(slotKey)) {
+      return slot;
+    }
+    currentSlotIdx++;
+    scanned++;
+  }
+  return null;
 }
 
 function loadManifest() {
@@ -192,7 +220,7 @@ async function synthesizeTurn(text, voice, destPath, retries = 3) {
   }
 }
 
-async function synthesizeTurnGemini(text, voice, destPath, apiKeys, retries = 5) {
+async function synthesizeTurnGemini(text, voice, destPath, apiKeys) {
   const clean = cleanHebrewForTts(text);
   if (!clean) return { success: false, error: 'Empty text' };
 
@@ -200,73 +228,102 @@ async function synthesizeTurnGemini(text, voice, destPath, apiKeys, retries = 5)
     return { success: false, error: '@ffmpeg-installer/ffmpeg not found' };
   }
 
-  for (let attempt = 1; attempt <= retries; attempt++) {
-    for (let k = 0; k < apiKeys.length; k++) {
-      const apiKey = apiKeys[k];
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-tts-preview:generateContent?key=${apiKey}`;
-      const payload = {
-        contents: [{ parts: [{ text: clean }] }],
-        generationConfig: {
-          responseModalities: ['AUDIO'],
-          speechConfig: {
-            voiceConfig: {
-              prebuiltVoiceConfig: { voiceName: voice }
-            }
+  if (!globalSlots) {
+    globalSlots = [];
+    apiKeys.forEach((key, kIdx) => {
+      GEMINI_MODELS.forEach((model) => {
+        globalSlots.push({ key, model, keyIndex: kIdx + 1 });
+      });
+    });
+  }
+
+  while (true) {
+    const slot = getNextAvailableSlot(globalSlots);
+    if (!slot) break; // Все слоты Gemini исчерпаны
+
+    const slotKey = `${slot.keyIndex}_${slot.model}`;
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${slot.model}:generateContent?key=${slot.key}`;
+    const payload = {
+      contents: [{ parts: [{ text: clean }] }],
+      generationConfig: {
+        responseModalities: ['AUDIO'],
+        speechConfig: {
+          voiceConfig: {
+            prebuiltVoiceConfig: { voiceName: voice }
           }
         }
-      };
+      }
+    };
 
-      try {
-        const res = await fetch(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-        const data = await res.json();
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
 
-        if (res.status === 429 || data.error?.code === 429) {
-          console.warn(`⏳ [Gemini 429 Rate Limit] Ключ ${k + 1}. Пробуем следующий...`);
+      if (res.status === 402 || data.error?.code === 402) {
+        console.warn(`  ⚠️ [402 Payment Required] на ключе #${slot.keyIndex}. Ключ исключён из карусели.`);
+        exhaustedKeys.add(slot.keyIndex);
+        currentSlotIdx++;
+        continue;
+      }
+
+      if (res.status === 429 || data.error?.code === 429) {
+        const msg = data.error?.message || '';
+        const isDaily = /exceeded your current quota|per_day|per_model_per_day|Resource has been exhausted|quota.*exceeded/i.test(msg);
+        if (isDaily) {
+          console.warn(`  🛑 [${slot.model}] суточный лимит 100 запросов на ключе #${slot.keyIndex}. Ротация слота...`);
+          exhaustedSlots.add(slotKey);
+          currentSlotIdx++;
+          continue;
+        } else {
+          console.warn(`  ⏳ [429 RPM] Модель ${slot.model} на ключе #${slot.keyIndex}. Пауза 2с и переход к следующему слоту...`);
+          currentSlotIdx++;
+          await new Promise(r => setTimeout(r, 2000));
           continue;
         }
-
-        if (data.candidates && data.candidates[0]?.content?.parts?.[0]?.inlineData?.data) {
-          const base64Audio = data.candidates[0].content.parts[0].inlineData.data;
-          const pcmBuffer = Buffer.from(base64Audio, 'base64');
-          const tempPcm = destPath + '.pcm';
-          fs.writeFileSync(tempPcm, pcmBuffer);
-
-          // Конвертируем сырой PCM 24000Hz s16le в MP3 44100Hz 128kbps (R-151)
-          const proc = cp.spawnSync(ffmpegPath, [
-            '-y',
-            '-f', 's16le',
-            '-ar', '24000',
-            '-ac', '1',
-            '-i', tempPcm,
-            '-ar', '44100',
-            '-b:a', '128k',
-            destPath
-          ]);
-
-          if (fs.existsSync(tempPcm)) fs.unlinkSync(tempPcm);
-
-          if (proc.status === 0 && fs.existsSync(destPath) && fs.statSync(destPath).size > 100) {
-            return { success: true, bytes: fs.statSync(destPath).size };
-          } else {
-            return { success: false, error: 'FFmpeg encoding error: ' + (proc.stderr?.toString() || 'unknown') };
-          }
-        }
-
-        if (data.error) {
-          console.warn(`[Gemini API Error on key ${k + 1}]:`, data.error.message?.slice(0, 100));
-        }
-      } catch (err) {
-        console.warn(`[Network Error on key ${k + 1}]:`, err.message);
       }
+
+      if (data.candidates && data.candidates[0]?.content?.parts?.[0]?.inlineData?.data) {
+        const base64Audio = data.candidates[0].content.parts[0].inlineData.data;
+        const pcmBuffer = Buffer.from(base64Audio, 'base64');
+        const tempPcm = destPath + '.pcm';
+        fs.writeFileSync(tempPcm, pcmBuffer);
+
+        const proc = cp.spawnSync(ffmpegPath, [
+          '-y',
+          '-f', 's16le',
+          '-ar', '24000',
+          '-ac', '1',
+          '-i', tempPcm,
+          '-ar', '44100',
+          '-b:a', '128k',
+          destPath
+        ]);
+
+        if (fs.existsSync(tempPcm)) fs.unlinkSync(tempPcm);
+
+        if (proc.status === 0 && fs.existsSync(destPath) && fs.statSync(destPath).size > 100) {
+          return { success: true, bytes: fs.statSync(destPath).size, model: slot.model, keyIndex: slot.keyIndex };
+        } else {
+          return { success: false, error: 'FFmpeg encoding error: ' + (proc.stderr?.toString() || 'unknown') };
+        }
+      }
+
+      if (data.error) {
+        console.warn(`  [Gemini Error on ${slot.model} (key #${slot.keyIndex})]:`, data.error.message?.slice(0, 100));
+        currentSlotIdx++;
+      }
+    } catch (err) {
+      console.warn(`  [Network Error on slot #${slot.keyIndex} (${slot.model})]:`, err.message);
+      currentSlotIdx++;
+      await new Promise(r => setTimeout(r, 1000));
     }
-    // Задержка перед повторной попыткой при исчерпании пула
-    await new Promise(r => setTimeout(r, 2000 * attempt));
   }
-  return { success: false, error: 'All retries/keys failed' };
+
+  return { success: false, error: 'All carousel keys and models exhausted' };
 }
 
 async function main() {

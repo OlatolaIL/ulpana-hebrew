@@ -42,6 +42,96 @@ function getGeminiApiKeys() {
   return keys;
 }
 
+function sanitizeWavFile(filePath) {
+  if (!fs.existsSync(filePath)) return;
+  try {
+    const pcm = cp.execFileSync(ffmpeg, [
+      '-y',
+      '-i', filePath,
+      '-f', 's16le',
+      '-ar', '44100',
+      '-ac', '2',
+      'pipe:1',
+    ], { maxBuffer: 50 * 1024 * 1024, stdio: ['ignore', 'pipe', 'ignore'] });
+
+    const samples = new Int16Array(pcm.buffer, pcm.byteOffset, Math.floor(pcm.byteLength / 2));
+    const sampleRate = 44100;
+    const numChannels = 2;
+    const clipSamples = Math.floor(samples.length / numChannels);
+
+    // 1. Устранение щелчка в начале (2ms silence + 10ms fade-in)
+    const headerSilence = Math.floor(sampleRate * 0.002);
+    const fadeIn = Math.floor(sampleRate * 0.010);
+    for (let i = 0; i < headerSilence && i < clipSamples; i++) {
+      for (let c = 0; c < numChannels; c++) samples[i * numChannels + c] = 0;
+    }
+    for (let i = headerSilence; i < headerSilence + fadeIn && i < clipSamples; i++) {
+      const fade = 0.5 * (1 - Math.cos((Math.PI * (i - headerSilence)) / fadeIn));
+      for (let c = 0; c < numChannels; c++) samples[i * numChannels + c] = Math.round(samples[i * numChannels + c] * fade);
+    }
+
+    // 2. Детект и обрезка хвоста водяного знака SynthID
+    const last200ms = Math.floor(sampleRate * 0.2);
+    let tailMax = 0;
+    const tailStart = Math.max(0, clipSamples - last200ms);
+    for (let j = tailStart * numChannels; j < samples.length; j++) {
+      const val = Math.abs(samples[j]);
+      if (val > tailMax) tailMax = val;
+    }
+
+    let finalClipSamples = clipSamples;
+    if (tailMax > 5000) {
+      const minSilenceLen = Math.floor(sampleRate * 0.025);
+      let silenceCount = 0;
+      let cutPoint = clipSamples;
+      for (let k = clipSamples - 1; k >= 0; k--) {
+        let maxCh = 0;
+        for (let c = 0; c < numChannels; c++) {
+          const v = Math.abs(samples[k * numChannels + c]);
+          if (v > maxCh) maxCh = v;
+        }
+        if (maxCh < 800) {
+          silenceCount++;
+          if (silenceCount >= minSilenceLen) {
+            cutPoint = k + minSilenceLen;
+            break;
+          }
+        } else {
+          silenceCount = 0;
+        }
+      }
+      if (cutPoint < clipSamples) finalClipSamples = cutPoint;
+    }
+
+    // 3. Fade out
+    const fadeOut = Math.floor(sampleRate * 0.015);
+    const fadeOutStart = Math.max(0, finalClipSamples - fadeOut);
+    for (let i = fadeOutStart; i < finalClipSamples; i++) {
+      const fade = 0.5 * (1 - Math.cos((Math.PI * (finalClipSamples - i)) / fadeOut));
+      for (let c = 0; c < numChannels; c++) samples[i * numChannels + c] = Math.round(samples[i * numChannels + c] * fade);
+    }
+
+    const finalSamples = samples.subarray(0, finalClipSamples * numChannels);
+    const dataByteLen = finalSamples.byteLength;
+    const header = Buffer.alloc(44);
+    header.write('RIFF', 0);
+    header.writeUInt32LE(36 + dataByteLen, 4);
+    header.write('WAVE', 8);
+    header.write('fmt ', 12);
+    header.writeUInt32LE(16, 16);
+    header.writeUInt16LE(1, 20);
+    header.writeUInt16LE(numChannels, 22);
+    header.writeUInt32LE(sampleRate, 24);
+    header.writeUInt32LE(sampleRate * numChannels * 2, 28);
+    header.writeUInt16LE(numChannels * 2, 32);
+    header.writeUInt16LE(16, 34);
+    header.write('data', 36);
+    header.writeUInt32LE(dataByteLen, 40);
+
+    fs.writeFileSync(filePath, Buffer.concat([header, Buffer.from(finalSamples.buffer, finalSamples.byteOffset, finalSamples.byteLength)]));
+  } catch (_) {}
+}
+
 async function tryGeminiTts(text, voiceName = 'Charon', wavPath, speed = 1.15) {
   const keys = getGeminiApiKeys();
   const models = ['gemini-3.8-flash-tts', 'gemini-3.8-flash-lite-tts', 'gemini-3.1-flash-tts-preview'];
@@ -72,34 +162,37 @@ async function tryGeminiTts(text, voiceName = 'Charon', wavPath, speed = 1.15) {
 
         if (!res.ok) continue;
 
-      const json = await res.json();
-      const b64Data = json?.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
-      if (!b64Data) continue;
+        const json = await res.json();
+        const b64Data = json?.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+        if (!b64Data) continue;
 
-      const pcmBuffer = Buffer.from(b64Data, 'base64');
-      const tempPcm = wavPath + '.pcm';
-      fs.writeFileSync(tempPcm, pcmBuffer);
+        const rawAudio = Buffer.from(b64Data, 'base64');
+        const isRiff = rawAudio.subarray(0, 4).toString('ascii') === 'RIFF';
+        const tempInput = wavPath + (isRiff ? '.in.wav' : '.in.pcm');
+        fs.writeFileSync(tempInput, rawAudio);
 
-      const filterArgs = speed !== 1.0 ? ['-filter:a', `atempo=${speed}`] : [];
-      const conv = cp.spawnSync(ffmpeg, [
-        '-y',
-        '-f', 's16le',
-        '-ar', '24000',
-        '-ac', '1',
-        '-i', tempPcm,
-        ...filterArgs,
-        '-ar', '44100',
-        '-ac', '2',
-        wavPath,
-      ]);
-      try { fs.unlinkSync(tempPcm); } catch (_) {}
+        const filterArgs = speed !== 1.0 ? ['-filter:a', `atempo=${speed}`] : [];
+        const inputArgs = isRiff
+          ? ['-i', tempInput]
+          : ['-f', 's16le', '-ar', '24000', '-ac', '1', '-i', tempInput];
 
-      if (conv.status === 0 && fs.existsSync(wavPath) && fs.statSync(wavPath).size > 5000) {
-        return true;
-      }
-    } catch (_) {}
+        const conv = cp.spawnSync(ffmpeg, [
+          '-y',
+          ...inputArgs,
+          ...filterArgs,
+          '-ar', '44100',
+          '-ac', '2',
+          wavPath,
+        ]);
+        try { fs.unlinkSync(tempInput); } catch (_) {}
+
+        if (conv.status === 0 && fs.existsSync(wavPath) && fs.statSync(wavPath).size > 5000) {
+          sanitizeWavFile(wavPath);
+          return true;
+        }
+      } catch (_) {}
+    }
   }
-}
   return false;
 }
 
@@ -149,7 +242,27 @@ function convertToWavIfNeeded(srcPath, outWavPath) {
     '-ac', '2',
     outWavPath,
   ]);
-  return res.status === 0 && fs.existsSync(outWavPath);
+  if (res.status === 0 && fs.existsSync(outWavPath)) {
+    sanitizeWavFile(outWavPath);
+    return true;
+  }
+  return false;
+}
+
+function extractWavPcm(rawBuf) {
+  let offset = 12; // Skip 'RIFF', size, 'WAVE'
+  while (offset + 8 <= rawBuf.length) {
+    const chunkId = rawBuf.toString('ascii', offset, offset + 4);
+    const chunkSize = rawBuf.readUInt32LE(offset + 4);
+    if (chunkId === 'data') {
+      const pcmStart = offset + 8;
+      const pcmEnd = Math.min(rawBuf.length, pcmStart + chunkSize);
+      return Buffer.from(rawBuf.subarray(pcmStart, pcmEnd));
+    }
+    offset += 8 + chunkSize;
+    if (chunkSize % 2 !== 0) offset++;
+  }
+  return Buffer.from(rawBuf.subarray(44));
 }
 
 function stitchClipsWithDeclick(clips, outWavPath) {
@@ -163,9 +276,9 @@ function stitchClipsWithDeclick(clips, outWavPath) {
 
   for (const clip of clips) {
     const rawBuf = fs.readFileSync(clip.wavPath);
-    const pcm = rawBuf.subarray(44);
-    const samples = new Int16Array(pcm.buffer, pcm.byteOffset, pcm.byteLength / 2);
-    const clipSamples = samples.length / numChannels;
+    const pcmBuf = extractWavPcm(rawBuf);
+    const samples = new Int16Array(pcmBuf.buffer, pcmBuf.byteOffset, Math.floor(pcmBuf.byteLength / 2));
+    const clipSamples = Math.floor(samples.length / numChannels);
 
     for (let i = 0; i < clipSamples; i++) {
       let fade = 1.0;

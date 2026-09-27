@@ -47,8 +47,10 @@ async function seedFromFile(db: ReturnType<typeof getDbPool>) {
         id, date, channel, channel_account, format, title, campaign_title, version,
         video_path, image_path, caption, target_deep_link, promo_code,
         full_url_with_promo, live_post_url, status, notes, created_at, updated_at
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)
-      ON CONFLICT (id) DO NOTHING`,
+      ON CONFLICT (id) DO UPDATE SET
+        campaign_title = EXCLUDED.campaign_title,
+        updated_at = EXCLUDED.updated_at
+      WHERE ulpana_publications.campaign_title IS DISTINCT FROM EXCLUDED.campaign_title`,
       [
         item.id, item.date, item.channel, item.channelAccount || '',
         item.format, item.title, item.campaignTitle || null, item.version || null,

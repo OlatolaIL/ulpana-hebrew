@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Activity,
   RefreshCw,
@@ -669,16 +669,42 @@ export function AdminMarketingHub() {
     }
   };
 
-  const availableCampaigns = Array.from(
-    new Set(publications.map((p) => p.campaignTitle).filter(Boolean))
-  ) as string[];
+  const normalizeCampaign = useCallback((title?: string): string => {
+    if (!title) return 'Общая';
+    const m = title.match(/^(Урок\s*\d+)/i);
+    if (m) return m[1];
+    return title;
+  }, []);
 
-  const filteredPublications = publications.filter((p) => {
-    if (channelFilter !== 'all' && p.channel !== channelFilter) return false;
-    if (pubStatusFilter !== 'all' && p.status !== pubStatusFilter) return false;
-    if (campaignFilter !== 'all' && p.campaignTitle !== campaignFilter) return false;
-    return true;
-  });
+  const availableCampaigns = useMemo(() => {
+    const set = new Set<string>();
+    publications.forEach((p) => {
+      const camp = normalizeCampaign(p.campaignTitle);
+      if (camp) set.add(camp);
+    });
+    return Array.from(set).sort((a, b) => {
+      const matchA = a.match(/^Урок\s*(\d+)/i);
+      const matchB = b.match(/^Урок\s*(\d+)/i);
+      if (matchA && matchB) {
+        return parseInt(matchA[1], 10) - parseInt(matchB[1], 10);
+      }
+      if (matchA) return -1;
+      if (matchB) return 1;
+      return a.localeCompare(b, 'ru');
+    });
+  }, [publications, normalizeCampaign]);
+
+  const filteredPublications = useMemo(() => {
+    return publications.filter((p) => {
+      if (channelFilter !== 'all' && p.channel !== channelFilter) return false;
+      if (pubStatusFilter !== 'all' && p.status !== pubStatusFilter) return false;
+      if (campaignFilter !== 'all') {
+        const norm = normalizeCampaign(p.campaignTitle);
+        if (norm !== campaignFilter && p.campaignTitle !== campaignFilter) return false;
+      }
+      return true;
+    });
+  }, [publications, channelFilter, pubStatusFilter, campaignFilter, normalizeCampaign]);
 
   const filteredCommunities = communities.filter((c) => {
     if (selectedPlatformFilter !== 'all' && c.platform !== selectedPlatformFilter) return false;
@@ -966,11 +992,14 @@ export function AdminMarketingHub() {
                     className="bg-zinc-800 text-xs font-semibold text-zinc-200 rounded-lg px-2.5 py-1 border border-zinc-700 outline-none"
                   >
                     <option value="all">Все кампании ({publications.length})</option>
-                    {availableCampaigns.map((camp) => (
-                      <option key={camp} value={camp}>
-                        {camp}
-                      </option>
-                    ))}
+                    {availableCampaigns.map((camp) => {
+                      const count = publications.filter((p) => normalizeCampaign(p.campaignTitle) === camp).length;
+                      return (
+                        <option key={camp} value={camp}>
+                          {camp.startsWith('Урок') ? `📘 ${camp}` : camp} ({count})
+                        </option>
+                      );
+                    })}
                   </select>
                 </div>
               )}
@@ -1043,11 +1072,21 @@ export function AdminMarketingHub() {
                       <td className="px-4 py-3 max-w-xs">
                         <div className="flex items-center gap-1.5 flex-wrap">
                           <span className="font-bold text-zinc-100 text-xs">
-                            {pub.campaignTitle || 'Общая'}
+                            {normalizeCampaign(pub.campaignTitle)}
                           </span>
                           {pub.version && (
                             <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
                               {pub.version}
+                            </span>
+                          )}
+                          {(pub.id.toLowerCase().includes('spicy') || pub.notes?.toLowerCase().includes('spicy') || pub.campaignTitle?.toLowerCase().includes('spicy')) && (
+                            <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-rose-500/20 text-rose-300 border border-rose-500/30">
+                              🌶️ Spicy
+                            </span>
+                          )}
+                          {(pub.id.toLowerCase().includes('clean') || pub.notes?.toLowerCase().includes('clean') || pub.campaignTitle?.toLowerCase().includes('clean')) && (
+                            <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-sky-500/20 text-sky-300 border border-sky-500/30">
+                              🧼 Clean
                             </span>
                           )}
                         </div>

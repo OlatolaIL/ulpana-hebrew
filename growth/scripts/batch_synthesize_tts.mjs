@@ -18,6 +18,91 @@ if (!fs.existsSync(CACHE_DIR)) fs.mkdirSync(CACHE_DIR, { recursive: true });
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
+function sanitizeMp3File(filePath) {
+  const pcm = cp.execFileSync(ffmpeg, [
+    '-y',
+    '-i', filePath,
+    '-f', 's16le',
+    '-ar', '44100',
+    '-ac', '1',
+    'pipe:1',
+  ], { maxBuffer: 50 * 1024 * 1024, stdio: ['ignore', 'pipe', 'ignore'] });
+
+  const samples = new Int16Array(pcm.buffer, pcm.byteOffset, Math.floor(pcm.byteLength / 2));
+  const sampleRate = 44100;
+
+  // 1. Устранение щелчка в начале (2ms silence + 10ms fade-in)
+  const headerSilence = Math.floor(sampleRate * 0.002);
+  const fadeIn = Math.floor(sampleRate * 0.010);
+  for (let i = 0; i < headerSilence && i < samples.length; i++) samples[i] = 0;
+  for (let i = headerSilence; i < headerSilence + fadeIn && i < samples.length; i++) {
+    const fade = 0.5 * (1 - Math.cos((Math.PI * (i - headerSilence)) / fadeIn));
+    samples[i] = Math.round(samples[i] * fade);
+  }
+
+  // 2. Детект и обрезка хвоста водяного знака SynthID
+  const last200ms = Math.floor(sampleRate * 0.2);
+  let tailMax = 0;
+  const tailStart = Math.max(0, samples.length - last200ms);
+  for (let j = tailStart; j < samples.length; j++) {
+    const val = Math.abs(samples[j]);
+    if (val > tailMax) tailMax = val;
+  }
+
+  let finalLength = samples.length;
+  if (tailMax > 5000) {
+    const minSilenceLen = Math.floor(sampleRate * 0.025);
+    let silenceCount = 0;
+    let cutPoint = samples.length;
+    for (let k = samples.length - 1; k >= 0; k--) {
+      if (Math.abs(samples[k]) < 800) {
+        silenceCount++;
+        if (silenceCount >= minSilenceLen) {
+          cutPoint = k + minSilenceLen;
+          break;
+        }
+      } else {
+        silenceCount = 0;
+      }
+    }
+    if (cutPoint < samples.length) finalLength = cutPoint;
+  }
+
+  // 3. Fade out
+  const fadeOut = Math.floor(sampleRate * 0.015);
+  const fadeOutStart = Math.max(0, finalLength - fadeOut);
+  for (let i = fadeOutStart; i < finalLength; i++) {
+    const fade = 0.5 * (1 - Math.cos((Math.PI * (finalLength - i)) / fadeOut));
+    samples[i] = Math.round(samples[i] * fade);
+  }
+
+  const cleanedSamples = samples.subarray(0, finalLength);
+  const tempWav = filePath + '.tmp.wav';
+  const header = Buffer.alloc(44);
+  const dataByteLen = cleanedSamples.byteLength;
+  header.write('RIFF', 0);
+  header.writeUInt32LE(36 + dataByteLen, 4);
+  header.write('WAVE', 8);
+  header.write('fmt ', 12);
+  header.writeUInt32LE(16, 16);
+  header.writeUInt16LE(1, 20);
+  header.writeUInt16LE(1, 22);
+  header.writeUInt32LE(sampleRate, 24);
+  header.writeUInt32LE(sampleRate * 2, 28);
+  header.writeUInt16LE(2, 32);
+  header.writeUInt16LE(16, 34);
+  header.write('data', 36);
+  header.writeUInt32LE(dataByteLen, 40);
+
+  fs.writeFileSync(tempWav, Buffer.concat([header, Buffer.from(cleanedSamples.buffer, cleanedSamples.byteOffset, cleanedSamples.byteLength)]));
+  const tempMp3 = filePath + '.tmp.mp3';
+  cp.spawnSync(ffmpeg, ['-y', '-i', tempWav, '-ar', '44100', '-ac', '1', '-b:a', '128k', tempMp3]);
+  try { fs.unlinkSync(tempWav); } catch (_) {}
+  if (fs.existsSync(tempMp3) && fs.statSync(tempMp3).size > 1000) {
+    fs.renameSync(tempMp3, filePath);
+  }
+}
+
 /**
  * Загрузка всех доступных API-ключей для карусели
  */
@@ -59,13 +144,29 @@ function getApiKeys() {
 
 // Каскадный список моделей Gemini TTS для ротации квот
 const GEMINI_MODELS = [
-  'gemini-3.1-flash-tts-preview',
   'gemini-3.8-flash-tts',
   'gemini-3.8-flash-lite-tts',
+  'gemini-3.1-flash-tts-preview',
 ];
 
-let activeKeyIdx = 0;
-let activeModelIdx = 0;
+const exhaustedSlots = new Set();
+const exhaustedKeys = new Set();
+let globalSlots = null;
+let currentSlotIdx = 0;
+
+function getNextAvailableSlot(slots) {
+  let scanned = 0;
+  while (scanned < slots.length) {
+    const slot = slots[currentSlotIdx % slots.length];
+    const slotKey = `${slot.keyIndex}_${slot.model}`;
+    if (!exhaustedKeys.has(slot.keyIndex) && !exhaustedSlots.has(slotKey)) {
+      return slot;
+    }
+    currentSlotIdx++;
+    scanned++;
+  }
+  return null;
+}
 
 /**
  * 1. Синтез через Google Cloud Text-to-Speech REST API
@@ -106,22 +207,27 @@ async function synthesizeGoogleCloudTts(text, voiceName, langCode, outPath, apiK
 }
 
 /**
- * 2. Синтез через Gemini TTS с автоматической 4-ключевой и помодельной каруселью
+ * 2. Синтез через Gemini TTS с автоматической каруселью слотов (Ключ x Модель)
  */
 async function synthesizeGeminiTtsWithCarousel(text, voiceName, langCode, outPath, geminiKeys, gcloudKey) {
   const isRussian = langCode === 'ru';
   const speed = isRussian ? 1.15 : 1.0;
 
-  // Пытаемся по карусели ключей и моделей Gemini
-  const totalCombos = geminiKeys.length * GEMINI_MODELS.length;
-  let attempts = 0;
+  if (!globalSlots) {
+    globalSlots = [];
+    geminiKeys.forEach((key, kIdx) => {
+      GEMINI_MODELS.forEach((model) => {
+        globalSlots.push({ key, model, keyIndex: kIdx + 1 });
+      });
+    });
+  }
 
-  while (attempts < totalCombos) {
-    const currentKey = geminiKeys[activeKeyIdx % geminiKeys.length];
-    const currentModel = GEMINI_MODELS[activeModelIdx % GEMINI_MODELS.length];
-    attempts++;
+  while (true) {
+    const slot = getNextAvailableSlot(globalSlots);
+    if (!slot) break; // Все слоты Gemini исчерпаны
 
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${currentModel}:generateContent?key=${currentKey}`;
+    const slotKey = `${slot.keyIndex}_${slot.model}`;
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${slot.model}:generateContent?key=${slot.key}`;
     const payload = {
       contents: [{ parts: [{ text }] }],
       generationConfig: {
@@ -139,30 +245,28 @@ async function synthesizeGeminiTtsWithCarousel(text, voiceName, langCode, outPat
 
       const data = await res.json();
 
+      if (res.status === 402 || data.error?.code === 402) {
+        console.warn(`  ⚠️ [402 Payment Required] на ключе #${slot.keyIndex}. Ключ исключён из карусели.`);
+        exhaustedKeys.add(slot.keyIndex);
+        currentSlotIdx++;
+        continue;
+      }
+
       if (res.status === 429 || data.error?.code === 429) {
         const msg = data.error?.message || '';
-        const isDaily = /per_model_per_day|Please retry in/i.test(msg);
+        const isDaily = /exceeded your current quota|per_day|per_model_per_day|Please retry in|Resource has been exhausted|quota.*exceeded/i.test(msg);
 
         if (isDaily) {
-          console.warn(`  🛑 [${currentModel}] исчерпал дневной лимит 100 запросов на ключе ${activeKeyIdx + 1}. Ротация...`);
-          // Переключаем модель или ключ
-          activeModelIdx++;
-          if (activeModelIdx % GEMINI_MODELS.length === 0) {
-            activeKeyIdx++;
-          }
+          console.warn(`  🛑 [${slot.model}] суточный лимит 100 запросов на ключе #${slot.keyIndex}. Ротация слота...`);
+          exhaustedSlots.add(slotKey);
+          currentSlotIdx++;
           continue;
         } else {
-          console.warn(`  ⏳ [429 RPM] Модель ${currentModel} на ключе ${activeKeyIdx + 1}. Ротация ключа...`);
-          activeKeyIdx++;
+          console.warn(`  ⏳ [429 RPM] Модель ${slot.model} на ключе #${slot.keyIndex}. Пауза 2с и переход к следующему слоту...`);
+          currentSlotIdx++;
           await sleep(2000);
           continue;
         }
-      }
-
-      if (res.status === 402 || data.error?.code === 402) {
-        console.warn(`  ⚠️ [402 Payment Required] на ключе ${activeKeyIdx + 1}. Переход к следующему ключу...`);
-        activeKeyIdx++;
-        continue;
       }
 
       const b64Data = data?.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
@@ -170,37 +274,43 @@ async function synthesizeGeminiTtsWithCarousel(text, voiceName, langCode, outPat
         throw new Error(`Empty audio data from Gemini: ${data.error?.message || 'unknown error'}`);
       }
 
-      const pcmBuffer = Buffer.from(b64Data, 'base64');
-      const tempPcm = outPath + '.pcm';
-      fs.writeFileSync(tempPcm, pcmBuffer);
+      const rawAudio = Buffer.from(b64Data, 'base64');
+      const isRiff = rawAudio.subarray(0, 4).toString('ascii') === 'RIFF';
+      const tempInput = outPath + (isRiff ? '.in.wav' : '.in.pcm');
+      fs.writeFileSync(tempInput, rawAudio);
 
       const filterArgs = speed !== 1.0 ? ['-filter:a', `atempo=${speed}`] : [];
+      const inputArgs = isRiff
+        ? ['-i', tempInput]
+        : ['-f', 's16le', '-ar', '24000', '-ac', '1', '-i', tempInput];
+
       const conv = cp.spawnSync(ffmpeg, [
         '-y',
-        '-f', 's16le',
-        '-ar', '24000',
-        '-ac', '1',
-        '-i', tempPcm,
+        ...inputArgs,
         ...filterArgs,
         '-ar', '44100',
         '-b:a', '128k',
         outPath,
       ]);
-      try { fs.unlinkSync(tempPcm); } catch (_) {}
+      try { fs.unlinkSync(tempInput); } catch (_) {}
 
       if (conv.status === 0 && fs.existsSync(outPath) && fs.statSync(outPath).size > 100) {
-        return { success: true, model: currentModel, keyIndex: (activeKeyIdx % geminiKeys.length) + 1 };
+        // Дополнительная проверка и санитаризация от щелчков/водяных знаков
+        try {
+          sanitizeMp3File(outPath);
+        } catch (_) {}
+        return { success: true, model: slot.model, keyIndex: slot.keyIndex };
       }
     } catch (err) {
-      console.warn(`  ⚠️ Исключение на ключе ${activeKeyIdx + 1} (${currentModel}): ${err.message}`);
-      activeKeyIdx++;
+      console.warn(`  ⚠️ Исключение на ключе #${slot.keyIndex} (${slot.model}): ${err.message}`);
+      currentSlotIdx++;
       await sleep(1000);
     }
   }
 
-  // Если все Gemini ключи и модели исчерпаны, резервный фолбэк на Google Cloud TTS
+  // Если все Gemini слоты исчерпаны, резервный фолбэк на Google Cloud TTS
   if (gcloudKey) {
-    console.warn(`  🔄 Переход на резервный Google Cloud TTS REST API...`);
+    console.warn(`  🔄 Все слоты Gemini исчерпаны. Переход на резервный Google Cloud TTS REST API...`);
     const gVoice = isRussian ? 'ru-RU-Neural2-D' : (voiceName === 'Orus' ? 'he-IL-Wavenet-B' : 'he-IL-Wavenet-A');
     await synthesizeGoogleCloudTts(text, gVoice, langCode, outPath, gcloudKey);
     return { success: true, model: 'google-cloud-tts', keyIndex: 'gcloud' };
@@ -233,9 +343,9 @@ async function main() {
     const lNum = parseInt(lessonArg.split('=')[1], 10);
     itemsToProcess = catalog.filter((c) => c.lesson === lNum);
   } else if (!isAll) {
-    // По умолчанию уроки 2-10 (Шаг 1 плана)
-    console.log('ℹ️ Диапазон не указан. Запуск приоритета 1: Уроки 2–10.');
-    itemsToProcess = catalog.filter((c) => c.lesson >= 2 && c.lesson <= 10);
+    // По умолчанию уроки 1-10 (Приоритет 1)
+    console.log('ℹ️ Диапазон не указан. Запуск приоритета 1: Уроки 1–10.');
+    itemsToProcess = catalog.filter((c) => c.lesson >= 1 && c.lesson <= 10);
   }
 
   console.log('====================================================');

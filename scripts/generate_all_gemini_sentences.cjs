@@ -35,14 +35,33 @@ if (!fs.existsSync(SENTENCES_DIR)) {
   fs.mkdirSync(SENTENCES_DIR, { recursive: true });
 }
 
-function getApiKey() {
-  if (process.env.GEMINI_TTS_API_KEY) return process.env.GEMINI_TTS_API_KEY.trim();
+function getApiKeys() {
+  if (process.env.GEMINI_TTS_API_KEY) return [process.env.GEMINI_TTS_API_KEY.trim()];
+  const keys = [];
   if (fs.existsSync(ENV_PATH)) {
     const content = fs.readFileSync(ENV_PATH, 'utf8');
-    const m = content.match(/GEMINI_TTS_API_KEY=([^\r\n]+)/);
-    if (m) return m[1].trim();
+    for (const line of content.split('\n')) {
+      const trimmed = line.trim();
+      const eq = trimmed.indexOf('=');
+      if (eq > 0) {
+        const k = trimmed.slice(0, eq).trim();
+        const v = trimmed.slice(eq + 1).trim().replace(/^['"]|['"]$/g, '');
+        if (
+          k === 'GEMINI_TTS_API_KEY' ||
+          k === 'GEMINI_PRIMARY_API_KEY' ||
+          k === 'GEMINI_SECONDARY_API_KEY' ||
+          k === 'GEMINI_API_KEY'
+        ) {
+          if (v && !keys.includes(v)) keys.push(v);
+        }
+      }
+    }
   }
-  throw new Error('GEMINI_TTS_API_KEY not found in .env.local');
+  if (process.env.GEMINI_API_KEY && !keys.includes(process.env.GEMINI_API_KEY)) {
+    keys.push(process.env.GEMINI_API_KEY);
+  }
+  if (!keys.length) throw new Error('No Gemini API keys found in .env.local');
+  return keys;
 }
 
 function stripNikkud(text) {
@@ -113,17 +132,46 @@ function loadCatalog(options = {}) {
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const TTS_MODELS = [
-  { id: 'gemini-3.8-flash-lite-tts', family: 'gemini-3.8', status: 'verified_gemini_3.8' },
   { id: 'gemini-3.8-flash-tts', family: 'gemini-3.8', status: 'verified_gemini_3.8' },
+  { id: 'gemini-3.8-flash-lite-tts', family: 'gemini-3.8', status: 'verified_gemini_3.8' },
   { id: 'gemini-3.1-flash-tts-preview', family: 'gemini-3.1', status: 'verified_gemini_3.1' }
 ];
 
-let activeModelIdx = 0;
+const exhaustedSlots = new Set();
+const exhaustedKeys = new Set();
+let globalSlots = null;
+let currentSlotIdx = 0;
 
-async function synthesizeWithGemini(text, destPath, apiKey, voiceName, maxRetries = 5) {
-  while (activeModelIdx < TTS_MODELS.length) {
-    const currentModel = TTS_MODELS[activeModelIdx];
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${currentModel.id}:generateContent?key=${apiKey}`;
+function getNextAvailableSlot(slots) {
+  let scanned = 0;
+  while (scanned < slots.length) {
+    const slot = slots[currentSlotIdx % slots.length];
+    const slotKey = `${slot.keyIndex}_${slot.model.id}`;
+    if (!exhaustedKeys.has(slot.keyIndex) && !exhaustedSlots.has(slotKey)) {
+      return slot;
+    }
+    currentSlotIdx++;
+    scanned++;
+  }
+  return null;
+}
+
+async function synthesizeWithGemini(text, destPath, apiKeys, voiceName, maxRetries = 3) {
+  if (!globalSlots) {
+    globalSlots = [];
+    apiKeys.forEach((key, kIdx) => {
+      TTS_MODELS.forEach((model) => {
+        globalSlots.push({ key, model, keyIndex: kIdx + 1 });
+      });
+    });
+  }
+
+  while (true) {
+    const slot = getNextAvailableSlot(globalSlots);
+    if (!slot) break;
+
+    const slotKey = `${slot.keyIndex}_${slot.model.id}`;
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${slot.model.id}:generateContent?key=${slot.key}`;
     const payload = {
       contents: [{ parts: [{ text }] }],
       generationConfig: {
@@ -148,30 +196,30 @@ async function synthesizeWithGemini(text, destPath, apiKey, voiceName, maxRetrie
         });
         const data = await res.json();
 
+        if (res.status === 402 || data.error?.code === 402) {
+          console.warn(`⚠️ [402 Payment Required] на ключе #${slot.keyIndex}. Ключ исключён из карусели.`);
+          exhaustedKeys.add(slot.keyIndex);
+          currentSlotIdx++;
+          break;
+        }
+
         if (res.status === 429 || data.error?.code === 429) {
           const errMsg = data.error?.message || '';
-          const isDailyExhausted = /per_model_per_day|Please retry in/i.test(errMsg);
+          const isDailyExhausted = /exceeded your current quota|per_day|per_model_per_day|Resource has been exhausted|quota.*exceeded/i.test(errMsg);
 
           if (isDailyExhausted) {
-            console.warn(`🛑 Модель [${currentModel.id}] исчерпала суточный лимит: ${errMsg}`);
-            activeModelIdx++;
-            if (activeModelIdx < TTS_MODELS.length) {
-              console.warn(`🔄 Автопереключение на каскадную модель: [${TTS_MODELS[activeModelIdx].id}]...`);
-              break; // Пробуем следующую модель в каскаде
-            } else {
-              const quotaErr = new Error(`Все модели Gemini TTS в пуле исчерпали суточный лимит (300 фраз).`);
-              quotaErr.isAllModelsExhausted = true;
-              throw quotaErr;
-            }
+            console.warn(`🛑 Модель [${slot.model.id}] исчерпала суточный лимит на ключе #${slot.keyIndex}. Ротация слота...`);
+            exhaustedSlots.add(slotKey);
+            currentSlotIdx++;
+            break;
           }
 
           if (attempt === maxRetries) {
-            const quotaErr = new Error(`Gemini API 429 Rate Limit (10 RPM): ${errMsg || 'RESOURCE_EXHAUSTED'}`);
-            quotaErr.isRateLimit = true;
-            throw quotaErr;
+            currentSlotIdx++;
+            break;
           }
-          console.warn(`⏳ [Rate Limit 429] Окно 10 RPM модели [${currentModel.id}] заполнено. Ожидание 20с (${attempt}/${maxRetries})...`);
-          await sleep(20000);
+          console.warn(`⏳ [Rate Limit 429] Окно RPM модели [${slot.model.id}] на ключе #${slot.keyIndex}. Ожидание 3с (${attempt}/${maxRetries})...`);
+          await sleep(3000);
           continue;
         }
 
@@ -190,12 +238,11 @@ async function synthesizeWithGemini(text, destPath, apiKey, voiceName, maxRetrie
 
         const audioBuffer = Buffer.from(audioData, 'base64');
         const mimeType = part?.inlineData?.mimeType || '';
-        const isRawPcm = /l16|pcm|raw/i.test(mimeType) || currentModel.family === 'gemini-3.1';
+        const isRawPcm = /l16|pcm|raw/i.test(mimeType) || slot.model.family === 'gemini-3.1';
         const tempExt = isRawPcm ? 'pcm' : 'wav';
         const tempFile = path.join(SENTENCES_DIR, `temp_${Date.now()}_${Math.random().toString(36).slice(2)}.${tempExt}`);
         fs.writeFileSync(tempFile, audioBuffer);
 
-        // Конвертация сырого PCM (24kHz s16le) или WAV в студийный MP3 44.1kHz (R-24)
         const ffmpegArgs = isRawPcm
           ? ['-y', '-f', 's16le', '-ar', '24000', '-ac', '1', '-i', tempFile, '-ar', '44100', '-b:a', '128k', destPath]
           : ['-y', '-i', tempFile, '-ar', '44100', '-b:a', '128k', destPath];
@@ -207,19 +254,21 @@ async function synthesizeWithGemini(text, destPath, apiKey, voiceName, maxRetrie
         attemptSuccess = true;
         break;
       } catch (err) {
-        if (err.isAllModelsExhausted) throw err;
-        if (attempt === maxRetries) throw err;
-        console.warn(`⚠️ Ошибка запроса (${attempt}/${maxRetries}): ${err.message}. Повтор через 5с...`);
-        await sleep(5000);
+        if (attempt === maxRetries) {
+          currentSlotIdx++;
+          break;
+        }
+        console.warn(`⚠️ Ошибка запроса (${attempt}/${maxRetries}): ${err.message}. Повтор через 2с...`);
+        await sleep(2000);
       }
     }
 
     if (attemptSuccess) {
-      return { bytes: bytesWritten, model: currentModel };
+      return { bytes: bytesWritten, model: slot.model, keyIndex: slot.keyIndex };
     }
   }
 
-  const exhaustedErr = new Error('Все модели Gemini TTS (3.8-lite, 3.8-flash, 3.1) исчерпали свои суточные лимиты.');
+  const exhaustedErr = new Error('Все доступные ключи и модели Gemini TTS исчерпали свои суточные лимиты.');
   exhaustedErr.isAllModelsExhausted = true;
   throw exhaustedErr;
 }
@@ -238,17 +287,18 @@ async function main() {
     limit = val === 'all' ? Infinity : parseInt(val, 10);
   }
 
-  const apiKey = getApiKey();
+  const apiKeys = getApiKeys();
   const { items, manifest, metadata } = loadCatalog({ isForce, isMaleOnly, isFemaleOnly });
 
   const alreadyDone = items.filter((i) => i.isAlreadyGenerated);
   const pending = items.filter((i) => !i.isAlreadyGenerated);
 
   console.log('================================================================');
-  console.log('🎙️ ТРЕХМОДЕЛЬНАЯ КАСКАДНАЯ ГЕНЕРАЦИЯ (GEMINI 3.8 / 3.8-LITE / 3.1 TTS)');
+  console.log('🎙️ ШЕСТИКАНАЛЬНАЯ КАСКАДНАЯ ГЕНЕРАЦИЯ (2 КОНТУРА × 3 МОДЕЛИ GEMINI TTS)');
   console.log(`Всего предложений в каноническом пакете: ${items.length}`);
   console.log(`Уже сгенерировано и верифицировано: ${alreadyDone.length}`);
   console.log(`Осталось сгенерировать: ${pending.length}`);
+  console.log(`Ключей в карусели: ${apiKeys.length}`);
   console.log(`Лимит на текущий запуск: ${limit} фраз`);
   console.log(`Режим dry-run: ${isDryRun ? 'ВКЛЮЧЕН (без запросов к API)' : 'ВЫКЛЮЧЕН (боевая генерация)'}`);
   if (isMaleOnly) console.log('Фильтр: ТОЛЬКО МУЖСКИЕ ПРЕДЛОЖЕНИЯ (голос: Orus)');
@@ -284,7 +334,7 @@ async function main() {
     const progress = `[${String(i + 1).padStart(2, ' ')}/${batch.length}] (всего: ${alreadyDone.length + i + 1}/${items.length})`;
 
     try {
-      const { bytes, model } = await synthesizeWithGemini(item.sentenceHe, targetFile, apiKey, item.voiceName);
+      const { bytes, model } = await synthesizeWithGemini(item.sentenceHe, targetFile, apiKeys, item.voiceName);
 
       // Обновляем манифест и реестр метаданных
       manifest[item.normKey] = item.fileName;
