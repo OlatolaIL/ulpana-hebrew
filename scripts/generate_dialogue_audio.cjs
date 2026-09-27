@@ -46,13 +46,69 @@ function saveManifest(manifest) {
   fs.writeFileSync(MANIFEST_PATH, JSON.stringify(manifest, null, 2), 'utf8');
 }
 
-function cleanHebrewForTts(text) {
-  return stripNikkud(text)
+function stripDageshFrom(text, letters) {
+  const set = new Set(letters);
+  let res = '';
+  for (let i = 0; i < text.length; i++) {
+    const char = text[i];
+    if (set.has(char)) {
+      res += char;
+      while (i + 1 < text.length && text.charCodeAt(i + 1) >= 0x0591 && text.charCodeAt(i + 1) <= 0x05C7) {
+        i++;
+        if (text.charCodeAt(i) !== 0x05BC) {
+          res += text[i];
+        }
+      }
+    } else {
+      res += char;
+    }
+  }
+  return res;
+}
+
+function normalizeHebrewForNeuralTts(text) {
+  if (!text) return '';
+  let res = text;
+
+  // 1. Приоритет современного כתיב מלא (R-04)
+  res = res.replace(/וְעַכְשָׁו/g, 'וְעַכְשָׁיו').replace(/ועכשו/g, 'ועכשיו');
+  res = res.replace(/בַּלִּמּוּדִים/g, 'בַּלִּימוּדִים');
+
+  // 2. Снятие нефонематического дагеша с [ת, ד, ג]
+  // В современном иврите ת/ד/ג не имеют смыслоразличительного дагеша (всегда t, d, g),
+  // но в нейросети Microsoft TTS дагеш на этих буквах вызывает паразитное удваивание,
+  // взрывные щелчки и превращение последующего холам-мале в согласную «в» (תּוֹ -> «тево», גָּ -> «гиа»)
+  res = stripDageshFrom(res, ['ג', 'ד', 'ת']);
+
+  // 4. Фонетический фикс камац-катан в слове «כל»
+  // Нейросеть Microsoft читает כָּל с камацем как «каль» (омофон קל).
+  // Замена на כּוֹל гарантирует академическое звучание «коль hа-кавод».
+  res = res.replace(/כָּל(?=[\s\-]|$)/g, 'כּוֹל');
+
+  // 5. Фонетический фикс «תודה רבה»:
+  // Гарантируем огласовку «רַבָּה», чтобы не звучало «рэба»
+  res = res.replace(/תּ?[וֹֹ\u05b9]*דָ?ה?\s*רַ?בָּ?ה?/g, 'תודה רַבָּה');
+  res = res.replace(/תודה\s+רבה/g, 'תודה רַבָּה');
+  res = res.replace(/תּוֹדָה/g, 'תודה');
+
+  // 6. Защита слова אוּלְפָּן (дагеш в букве пей)
+  res = res.replace(/([לבמה]?ָ?)אוּלְפָן/g, '$1אוּלְפָּן');
+  res = res.replace(/([לבמה]?)אולפן/g, '$1אוּלְפָּן');
+
+  // 7. Очистка от служебных знаков и эмодзи (сохраняя никуд!)
+  res = res
+    .replace(/[♂♀⚥✔️❌①②③④⑤👉📦🌸🎙️👥↗️➡️⬅️⬆️⬇️✨💫\u200D\uFE0F\uFE0E]/g, '')
     .replace(/[؟？]/g, '?')
     .replace(/[！]/g, '!')
     .replace(/["״׳«»]/g, '')
     .replace(/\s+/g, ' ')
     .trim();
+
+  return res;
+}
+
+function cleanHebrewForTts(text) {
+  return normalizeHebrewForNeuralTts(text);
 }
 
 async function synthesizeTurn(text, voice, destPath, retries = 3) {
@@ -106,6 +162,7 @@ async function main() {
   const lessonArg = args.find(a => a.startsWith('--lesson='));
   const lessonsArg = args.find(a => a.startsWith('--lessons='));
   const isAll = args.includes('--all');
+  const isForce = args.includes('--force');
 
   if (isAll) {
     lessonIds = Array.from({ length: 100 }, (_, i) => i + 1);
@@ -119,7 +176,7 @@ async function main() {
 
   console.log('====================================================');
   console.log('🎙️ ГЕНЕРАЦИЯ ДИАЛОГОВЫХ АУДИОФАЙЛОВ (MICROSOFT NEURAL)');
-  console.log(`Уроки в обработке: ${lessonIds.join(', ')}`);
+  console.log(`Уроки в обработке: ${lessonIds.join(', ')} | Режим перезаписи: ${isForce ? 'ВКЛЮЧЕН (--force)' : 'ВЫКЛЮЧЕН'}`);
   console.log('====================================================\n');
 
   const manifest = loadManifest();
@@ -154,7 +211,7 @@ async function main() {
         if (!variant || !variant.hebrew) continue;
 
         // Проверяем наличие файла
-        if (fs.existsSync(destPath) && fs.statSync(destPath).size > 100) {
+        if (!isForce && fs.existsSync(destPath) && fs.statSync(destPath).size > 100) {
           skippedCount++;
           // Убедимся, что ключ есть в манифесте
           if (!manifest[key]) {

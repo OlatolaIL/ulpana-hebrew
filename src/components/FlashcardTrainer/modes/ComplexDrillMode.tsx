@@ -243,6 +243,25 @@ export const ComplexDrillMode: React.FC<ComplexDrillModeProps> = ({
     return null;
   }, [audioMeta, activeDrill.sentenceHe]);
 
+  // Поддержка всех 3 протоколов студийного синтеза Gemini (3.8, 3.5, 3.1)
+  const isGeminiStudio = useMemo(() => {
+    if (!currentSentenceMeta?.status) return false;
+    return (
+      currentSentenceMeta.status === 'verified_gemini_3.8' ||
+      currentSentenceMeta.status === 'verified_gemini_3.5' ||
+      currentSentenceMeta.status === 'verified_gemini_3.1' ||
+      currentSentenceMeta.status.startsWith('verified_gemini')
+    );
+  }, [currentSentenceMeta]);
+
+  const geminiVersion = useMemo(() => {
+    if (!currentSentenceMeta) return '3.5';
+    if (currentSentenceMeta.status === 'verified_gemini_3.8') return '3.8';
+    if (currentSentenceMeta.status === 'verified_gemini_3.1') return '3.1';
+    if (currentSentenceMeta.status === 'verified_gemini_3.5') return '3.5';
+    return currentSentenceMeta.modelFamily?.replace('gemini-', '') || '3.5';
+  }, [currentSentenceMeta]);
+
   // Очистка при размонтировании
   useEffect(() => {
     isMountedRef.current = true;
@@ -737,11 +756,11 @@ export const ComplexDrillMode: React.FC<ComplexDrillModeProps> = ({
               </span>
             )}
 
-            {/* МЕТКА ДВИЖКА ОЗВУЧКИ: GEMINI 3.5 VS СТАНДАРТНЫЙ */}
-            {currentSentenceMeta?.status === 'verified_gemini_3.5' ? (
+            {/* МЕТКА ДВИЖКА ОЗВУЧКИ: ВСЕ 3 ПРОТОКОЛА GEMINI (3.8, 3.5, 3.1) VS СТАНДАРТНЫЙ */}
+            {isGeminiStudio ? (
               <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-gradient-to-r from-purple-500/15 to-amber-500/15 border border-purple-300 dark:border-purple-700/60 text-purple-700 dark:text-purple-300 font-bold text-[10px] shadow-2xs">
                 <Sparkles className="w-3 h-3 text-amber-500 fill-amber-400" />
-                <span>✨ Студия Gemini 3.5 ({currentSentenceMeta.voice || 'Aoede'})</span>
+                <span>✨ Студия Gemini {geminiVersion} ({currentSentenceMeta?.voice || 'Aoede'})</span>
               </span>
             ) : (
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 text-[10px] font-medium">

@@ -213,3 +213,77 @@ test('validatePhoneReply enforces gender concordance and sanitizes corrupted sug
   );
 });
 
+test('validatePhoneReply strictly rejects non-Cyrillic translations, Latin transcriptions, chained greetings and English calques', () => {
+  const { validatePhoneReply } = require('../src/lib/phoneConversation.ts');
+  const contract = getPhoneLessonContract(1);
+  const turns = [{ role: 'user', content: 'שלום' }];
+
+  // 1. English translation must be rejected
+  const englishTranslationReply = {
+    hebrew: 'שָׁלוֹם! מָה שִׁמְךָ?',
+    translation: 'Hello! Hi! My name is Noam. What is your name?',
+    transcription: 'шалóм! ма шимхá?',
+    isCompleted: false,
+    shouldHangUp: false,
+    questionForStudent: 0,
+  };
+  assert.throws(
+    () => validatePhoneReply(englishTranslationReply, { contract, turns, lessonNumber: 1, gender: 'male' }),
+    /Russian Cyrillic translation required/
+  );
+
+  // 2. Latin transcription must be rejected
+  const latinTranscriptionReply = {
+    hebrew: 'שָׁלוֹם! מָה שִׁמְךָ?',
+    translation: 'Привет! Как тебя зовут?',
+    transcription: 'shalom! ma shimkha?',
+    isCompleted: false,
+    shouldHangUp: false,
+    questionForStudent: 0,
+  };
+  assert.throws(
+    () => validatePhoneReply(latinTranscriptionReply, { contract, turns, lessonNumber: 1, gender: 'male' }),
+    /Cyrillic Hebrew transcription required/
+  );
+
+  // 3. Chained double greeting (e.g. "הלו! שלום!") must be rejected
+  const chainedGreetingReply = {
+    hebrew: 'הַלּוֹ! שָׁלוֹם! נָעִים מְאוֹד.',
+    translation: 'Алло! Привет! Очень приятно.',
+    transcription: 'hалó! шалóм! наӣм мэóд.',
+    isCompleted: false,
+    shouldHangUp: false,
+  };
+  assert.throws(
+    () => validatePhoneReply(chainedGreetingReply, { contract, turns, lessonNumber: 1, gender: 'male' }),
+    /Chained double greeting in Hebrew reply/
+  );
+
+  // 4. Unnatural English calque ("נועם הוא שם שלי. מה שם שלך?") must be rejected
+  const calqueReply = {
+    hebrew: 'נוֹעַם הוּא שֵׁם שֶׁלִּי. מָה שֵׁם שֶׁלְּךָ?',
+    translation: 'Ноам это моё имя. Какое твоё имя?',
+    transcription: 'нóам hу шем шелӣ. ма шем шелхá?',
+    isCompleted: false,
+    shouldHangUp: false,
+  };
+  assert.throws(
+    () => validatePhoneReply(calqueReply, { contract, turns, lessonNumber: 1, gender: 'male' }),
+    /Unnatural English calque in Hebrew reply/
+  );
+
+  // 5. Valid Russian translation with Cyrillic transcription and natural Hebrew passes cleanly
+  const validReply = {
+    hebrew: 'שָׁלוֹם! נָעִים מְאוֹד, קוֹרְאִים לִי נוֹעַם. אֵיךְ קוֹרְאִים לְךָ?',
+    translation: 'Привет! Очень приятно, меня зовут Ноам. Как тебя зовут?',
+    transcription: 'шалóм! наӣм мэóд, коръӣм ли нóам. эйх коръӣм лэха́?',
+    isCompleted: false,
+    shouldHangUp: false,
+    questionForStudent: 0,
+  };
+  const validated = validatePhoneReply(validReply, { contract, turns, lessonNumber: 1, gender: 'male' });
+  assert.equal(validated.hebrew, validReply.hebrew);
+  assert.equal(validated.translation, validReply.translation);
+});
+
+

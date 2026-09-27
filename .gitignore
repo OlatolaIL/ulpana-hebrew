@@ -70,4 +70,6 @@ growth/output/
 
 /logs/
 logs/
-/logs/
+
+# scratch directory
+/scratch/

@@ -1,0 +1,1062 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=390, height=844, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Ульпан Алеф — Урок 1 (YouTube Shorts)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700;800;900&family=Montserrat:wght@700;800;900&family=Heebo:wght@500;700;900&display=swap" rel="stylesheet">
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body {
+      width: 390px;
+      height: 844px;
+      overflow: hidden;
+      background: #060913;
+      font-family: 'Rubik', sans-serif;
+      color: #fff;
+      position: relative;
+    }
+
+    #phone-container {
+      width: 390px;
+      height: 844px;
+      position: relative;
+      overflow: hidden;
+      background: #090d16;
+    }
+
+    /* Верхние динамические титры Reels/Shorts */
+    .reels-subtitles {
+      position: absolute;
+      top: 22px;
+      left: 14px;
+      right: 14px;
+      z-index: 1000;
+      text-align: center;
+      pointer-events: none;
+    }
+
+    .sub-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-family: 'Montserrat', sans-serif;
+      font-size: 17px;
+      font-weight: 900;
+      text-transform: uppercase;
+      padding: 9px 18px;
+      border-radius: 14px;
+      background: rgba(10, 15, 30, 0.94);
+      border: 2px solid #38bdf8;
+      color: #fff;
+      text-shadow: 0 2px 8px rgba(0,0,0,0.8);
+      box-shadow: 0 10px 25px rgba(0,0,0,0.6), 0 0 25px rgba(56, 189, 248, 0.4);
+      transform: scale(0.98);
+      transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .sub-badge .yt-pill {
+      background: #ef4444;
+      color: #fff;
+      font-size: 11px;
+      font-weight: 900;
+      padding: 2px 7px;
+      border-radius: 6px;
+      letter-spacing: 0.5px;
+    }
+
+    /* R-25: СТРОГО absolute inset 0, visibility hidden */
+    .scene {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0;
+      pointer-events: none;
+      visibility: hidden;
+      transition: opacity 0.35s ease, transform 0.35s ease, visibility 0.35s;
+      transform: scale(0.98);
+      overflow: hidden;
+    }
+
+    .scene.active {
+      opacity: 1;
+      pointer-events: auto;
+      visibility: visible;
+      transform: scale(1);
+    }
+
+    /* ========================================================
+       ФАБРИЧНАЯ ШАПКА И НАВИГАЦИЯ (Single Brand SSOT)
+       ======================================================== */
+    .brand-top-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 18px;
+      padding: 10px 14px;
+      backdrop-filter: blur(12px);
+    }
+
+    .brand-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-cube {
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #0284c7 0%, #38bdf8 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Heebo', sans-serif;
+      font-weight: 900;
+      font-size: 20px;
+      color: #fff;
+      box-shadow: 0 0 15px rgba(56, 189, 248, 0.5);
+    }
+
+    .brand-meta {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .brand-title {
+      font-size: 14px;
+      font-weight: 800;
+      color: #ffffff;
+      letter-spacing: 0.3px;
+    }
+
+    .brand-slogan {
+      font-size: 10.5px;
+      font-weight: 600;
+      color: #38bdf8;
+    }
+
+    .brand-lesson-badge {
+      background: rgba(56, 189, 248, 0.15);
+      border: 1px solid rgba(56, 189, 248, 0.4);
+      color: #bae6fd;
+      font-size: 11px;
+      font-weight: 800;
+      padding: 5px 10px;
+      border-radius: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    /* Вкладки тренажёра (Словарь • Диалог • Звонок) */
+    .trainer-tabs-bar {
+      display: flex;
+      gap: 6px;
+      background: rgba(15, 23, 42, 0.8);
+      padding: 5px;
+      border-radius: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .tab-pill {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 7px 4px;
+      border-radius: 10px;
+      font-size: 11.5px;
+      font-weight: 700;
+      color: #94a3b8;
+      background: transparent;
+      transition: all 0.2s ease;
+    }
+
+    .tab-pill.active {
+      background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+      color: #ffffff;
+      box-shadow: 0 2px 10px rgba(2, 132, 199, 0.4);
+    }
+
+    .tab-pill.active .tab-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #4ade80;
+      box-shadow: 0 0 6px #4ade80;
+    }
+
+    /* ========================================================
+       СЦЕНА 1: ОФИС В ТЕЛЬ-АВИВЕ (Хук)
+       ======================================================== */
+    #scene-intro {
+      background: radial-gradient(circle at 50% 30%, #1e293b 0%, #060913 100%);
+      display: flex;
+      flex-direction: column;
+      padding: 72px 16px 20px;
+      gap: 12px;
+    }
+
+    .situation-card {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 20px;
+      padding: 16px;
+      backdrop-filter: blur(16px);
+      box-shadow: 0 15px 35px rgba(0,0,0,0.5);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .situation-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .location-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #0284c7;
+      color: #e0f2fe;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 12px;
+    }
+
+    .time-indicator {
+      font-size: 13px;
+      font-weight: 700;
+      color: #94a3b8;
+    }
+
+    .situation-title {
+      font-size: 18px;
+      font-weight: 800;
+      color: #f8fafc;
+      line-height: 1.25;
+    }
+
+    /* Карточка персонажа */
+    .character-card {
+      background: linear-gradient(135deg, rgba(30, 58, 138, 0.6) 0%, rgba(15, 23, 42, 0.8) 100%);
+      border: 1.5px solid #38bdf8;
+      border-radius: 18px;
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      box-shadow: 0 10px 25px rgba(2, 132, 199, 0.25);
+    }
+
+    .character-avatar {
+      width: 52px;
+      height: 52px;
+      border-radius: 16px;
+      background: #0f172a;
+      border: 2px solid #38bdf8;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 32px;
+    }
+
+    .character-details h3 {
+      font-size: 15px;
+      font-weight: 800;
+      color: #fff;
+    }
+
+    .character-details p {
+      font-size: 12px;
+      color: #93c5fd;
+      margin-top: 2px;
+    }
+
+    /* Нижний блок контекста урока (Zero Empty Space) */
+    .intro-bottom-prompt {
+      background: rgba(0, 0, 0, 0.4);
+      border-radius: 16px;
+      padding: 14px;
+      border: 1px dashed rgba(56, 189, 248, 0.3);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      text-align: center;
+    }
+
+    .prompt-label {
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #38bdf8;
+    }
+
+    .prompt-text {
+      font-size: 15px;
+      font-weight: 700;
+      color: #e2e8f0;
+      line-height: 1.35;
+    }
+
+    /* ========================================================
+       СЦЕНА 2: ФАКАП С РОДОМ (Паника)
+       ======================================================== */
+    #scene-fail {
+      background: radial-gradient(circle at 50% 35%, #450a0a 0%, #100404 100%);
+      display: flex;
+      flex-direction: column;
+      padding: 72px 16px 20px;
+      gap: 12px;
+    }
+
+    .fail-card {
+      background: rgba(239, 68, 68, 0.1);
+      border: 2px dashed rgba(239, 68, 68, 0.45);
+      border-radius: 20px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      animation: shake 0.5s infinite;
+    }
+
+    @keyframes shake {
+      0% { transform: translate(1px, 1px) rotate(0deg); }
+      25% { transform: translate(-1.5px, -1px) rotate(-0.4deg); }
+      50% { transform: translate(1px, 1.5px) rotate(0.4deg); }
+      75% { transform: translate(-1px, -1px) rotate(-0.2deg); }
+      100% { transform: translate(1px, 1px) rotate(0deg); }
+    }
+
+    .dialogue-thread-fail {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .bubble-fail {
+      border-radius: 14px;
+      padding: 12px 14px;
+    }
+
+    .bubble-student-blunder {
+      background: rgba(30, 41, 59, 0.95);
+      border: 1.5px solid rgba(239, 68, 68, 0.6);
+      align-self: flex-start;
+      max-width: 90%;
+    }
+
+    .bubble-lead-shock {
+      background: linear-gradient(135deg, rgba(185, 28, 28, 0.8) 0%, rgba(127, 29, 29, 0.9) 100%);
+      border: 1.5px solid #f87171;
+      align-self: flex-end;
+      max-width: 90%;
+      box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);
+    }
+
+    .bubble-author {
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+    }
+
+    .author-student { color: #fca5a5; }
+    .author-lead { color: #fef08a; }
+
+    .bubble-he {
+      font-family: 'Heebo', sans-serif;
+      font-size: 20px;
+      font-weight: 900;
+      color: #fff;
+      direction: rtl;
+      text-align: right;
+    }
+
+    .bubble-ru {
+      font-size: 12px;
+      color: #e2e8f0;
+      margin-top: 4px;
+      font-style: italic;
+    }
+
+    /* Радар ошибки */
+    .error-breakdown {
+      background: rgba(0, 0, 0, 0.5);
+      border-radius: 14px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+
+    .error-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 13px;
+    }
+
+    .error-pill-wrong {
+      background: rgba(239, 68, 68, 0.3);
+      color: #fca5a5;
+      font-weight: 800;
+      padding: 3px 8px;
+      border-radius: 8px;
+    }
+
+    .error-pill-correct {
+      background: rgba(34, 197, 94, 0.25);
+      color: #86efac;
+      font-weight: 800;
+      padding: 3px 8px;
+      border-radius: 8px;
+    }
+
+    .panic-meter {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      background: rgba(239, 68, 68, 0.25);
+      border-radius: 12px;
+      padding: 8px;
+      font-size: 13px;
+      font-weight: 800;
+      color: #fecaca;
+    }
+
+    /* ========================================================
+       СЦЕНА 3: УЛЬПАН АЛЕФ (Решение и тренажёр Этап 5)
+       ======================================================== */
+    #scene-solution {
+      background: #060913;
+      display: flex;
+      flex-direction: column;
+      padding: 72px 16px 20px;
+      gap: 10px;
+    }
+
+    /* Карточка правила местоимений */
+    .rule-card-ulpan {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      border-radius: 16px;
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .rule-columns {
+      display: flex;
+      gap: 8px;
+    }
+
+    .rule-col {
+      flex: 1;
+      background: rgba(0, 0, 0, 0.35);
+      border-radius: 12px;
+      padding: 8px 10px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .rule-col.male { border: 1.5px solid #22c55e; }
+    .rule-col.female { border: 1.5px solid #38bdf8; }
+
+    .col-gender {
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .col-gender.male-text { color: #4ade80; }
+    .col-gender.female-text { color: #38bdf8; }
+
+    .col-hebrew {
+      font-family: 'Heebo', sans-serif;
+      font-size: 22px;
+      font-weight: 900;
+      color: #fff;
+    }
+
+    .col-trans {
+      font-size: 11.5px;
+      color: #cbd5e1;
+      font-weight: 600;
+    }
+
+    /* Симулятор живого диалога (Этап 5 тренажёра) */
+    .dialogue-simulator-box {
+      background: #0c1427;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 18px;
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+    }
+
+    .sim-status-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 6px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      font-size: 12px;
+      color: #cbd5e1;
+    }
+
+    .sim-caller {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: 700;
+    }
+
+    .sim-timer {
+      color: #22c55e;
+      font-weight: 800;
+    }
+
+    .sim-thread {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .sim-bubble-lead {
+      background: rgba(30, 41, 59, 0.9);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px 12px 12px 2px;
+      padding: 8px 12px;
+      align-self: flex-start;
+      max-width: 88%;
+    }
+
+    .sim-bubble-lead .text-he {
+      font-family: 'Heebo', sans-serif;
+      font-size: 16px;
+      font-weight: 800;
+      color: #f1f5f9;
+      direction: rtl;
+      text-align: right;
+    }
+
+    .sim-bubble-student {
+      background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+      border-radius: 12px 12px 2px 12px;
+      padding: 8px 12px;
+      align-self: flex-end;
+      max-width: 88%;
+      box-shadow: 0 4px 15px rgba(2, 132, 199, 0.35);
+      opacity: 0;
+      transform: translateY(6px);
+      transition: all 0.3s ease;
+    }
+
+    .sim-bubble-student.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .sim-bubble-student .text-he {
+      font-family: 'Heebo', sans-serif;
+      font-size: 16px;
+      font-weight: 900;
+      color: #fff;
+      direction: rtl;
+      text-align: right;
+    }
+
+    .sim-bubble-student .text-ru {
+      font-size: 10.5px;
+      color: #bae6fd;
+      margin-top: 2px;
+    }
+
+    /* Микрофон и тач-курсор */
+    .mic-control-area {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      position: relative;
+      margin-top: 2px;
+    }
+
+    .mic-button {
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #38bdf8 0%, #0284c7 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      box-shadow: 0 0 20px rgba(56, 189, 248, 0.6);
+      cursor: pointer;
+      position: relative;
+    }
+
+    .wave-ripple {
+      position: absolute;
+      inset: -6px;
+      border-radius: 50%;
+      border: 2px solid rgba(56, 189, 248, 0.5);
+      animation: rippleAnim 1.4s infinite;
+      opacity: 0;
+    }
+
+    .mic-button.recording .wave-ripple {
+      opacity: 1;
+    }
+
+    @keyframes rippleAnim {
+      0% { transform: scale(0.9); opacity: 0.8; }
+      100% { transform: scale(1.4); opacity: 0; }
+    }
+
+    /* Анимированный виртуальный палец */
+    .touch-cursor {
+      position: absolute;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.85);
+      border: 2px solid #38bdf8;
+      box-shadow: 0 0 20px #38bdf8;
+      top: 50%;
+      left: 50%;
+      transform: translate(50px, 50px);
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      z-index: 50;
+    }
+
+    .touch-cursor.click {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(0.9);
+    }
+
+    /* Оценка ИИ */
+    .ai-score-badge {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      background: rgba(34, 197, 94, 0.15);
+      border: 1px solid #22c55e;
+      border-radius: 10px;
+      padding: 6px 12px;
+      font-size: 12px;
+      font-weight: 800;
+      color: #4ade80;
+      opacity: 0;
+      transform: scale(0.9);
+      transition: all 0.3s ease;
+    }
+
+    .ai-score-badge.show {
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    /* ========================================================
+       СЦЕНА 4: АУТРО (CTA с кодом YT)
+       ======================================================== */
+    #scene-outro {
+      background: radial-gradient(circle at 50% 25%, #1e3a8a 0%, #060913 100%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 70px 18px 30px;
+      gap: 16px;
+      text-align: center;
+    }
+
+    .outro-logo-glow {
+      width: 76px;
+      height: 76px;
+      border-radius: 22px;
+      background: linear-gradient(135deg, #0284c7 0%, #38bdf8 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Heebo', sans-serif;
+      font-size: 44px;
+      font-weight: 900;
+      color: #fff;
+      box-shadow: 0 0 45px rgba(56, 189, 248, 0.7);
+    }
+
+    .outro-title {
+      font-size: 24px;
+      font-weight: 900;
+      color: #fff;
+      line-height: 1.25;
+    }
+
+    .free-trial-banner {
+      background: rgba(250, 204, 21, 0.15);
+      border: 2px solid #facc15;
+      color: #fef08a;
+      border-radius: 16px;
+      padding: 10px 18px;
+      font-size: 18px;
+      font-weight: 900;
+      text-transform: uppercase;
+      box-shadow: 0 0 25px rgba(250, 204, 21, 0.35);
+      animation: pulseGlow 1.8s infinite alternate;
+    }
+
+    .features-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      text-align: left;
+      width: 100%;
+      background: rgba(255, 255, 255, 0.05);
+      padding: 14px;
+      border-radius: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .feat-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 13.5px;
+      font-weight: 700;
+      color: #cbd5e1;
+    }
+
+    .feat-icon {
+      color: #38bdf8;
+      font-size: 16px;
+    }
+
+    .cta-button {
+      width: 100%;
+      padding: 15px;
+      border-radius: 16px;
+      background: linear-gradient(135deg, #0284c7 0%, #38bdf8 100%);
+      color: #fff;
+      font-size: 17px;
+      font-weight: 900;
+      border: none;
+      box-shadow: 0 10px 30px rgba(2, 132, 199, 0.6);
+      cursor: pointer;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .promo-note {
+      font-size: 13px;
+      color: #94a3b8;
+      font-weight: 600;
+    }
+
+    .promo-note b {
+      color: #38bdf8;
+      font-size: 15px;
+      font-weight: 900;
+    }
+
+    @keyframes pulseGlow {
+      from { transform: scale(1); filter: drop-shadow(0 0 5px rgba(56, 189, 248, 0.4)); }
+      to { transform: scale(1.02); filter: drop-shadow(0 0 15px rgba(56, 189, 248, 0.8)); }
+    }
+  </style>
+</head>
+<body>
+
+  <div id="phone-container">
+
+    <!-- Верхний динамический титр YouTube Shorts -->
+    <div class="reels-subtitles">
+      <div id="reels-badge" class="sub-badge">
+        <span class="yt-pill">YT</span>
+        <span id="badge-title">ПЕРВЫЙ ДЕНЬ В ОФИСЕ 💼</span>
+      </div>
+    </div>
+
+    <!-- ========================================================
+         СЦЕНА 1: ОФИС В ТЕЛЬ-АВИВЕ (ХУК)
+         ======================================================== -->
+    <section id="scene-intro" class="scene active">
+      <!-- Шапка бренда -->
+      <div class="brand-top-bar">
+        <div class="brand-left">
+          <div class="brand-cube">א</div>
+          <div class="brand-meta">
+            <span class="brand-title">Ульпан Алеф</span>
+            <span class="brand-slogan">Иврит без паники</span>
+          </div>
+        </div>
+        <div class="brand-lesson-badge">Урок 1 • Первые шаги</div>
+      </div>
+
+      <!-- Вкладки тренажёра -->
+      <div class="trainer-tabs-bar">
+        <div class="tab-pill">📖 Словарь</div>
+        <div class="tab-pill active"><span class="tab-dot"></span> 💬 Диалог</div>
+        <div class="tab-pill">📞 Звонок</div>
+      </div>
+
+      <!-- Карточка ситуации -->
+      <div class="situation-card">
+        <div class="situation-header">
+          <span class="location-badge">📍 Тель-Авив • Хайтек</span>
+          <span class="time-indicator">09:30</span>
+        </div>
+        <h2 class="situation-title">Первый рабочий день в Израиле...</h2>
+        <div class="character-card">
+          <div class="character-avatar">🧔🏻‍♂️</div>
+          <div class="character-details">
+            <h3>Йони (тимлид команды)</h3>
+            <p>Бородатый программист в кипе</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="intro-bottom-prompt">
+        <span class="prompt-label">Цель задания:</span>
+        <span class="prompt-text">Хочешь вежливо спросить у коллеги, свободен ли он...</span>
+      </div>
+    </section>
+
+    <!-- ========================================================
+         СЦЕНА 2: ФАКАП С РОДОМ (КОНФУЗ)
+         ======================================================== -->
+    <section id="scene-fail" class="scene">
+      <div class="brand-top-bar">
+        <div class="brand-left">
+          <div class="brand-cube">א</div>
+          <div class="brand-meta">
+            <span class="brand-title">Ульпан Алеф</span>
+            <span class="brand-slogan">Иврит без паники</span>
+          </div>
+        </div>
+        <div class="brand-lesson-badge">Урок 1 • Ситуация</div>
+      </div>
+
+      <div class="fail-card">
+        <div class="dialogue-thread-fail">
+          <div class="bubble-fail bubble-student-blunder">
+            <div class="bubble-author author-student">Новичок (робко):</div>
+            <div class="bubble-he">?סְלִיחָה, אַתְּ פְּנוּיָה</div>
+            <div class="bubble-ru">«Слиха́, ат пнуя́?» (Извините, девушка, вы свободны?)</div>
+          </div>
+
+          <div class="bubble-fail bubble-lead-shock">
+            <div class="bubble-author author-lead">Тимлид (в шоке, басом):</div>
+            <div class="bubble-he">!אֲנִי נִרְאֶה לָךְ כְּמוֹ בַּחוּרָה, אָחִי?!</div>
+            <div class="bubble-ru">«Я похож тебе на девушку, брат?!»</div>
+          </div>
+        </div>
+
+        <div class="error-breakdown">
+          <div class="error-row">
+            <span>Женщине (ты):</span>
+            <span class="error-pill-wrong">אַתְּ (ат) 👩</span>
+          </div>
+          <div class="error-row">
+            <span>Мужчине (ты):</span>
+            <span class="error-pill-correct">אַתָּה (атá) 👨</span>
+          </div>
+        </div>
+
+        <div class="panic-meter">
+          <span>💓 ПУЛЬС: 140 BPM • СТУПОР С ПЕРВОЙ СЕКУНДЫ</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================================
+         СЦЕНА 3: УЛЬПАН АЛЕФ (РЕШЕНИЕ В ТРЕНАЖЁРЕ ЭТАП 5)
+         ======================================================== -->
+    <section id="scene-solution" class="scene">
+      <div class="brand-top-bar">
+        <div class="brand-left">
+          <div class="brand-cube">א</div>
+          <div class="brand-meta">
+            <span class="brand-title">Ульпан Алеф</span>
+            <span class="brand-slogan">Иврит без паники</span>
+          </div>
+        </div>
+        <div class="brand-lesson-badge">Урок 1 • Этап 5: Диалог</div>
+      </div>
+
+      <!-- Вкладки тренажёра -->
+      <div class="trainer-tabs-bar">
+        <div class="tab-pill">📖 Словарь</div>
+        <div class="tab-pill active"><span class="tab-dot"></span> 💬 Диалог</div>
+        <div class="tab-pill">📞 Звонок</div>
+      </div>
+
+      <!-- Карточка правила -->
+      <div class="rule-card-ulpan">
+        <div class="rule-columns">
+          <div class="rule-col male">
+            <span class="col-gender male-text">👨 Мужчине: ТЫ</span>
+            <span class="col-hebrew">אַתָּה</span>
+            <span class="col-trans">атá (свободен?)</span>
+          </div>
+          <div class="rule-col female">
+            <span class="col-gender female-text">👩 Женщине: ТЫ</span>
+            <span class="col-hebrew">אַתְּ</span>
+            <span class="col-trans">ат (свободна?)</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Симулятор диалога с ИИ -->
+      <div class="dialogue-simulator-box">
+        <div class="sim-status-bar">
+          <div class="sim-caller">💬 Диалог • Йони (тимлид)</div>
+          <div class="sim-timer">00:04 🟢</div>
+        </div>
+
+        <div class="sim-thread">
+          <div class="sim-bubble-lead">
+            <div class="text-he">?כֵּן, מָה אַתָּה צָרִיךְ, אָחִי</div>
+          </div>
+          <div id="student-solution-bubble" class="sim-bubble-student">
+            <div class="text-he">!סְלִיחָה! רָצִיתִי לִשְׁאוֹל אִם אַתָּה פָּנוּי</div>
+            <div class="text-ru">«Извини! Хотел спросить, свободен ли ты!»</div>
+          </div>
+        </div>
+
+        <!-- Кнопка микрофона и палец -->
+        <div class="mic-control-area">
+          <div id="mic-btn" class="mic-button">
+            🎙️
+            <div class="wave-ripple"></div>
+          </div>
+          <div id="touch-finger" class="touch-cursor"></div>
+        </div>
+
+        <div id="ai-score" class="ai-score-badge">
+          <span>✨ Точность 98% • Вас отлично поняли!</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================================
+         СЦЕНА 4: АУТРО (CTA С КОДОМ YT)
+         ======================================================== -->
+    <section id="scene-outro" class="scene">
+      <div class="outro-logo-glow">א</div>
+      <h1 class="outro-title">ЗАГОВОРИ НА ИВРИТЕ БЕЗ ПАНИКИ</h1>
+
+      <div class="free-trial-banner">
+        🚀 30 ДНЕЙ БЕСПЛАТНО
+      </div>
+
+      <div class="features-list">
+        <div class="feat-item"><span class="feat-icon">📞</span> Симулятор реальных звонков с ИИ</div>
+        <div class="feat-item"><span class="feat-icon">💼</span> Живая речь для офиса, кафе и улиц</div>
+        <div class="feat-item"><span class="feat-icon">🎯</span> 100 уроков с пословным разбором</div>
+      </div>
+
+      <button class="cta-button">ПОПРОБОВАТЬ БЕСПЛАТНО 🚀</button>
+      <div class="promo-note">Промокод: <b>YT</b> • Ссылка в описании 👇</div>
+    </section>
+
+  </div>
+
+  <script>
+    window.startReelsTimeline = function(timings) {
+      console.log('⏱️ Запуск таймлайна Shorts Clean (Фабрика-500):', timings);
+
+      const sIntro = document.getElementById('scene-intro');
+      const sFail = document.getElementById('scene-fail');
+      const sSolution = document.getElementById('scene-solution');
+      const sOutro = document.getElementById('scene-outro');
+      const badgeTitle = document.getElementById('badge-title');
+      const reelsBadge = document.getElementById('reels-badge');
+
+      const studentBubble = document.getElementById('student-solution-bubble');
+      const micBtn = document.getElementById('mic-btn');
+      const touchFinger = document.getElementById('touch-finger');
+      const aiScore = document.getElementById('ai-score');
+
+      function switchScene(scene, text, borderColor = '#38bdf8') {
+        [sIntro, sFail, sSolution, sOutro].forEach(s => s.classList.remove('active'));
+        scene.classList.add('active');
+        badgeTitle.innerText = text;
+        reelsBadge.style.borderColor = borderColor;
+        reelsBadge.style.boxShadow = `0 10px 25px rgba(0,0,0,0.6), 0 0 25px ${borderColor}66`;
+      }
+
+      // 1. Офис / Хук (0с)
+      switchScene(sIntro, 'ПЕРВЫЙ ДЕНЬ В ОФИСЕ 💼', '#38bdf8');
+
+      // 2. Реплика новичка и реакция тимлида (tStudent: 5.18s)
+      setTimeout(() => {
+        switchScene(sFail, 'ОШИБКА В ОДНУ БУКВУ! 😱', '#ef4444');
+      }, timings.tStudent || 5185);
+
+      // Реакция тимлида (tLead: 8.39s)
+      setTimeout(() => {
+        badgeTitle.innerText = 'РЕАКЦИЯ ТИМЛИДА 🧔🏻‍♂️';
+      }, timings.tLead || 8390);
+
+      // 3. Разбор в приложении Ульпана (tExplainer: 12.39s)
+      setTimeout(() => {
+        switchScene(sSolution, 'УЛЬПАН АЛЕФ • УРОК 1 💡', '#22c55e');
+
+        // Через 3.5 секунды после показа экрана - виртуальный палец кликает на микрофон
+        setTimeout(() => {
+          if (touchFinger) touchFinger.classList.add('click');
+          if (micBtn) micBtn.classList.add('recording');
+
+          // Студент произносит правильную фразу
+          setTimeout(() => {
+            if (studentBubble) studentBubble.classList.add('show');
+            if (touchFinger) touchFinger.classList.remove('click');
+          }, 600);
+
+          // ИИ выдает оценку 98%
+          setTimeout(() => {
+            if (aiScore) aiScore.classList.add('show');
+            if (micBtn) micBtn.classList.remove('recording');
+          }, 1800);
+        }, 3500);
+
+      }, timings.tExplainer || 12388);
+
+      // 4. CTA с промокодом YT (tCta: 22.63s)
+      setTimeout(() => {
+        switchScene(sOutro, '30 ДНЕЙ БЕСПЛАТНО 🚀', '#facc15');
+      }, timings.tCta || 22634);
+    };
+  </script>
+</body>
+</html>
