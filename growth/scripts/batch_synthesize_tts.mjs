@@ -316,28 +316,9 @@ async function synthesizeGeminiTtsWithCarousel(text, voiceName, langCode, outPat
     return { success: true, model: 'google-cloud-tts', keyIndex: 'gcloud' };
   }
 
-  // Резервный фолбэк на Edge Neural TTS (неограниченная квота, студийное качество)
-  try {
-    const { MsEdgeTTS, OUTPUT_FORMAT } = require('msedge-tts');
-    const edgeVoice = isRussian
-      ? 'ru-RU-DmitryNeural'
-      : (voiceName === 'Aoede' ? 'he-IL-HilaNeural' : 'he-IL-AvriNeural');
-    console.warn(`  🔄 Переход на резервный Edge Neural TTS (${edgeVoice})...`);
-    const tts = new MsEdgeTTS();
-    await tts.setMetadata(edgeVoice, OUTPUT_FORMAT.AUDIO_24KHZ_48KBITRATE_MONO_MP3);
-    const cleanText = text.replace(/[*_#]/g, '').trim();
-    const { audioStream } = tts.toStream(cleanText);
-    const chunks = [];
-    for await (const chunk of audioStream) chunks.push(chunk);
-    const rawEdge = Buffer.concat(chunks);
-    fs.writeFileSync(outPath, rawEdge);
-    sanitizeMp3File(outPath);
-    return { success: true, model: 'edge-neural-tts', keyIndex: 'edge' };
-  } catch (edgeErr) {
-    console.error(`  ❌ Edge Neural TTS fallback error: ${edgeErr.message}`);
-  }
-
-  throw new Error('All carousel keys, models and fallbacks exhausted.');
+  // СТРОГИЙ ИНВАРИАНТ R-25: Голоса Microsoft (Edge TTS) в видеопроизводстве ЗАПРЕЩЕНЫ НАВСЕГДА.
+  // Никаких фолбэков на Edge Neural TTS! Если Gemini/GCloud недоступны — останавливаемся с ошибкой.
+  throw new Error('❌ СТРОГИЙ ЗАПРЕТ: Голоса Microsoft запрещены для видеороликов! Все ключи и модели Gemini TTS исчерпали квоту. Синтез остановлен.');
 }
 
 async function main() {

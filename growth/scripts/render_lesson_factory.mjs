@@ -196,33 +196,8 @@ async function tryGeminiTts(text, voiceName = 'Charon', wavPath, speed = 1.15) {
     }
   }
 
-  // Резервный фолбэк на Edge Neural TTS для персонализированных CTA
-  try {
-    const { MsEdgeTTS, OUTPUT_FORMAT } = require('msedge-tts');
-    const tts = new MsEdgeTTS();
-    await tts.setMetadata('ru-RU-DmitryNeural', OUTPUT_FORMAT.AUDIO_24KHZ_48KBITRATE_MONO_MP3);
-    const cleanText = text.replace(/[*_#]/g, '').trim();
-    const { audioStream } = tts.toStream(cleanText);
-    const chunks = [];
-    for await (const chunk of audioStream) chunks.push(chunk);
-    const tempMp3 = wavPath + '.edge.mp3';
-    fs.writeFileSync(tempMp3, Buffer.concat(chunks));
-    const filterArgs = speed !== 1.0 ? ['-filter:a', `atempo=${speed}`] : [];
-    cp.spawnSync(ffmpeg, [
-      '-y',
-      '-i', tempMp3,
-      ...filterArgs,
-      '-ar', '44100',
-      '-ac', '2',
-      wavPath,
-    ]);
-    try { fs.unlinkSync(tempMp3); } catch (_) {}
-    if (fs.existsSync(wavPath) && fs.statSync(wavPath).size > 5000) {
-      sanitizeWavFile(wavPath);
-      return true;
-    }
-  } catch (_) {}
-
+  // СТРОГИЙ ИНВАРИАНТ R-25: Голоса Microsoft (Edge TTS) в видеопроизводстве ЗАПРЕЩЕНЫ НАВСЕГДА.
+  // Никаких фолбэков на Edge Neural TTS! Если Gemini недоступен — возвращаем false.
   return false;
 }
 
@@ -409,11 +384,14 @@ async function prepareAudioForPlatform(lessonNum, variant, platform) {
     const platformTail = isClean ? platform.ctaCleanTail : platform.ctaSpicyTail;
     const fullCtaText = `${baseCtaText} ${platformTail}`;
 
-    console.log(`  🎙️ Синтез персонализированного CTA [${platform.code}]...`);
     const ok = await tryGeminiTts(fullCtaText, 'Charon', ctaWav, 1.15);
     if (!ok) {
       const defWav = getWav(defaultCtaId);
-      if (fs.existsSync(defWav)) fs.copyFileSync(defWav, ctaWav);
+      if (fs.existsSync(defWav) && fs.statSync(defWav).size > 3000) {
+        fs.copyFileSync(defWav, ctaWav);
+      } else {
+        throw new Error(`❌ СТРОГИЙ ЗАПРЕТ: Gemini TTS недоступен для CTA [${platform.code}]! Голоса Microsoft строго запрещены для видео. Ролик не собирается.`);
+      }
     }
   }
 
@@ -424,6 +402,12 @@ async function prepareAudioForPlatform(lessonNum, variant, platform) {
     { id: 'tExplainer', wavPath: getWav(cue4Id), gapAfterSec: 0.4 },
     { id: 'tCta', wavPath: ctaWav, gapAfterSec: 0.5 },
   ];
+
+  for (const cue of baseCues) {
+    if (!cue.wavPath || !fs.existsSync(cue.wavPath) || fs.statSync(cue.wavPath).size < 3000) {
+      throw new Error(`❌ СТРОГИЙ ЗАПРЕТ: Аудиодорожка ${cue.id} (${cue.wavPath}) отсутствует! Gemini TTS недоступен, а голоса Microsoft строго запрещены для видео. Ролик не собирается.`);
+    }
+  }
 
   const masterWavPath = path.join(DEMO_DIR, `lesson_${numPad}_${variant}_${platform.code.toLowerCase()}_master.wav`);
   const timingsJsonPath = path.join(DEMO_DIR, `lesson_${numPad}_${variant}_${platform.code.toLowerCase()}_timings.json`);
