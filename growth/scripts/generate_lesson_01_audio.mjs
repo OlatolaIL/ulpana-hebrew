@@ -21,13 +21,16 @@ function getGeminiApiKeys() {
   const keys = [];
   if (process.env.GEMINI_PRIMARY_API_KEY) keys.push(process.env.GEMINI_PRIMARY_API_KEY);
   if (process.env.GEMINI_API_KEY) keys.push(process.env.GEMINI_API_KEY);
+  if (process.env.GEMINI_SECONDARY_API_KEY) keys.push(process.env.GEMINI_SECONDARY_API_KEY);
   const envPath = path.resolve(ROOT, '.env.local');
   if (fs.existsSync(envPath)) {
     const content = fs.readFileSync(envPath, 'utf8');
     const m1 = content.match(/GEMINI_PRIMARY_API_KEY=([^\r\n]+)/);
     const m2 = content.match(/GEMINI_API_KEY=([^\r\n]+)/);
+    const m3 = content.match(/GEMINI_SECONDARY_API_KEY=([^\r\n]+)/);
     if (m1 && !keys.includes(m1[1].trim())) keys.push(m1[1].trim());
     if (m2 && !keys.includes(m2[1].trim())) keys.push(m2[1].trim());
+    if (m3 && !keys.includes(m3[1].trim())) keys.push(m3[1].trim());
   }
   return keys;
 }
@@ -293,19 +296,17 @@ export const CUES_LESSON_01_CLEAN = [
   {
     id: 'cue_02_student',
     text: 'סְלִיחָה, אַתְּ פְּנוּיָה?',
-    engine: 'edge',
-    voice: 'he-IL-AvriNeural',
-    geminiFallback: 'Orus',
-    options: { pitch: '+6Hz', rate: '-5%' },
+    engine: 'gemini',
+    voice: 'Orus',
+    speed: 0.95,
     gapAfterSec: 0.3,
   },
   {
     id: 'cue_03_lead',
     text: 'אֲנִי נִרְאֶה לָךְ כְּמוֹ בַּחוּרָה, אָחִי?!',
-    engine: 'edge',
-    voice: 'he-IL-AvriNeural',
-    geminiFallback: 'Orus',
-    options: { pitch: '-15Hz', rate: '+5%' },
+    engine: 'gemini',
+    voice: 'Orus',
+    speed: 1.0,
     gapAfterSec: 0.35,
   },
   {
@@ -318,7 +319,7 @@ export const CUES_LESSON_01_CLEAN = [
   },
   {
     id: 'cue_05_cta',
-    text: 'Урок один в Ульпан Алеф. Различай род с первой секунды! Промокод SHORTS на 30 дней. Ссылка в описании!',
+    text: 'Урок один в Ульпан Алеф. Различай род с первой секунды! Промокод для Ютуб — на экране! Тридцать дней бесплатно. Ссылка в описании!',
     engine: 'gemini',
     voice: 'Charon',
     speed: 1.15,
@@ -343,19 +344,17 @@ export const CUES_LESSON_01_SPICY = [
   {
     id: 'cue_02_guy',
     text: 'שָׁלוֹם! אַתָּה יָפֶה מְאוֹד!',
-    engine: 'edge',
-    voice: 'he-IL-AvriNeural',
-    geminiFallback: 'Orus',
-    options: { pitch: '+2Hz', rate: '+0%' },
+    engine: 'gemini',
+    voice: 'Orus',
+    speed: 0.95,
     gapAfterSec: 0.3,
   },
   {
     id: 'cue_03_girl',
     text: 'תּוֹדָה מוֹתֶק, אֲבָל מֵאָז הַבֹּקֶר אֲנִי עֲדַיִן אִשָּׁה!',
-    engine: 'edge',
-    voice: 'he-IL-HilaNeural',
-    geminiFallback: 'Aoede',
-    options: { pitch: '+5Hz', rate: '+5%' },
+    engine: 'gemini',
+    voice: 'Aoede',
+    speed: 1.0,
     gapAfterSec: 0.35,
   },
   {
@@ -368,7 +367,7 @@ export const CUES_LESSON_01_SPICY = [
   },
   {
     id: 'cue_05_cta',
-    text: 'Урок один в Ульпан Алеф: спаси своё свидание до того, как принесут счёт. Промокод SHORTS на 30 дней. Ссылка под видео!',
+    text: 'Урок один в Ульпан Алеф: спаси своё свидание до того, как принесут счёт. Промокод для Ютуб — на экране! Тридцать дней бесплатно. Ссылка под видео!',
     engine: 'gemini',
     voice: 'Charon',
     speed: 1.15,

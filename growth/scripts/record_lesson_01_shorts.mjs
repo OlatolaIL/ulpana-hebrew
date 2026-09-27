@@ -75,8 +75,26 @@ async function recordShortsVariant({
   }, timings);
 
   const recordWaitMs = Math.round(totalDurationSec * 1000) + 1200;
-  console.log(`  -> Запись видео (${(recordWaitMs / 1000).toFixed(1)} сек)...`);
-  await sleep(recordWaitMs);
+  console.log(`  -> Запись видео (${(recordWaitMs / 1000).toFixed(1)} сек) и покадровый контроль...`);
+
+  // Покадровый контроль каждой сцены
+  const varLower = variantName.toLowerCase();
+  await sleep(2000);
+  await page.screenshot({ path: path.join(DEMO_DIR, `frame_${varLower}_01_hook.png`) });
+
+  await sleep(4000);
+  await page.screenshot({ path: path.join(DEMO_DIR, `frame_${varLower}_02_blunder.png`) });
+
+  await sleep(10000);
+  await page.screenshot({ path: path.join(DEMO_DIR, `frame_${varLower}_03_trainer.png`) });
+
+  const remainingBeforeOutro = Math.max(1000, (recordWaitMs - 16000 - 4500));
+  await sleep(remainingBeforeOutro);
+  await sleep(4500); // момент после pop-in промокода
+  await page.screenshot({ path: path.join(DEMO_DIR, `frame_${varLower}_04_outro_yt.png`) });
+
+  const remaining = recordWaitMs - (2000 + 4000 + 10000 + remainingBeforeOutro + 4500);
+  if (remaining > 0) await sleep(remaining);
 
   await page.close();
   await context.close();

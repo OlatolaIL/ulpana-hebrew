@@ -22,6 +22,8 @@ import {
 import {
   playDialogueTurnAudio,
   stopDialogueAudio,
+  getDialogueManifest,
+  DialogueAudioManifest,
 } from '@/lib/dialogueAudio';
 import {
   markLessonTabCompleted,
@@ -134,6 +136,15 @@ export function useScriptedDialogue({
   const [isWordsDrawerOpen, setIsWordsDrawerOpen] = useState<boolean>(false);
   const [addedWords, setAddedWords] = useState<Record<string, boolean>>({});
   const [mounted, setMounted] = useState<boolean>(false);
+  const [dialogueManifest, setDialogueManifest] = useState<DialogueAudioManifest | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    getDialogueManifest().then((m) => {
+      if (active && m) setDialogueManifest(m);
+    });
+    return () => { active = false; };
+  }, []);
 
   useEffect(() => {
     setMounted(true);
@@ -978,6 +989,7 @@ export function useScriptedDialogue({
     setIsWordsDrawerOpen,
     addedWords,
     mounted,
+    dialogueManifest,
     dialogueUsefulWords,
     lessonVocabularyWords,
     customLessonWords,

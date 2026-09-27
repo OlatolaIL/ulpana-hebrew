@@ -80,6 +80,7 @@ export const ScriptedDialogueTrainer: React.FC<ScriptedDialogueTrainerProps> = (
     setIsWordsDrawerOpen,
     addedWords,
     mounted,
+    dialogueManifest,
     dialogueUsefulWords,
     lessonVocabularyWords,
     customLessonWords,
@@ -140,6 +141,10 @@ export const ScriptedDialogueTrainer: React.FC<ScriptedDialogueTrainerProps> = (
           dialogue={dialogue}
           characterA={characterA}
           characterB={characterB}
+          dialogueManifest={dialogueManifest}
+          userGender={userGender}
+          opponentGender={opponentGender}
+          userRoleSide={userRoleSide}
           getTurnText={getTurnText}
           handlePlayTurn={handlePlayTurn}
           isPlayingAll={isPlayingAll}
@@ -173,6 +178,9 @@ export const ScriptedDialogueTrainer: React.FC<ScriptedDialogueTrainerProps> = (
         <PracticeView
           lesson={lesson}
           dialogue={dialogue}
+          dialogueManifest={dialogueManifest}
+          userGender={userGender}
+          opponentGender={opponentGender}
           userRoleSide={userRoleSide}
           characterA={characterA}
           characterB={characterB}

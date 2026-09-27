@@ -1,5 +1,24 @@
 [
   {
+    "id": "lead-fb-1790488921038-8y13",
+    "timestamp": "2026-09-27T06:02:01.038Z",
+    "sourceChannel": "facebook",
+    "sourceChatName": "Израильское сообщество (1436515633280540)",
+    "authorName": "Участник группы",
+    "authorContact": "Участник группы",
+    "postUrl": "https://www.facebook.com/groups/1436515633280540/posts/4408033929462014/?__cft__[0]=AZg0aXcAZlKEzaB81zqXhX9jDnFlWPNE3zVtO68zYmll_f26X67xG67QrBPoDYjUFNde352jAB3fv9gmSk34na_FM5oyD_akttUye0jD2kIWRj4ZtqeunBKy-T1jeQd2ehCXkPTOjUSeWkmyqq-JvlB5fdG5sIqaeVYHY3wgJC5u8xgkSBdj5KhIBVOYTzsfXsXh&__tn__=%2CO%2CP-R",
+    "rawText": "«У нас большой опыт в интервью», - с улыбкой сказали Крымские, когда мы впервые встретились. Наталия, Анатолий и Настасья Крымские настоящая цирковая династия. Все трое связаны с цирковым искусством: Анатолий Крымский - человек, для которого цирк стал не просто профессией, а образом жизни. Цирковой артист, коверный клоун, педагог и специалист по технике безопасности, он посвятил манежу многие годы, выступал на разных площадках.\nНаталия Крымская - удивительно многогранная артис... Ещё",
+    "aiAnalysis": {
+      "isTargetLead": true,
+      "painCategory": "interview",
+      "confidence": 8.5,
+      "painSummary": "Собеседование на иврите / хайтек",
+      "targetDeepLink": "/decks/it-interview?promo=OLE2026",
+      "suggestedReply": "Для интервью главное — заучить шаблон самопрезентации на 1.5 минуты и терминологию. В Ульпане Алеф как раз есть профильная колода фраз для собеседований на иврите (промокод OLE2026)."
+    },
+    "status": "new"
+  },
+  {
     "id": "lead-fb-1790013651744-mjrc",
     "timestamp": "2026-09-21T18:00:51.744Z",
     "sourceChannel": "facebook",

@@ -338,7 +338,7 @@ const CURATED_STUDIO_AUDIO: Record<string, string> = {
  * Локальный реестр предгенерированных аудиозаписей для предложений со сленгом
  * и нерегулярным ударением (R-24)
  */
-const CURATED_SENTENCE_AUDIO: Record<string, string> = {
+export const CURATED_SENTENCE_AUDIO: Record<string, string> = {
   'הכל סבבה תודה רבה': '/audio/sentences/hakol_sababa.mp3',
   'תכלס אתה ממש צודק': '/audio/sentences/tachles_tsodek.mp3',
   'אף אחד לא פראייר': '/audio/sentences/lo_fraier.mp3',

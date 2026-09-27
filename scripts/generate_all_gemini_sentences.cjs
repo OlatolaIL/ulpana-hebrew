@@ -103,7 +103,7 @@ function loadCatalog(options = {}) {
       metadata[item.fileName]?.status === 'verified_gemini_3.8' ||
       metadata[item.fileName]?.status === 'verified_gemini_3.1' ||
       metadata[item.fileName]?.status === 'verified_gemini_3.5';
-    const hasFile = fs.existsSync(filePath) && fs.statSync(filePath).size > 1000;
+    const hasFile = fs.existsSync(filePath) && fs.statSync(filePath).size > 25000;
     item.isAlreadyGenerated = !options.isForce && hasMetadata && hasFile;
   }
 

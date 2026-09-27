@@ -1,0 +1,202 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "version": "1.0.0",
+  "updatedAt": "2026-09-27T10:55:00Z",
+  "standard": "Fabrika-500",
+  "platforms": {
+    "YT": {
+      "name": "YouTube Shorts",
+      "aspectRatio": "9:16",
+      "resolution": "780x1688",
+      "code": "YT"
+    },
+    "TG": {
+      "name": "Telegram",
+      "aspectRatio": "9:16",
+      "resolution": "780x1688",
+      "code": "TG"
+    },
+    "INSTA": {
+      "name": "Instagram Reels",
+      "aspectRatio": "9:16",
+      "resolution": "780x1688",
+      "code": "INSTA"
+    },
+    "TIKTOK": {
+      "name": "TikTok",
+      "aspectRatio": "9:16",
+      "resolution": "780x1688",
+      "code": "TIKTOK"
+    },
+    "FB": {
+      "name": "Facebook Reels",
+      "aspectRatio": "9:16",
+      "resolution": "780x1688",
+      "code": "FB"
+    }
+  },
+  "lessons": {
+    "1": {
+      "lessonNumber": 1,
+      "topic": "Первые шаги: местоимения «ТЫ» мужчинам vs женщинам (אַתָּה / אַתְּ)",
+      "grammar": "Мужской и женский род личных местоимений и прилагательных",
+      "descriptionsFile": "growth/content/lesson_01_descriptions.md",
+      "variants": {
+        "clean": {
+          "scenario": "Офис в Тель-Авиве • Диалог с бородатым тимлидом Йони",
+          "audioEngine": "Gemini TTS (Charon ♂ / Orus ♂)",
+          "status": "ready",
+          "files": {
+            "YT": {
+              "path": "public/demo/lessons/lesson_01_clean_youtube_shorts.mp4",
+              "promoCode": "YT",
+              "durationSec": 32.8,
+              "resolution": "780x1688",
+              "fileSizeBytes": 7386996,
+              "generatedAt": "2026-09-27T08:00:12.955Z"
+            },
+            "TG": {
+              "path": "public/demo/lessons/lesson_01_clean_telegram.mp4",
+              "promoCode": "TG",
+              "durationSec": 32.1,
+              "resolution": "780x1688",
+              "fileSizeBytes": 7097426,
+              "generatedAt": "2026-09-27T08:01:27.419Z"
+            },
+            "INSTA": {
+              "path": "public/demo/lessons/lesson_01_clean_instagram_reels.mp4",
+              "promoCode": "INSTA",
+              "durationSec": 31.1,
+              "resolution": "780x1688",
+              "fileSizeBytes": 7079889,
+              "generatedAt": "2026-09-27T08:02:56.861Z"
+            },
+            "TIKTOK": {
+              "path": "public/demo/lessons/lesson_01_clean_tiktok.mp4",
+              "promoCode": "TIKTOK",
+              "durationSec": 31.3,
+              "resolution": "780x1688",
+              "fileSizeBytes": 7372240,
+              "generatedAt": "2026-09-27T08:03:52.887Z"
+            },
+            "FB": {
+              "path": "public/demo/lessons/lesson_01_clean_facebook_reels.mp4",
+              "promoCode": "FB",
+              "durationSec": 30.8,
+              "resolution": "780x1688",
+              "fileSizeBytes": 7003527,
+              "generatedAt": "2026-09-27T08:05:07.519Z"
+            }
+          }
+        },
+        "spicy": {
+          "scenario": "Первое свидание в Тиндере на набережной • Диалог с девушкой Михаль",
+          "audioEngine": "Gemini TTS (Charon ♂ / Orus ♂ / Aoede ♀)",
+          "status": "ready",
+          "files": {
+            "YT": {
+              "path": "public/demo/lessons/lesson_01_spicy_youtube_shorts.mp4",
+              "promoCode": "YT",
+              "durationSec": 31.5,
+              "resolution": "780x1688",
+              "fileSizeBytes": 8458095,
+              "generatedAt": "2026-09-27T08:06:19.326Z"
+            },
+            "TG": {
+              "path": "public/demo/lessons/lesson_01_spicy_telegram.mp4",
+              "promoCode": "TG",
+              "durationSec": 32.3,
+              "resolution": "780x1688",
+              "fileSizeBytes": 8478832,
+              "generatedAt": "2026-09-27T08:07:25.947Z"
+            },
+            "INSTA": {
+              "path": "public/demo/lessons/lesson_01_spicy_instagram_reels.mp4",
+              "promoCode": "INSTA",
+              "durationSec": 33.1,
+              "resolution": "780x1688",
+              "fileSizeBytes": 8474291,
+              "generatedAt": "2026-09-27T08:08:33.349Z"
+            },
+            "TIKTOK": {
+              "path": "public/demo/lessons/lesson_01_spicy_tiktok.mp4",
+              "promoCode": "TIKTOK",
+              "durationSec": 32.9,
+              "resolution": "780x1688",
+              "fileSizeBytes": 8508787,
+              "generatedAt": "2026-09-27T08:09:30.954Z"
+            }
+          }
+        }
+      }
+    },
+    "7": {
+      "lessonNumber": 7,
+      "topic": "Аренда квартиры в Израиле: звонок хозяину (הַבַּיִת שֶׁלִּי)",
+      "grammar": "Квартира, мебель, комнаты, предлоги места, есть/нет (יֵשׁ / אֵין)",
+      "descriptionsFile": "growth/content/lesson_07_descriptions.md",
+      "variants": {
+        "clean": {
+          "scenario": "Звонок арендодателю Эли в симуляторе звонков с ИИ",
+          "status": "legacy_ready",
+          "files": {
+            "YT": {
+              "path": "public/demo/lessons/lesson_07_youtube_shorts.mp4",
+              "promoCode": "YT"
+            },
+            "TG": {
+              "path": "public/demo/lessons/lesson_07_telegram.mp4",
+              "promoCode": "TG"
+            },
+            "INSTA": {
+              "path": "public/demo/lessons/lesson_07_instagram_reels.mp4",
+              "promoCode": "INSTA"
+            },
+            "TIKTOK": {
+              "path": "public/demo/lessons/lesson_07_tiktok.mp4",
+              "promoCode": "TIKTOK"
+            },
+            "FB": {
+              "path": "public/demo/lessons/lesson_07_facebook_reels.mp4",
+              "promoCode": "FB"
+            }
+          }
+        }
+      }
+    },
+    "69": {
+      "lessonNumber": 69,
+      "topic": "Израильский сленг: «Зе алай» (זה עליי — «Я угощаю / За мой счёт»)",
+      "grammar": "Предлоги со слитными местоимениями (עַל + местоимение)",
+      "descriptionsFile": "growth/content/lesson_69_descriptions.md",
+      "variants": {
+        "spicy": {
+          "scenario": "Оплата счёта в баре в Тель-Авиве",
+          "status": "legacy_ready",
+          "files": {
+            "YT": {
+              "path": "public/demo/lessons/lesson_69_youtube_shorts.mp4",
+              "promoCode": "YT"
+            },
+            "TG": {
+              "path": "public/demo/lessons/lesson_69_telegram.mp4",
+              "promoCode": "TG"
+            },
+            "INSTA": {
+              "path": "public/demo/lessons/lesson_69_instagram_reels.mp4",
+              "promoCode": "INSTA"
+            },
+            "TIKTOK": {
+              "path": "public/demo/lessons/lesson_69_tiktok.mp4",
+              "promoCode": "TIKTOK"
+            },
+            "FB": {
+              "path": "public/demo/lessons/lesson_69_facebook_reels.mp4",
+              "promoCode": "FB"
+            }
+          }
+        }
+      }
+    }
+  }
+}

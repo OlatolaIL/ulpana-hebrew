@@ -24,6 +24,8 @@ import {
   speakRussian,
   stopSpeech,
   getRecordedSentenceAudio,
+  CURATED_SENTENCE_AUDIO,
+  normalizeSentenceKey,
 } from '@/lib/speech';
 import { findOfflineVerbConjugation } from '@/lib/verbConjugations';
 import { WordLookupModal } from '@/components/WordLookupModal';
@@ -434,7 +436,10 @@ export const ComplexDrillMode: React.FC<ComplexDrillModeProps> = ({
       const mp3Url = await getRecordedSentenceAudio(targetItem.sentenceHe, gender);
       if (!isMountedRef.current || playCycleIdRef.current !== currentCycleId) return;
 
-      if (mp3Url) {
+      const normKey = normalizeSentenceKey(targetItem.sentenceHe);
+      const isCuratedSlang = !!CURATED_SENTENCE_AUDIO[normKey];
+
+      if (mp3Url && (isGeminiStudio || isCuratedSlang)) {
         return new Promise<void>((resolve) => {
           if (!isMountedRef.current || playCycleIdRef.current !== currentCycleId) {
             resolve();
