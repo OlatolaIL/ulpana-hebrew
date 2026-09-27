@@ -61,13 +61,17 @@ async function seedFromFile(db: ReturnType<typeof getDbPool>) {
           promo_code = EXCLUDED.promo_code,
           full_url_with_promo = EXCLUDED.full_url_with_promo,
           format = EXCLUDED.format,
+          live_post_url = CASE WHEN EXCLUDED.live_post_url <> '' THEN EXCLUDED.live_post_url ELSE ulpana_publications.live_post_url END,
+          status = CASE WHEN EXCLUDED.status = 'published' THEN 'published' ELSE ulpana_publications.status END,
           updated_at = EXCLUDED.updated_at
         WHERE ulpana_publications.title IS DISTINCT FROM EXCLUDED.title
            OR ulpana_publications.caption IS DISTINCT FROM EXCLUDED.caption
            OR ulpana_publications.notes IS DISTINCT FROM EXCLUDED.notes
            OR ulpana_publications.campaign_title IS DISTINCT FROM EXCLUDED.campaign_title
            OR ulpana_publications.video_path IS DISTINCT FROM EXCLUDED.video_path
-           OR ulpana_publications.full_url_with_promo IS DISTINCT FROM EXCLUDED.full_url_with_promo`,
+           OR ulpana_publications.full_url_with_promo IS DISTINCT FROM EXCLUDED.full_url_with_promo
+           OR (EXCLUDED.status = 'published' AND ulpana_publications.status <> 'published')
+           OR (EXCLUDED.live_post_url <> '' AND ulpana_publications.live_post_url IS DISTINCT FROM EXCLUDED.live_post_url)`,
         [
           item.id, item.date, item.channel, item.channelAccount || '',
           item.format, item.title, item.campaignTitle || null, item.version || null,

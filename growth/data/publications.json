@@ -113,11 +113,11 @@
     "targetDeepLink": "/lesson/1",
     "promoCode": "YT",
     "fullUrlWithPromo": "https://ulpana-hebrew.vercel.app/#lesson-1?promo=YT&utm_source=youtube&utm_medium=shorts&utm_campaign=lesson_01_spicy",
-    "livePostUrl": "",
-    "status": "draft",
+    "livePostUrl": "https://www.youtube.com/shorts/YMZWGqlovEc",
+    "status": "published",
     "notes": "YouTube Shorts (31.5с): Spicy • Свидание • промокод YT",
     "createdAt": "2026-09-27T11:06:00.000Z",
-    "updatedAt": "2026-09-27T11:10:00.000Z"
+    "updatedAt": "2026-09-27T19:15:59.000Z"
   },
   {
     "id": "pub-tg-l01-spicy",

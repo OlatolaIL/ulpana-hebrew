@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAdminRequest } from '@/lib/adminAuth';
+import { getDbPool, initDatabase } from '@/lib/db';
 import fs from 'fs';
 import path from 'path';
+import os from 'os';
 
 export interface PublishRequestBody {
   channel: 'youtube' | 'telegram' | 'facebook';
@@ -20,7 +22,77 @@ export interface PublishRequestBody {
 const DATA_DIR = path.join(process.cwd(), 'growth', 'data');
 const PUBLICATIONS_FILE = path.join(DATA_DIR, 'publications.json');
 
-function registerPublication(pub: {
+interface ResolvedVideo {
+  filePath: string;
+  isTemp: boolean;
+}
+
+async function resolveServerVideo(inputPath?: string): Promise<ResolvedVideo | null> {
+  if (inputPath) {
+    // If it's a remote URL (CDN on GitHub Releases, etc.), download it to a temporary file
+    if (inputPath.startsWith('http://') || inputPath.startsWith('https://')) {
+      try {
+        const resp = await fetch(inputPath);
+        if (resp.ok) {
+          const arrayBuffer = await resp.arrayBuffer();
+          const parsedUrl = new URL(inputPath);
+          const ext = path.extname(parsedUrl.pathname) || '.mp4';
+          const tempPath = path.join(
+            os.tmpdir(),
+            `ulpana_upload_${Date.now()}_${Math.random().toString(36).slice(2, 6)}${ext}`
+          );
+          fs.writeFileSync(tempPath, Buffer.from(arrayBuffer));
+          return { filePath: tempPath, isTemp: true };
+        } else {
+          console.warn(`[Publish API] Remote video download returned status ${resp.status}: ${inputPath}`);
+        }
+      } catch (err: any) {
+        console.warn(`[Publish API] Error downloading remote video from ${inputPath}:`, err.message);
+      }
+    }
+
+    const directPath = path.isAbsolute(inputPath)
+      ? inputPath
+      : path.join(process.cwd(), inputPath.replace(/^\//, ''));
+    if (fs.existsSync(directPath)) return { filePath: directPath, isTemp: false };
+  }
+
+  // Fallback demo candidates in public/demo/
+  const candidates = [
+    path.join(process.cwd(), 'public', 'demo', 'reels_duolingo_vs_reality.mp4'),
+    path.join(process.cwd(), 'public', 'demo', 'tutorials', 'stage_05_dialogue_v2.mp4'),
+    path.join(process.cwd(), 'public', 'demo', 'ulpana_full_guide.mp4'),
+  ];
+
+  for (const cand of candidates) {
+    if (fs.existsSync(cand)) return { filePath: cand, isTemp: false };
+  }
+
+  return null;
+}
+
+function resolveServerVideoPath(inputPath?: string): string | null {
+  if (inputPath) {
+    const directPath = path.isAbsolute(inputPath)
+      ? inputPath
+      : path.join(process.cwd(), inputPath.replace(/^\//, ''));
+    if (fs.existsSync(directPath)) return directPath;
+  }
+
+  const candidates = [
+    path.join(process.cwd(), 'public', 'demo', 'reels_duolingo_vs_reality.mp4'),
+    path.join(process.cwd(), 'public', 'demo', 'tutorials', 'stage_05_dialogue_v2.mp4'),
+    path.join(process.cwd(), 'public', 'demo', 'ulpana_full_guide.mp4'),
+  ];
+
+  for (const cand of candidates) {
+    if (fs.existsSync(cand)) return cand;
+  }
+
+  return null;
+}
+
+async function registerPublication(pub: {
   publicationId?: string;
   channel: 'youtube' | 'telegram' | 'facebook';
   title: string;
@@ -34,6 +106,55 @@ function registerPublication(pub: {
   campaignTitle?: string;
   version?: string;
 }) {
+  // 1. PostgreSQL Database Update (Source of Truth on production server)
+  try {
+    await initDatabase();
+    const db = getDbPool();
+    if (db) {
+      if (pub.publicationId) {
+        await db.query(
+          `UPDATE ulpana_publications SET
+            live_post_url = $2,
+            status = 'published',
+            video_path = COALESCE($3, video_path),
+            caption = COALESCE($4, caption),
+            updated_at = NOW()
+          WHERE id = $1`,
+          [pub.publicationId, pub.livePostUrl, pub.videoPath || null, pub.caption || null]
+        );
+      } else {
+        const newId = `pub-${pub.channel.slice(0, 2)}-${Date.now().toString().slice(-4)}`;
+        await db.query(
+          `INSERT INTO ulpana_publications (
+            id, date, channel, channel_account, format, title, campaign_title, version,
+            video_path, caption, target_deep_link, promo_code, full_url_with_promo,
+            live_post_url, status, notes, created_at, updated_at
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, 'published', $15, NOW(), NOW())`,
+          [
+            newId,
+            new Date().toISOString().split('T')[0],
+            pub.channel,
+            pub.channelAccount,
+            pub.format,
+            pub.title,
+            pub.campaignTitle || null,
+            pub.version || null,
+            pub.videoPath || null,
+            pub.caption || null,
+            '/lessons/1/call',
+            pub.promoCode,
+            `https://ulpana-hebrew.vercel.app/lessons/1/call?promo=${pub.promoCode}`,
+            pub.livePostUrl,
+            pub.notes,
+          ]
+        );
+      }
+    }
+  } catch (dbErr: any) {
+    console.error('[Publish API] Database sync error:', dbErr.message);
+  }
+
+  // 2. Local JSON file update (for offline/local dev and git repo tracking)
   try {
     if (!fs.existsSync(DATA_DIR)) {
       fs.mkdirSync(DATA_DIR, { recursive: true });
@@ -77,7 +198,7 @@ function registerPublication(pub: {
       status: 'published',
       notes: pub.notes,
       createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+      updatedAt: new Date().toISOString(),
     };
 
     items.unshift(newPub);
@@ -85,28 +206,6 @@ function registerPublication(pub: {
   } catch (err: any) {
     console.warn('[Publish API] Warning: Failed to register in publications.json:', err.message);
   }
-}
-
-function resolveServerVideoPath(inputPath?: string): string | null {
-  if (inputPath) {
-    const directPath = path.isAbsolute(inputPath)
-      ? inputPath
-      : path.join(process.cwd(), inputPath.replace(/^\//, ''));
-    if (fs.existsSync(directPath)) return directPath;
-  }
-
-  // Дефолтные кандидаты в public/demo/
-  const candidates = [
-    path.join(process.cwd(), 'public', 'demo', 'reels_duolingo_vs_reality.mp4'),
-    path.join(process.cwd(), 'public', 'demo', 'tutorials', 'stage_05_dialogue_v2.mp4'),
-    path.join(process.cwd(), 'public', 'demo', 'ulpana_full_guide.mp4')
-  ];
-
-  for (const cand of candidates) {
-    if (fs.existsSync(cand)) return cand;
-  }
-
-  return null;
 }
 
 export async function POST(req: NextRequest) {
@@ -156,132 +255,142 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      const videoFilePath = resolveServerVideoPath(body.videoPath);
-      if (!videoFilePath || !fs.existsSync(videoFilePath)) {
-        return NextResponse.json(
-          { error: `Видеофайл не найден на сервере: ${body.videoPath || 'public/demo/...'}` },
-          { status: 400 }
-        );
-      }
-
-      // Получаем свежий access_token через refresh_token
-      const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams({
-          client_id: clientId,
-          client_secret: clientSecret,
-          refresh_token: refreshToken,
-          grant_type: 'refresh_token'
-        })
-      });
-
-      const tokenData = await tokenRes.json();
-      if (!tokenRes.ok || !tokenData.access_token) {
-        return NextResponse.json(
-          { error: `Ошибка обновления токена Google OAuth: ${tokenData.error_description || JSON.stringify(tokenData)}` },
-          { status: 502 }
-        );
-      }
-
-      const accessToken = tokenData.access_token;
-      const videoStats = fs.statSync(videoFilePath);
-      const ext = path.extname(videoFilePath).toLowerCase();
-      const mimeType = ext === '.webm' ? 'video/webm' : 'video/mp4';
-
-      const metadata = {
-        snippet: {
-          title,
-          description: description || title,
-          tags: tags || ['Shorts', 'иврит', 'ульпан', 'израиль'],
-          categoryId: '27' // Education
-        },
-        status: {
-          privacyStatus: privacy,
-          selfDeclaredMadeForKids: false
+      let videoResult: ResolvedVideo | null = null;
+      try {
+        videoResult = await resolveServerVideo(body.videoPath);
+        const videoFilePath = videoResult?.filePath;
+        if (!videoFilePath || !fs.existsSync(videoFilePath)) {
+          return NextResponse.json(
+            { error: `Видеофайл не найден на сервере: ${body.videoPath || 'public/demo/...'}` },
+            { status: 400 }
+          );
         }
-      };
 
-      // Инициализация Resumable Upload
-      const initRes = await fetch(
-        'https://www.googleapis.com/upload/youtube/v3/videos?uploadType=resumable&part=snippet,status',
-        {
+        // Получаем свежий access_token через refresh_token
+        const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
           method: 'POST',
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-            'Content-Type': 'application/json; charset=UTF-8',
-            'X-Upload-Content-Length': videoStats.size.toString(),
-            'X-Upload-Content-Type': mimeType
-          },
-          body: JSON.stringify(metadata)
-        }
-      );
-
-      if (!initRes.ok) {
-        const errText = await initRes.text();
-        return NextResponse.json(
-          { error: `Ошибка инициализации загрузки на YouTube: ${errText}` },
-          { status: initRes.status }
-        );
-      }
-
-      const uploadUrl = initRes.headers.get('location');
-      if (!uploadUrl) {
-        return NextResponse.json(
-          { error: 'YouTube API не вернул адрес сессии загрузки (Location header)' },
-          { status: 502 }
-        );
-      }
-
-      // Передача файла
-      const videoBuffer = fs.readFileSync(videoFilePath);
-      const uploadRes = await fetch(uploadUrl, {
-        method: 'PUT',
-        headers: {
-          'Content-Length': videoBuffer.length.toString(),
-          'Content-Type': mimeType
-        },
-        body: videoBuffer
-      });
-
-      const videoData = await uploadRes.json();
-      if (!uploadRes.ok || !videoData.id) {
-        return NextResponse.json(
-          { error: `Ошибка загрузки видео на YouTube: ${JSON.stringify(videoData)}` },
-          { status: uploadRes.status || 500 }
-        );
-      }
-
-      const videoId = videoData.id;
-      const publicUrl = `https://youtu.be/${videoId}`;
-      const shortsUrl = `https://www.youtube.com/shorts/${videoId}`;
-
-      if (register) {
-        registerPublication({
-          publicationId,
-          channel: 'youtube',
-          title,
-          campaignTitle,
-          version,
-          videoPath: videoFilePath,
-          caption: description || title,
-          format: 'short_video',
-          channelAccount: 'Ульпан Алеф',
-          livePostUrl: shortsUrl,
-          promoCode: 'YT',
-          notes: 'Автопостинг через веб-админку боевого сервера (YouTube Data API v3)'
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: new URLSearchParams({
+            client_id: clientId,
+            client_secret: clientSecret,
+            refresh_token: refreshToken,
+            grant_type: 'refresh_token'
+          })
         });
-      }
 
-      return NextResponse.json({
-        success: true,
-        channel: 'youtube',
-        videoId,
-        publicUrl,
-        shortsUrl,
-        livePostUrl: shortsUrl,
-        title
-      });
+        const tokenData = await tokenRes.json();
+        if (!tokenRes.ok || !tokenData.access_token) {
+          return NextResponse.json(
+            { error: `Ошибка обновления токена Google OAuth: ${tokenData.error_description || JSON.stringify(tokenData)}` },
+            { status: 502 }
+          );
+        }
+
+        const accessToken = tokenData.access_token;
+        const videoStats = fs.statSync(videoFilePath);
+        const ext = path.extname(videoFilePath).toLowerCase();
+        const mimeType = ext === '.webm' ? 'video/webm' : 'video/mp4';
+
+        const metadata = {
+          snippet: {
+            title,
+            description: description || title,
+            tags: tags || ['Shorts', 'иврит', 'ульпан', 'израиль'],
+            categoryId: '27' // Education
+          },
+          status: {
+            privacyStatus: privacy,
+            selfDeclaredMadeForKids: false
+          }
+        };
+
+        // Инициализация Resumable Upload
+        const initRes = await fetch(
+          'https://www.googleapis.com/upload/youtube/v3/videos?uploadType=resumable&part=snippet,status',
+          {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+              'Content-Type': 'application/json; charset=UTF-8',
+              'X-Upload-Content-Length': videoStats.size.toString(),
+              'X-Upload-Content-Type': mimeType
+            },
+            body: JSON.stringify(metadata)
+          }
+        );
+
+        if (!initRes.ok) {
+          const errText = await initRes.text();
+          return NextResponse.json(
+            { error: `Ошибка инициализации загрузки на YouTube: ${errText}` },
+            { status: initRes.status }
+          );
+        }
+
+        const uploadUrl = initRes.headers.get('location');
+        if (!uploadUrl) {
+          return NextResponse.json(
+            { error: 'YouTube API не вернул адрес сессии загрузки (Location header)' },
+            { status: 502 }
+          );
+        }
+
+        // Передача файла
+        const videoBuffer = fs.readFileSync(videoFilePath);
+        const uploadRes = await fetch(uploadUrl, {
+          method: 'PUT',
+          headers: {
+            'Content-Length': videoBuffer.length.toString(),
+            'Content-Type': mimeType
+          },
+          body: videoBuffer
+        });
+
+        const videoData = await uploadRes.json();
+        if (!uploadRes.ok || !videoData.id) {
+          return NextResponse.json(
+            { error: `Ошибка загрузки видео на YouTube: ${JSON.stringify(videoData)}` },
+            { status: uploadRes.status || 500 }
+          );
+        }
+
+        const videoId = videoData.id;
+        const publicUrl = `https://youtu.be/${videoId}`;
+        const shortsUrl = `https://www.youtube.com/shorts/${videoId}`;
+
+        if (register) {
+          await registerPublication({
+            publicationId,
+            channel: 'youtube',
+            title,
+            campaignTitle,
+            version,
+            videoPath: body.videoPath || videoFilePath,
+            caption: description || title,
+            format: 'short_video',
+            channelAccount: 'Ульпан Алеф',
+            livePostUrl: shortsUrl,
+            promoCode: 'YT',
+            notes: 'Автопостинг через веб-админку боевого сервера (YouTube Data API v3)'
+          });
+        }
+
+        return NextResponse.json({
+          success: true,
+          channel: 'youtube',
+          videoId,
+          publicUrl,
+          shortsUrl,
+          livePostUrl: shortsUrl,
+          title
+        });
+      } finally {
+        if (videoResult?.isTemp && fs.existsSync(videoResult.filePath)) {
+          try {
+            fs.unlinkSync(videoResult.filePath);
+          } catch {}
+        }
+      }
     }
 
     // ==========================================
@@ -298,59 +407,71 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      const videoFilePath = body.videoPath ? resolveServerVideoPath(body.videoPath) : null;
-
-      if (videoFilePath && fs.existsSync(videoFilePath)) {
-        const formData = new FormData();
-        formData.append('chat_id', targetChat);
-        const videoBuffer = fs.readFileSync(videoFilePath);
-        formData.append('video', new Blob([videoBuffer], { type: 'video/mp4' }), path.basename(videoFilePath));
-        formData.append('caption', description || title);
-        formData.append('parse_mode', 'HTML');
-        formData.append(
-          'reply_markup',
-          JSON.stringify({
-            inline_keyboard: [[{ text: '📞 Открыть симулятор звонков', url: 'https://ulpana-hebrew.vercel.app/?promo=TG' }]]
-          })
-        );
-
-        const tgRes = await fetch(`https://api.telegram.org/bot${botToken}/sendVideo`, {
-          method: 'POST',
-          body: formData
-        });
-        const tgData = await tgRes.json();
-
-        if (!tgData.ok) {
-          return NextResponse.json(
-            { error: `Ошибка Telegram API: ${tgData.description || 'Не удалось отправить видео'}` },
-            { status: 502 }
-          );
+      let videoResult: ResolvedVideo | null = null;
+      try {
+        if (body.videoPath) {
+          videoResult = await resolveServerVideo(body.videoPath);
         }
+        const videoFilePath = videoResult?.filePath;
 
-        const liveUrl = `https://t.me/ulpana_il/${tgData.result.message_id}`;
-        if (register) {
-          registerPublication({
-            publicationId,
+        if (videoFilePath && fs.existsSync(videoFilePath)) {
+          const formData = new FormData();
+          formData.append('chat_id', targetChat);
+          const videoBuffer = fs.readFileSync(videoFilePath);
+          formData.append('video', new Blob([videoBuffer], { type: 'video/mp4' }), path.basename(videoFilePath));
+          formData.append('caption', description || title);
+          formData.append('parse_mode', 'HTML');
+          formData.append(
+            'reply_markup',
+            JSON.stringify({
+              inline_keyboard: [[{ text: '📞 Открыть симулятор звонков', url: 'https://ulpana-hebrew.vercel.app/?promo=TG' }]]
+            })
+          );
+
+          const tgRes = await fetch(`https://api.telegram.org/bot${botToken}/sendVideo`, {
+            method: 'POST',
+            body: formData
+          });
+          const tgData = await tgRes.json();
+
+          if (!tgData.ok) {
+            return NextResponse.json(
+              { error: `Ошибка Telegram API: ${tgData.description || 'Не удалось отправить видео'}` },
+              { status: 502 }
+            );
+          }
+
+          const liveUrl = `https://t.me/ulpana_il/${tgData.result.message_id}`;
+          if (register) {
+            await registerPublication({
+              publicationId,
+              channel: 'telegram',
+              title,
+              campaignTitle,
+              version,
+              videoPath: body.videoPath || videoFilePath,
+              caption: description || title,
+              format: 'short_video',
+              channelAccount: '@ulpana_il',
+              livePostUrl: liveUrl,
+              promoCode: 'TG_CHANNEL',
+              notes: 'Публикация видео в Telegram через веб-админку'
+            });
+          }
+
+          return NextResponse.json({
+            success: true,
             channel: 'telegram',
-            title,
-            campaignTitle,
-            version,
-            videoPath: videoFilePath || undefined,
-            caption: description || title,
-            format: 'short_video',
-            channelAccount: '@ulpana_il',
-            livePostUrl: liveUrl,
-            promoCode: 'TG_CHANNEL',
-            notes: 'Публикация видео в Telegram через веб-админку'
+            messageId: tgData.result.message_id,
+            livePostUrl: liveUrl
           });
         }
-
-        return NextResponse.json({
-          success: true,
-          channel: 'telegram',
-          messageId: tgData.result.message_id,
-          livePostUrl: liveUrl
-        });
+      } finally {
+        if (videoResult?.isTemp && fs.existsSync(videoResult.filePath)) {
+          try {
+            fs.unlinkSync(videoResult.filePath);
+          } catch {}
+        }
       }
 
       // Текстовый пост
@@ -377,7 +498,7 @@ export async function POST(req: NextRequest) {
 
       const liveUrl = `https://t.me/ulpana_il/${tgData.result.message_id}`;
       if (register) {
-        registerPublication({
+        await registerPublication({
           publicationId,
           channel: 'telegram',
           title,
@@ -438,7 +559,7 @@ export async function POST(req: NextRequest) {
       const liveUrl = `https://www.facebook.com/${postId}`;
 
       if (register) {
-        registerPublication({
+        await registerPublication({
           publicationId,
           channel: 'facebook',
           title,

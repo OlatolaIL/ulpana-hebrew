@@ -225,6 +225,18 @@ export function AdminMarketingHub() {
       });
       const data = await res.json();
       if (res.ok && data.success) {
+        const liveUrl = data.livePostUrl || data.shortsUrl || data.publicUrl || '';
+        setPublications((prev) =>
+          prev.map((item) =>
+            item.id === pub.id
+              ? {
+                  ...item,
+                  status: 'published',
+                  livePostUrl: liveUrl || item.livePostUrl,
+                }
+              : item
+          )
+        );
         fetchPublications();
         checkHealth();
       } else {
