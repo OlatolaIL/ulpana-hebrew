@@ -96,7 +96,16 @@ export async function GET(req: NextRequest) {
     await initDatabase();
     const db = getDbPool();
     if (!db) {
-      return NextResponse.json({ publications: [] });
+      const filePath = path.join(process.cwd(), 'growth', 'data', 'publications.json');
+      let fallbackItems: PublicationItem[] = [];
+      try {
+        if (fs.existsSync(filePath)) {
+          fallbackItems = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+        }
+      } catch (e) {
+        console.error('[API Admin Marketing Publications GET] Fallback read error:', e);
+      }
+      return NextResponse.json({ publications: fallbackItems });
     }
 
     // Sync any missing publications from JSON file into database (idempotent ON CONFLICT DO NOTHING)
