@@ -67,7 +67,7 @@ async function getOrCreateRelease(tag, pat) {
   throw new Error(`Ошибка запроса релиза: ${res.status} - ${await res.text()}`);
 }
 
-async function uploadAsset(filename, release, pat) {
+async function uploadAsset(filename, release, pat, force = false) {
   const filePath = path.resolve(LESSONS_DIR, filename);
   if (!fs.existsSync(filePath)) {
     console.error(`  ⚠️ Файл не найден локально: ${filePath}`);
@@ -80,7 +80,7 @@ async function uploadAsset(filename, release, pat) {
   // Проверить, загружен ли уже
   const existingAsset = release.assets?.find((a) => a.name === filename);
   if (existingAsset) {
-    if (existingAsset.size === fileStats.size) {
+    if (!force && existingAsset.size === fileStats.size) {
       console.log(`  ⏭️ ${filename} уже загружен (${(fileStats.size / 1024 / 1024).toFixed(2)} MB), пропускаем.`);
       return existingAsset.browser_download_url;
     }
@@ -98,26 +98,42 @@ async function uploadAsset(filename, release, pat) {
 
   const uploadUrl = `https://uploads.github.com/repos/${REPO}/releases/${release.id}/assets?name=${encodeURIComponent(filename)}`;
 
-  const res = await fetch(uploadUrl, {
-    method: 'POST',
-    headers: {
-      'Authorization': `token ${pat}`,
-      'Content-Type': 'video/mp4',
-      'Content-Length': String(fileStats.size),
-      'User-Agent': 'Antigravity-Agent',
-    },
-    body: fileBuffer,
-  });
+  let lastErr = null;
+  for (let attempt = 1; attempt <= 4; attempt++) {
+    try {
+      if (attempt > 1) {
+        console.log(`  🔄 Повторная попытка ${attempt}/4 для ${filename}...`);
+        await new Promise((r) => setTimeout(r, 2000 * attempt));
+      }
+      const res = await fetch(uploadUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `token ${pat}`,
+          'Content-Type': 'video/mp4',
+          'Content-Length': String(fileStats.size),
+          'User-Agent': 'Antigravity-Agent',
+        },
+        body: fileBuffer,
+      });
 
-  if (!res.ok) {
-    const err = await res.text();
-    console.error(`  ❌ Ошибка загрузки ${filename}: HTTP ${res.status} - ${err}`);
-    return null;
+      if (!res.ok) {
+        const err = await res.text();
+        console.error(`  ❌ Ошибка загрузки ${filename}: HTTP ${res.status} - ${err}`);
+        if (res.status >= 500 || res.status === 429) continue;
+        return null;
+      }
+
+      const json = await res.json();
+      console.log(`  ✅ Загружен: ${json.name} -> ${json.browser_download_url}`);
+      return json.browser_download_url;
+    } catch (err) {
+      lastErr = err;
+      console.warn(`  ⚠️ Сетевой сбой при загрузке ${filename} (${err.message}). Попытка ${attempt}/4...`);
+    }
   }
 
-  const json = await res.json();
-  console.log(`  ✅ Загружен: ${json.name} -> ${json.browser_download_url}`);
-  return json.browser_download_url;
+  console.error(`  ❌ Не удалось загрузить ${filename} после 4 попыток:`, lastErr?.message);
+  return null;
 }
 
 async function updateReleaseBody(release, tag, filesList, pat) {
@@ -198,11 +214,13 @@ async function main() {
     }
   }
 
+  const force = args.includes('--force');
+
   targetFiles.sort();
-  console.log(`Найдено файлов к загрузке: ${targetFiles.length}\n`);
+  console.log(`Найдено файлов к загрузке: ${targetFiles.length} (force: ${force})\n`);
 
   for (const filename of targetFiles) {
-    await uploadAsset(filename, release, pat);
+    await uploadAsset(filename, release, pat, force);
   }
 
   await updateReleaseBody(release, tag, targetFiles, pat);
