@@ -111,6 +111,7 @@ function getApiKeys() {
   const geminiKeys = [];
   let gcloudKey = process.env.GOOGLE_TTS_API_KEY || '';
 
+  const keyMap = {};
   if (fs.existsSync(envPath)) {
     const content = fs.readFileSync(envPath, 'utf8');
     for (const line of content.split('\n')) {
@@ -125,12 +126,20 @@ function getApiKeys() {
           k === 'GEMINI_SECONDARY_API_KEY' ||
           k === 'GEMINI_API_KEY'
         ) {
-          if (v && !geminiKeys.includes(v)) geminiKeys.push(v);
+          if (v) keyMap[k] = v;
         }
         if (k === 'GOOGLE_TTS_API_KEY' && v) {
           gcloudKey = v;
         }
       }
+    }
+  }
+
+  // Приоритетный порядок ключей: выделенный студийный ключ первым
+  const priorityOrder = ['GEMINI_TTS_API_KEY', 'GEMINI_PRIMARY_API_KEY', 'GEMINI_SECONDARY_API_KEY', 'GEMINI_API_KEY'];
+  for (const kName of priorityOrder) {
+    if (keyMap[kName] && !geminiKeys.includes(keyMap[kName])) {
+      geminiKeys.push(keyMap[kName]);
     }
   }
 
@@ -321,12 +330,93 @@ async function synthesizeGeminiTtsWithCarousel(text, voiceName, langCode, outPat
   throw new Error('❌ СТРОГИЙ ЗАПРЕТ: Голоса Microsoft запрещены для видеороликов! Все ключи и модели Gemini TTS исчерпали квоту. Синтез остановлен.');
 }
 
+/**
+ * Проверяет, для каких уроков ВСЕ 10 видеороликов (5 clean + 5 spicy)
+ * уже смонтированы, зарегистрированы и физически существуют на диске.
+ */
+function getCompletedVideoLessons() {
+  const completed = new Set();
+  const regPath = path.resolve(ROOT, 'growth/lessons_video_registry.json');
+  const platforms = ['YT', 'TG', 'INSTA', 'TIKTOK', 'FB'];
+
+  if (fs.existsSync(regPath)) {
+    try {
+      const reg = JSON.parse(fs.readFileSync(regPath, 'utf8'));
+      for (const [lNumStr, info] of Object.entries(reg.lessons || {})) {
+        const lNum = parseInt(lNumStr, 10);
+        const cleanFiles = info.variants?.clean?.files || {};
+        const spicyFiles = info.variants?.spicy?.files || {};
+
+        const cleanOk = platforms.every((p) => {
+          const fPath = cleanFiles[p]?.path;
+          return fPath && fs.existsSync(path.resolve(ROOT, fPath)) && fs.statSync(path.resolve(ROOT, fPath)).size > 500000;
+        });
+        const spicyOk = platforms.every((p) => {
+          const fPath = spicyFiles[p]?.path;
+          return fPath && fs.existsSync(path.resolve(ROOT, fPath)) && fs.statSync(path.resolve(ROOT, fPath)).size > 500000;
+        });
+
+        if (cleanOk && spicyOk) {
+          completed.add(lNum);
+        }
+      }
+    } catch (_) {}
+  }
+  return completed;
+}
+
+/**
+ * Локальный резолвер аудио: проверяет наличие в audio_bank или audio_cache.
+ * Если файл найден в audio_cache (WAV / legacy-имя), транскодирует локально в MP3 БЕЗ обращения к API!
+ */
+function resolveLocalAudio(itemId) {
+  const mp3Path = path.resolve(AUDIO_BANK, `${itemId}.mp3`);
+  if (fs.existsSync(mp3Path) && fs.statSync(mp3Path).size > 1000) {
+    return { found: true, path: mp3Path, source: 'audio_bank' };
+  }
+
+  // 1. Поиск по точному ID в кэше
+  const wavPath = path.resolve(CACHE_DIR, `${itemId}.wav`);
+  if (fs.existsSync(wavPath) && fs.statSync(wavPath).size > 1000) {
+    cp.execFileSync(ffmpeg, ['-y', '-i', wavPath, '-ar', '44100', '-b:a', '128k', mp3Path]);
+    return { found: true, path: mp3Path, source: 'audio_cache_exact' };
+  }
+
+  // 2. Маппинг legacy-имен для ранних уроков
+  const legacyMap = {
+    'l01_clean_s1_01': 'l01_clean_cue_01_hook.wav',
+    'l01_clean_s2_02': 'l01_clean_cue_02_student.wav',
+    'l01_clean_s2_03': 'l01_clean_cue_03_lead.wav',
+    'l01_clean_s3_04': 'l01_clean_cue_04_explainer.wav',
+    'l01_clean_s4_05': 'l01_clean_cue_05_cta.wav',
+    'l01_spicy_s1_01': 'l01_spicy_cue_01_hook.wav',
+    'l01_spicy_s2_02': 'l01_spicy_cue_02_guy.wav',
+    'l01_spicy_s2_03': 'l01_spicy_cue_03_girl.wav',
+    'l01_spicy_s3_04': 'l01_spicy_cue_04_explainer.wav',
+    'l01_spicy_s4_05': 'l01_spicy_cue_05_cta.wav',
+    'l02_clean_s4_05': 'l02_clean_cta_tg.wav',
+    'l02_spicy_s4_05': 'l02_spicy_cta_tg.wav',
+  };
+
+  const legacyFile = legacyMap[itemId];
+  if (legacyFile) {
+    const legacyPath = path.resolve(CACHE_DIR, legacyFile);
+    if (fs.existsSync(legacyPath) && fs.statSync(legacyPath).size > 1000) {
+      cp.execFileSync(ffmpeg, ['-y', '-i', legacyPath, '-ar', '44100', '-b:a', '128k', mp3Path]);
+      return { found: true, path: mp3Path, source: 'audio_cache_legacy' };
+    }
+  }
+
+  return { found: false, path: mp3Path };
+}
+
 async function main() {
   const args = process.argv.slice(2);
   const isAll = args.includes('--all');
   const lessonArg = args.find((a) => a.startsWith('--lesson='));
   const lessonsArg = args.find((a) => a.startsWith('--lessons='));
   const isForce = args.includes('--force');
+  const isDryRun = args.includes('--dry-run');
 
   const { geminiKeys, gcloudKey } = getApiKeys();
   if (!geminiKeys.length && !gcloudKey) {
@@ -339,7 +429,9 @@ async function main() {
 
   if (lessonsArg) {
     const range = lessonsArg.split('=')[1];
-    const [start, end] = range.split('-').map(Number);
+    const parts = range.split('-').map(Number);
+    const start = parts[0];
+    const end = parts.length > 1 ? parts[1] : parts[0];
     itemsToProcess = catalog.filter((c) => c.lesson >= start && c.lesson <= end);
   } else if (lessonArg) {
     const lNum = parseInt(lessonArg.split('=')[1], 10);
@@ -350,30 +442,68 @@ async function main() {
     itemsToProcess = catalog.filter((c) => c.lesson >= 1 && c.lesson <= 10);
   }
 
+  // 🛡️ GATE 1: Проверка готовых видео на диске
+  const completedVideoLessons = getCompletedVideoLessons();
+
   console.log('====================================================');
-  console.log(`🎬 ФАБРИКА-500: ПАКЕТНЫЙ СИНТЕЗ АУДИО (КАРУСЕЛЬ 4 КЛЮЧА)`);
-  console.log(`Фраз к обработке: ${itemsToProcess.length} | Ключей в пуле: ${geminiKeys.length} Gemini + ${gcloudKey ? '1 GCloud' : '0 GCloud'}`);
-  console.log(`Каталог: ${CATALOG_PATH}`);
+  console.log(`🎬 ФАБРИКА-500: ПАКЕТНЫЙ СИНТЕЗ АУДИО (КАРУСЕЛЬ СЛОТОВ)`);
+  console.log(`Запрошено фраз в каталоге: ${itemsToProcess.length}`);
+  console.log(`Уроки с полностью готовыми видео на диске: ${Array.from(completedVideoLessons).sort((a,b)=>a-b).join(', ') || 'нет'}`);
+  console.log(`Ключей в пуле: ${geminiKeys.length} Gemini + ${gcloudKey ? '1 GCloud' : '0 GCloud'}`);
   console.log(`Банк звуков: ${AUDIO_BANK}`);
   console.log('====================================================\n');
 
-  let successCount = 0;
-  let skippedCount = 0;
-  let failCount = 0;
+  // Предварительный аудит: отсекаем уже существующее ДО любых сетевых запросов
+  const queueToSynthesize = [];
+  let skippedByVideoGate = 0;
+  let skippedByLocalAudio = 0;
 
-  for (let i = 0; i < itemsToProcess.length; i++) {
-    const item = itemsToProcess[i];
-    const filename = `${item.id}.mp3`;
-    const outPath = path.resolve(AUDIO_BANK, filename);
-
-    if (!isForce && fs.existsSync(outPath) && fs.statSync(outPath).size > 1000) {
-      console.log(`[${i + 1}/${itemsToProcess.length}] ⏭️ Уже в банке: ${filename}`);
-      skippedCount++;
+  for (const item of itemsToProcess) {
+    // Если все видео урока уже смонтированы и нет явного флага --force — пропускаем на 100%
+    if (!isForce && completedVideoLessons.has(item.lesson)) {
+      skippedByVideoGate++;
       continue;
     }
 
+    // Проверяем локальный банк и кэш
+    if (!isForce) {
+      const resolved = resolveLocalAudio(item.id);
+      if (resolved.found) {
+        skippedByLocalAudio++;
+        continue;
+      }
+    }
+
+    queueToSynthesize.push(item);
+  }
+
+  console.log('📊 РЕЗУЛЬТАТЫ PRE-FLIGHT АУДИТА КВОТ:');
+  console.log(`   ⏭️ Пропущено (видео уже смонтированы): ${skippedByVideoGate} фраз`);
+  console.log(`   ⏭️ Пропущено (уже в банке или восстановлено из кэша): ${skippedByLocalAudio} фраз`);
+  console.log(`   🎯 РЕАЛЬНО ТРЕБУЕТСЯ СИНТЕЗИРОВАТЬ ЧЕРЕЗ API: ${queueToSynthesize.length} фраз\n`);
+
+  if (queueToSynthesize.length === 0) {
+    console.log('🎉 ВСЕ ЗАПРОШЕННЫЕ ДИАПАЗОНЫ УЖЕ ГОТОВЫ! 0 ЗАПРОСОВ К API.');
+    console.log('Ни одного байта квоты не потрачено.');
+    return;
+  }
+
+  if (isDryRun) {
+    console.log(`[DRY-RUN] Список недостающих фраз (${queueToSynthesize.length}):`);
+    queueToSynthesize.forEach((it, idx) => console.log(`  ${idx + 1}. [${it.id}] Урок ${it.lesson} (${it.role}): "${it.text.slice(0, 40)}..."`));
+    return;
+  }
+
+  let successCount = 0;
+  let failCount = 0;
+
+  for (let i = 0; i < queueToSynthesize.length; i++) {
+    const item = queueToSynthesize[i];
+    const filename = `${item.id}.mp3`;
+    const outPath = path.resolve(AUDIO_BANK, filename);
+
     console.log(
-      `[${i + 1}/${itemsToProcess.length}] 🎙️ Озвучиваем ${filename} (Урок ${item.lesson}, ${item.role}, ${item.gender}, ${item.language}): "${item.text.slice(0, 45)}..."`
+      `[${i + 1}/${queueToSynthesize.length}] 🎙️ Озвучиваем ${filename} (Урок ${item.lesson}, ${item.role}, ${item.gender}, ${item.language}): "${item.text.slice(0, 45)}..."`
     );
 
     try {
@@ -403,7 +533,7 @@ async function main() {
   console.log('\n====================================================');
   console.log(`📊 ИТОГИ СИНТЕЗА ФАБРИКИ-500:`);
   console.log(`   ✅ Успешно сгенерировано: ${successCount}`);
-  console.log(`   ⏭️ Пропущено (уже в банке): ${skippedCount}`);
+  console.log(`   ⏭️ Пропущено (уже в банке): ${skippedByLocalAudio}`);
   console.log(`   ❌ Ошибок: ${failCount}`);
   console.log(`   📁 Аудиобанк: ${AUDIO_BANK}`);
   console.log('====================================================');

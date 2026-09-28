@@ -369,7 +369,7 @@ export const LessonTheory: React.FC<LessonTheoryProps> = ({
   const handlePlay = (text: string, key?: string) => {
     if (!text) return;
     if (key) setPlayingKey(key);
-    speakHebrew(text, { rate: userProfile.speechRate || 0.7 });
+    speakHebrew(text, { rate: userProfile.speechRate || 1.0 });
     if (key) {
       setTimeout(() => {
         setPlayingKey((curr) => (curr === key ? null : curr));

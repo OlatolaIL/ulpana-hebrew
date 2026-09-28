@@ -99,7 +99,7 @@ export function useScriptedDialogue({
   const [showNikkud, setShowNikkud] = useState<boolean>(userProfile.showNikkud ?? true);
   const [showTranscription, setShowTranscription] = useState<boolean>(userProfile.showTranscription ?? true);
   const [showTranslation, setShowTranslation] = useState<boolean>(true);
-  const [speechRate, setSpeechRate] = useState<number>(userProfile.speechRate || 0.75);
+  const [speechRate, setSpeechRate] = useState<number>(userProfile.speechRate || 1.0);
 
   // 6. Состояние воспроизведения в режиме «Прослушивание»
   const [isPlayingAll, setIsPlayingAll] = useState<boolean>(false);

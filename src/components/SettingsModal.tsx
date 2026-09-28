@@ -414,7 +414,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 <span>Скорость речи и озвучки</span>
               </h3>
               <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300">
-                {(profile.speechRate ?? 0.7).toFixed(2)}x
+                {(profile.speechRate ?? 1.0).toFixed(2)}x
               </span>
             </div>
 
@@ -437,7 +437,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     speakHebrew('שָׁלוֹם, בּוֹקֶר טוֹב!', { rate: p.rate });
                   }}
                   className={`py-2 px-1 text-center rounded-xl border text-xs font-medium transition ${
-                    (profile.speechRate ?? 0.7) === p.rate
+                    (profile.speechRate ?? 1.0) === p.rate
                       ? 'border-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 font-bold ring-2 ring-emerald-600/20'
                       : 'border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800'
                   }`}
@@ -453,7 +453,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 min="0.4"
                 max="1.2"
                 step="0.05"
-                value={profile.speechRate ?? 0.7}
+                value={profile.speechRate ?? 1.0}
                 onChange={(e) => handleChange({ speechRate: parseFloat(e.target.value) })}
                 className="flex-1 accent-emerald-600 cursor-pointer"
               />
@@ -461,7 +461,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 type="button"
                 onClick={() =>
                   speakHebrew('שָׁלוֹם! בּוֹקֶר טוֹב. אֲנִי לוֹמֵד עִבְרִית.', {
-                    rate: profile.speechRate ?? 0.7,
+                    rate: profile.speechRate ?? 1.0,
                   })
                 }
                 className="px-3 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 hover:bg-emerald-100 text-emerald-700 dark:text-emerald-300 text-xs font-semibold flex items-center gap-1.5 transition"

@@ -112,7 +112,7 @@ export const CallDrawer: React.FC<CallDrawerProps> = ({
                         <button
                           type="button"
                           onClick={() =>
-                            speakHebrew(word.hebrew, { rate: userProfile.speechRate || 0.7 })
+                            speakHebrew(word.hebrew, { rate: userProfile.speechRate || 1.0 })
                           }
                           className="p-1.5 rounded-lg text-zinc-500 hover:text-blue-600 dark:text-zinc-400 dark:hover:text-blue-400 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition cursor-pointer"
                           title="Озвучить"

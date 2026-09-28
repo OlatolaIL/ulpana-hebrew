@@ -18,7 +18,7 @@ test('R-00-A: DECISION_MATRIX.md exists and contains all required blocks, versio
   assert.ok(matrixContent.includes('Дата обновления:'), 'DECISION_MATRIX.md must include update date');
 
   // Check required rule anchors
-  const expectedRules = ['R-01', 'R-02', 'R-03', 'R-04', 'R-05', 'R-07', 'R-08', 'R-10', 'R-11', 'R-13', 'R-14', 'R-15', 'R-16', 'R-17', 'R-23', 'R-24', 'R-25', 'R-26'];
+  const expectedRules = ['R-01', 'R-02', 'R-03', 'R-04', 'R-05', 'R-07', 'R-08', 'R-10', 'R-11', 'R-13', 'R-14', 'R-15', 'R-16', 'R-17', 'R-23', 'R-24', 'R-25', 'R-26', 'R-27'];
   for (const rule of expectedRules) {
     assert.ok(matrixContent.includes(rule), `DECISION_MATRIX.md must define rule ${rule}`);
   }
@@ -330,6 +330,16 @@ test('R-25: Viral Video Engine and VIDEO_PRODUCTION_PLAYBOOK.md invariants are d
   assert.ok(fs.existsSync(registryPath), 'growth/tutorials/registry.json must exist');
   const registry = JSON.parse(fs.readFileSync(registryPath, 'utf8'));
   assert.ok(registry.stages && registry.stages['stage-05-dialogue'], 'registry.json must track stage-05-dialogue in stages');
+});
+
+test('R-27: Zero-Waste Quota Policy and audio-quota-protection test suite are defined and active', () => {
+  const matrixContent = fs.readFileSync(matrixPath, 'utf8');
+  assert.ok(matrixContent.includes('R-27'), 'DECISION_MATRIX.md must define R-27');
+  assert.ok(matrixContent.includes('audio-quota-protection.test.cjs'), 'R-27 must reference audio-quota-protection.test.cjs');
+  assert.ok(
+    fs.existsSync(path.join(repoRoot, 'tests/audio-quota-protection.test.cjs')),
+    'tests/audio-quota-protection.test.cjs must exist'
+  );
 });
 
 

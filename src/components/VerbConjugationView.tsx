@@ -73,7 +73,7 @@ export const VerbConjugationView: React.FC<VerbConjugationViewProps> = ({
 
   const handleSpeak = (text: string, idKey?: string) => {
     if (idKey) setSpeakingForm(idKey);
-    speakHebrew(text, { rate: userProfile.speechRate || 0.7 });
+    speakHebrew(text, { rate: userProfile.speechRate || 1.0 });
     setTimeout(() => {
       setSpeakingForm(null);
     }, 1200);

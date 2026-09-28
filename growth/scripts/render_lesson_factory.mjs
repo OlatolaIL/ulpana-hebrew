@@ -26,15 +26,18 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 function getGeminiApiKeys() {
   const keys = [];
+  if (process.env.GEMINI_TTS_API_KEY) keys.push(process.env.GEMINI_TTS_API_KEY);
   if (process.env.GEMINI_PRIMARY_API_KEY) keys.push(process.env.GEMINI_PRIMARY_API_KEY);
   if (process.env.GEMINI_API_KEY) keys.push(process.env.GEMINI_API_KEY);
   if (process.env.GEMINI_SECONDARY_API_KEY) keys.push(process.env.GEMINI_SECONDARY_API_KEY);
   const envPath = path.resolve(ROOT, '.env.local');
   if (fs.existsSync(envPath)) {
     const content = fs.readFileSync(envPath, 'utf8');
+    const m0 = content.match(/GEMINI_TTS_API_KEY=([^\r\n]+)/);
     const m1 = content.match(/GEMINI_PRIMARY_API_KEY=([^\r\n]+)/);
     const m2 = content.match(/GEMINI_API_KEY=([^\r\n]+)/);
     const m3 = content.match(/GEMINI_SECONDARY_API_KEY=([^\r\n]+)/);
+    if (m0 && !keys.includes(m0[1].trim())) keys.push(m0[1].trim());
     if (m1 && !keys.includes(m1[1].trim())) keys.push(m1[1].trim());
     if (m2 && !keys.includes(m2[1].trim())) keys.push(m2[1].trim());
     if (m3 && !keys.includes(m3[1].trim())) keys.push(m3[1].trim());
@@ -497,9 +500,9 @@ async function recordPlatformVideo(lessonNum, variant, platform, audioInfo, brow
   };
 }
 
-async function renderLesson(lessonNum, browser, registry, targetVariants = ['clean', 'spicy']) {
+async function renderLesson(lessonNum, browser, registry, targetVariants = ['clean', 'spicy'], targetPlatforms = PLATFORMS) {
   console.log(`\n======================================================`);
-  console.log(`🎬 ФАБРИКА-500: СБОРКА УРОКА ${lessonNum} (${targetVariants.length * 5} ВИДЕОРОЛИКОВ)`);
+  console.log(`🎬 ФАБРИКА-500: СБОРКА УРОКА ${lessonNum} (${targetVariants.length * targetPlatforms.length} ВИДЕОРОЛИКОВ)`);
   console.log(`======================================================`);
 
   if (!registry.lessons[String(lessonNum)]) {
@@ -515,7 +518,7 @@ async function renderLesson(lessonNum, browser, registry, targetVariants = ['cle
 
   for (const variant of targetVariants) {
     console.log(`\n▶ [Урок ${lessonNum}] Вариант: ${variant.toUpperCase()}`);
-    for (const platform of PLATFORMS) {
+    for (const platform of targetPlatforms) {
       console.log(`  → Платформа [${platform.code}] ${platform.name}...`);
       const audioInfo = await prepareAudioForPlatform(lessonNum, variant, platform);
       const meta = await recordPlatformVideo(lessonNum, variant, platform, audioInfo, browser);
@@ -536,7 +539,18 @@ async function main() {
   const lessonArg = args.find((a) => a.startsWith('--lesson='));
   const lessonsArg = args.find((a) => a.startsWith('--lessons='));
   const variantArg = args.find((a) => a.startsWith('--variant='));
+  const platformArg = args.find((a) => a.startsWith('--platform='));
   const targetVariants = variantArg ? [variantArg.split('=')[1].toLowerCase()] : ['clean', 'spicy'];
+
+  let targetPlatforms = PLATFORMS;
+  if (platformArg) {
+    const pCode = platformArg.split('=')[1].toUpperCase();
+    targetPlatforms = PLATFORMS.filter((p) => p.code === pCode);
+    if (!targetPlatforms.length) {
+      console.error(`❌ Неизвестная платформа: ${pCode}. Доступные: ${PLATFORMS.map((p) => p.code).join(', ')}`);
+      process.exit(1);
+    }
+  }
 
   let targetLessons = [2];
   if (lessonsArg) {
@@ -552,8 +566,9 @@ async function main() {
   console.log(`🏭 ФАБРИКА-500: ПАКЕТНЫЙ РЕНДЕР ВИДЕО`);
   console.log(`Уроки к сборке: ${targetLessons.join(', ')}`);
   console.log(`Варианты к сборке: ${targetVariants.join(', ')}`);
-  console.log(`Количество роликов на урок: ${targetVariants.length * 5}`);
-  console.log(`Всего роликов: ${targetLessons.length * targetVariants.length * 5}`);
+  console.log(`Платформы: ${targetPlatforms.map((p) => p.code).join(', ')}`);
+  console.log(`Количество роликов на урок: ${targetVariants.length * targetPlatforms.length}`);
+  console.log(`Всего роликов: ${targetLessons.length * targetVariants.length * targetPlatforms.length}`);
   console.log('======================================================\n');
 
   const browser = await chromium.launch({
@@ -571,7 +586,7 @@ async function main() {
   if (!registry.lessons) registry.lessons = {};
 
   for (const lNum of targetLessons) {
-    await renderLesson(lNum, browser, registry, targetVariants);
+    await renderLesson(lNum, browser, registry, targetVariants, targetPlatforms);
   }
 
   await browser.close();

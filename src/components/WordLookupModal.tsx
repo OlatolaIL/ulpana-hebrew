@@ -199,12 +199,12 @@ export const WordLookupModal: React.FC<WordLookupModalProps> = ({
       try {
         const audio = new Audio(wordData.audio);
         audio.play().catch(() => {
-          speakHebrew(text, { rate: userProfile.speechRate || 0.7 });
+          speakHebrew(text, { rate: userProfile.speechRate || 1.0 });
         });
         return;
       } catch {}
     }
-    speakHebrew(text, { rate: userProfile.speechRate || 0.7 });
+    speakHebrew(text, { rate: userProfile.speechRate || 1.0 });
   };
 
   const handleOpenConjugations = async () => {

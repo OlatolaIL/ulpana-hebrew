@@ -105,7 +105,7 @@ export function stopDialogueAudio(): void {
 export async function playDialogueTurnAudio(options: PlayDialogueTurnAudioOptions): Promise<void> {
   stopDialogueAudio();
 
-  const { lessonId, turnId, speakerGender, listenerGender, text, speechRate = 0.75 } = options;
+  const { lessonId, turnId, speakerGender, listenerGender, text, speechRate = 1.0 } = options;
   const key = getDialogueTurnKey(lessonId, turnId, speakerGender, listenerGender);
 
   // 1. Пытаемся найти предзаписанный файл в манифесте

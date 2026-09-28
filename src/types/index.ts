@@ -498,7 +498,7 @@ export interface UserProfile {
   showNikkud: boolean;
   showTranscription: boolean;
   fontStyle: 'print' | 'cursive';
-  speechRate?: number; // 0.5 - 1.0 (по умолчанию 0.7 для начинающих)
+  speechRate?: number; // 0.4 - 1.2 (по умолчанию 1.0)
   completedLessons: number[];
   currentLesson?: number;
   lessonProgress: Record<number, LessonProgress>;

@@ -45,7 +45,7 @@ export const LinguisticTipDrawer: React.FC<LinguisticTipDrawerProps> = ({
   const handlePlayPhrase = (text: string, key: string) => {
     if (!text) return;
     setPlayingKey(key);
-    speakHebrew(text, { rate: userProfile?.speechRate || 0.7 });
+    speakHebrew(text, { rate: userProfile?.speechRate || 1.0 });
     setTimeout(() => {
       setPlayingKey((curr) => (curr === key ? null : curr));
     }, 2000);

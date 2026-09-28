@@ -601,7 +601,7 @@ export function speakHebrew(
       return;
     }
 
-    let userRate = 0.7;
+    let userRate = 1.0;
     let userGender: 'male' | 'female' = 'male';
     try {
       const stored = localStorage.getItem('hebrew_app_profile_v1');

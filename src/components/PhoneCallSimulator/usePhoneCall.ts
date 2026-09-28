@@ -555,14 +555,14 @@ export function usePhoneCall({
     lastAiSpokenTextRef.current = stripNikkud(text).trim().toLowerCase();
     callFlightRecorder.record('TTS', 'AI speech started', {
       text,
-      rate: userProfile.speechRate || 0.75,
+      rate: userProfile.speechRate || 1.0,
       gender: scenario.callerGender || 'male',
       callerName: scenario.callerName,
     }, 'info');
 
     try {
       await speakHebrew(text, {
-        rate: userProfile.speechRate || 0.75,
+        rate: userProfile.speechRate || 1.0,
         gender: scenario.callerGender || 'male',
       });
     } catch (e) {

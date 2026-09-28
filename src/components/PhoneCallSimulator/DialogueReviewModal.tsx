@@ -248,7 +248,7 @@ export const DialogueReviewModal: React.FC<DialogueReviewModalProps> = ({
             messages={messages}
             callerName={scenario.callerName}
             userName={userProfile.name || 'Ученик'}
-            speechRate={userProfile.speechRate || 0.75}
+            speechRate={userProfile.speechRate || 1.0}
             onActiveMessageChange={setActiveHighlightIndex}
             className="mb-4"
           />
@@ -326,7 +326,7 @@ export const DialogueReviewModal: React.FC<DialogueReviewModalProps> = ({
                       <button
                         type="button"
                         onClick={() =>
-                          speakHebrew(msg.hebrew, { rate: userProfile.speechRate || 0.7 })
+                          speakHebrew(msg.hebrew, { rate: userProfile.speechRate || 1.0 })
                         }
                         className="p-1.5 rounded-lg text-zinc-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition cursor-pointer"
                         title="Прослушать реплику"
@@ -540,7 +540,7 @@ export const DialogueReviewModal: React.FC<DialogueReviewModalProps> = ({
                               type="button"
                               onClick={() =>
                                 speakHebrew(hebrewPart, {
-                                  rate: userProfile.speechRate || 0.7,
+                                  rate: userProfile.speechRate || 1.0,
                                 })
                               }
                               className="p-1 rounded-lg text-purple-600 hover:text-purple-800 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900/60 transition cursor-pointer shrink-0 mt-0.5"
@@ -594,7 +594,7 @@ export const DialogueReviewModal: React.FC<DialogueReviewModalProps> = ({
                         <button
                           type="button"
                           onClick={() =>
-                            speakHebrew(rw.hebrew, { rate: userProfile.speechRate || 0.7 })
+                            speakHebrew(rw.hebrew, { rate: userProfile.speechRate || 1.0 })
                           }
                           className="p-1 rounded-lg text-zinc-400 hover:text-blue-600 transition cursor-pointer"
                           title="Озвучить"

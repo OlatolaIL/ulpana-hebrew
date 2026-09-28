@@ -29,7 +29,7 @@ export const SmartConversationPlayer: React.FC<SmartConversationPlayerProps> = (
   callerName = 'Собеседник',
   callerGender = 'male',
   userName = 'Ученик',
-  speechRate = 0.75,
+  speechRate = 1.0,
   onActiveMessageChange,
   className = '',
   compact = false,

@@ -41,6 +41,7 @@ if (!fs.existsSync(DIALOGUES_DIR)) {
 function getGeminiApiKeys() {
   const envPath = path.join(repoRoot, '.env.local');
   const keys = [];
+  const keyMap = {};
   if (fs.existsSync(envPath)) {
     const content = fs.readFileSync(envPath, 'utf8');
     for (const line of content.split('\n')) {
@@ -55,9 +56,15 @@ function getGeminiApiKeys() {
           k === 'GEMINI_SECONDARY_API_KEY' ||
           k === 'GEMINI_API_KEY'
         ) {
-          if (v && !keys.includes(v)) keys.push(v);
+          if (v) keyMap[k] = v;
         }
       }
+    }
+  }
+  const priorityOrder = ['GEMINI_TTS_API_KEY', 'GEMINI_PRIMARY_API_KEY', 'GEMINI_SECONDARY_API_KEY', 'GEMINI_API_KEY'];
+  for (const kName of priorityOrder) {
+    if (keyMap[kName] && !keys.includes(keyMap[kName])) {
+      keys.push(keyMap[kName]);
     }
   }
   if (process.env.GEMINI_API_KEY && !keys.includes(process.env.GEMINI_API_KEY)) {
@@ -362,17 +369,21 @@ async function main() {
     lessonIds = [parseInt(lessonArg.split('=')[1], 10)];
   }
 
+  const isDryRun = args.includes('--dry-run');
+
   console.log('====================================================');
-  console.log(`🎙️ ГЕНЕРАЦИЯ ДИАЛОГОВЫХ АУДИОФАЙЛОВ (${targetEngine.toUpperCase() === 'GEMINI' ? 'GEMINI 3.1 TTS (ORUS/AOEDE)' : 'MICROSOFT NEURAL'})`);
+  console.log(`🎙️ ГЕНЕРАЦИЯ ДИАЛОГОВЫХ АУДИОФАЙЛОВ (${targetEngine.toUpperCase() === 'GEMINI' ? 'GEMINI TTS (КАРУСЕЛЬ СЛОТОВ)' : 'MICROSOFT NEURAL'})`);
   console.log(`Уроки в обработке: ${lessonIds.join(', ')} | Движок: ${targetEngine} | Перезапись: ${isForce ? 'ВКЛЮЧЕН (--force)' : 'ВЫКЛЮЧЕН'}`);
+  console.log(`Режим dry-run: ${isDryRun ? 'ВКЛЮЧЕН (без обращений к API)' : 'ВЫКЛЮЧЕН'}`);
   console.log('====================================================\n');
 
   const manifest = loadManifest();
-  let generatedCount = 0;
-  let skippedCount = 0;
-  let errorCount = 0;
-
+  let manifestModified = false;
   const combos = ['mm', 'mf', 'fm', 'ff'];
+
+  // 🛡️ PRE-FLIGHT AUDIT: сбор всех задач и отсечение уже существующих файлов ДО вызова API
+  const queue = [];
+  let alreadyExistingCount = 0;
 
   for (const lessonId of lessonIds) {
     let dialogue;
@@ -383,27 +394,20 @@ async function main() {
       continue;
     }
 
-    console.log(`\n📖 Урок ${lessonId}: «${dialogue.titleRu || dialogue.titleHe}» (${dialogue.turns.length} реплик)`);
-
     for (const turn of dialogue.turns) {
       for (const combo of combos) {
         const key = `d${lessonId}_${turn.id}_${combo}`;
         const fileName = `${key}.mp3`;
         const destPath = path.join(targetDir, fileName);
-
-        // Говорящий: первая буква комбинации ('m' -> male, 'f' -> female)
         const speakerGender = combo[0] === 'm' ? 'male' : 'female';
         const voice = targetEngine === 'gemini'
           ? (speakerGender === 'male' ? 'Orus' : 'Aoede')
           : (speakerGender === 'male' ? 'he-IL-AvriNeural' : 'he-IL-HilaNeural');
-
         const variant = turn.variants[combo] || turn.variants.mm;
         if (!variant || !variant.hebrew) continue;
 
-        // Проверяем наличие файла
         if (!isForce && fs.existsSync(destPath) && fs.statSync(destPath).size > 100) {
-          skippedCount++;
-          // Убедимся, что ключ есть в манифесте
+          alreadyExistingCount++;
           if (!manifest[key] || manifest[key].engine !== targetEngine) {
             manifest[key] = {
               lessonId,
@@ -416,19 +420,63 @@ async function main() {
               hebrew: variant.hebrew,
               translation: variant.translation,
             };
+            manifestModified = true;
           }
           continue;
         }
 
-        const voiceLabel = targetEngine === 'gemini' ? voice : voice.split('-')[2];
-        process.stdout.write(`  [${key}] (${speakerGender}, ${voiceLabel}): ${variant.hebrew.substring(0, 30)}... `);
+        queue.push({
+          key,
+          fileName,
+          destPath,
+          lessonId,
+          turn,
+          combo,
+          speakerGender,
+          voice,
+          variant
+        });
+      }
+    }
+  }
 
-        let res;
-        if (targetEngine === 'gemini') {
-          res = await synthesizeTurnGemini(variant.hebrew, voice, destPath, apiKeys);
-        } else {
-          res = await synthesizeTurn(variant.hebrew, voice, destPath);
-        }
+  if (manifestModified) {
+    saveManifest(manifest);
+  }
+
+  console.log('📊 РЕЗУЛЬТАТЫ PRE-FLIGHT АУДИТА ДИАЛОГОВ:');
+  console.log(`   ⏭️ Уже готовы на диске: ${alreadyExistingCount} реплик`);
+  console.log(`   🎯 РЕАЛЬНО ТРЕБУЕТСЯ СИНТЕЗИРОВАТЬ: ${queue.length} реплик\n`);
+
+  if (queue.length === 0) {
+    console.log('🎉 ВСЕ ДИАЛОГИ В ЗАПРОШЕННОМ ДИАПАЗОНЕ УЖЕ ГОТОВЫ! 0 ЗАПРОСОВ К API.');
+    console.log('Ни одного байта квоты не потрачено.');
+    return;
+  }
+
+  if (isDryRun) {
+    console.log(`[DRY-RUN] Список реплик к озвучке (${queue.length}):`);
+    queue.slice(0, 20).forEach((q, idx) => console.log(`  ${idx + 1}. [${q.key}] (${q.speakerGender}, ${q.voice}): "${q.variant.hebrew.substring(0, 30)}..."`));
+    if (queue.length > 20) console.log(`  ... и ещё ${queue.length - 20} реплик.`);
+    return;
+  }
+
+  let generatedCount = 0;
+  let skippedCount = alreadyExistingCount;
+  let errorCount = 0;
+
+  for (let i = 0; i < queue.length; i++) {
+    const item = queue[i];
+    const { key, fileName, destPath, lessonId, turn, combo, speakerGender, voice, variant } = item;
+    const voiceLabel = targetEngine === 'gemini' ? voice : voice.split('-')[2];
+    process.stdout.write(`  [${i + 1}/${queue.length}] [${key}] (${speakerGender}, ${voiceLabel}): ${variant.hebrew.substring(0, 30)}... `);
+
+    let res;
+    if (targetEngine === 'gemini') {
+      res = await synthesizeTurnGemini(variant.hebrew, voice, destPath, apiKeys);
+    } else {
+      res = await synthesizeTurn(variant.hebrew, voice, destPath);
+    }
 
         if (res.success) {
           generatedCount++;
@@ -453,11 +501,8 @@ async function main() {
         // Небольшая пауза между запросами
         await new Promise(r => setTimeout(r, targetEngine === 'gemini' ? 300 : 60));
       }
-    }
-    saveManifest(manifest);
-  }
 
-  saveManifest(manifest);
+      saveManifest(manifest);
   console.log('\n====================================================');
   console.log(`✅ ГОТОВО! Сгенерировано: ${generatedCount} | Пропущено (уже есть): ${skippedCount} | Ошибок: ${errorCount}`);
   console.log(`Манифест обновлён: ${MANIFEST_PATH}`);

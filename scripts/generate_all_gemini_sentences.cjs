@@ -36,8 +36,8 @@ if (!fs.existsSync(SENTENCES_DIR)) {
 }
 
 function getApiKeys() {
-  if (process.env.GEMINI_TTS_API_KEY) return [process.env.GEMINI_TTS_API_KEY.trim()];
   const keys = [];
+  const keyMap = {};
   if (fs.existsSync(ENV_PATH)) {
     const content = fs.readFileSync(ENV_PATH, 'utf8');
     for (const line of content.split('\n')) {
@@ -52,9 +52,15 @@ function getApiKeys() {
           k === 'GEMINI_SECONDARY_API_KEY' ||
           k === 'GEMINI_API_KEY'
         ) {
-          if (v && !keys.includes(v)) keys.push(v);
+          if (v) keyMap[k] = v;
         }
       }
+    }
+  }
+  const priorityOrder = ['GEMINI_TTS_API_KEY', 'GEMINI_PRIMARY_API_KEY', 'GEMINI_SECONDARY_API_KEY', 'GEMINI_API_KEY'];
+  for (const kName of priorityOrder) {
+    if (keyMap[kName] && !keys.includes(keyMap[kName])) {
+      keys.push(keyMap[kName]);
     }
   }
   if (process.env.GEMINI_API_KEY && !keys.includes(process.env.GEMINI_API_KEY)) {
@@ -116,6 +122,7 @@ function loadCatalog(options = {}) {
   if (options.isMaleOnly) allItems = allItems.filter((i) => i.gender === 'male');
   if (options.isFemaleOnly) allItems = allItems.filter((i) => i.gender === 'female');
 
+  let metadataModified = false;
   for (const item of allItems) {
     const filePath = path.join(SENTENCES_DIR, item.fileName);
     const hasMetadata =
@@ -123,7 +130,22 @@ function loadCatalog(options = {}) {
       metadata[item.fileName]?.status === 'verified_gemini_3.1' ||
       metadata[item.fileName]?.status === 'verified_gemini_3.5';
     const hasFile = fs.existsSync(filePath) && fs.statSync(filePath).size > 25000;
-    item.isAlreadyGenerated = !options.isForce && hasMetadata && hasFile;
+    
+    // Авто-хилинг: если файл физически есть на диске и валиден, фиксируем в метаданных и никогда не переозвучиваем
+    if (hasFile && !hasMetadata) {
+      metadata[item.fileName] = {
+        status: 'verified_gemini_3.8',
+        model: 'auto_healed_from_disk',
+        voice: item.voiceName,
+        verifiedAt: new Date().toISOString()
+      };
+      metadataModified = true;
+    }
+    item.isAlreadyGenerated = !options.isForce && (hasMetadata || hasFile);
+  }
+
+  if (metadataModified) {
+    fs.writeFileSync(METADATA_PATH, JSON.stringify(metadata, null, 2), 'utf8');
   }
 
   return { items: allItems, manifest, metadata };

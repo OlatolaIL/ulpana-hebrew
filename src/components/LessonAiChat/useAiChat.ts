@@ -421,7 +421,7 @@ export function useAiChat({
     setMessages([initial]);
 
     stopSpeech();
-    speakHebrew(initial.hebrew, { rate: userProfile.speechRate || 0.7 });
+    speakHebrew(initial.hebrew, { rate: userProfile.speechRate || 1.0 });
   };
 
   useEffect(() => {
@@ -571,7 +571,7 @@ export function useAiChat({
       }
       logSession(activeSession, updatedHistory, data.feedback);
 
-      speakHebrew(aiMsg.hebrew, { rate: userProfile.speechRate || 0.7 });
+      speakHebrew(aiMsg.hebrew, { rate: userProfile.speechRate || 1.0 });
     } catch (err) {
       if (!isChatResponseApplicable(activeSession, sessionRef.current, isMountedRef.current)) {
         return;
@@ -719,7 +719,7 @@ export function useAiChat({
     setMessages([initial]);
 
     stopSpeech();
-    speakHebrew(initial.hebrew, { rate: userProfile.speechRate || 0.7 });
+    speakHebrew(initial.hebrew, { rate: userProfile.speechRate || 1.0 });
   };
 
   const lastAiMessage = [...messages].reverse().find((m) => m.role === 'assistant');

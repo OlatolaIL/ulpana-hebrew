@@ -186,7 +186,7 @@ export async function collectDeviceDiagnostics(): Promise<DeviceDiagnosticsRepor
 
   // 5. Настройки профиля пользователя
   let userProfileSettings = {
-    speechRate: 0.7,
+    speechRate: 1.0,
     showNikkud: true,
     showTranscription: true,
     fontStyle: 'print',
@@ -197,7 +197,7 @@ export async function collectDeviceDiagnostics(): Promise<DeviceDiagnosticsRepor
     if (rawProfile) {
       const parsed = JSON.parse(rawProfile);
       userProfileSettings = {
-        speechRate: typeof parsed.speechRate === 'number' ? parsed.speechRate : 0.7,
+        speechRate: typeof parsed.speechRate === 'number' ? parsed.speechRate : 1.0,
         showNikkud: parsed.showNikkud ?? true,
         showTranscription: parsed.showTranscription ?? true,
         fontStyle: parsed.fontStyle || 'print',

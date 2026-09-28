@@ -63,7 +63,7 @@ export const DeckWordsModal: React.FC<DeckWordsModalProps> = ({
 
   const handleSpeak = (text: string, id: string) => {
     setSpeakingWordId(id);
-    speakHebrew(text, { rate: userProfile.speechRate || 0.7 });
+    speakHebrew(text, { rate: userProfile.speechRate || 1.0 });
     setTimeout(() => setSpeakingWordId(null), 1200);
   };
 

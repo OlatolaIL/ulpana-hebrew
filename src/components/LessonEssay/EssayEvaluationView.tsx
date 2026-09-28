@@ -41,7 +41,7 @@ export const EssayEvaluationView: React.FC<EssayEvaluationViewProps> = ({
     if (!audioText || isPlayingAudio) return;
     setIsPlayingAudio(true);
     try {
-      await speakHebrew(audioText, { rate: userProfile?.speechRate || 0.75 });
+      await speakHebrew(audioText, { rate: userProfile?.speechRate || 1.0 });
     } catch (e) {
       console.warn('Speech error:', e);
     } finally {

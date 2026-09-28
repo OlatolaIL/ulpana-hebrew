@@ -498,7 +498,7 @@ export const PersonalDictionary: React.FC<PersonalDictionaryProps> = ({
                   >
                     <div className="flex items-center gap-3 min-w-0 pr-2">
                       <button
-                        onClick={() => speakHebrew(word.hebrew, { rate: userProfile.speechRate || 0.7 })}
+                        onClick={() => speakHebrew(word.hebrew, { rate: userProfile.speechRate || 1.0 })}
                         className="p-2 rounded-xl bg-blue-50 dark:bg-blue-950/50 text-blue-600 hover:bg-blue-100 transition shrink-0"
                         title="Озвучить слово"
                       >
