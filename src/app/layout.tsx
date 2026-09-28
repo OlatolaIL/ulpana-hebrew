@@ -71,6 +71,9 @@ export const metadata: Metadata = {
       { url: '/icons/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
     ],
   },
+  other: {
+    'tiktok-developers-site-verification': 'epOOUCSPiHSXNUBTy5Dp0n7Q2dR1sCSn',
+  },
 };
 
 export default function RootLayout({
