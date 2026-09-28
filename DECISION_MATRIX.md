@@ -115,7 +115,7 @@
 | **R-17** | Каждый компонент с ивритом или аудио читает из `UserProfile`: `gender` (адаптация форм, выбор голоса), `showNikkud` (огласовки или `stripNikkud()`), `showTranscription`, `fontStyle`, `speechRate` (fallback по умолчанию `1.0`). Хардкод без профиля — нарушение. | 🔴 | `gender-sentences-and-edge-audio.test.cjs` |
 | **R-24** | Слова с нестандартным ударением (сленг, заимствования, акронимы) → реестры `CURATED_STUDIO_AUDIO` и `CURATED_SENTENCE_AUDIO` в `speech.ts`. Синтез таких слов через TTS запрещён. Пополнение строго через `scripts/fetch_curated_audio.cjs`. | 🔴 | `studio-audio-dispatch.test.cjs` |
 | **R-27** | Запрет повторного синтеза (Zero-Waste Quota Policy): Скрипты генерации аудио обязаны иметь 4-уровневый фильтр (Video Gate → Audio Bank → Local Cache → Pre-Flight Audit). Повторный запрос к API на уже существующие файлы или смонтированные видео категорически запрещён. | 🔴 | `audio-quota-protection.test.cjs` |
-| **R-28** | Однородность модели диалога и Anti-Click фильтрация: Все реплики и гендерные формы урока генерируются строго одной моделью TTS (запрет смены модели внутри урока во избежание смены тембра персонажей). Обязательный Anti-Click Micro Fade-Out через FFmpeg на выводе. | 🔴 | `decision-matrix-invariants.test.cjs` |
+| **R-28** | Однородность модели диалога и двусторонняя Anti-Click фильтрация: Все реплики и гендерные формы урока генерируются строго одной моделью TTS (запрет смены модели внутри урока во избежание смены тембра персонажей). Обязательная двусторонняя Anti-Click фильтрация (Micro Fade-In 50ms + Tail Fade-Out 80ms) и автоопределение WAV-контейнера при конвертации в FFmpeg. | 🔴 | `decision-matrix-invariants.test.cjs` |
 
 ### Блок 8. LLM и мультипровайдерность
 

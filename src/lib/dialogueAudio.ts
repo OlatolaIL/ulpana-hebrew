@@ -39,7 +39,7 @@ export async function getDialogueManifest(): Promise<DialogueAudioManifest | nul
     return manifestFetchPromise;
   }
 
-  manifestFetchPromise = fetch('/audio/dialogues/manifest.json')
+  manifestFetchPromise = fetch('/audio/dialogues/manifest.json', { cache: 'no-cache' })
     .then(async (res) => {
       if (res.ok) {
         const data = await res.json();
@@ -113,10 +113,11 @@ export async function playDialogueTurnAudio(options: PlayDialogueTurnAudioOption
   const entry = manifest?.[key];
 
   if (entry && entry.fileName) {
-    // Формируем URL: для Gemini (Tier 1) или Edge Neural (Tier 2)
+    // Формируем URL: для Gemini (Tier 1) или Edge Neural (Tier 2) с cache-buster
+    const cacheBuster = entry.bytes ? `?v=${entry.bytes}` : '?v=20260928b';
     const audioUrl = entry.engine === 'gemini'
-      ? `/audio/dialogues/gemini/${entry.fileName}`
-      : `/audio/dialogues/${entry.fileName}`;
+      ? `/audio/dialogues/gemini/${entry.fileName}${cacheBuster}`
+      : `/audio/dialogues/${entry.fileName}${cacheBuster}`;
 
     const playedSuccessfully = await new Promise<boolean>((resolve) => {
       let isSettled = false;

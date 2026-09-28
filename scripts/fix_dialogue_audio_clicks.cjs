@@ -28,7 +28,7 @@ function applyFadeOut(filePath) {
   const res = cp.spawnSync(ffmpegPath, [
     '-y',
     '-i', filePath,
-    '-af', 'areverse,afade=t=in:st=0:d=0.1,areverse',
+    '-af', 'afade=t=in:st=0:d=0.05,areverse,afade=t=in:st=0:d=0.08,areverse',
     '-ar', '44100',
     '-b:a', '128k',
     tempPath
@@ -47,7 +47,7 @@ function applyFadeOut(filePath) {
 function main() {
   const files = fs.readdirSync(DIALOGUES_GEMINI_DIR).filter(f => f.endsWith('.mp3'));
   console.log(`Найдено ${files.length} MP3-файлов в ${DIALOGUES_GEMINI_DIR}`);
-  console.log('Применяем Anti-Click Tail Smoothing (areverse + afade=in + areverse)...');
+  console.log('Применяем Anti-Click Bilateral Smoothing (fade-in 50ms + areverse fade-in 80ms)...');
 
   let processed = 0;
   for (const f of files) {
@@ -58,6 +58,27 @@ function main() {
   }
 
   console.log(`✓ Успешно обработано: ${processed} из ${files.length} файлов.`);
+
+  const MANIFEST_PATH = path.resolve(repoRoot, 'public/audio/dialogues/manifest.json');
+  if (fs.existsSync(MANIFEST_PATH)) {
+    const manifest = JSON.parse(fs.readFileSync(MANIFEST_PATH, 'utf-8'));
+    let updatedCount = 0;
+    for (const key of Object.keys(manifest)) {
+      const entry = manifest[key];
+      if (entry && entry.engine === 'gemini' && entry.fileName) {
+        const p = path.join(DIALOGUES_GEMINI_DIR, entry.fileName);
+        if (fs.existsSync(p)) {
+          const size = fs.statSync(p).size;
+          if (entry.bytes !== size) {
+            entry.bytes = size;
+            updatedCount++;
+          }
+        }
+      }
+    }
+    fs.writeFileSync(MANIFEST_PATH, JSON.stringify(manifest, null, 2) + '\n', 'utf-8');
+    console.log(`✓ Обновлен manifest.json (${updatedCount} записей синхронизировано по байтам).`);
+  }
 }
 
 main();

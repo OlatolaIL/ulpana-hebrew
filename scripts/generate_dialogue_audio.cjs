@@ -304,22 +304,27 @@ async function synthesizeTurnGemini(text, voice, destPath, apiKeys, requiredMode
       if (data.candidates && data.candidates[0]?.content?.parts?.[0]?.inlineData?.data) {
         const base64Audio = data.candidates[0].content.parts[0].inlineData.data;
         const pcmBuffer = Buffer.from(base64Audio, 'base64');
-        const tempPcm = destPath + '.pcm';
-        fs.writeFileSync(tempPcm, pcmBuffer);
+        const isWav = pcmBuffer.length >= 12 && pcmBuffer.slice(0, 4).toString('ascii') === 'RIFF' && pcmBuffer.slice(8, 12).toString('ascii') === 'WAVE';
+        const tempExt = isWav ? '.wav' : '.pcm';
+        const tempAudio = destPath + tempExt;
+        fs.writeFileSync(tempAudio, pcmBuffer);
 
-        const proc = cp.spawnSync(ffmpegPath, [
-          '-y',
-          '-f', 's16le',
-          '-ar', '24000',
-          '-ac', '1',
-          '-i', tempPcm,
-          '-af', 'areverse,afade=t=in:st=0:d=0.1,areverse',
+        const ffmpegArgs = ['-y'];
+        if (isWav) {
+          ffmpegArgs.push('-i', tempAudio);
+        } else {
+          ffmpegArgs.push('-f', 's16le', '-ar', '24000', '-ac', '1', '-i', tempAudio);
+        }
+        ffmpegArgs.push(
+          '-af', 'afade=t=in:st=0:d=0.05,areverse,afade=t=in:st=0:d=0.08,areverse',
           '-ar', '44100',
           '-b:a', '128k',
           destPath
-        ]);
+        );
 
-        if (fs.existsSync(tempPcm)) fs.unlinkSync(tempPcm);
+        const proc = cp.spawnSync(ffmpegPath, ffmpegArgs);
+
+        if (fs.existsSync(tempAudio)) fs.unlinkSync(tempAudio);
 
         if (proc.status === 0 && fs.existsSync(destPath) && fs.statSync(destPath).size > 100) {
           slot.fails = 0;
