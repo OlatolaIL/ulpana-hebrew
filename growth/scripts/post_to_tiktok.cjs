@@ -113,7 +113,78 @@ async function runOAuthFlow() {
   console.log('2. Нажмите "Authorize" / "Разрешить" для доступа к загрузке видео.');
   console.log(`3. Ожидание ответа от TikTok на ${redirectUri}...\n`);
 
+  const readline = require('readline');
+
   return new Promise((resolve, reject) => {
+    let isHandled = false;
+
+    const cleanup = () => {
+      isHandled = true;
+      try { server.close(); } catch (_) {}
+      try { rl.close(); } catch (_) {}
+    };
+
+    const handleCode = async (code) => {
+      if (isHandled) return;
+      cleanup();
+
+      try {
+        console.log('\n📡 Обмен authorization code на access & refresh token...');
+        const tokenRes = await fetch('https://open.tiktokapis.com/v2/oauth/token/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'Cache-Control': 'no-cache'
+          },
+          body: new URLSearchParams({
+            client_key: clientKey,
+            client_secret: clientSecret,
+            code: code,
+            grant_type: 'authorization_code',
+            redirect_uri: redirectUri
+          })
+        });
+
+        const tokenData = await tokenRes.json();
+
+        if (!tokenRes.ok || !tokenData.data?.refresh_token) {
+          console.error('❌ Ошибка получения токена TikTok:', tokenData);
+          reject(new Error(tokenData.error_description || tokenData.message || 'Failed to obtain tokens'));
+          return;
+        }
+
+        const refreshTokenVal = tokenData.data.refresh_token;
+        const accessTokenVal = tokenData.data.access_token;
+        const openId = tokenData.data.open_id;
+
+        console.log('\n🎉 ПОЗДРАВЛЯЕМ! TikTok OAuth-токены успешно получены!');
+        console.log(`👤 Open ID: ${openId}`);
+
+        try {
+          let envContent = '';
+          if (fs.existsSync('.env.local')) {
+            envContent = fs.readFileSync('.env.local', 'utf8');
+          }
+          if (/^TIKTOK_REFRESH_TOKEN=/m.test(envContent)) {
+            envContent = envContent.replace(/^TIKTOK_REFRESH_TOKEN=.*$/m, `TIKTOK_REFRESH_TOKEN=${refreshTokenVal}`);
+          } else {
+            envContent += `\nTIKTOK_REFRESH_TOKEN=${refreshTokenVal}\n`;
+          }
+          fs.writeFileSync('.env.local', envContent.trim() + '\n', 'utf8');
+          console.log('✅ TIKTOK_REFRESH_TOKEN автоматически сохранён в .env.local!');
+        } catch (saveErr) {
+          console.warn('⚠️ Не удалось автоматически записать в .env.local:', saveErr.message);
+        }
+
+        console.log('=====================================================');
+        console.log('Теперь вы можете публиковать видео в TikTok:');
+        console.log('   node growth/scripts/post_to_tiktok.cjs --send\n');
+        resolve(tokenData.data);
+      } catch (err) {
+        reject(err);
+      }
+    };
+
     const server = http.createServer(async (req, res) => {
       try {
         const reqUrl = new URL(req.url, `http://localhost:${port}`);
@@ -124,7 +195,7 @@ async function runOAuthFlow() {
           if (error) {
             res.writeHead(400, { 'Content-Type': 'text/html; charset=utf-8' });
             res.end(`<h1>Ошибка авторизации TikTok: ${error}</h1>`);
-            server.close();
+            cleanup();
             reject(new Error(`OAuth error: ${error}`));
             return;
           }
@@ -132,7 +203,7 @@ async function runOAuthFlow() {
           if (!code) {
             res.writeHead(400, { 'Content-Type': 'text/html; charset=utf-8' });
             res.end('<h1>Код авторизации не получен</h1>');
-            server.close();
+            cleanup();
             reject(new Error('No code received'));
             return;
           }
@@ -147,68 +218,27 @@ async function runOAuthFlow() {
             </html>
           `);
 
-          server.close();
-
-          console.log('📡 Обмен authorization code на access & refresh token...');
-          const tokenRes = await fetch('https://open.tiktokapis.com/v2/oauth/token/', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/x-www-form-urlencoded',
-              'Cache-Control': 'no-cache'
-            },
-            body: new URLSearchParams({
-              client_key: clientKey,
-              client_secret: clientSecret,
-              code: code,
-              grant_type: 'authorization_code',
-              redirect_uri: redirectUri
-            })
-          });
-
-          const tokenData = await tokenRes.json();
-
-          if (!tokenRes.ok || !tokenData.data?.refresh_token) {
-            console.error('❌ Ошибка получения токена TikTok:', tokenData);
-            reject(new Error(tokenData.error_description || tokenData.message || 'Failed to obtain tokens'));
-            return;
-          }
-
-          const refreshTokenVal = tokenData.data.refresh_token;
-          const accessTokenVal = tokenData.data.access_token;
-          const openId = tokenData.data.open_id;
-
-          console.log('\n🎉 ПОЗДРАВЛЯЕМ! TikTok OAuth-токены успешно получены!');
-          console.log(`👤 Open ID: ${openId}`);
-
-          try {
-            let envContent = '';
-            if (fs.existsSync('.env.local')) {
-              envContent = fs.readFileSync('.env.local', 'utf8');
-            }
-            if (/^TIKTOK_REFRESH_TOKEN=/m.test(envContent)) {
-              envContent = envContent.replace(/^TIKTOK_REFRESH_TOKEN=.*$/m, `TIKTOK_REFRESH_TOKEN=${refreshTokenVal}`);
-            } else {
-              envContent += `\nTIKTOK_REFRESH_TOKEN=${refreshTokenVal}\n`;
-            }
-            fs.writeFileSync('.env.local', envContent.trim() + '\n', 'utf8');
-            console.log('✅ TIKTOK_REFRESH_TOKEN автоматически сохранён в .env.local!');
-          } catch (saveErr) {
-            console.warn('⚠️ Не удалось автоматически записать в .env.local:', saveErr.message);
-          }
-
-          console.log('=====================================================');
-          console.log('Теперь вы можете публиковать видео в TikTok:');
-          console.log('   node growth/scripts/post_to_tiktok.cjs --send\n');
-          resolve(tokenData.data);
+          await handleCode(code);
         }
       } catch (err) {
-        server.close();
+        cleanup();
         reject(err);
       }
     });
 
+    const rl = readline.createInterface({
+      input: process.stdin,
+      output: process.stdout
+    });
+
     server.listen(port, () => {
-      console.log(`[Сервер авторизации слушает порт ${port} на ${redirectUri}]`);
+      console.log(`[Автоматический слушатель поднят на порту ${port}]`);
+      rl.question('👉 Вставьте полученный код сюда (или подождите автопереход): ', (inputCode) => {
+        const trimmed = inputCode.trim();
+        if (trimmed && !isHandled) {
+          handleCode(trimmed);
+        }
+      });
     });
   });
 }
