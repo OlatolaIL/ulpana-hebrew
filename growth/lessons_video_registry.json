@@ -143,21 +143,98 @@
       "updatedAt": "2026-09-28T07:00:00.000Z",
       "variants": {
         "clean": {
-          "status": "pending_tts",
+          "scenario": "Кафе в Тель-Авиве • Заказ кофе и глаголы רוצה / רוצה",
+          "audioEngine": "Gemini TTS (Charon ♂ / Orus ♂)",
+          "status": "ready",
           "files": {
             "YT": {
               "path": "public/demo/lessons/lesson_02_clean_youtube_shorts.mp4",
               "promoCode": "YT",
               "durationSec": 28.6,
               "resolution": "780x1688",
-              "fileSizeBytes": 2719252,
-              "generatedAt": "2026-09-28T07:14:02.053Z"
+              "fileSizeBytes": 2866036,
+              "generatedAt": "2026-09-28T07:50:33.577Z"
+            },
+            "TG": {
+              "path": "public/demo/lessons/lesson_02_clean_telegram.mp4",
+              "promoCode": "TG",
+              "durationSec": 29.9,
+              "resolution": "780x1688",
+              "fileSizeBytes": 3045410,
+              "generatedAt": "2026-09-28T07:51:12.039Z"
+            },
+            "INSTA": {
+              "path": "public/demo/lessons/lesson_02_clean_instagram_reels.mp4",
+              "promoCode": "INSTA",
+              "durationSec": 28.8,
+              "resolution": "780x1688",
+              "fileSizeBytes": 3012096,
+              "generatedAt": "2026-09-28T07:51:49.994Z"
+            },
+            "TIKTOK": {
+              "path": "public/demo/lessons/lesson_02_clean_tiktok.mp4",
+              "promoCode": "TIKTOK",
+              "durationSec": 29,
+              "resolution": "780x1688",
+              "fileSizeBytes": 2995823,
+              "generatedAt": "2026-09-28T07:52:34.438Z"
+            },
+            "FB": {
+              "path": "public/demo/lessons/lesson_02_clean_facebook_reels.mp4",
+              "promoCode": "FB",
+              "durationSec": 28.6,
+              "resolution": "780x1688",
+              "fileSizeBytes": 3210188,
+              "generatedAt": "2026-09-28T07:53:17.494Z"
             }
           }
         },
         "spicy": {
-          "status": "pending_tts",
-          "files": {}
+          "scenario": "Веранда кафе • Конфуз חם לי vs אני חם с официанткой",
+          "audioEngine": "Gemini TTS (Charon ♂ / Orus ♂ / Aoede ♀)",
+          "status": "ready",
+          "files": {
+            "YT": {
+              "path": "public/demo/lessons/lesson_02_spicy_youtube_shorts.mp4",
+              "promoCode": "YT",
+              "durationSec": 32,
+              "resolution": "780x1688",
+              "fileSizeBytes": 3228424,
+              "generatedAt": "2026-09-28T07:54:01.075Z"
+            },
+            "TG": {
+              "path": "public/demo/lessons/lesson_02_spicy_telegram.mp4",
+              "promoCode": "TG",
+              "durationSec": 31.7,
+              "resolution": "780x1688",
+              "fileSizeBytes": 3175454,
+              "generatedAt": "2026-09-28T07:54:48.875Z"
+            },
+            "INSTA": {
+              "path": "public/demo/lessons/lesson_02_spicy_instagram_reels.mp4",
+              "promoCode": "INSTA",
+              "durationSec": 32.1,
+              "resolution": "780x1688",
+              "fileSizeBytes": 3238731,
+              "generatedAt": "2026-09-28T07:55:37.580Z"
+            },
+            "TIKTOK": {
+              "path": "public/demo/lessons/lesson_02_spicy_tiktok.mp4",
+              "promoCode": "TIKTOK",
+              "durationSec": 32.9,
+              "resolution": "780x1688",
+              "fileSizeBytes": 3286578,
+              "generatedAt": "2026-09-28T07:56:27.366Z"
+            },
+            "FB": {
+              "path": "public/demo/lessons/lesson_02_spicy_facebook_reels.mp4",
+              "promoCode": "FB",
+              "durationSec": 32.9,
+              "resolution": "780x1688",
+              "fileSizeBytes": 3299707,
+              "generatedAt": "2026-09-28T07:57:14.530Z"
+            }
+          }
         }
       }
     },

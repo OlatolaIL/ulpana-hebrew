@@ -450,6 +450,7 @@ async function recordPlatformVideo(lessonNum, variant, platform, audioInfo, brow
   });
 
   const page = await context.newPage();
+  const video = page.video();
   const fileUrl = 'file://' + sceneHtmlPath.replace(/\\/g, '/');
   await page.goto(fileUrl, { waitUntil: 'networkidle' });
 
@@ -463,9 +464,18 @@ async function recordPlatformVideo(lessonNum, variant, platform, audioInfo, brow
   await page.close();
   await context.close();
 
-  const webmFiles = fs.readdirSync(tempDir).filter((f) => f.endsWith('.webm'));
-  if (!webmFiles.length) throw new Error(`Не найден webm для ${filename}`);
-  const rawWebm = path.join(tempDir, webmFiles[0]);
+  let rawWebm = null;
+  if (video) {
+    try {
+      rawWebm = await video.path();
+    } catch (_) {}
+  }
+  if (!rawWebm || !fs.existsSync(rawWebm)) {
+    const webmFiles = fs.readdirSync(tempDir).filter((f) => f.endsWith('.webm'));
+    if (!webmFiles.length) throw new Error(`Не найден webm для ${filename}`);
+    rawWebm = path.join(tempDir, webmFiles[0]);
+  }
+  await sleep(400);
 
   const ffmpegArgs = [
     '-y',
