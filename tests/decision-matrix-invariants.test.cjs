@@ -350,7 +350,7 @@ test('R-28: Dialogue Model Homogeneity and Anti-Click Fade-out are defined and e
   const genScriptPath = path.join(repoRoot, 'scripts/generate_dialogue_audio.cjs');
   assert.ok(fs.existsSync(genScriptPath), 'scripts/generate_dialogue_audio.cjs must exist');
   const genScriptContent = fs.readFileSync(genScriptPath, 'utf8');
-  assert.ok(genScriptContent.includes('areverse') && genScriptContent.includes('afade=t=in:st=0'), 'generate_dialogue_audio must include anti-click bilateral fade filter');
+  assert.ok(genScriptContent.includes('areverse') && genScriptContent.includes('afade=t=in:st=0') && genScriptContent.includes('atrim=start=0.15'), 'generate_dialogue_audio must include anti-click bilateral fade and tail-trim filter');
   assert.ok(genScriptContent.includes('lessonModel'), 'generate_dialogue_audio must enforce lessonModel');
 
   const fixScriptPath = path.join(repoRoot, 'scripts/fix_dialogue_audio_clicks.cjs');

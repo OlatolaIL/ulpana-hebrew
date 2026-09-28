@@ -28,7 +28,7 @@ function applyFadeOut(filePath) {
   const res = cp.spawnSync(ffmpegPath, [
     '-y',
     '-i', filePath,
-    '-af', 'afade=t=in:st=0:d=0.05,areverse,afade=t=in:st=0:d=0.08,areverse',
+    '-af', 'afade=t=in:st=0:d=0.05,areverse,atrim=start=0.15,afade=t=in:st=0:d=0.08,areverse',
     '-ar', '44100',
     '-b:a', '128k',
     tempPath

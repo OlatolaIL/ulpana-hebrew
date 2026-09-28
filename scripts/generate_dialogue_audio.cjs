@@ -316,7 +316,7 @@ async function synthesizeTurnGemini(text, voice, destPath, apiKeys, requiredMode
           ffmpegArgs.push('-f', 's16le', '-ar', '24000', '-ac', '1', '-i', tempAudio);
         }
         ffmpegArgs.push(
-          '-af', 'afade=t=in:st=0:d=0.05,areverse,afade=t=in:st=0:d=0.08,areverse',
+          '-af', 'afade=t=in:st=0:d=0.05,areverse,atrim=start=0.15,afade=t=in:st=0:d=0.08,areverse',
           '-ar', '44100',
           '-b:a', '128k',
           destPath
