@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Sparkles, X } from 'lucide-react';
+import { Sparkles, X, Gift, CheckCircle2, Zap, ShieldCheck, ArrowRight } from 'lucide-react';
 import { Navbar } from '@/components/Navbar';
 import { CourseMap } from '@/components/CourseMap';
 import { LessonView } from '@/components/LessonView';
@@ -122,14 +122,6 @@ export default function Home() {
 
   const [capturedPromoToast, setCapturedPromoToast] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!capturedPromoToast) return;
-    const timer = setTimeout(() => {
-      setCapturedPromoToast(null);
-    }, 5000);
-    return () => clearTimeout(timer);
-  }, [capturedPromoToast]);
-
   // Привязка модалок страницы к истории браузера (свайп назад / кнопка Back закрывает модалку)
   useModalHistory(isSettingsOpen, () => setIsSettingsOpen(false), 'settings-modal');
   useModalHistory(isAuthModalOpen, () => {
@@ -142,6 +134,7 @@ export default function Home() {
   useModalHistory(isChannelModalOpen, () => setIsChannelModalOpen(false), 'channel-modal');
   useModalHistory(isGuideDrawerOpen, () => setIsGuideDrawerOpen(false), 'guide-drawer');
   useModalHistory(isMultiLessonSetupOpen, () => setIsMultiLessonSetupOpen(false), 'setup-modal');
+  useModalHistory(Boolean(capturedPromoToast), () => setCapturedPromoToast(null), 'promo-modal');
 
   const syncToCloud = useCallback(async (updated: UserProfile) => {
     if (!updated.isLoggedIn) return;
@@ -1341,28 +1334,103 @@ export default function Home() {
         activeSection={currentView}
       />
 
-      {/* Всплывающее уведомление о захвате промокода из URL (?promo=FB) */}
+      {/* Модальное окно подтверждения промокода с предложением быстрой регистрации */}
       {capturedPromoToast && (
         <div
-          role="status"
-          aria-live="polite"
-          className="fixed top-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-4 py-3 rounded-2xl bg-zinc-900/95 dark:bg-zinc-100/95 text-white dark:text-zinc-900 shadow-2xl border border-amber-500/40 backdrop-blur-md animate-in fade-in slide-in-from-top-4 max-w-sm w-[90%]"
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setCapturedPromoToast(null);
+          }}
         >
-          <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-500 flex items-center justify-center shrink-0">
-            <Sparkles className="w-4 h-4" />
+          <div className="relative w-full max-w-md rounded-3xl bg-zinc-900 text-white border border-amber-500/40 shadow-2xl shadow-amber-500/10 p-6 md:p-8 animate-in zoom-in-95 duration-200">
+            {/* Кнопка закрытия */}
+            <button
+              type="button"
+              onClick={() => setCapturedPromoToast(null)}
+              className="absolute top-4 right-4 p-2 text-zinc-400 hover:text-white rounded-full hover:bg-zinc-800 transition"
+              aria-label="Закрыть окно"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            {/* Иконка подарка и заголовок */}
+            <div className="flex items-center gap-3.5 mb-4">
+              <div className="w-12 h-12 rounded-2xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0 shadow-inner">
+                <Gift className="w-6 h-6" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <span className="inline-block text-[11px] font-bold tracking-wider uppercase px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 mb-1">
+                  Специальный доступ
+                </span>
+                <h3 className="text-lg md:text-xl font-extrabold text-white truncate">
+                  Промокод «{capturedPromoToast}» зафиксирован!
+                </h3>
+              </div>
+            </div>
+
+            {/* Описание оффера */}
+            <p className="text-sm text-zinc-300 mb-5 leading-relaxed">
+              За вами закреплен <strong className="text-amber-400 font-semibold">бесплатный PRO-доступ</strong>: 100 уроков живого иврита, симулятор звонков курьера и банка, речевые комплексы и словарь Pealim.
+            </p>
+
+            {/* Гарантии и преимущества */}
+            <div className="space-y-2.5 bg-zinc-800/60 rounded-2xl p-4 border border-zinc-700/50 mb-6 text-xs text-zinc-300">
+              <div className="flex items-center gap-2.5">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                <span><strong className="text-white">Без привязки карты</strong> — никаких скрытых списаний</span>
+              </div>
+              <div className="flex items-center gap-2.5">
+                <Zap className="w-4 h-4 text-amber-400 shrink-0" />
+                <span><strong className="text-white">Вход за 5 секунд</strong> через Google или Telegram</span>
+              </div>
+              <div className="flex items-center gap-2.5">
+                <ShieldCheck className="w-4 h-4 text-blue-400 shrink-0" />
+                <span><strong className="text-white">Сохранение прогресса</strong> на смартфоне и компьютере</span>
+              </div>
+            </div>
+
+            {/* Кнопки действий */}
+            <div className="space-y-3">
+              {!profile.isLoggedIn ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const promo = capturedPromoToast;
+                      setCapturedPromoToast(null);
+                      setAuthModalReason({
+                        title: `Активация промокода «${promo}»`,
+                        description: 'Войдите через Google или Telegram в 1 клик, чтобы привязать PRO-доступ к вашему профилю и сохранить прогресс уроков.',
+                      });
+                      setIsAuthModalOpen(true);
+                    }}
+                    className="w-full flex items-center justify-center gap-2 py-3.5 px-5 rounded-xl font-bold text-sm bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-zinc-950 shadow-lg shadow-amber-500/20 active:scale-[0.99] transition cursor-pointer"
+                  >
+                    <span>Войти и закрепить PRO</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setCapturedPromoToast(null)}
+                    className="w-full py-2.5 text-center text-xs text-zinc-400 hover:text-zinc-200 transition font-medium cursor-pointer"
+                  >
+                    Попробовать без регистрации (как гость)
+                  </button>
+                </>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setCapturedPromoToast(null)}
+                  className="w-full py-3.5 px-5 rounded-xl font-bold text-sm bg-amber-500 hover:bg-amber-600 text-zinc-950 shadow-lg shadow-amber-500/20 transition cursor-pointer"
+                >
+                  Отлично, перейти к урокам
+                </button>
+              )}
+            </div>
           </div>
-          <div className="text-xs flex-1 min-w-0">
-            <p className="font-bold truncate">Промокод «{capturedPromoToast}» зафиксирован!</p>
-            <p className="opacity-80 text-[11px] truncate">Специальные условия сохранены за вами</p>
-          </div>
-          <button
-            type="button"
-            onClick={() => setCapturedPromoToast(null)}
-            className="p-1 opacity-60 hover:opacity-100 transition shrink-0"
-            aria-label="Закрыть уведомление"
-          >
-            <X className="w-4 h-4" />
-          </button>
         </div>
       )}
     </div>
