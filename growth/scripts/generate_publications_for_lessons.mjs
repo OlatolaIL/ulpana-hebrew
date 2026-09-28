@@ -115,6 +115,58 @@ const LESSON_METAS = {
       ruleSummary: 'Маслина/оливка — это строго זַיִת (за́ит), мн.ч. זֵיתִים (зейти́м)! Не путайте конечную букву ת с ן.',
     },
   },
+  6: {
+    clean: {
+      topic: 'Моя семья и принадлежность',
+      scenario: 'Детская площадка в Тель-Авиве • Шэльха vs Шэлах',
+      titles: {
+        youtube: 'Спросил на детской площадке в Тель-Авиве «ЧЕЙ РЕБЁНОК» 😱 #shorts #иврит',
+        telegram: '🛝 Шэльха́ vs Шэла́х: одна огласовка, которая спасает от неловкости на площадке',
+        instagram: 'Назвал израильскую маму отцом семейства? 😅 Разбираем правильные формы 👇',
+        tiktok: 'Когда перепутал «твой» к мужчине и женщине в Израиле 💀 #иврит #израиль',
+        facebook: 'Семейный этикет на иврите: почему так важно различать шэльха и шэлах',
+      },
+      ruleSummary: 'Мужчине говорим — שֶׁלְּךָ (шэльха́), женщине — שֶׁלָּךְ (шэла́х)! Одна огласовка решает, к кому ты обращаешься — к отцу или матери.',
+    },
+    spicy: {
+      topic: 'Квартира и муж vs Лендлорд',
+      scenario: 'Подъезд в Бат-Яме • Бааль vs Бааль а-баит',
+      titles: {
+        youtube: 'Случайно объявила арендодателя своим мужем перед соседями 🤦‍♂️ #shorts #иврит',
+        telegram: '🏢 Ба́аль vs Ба́аль а-ба́ит: как не вызвать соцслужбу спасать свой брак',
+        instagram: '«Мой муж приходит за деньгами каждую неделю» 😂 Ошибка в слове «арендодатель» 👇',
+        tiktok: 'Когда назвала лендлорда мужем на иврите и соседи вызвали полицию 💀 #иврит',
+        facebook: 'Курьёзы аренды в Израиле: почему нельзя путать мужа и хозяина квартиры',
+      },
+      ruleSummary: 'בַּעַל (ба́аль) — это муж! А хозяин квартиры — строго בַּעַל הַבַּיִת (ба́аль а-ба́ит). Не путайте лендлорда с супругом!',
+    },
+  },
+  10: {
+    clean: {
+      topic: 'Транспорт и автобус: остановка',
+      scenario: 'Автобус 25 на Ибн Гвироль • Остановить vs Убить',
+      titles: {
+        youtube: 'Сказал израильскому водителю «УБЕЙ ЗДЕСЬ» вместо «ОСТАНОВИ» 😱 #shorts #иврит',
+        telegram: '🚌 Лаацо́р vs Лаhаро́г: самая опасная ошибка в израильском автобусе',
+        instagram: 'Водитель автобуса нажал на тормоз и закричал... Разбор жуткой ошибки 👇',
+        tiktok: 'Худшая оговорка в автобусе Тель-Авива в час пик 💀 #иврит #израиль #автобус',
+        facebook: 'Безопасность в израильском транспорте: как правильно попросить остановку',
+      },
+      ruleSummary: 'Остановить — это לַעֲצוֹר (лаацо́р)! Фраза водителю: «אֶפְשָׁר לַעֲצוֹר בַּתַּחֲנָה?» (Можно остановить на остановке?). Не путай с לַהֲרוֹג (лаhаро́г — убить)!',
+    },
+    spicy: {
+      topic: 'Такси и маршрут: прямо vs старый',
+      scenario: 'Такси на трассе Аялон • Яшар vs Яшан',
+      titles: {
+        youtube: 'Обозвал таксиста рухлядью, пытаясь сказать «езжай прямо» 🤦‍♂️ #shorts #иврит',
+        telegram: '🚕 Яша́р vs Яша́н: как не остаться пешеходом посреди трассы Аялон',
+        instagram: 'Хотел сказать «прямо», а назвал водителя дряхлым дедом 😅 Учим разницу 👇',
+        tiktok: 'Когда таксист высадил тебя на Аялоне из-за одной буквы 💀 #иврит #такси',
+        facebook: 'Трудности перевода в такси: почему Реш и Нун меняют направление поездки',
+      },
+      ruleSummary: 'Прямо — это יָשָׁר (яша́р) с буквой Реш! А יָשָׁן (яша́н) с буквой Нун — это «старый, ветхий». Не обзывайте водителей!',
+    },
+  },
 };
 
 const PLATFORMS_MAP = [
@@ -125,6 +177,7 @@ const PLATFORMS_MAP = [
     format: 'short_video',
     medium: 'shorts',
     ctaNote: 'в описании 👇',
+    hashtags: ['#shorts', '#иврит', '#ульпан', '#израиль', '#урокииврита', '#ульпаналеф'],
   },
   {
     channel: 'telegram',
@@ -133,6 +186,7 @@ const PLATFORMS_MAP = [
     format: 'short_video',
     medium: 'channel',
     ctaNote: 'в посте 👇',
+    hashtags: ['#иврит', '#ульпаналеф', '#израиль'],
   },
   {
     channel: 'instagram',
@@ -141,6 +195,11 @@ const PLATFORMS_MAP = [
     format: 'short_video',
     medium: 'reels',
     ctaNote: 'в шапке профиля 👆',
+    hashtags: [
+      '#иврит', '#урокииврита', '#ивритдляначинающих', '#ивритизраиль',
+      '#ульпан', '#ульпаналеф', '#репатриация', '#жизньвизраиле',
+      '#тельавив', '#учимиврит', '#израиль', '#разговорныйиврит',
+    ],
   },
   {
     channel: 'tiktok',
@@ -149,6 +208,7 @@ const PLATFORMS_MAP = [
     format: 'short_video',
     medium: 'profile',
     ctaNote: 'в профиле 🔗',
+    hashtags: ['#иврит', '#ульпан', '#израиль', '#репатриация', '#жизньвизраиле', '#ивритдляначинающих', '#fyp', '#рек'],
   },
   {
     channel: 'facebook',
@@ -157,6 +217,7 @@ const PLATFORMS_MAP = [
     format: 'short_video',
     medium: 'reels',
     ctaNote: 'под видео 👇',
+    hashtags: ['#иврит', '#израиль', '#репатриация', '#ульпан', '#жизньвизраиле'],
   },
 ];
 
@@ -165,11 +226,14 @@ export function buildCampaigns() {
   const existingIds = new Set(existingPubs.map((p) => p.id));
 
   const newPubs = [];
+  const lessonNumbers = Object.keys(LESSON_METAS).map(Number).sort((a, b) => a - b);
 
-  for (let l = 2; l <= 5; l++) {
+  for (const l of lessonNumbers) {
     const pad = String(l).padStart(2, '0');
     for (const variant of ['clean', 'spicy']) {
-      const meta = LESSON_METAS[l][variant];
+      const meta = LESSON_METAS[l]?.[variant];
+      if (!meta) continue;
+
       for (const p of PLATFORMS_MAP) {
         const id = `pub-${p.code.toLowerCase()}-l${pad}-${variant}`;
         const filename = `lesson_${pad}_${variant}_${p.channel === 'youtube' ? 'youtube_shorts' : p.channel === 'facebook' ? 'facebook_reels' : p.channel === 'instagram' ? 'instagram_reels' : p.channel}.mp4`;
@@ -177,11 +241,12 @@ export function buildCampaigns() {
         const promo = p.code;
         const fullUrl = `https://ulpana-hebrew.vercel.app/#lesson-${l}?promo=${promo}&utm_source=${p.channel}&utm_medium=${p.medium}&utm_campaign=lesson_${pad}_${variant}`;
 
-        const caption = `${meta.titles[p.channel]}\n\n${meta.ruleSummary}\n\nВ интерактивном тренажёре «Ульпан Алеф» ты отрабатываешь живую речь с ИИ и говоришь свободно без паники!\n\n🎁 Промокод на 30 дней бесплатного премиума: ${promo}\n👉 Начни Урок ${l} прямо сейчас: ${fullUrl}`;
+        const hashtagBlock = p.hashtags && p.hashtags.length ? `\n\n${p.hashtags.join(' ')}` : '';
+        const caption = `${meta.titles[p.channel]}\n\n${meta.ruleSummary}\n\nВ интерактивном тренажёре «Ульпан Алеф» ты отрабатываешь живую речь с ИИ и говоришь свободно без паники!\n\n🎁 Промокод на 30 дней бесплатного премиума: ${promo}\n👉 Начни Урок ${l} прямо сейчас: ${fullUrl}${hashtagBlock}`;
 
         const pubItem = {
           id,
-          date: '2026-09-27',
+          date: '2026-09-28',
           channel: p.channel,
           channelAccount: p.account,
           format: p.format,

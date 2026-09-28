@@ -279,16 +279,22 @@ async function synthesizeTurnGemini(text, voice, destPath, apiKeys) {
 
       if (res.status === 429 || data.error?.code === 429) {
         const msg = data.error?.message || '';
-        const isDaily = /exceeded your current quota|per_day|per_model_per_day|Resource has been exhausted|quota.*exceeded/i.test(msg);
+        const isDaily = /per_model_per_day|per_day|per day|requests per model/i.test(msg);
         if (isDaily) {
           console.warn(`  🛑 [${slot.model}] суточный лимит 100 запросов на ключе #${slot.keyIndex}. Ротация слота...`);
           exhaustedSlots.add(slotKey);
           currentSlotIdx++;
           continue;
         } else {
-          console.warn(`  ⏳ [429 RPM] Модель ${slot.model} на ключе #${slot.keyIndex}. Пауза 2с и переход к следующему слоту...`);
+          slot.fails = (slot.fails || 0) + 1;
+          if (slot.fails >= 4) {
+            console.warn(`  🛑 [${slot.model}] превышен лимит попыток на ключе #${slot.keyIndex}. Ротация слота...`);
+            exhaustedSlots.add(slotKey);
+          } else {
+            console.warn(`  ⏳ [429 RPM (${slot.fails}/3)] Модель ${slot.model} на ключе #${slot.keyIndex}. Пауза 3с и переход к следующему слоту...`);
+            await new Promise(r => setTimeout(r, 3000));
+          }
           currentSlotIdx++;
-          await new Promise(r => setTimeout(r, 2000));
           continue;
         }
       }
@@ -313,6 +319,7 @@ async function synthesizeTurnGemini(text, voice, destPath, apiKeys) {
         if (fs.existsSync(tempPcm)) fs.unlinkSync(tempPcm);
 
         if (proc.status === 0 && fs.existsSync(destPath) && fs.statSync(destPath).size > 100) {
+          slot.fails = 0;
           return { success: true, bytes: fs.statSync(destPath).size, model: slot.model, keyIndex: slot.keyIndex };
         } else {
           return { success: false, error: 'FFmpeg encoding error: ' + (proc.stderr?.toString() || 'unknown') };

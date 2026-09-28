@@ -49,6 +49,8 @@ public/demo/**/*.wav
 public/demo/audio_cache/
 public/demo/lessons/
 public/demo/frames/
+public/demo/frames_verify/
+public/demo/*_timings.json
 *.mp3
 !public/audio/**
 public/audio/sentences/comparison_38_lite/

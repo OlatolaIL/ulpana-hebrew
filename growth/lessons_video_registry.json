@@ -520,6 +520,36 @@
         }
       }
     },
+    "6": {
+      "lessonNumber": 6,
+      "updatedAt": "2026-09-28T08:29:06.534Z",
+      "variants": {
+        "clean": {
+          "files": {
+            "YT": {
+              "path": "public/demo/lessons/lesson_06_clean_youtube_shorts.mp4",
+              "promoCode": "YT",
+              "durationSec": 27.4,
+              "resolution": "780x1688",
+              "fileSizeBytes": 3006971,
+              "generatedAt": "2026-09-28T08:29:47.209Z"
+            }
+          }
+        },
+        "spicy": {
+          "files": {
+            "YT": {
+              "path": "public/demo/lessons/lesson_06_spicy_youtube_shorts.mp4",
+              "promoCode": "YT",
+              "durationSec": 26.1,
+              "resolution": "780x1688",
+              "fileSizeBytes": 2875993,
+              "generatedAt": "2026-09-28T08:30:23.451Z"
+            }
+          }
+        }
+      }
+    },
     "7": {
       "lessonNumber": 7,
       "topic": "Аренда квартиры в Израиле: звонок хозяину (הַבַּיִת שֶׁלִּי)",
@@ -549,6 +579,36 @@
             "FB": {
               "path": "public/demo/lessons/lesson_07_facebook_reels.mp4",
               "promoCode": "FB"
+            }
+          }
+        }
+      }
+    },
+    "10": {
+      "lessonNumber": 10,
+      "updatedAt": "2026-09-28T08:30:38.120Z",
+      "variants": {
+        "clean": {
+          "files": {
+            "YT": {
+              "path": "public/demo/lessons/lesson_10_clean_youtube_shorts.mp4",
+              "promoCode": "YT",
+              "durationSec": 28.9,
+              "resolution": "780x1688",
+              "fileSizeBytes": 3114860,
+              "generatedAt": "2026-09-28T08:31:20.625Z"
+            }
+          }
+        },
+        "spicy": {
+          "files": {
+            "YT": {
+              "path": "public/demo/lessons/lesson_10_spicy_youtube_shorts.mp4",
+              "promoCode": "YT",
+              "durationSec": 33.7,
+              "resolution": "780x1688",
+              "fileSizeBytes": 3369500,
+              "generatedAt": "2026-09-28T08:32:11.003Z"
             }
           }
         }
