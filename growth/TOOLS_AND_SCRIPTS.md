@@ -73,7 +73,29 @@
   node growth/scripts/post_to_youtube.cjs --title="Заголовок #Shorts" --tags="иврит,ульпан,shorts" --send
   ```
 
-### Г. Скрипт партизанского радара групп Facebook: `growth/scripts/facebook_radar.cjs`
+### Г. Скрипт публикации видео в TikTok: `growth/scripts/post_to_tiktok.cjs`
+* **Предпросмотр видео и метаданных (Dry-Run без загрузки):**
+  ```bash
+  node growth/scripts/post_to_tiktok.cjs --preview
+  ```
+* **Мастер первичной авторизации OAuth 2.0 (в 1 клик через браузер):**
+  ```bash
+  node growth/scripts/post_to_tiktok.cjs --auth
+  ```
+* **Загрузка видео на канал TikTok (по умолчанию SELF_ONLY):**
+  ```bash
+  node growth/scripts/post_to_tiktok.cjs --send
+  ```
+* **Загрузка конкретного видеоролика и регистрация в `publications.json`:**
+  ```bash
+  node growth/scripts/post_to_tiktok.cjs --video=./public/demo/reels_duolingo_vs_reality.mp4 --send --register
+  ```
+* **Публикация для всех (требует Audited статус в TikTok Developer Portal):**
+  ```bash
+  node growth/scripts/post_to_tiktok.cjs --privacy=PUBLIC_TO_EVERYONE --send
+  ```
+
+### Д. Скрипт партизанского радара групп Facebook: `growth/scripts/facebook_radar.cjs`
 * **Первичная авторизация (открывает окно Chrome для входа и сохраняет cookies):**
   ```bash
   node growth/scripts/facebook_radar.cjs --auth

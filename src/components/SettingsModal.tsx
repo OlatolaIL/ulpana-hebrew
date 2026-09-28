@@ -528,6 +528,17 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               </button>
             </div>
           </div>
+
+          {/* Юридическая информация */}
+          <div className="flex items-center justify-center gap-3 text-xs text-zinc-400 dark:text-zinc-500 pt-1">
+            <Link href="/terms" target="_blank" className="hover:text-blue-500 transition-colors underline">
+              Условия сервиса
+            </Link>
+            <span>•</span>
+            <Link href="/privacy" target="_blank" className="hover:text-blue-500 transition-colors underline">
+              Конфиденциальность
+            </Link>
+          </div>
         </div>
 
         {/* Кнопка закрытия */}

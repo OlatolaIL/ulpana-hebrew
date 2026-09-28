@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState, useRef, useCallback } from 'react';
+import Link from 'next/link';
 import { X, Send, CheckCircle2, AlertCircle, Loader2, ExternalLink, LogIn, Sparkles } from 'lucide-react';
 import { UserSession } from '@/types';
 
@@ -639,6 +640,18 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             <span>Сохранение личного словаря и карточек SRS</span>
           </div>
         </div>
+
+        {/* Юридическая информация (Terms & Privacy) */}
+        <p className="text-[11px] text-center text-zinc-400 dark:text-zinc-500 pt-1 leading-relaxed">
+          Продолжая вход или регистрацию, вы принимаете{' '}
+          <Link href="/terms" target="_blank" className="underline hover:text-blue-500 transition-colors">
+            Условия использования
+          </Link>{' '}
+          и{' '}
+          <Link href="/privacy" target="_blank" className="underline hover:text-blue-500 transition-colors">
+            Политику конфиденциальности
+          </Link>
+        </p>
       </div>
     </div>
   );
