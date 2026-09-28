@@ -83,12 +83,13 @@ const exhaustedKeys = new Set();
 let globalSlots = null;
 let currentSlotIdx = 0;
 
-function getNextAvailableSlot(slots) {
+function getNextAvailableSlot(slots, requiredModel = null) {
   let scanned = 0;
   while (scanned < slots.length) {
     const slot = slots[currentSlotIdx % slots.length];
     const slotKey = `${slot.keyIndex}_${slot.model}`;
-    if (!exhaustedKeys.has(slot.keyIndex) && !exhaustedSlots.has(slotKey)) {
+    const matchesModel = !requiredModel || slot.model === requiredModel;
+    if (matchesModel && !exhaustedKeys.has(slot.keyIndex) && !exhaustedSlots.has(slotKey)) {
       return slot;
     }
     currentSlotIdx++;
@@ -227,7 +228,7 @@ async function synthesizeTurn(text, voice, destPath, retries = 3) {
   }
 }
 
-async function synthesizeTurnGemini(text, voice, destPath, apiKeys) {
+async function synthesizeTurnGemini(text, voice, destPath, apiKeys, requiredModel = null) {
   const clean = cleanHebrewForTts(text);
   if (!clean) return { success: false, error: 'Empty text' };
 
@@ -245,7 +246,7 @@ async function synthesizeTurnGemini(text, voice, destPath, apiKeys) {
   }
 
   while (true) {
-    const slot = getNextAvailableSlot(globalSlots);
+    const slot = getNextAvailableSlot(globalSlots, requiredModel);
     if (!slot) break; // Все слоты Gemini исчерпаны
 
     const slotKey = `${slot.keyIndex}_${slot.model}`;
@@ -311,6 +312,7 @@ async function synthesizeTurnGemini(text, voice, destPath, apiKeys) {
           '-ar', '24000',
           '-ac', '1',
           '-i', tempPcm,
+          '-af', 'areverse,afade=t=in:st=0:d=0.1,areverse',
           '-ar', '44100',
           '-b:a', '128k',
           destPath
@@ -351,6 +353,8 @@ async function main() {
   const isForce = args.includes('--force');
 
   const targetEngine = engineArg ? engineArg.split('=')[1].toLowerCase() : 'edge'; // 'gemini' | 'edge'
+  const modelArg = args.find(a => a.startsWith('--model='));
+  const targetModel = modelArg ? modelArg.split('=')[1] : null;
 
   let targetDir = DIALOGUES_DIR;
   let apiKeys = [];
@@ -401,6 +405,9 @@ async function main() {
       continue;
     }
 
+    // R-28: Инвариант однородности модели внутри одного урока
+    const lessonModel = targetModel || 'gemini-3.1-flash-tts-preview';
+
     for (const turn of dialogue.turns) {
       for (const combo of combos) {
         const key = `d${lessonId}_${turn.id}_${combo}`;
@@ -423,6 +430,7 @@ async function main() {
               speakerGender,
               voice,
               engine: targetEngine,
+              model: manifest[key]?.model || (targetEngine === 'gemini' ? lessonModel : 'edge'),
               fileName,
               hebrew: variant.hebrew,
               translation: variant.translation,
@@ -441,7 +449,8 @@ async function main() {
           combo,
           speakerGender,
           voice,
-          variant
+          variant,
+          lessonModel
         });
       }
     }
@@ -463,7 +472,7 @@ async function main() {
 
   if (isDryRun) {
     console.log(`[DRY-RUN] Список реплик к озвучке (${queue.length}):`);
-    queue.slice(0, 20).forEach((q, idx) => console.log(`  ${idx + 1}. [${q.key}] (${q.speakerGender}, ${q.voice}): "${q.variant.hebrew.substring(0, 30)}..."`));
+    queue.slice(0, 20).forEach((q, idx) => console.log(`  ${idx + 1}. [${q.key}] (${q.speakerGender}, ${q.voice}, ${q.lessonModel}): "${q.variant.hebrew.substring(0, 30)}..."`));
     if (queue.length > 20) console.log(`  ... и ещё ${queue.length - 20} реплик.`);
     return;
   }
@@ -474,13 +483,13 @@ async function main() {
 
   for (let i = 0; i < queue.length; i++) {
     const item = queue[i];
-    const { key, fileName, destPath, lessonId, turn, combo, speakerGender, voice, variant } = item;
+    const { key, fileName, destPath, lessonId, turn, combo, speakerGender, voice, variant, lessonModel } = item;
     const voiceLabel = targetEngine === 'gemini' ? voice : voice.split('-')[2];
-    process.stdout.write(`  [${i + 1}/${queue.length}] [${key}] (${speakerGender}, ${voiceLabel}): ${variant.hebrew.substring(0, 30)}... `);
+    process.stdout.write(`  [${i + 1}/${queue.length}] [${key}] (${speakerGender}, ${voiceLabel}, ${lessonModel || 'edge'}): ${variant.hebrew.substring(0, 30)}... `);
 
     let res;
     if (targetEngine === 'gemini') {
-      res = await synthesizeTurnGemini(variant.hebrew, voice, destPath, apiKeys);
+      res = await synthesizeTurnGemini(variant.hebrew, voice, destPath, apiKeys, lessonModel);
     } else {
       res = await synthesizeTurn(variant.hebrew, voice, destPath);
     }
@@ -494,12 +503,13 @@ async function main() {
             speakerGender,
             voice,
             engine: targetEngine,
+            model: res.model || (targetEngine === 'gemini' ? lessonModel : 'edge'),
             fileName,
             bytes: res.bytes,
             hebrew: variant.hebrew,
             translation: variant.translation,
           };
-          console.log(`OK (${res.bytes} байт)`);
+          console.log(`OK (${res.bytes} байт, ${res.model || lessonModel || 'edge'})`);
         } else {
           errorCount++;
           console.log(`ERROR (${res.error})`);

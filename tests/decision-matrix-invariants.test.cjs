@@ -18,7 +18,7 @@ test('R-00-A: DECISION_MATRIX.md exists and contains all required blocks, versio
   assert.ok(matrixContent.includes('Дата обновления:'), 'DECISION_MATRIX.md must include update date');
 
   // Check required rule anchors
-  const expectedRules = ['R-01', 'R-02', 'R-03', 'R-04', 'R-05', 'R-07', 'R-08', 'R-10', 'R-11', 'R-13', 'R-14', 'R-15', 'R-16', 'R-17', 'R-23', 'R-24', 'R-25', 'R-26', 'R-27'];
+  const expectedRules = ['R-01', 'R-02', 'R-03', 'R-04', 'R-05', 'R-07', 'R-08', 'R-10', 'R-11', 'R-13', 'R-14', 'R-15', 'R-16', 'R-17', 'R-23', 'R-24', 'R-25', 'R-26', 'R-27', 'R-28'];
   for (const rule of expectedRules) {
     assert.ok(matrixContent.includes(rule), `DECISION_MATRIX.md must define rule ${rule}`);
   }
@@ -35,11 +35,11 @@ test('R-00-B: DECISION_MATRIX.md respects self-correction limits, L0 size, and c
 
   const matrixContent = fs.readFileSync(matrixPath, 'utf8');
 
-  // Check L0 rule count (<= 26 rules)
+  // Check L0 rule count (<= 28 rules)
   const l0Match = matrixContent.match(/## ⚡ Слой 0: Сводная таблица[\s\S]*?(?=## 🧭 Слой 1|$)/);
   assert.ok(l0Match, 'DECISION_MATRIX.md must contain Слой 0');
   const l0Rules = (l0Match[0].match(/\|\s*\*\*R-\d+\*\*\s*\|/g) || []);
-  assert.ok(l0Rules.length <= 26, `L0 table must contain <= 26 rules, found ${l0Rules.length}`);
+  assert.ok(l0Rules.length <= 28, `L0 table must contain <= 28 rules, found ${l0Rules.length}`);
   assert.ok(l0Rules.length >= 20, `L0 table must contain rules, found ${l0Rules.length}`);
 
   // Check presence of changelog / version history
@@ -341,5 +341,21 @@ test('R-27: Zero-Waste Quota Policy and audio-quota-protection test suite are de
     'tests/audio-quota-protection.test.cjs must exist'
   );
 });
+
+test('R-28: Dialogue Model Homogeneity and Anti-Click Fade-out are defined and enforced', () => {
+  const matrixContent = fs.readFileSync(matrixPath, 'utf8');
+  assert.ok(matrixContent.includes('R-28'), 'DECISION_MATRIX.md must define R-28');
+  assert.ok(matrixContent.includes('Anti-Click'), 'R-28 must specify Anti-Click protection');
+
+  const genScriptPath = path.join(repoRoot, 'scripts/generate_dialogue_audio.cjs');
+  assert.ok(fs.existsSync(genScriptPath), 'scripts/generate_dialogue_audio.cjs must exist');
+  const genScriptContent = fs.readFileSync(genScriptPath, 'utf8');
+  assert.ok(genScriptContent.includes('afade=t=in:st=0:d=0.1,areverse'), 'generate_dialogue_audio must include anti-click reverse fade filter');
+  assert.ok(genScriptContent.includes('lessonModel'), 'generate_dialogue_audio must enforce lessonModel');
+
+  const fixScriptPath = path.join(repoRoot, 'scripts/fix_dialogue_audio_clicks.cjs');
+  assert.ok(fs.existsSync(fixScriptPath), 'scripts/fix_dialogue_audio_clicks.cjs must exist');
+});
+
 
 
