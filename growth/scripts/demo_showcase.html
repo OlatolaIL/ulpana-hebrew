@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ульпан Алеф — Витрина 10 роликов YouTube Shorts</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
+    body { background: #090d16; color: #f1f5f9; min-height: 100vh; padding: 24px 16px; }
+    .container { max-width: 1040px; margin: 0 auto; }
+    header { display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #1e293b; padding-bottom: 16px; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
+    .logo-box { display: flex; align-items: center; gap: 12px; }
+    .logo-cube { width: 44px; height: 44px; border-radius: 12px; background: linear-gradient(135deg, #0284c7, #38bdf8); display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 900; color: #fff; box-shadow: 0 4px 15px rgba(56, 189, 248, 0.4); }
+    h1 { font-size: 20px; font-weight: 800; color: #fff; }
+    p.sub { font-size: 13px; color: #94a3b8; }
+    .badge-status { background: rgba(34, 197, 94, 0.15); border: 1px solid rgba(34, 197, 94, 0.4); color: #86efac; padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: 700; }
+    
+    .nav-tabs { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; margin-bottom: 24px; }
+    .tab-btn { background: #0f172a; border: 1.5px solid #1e293b; border-radius: 14px; padding: 10px 12px; text-align: left; cursor: pointer; transition: all 0.2s; color: #cbd5e1; user-select: none; }
+    .tab-btn:hover { border-color: #38bdf8; background: #131f38; }
+    .tab-btn.active.clean { background: rgba(56, 189, 248, 0.15); border-color: #38bdf8; color: #fff; box-shadow: 0 0 16px rgba(56, 189, 248, 0.2); }
+    .tab-btn.active.spicy { background: rgba(236, 72, 153, 0.15); border-color: #ec4899; color: #fff; box-shadow: 0 0 16px rgba(236, 72, 153, 0.2); }
+    .tag { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; }
+    .tag.clean { color: #38bdf8; }
+    .tag.spicy { color: #f472b6; }
+    .tab-title { font-size: 13px; font-weight: 700; margin: 2px 0; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .tab-desc { font-size: 11px; color: #94a3b8; font-family: monospace; }
+
+    .main-grid { display: grid; grid-template-columns: 340px 1fr; gap: 24px; align-items: start; }
+    @media (max-width: 820px) { .main-grid { grid-template-columns: 1fr; } }
+
+    .video-wrap { background: #000; border-radius: 20px; overflow: hidden; border: 2px solid #1e293b; box-shadow: 0 20px 40px rgba(0,0,0,0.6); position: relative; aspect-ratio: 9/16; max-height: 600px; margin: 0 auto; width: 100%; max-width: 340px; display: flex; align-items: center; justify-content: center; }
+    video { width: 100%; height: 100%; object-fit: contain; background: #000; }
+
+    .details-wrap { display: flex; flex-direction: column; gap: 14px; }
+    .card { background: #0f172a; border: 1px solid #1e293b; border-radius: 16px; padding: 18px; }
+    .card-title { font-size: 17px; font-weight: 800; color: #fff; margin-bottom: 4px; }
+    .card-scenario { font-size: 12px; color: #38bdf8; font-weight: 600; margin-bottom: 14px; }
+
+    .script-item { padding: 10px 14px; border-radius: 12px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.06); margin-bottom: 10px; font-size: 13px; line-height: 1.4; }
+    .script-item.error { border-color: rgba(239, 68, 68, 0.4); background: rgba(239, 68, 68, 0.08); }
+    .script-item.success { border-color: rgba(34, 197, 94, 0.4); background: rgba(34, 197, 94, 0.08); }
+    .script-label { font-size: 10px; font-weight: 800; text-transform: uppercase; margin-bottom: 4px; display: block; letter-spacing: 0.5px; }
+    .script-hebrew { font-size: 17px; font-weight: 900; color: #fff; direction: rtl; text-align: right; margin-top: 4px; }
+
+    .cta-button { display: inline-flex; align-items: center; justify-content: center; width: 100%; background: linear-gradient(135deg, #0284c7, #38bdf8); color: #fff; font-size: 14px; font-weight: 800; padding: 13px 18px; border-radius: 12px; text-decoration: none; border: none; cursor: pointer; transition: transform 0.15s, box-shadow 0.15s; margin-top: 10px; }
+    .cta-button:hover { transform: translateY(-2px); box-shadow: 0 10px 25px rgba(56, 189, 248, 0.4); }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="logo-box">
+        <div class="logo-cube">א</div>
+        <div>
+          <h1>Ульпан Алеф • Витрина готовых роликов</h1>
+          <p class="sub">10 видеороликов YouTube Shorts (Уроки 6, 7, 8, 9, 10 • Clean & Spicy)</p>
+        </div>
+      </div>
+      <div class="badge-status" id="video-counter">
+        10 из 10 видеороликов готовы к просмотру
+      </div>
+    </header>
+
+    <div class="nav-tabs" id="tab-container"></div>
+
+    <div class="main-grid">
+      <div class="video-wrap">
+        <video id="player" controls autoplay loop playsinline>
+          <source id="video-source" src="/lessons/lesson_06_clean_youtube_shorts.mp4" type="video/mp4">
+        </video>
+      </div>
+
+      <div class="details-wrap">
+        <div class="card">
+          <div class="card-title" id="meta-title">На детской площадке в Тель-Авиве</div>
+          <div class="card-scenario" id="meta-scenario">Парк Яркон • Тель-Авив • 17:30</div>
+
+          <div class="script-item">
+            <span class="script-label" style="color: #facc15;">1. Закадровый хук</span>
+            <div id="meta-hook">«Гуляешь с племянником и хочешь вернуть чужую игрушку...»</div>
+          </div>
+
+          <div class="script-item error">
+            <span class="script-label" style="color: #f87171;">2. Диалог с конфузом</span>
+            <div id="meta-student-ru">«Извините, это твой (обращаясь к женщине мужской формой) ребёнок?»</div>
+            <div class="script-hebrew" id="meta-student-he">סְלִיחָה, זֶה הַיֶּלֶד שֶׁלְּךָ?</div>
+            <div style="margin-top: 8px;" id="meta-lead-ru">«Мой, но я его мама, а не папа!»</div>
+            <div class="script-hebrew" style="color: #fde047;" id="meta-lead-he">שֶׁלִּי, אֲבָל אֲנִי אִמָּא שֶׁלּוֹ, לֹא אַבָּא שֶׁלּוֹ!</div>
+          </div>
+
+          <div class="script-item success">
+            <span class="script-label" style="color: #4ade80;">3. Разбор в тренажере Ульпана</span>
+            <div id="meta-rule">Мужчине говорим — <strong>שֶׁלְּךָ</strong> (шэльха́), женщине — <strong>שֶׁלָּךְ</strong> (шэла́х)! Одна огласовка решает всё.</div>
+          </div>
+
+          <div class="script-item">
+            <span class="script-label" style="color: #38bdf8;">4. Оффер и промокод</span>
+            <div id="meta-cta">Промокод <strong>YT</strong> на 30 дней бесплатного премиума. Ссылка в описании под видео!</div>
+          </div>
+
+          <a href="/lessons/lesson_06_clean_youtube_shorts.mp4" id="btn-download" download class="cta-button">
+            ⬇️ Скачать этот MP4 файл
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const clips = [
+      {
+        lesson: 6,
+        variant: 'clean',
+        badge: 'Урок 6 • Clean',
+        title: 'На детской площадке в Тель-Авиве',
+        subtitle: 'שֶׁלְּךָ vs שֶׁלָּךְ',
+        scenario: 'Парк Яркон • Тель-Авив • 17:30',
+        file: '/lessons/lesson_06_clean_youtube_shorts.mp4',
+        hook: '«Гуляешь с племянником и хочешь вернуть чужую игрушку...»',
+        studentRu: '«Извините, это твой (обращаясь к женщине мужской формой) ребёнок?»',
+        studentHe: 'סְלִיחָה, זֶה הַיֶּלֶד שֶׁלְּךָ?',
+        leadRu: '«Мой, но я его мама, а не папа!»',
+        leadHe: 'שֶׁלִּי, אֲבָל אֲנִי אִמָּא שֶׁלּוֹ, לֹא אַבָּא שֶׁלּוֹ!',
+        rule: 'Мужчине говорим — <strong>שֶׁלְּךָ</strong> (шэльха́), женщине — <strong>שֶׁלָּךְ</strong> (шэла́х)! Одна огласовка решает всё.',
+        cta: 'Промокод <strong>YT</strong> на 30 дней бесплатного премиума. Ссылка в описании под видео!'
+      },
+      {
+        lesson: 6,
+        variant: 'spicy',
+        badge: 'Урок 6 • Spicy',
+        title: 'Разговор с соседкой у лифта',
+        subtitle: 'בַּעַל vs בַּעַל הַבַּיִת',
+        scenario: 'Подъезд в Бат-Яме • 12:45',
+        file: '/lessons/lesson_06_spicy_youtube_shorts.mp4',
+        hook: '«Решила рассказать соседям, кто оплачивает эту квартиру...»',
+        studentRu: '«Мой муж приходит сюда каждую неделю и забирает деньги!»',
+        studentHe: 'הַבַּעַל שֶׁלִּי בָּא לְפֹה כָּל שָׁבוּעַ וְלוֹקֵחַ כֶּסֶף!',
+        leadRu: '«Бедняжка... что это за брак такой?! Звони в полицию!»',
+        leadHe: 'מַסְכֵּנָה... אֵיזֶה מִין נִשּׂוּאִים אֵלֶּה?! תִּתְקַשְּׁרִי לַמִּשְׁטָרָה!',
+        rule: '<strong>בַּעַל</strong> (ба́аль) — это муж! А хозяин квартиры — строго <strong>בַּעַל הַבַּיִת</strong> (ба́аль а-ба́ит). Не путайте лендлорда с супругом!',
+        cta: 'Промокод <strong>YT</strong> на 30 дней бесплатного премиума. Ссылка под видео!'
+      },
+      {
+        lesson: 7,
+        variant: 'clean',
+        badge: 'Урок 7 • Clean',
+        title: 'Поиски туалета в израильском ТЦ',
+        subtitle: 'שֵׁרוּת vs שֵׁרוּתִים',
+        scenario: 'Каньон Азриэли • 15:40',
+        file: '/lessons/lesson_07_clean_youtube_shorts.mp4',
+        hook: '«Бегаешь по этажам огромного молла и срочно ищешь уборную...»',
+        studentRu: '«Где здесь... услуга человеку?!»',
+        studentHe: 'אֵיפֹה יֵשׁ פֹּה... שֵׁרוּת לָאָדָם?!',
+        leadRu: '«Справочная на втором этаже, брат!»',
+        leadHe: 'מוֹדִיעִין בַּקּוֹמָה שְׁנִיָּה, אָחִי!',
+        rule: 'Туалет — это всегда множественное число: <strong>שֵׁרוּתִים</strong> (шэрути́м)! А <strong>שֵׁרוּת</strong> (шэру́т) — это услуга или сервис.',
+        cta: 'Промокод <strong>YT</strong> на 30 дней бесплатного премиума. Ссылка под видео!'
+      },
+      {
+        lesson: 7,
+        variant: 'spicy',
+        badge: 'Урок 7 • Spicy',
+        title: 'Подписание контракта на аренду',
+        subtitle: 'חוֹזֶה vs חָזֶה',
+        scenario: 'Бен-Йегуда • Квартира мечты • 18:20',
+        file: '/lessons/lesson_07_spicy_youtube_shorts.mp4',
+        hook: '«Нашел идеальную квартиру в центре Тель-Авива и готов подписывать...»',
+        studentRu: '«Я пришел подписать твою грудь прямо сейчас!»',
+        studentHe: 'בָּאתִי לַחְתּוֹם עַל הַחָזֶה שֶׁלָּךְ עַכְשָׁיו!',
+        leadRu: '«Контракт, милый! Моя грудь не сдается в аренду!»',
+        leadHe: 'חוֹזֶה, מוֹתֶק! הַחָזֶה שֶׁלִּי לֹא בַּשְּׂכִירוּת!',
+        rule: 'Контракт — это <strong>חוֹזֶה</strong> (хозэ́ через О)! А <strong>חָזֶה</strong> (хазэ́ через А) — это женская грудь. Не путайте огласовку!',
+        cta: 'Промокод <strong>YT</strong> на 30 дней бесплатного премиума. Ссылка под видео!'
+      },
+      {
+        lesson: 8,
+        variant: 'clean',
+        badge: 'Урок 8 • Clean',
+        title: 'В коридоре офиса с тимлидом',
+        subtitle: 'עוֹבֵד vs אוֹכֵל',
+        scenario: 'Сарона • Офис стартапа • 10:00',
+        file: '/lessons/lesson_08_clean_youtube_shorts.mp4',
+        hook: '«Встречаешь начальника в коридоре в разгар рабочего дня...»',
+        studentRu: '«Я иду снова есть!»',
+        studentHe: 'אֲנִי הוֹלֵךְ לֶאֱכוֹל שׁוּב!',
+        leadRu: '«10 утра! Ты только пришел!»',
+        leadHe: 'שָׁעָה עֶשֶׂר בַּבֹּקֶר! רַק הִגַּעְתָּ!',
+        rule: 'Работать — это <strong>לַעֲבוֹד / עוֹבֵד</strong> (овэ́д)! Не путайте с глаголом <strong>לֶאֱכוֹל / אוֹכֵל</strong> (охэ́ль — есть/кушать).',
+        cta: 'Промокод <strong>YT</strong> на 30 дней бесплатного премиума. Ссылка под видео!'
+      },
+      {
+        lesson: 8,
+        variant: 'spicy',
+        badge: 'Урок 8 • Spicy',
+        title: 'Сдача теста по грамматике',
+        subtitle: 'סִיַּמְתִּי vs גָּמַרְתִּי',
+        scenario: 'Класс ульпана • Финал теста • 11:55',
+        file: '/lessons/lesson_08_spicy_youtube_shorts.mp4',
+        hook: '«Сдал сложный тест в ульпане и спешишь порадовать учительницу...»',
+        studentRu: '«Учительница! Я кончил с тобой!»',
+        studentHe: 'מוֹרָה! גָּמַרְתִּי אִתָּךְ!',
+        leadRu: '«Ты закончил тест! А кончают в другом месте!»',
+        leadHe: 'סִיַּמְתָּ אֶת הַמִּבְחָן! גּוֹמְרִים בְּמָקוֹם אַחֵר!',
+        rule: 'Завершил дела или учебу — строго <strong>סִיַּמְתִּי</strong> (сия́мти)! Глагол <strong>גָּמַרְתִּי</strong> (гамáрти) в современном сленге имеет пошлый подтекст.',
+        cta: 'Промокод <strong>YT</strong> на 30 дней бесплатного премиума. Ссылка под видео!'
+      },
+      {
+        lesson: 9,
+        variant: 'clean',
+        badge: 'Урок 9 • Clean',
+        title: 'Приветствие израильского босса',
+        subtitle: 'בֹּקֶר vs בָּקָר',
+        scenario: 'Кухня офиса • Кофемашина • 08:45',
+        file: '/lessons/lesson_09_clean_youtube_shorts.mp4',
+        hook: '«Заходишь утром на кухню офиса и видишь генерального директора...»',
+        studentRu: '«Хорошая говядина / скот, босс!»',
+        studentHe: 'בָּקָר טוֹב, הַבּוֹס!',
+        leadRu: '«Я вегетарианец! Что ты от меня хочешь?!»',
+        leadHe: 'אֲנִי צִמְחוֹנִי! מָה אַתָּה רוֹצֶה מִמֶּנִּי?!',
+        rule: 'Доброе утро — <strong>בֹּקֶר טוֹב</strong> (бо́кер тов с ударением на О)! А <strong>בָּקָר</strong> (бакáр с ударением на А) — это крупный рогатый скот или говядина.',
+        cta: 'Промокод <strong>YT</strong> на 30 дней бесплатного премиума. Ссылка под видео!'
+      },
+      {
+        lesson: 9,
+        variant: 'spicy',
+        badge: 'Урок 9 • Spicy',
+        title: 'Приглашение на чай после свидания',
+        subtitle: 'מְאוּחָר vs מָחָר',
+        scenario: 'Бульвар Ротшильд • 23:45',
+        file: '/lessons/lesson_09_spicy_youtube_shorts.mp4',
+        hook: '«Провожаешь девушку до дома в полночь, она зовет на чай...»',
+        studentRu: '«Нет... слишком завтра, я приду поздно!»',
+        studentHe: 'לֹא... מָחָר מִדַּי, אֲנִי אָבוֹא מְאוּחָר!',
+        leadRu: '«Поговорим в следующей жизни, гений!»',
+        leadHe: 'דַּבֵּר אִתִּי בְּגִלְגּוּל הַבָּא, גֵּאוֹן!',
+        rule: 'Поздно — это <strong>מְאוּחָר</strong> (меухáр)! А <strong>מָחָר</strong> (махáр) — это «завтра». Не отказывайтесь от свиданий случайно!',
+        cta: 'Промокод <strong>YT</strong> на 30 дней бесплатного премиума. Ссылка под видео!'
+      },
+      {
+        lesson: 10,
+        variant: 'clean',
+        badge: 'Урок 10 • Clean',
+        title: 'Поездка на автобусе в час пик',
+        subtitle: 'תַּעֲצוֹר vs תַּהֲרֹג',
+        scenario: 'Маршрут 25 • Ибн Гвироль • 08:30',
+        file: '/lessons/lesson_10_clean_youtube_shorts.mp4',
+        hook: '«Израильский водитель автобуса летит как на ралли Дакар...»',
+        studentRu: '«Водитель! Убей здесь, пожалуйста!»',
+        studentHe: 'נַהָג! תַּהֲרֹג פֹּה בְּבַקָּשָׁה!',
+        leadRu: '«Кого убить, псих?! Тебя или старика?!»',
+        leadHe: 'אֶת מִי לַהֲרֹג, יָא מְשֻׁגָּע?! אוֹתְךָ אוֹ אֶת הַזָּקֵן?!',
+        rule: 'Остановить — это <strong>לַעֲצוֹר</strong> (лаацо́р)! Фраза водителю: «אֶפְשָׁר לַעֲצוֹר בַּתַּחֲנָה?». Не путай со словом «убить» (לַהֲרוֹג)!',
+        cta: 'Промокод <strong>YT</strong> на 30 дней бесплатного премиума. Ссылка в описании под видео!'
+      },
+      {
+        lesson: 10,
+        variant: 'spicy',
+        badge: 'Урок 10 • Spicy',
+        title: 'Навигация для нервного таксиста',
+        subtitle: 'יָשָׁר vs יָשָׁן',
+        scenario: 'Трасса Аялон • Пробка • 19:15',
+        file: '/lessons/lesson_10_spicy_youtube_shorts.mp4',
+        hook: '«Пытаешься объяснить нервному таксисту, куда повернуть...»',
+        studentRu: '«Езжай старый! Ещё более старый!»',
+        studentHe: 'תִּסַּע יָשָׁן! עוֹד יוֹתֵר יָשָׁן!',
+        leadRu: '«Кто старый, дружок?! Я 20 лет водитель! Вон из машины!»',
+        leadHe: 'מִי יָשָׁן, יָא חַבּוּבּ?! אֲנִי נַהָג עֶשְׂרִים שָׁנָה! רֵד מֵהַמּוֹנִית!',
+        rule: 'Прямо — это <strong>יָשָׁר</strong> (яша́р) с буквой Реш! А <strong>יָשָׁן</strong> (яша́н) — это «старый, ветхий». Не обзывайте водителей!',
+        cta: 'Промокод <strong>YT</strong> на 30 дней бесплатного премиума. Ссылка под видео!'
+      }
+    ];
+
+    let currentIdx = 0;
+
+    function renderTabs() {
+      const container = document.getElementById('tab-container');
+      container.innerHTML = clips.map((c, i) => `
+        <div class="tab-btn ${i === currentIdx ? 'active ' + c.variant : ''}" onclick="setVideo(${i})">
+          <span class="tag ${c.variant}">${c.badge}</span>
+          <div class="tab-title">${c.title}</div>
+          <div class="tab-desc">${c.subtitle}</div>
+        </div>
+      `).join('');
+    }
+
+    function setVideo(idx) {
+      currentIdx = idx;
+      const clip = clips[idx];
+      const player = document.getElementById('player');
+      player.src = clip.file;
+      player.play().catch(() => {});
+
+      document.getElementById('meta-title').textContent = clip.title;
+      document.getElementById('meta-scenario').textContent = clip.scenario;
+      document.getElementById('meta-hook').textContent = clip.hook;
+      document.getElementById('meta-student-ru').textContent = clip.studentRu;
+      document.getElementById('meta-student-he').textContent = clip.studentHe;
+      document.getElementById('meta-lead-ru').textContent = clip.leadRu;
+      document.getElementById('meta-lead-he').textContent = clip.leadHe;
+      document.getElementById('meta-rule').innerHTML = clip.rule;
+      document.getElementById('meta-cta').innerHTML = clip.cta;
+      document.getElementById('btn-download').href = clip.file;
+
+      renderTabs();
+    }
+
+    renderTabs();
+  </script>
+</body>
+</html>

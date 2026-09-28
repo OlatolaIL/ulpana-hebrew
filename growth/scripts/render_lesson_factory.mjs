@@ -27,6 +27,7 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 function getGeminiApiKeys() {
   const keys = [];
   if (process.env.GEMINI_TTS_API_KEY) keys.push(process.env.GEMINI_TTS_API_KEY);
+  if (process.env.GEMINI_TTS_KEY_2) keys.push(process.env.GEMINI_TTS_KEY_2);
   if (process.env.GEMINI_PRIMARY_API_KEY) keys.push(process.env.GEMINI_PRIMARY_API_KEY);
   if (process.env.GEMINI_API_KEY) keys.push(process.env.GEMINI_API_KEY);
   if (process.env.GEMINI_SECONDARY_API_KEY) keys.push(process.env.GEMINI_SECONDARY_API_KEY);
@@ -34,10 +35,12 @@ function getGeminiApiKeys() {
   if (fs.existsSync(envPath)) {
     const content = fs.readFileSync(envPath, 'utf8');
     const m0 = content.match(/GEMINI_TTS_API_KEY=([^\r\n]+)/);
+    const m0b = content.match(/GEMINI_TTS_KEY_2=([^\r\n]+)/);
     const m1 = content.match(/GEMINI_PRIMARY_API_KEY=([^\r\n]+)/);
     const m2 = content.match(/GEMINI_API_KEY=([^\r\n]+)/);
     const m3 = content.match(/GEMINI_SECONDARY_API_KEY=([^\r\n]+)/);
     if (m0 && !keys.includes(m0[1].trim())) keys.push(m0[1].trim());
+    if (m0b && !keys.includes(m0b[1].trim())) keys.push(m0b[1].trim());
     if (m1 && !keys.includes(m1[1].trim())) keys.push(m1[1].trim());
     if (m2 && !keys.includes(m2[1].trim())) keys.push(m2[1].trim());
     if (m3 && !keys.includes(m3[1].trim())) keys.push(m3[1].trim());
@@ -356,8 +359,8 @@ async function prepareAudioForPlatform(lessonNum, variant, platform) {
   const cue1Id = `${prefix}_s1_01`;
   const cue2Id = `${prefix}_s2_02`;
   const cue3Id = `${prefix}_s2_03`;
-  const cue4Id = `${prefix}_s3_04`;
-  const defaultCtaId = `${prefix}_s4_05`;
+  const cue4Id = (lessonNum === 7 && isClean) ? `${prefix}_s3_05` : `${prefix}_s3_04`;
+  const defaultCtaId = (lessonNum === 7 && isClean) ? `${prefix}_s4_06` : `${prefix}_s4_05`;
 
   const getWav = (cueId) => {
     const wavPath = path.join(CACHE_DIR, `${cueId}.wav`);
@@ -402,9 +405,14 @@ async function prepareAudioForPlatform(lessonNum, variant, platform) {
     { id: 'tHook', wavPath: getWav(cue1Id), gapAfterSec: 0.25 },
     { id: 'tStudent', wavPath: getWav(cue2Id), gapAfterSec: 0.35 },
     { id: 'tLead', wavPath: getWav(cue3Id), gapAfterSec: 0.35 },
-    { id: 'tExplainer', wavPath: getWav(cue4Id), gapAfterSec: 0.4 },
-    { id: 'tCta', wavPath: ctaWav, gapAfterSec: 0.5 },
   ];
+  if (lessonNum === 7 && isClean) {
+    baseCues.push({ id: 'tStudent2', wavPath: getWav(`${prefix}_s2_04`), gapAfterSec: 0.35 });
+  }
+  baseCues.push(
+    { id: 'tExplainer', wavPath: getWav(cue4Id), gapAfterSec: 0.4 },
+    { id: 'tCta', wavPath: ctaWav, gapAfterSec: 0.5 }
+  );
 
   for (const cue of baseCues) {
     if (!cue.wavPath || !fs.existsSync(cue.wavPath) || fs.statSync(cue.wavPath).size < 3000) {
@@ -433,6 +441,19 @@ async function recordPlatformVideo(lessonNum, variant, platform, audioInfo, brow
 
   const filename = `lesson_${numPad}_${variant}_${platform.name.toLowerCase().replace(/\s+/g, '_')}.mp4`;
   const outMp4Path = path.join(LESSONS_DIR, filename);
+
+  if (fs.existsSync(outMp4Path) && fs.statSync(outMp4Path).size > 1000000) {
+    const stat = fs.statSync(outMp4Path);
+    console.log(`  ⏩ Уже существует: ${filename} (${(stat.size / 1024 / 1024).toFixed(2)} MB), пропускаем`);
+    return {
+      path: `public/demo/lessons/${filename}`,
+      promoCode: platform.code,
+      durationSec: Number(audioInfo.timingData.totalDurationSec.toFixed(1)),
+      resolution: '780x1688',
+      fileSizeBytes: stat.size,
+      generatedAt: new Date().toISOString(),
+    };
+  }
 
   const totalDurationSec = audioInfo.timingData.totalDurationSec;
   const tempDir = path.join(DEMO_DIR, `temp_${numPad}_${variant}_${platform.code.toLowerCase()}`);
@@ -564,10 +585,16 @@ async function main() {
 
   let targetLessons = [2];
   if (lessonsArg) {
-    const range = lessonsArg.split('=')[1];
-    const [start, end] = range.split('-').map(Number);
-    targetLessons = [];
-    for (let l = start; l <= end; l++) targetLessons.push(l);
+    const val = lessonsArg.split('=')[1];
+    if (val.includes(',')) {
+      targetLessons = val.split(',').map((x) => parseInt(x.trim(), 10));
+    } else if (val.includes('-')) {
+      const [start, end] = val.split('-').map(Number);
+      targetLessons = [];
+      for (let l = start; l <= end; l++) targetLessons.push(l);
+    } else {
+      targetLessons = [parseInt(val, 10)];
+    }
   } else if (lessonArg) {
     targetLessons = [parseInt(lessonArg.split('=')[1], 10)];
   }

@@ -52,6 +52,7 @@ function getGeminiApiKeys() {
         const v = trimmed.slice(eq + 1).trim().replace(/^['"]|['"]$/g, '');
         if (
           k === 'GEMINI_TTS_API_KEY' ||
+          k === 'GEMINI_TTS_KEY_2' ||
           k === 'GEMINI_PRIMARY_API_KEY' ||
           k === 'GEMINI_SECONDARY_API_KEY' ||
           k === 'GEMINI_API_KEY'
@@ -61,7 +62,7 @@ function getGeminiApiKeys() {
       }
     }
   }
-  const priorityOrder = ['GEMINI_TTS_API_KEY', 'GEMINI_PRIMARY_API_KEY', 'GEMINI_SECONDARY_API_KEY', 'GEMINI_API_KEY'];
+  const priorityOrder = ['GEMINI_TTS_API_KEY', 'GEMINI_TTS_KEY_2', 'GEMINI_PRIMARY_API_KEY', 'GEMINI_SECONDARY_API_KEY', 'GEMINI_API_KEY'];
   for (const kName of priorityOrder) {
     if (keyMap[kName] && !keys.includes(keyMap[kName])) {
       keys.push(keyMap[kName]);
