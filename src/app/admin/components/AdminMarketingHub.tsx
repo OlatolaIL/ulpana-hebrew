@@ -205,7 +205,7 @@ export function AdminMarketingHub() {
   };
 
   const handlePublishRow = async (pub: PublicationItem) => {
-    if (!['youtube', 'telegram', 'facebook'].includes(pub.channel)) return;
+    if (!['youtube', 'telegram', 'facebook', 'tiktok'].includes(pub.channel)) return;
     setPublishingRowId(pub.id);
     try {
       const res = await fetch('/api/admin/marketing/publish', {
@@ -251,7 +251,7 @@ export function AdminMarketingHub() {
 
   // Quick Publish state (1-клик выгрузка на боевом сервере)
   const [isQuickPublishModalOpen, setIsQuickPublishModalOpen] = useState(false);
-  const [quickChannel, setQuickChannel] = useState<'youtube' | 'telegram' | 'facebook'>('youtube');
+  const [quickChannel, setQuickChannel] = useState<'youtube' | 'telegram' | 'facebook' | 'tiktok'>('youtube');
   const [quickTitle, setQuickTitle] = useState('🇮🇱 Как не впасть в ступор, когда звонит израильский курьер #Shorts');
   const [quickDesc, setQuickDesc] = useState('');
   const [quickVideo, setQuickVideo] = useState('public/demo/promo/reels_youtube.mp4');
@@ -1269,7 +1269,7 @@ export function AdminMarketingHub() {
                       <td className="px-4 py-3 text-right whitespace-nowrap">
                         <div className="flex items-center justify-end gap-1.5">
                           {pub.status !== 'published' &&
-                            ['youtube', 'telegram', 'facebook'].includes(pub.channel) && (
+                            ['youtube', 'telegram', 'facebook', 'tiktok'].includes(pub.channel) && (
                               <button
                                 type="button"
                                 onClick={() => handlePublishRow(pub)}
@@ -2327,6 +2327,7 @@ export function AdminMarketingHub() {
                   <option value="youtube">▶️ YouTube (Shorts / Канал)</option>
                   <option value="telegram">✈️ Telegram (@ulpana_il)</option>
                   <option value="facebook">📘 Facebook (Страница)</option>
+                  <option value="tiktok">🎵 TikTok (@ulpana_il)</option>
                 </select>
               </div>
 
@@ -2353,7 +2354,7 @@ export function AdminMarketingHub() {
                 />
               </div>
 
-              {(quickChannel === 'youtube' || quickChannel === 'telegram') && (
+              {(quickChannel === 'youtube' || quickChannel === 'telegram' || quickChannel === 'tiktok') && (
                 <div>
                   <label className="block text-zinc-400 font-semibold mb-1">Видеофайл на сервере (public/demo/...):</label>
                   <select

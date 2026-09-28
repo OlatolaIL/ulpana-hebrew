@@ -6,7 +6,7 @@ import path from 'path';
 import os from 'os';
 
 export interface PublishRequestBody {
-  channel: 'youtube' | 'telegram' | 'facebook';
+  channel: 'youtube' | 'telegram' | 'facebook' | 'tiktok';
   publicationId?: string;
   videoPath?: string;
   title: string;
@@ -94,7 +94,7 @@ function resolveServerVideoPath(inputPath?: string): string | null {
 
 async function registerPublication(pub: {
   publicationId?: string;
-  channel: 'youtube' | 'telegram' | 'facebook';
+  channel: 'youtube' | 'telegram' | 'facebook' | 'tiktok';
   title: string;
   format: 'short_video' | 'post';
   channelAccount: string;
@@ -652,6 +652,172 @@ export async function POST(req: NextRequest) {
         postId,
         livePostUrl: liveUrl
       });
+    }
+
+    // ==========================================
+    // 4. ПУБЛИКАЦИЯ В TIKTOK (Content Posting API v2)
+    // ==========================================
+    if (channel === 'tiktok') {
+      const clientKey = process.env.TIKTOK_CLIENT_KEY?.trim();
+      const clientSecret = process.env.TIKTOK_CLIENT_SECRET?.trim();
+      const refreshToken = process.env.TIKTOK_REFRESH_TOKEN?.trim();
+
+      if (!clientKey || !clientSecret || !refreshToken) {
+        return NextResponse.json(
+          {
+            error: 'TikTok API ещё не авторизован! Выполните один раз в терминале команду: node growth/scripts/post_to_tiktok.cjs --auth',
+            requiresAuth: true
+          },
+          { status: 400 }
+        );
+      }
+
+      let videoResult: ResolvedVideo | null = null;
+      try {
+        if (body.videoPath) {
+          videoResult = await resolveServerVideo(body.videoPath);
+        }
+        const videoFilePath = videoResult?.filePath;
+
+        if (!videoFilePath || !fs.existsSync(videoFilePath)) {
+          return NextResponse.json(
+            { error: `Видеофайл для TikTok не найден на сервере: ${body.videoPath || 'путь не указан'}` },
+            { status: 404 }
+          );
+        }
+
+        const videoStats = fs.statSync(videoFilePath);
+        const videoSize = videoStats.size;
+
+        // 1. Получаем свежий Access Token через Refresh Token
+        const tokenRes = await fetch('https://open.tiktokapis.com/v2/oauth/token/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'Cache-Control': 'no-cache'
+          },
+          body: new URLSearchParams({
+            client_key: clientKey,
+            client_secret: clientSecret,
+            grant_type: 'refresh_token',
+            refresh_token: refreshToken
+          })
+        });
+
+        const tokenData = await tokenRes.json();
+        if (!tokenRes.ok || !tokenData.data?.access_token) {
+          return NextResponse.json(
+            { error: `Ошибка обновления токена TikTok: ${tokenData.error_description || tokenData.message || JSON.stringify(tokenData)}` },
+            { status: 502 }
+          );
+        }
+
+        const accessToken = tokenData.data.access_token;
+
+        // 2. Инициализация Direct Post
+        const chunkSize = 10 * 1024 * 1024; // 10MB
+        const totalChunks = Math.ceil(videoSize / chunkSize);
+        const privacyLevel = body.privacy === 'public' ? 'PUBLIC_TO_EVERYONE' : 'SELF_ONLY';
+
+        const initRes = await fetch('https://open.tiktokapis.com/v2/post/publish/video/init/', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json; charset=UTF-8'
+          },
+          body: JSON.stringify({
+            post_info: {
+              title: description || title,
+              privacy_level: privacyLevel,
+              disable_duet: false,
+              disable_stitch: false,
+              disable_comment: false,
+              video_cover_timestamp_ms: 1000
+            },
+            source_info: {
+              source: 'FILE_UPLOAD',
+              video_size: videoSize,
+              chunk_size: chunkSize,
+              total_chunk_count: totalChunks
+            }
+          })
+        });
+
+        const initData = await initRes.json();
+        if (!initRes.ok || !initData.data?.publish_id) {
+          return NextResponse.json(
+            { error: `Ошибка инициализации публикации TikTok: ${initData.error?.message || JSON.stringify(initData)}` },
+            { status: 502 }
+          );
+        }
+
+        const publishId = initData.data.publish_id;
+        const uploadUrl = initData.data.upload_url;
+
+        // 3. Загрузка видео частями
+        const fileBuffer = fs.readFileSync(videoFilePath);
+        for (let i = 0; i < totalChunks; i++) {
+          const start = i * chunkSize;
+          const end = Math.min(start + chunkSize, videoSize);
+          const chunk = fileBuffer.subarray(start, end);
+
+          const uploadRes = await fetch(uploadUrl, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'video/mp4',
+              'Content-Range': `bytes ${start}-${end - 1}/${videoSize}`,
+              'Content-Length': chunk.length.toString()
+            },
+            body: chunk
+          });
+
+          if (!uploadRes.ok && uploadRes.status !== 308) {
+            return NextResponse.json(
+              { error: `Ошибка загрузки видео в TikTok: HTTP ${uploadRes.status}` },
+              { status: 502 }
+            );
+          }
+        }
+
+        const liveUrl = 'https://www.tiktok.com/@ulpana_il';
+
+        if (register) {
+          await registerPublication({
+            publicationId,
+            channel: 'tiktok',
+            title,
+            campaignTitle,
+            version,
+            videoPath: body.videoPath || videoFilePath,
+            caption: description || title,
+            format: 'short_video',
+            channelAccount: '@ulpana_il',
+            livePostUrl: liveUrl,
+            promoCode: 'TIKTOK',
+            notes: `Публикация в TikTok через веб-админку (Publish ID: ${publishId})`
+          });
+        }
+
+        return NextResponse.json({
+          success: true,
+          channel: 'tiktok',
+          publishId,
+          livePostUrl: liveUrl,
+          title
+        });
+      } catch (tiktokErr: any) {
+        console.error('[Publish API] Ошибка публикации в TikTok:', tiktokErr.message);
+        return NextResponse.json(
+          { error: `Ошибка публикации в TikTok: ${tiktokErr.message}` },
+          { status: 500 }
+        );
+      } finally {
+        if (videoResult?.isTemp && fs.existsSync(videoResult.filePath)) {
+          try {
+            fs.unlinkSync(videoResult.filePath);
+          } catch {}
+        }
+      }
     }
 
     return NextResponse.json({ error: `Неподдерживаемый канал: ${channel}` }, { status: 400 });
