@@ -38,66 +38,7 @@ if (!fs.existsSync(DIALOGUES_DIR)) {
   fs.mkdirSync(DIALOGUES_DIR, { recursive: true });
 }
 
-function getGeminiApiKeys() {
-  const envPath = path.join(repoRoot, '.env.local');
-  const keys = [];
-  const keyMap = {};
-  if (fs.existsSync(envPath)) {
-    const content = fs.readFileSync(envPath, 'utf8');
-    for (const line of content.split('\n')) {
-      const trimmed = line.trim();
-      const eq = trimmed.indexOf('=');
-      if (eq > 0) {
-        const k = trimmed.slice(0, eq).trim();
-        const v = trimmed.slice(eq + 1).trim().replace(/^['"]|['"]$/g, '');
-        if (
-          k === 'GEMINI_TTS_API_KEY' ||
-          k === 'GEMINI_TTS_KEY_2' ||
-          k === 'GEMINI_PRIMARY_API_KEY' ||
-          k === 'GEMINI_SECONDARY_API_KEY' ||
-          k === 'GEMINI_API_KEY'
-        ) {
-          if (v) keyMap[k] = v;
-        }
-      }
-    }
-  }
-  const priorityOrder = ['GEMINI_TTS_API_KEY', 'GEMINI_TTS_KEY_2', 'GEMINI_PRIMARY_API_KEY', 'GEMINI_SECONDARY_API_KEY', 'GEMINI_API_KEY'];
-  for (const kName of priorityOrder) {
-    if (keyMap[kName] && !keys.includes(keyMap[kName])) {
-      keys.push(keyMap[kName]);
-    }
-  }
-  if (process.env.GEMINI_API_KEY && !keys.includes(process.env.GEMINI_API_KEY)) {
-    keys.push(process.env.GEMINI_API_KEY);
-  }
-  return keys;
-}
-
-const GEMINI_MODELS = [
-  'gemini-3.8-flash-tts',
-  'gemini-3.8-flash-lite-tts',
-  'gemini-3.1-flash-tts-preview'
-];
-const exhaustedSlots = new Set();
-const exhaustedKeys = new Set();
-let globalSlots = null;
-let currentSlotIdx = 0;
-
-function getNextAvailableSlot(slots, requiredModel = null) {
-  let scanned = 0;
-  while (scanned < slots.length) {
-    const slot = slots[currentSlotIdx % slots.length];
-    const slotKey = `${slot.keyIndex}_${slot.model}`;
-    const matchesModel = !requiredModel || slot.model === requiredModel;
-    if (matchesModel && !exhaustedKeys.has(slot.keyIndex) && !exhaustedSlots.has(slotKey)) {
-      return slot;
-    }
-    currentSlotIdx++;
-    scanned++;
-  }
-  return null;
-}
+const { getGeminiApiKeys, createGeminiCarousel, GEMINI_TTS_MODELS } = require('./gemini_carousel.cjs');
 
 function loadManifest() {
   if (fs.existsSync(MANIFEST_PATH)) {
@@ -229,7 +170,7 @@ async function synthesizeTurn(text, voice, destPath, retries = 3) {
   }
 }
 
-async function synthesizeTurnGemini(text, voice, destPath, apiKeys, requiredModel = null) {
+async function synthesizeTurnGemini(text, voice, destPath, carousel, requiredModel = null) {
   const clean = cleanHebrewForTts(text);
   if (!clean) return { success: false, error: 'Empty text' };
 
@@ -237,20 +178,10 @@ async function synthesizeTurnGemini(text, voice, destPath, apiKeys, requiredMode
     return { success: false, error: '@ffmpeg-installer/ffmpeg not found' };
   }
 
-  if (!globalSlots) {
-    globalSlots = [];
-    apiKeys.forEach((key, kIdx) => {
-      GEMINI_MODELS.forEach((model) => {
-        globalSlots.push({ key, model, keyIndex: kIdx + 1 });
-      });
-    });
-  }
-
   while (true) {
-    const slot = getNextAvailableSlot(globalSlots, requiredModel);
+    const slot = carousel.getNextAvailableSlot(requiredModel);
     if (!slot) break; // Все слоты Gemini исчерпаны
 
-    const slotKey = `${slot.keyIndex}_${slot.model}`;
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${slot.model}:generateContent?key=${slot.key}`;
     const payload = {
       contents: [{ parts: [{ text: clean }] }],
@@ -273,32 +204,16 @@ async function synthesizeTurnGemini(text, voice, destPath, apiKeys, requiredMode
       const data = await res.json();
 
       if (res.status === 402 || data.error?.code === 402) {
-        console.warn(`  ⚠️ [402 Payment Required] на ключе #${slot.keyIndex}. Ключ исключён из карусели.`);
-        exhaustedKeys.add(slot.keyIndex);
-        currentSlotIdx++;
+        carousel.mark402(slot);
         continue;
       }
 
       if (res.status === 429 || data.error?.code === 429) {
-        const msg = data.error?.message || '';
-        const isDaily = /per_model_per_day|per_day|per day|requests per model/i.test(msg);
-        if (isDaily) {
-          console.warn(`  🛑 [${slot.model}] суточный лимит 100 запросов на ключе #${slot.keyIndex}. Ротация слота...`);
-          exhaustedSlots.add(slotKey);
-          currentSlotIdx++;
-          continue;
-        } else {
-          slot.fails = (slot.fails || 0) + 1;
-          if (slot.fails >= 4) {
-            console.warn(`  🛑 [${slot.model}] превышен лимит попыток на ключе #${slot.keyIndex}. Ротация слота...`);
-            exhaustedSlots.add(slotKey);
-          } else {
-            console.warn(`  ⏳ [429 RPM (${slot.fails}/3)] Модель ${slot.model} на ключе #${slot.keyIndex}. Пауза 3с и переход к следующему слоту...`);
-            await new Promise(r => setTimeout(r, 3000));
-          }
-          currentSlotIdx++;
-          continue;
+        const rateInfo = carousel.handleRateLimit(slot, data.error?.message || '');
+        if (!rateInfo.daily && rateInfo.retry) {
+          await new Promise(r => setTimeout(r, rateInfo.delayMs || 3000));
         }
+        continue;
       }
 
       if (data.candidates && data.candidates[0]?.content?.parts?.[0]?.inlineData?.data) {
@@ -328,19 +243,19 @@ async function synthesizeTurnGemini(text, voice, destPath, apiKeys, requiredMode
 
         if (proc.status === 0 && fs.existsSync(destPath) && fs.statSync(destPath).size > 100) {
           slot.fails = 0;
-          return { success: true, bytes: fs.statSync(destPath).size, model: slot.model, keyIndex: slot.keyIndex };
+          return { success: true, bytes: fs.statSync(destPath).size, model: slot.model, keyIndex: slot.keyIndex, keyName: slot.name };
         } else {
           return { success: false, error: 'FFmpeg encoding error: ' + (proc.stderr?.toString() || 'unknown') };
         }
       }
 
       if (data.error) {
-        console.warn(`  [Gemini Error on ${slot.model} (key #${slot.keyIndex})]:`, data.error.message?.slice(0, 100));
-        currentSlotIdx++;
+        console.warn(`  [Gemini Error on ${slot.model} (ключ #${slot.keyIndex} ${slot.name})]:`, data.error.message?.slice(0, 100));
+        carousel.advance();
       }
     } catch (err) {
-      console.warn(`  [Network Error on slot #${slot.keyIndex} (${slot.model})]:`, err.message);
-      currentSlotIdx++;
+      console.warn(`  [Network Error на слоте #${slot.keyIndex} (${slot.model})]:`, err.message);
+      carousel.advance();
       await new Promise(r => setTimeout(r, 1000));
     }
   }
@@ -363,17 +278,20 @@ async function main() {
   const targetModel = modelArg ? modelArg.split('=')[1] : null;
 
   let targetDir = DIALOGUES_DIR;
-  let apiKeys = [];
+  let carousel = null;
   if (targetEngine === 'gemini') {
     targetDir = GEMINI_DIR;
     if (!fs.existsSync(targetDir)) {
       fs.mkdirSync(targetDir, { recursive: true });
     }
-    apiKeys = getGeminiApiKeys();
+    const apiKeys = getGeminiApiKeys();
     if (!apiKeys.length) {
-      console.error('❌ ОШИБКА: Не найдены ключи GEMINI_API_KEY / GEMINI_TTS_API_KEY в .env.local');
+      console.error('❌ ОШИБКА: Не найдены ключи GEMINI_*_KEY в .env.local');
       process.exit(1);
     }
+    carousel = createGeminiCarousel(apiKeys);
+    console.log(`🔑 Пул ключей Gemini: ${apiKeys.length} шт. | Всего слотов: ${carousel.slots.length}`);
+    apiKeys.forEach(k => console.log(`   - Ключ #${k.keyIndex}: ${k.name} [${k.masked}]`));
   }
 
   if (isAll) {
@@ -412,7 +330,14 @@ async function main() {
     }
 
     // R-28: Инвариант однородности модели внутри одного урока
-    const lessonModel = targetModel || 'gemini-3.1-flash-tts-preview';
+    let lessonModel = targetModel;
+    if (!lessonModel && targetEngine === 'gemini' && carousel) {
+      const existingTurn = Object.values(manifest).find(m => m.lessonId === lessonId && m.engine === 'gemini' && m.model);
+      lessonModel = existingTurn ? existingTurn.model : carousel.getBestAvailableModel();
+    }
+    if (!lessonModel && targetEngine === 'gemini') {
+      lessonModel = 'gemini-3.8-flash-tts';
+    }
 
     for (const turn of dialogue.turns) {
       for (const combo of combos) {
@@ -487,15 +412,34 @@ async function main() {
   let skippedCount = alreadyExistingCount;
   let errorCount = 0;
 
+  const activeLessonModels = new Map();
+
   for (let i = 0; i < queue.length; i++) {
     const item = queue[i];
-    const { key, fileName, destPath, lessonId, turn, combo, speakerGender, voice, variant, lessonModel } = item;
+    const { key, fileName, destPath, lessonId, turn, combo, speakerGender, voice, variant } = item;
+    
+    // R-28: Однородность модели внутри одного урока
+    let currentLessonModel = targetModel;
+    if (!currentLessonModel && targetEngine === 'gemini' && carousel) {
+      if (activeLessonModels.has(lessonId)) {
+        currentLessonModel = activeLessonModels.get(lessonId);
+      } else {
+        const existingTurn = Object.values(manifest).find(m => m.lessonId === lessonId && m.engine === 'gemini' && m.model);
+        currentLessonModel = existingTurn ? existingTurn.model : carousel.getBestAvailableModel();
+        activeLessonModels.set(lessonId, currentLessonModel);
+        console.log(`\n🎭 [Урок ${lessonId}] Выбрана единая модель для всех реплик урока: ${currentLessonModel}`);
+      }
+    }
+    if (!currentLessonModel && targetEngine === 'gemini') {
+      currentLessonModel = 'gemini-3.8-flash-tts';
+    }
+
     const voiceLabel = targetEngine === 'gemini' ? voice : voice.split('-')[2];
-    process.stdout.write(`  [${i + 1}/${queue.length}] [${key}] (${speakerGender}, ${voiceLabel}, ${lessonModel || 'edge'}): ${variant.hebrew.substring(0, 30)}... `);
+    process.stdout.write(`  [${i + 1}/${queue.length}] [${key}] (${speakerGender}, ${voiceLabel}, ${currentLessonModel || 'edge'}): ${variant.hebrew.substring(0, 30)}... `);
 
     let res;
     if (targetEngine === 'gemini') {
-      res = await synthesizeTurnGemini(variant.hebrew, voice, destPath, apiKeys, lessonModel);
+      res = await synthesizeTurnGemini(variant.hebrew, voice, destPath, carousel, currentLessonModel);
     } else {
       res = await synthesizeTurn(variant.hebrew, voice, destPath);
     }
@@ -509,13 +453,14 @@ async function main() {
             speakerGender,
             voice,
             engine: targetEngine,
-            model: res.model || (targetEngine === 'gemini' ? lessonModel : 'edge'),
+            model: res.model || (targetEngine === 'gemini' ? currentLessonModel : 'edge'),
             fileName,
             bytes: res.bytes,
             hebrew: variant.hebrew,
             translation: variant.translation,
           };
-          console.log(`OK (${res.bytes} байт, ${res.model || lessonModel || 'edge'})`);
+          const keyLabel = res.keyIndex ? ` (ключ #${res.keyIndex} [${res.keyName}])` : '';
+          console.log(`OK (${res.bytes} байт, ${res.model || currentLessonModel || 'edge'}${keyLabel})`);
         } else {
           errorCount++;
           console.log(`ERROR (${res.error})`);

@@ -3394,5 +3394,70 @@
     "bytes": 64409,
     "hebrew": "אָז כְּדַאי לָקַחַת כּוֹבַע וּבַקְבּוּק מַיִם? מָה אַתָּה אוֹמֵר?",
     "translation": "Стоит взять кепку и воду? Что ты скажешь? (к мужчине)"
+  },
+  "d12_t12-3_ff": {
+    "lessonId": 12,
+    "turnId": "t12-3",
+    "combo": "ff",
+    "speakerGender": "female",
+    "voice": "Aoede",
+    "engine": "gemini",
+    "model": "gemini-3.8-flash-tts",
+    "fileName": "d12_t12-3_ff.mp3",
+    "bytes": 60230,
+    "hebrew": "אָז כְּדַאי לָקַחַת כּוֹבַע וּבַקְבּוּק מַיִם? מָה אַתְּ אוֹמֶרֶת?",
+    "translation": "Стоит взять кепку и воду? Что ты скажешь? (к женщине)"
+  },
+  "d12_t12-4_mm": {
+    "lessonId": 12,
+    "turnId": "t12-4",
+    "combo": "mm",
+    "speakerGender": "male",
+    "voice": "Orus",
+    "engine": "gemini",
+    "model": "gemini-3.8-flash-tts",
+    "fileName": "d12_t12-4_mm.mp3",
+    "bytes": 57304,
+    "hebrew": "מַמָּשׁ כְּדַאי! חַיָּבִים לִשְׁתּוֹת הַרְבֵּה מַיִם בַּחֹם הַזֶּה.",
+    "translation": "Очень стоит! Обязательно нужно пить много воды в такую жару."
+  },
+  "d12_t12-4_mf": {
+    "lessonId": 12,
+    "turnId": "t12-4",
+    "combo": "mf",
+    "speakerGender": "male",
+    "voice": "Orus",
+    "engine": "gemini",
+    "model": "gemini-3.8-flash-tts",
+    "fileName": "d12_t12-4_mf.mp3",
+    "bytes": 56050,
+    "hebrew": "מַמָּשׁ כְּדַאי! חַיָּבִים לִשְׁתּוֹת הַרְבֵּה מַיִם בַּחֹם הַזֶּה.",
+    "translation": "Очень стоит! Обязательно нужно пить много воды в такую жару."
+  },
+  "d12_t12-4_fm": {
+    "lessonId": 12,
+    "turnId": "t12-4",
+    "combo": "fm",
+    "speakerGender": "female",
+    "voice": "Aoede",
+    "engine": "gemini",
+    "model": "gemini-3.8-flash-tts",
+    "fileName": "d12_t12-4_fm.mp3",
+    "bytes": 61484,
+    "hebrew": "מַמָּשׁ כְּדַאי! חַיָּבִים לִשְׁתּוֹת הַרְבֵּה מַיִם בַּחֹם הַזֶּה.",
+    "translation": "Очень стоит! Обязательно нужно пить много воды в такую жару."
+  },
+  "d12_t12-4_ff": {
+    "lessonId": 12,
+    "turnId": "t12-4",
+    "combo": "ff",
+    "speakerGender": "female",
+    "voice": "Aoede",
+    "engine": "gemini",
+    "model": "gemini-3.8-flash-tts",
+    "fileName": "d12_t12-4_ff.mp3",
+    "bytes": 50617,
+    "hebrew": "מַמָּשׁ כְּדַאי! חַיָּבִים לִשְׁתּוֹת הַרְבֵּה מַיִם בַּחֹם הַזֶּה.",
+    "translation": "Очень стоит! Обязательно нужно пить много воды в такую жару."
   }
 }
