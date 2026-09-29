@@ -215,7 +215,9 @@ async function synthesizeWithGemini(text, destPath, apiKeys, voiceName, maxRetri
 
         if (res.status === 429 || data.error?.code === 429) {
           const errMsg = data.error?.message || '';
-          const isDailyExhausted = /exceeded your current quota|per_day|per_model_per_day|Resource has been exhausted|quota.*exceeded/i.test(errMsg);
+          const detailsStr = JSON.stringify(data.error?.details || '');
+          const combinedErr = errMsg + ' ' + detailsStr;
+          const isDailyExhausted = /per_model_per_day|per_day|per day|PerDay|GenerateRequestsPerDay/i.test(combinedErr);
 
           if (isDailyExhausted) {
             console.warn(`🛑 Модель [${slot.model.id}] исчерпала суточный лимит на ключе #${slot.keyIndex}. Ротация слота...`);
@@ -225,11 +227,12 @@ async function synthesizeWithGemini(text, destPath, apiKeys, voiceName, maxRetri
           }
 
           if (attempt === maxRetries) {
+            console.warn(`⏳ [RPM 429] Модель [${slot.model.id}] на ключе #${slot.keyIndex} достигла минутного лимита. Временная ротация...`);
             currentSlotIdx++;
             break;
           }
-          console.warn(`⏳ [Rate Limit 429] Окно RPM модели [${slot.model.id}] на ключе #${slot.keyIndex}. Ожидание 3с (${attempt}/${maxRetries})...`);
-          await sleep(3000);
+          console.warn(`⏳ [Rate Limit 429] Окно RPM модели [${slot.model.id}] на ключе #${slot.keyIndex}. Ожидание 5с (${attempt}/${maxRetries})...`);
+          await sleep(5000);
           continue;
         }
 

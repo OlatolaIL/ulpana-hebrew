@@ -153,7 +153,7 @@ class GeminiCarousel {
 
   handleRateLimit(slot, errorMsg) {
     const slotKey = `${slot.keyIndex}_${slot.model}`;
-    const isDaily = /per_model_per_day|per_day|per day|requests per model|exceeded your current quota|Resource has been exhausted/i.test(errorMsg);
+    const isDaily = /per_model_per_day|per_day|per day|PerDay|GenerateRequestsPerDay/i.test(errorMsg);
     if (isDaily) {
       this.markDailyExhausted(slot);
       return { daily: true };
