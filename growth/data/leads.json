@@ -1,5 +1,43 @@
 [
   {
+    "id": "lead-fb-1790661713510-fh7r",
+    "timestamp": "2026-09-29T06:01:53.510Z",
+    "sourceChannel": "facebook",
+    "sourceChatName": "Израильское сообщество (1436515633280540)",
+    "authorName": "Участник группы",
+    "authorContact": "Участник группы",
+    "postUrl": "https://www.facebook.com/groups/1436515633280540/posts/4412546669010740/?__cft__[0]=AZg5cmYjKLDHkOsp-S4oBt3_xrFBCJPMI7a4TjqnXmfnb8ug3Upv1sSyT7sGJawZTOWq2IgF242_4pPoz7OMic6qJur0ZZqibaIVWwtf4nDazWJ92qNDAyQUZ77mZ1fdNqLsAz8whkjRsLuD-LDjSh8XVGnNNGSqs52bu2p8FlxH2AGu-7H_lcgkrA&__tn__=%2CO%2CP-R",
+    "rawText": "Яна Секер\n19 ч. назад\n19 ч.\n \n·\nЗдравствуйте, девочки! \nМы совсем недавно стали новыми репатриантами и сейчас живём в Израиле. У меня осталась сестра, ей 17 лет, и я очень хочу перевезти её к нам.\nНо есть один большой вопрос — иврит у неё практически нулевой. Поэтому очень переживаю, как ей будет адаптироваться, где учиться и какой путь для неё лучше выбрать.\nСейчас рассматриваю разные варианты и, в частности, программу СЭЛА. Насколько я понимаю, она как раз рассчит... Ещё\nВсе реакции:\n4\n27\nПоставить \"Нравится\"\nКомментировать\nПоделиться\nСмотреть другие ответы\nАнна Шилиан\nШколу лучше закончить там\n18 ч.\n9\nАнонимный участник 131\nЯ в 99м приехала одна по СЭЛА сразу после окончания школы. Была на юге страны. Без родственников в Израиле вообще. Из иврита знала только алфавит.\nВсе нормально, после программы отслужила в армии как солдат одиночка, выучила иврит, получила 1ю степень,... Ещё\n17 ч.\n5",
+    "aiAnalysis": {
+      "isTargetLead": true,
+      "painCategory": "speaking_barrier",
+      "confidence": 8.5,
+      "painSummary": "Преодоление языкового барьера",
+      "targetDeepLink": "/lessons/1",
+      "suggestedReply": "Очень вас понимаю! В Ульпане Алеф есть интерактивный речевой тренажер именно для этой ситуации. Промокод LATTE дает 14 дней полного доступа."
+    },
+    "status": "new"
+  },
+  {
+    "id": "lead-fb-1790661717883-cz2q",
+    "timestamp": "2026-09-29T06:01:57.883Z",
+    "sourceChannel": "facebook",
+    "sourceChatName": "Израильское сообщество (1436515633280540)",
+    "authorName": "17 ч.",
+    "authorContact": "17 ч.",
+    "postUrl": "https://www.facebook.com/groups/1436515633280540/posts/4412546669010740/?comment_id=4412624435669630&__cft__[0]=AZg5cmYjKLDHkOsp-S4oBt3_xrFBCJPMI7a4TjqnXmfnb8ug3Upv1sSyT7sGJawZTOWq2IgF242_4pPoz7OMic6qJur0ZZqibaIVWwtf4nDazWJ92qNDAyQUZ77mZ1fdNqLsAz8whkjRsLuD-LDjSh8XVGnNNGSqs52bu2p8FlxH2AGu-7H_lcgkrA&__tn__=R-R",
+    "rawText": "Я в 99м приехала одна по СЭЛА сразу после окончания школы. Была на юге страны. Без родственников в Израиле вообще. Из иврита знала только алфавит.",
+    "aiAnalysis": {
+      "isTargetLead": true,
+      "painCategory": "speaking_barrier",
+      "confidence": 8.5,
+      "painSummary": "Преодоление языкового барьера",
+      "targetDeepLink": "/lessons/1",
+      "suggestedReply": "Очень вас понимаю! В Ульпане Алеф есть интерактивный речевой тренажер именно для этой ситуации. Промокод LATTE дает 14 дней полного доступа."
+    },
+    "status": "new"
+  },
+  {
     "id": "lead-fb-1790488921038-8y13",
     "timestamp": "2026-09-27T06:02:01.038Z",
     "sourceChannel": "facebook",

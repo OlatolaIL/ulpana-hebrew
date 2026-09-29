@@ -35,39 +35,27 @@ if (!fs.existsSync(SENTENCES_DIR)) {
   fs.mkdirSync(SENTENCES_DIR, { recursive: true });
 }
 
+const { getGeminiApiKeys, maskKey } = require('./gemini_carousel.cjs');
+
+function safeWriteJson(filePath, data) {
+  const content = JSON.stringify(data, null, 2);
+  for (let attempt = 1; attempt <= 5; attempt++) {
+    try {
+      fs.writeFileSync(filePath, content, 'utf8');
+      return;
+    } catch (err) {
+      if (attempt === 5) throw err;
+      const waitMs = attempt * 150;
+      const start = Date.now();
+      while (Date.now() - start < waitMs) {}
+    }
+  }
+}
+
 function getApiKeys() {
-  const keys = [];
-  const keyMap = {};
-  if (fs.existsSync(ENV_PATH)) {
-    const content = fs.readFileSync(ENV_PATH, 'utf8');
-    for (const line of content.split('\n')) {
-      const trimmed = line.trim();
-      const eq = trimmed.indexOf('=');
-      if (eq > 0) {
-        const k = trimmed.slice(0, eq).trim();
-        const v = trimmed.slice(eq + 1).trim().replace(/^['"]|['"]$/g, '');
-        if (
-          k === 'GEMINI_TTS_API_KEY' ||
-          k === 'GEMINI_PRIMARY_API_KEY' ||
-          k === 'GEMINI_SECONDARY_API_KEY' ||
-          k === 'GEMINI_API_KEY'
-        ) {
-          if (v) keyMap[k] = v;
-        }
-      }
-    }
-  }
-  const priorityOrder = ['GEMINI_TTS_API_KEY', 'GEMINI_PRIMARY_API_KEY', 'GEMINI_SECONDARY_API_KEY', 'GEMINI_API_KEY'];
-  for (const kName of priorityOrder) {
-    if (keyMap[kName] && !keys.includes(keyMap[kName])) {
-      keys.push(keyMap[kName]);
-    }
-  }
-  if (process.env.GEMINI_API_KEY && !keys.includes(process.env.GEMINI_API_KEY)) {
-    keys.push(process.env.GEMINI_API_KEY);
-  }
-  if (!keys.length) throw new Error('No Gemini API keys found in .env.local');
-  return keys;
+  const keyObjs = getGeminiApiKeys();
+  if (!keyObjs.length) throw new Error('No Gemini API keys found in .env.local');
+  return keyObjs.map((k) => k.key);
 }
 
 function stripNikkud(text) {
@@ -145,7 +133,7 @@ function loadCatalog(options = {}) {
   }
 
   if (metadataModified) {
-    fs.writeFileSync(METADATA_PATH, JSON.stringify(metadata, null, 2), 'utf8');
+    safeWriteJson(METADATA_PATH, metadata);
   }
 
   return { items: allItems, manifest, metadata };
@@ -379,12 +367,12 @@ async function main() {
 
       // Периодическое сохранение каждые 10 записей
       if (successCount % 10 === 0) {
-        fs.writeFileSync(MANIFEST_PATH, JSON.stringify(manifest, null, 2), 'utf8');
-        fs.writeFileSync(METADATA_PATH, JSON.stringify(metadata, null, 2), 'utf8');
+        safeWriteJson(MANIFEST_PATH, manifest);
+        safeWriteJson(METADATA_PATH, metadata);
       }
 
-      // Пауза 8500мс между запросами для строгого соблюдения лимита 10 RPM (~7 запросов в минуту)
-      await sleep(8500);
+      // Пауза 2500мс между запросами: при 3-модельной карусели это 7.5с на модель (~8 RPM при лимите 15 RPM)
+      await sleep(2500);
     } catch (err) {
       failCount++;
       console.error(`✗ ${progress} Ошибка на фразе "${item.sentenceHe}": ${err.message}`);
@@ -404,8 +392,8 @@ async function main() {
   }
 
   // Финальное сохранение
-  fs.writeFileSync(MANIFEST_PATH, JSON.stringify(manifest, null, 2), 'utf8');
-  fs.writeFileSync(METADATA_PATH, JSON.stringify(metadata, null, 2), 'utf8');
+  safeWriteJson(MANIFEST_PATH, manifest);
+  safeWriteJson(METADATA_PATH, metadata);
 
   console.log('\n================================================================');
   console.log(`📊 ИТОГО ЗАПУСКА:`);
