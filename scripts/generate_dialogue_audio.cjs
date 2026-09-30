@@ -366,7 +366,10 @@ async function main() {
         const variant = turn.variants[combo] || turn.variants.mm;
         if (!variant || !variant.hebrew) continue;
 
-        if (!isForce && fs.existsSync(destPath) && fs.statSync(destPath).size > 100) {
+        const isFixMixed = args.includes('--fix-mixed');
+        const needsFix = isFixMixed && targetEngine === 'gemini' && manifest[key] && (!manifest[key].model || manifest[key].model !== lessonModel);
+
+        if (!isForce && !needsFix && fs.existsSync(destPath) && fs.statSync(destPath).size > 100) {
           alreadyExistingCount++;
           if (!manifest[key] || manifest[key].engine !== targetEngine) {
             manifest[key] = {
