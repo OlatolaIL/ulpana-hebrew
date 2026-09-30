@@ -52,7 +52,18 @@ function loadManifest() {
 }
 
 function saveManifest(manifest) {
-  fs.writeFileSync(MANIFEST_PATH, JSON.stringify(manifest, null, 2), 'utf8');
+  const content = JSON.stringify(manifest, null, 2);
+  for (let attempt = 1; attempt <= 5; attempt++) {
+    try {
+      fs.writeFileSync(MANIFEST_PATH, content, 'utf8');
+      return;
+    } catch (err) {
+      if (attempt === 5) throw err;
+      const waitMs = attempt * 150;
+      const start = Date.now();
+      while (Date.now() - start < waitMs) {}
+    }
+  }
 }
 
 function stripDageshFrom(text, letters) {
@@ -297,9 +308,13 @@ async function main() {
   if (isAll) {
     lessonIds = Array.from({ length: 100 }, (_, i) => i + 1);
   } else if (lessonsArg) {
-    const range = lessonsArg.split('=')[1];
-    const [start, end] = range.split('-').map(Number);
-    lessonIds = Array.from({ length: end - start + 1 }, (_, i) => start + i);
+    const rawRange = lessonsArg.split('=')[1];
+    if (rawRange.includes('-')) {
+      const [start, end] = rawRange.split('-').map(Number);
+      lessonIds = Array.from({ length: end - start + 1 }, (_, i) => start + i);
+    } else {
+      lessonIds = [parseInt(rawRange, 10)];
+    }
   } else if (lessonArg) {
     lessonIds = [parseInt(lessonArg.split('=')[1], 10)];
   }
@@ -461,13 +476,17 @@ async function main() {
           };
           const keyLabel = res.keyIndex ? ` (ключ #${res.keyIndex} [${res.keyName}])` : '';
           console.log(`OK (${res.bytes} байт, ${res.model || currentLessonModel || 'edge'}${keyLabel})`);
+
+          if (generatedCount % 5 === 0) {
+            saveManifest(manifest);
+          }
         } else {
           errorCount++;
           console.log(`ERROR (${res.error})`);
         }
 
-        // Небольшая пауза между запросами
-        await new Promise(r => setTimeout(r, targetEngine === 'gemini' ? 300 : 60));
+        // Пауза между запросами: для Gemini 2000мс обеспечивает соблюдение 15 RPM
+        await new Promise(r => setTimeout(r, targetEngine === 'gemini' ? 2000 : 60));
       }
 
       saveManifest(manifest);
