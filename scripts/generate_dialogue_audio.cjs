@@ -220,7 +220,7 @@ async function synthesizeTurnGemini(text, voice, destPath, carousel, requiredMod
       }
 
       if (res.status === 429 || data.error?.code === 429) {
-        const rateInfo = carousel.handleRateLimit(slot, data.error?.message || '');
+        const rateInfo = carousel.handleRateLimit(slot, data.error?.message || '', data.error?.details || null);
         if (!rateInfo.daily && rateInfo.retry) {
           await new Promise(r => setTimeout(r, rateInfo.delayMs || 3000));
         }

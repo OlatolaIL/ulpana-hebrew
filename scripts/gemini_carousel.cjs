@@ -151,9 +151,11 @@ class GeminiCarousel {
     this.advance();
   }
 
-  handleRateLimit(slot, errorMsg) {
+  handleRateLimit(slot, errorMsg, errorDetails = null) {
     const slotKey = `${slot.keyIndex}_${slot.model}`;
-    const isDaily = /per_model_per_day|per_day|per day|PerDay|GenerateRequestsPerDay/i.test(errorMsg);
+    const detailsStr = errorDetails ? JSON.stringify(errorDetails) : '';
+    const combined = `${errorMsg} ${detailsStr}`;
+    const isDaily = /per_model_per_day|per_day|per day|PerDay|GenerateRequestsPerDay/i.test(combined);
     if (isDaily) {
       this.markDailyExhausted(slot);
       return { daily: true };
