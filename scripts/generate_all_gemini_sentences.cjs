@@ -329,6 +329,10 @@ async function main() {
   const isDryRun = args.includes('--dry-run');
   const isMaleOnly = args.includes('--male-only');
   const isFemaleOnly = args.includes('--female-only');
+  // --force-water: принудительно перегенерировать все фразы с «вода» (מים),
+  // игнорируя кэш. Исправляет баг: старые файлы синтезированы без нормализации
+  // двойного йода и произносятся «маим» вместо «майим».
+  const isForceWater = args.includes('--force-water');
 
   let limit = Infinity;
   const limitArg = args.find((a) => a.startsWith('--limit='));
@@ -341,10 +345,11 @@ async function main() {
   const targetFile = targetFileArg ? targetFileArg.split('=')[1].trim() : null;
 
   const targetWordArg = args.find((a) => a.startsWith('--word='));
-  const targetWord = targetWordArg ? targetWordArg.split('=')[1].trim() : null;
+  // --force-water автоматически подразумевает targetWord=מים
+  const targetWord = isForceWater ? 'מים' : (targetWordArg ? targetWordArg.split('=')[1].trim() : null);
 
   const apiKeys = getApiKeys();
-  const { items, manifest, metadata } = loadCatalog({ isForce, isMaleOnly, isFemaleOnly, targetFile, targetWord });
+  const { items, manifest, metadata } = loadCatalog({ isForce, isMaleOnly, isFemaleOnly, targetFile, targetWord, isForceWater });
 
   const alreadyDone = items.filter((i) => i.isAlreadyGenerated);
   const pending = items.filter((i) => !i.isAlreadyGenerated);
