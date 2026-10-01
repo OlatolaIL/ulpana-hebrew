@@ -140,3 +140,12 @@ test('cleanHebrewForSpeech normalizes unpointed sababa to pointed form (סַבָ
   assert.equal(cleanHebrewForSpeech('סַבָּבָּה'), 'סַבָּבָּה');
 });
 
+test('cleanHebrewForSpeech normalizes water (מים / במים) to double yod (מַיִּים / בַּמַּיִּים) for crisp TTS pronunciation', () => {
+  const { cleanHebrewForSpeech } = require('../src/lib/speech.ts');
+  assert.equal(cleanHebrewForSpeech('מים'), 'מַיִּים');
+  assert.equal(cleanHebrewForSpeech('בַּמַּיִם'), 'בַּמַּיִּים');
+  assert.equal(cleanHebrewForSpeech('בְּמַיִם'), 'בְּמַיִּים');
+  assert.equal(cleanHebrewForSpeech('דָּוִד מִתְרַחֵץ בַּמַּיִם חַמִּים בַּבֹּקֶר.'), 'דָּוִד מִתְרַחֵץ בַּמַּיִּים חַמִּים בַּבֹּקֶר.');
+});
+
+

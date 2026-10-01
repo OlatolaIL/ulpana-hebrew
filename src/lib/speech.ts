@@ -116,6 +116,20 @@ function fixHebrewPhonetics(text: string): string {
   // Гарантируем дагеш в букве פ после шва в любых формах слова ульпан (לְפָּן)
   res = res.replace(/(\u05dc\u05b0)\u05e4(?!\u05bc)(\u05b8\u05df)/g, '$1\u05e4\u05bc$2');
 
+  // Фонетическая нормализация слова «вода» (מים) для всех синтезаторов:
+  // Форма с двойным йодом מַיִּים предотвращает редукцию [j] в гласное зияние [маим]
+  res = res.replace(/(^|[\s.,!?:;«»"״׳()[\]{}—])([בלהומכ]?[\u0591-\u05C7]*)מ[\u0591-\u05C7]*י[\u0591-\u05C7]*ם(?=[\s.,!?:;«»"״׳()[\]{}—]|$)/g, (match, p1, prefix) => {
+    const p = prefix || '';
+    if (!p) return `${p1}מַיִּים`;
+    if (p.includes('בַּ') || p.includes('בַּ') || p.includes('בַ') || p === 'ב') return `${p1}בַּמַּיִּים`;
+    if (p.includes('בְּ') || p.includes('בְּ') || p.includes('בְ')) return `${p1}בְּמַיִּים`;
+    if (p.includes('הַ') || p === 'ה') return `${p1}הַמַּיִּים`;
+    if (p.includes('וּ') || p.includes('וְ') || p === 'ו') return `${p1}וּמַיִּים`;
+    if (p.includes('לַ') || p.includes('לְ') || p === 'ל') return `${p1}לַמַּיִּים`;
+    if (p.includes('מִ') || p.includes('מֵ') || p === 'מ') return `${p1}מִמַּיִּים`;
+    return `${p1}${p}מַיִּים`;
+  });
+
   res = res.replace(/(^|\s)ספרי(\s+ли|\s+לי)/g, '$1סַפְּרִי$2');
   res = res.replace(/(^|\s)ספר(\s+ли|\s+לי)/g, '$1סַפֵּר$2');
   res = res.replace(/(^|\s)תספרי(\s+ли|\s+לי)/g, '$1תְּסַפְּרִי$2');

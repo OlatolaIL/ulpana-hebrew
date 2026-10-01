@@ -70,6 +70,34 @@ function normalizeSentenceKey(sentence) {
     .trim();
 }
 
+/**
+ * Фонетическая нормализация иврита перед передачей в нейросеть Gemini TTS.
+ * Исправляет редукцию согласных и гарантирует правильное звучание.
+ */
+function normalizeHebrewForGeminiTts(text) {
+  if (!text) return '';
+  let res = text;
+
+  // 1. Нормализация слова «вода» (מים, במים, במיים):
+  // В стандартном написании מַיִם с одним йодом нейросеть Gemini TTS редуцирует [j]
+  // в гласное зияние [baˈma.im] («маим»).
+  // Написание с усиленным כתיב מלא (двойной йод) בַּמַּיִּים / מַיִּים заставляет
+  // акустическую модель Gemini четко артикулировать согласный глайд [j] -> [baˈmajim] («майим»).
+  res = res.replace(/(^|[\s.,!?:;«»"״׳()[\]{}—])([בלהומכ]?[\u0591-\u05C7]*)מ[\u0591-\u05C7]*י[\u0591-\u05C7]*ם(?=[\s.,!?:;«»"״׳()[\]{}—]|$)/g, (match, p1, prefix) => {
+    const p = prefix || '';
+    if (!p) return `${p1}מַיִּים`;
+    if (p.includes('בַּ') || p.includes('בַּ') || p.includes('בַ') || p === 'ב') return `${p1}בַּמַּיִּים`;
+    if (p.includes('בְּ') || p.includes('בְּ') || p.includes('בְ')) return `${p1}בְּמַיִּים`;
+    if (p.includes('הַ') || p === 'ה') return `${p1}הַמַּיִּים`;
+    if (p.includes('וּ') || p.includes('וְ') || p === 'ו') return `${p1}וּמַיִּים`;
+    if (p.includes('לַ') || p.includes('לְ') || p === 'ל') return `${p1}לַמַּיִּים`;
+    if (p.includes('מִ') || p.includes('מֵ') || p === 'מ') return `${p1}מִמַּיִּים`;
+    return `${p1}${p}מַיִּים`;
+  });
+
+  return res;
+}
+
 function parseTsv(filePath, gender, voiceName) {
   if (!fs.existsSync(filePath)) return [];
   const content = fs.readFileSync(filePath, 'utf8');
@@ -129,7 +157,15 @@ function loadCatalog(options = {}) {
       };
       metadataModified = true;
     }
-    item.isAlreadyGenerated = !options.isForce && (hasMetadata || hasFile);
+    const isTargetFile = options.targetFile && item.fileName === options.targetFile;
+    const isWaterWord = /(^|[\s.,!?:;«»"״׳()[\]{}—])([בלהומכ]?[\u0591-\u05C7]*)מ[\u0591-\u05C7]*י[\u0591-\u05C7]*ם(?=[\s.,!?:;«»"״׳()[\]{}—]|$)/.test(item.sentenceHe);
+    const isTargetWord = options.targetWord && (
+      options.targetWord === 'מים' ? isWaterWord : item.sentenceHe.includes(options.targetWord)
+    );
+    const forceThisItem = Boolean(isTargetFile || isTargetWord);
+
+    item.isWaterWord = isWaterWord;
+    item.isAlreadyGenerated = !options.isForce && !forceThisItem && (hasMetadata || hasFile);
   }
 
   if (metadataModified) {
@@ -166,7 +202,8 @@ function getNextAvailableSlot(slots) {
   return null;
 }
 
-async function synthesizeWithGemini(text, destPath, apiKeys, voiceName, maxRetries = 3) {
+async function synthesizeWithGemini(rawText, destPath, apiKeys, voiceName, maxRetries = 3) {
+  const text = normalizeHebrewForGeminiTts(rawText);
   if (!globalSlots) {
     globalSlots = [];
     apiKeys.forEach((key, kIdx) => {
@@ -300,11 +337,26 @@ async function main() {
     limit = val === 'all' ? Infinity : parseInt(val, 10);
   }
 
+  const targetFileArg = args.find((a) => a.startsWith('--target-file='));
+  const targetFile = targetFileArg ? targetFileArg.split('=')[1].trim() : null;
+
+  const targetWordArg = args.find((a) => a.startsWith('--word='));
+  const targetWord = targetWordArg ? targetWordArg.split('=')[1].trim() : null;
+
   const apiKeys = getApiKeys();
-  const { items, manifest, metadata } = loadCatalog({ isForce, isMaleOnly, isFemaleOnly });
+  const { items, manifest, metadata } = loadCatalog({ isForce, isMaleOnly, isFemaleOnly, targetFile, targetWord });
 
   const alreadyDone = items.filter((i) => i.isAlreadyGenerated);
   const pending = items.filter((i) => !i.isAlreadyGenerated);
+
+  // Первоочередная приоритезация: целевой файл, целевое слово и любые фразы со словом «вода» (מים) идут первыми
+  pending.sort((a, b) => {
+    const aPri = (targetFile && a.fileName === targetFile) || a.isWaterWord;
+    const bPri = (targetFile && b.fileName === targetFile) || b.isWaterWord;
+    if (aPri && !bPri) return -1;
+    if (!aPri && bPri) return 1;
+    return 0;
+  });
 
   console.log('================================================================');
   console.log('🎙️ ШЕСТИКАНАЛЬНАЯ КАСКАДНАЯ ГЕНЕРАЦИЯ (2 КОНТУРА × 3 МОДЕЛИ GEMINI TTS)');

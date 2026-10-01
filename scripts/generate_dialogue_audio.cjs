@@ -121,6 +121,19 @@ function normalizeHebrewForNeuralTts(text) {
   res = res.replace(/([לבמה]?ָ?)אוּלְפָן/g, '$1אוּלְפָּן');
   res = res.replace(/([לבמה]?)אולפן/g, '$1אוּלְפָּן');
 
+  // 6.1. Защита слова «вода» (מים): форма с двойным йодом מַיִּים гарантирует артикуляцию [j] («майим»)
+  res = res.replace(/(^|[\s.,!?:;«»"״׳()[\]{}—])([בלהומכ]?[\u0591-\u05C7]*)מ[\u0591-\u05C7]*י[\u0591-\u05C7]*ם(?=[\s.,!?:;«»"״׳()[\]{}—]|$)/g, (match, p1, prefix) => {
+    const p = prefix || '';
+    if (!p) return `${p1}מַיִּים`;
+    if (p.includes('בַּ') || p.includes('בַּ') || p.includes('בַ') || p === 'ב') return `${p1}בַּמַּיִּים`;
+    if (p.includes('בְּ') || p.includes('בְּ') || p.includes('בְ')) return `${p1}בְּמַיִּים`;
+    if (p.includes('הַ') || p === 'ה') return `${p1}הַמַּיִּים`;
+    if (p.includes('וּ') || p.includes('וְ') || p === 'ו') return `${p1}וּמַיִּים`;
+    if (p.includes('לַ') || p.includes('לְ') || p === 'ל') return `${p1}לַמַּיִּים`;
+    if (p.includes('מִ') || p.includes('מֵ') || p === 'מ') return `${p1}מִמַּיִּים`;
+    return `${p1}${p}מַיִּים`;
+  });
+
   // 7. Очистка от служебных знаков и эмодзи (сохраняя никуд!)
   res = res
     .replace(/[♂♀⚥✔️❌①②③④⑤👉📦🌸🎙️👥↗️➡️⬅️⬆️⬇️✨💫\u200D\uFE0F\uFE0E]/g, '')
