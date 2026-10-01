@@ -300,8 +300,12 @@ async function main() {
       console.error('❌ ОШИБКА: Не найдены ключи GEMINI_*_KEY в .env.local');
       process.exit(1);
     }
-    carousel = createGeminiCarousel(apiKeys);
-    console.log(`🔑 Пул ключей Gemini: ${apiKeys.length} шт. | Всего слотов: ${carousel.slots.length}`);
+    const isOnly38 = args.includes('--only-38') || args.includes('--family=3.8');
+    const allowedModels = isOnly38
+      ? ['gemini-3.8-flash-tts', 'gemini-3.8-flash-lite-tts']
+      : GEMINI_TTS_MODELS;
+    carousel = createGeminiCarousel(apiKeys, allowedModels);
+    console.log(`🔑 Пул ключей Gemini: ${apiKeys.length} шт. | Всего слотов: ${carousel.slots.length} | Модели: ${allowedModels.join(', ')}`);
     apiKeys.forEach(k => console.log(`   - Ключ #${k.keyIndex}: ${k.name} [${k.masked}]`));
   }
 
@@ -320,6 +324,8 @@ async function main() {
   }
 
   const isDryRun = args.includes('--dry-run');
+  const isOnly38 = args.includes('--only-38') || args.includes('--family=3.8');
+  const isFixMixed = args.includes('--fix-mixed');
 
   console.log('====================================================');
   console.log(`🎙️ ГЕНЕРАЦИЯ ДИАЛОГОВЫХ АУДИОФАЙЛОВ (${targetEngine.toUpperCase() === 'GEMINI' ? 'GEMINI TTS (КАРУСЕЛЬ СЛОТОВ)' : 'MICROSOFT NEURAL'})`);
@@ -347,11 +353,11 @@ async function main() {
     // R-28: Инвариант однородности модели внутри одного урока
     let lessonModel = targetModel;
     if (!lessonModel && targetEngine === 'gemini' && carousel) {
-      const existingTurn = Object.values(manifest).find(m => m.lessonId === lessonId && m.engine === 'gemini' && m.model);
+      const existingTurn = isForce ? null : Object.values(manifest).find(m => m.lessonId === lessonId && m.engine === 'gemini' && m.model && carousel.models.includes(m.model));
       lessonModel = existingTurn ? existingTurn.model : carousel.getBestAvailableModel();
     }
     if (!lessonModel && targetEngine === 'gemini') {
-      lessonModel = 'gemini-3.8-flash-tts';
+      lessonModel = carousel ? carousel.getBestAvailableModel() : 'gemini-3.8-flash-tts';
     }
 
     for (const turn of dialogue.turns) {
@@ -366,8 +372,9 @@ async function main() {
         const variant = turn.variants[combo] || turn.variants.mm;
         if (!variant || !variant.hebrew) continue;
 
-        const isFixMixed = args.includes('--fix-mixed');
-        const needsFix = isFixMixed && targetEngine === 'gemini' && manifest[key] && (!manifest[key].model || manifest[key].model !== lessonModel);
+        const isWrongModel = isOnly38 && targetEngine === 'gemini' && carousel && manifest[key] && (!manifest[key].model || !carousel.models.includes(manifest[key].model));
+        const isMismatch = isFixMixed && targetEngine === 'gemini' && manifest[key] && (!manifest[key].model || manifest[key].model !== lessonModel);
+        const needsFix = isWrongModel || isMismatch;
 
         if (!isForce && !needsFix && fs.existsSync(destPath) && fs.statSync(destPath).size > 100) {
           alreadyExistingCount++;
@@ -442,14 +449,14 @@ async function main() {
       if (activeLessonModels.has(lessonId)) {
         currentLessonModel = activeLessonModels.get(lessonId);
       } else {
-        const existingTurn = Object.values(manifest).find(m => m.lessonId === lessonId && m.engine === 'gemini' && m.model);
+        const existingTurn = isForce ? null : Object.values(manifest).find(m => m.lessonId === lessonId && m.engine === 'gemini' && m.model && carousel.models.includes(m.model));
         currentLessonModel = existingTurn ? existingTurn.model : carousel.getBestAvailableModel();
         activeLessonModels.set(lessonId, currentLessonModel);
         console.log(`\n🎭 [Урок ${lessonId}] Выбрана единая модель для всех реплик урока: ${currentLessonModel}`);
       }
     }
     if (!currentLessonModel && targetEngine === 'gemini') {
-      currentLessonModel = 'gemini-3.8-flash-tts';
+      currentLessonModel = carousel ? carousel.getBestAvailableModel() : 'gemini-3.8-flash-tts';
     }
 
     const voiceLabel = targetEngine === 'gemini' ? voice : voice.split('-')[2];
