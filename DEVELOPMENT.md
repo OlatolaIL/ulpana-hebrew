@@ -899,8 +899,8 @@ useEffect(() => {
 1. **Слой 1 (Фабрика видео `render_occ_variants.mjs` / `occ_factory.mjs`):**
    - Автоматический вызов `node scripts/sync_marketing_publications_ts.cjs` сразу по завершении рендера видео.
    - Поддержка флага `--upload` для моментальной выгрузки MP4 в GitHub Releases CDN (`upload_release_assets.mjs`).
-2. **Слой 2 (Хук сборки `package.json`):**
-   - Команда `"build"` расширена: `"node scripts/sync_marketing_publications_ts.cjs && next build --webpack"`. При любом билде на Vercel или локально TypeScript-реестр пересобирается автоматически.
+2. **Слой 2 (Изоляция `.vercelignore` и чистый билд):**
+   - Каталоги `scripts/` и `growth/` исключены из Vercel через `.vercelignore` (R-23), поэтому в `package.json` сохраняется чистый `"build": "next build --webpack"`. Вся синхронизация выполняется локально на шаге 1 и проверяется в CI.
 3. **Слой 3 (CI-инвариант `tests/decision-matrix-invariants.test.cjs`):**
    - Добавлен автоматический тест инварианта `R-25`: проверяет строгое совпадение количества элементов и ID между `growth/data/publications.json` и `src/data/marketingPublicationsData.ts`. При любом рассинхроне тесты падают с указанием команды исправления.
 4. **CDN-выгрузка:**
