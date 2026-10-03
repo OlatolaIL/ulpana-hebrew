@@ -325,13 +325,19 @@ async function main() {
   if (isAll) {
     lessonIds = Array.from({ length: 100 }, (_, i) => i + 1);
   } else if (lessonsArg) {
-    const rawRange = lessonsArg.split('=')[1];
-    if (rawRange.includes('-')) {
-      const [start, end] = rawRange.split('-').map(Number);
-      lessonIds = Array.from({ length: end - start + 1 }, (_, i) => start + i);
-    } else {
-      lessonIds = [parseInt(rawRange, 10)];
+    const rawVal = lessonsArg.split('=')[1];
+    lessonIds = [];
+    const parts = rawVal.split(',');
+    for (const part of parts) {
+      if (part.includes('-')) {
+        const [start, end] = part.split('-').map(Number);
+        for (let i = start; i <= end; i++) lessonIds.push(i);
+      } else {
+        const num = parseInt(part, 10);
+        if (!isNaN(num)) lessonIds.push(num);
+      }
     }
+    lessonIds = Array.from(new Set(lessonIds)).sort((a, b) => a - b);
   } else if (lessonArg) {
     lessonIds = [parseInt(lessonArg.split('=')[1], 10)];
   }
@@ -385,7 +391,7 @@ async function main() {
         const variant = turn.variants[combo] || turn.variants.mm;
         if (!variant || !variant.hebrew) continue;
 
-        const isWrongModel = isOnly38 && targetEngine === 'gemini' && carousel && manifest[key] && (!manifest[key].model || !carousel.models.includes(manifest[key].model));
+        const isWrongModel = isOnly38 && targetEngine === 'gemini' && carousel && manifest[key] && (!manifest[key].model || !carousel.models.includes(manifest[key].model)) && lessonId <= 11;
         const isMismatch = isFixMixed && targetEngine === 'gemini' && manifest[key] && (!manifest[key].model || manifest[key].model !== lessonModel);
         const needsFix = isWrongModel || isMismatch;
 
@@ -506,6 +512,10 @@ async function main() {
         } else {
           errorCount++;
           console.log(`ERROR (${res.error})`);
+          if (targetEngine === 'gemini' && !carousel.hasAvailableSlots()) {
+            console.warn('\n🛑 Все слоты и ключи карусели Gemini исчерпаны. Прерывание очереди.');
+            break;
+          }
         }
 
         // Пауза между запросами: для Gemini 2000мс обеспечивает соблюдение 15 RPM
