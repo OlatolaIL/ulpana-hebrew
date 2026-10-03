@@ -23,7 +23,7 @@ const tsCode = `export interface PublicationItem {
   promoCode: string;
   fullUrlWithPromo: string;
   livePostUrl: string;
-  status: 'draft' | 'scheduled' | 'published' | 'archived';
+  status: 'draft' | 'scheduled' | 'published' | 'archived' | 'ready_for_upload';
   notes?: string;
   createdAt: string;
   updatedAt: string;
