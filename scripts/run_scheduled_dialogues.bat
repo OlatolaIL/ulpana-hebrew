@@ -17,9 +17,9 @@ rem Шаг 2: Добор недостающих реплик Уроков 42 и 
 echo [%date% %time%] --- Шаг 2: Добор хвостов Уроков 42 и 52 --- >> "logs\gemini_dialogues_batch.log" 2>&1
 "C:\Users\azrie\scoop\apps\nodejs-lts\current\node.exe" --require ./tests/register.cjs scripts\generate_dialogue_audio.cjs --lessons=42,52 --engine=gemini >> "logs\gemini_dialogues_batch.log" 2>&1
 
-rem Шаг 3: Синтез следующих диалогов курса (Уроки 56-75)
-echo [%date% %time%] --- Шаг 3: Синтез диалогов уроков 56-75 --- >> "logs\gemini_dialogues_batch.log" 2>&1
-"C:\Users\azrie\scoop\apps\nodejs-lts\current\node.exe" --require ./tests/register.cjs scripts\generate_dialogue_audio.cjs --lessons=56-75 --engine=gemini >> "logs\gemini_dialogues_batch.log" 2>&1
+rem Шаг 3: Синтез следующих диалогов курса (Уроки 56-100)
+echo [%date% %time%] --- Шаг 3: Синтез диалогов уроков 56-100 --- >> "logs\gemini_dialogues_batch.log" 2>&1
+"C:\Users\azrie\scoop\apps\nodejs-lts\current\node.exe" --require ./tests/register.cjs scripts\generate_dialogue_audio.cjs --lessons=56-100 --engine=gemini >> "logs\gemini_dialogues_batch.log" 2>&1
 
 rem Шаг 4: Проверка инвариантов
 echo [%date% %time%] --- Шаг 4: Контроль инвариантов --- >> "logs\gemini_dialogues_batch.log" 2>&1
