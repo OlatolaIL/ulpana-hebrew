@@ -332,6 +332,33 @@ test('R-25: Viral Video Engine and VIDEO_PRODUCTION_PLAYBOOK.md invariants are d
   assert.ok(registry.stages && registry.stages['stage-05-dialogue'], 'registry.json must track stage-05-dialogue in stages');
 });
 
+test('R-25: Marketing Publications JSON and TypeScript registries must remain strictly in sync', () => {
+  const jsonPath = path.join(repoRoot, 'growth/data/publications.json');
+  const tsPath = path.join(repoRoot, 'src/data/marketingPublicationsData.ts');
+  assert.ok(fs.existsSync(jsonPath), 'growth/data/publications.json must exist');
+  assert.ok(fs.existsSync(tsPath), 'src/data/marketingPublicationsData.ts must exist');
+
+  const jsonItems = JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
+  const tsContent = fs.readFileSync(tsPath, 'utf8');
+
+  // Verify item count matches
+  const match = tsContent.match(/export const MARKETING_PUBLICATIONS: PublicationItem\[\] = (\[[\s\S]*\]);/);
+  assert.ok(match, 'marketingPublicationsData.ts must export MARKETING_PUBLICATIONS array');
+  const tsItems = JSON.parse(match[1]);
+
+  assert.strictEqual(
+    tsItems.length,
+    jsonItems.length,
+    `Registry desync: growth/data/publications.json has ${jsonItems.length} items, but src/data/marketingPublicationsData.ts has ${tsItems.length}. Run "node scripts/sync_marketing_publications_ts.cjs" to sync.`
+  );
+
+  // Check all IDs match
+  const jsonIds = new Set(jsonItems.map((i) => i.id));
+  for (const item of tsItems) {
+    assert.ok(jsonIds.has(item.id), `ID ${item.id} found in TS but missing from publications.json`);
+  }
+});
+
 test('R-27: Zero-Waste Quota Policy and audio-quota-protection test suite are defined and active', () => {
   const matrixContent = fs.readFileSync(matrixPath, 'utf8');
   assert.ok(matrixContent.includes('R-27'), 'DECISION_MATRIX.md must define R-27');

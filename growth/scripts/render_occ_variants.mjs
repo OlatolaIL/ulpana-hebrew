@@ -130,6 +130,26 @@ async function renderPlatformVariants() {
     }
   }
 
+  // 3. Автоматическая синхронизация с TypeScript-модулем для Vercel и Admin Hub
+  try {
+    const syncScript = path.resolve(ROOT, 'scripts/sync_marketing_publications_ts.cjs');
+    if (fs.existsSync(syncScript)) {
+      console.log('🔄 Автоматическая синхронизация с src/data/marketingPublicationsData.ts...');
+      cp.spawnSync('node', [syncScript], { stdio: 'inherit' });
+    }
+  } catch (syncErr) {
+    console.warn('⚠️ Ошибка авто-синхронизации marketingPublicationsData.ts:', syncErr.message);
+  }
+
+  // 4. Опциональная загрузка в GitHub Releases CDN
+  if (process.argv.includes('--upload')) {
+    console.log('\n🚀 Автоматическая выгрузка видеороликов на GitHub Releases CDN...');
+    const uploadScript = path.resolve(ROOT, 'growth/scripts/upload_release_assets.mjs');
+    if (fs.existsSync(uploadScript)) {
+      cp.spawnSync('node', [uploadScript, '--release-tag=v-media-lessons-02-05', '--filter=lesson_10_spicy'], { stdio: 'inherit' });
+    }
+  }
+
   console.log('\n======================================================');
   console.log('🎉 ВСЕ 5 ПЛАТФОРМЕННЫХ РОЛИКОВ УСПЕШНО СОБРАНЫ:');
   for (const r of results) {

@@ -67,7 +67,11 @@ export async function runOccFactoryPipeline(options = {}) {
   // Шаг 4: Сборка платформенных вариантов (YT, TG, INSTA, TIKTOK, FB)
   if (step === 'all' || step === 'variants') {
     console.log('\n🚀 [ШАГ 3] Пакетная сборка 5 видеороликов для всех платформ...');
-    cp.spawnSync('node', ['growth/scripts/render_occ_variants.mjs'], { stdio: 'inherit', cwd: ROOT });
+    const renderArgs = ['growth/scripts/render_occ_variants.mjs'];
+    if (options.upload || process.argv.includes('--upload')) {
+      renderArgs.push('--upload');
+    }
+    cp.spawnSync('node', renderArgs, { stdio: 'inherit', cwd: ROOT });
   }
 
   console.log('\n================================================================');
@@ -82,14 +86,16 @@ if (process.argv[1] && process.argv[1].endsWith('occ_factory.mjs')) {
   let lesson = 10;
   let variant = 'spicy';
   let step = 'all';
+  let upload = false;
 
   for (let i = 0; i < args.length; i++) {
     if (args[i] === '--lesson' && args[i + 1]) lesson = parseInt(args[++i], 10);
     if (args[i] === '--variant' && args[i + 1]) variant = args[++i];
     if (args[i] === '--step' && args[i + 1]) step = args[++i];
+    if (args[i] === '--upload') upload = true;
   }
 
-  runOccFactoryPipeline({ lesson, variant, step }).catch(err => {
+  runOccFactoryPipeline({ lesson, variant, step, upload }).catch(err => {
     console.error('❌ Ошибка конвейера видеофабрики:', err);
     process.exit(1);
   });

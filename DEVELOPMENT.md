@@ -887,3 +887,27 @@ useEffect(() => {
 7. **Деплой на GitHub (`R-14`):**
    - Точечный стейджинг без захвата бинарных MP4: коммит `21a4d686` отправлен в `main` (`git push origin main`).
    - Тесты: `node tests/decision-matrix-invariants.test.cjs` (16/16 pass).
+
+---
+
+### Трёхслойная автоматическая синхронизация реестров видеопубликаций (03 октября 2026)
+
+**Проблема:**
+Новые смонтированные ролики (Урок 10 Spicy, Урок 6) не отображались в боевой админке `/admin` на Vercel, так как генераторы видео записывали данные только в `growth/data/publications.json`. Из-за изоляции Growth Engine (`R-23`) каталог `growth/` не попадает в бандл Vercel Serverless Functions. Админка опирается на Neon Postgres и fallback-модуль `src/data/marketingPublicationsData.ts`, который требовал ручного запуска `sync_marketing_publications_ts.cjs`. Видеофайлы при этом должны храниться на GitHub Releases CDN, а не в Git (`R-14`, `R-25`).
+
+**Решение (Трёхслойный автоматический барьер):**
+1. **Слой 1 (Фабрика видео `render_occ_variants.mjs` / `occ_factory.mjs`):**
+   - Автоматический вызов `node scripts/sync_marketing_publications_ts.cjs` сразу по завершении рендера видео.
+   - Поддержка флага `--upload` для моментальной выгрузки MP4 в GitHub Releases CDN (`upload_release_assets.mjs`).
+2. **Слой 2 (Хук сборки `package.json`):**
+   - Команда `"build"` расширена: `"node scripts/sync_marketing_publications_ts.cjs && next build --webpack"`. При любом билде на Vercel или локально TypeScript-реестр пересобирается автоматически.
+3. **Слой 3 (CI-инвариант `tests/decision-matrix-invariants.test.cjs`):**
+   - Добавлен автоматический тест инварианта `R-25`: проверяет строгое совпадение количества элементов и ID между `growth/data/publications.json` и `src/data/marketingPublicationsData.ts`. При любом рассинхроне тесты падают с указанием команды исправления.
+4. **CDN-выгрузка:**
+   - Все 5 платформенных роликов Урока 10 Spicy загружены в GitHub Releases CDN (релиз `v-media-lessons-02-05`).
+   - Статус `'ready_for_upload'` («🎬 Смонтирован») поддержан во фронтенде `AdminMarketingHub` и серверном API.
+5. **Проверка:**
+   - `node tests/decision-matrix-invariants.test.cjs` (17/17 passed).
+   - `node tests/marketing-registry-api.test.cjs` (2/2 passed).
+   - `node tests/marketing-publish-api.test.cjs` (4/4 passed).
+   - `npm run typecheck` (0 ошибок).
