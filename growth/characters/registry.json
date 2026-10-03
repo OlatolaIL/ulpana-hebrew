@@ -41,6 +41,41 @@
       }
     },
     {
+      "id": "itsik_bus",
+      "name": "Ицик",
+      "nameHebrew": "אִיצִיק",
+      "role": "Водитель автобуса «Дан» (маршрут 25)",
+      "roleHebrew": "נַהָג אוֹטוֹבּוּס",
+      "archetype": "Опытный израильский водитель городского автобуса, ветеран тель-авивских маршрутов",
+      "dialogueTone": "Громкий, резкий, эмоциональный, мгновенно реагирует на нелепые реплики пассажиров.",
+      "frequentCatchphrases": [
+        "אֶת מִי לַהֲרֹג, יָא מְשֻׁגָּע?! (кого убить, псих?!)",
+        "תַּעֲלֶה כְּבָר, יָא חַבּוּבּ! (заходи уже, дружище!)",
+        "תַּעֲבִיר אֶת הָרַב-קַו! (приложи Рав-Кав!)"
+      ],
+      "topics": [
+        "автобус",
+        "остановка",
+        "маршрут 25",
+        "Рав-Кав",
+        "городской транспорт"
+      ],
+      "voice": {
+        "provider": "gemini_tts",
+        "preset": "Orus",
+        "rate": 1.15,
+        "pitch": 1.0,
+        "targetLanguage": "he-IL",
+        "notes": "Хриплый командный голос водителя в микрофон автобуса"
+      },
+      "appearancePrompt": "Hyperrealistic cinematic vertical 9:16 photo of a 50-year-old Israeli Dan bus driver named Itsik with short graying buzzcut, rugged Mediterranean features, wearing a blue short-sleeve driver uniform shirt, sitting in driver seat of a modern public bus during daytime on Tel Aviv street Ibn Gvirol",
+      "assets": {
+        "context_bus": "growth/characters/itsik_bus/emotions/context_bus.jpg",
+        "shocked": "growth/characters/itsik_bus/emotions/shocked.jpg",
+        "passenger": "growth/characters/itsik_bus/emotions/passenger_bus.jpg"
+      }
+    },
+    {
       "id": "noa_barista",
       "name": "Ноа",
       "nameHebrew": "נוֹעָה",

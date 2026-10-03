@@ -1557,10 +1557,10 @@ export const MARKETING_PUBLICATIONS: PublicationItem[] = [
     "promoCode": "YT",
     "fullUrlWithPromo": "https://ulpana-hebrew.vercel.app/#lesson-10?promo=YT&utm_source=youtube&utm_medium=shorts&utm_campaign=lesson_10_clean",
     "livePostUrl": "",
-    "status": "draft",
+    "status": "ready_for_upload",
     "notes": "YOUTUBE (CLEAN): Урок 10 • Автобус 25 на Ибн Гвироль • Остановить vs Убить • промокод YT",
     "createdAt": "2026-09-28T08:33:54.010Z",
-    "updatedAt": "2026-09-28T08:33:54.010Z"
+    "updatedAt": "2026-10-03T16:22:12.164Z"
   },
   {
     "id": "pub-tg-l10-clean",

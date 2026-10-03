@@ -717,10 +717,10 @@
             "YT": {
               "path": "public/demo/lessons/lesson_10_clean_youtube_shorts.mp4",
               "promoCode": "YT",
-              "durationSec": 28.9,
-              "resolution": "780x1688",
-              "fileSizeBytes": 3114860,
-              "generatedAt": "2026-09-28T08:31:20.625Z"
+              "durationSec": 26.5,
+              "resolution": "1080x1920",
+              "fileSizeBytes": 5490813,
+              "generatedAt": "2026-10-03T16:18:44.345Z"
             }
           }
         },
