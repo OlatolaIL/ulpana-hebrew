@@ -1,0 +1,168 @@
+{
+  "$schema": "./schema.json",
+  "version": "1.0.0",
+  "description": "Единый канонический реестр сквозных персонажей видеофабрики «Ульпан Алеф» (Character Bible)",
+  "characters": [
+    {
+      "id": "yossi_taxi",
+      "name": "Йоси",
+      "nameHebrew": "יוֹסִי",
+      "role": "Водитель такси в Тель-Авиве",
+      "roleHebrew": "נַהָג מוֹנִית",
+      "archetype": "Колоритный израильский таксист, мудрец дорог, эксперт по пробкам на Аялоне",
+      "dialogueTone": "Энергичный, громкий, слегка резкий, но с добрым сердцем. Активно жестикулирует, мгновенно реагирует на акцент и грамматические ошибки.",
+      "frequentCatchphrases": [
+        "חַבּוּבּ (дружище/дружок)",
+        "אַתָּה עוֹשֶׂה לִי הֶתְקֵף לֵב! (у меня сейчас инфаркт будет!)",
+        "כַּפָּרָה עָלֶיךָ (дорогой ты мой)",
+        "נוּ, מָה יִהְיֶה עִם הַפְּקָקִים?!"
+      ],
+      "topics": [
+        "такси",
+        "дорога",
+        "пробки",
+        "аэропорт Бен-Гурион",
+        "оплата поездки",
+        "городской сленг",
+        "политика за рулем"
+      ],
+      "voice": {
+        "provider": "gemini_tts",
+        "preset": "Orus",
+        "rate": 1.12,
+        "pitch": 1.0,
+        "targetLanguage": "he-IL",
+        "notes": "Хрипловатый уверенный мужской баритон, быстрый естественный темп разговорного иврита"
+      },
+      "appearancePrompt": "Hyperrealistic cinematic photo of a 46-year-old Israeli taxi driver named Yossi, rugged handsome Mediterranean features, short curly dark salt-and-pepper hair, 3-day stubble, wearing a worn polo shirt, highly expressive face, sitting inside a taxi cab at night on Tel Aviv Ayalon highway, neon city bokeh outside windows, 8k resolution, cinematic lighting, 35mm lens, f/1.8",
+      "assets": {
+        "context_car": "growth/characters/yossi_taxi/emotions/context_night_taxi.jpg",
+        "shocked": "growth/characters/yossi_taxi/emotions/shocked.jpg"
+      }
+    },
+    {
+      "id": "noa_barista",
+      "name": "Ноа",
+      "nameHebrew": "נוֹעָה",
+      "role": "Бариста в кофейне / Студентка",
+      "roleHebrew": "בָּרִיסְטָה / סְטוּדֶנְטִית",
+      "archetype": "Современная тель-авивская девушка, быстрая, дружелюбная, в курсе всех трендов",
+      "dialogueTone": "Быстрая живая речь, естественные сокращения, мягкий дружелюбный сарказм.",
+      "frequentCatchphrases": [
+        "חָלָב שְׁקֵדִים אוֹ שִׁבּוֹלֶת שׁוּעָל? (миндальное или овсяное?)",
+        "אֵיךְ קוֹרְאִים לְךָ? (как тебя зовут? для стаканчика)",
+        "הַכֹּל טוֹב, אֵין לַחַץ! (всё нормально, без паники)"
+      ],
+      "topics": [
+        "заказ кофе",
+        "кафе и рестораны",
+        "аренда квартиры",
+        "городская жизнь",
+        "учеба"
+      ],
+      "voice": {
+        "provider": "gemini_tts",
+        "preset": "Aoede",
+        "rate": 1.15,
+        "pitch": 1.0,
+        "targetLanguage": "he-IL",
+        "notes": "Звонкий энергичный молодой женский голос, высокая скорость речи"
+      },
+      "appearancePrompt": "Cinematic photo of a 24-year-old Israeli girl barista Noa in a trendy Tel Aviv cafe, casual modern style, messy bun hair, bright smile, natural lighting, espresso machine in background, 8k, f/1.8",
+      "assets": {}
+    },
+    {
+      "id": "shlomo_market",
+      "name": "Шломо",
+      "nameHebrew": "שְׁלֹמֹה",
+      "role": "Торговец фруктами на рынке Кармель",
+      "roleHebrew": "סוֹחֵר בַּשּׁוּק",
+      "archetype": "Хозяин овощной лавки в третьем поколении, душа рынка, мастер торга",
+      "dialogueTone": "Громкий, колоритный, скандирующий цены как стихи, щедрый на дегустации.",
+      "frequentCatchphrases": [
+        "רַק הַיּוֹם, כָּל הָאַבְטִיחִים מָתוֹק כְּמוֹ סֻכָּר! (только сегодня, арбузы сладкие как сахар!)",
+        "תִּטְעַם, תִּטְעַם, זֶה בְּחִנָּם! (попробуй, это бесплатно!)",
+        "כַּמָּה שְׁקָלִים נִשְׁאַר לְךָ?"
+      ],
+      "topics": [
+        "рынок Кармель",
+        "покупка продуктов",
+        "торг",
+        "фрукты и овощи",
+        "шекели и сдача"
+      ],
+      "voice": {
+        "provider": "gemini_tts",
+        "preset": "Fenrir",
+        "rate": 1.08,
+        "pitch": 0.95,
+        "targetLanguage": "he-IL",
+        "notes": "Глубокий зычный голос с ближневосточной интонацией"
+      },
+      "appearancePrompt": "Cinematic photo of a 55-year-old Israeli market vendor Shlomo in Shuk HaCarmel, warm sunlit market stall, wooden crates with colorful fresh fruits, apron, smiling heartily, vibrant colors, 8k",
+      "assets": {}
+    },
+    {
+      "id": "rina_official",
+      "name": "Рина",
+      "nameHebrew": "רִינָה",
+      "role": "Сотрудница МВД (Мисрад а-Пним) / Банка",
+      "roleHebrew": "פְּקִידָה בְּמִשְׂרַד הַפְּנִים",
+      "archetype": "Опытный израильский чиновник, строгая снаружи, но готовая помочь, если говорить вежливо",
+      "dialogueTone": "Четкий нормативный иврит, бюрократические формулировки, выверенные паузы.",
+      "frequentCatchphrases": [
+        "תְּעוּדַת זֶהוּת בְּבַקָּשָׁה (удостоверение личности, пожалуйста)",
+        "הַטּוֹפֶס הַזֶּה לֹא חָתוּם (этот бланк не подписан)",
+        "לָקַחְתָּ תּוֹר בָּאַפְּלִיקַצְיָה? (взяли очередь в приложении?)"
+      ],
+      "topics": [
+        "документы",
+        "Мисрад а-Пним",
+        "банк",
+        "почта",
+        "очереди (MyVisit)",
+        "официальные бланки"
+      ],
+      "voice": {
+        "provider": "gemini_tts",
+        "preset": "Aoede",
+        "rate": 0.96,
+        "pitch": 0.98,
+        "targetLanguage": "he-IL",
+        "notes": "Спокойный, подчеркнуто внятный и строгий женский голос"
+      },
+      "appearancePrompt": "Cinematic realistic photo of a 50-year-old Israeli government office clerk Rina, glasses, elegant buttoned shirt, Tel Aviv ministry office background, desk with official stamps and papers, clean crisp lighting, 8k",
+      "assets": {}
+    },
+    {
+      "id": "narrator",
+      "name": "Диктор Ульпана",
+      "nameHebrew": "קַרְיָן",
+      "role": "Закадровый гид и преподаватель",
+      "roleHebrew": "מוֹרֶה מְלַוֶּה",
+      "archetype": "Спокойный, дружелюбный академический наставник, объясняющий нюансы без занудства",
+      "dialogueTone": "Уверенный, доброжелательный, динамичный русский язык с четким ивритским произношением цитат.",
+      "frequentCatchphrases": [
+        "Иврит без паники!",
+        "Запомните это правило...",
+        "Переходи по ссылке и тренируйся бесплатно 30 дней."
+      ],
+      "topics": [
+        "грамматика",
+        "разбор ошибок",
+        "правила",
+        "CTA"
+      ],
+      "voice": {
+        "provider": "gemini_tts",
+        "preset": "Charon",
+        "rate": 1.18,
+        "pitch": 1.0,
+        "targetLanguage": "ru-RU",
+        "notes": "Канонический теплый мужской баритон, идеальный для коротких виральных видео"
+      },
+      "appearancePrompt": null,
+      "assets": {}
+    }
+  ]
+}

@@ -53,6 +53,9 @@ public/demo/audio_cache/
 public/demo/lessons/
 public/demo/frames/
 public/demo/frames_verify/
+public/demo/openchatcut_assets/
+public/demo/preview_*.jpg
+public/demo/preview_*.png
 public/demo/*_timings.json
 *.mp3
 !public/audio/**

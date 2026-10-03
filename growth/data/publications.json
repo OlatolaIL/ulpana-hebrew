@@ -1635,10 +1635,10 @@
     "promoCode": "YT",
     "fullUrlWithPromo": "https://ulpana-hebrew.vercel.app/#lesson-10?promo=YT&utm_source=youtube&utm_medium=shorts&utm_campaign=lesson_10_spicy",
     "livePostUrl": "",
-    "status": "draft",
+    "status": "ready_for_upload",
     "notes": "YOUTUBE (SPICY): Урок 10 • Такси на трассе Аялон • Яшар vs Яшан • промокод YT",
     "createdAt": "2026-09-28T08:33:54.010Z",
-    "updatedAt": "2026-09-28T08:33:54.010Z"
+    "updatedAt": "2026-10-03T15:08:45.985Z"
   },
   {
     "id": "pub-tg-l10-spicy",
@@ -1655,10 +1655,10 @@
     "promoCode": "TG",
     "fullUrlWithPromo": "https://ulpana-hebrew.vercel.app/#lesson-10?promo=TG&utm_source=telegram&utm_medium=channel&utm_campaign=lesson_10_spicy",
     "livePostUrl": "",
-    "status": "draft",
+    "status": "ready_for_upload",
     "notes": "TELEGRAM (SPICY): Урок 10 • Такси на трассе Аялон • Яшар vs Яшан • промокод TG",
     "createdAt": "2026-09-28T08:33:54.010Z",
-    "updatedAt": "2026-09-28T08:33:54.010Z"
+    "updatedAt": "2026-10-03T15:08:45.985Z"
   },
   {
     "id": "pub-insta-l10-spicy",
@@ -1675,10 +1675,10 @@
     "promoCode": "INSTA",
     "fullUrlWithPromo": "https://ulpana-hebrew.vercel.app/#lesson-10?promo=INSTA&utm_source=instagram&utm_medium=reels&utm_campaign=lesson_10_spicy",
     "livePostUrl": "",
-    "status": "draft",
+    "status": "ready_for_upload",
     "notes": "INSTAGRAM (SPICY): Урок 10 • Такси на трассе Аялон • Яшар vs Яшан • промокод INSTA",
     "createdAt": "2026-09-28T08:33:54.010Z",
-    "updatedAt": "2026-09-28T08:33:54.010Z"
+    "updatedAt": "2026-10-03T15:08:45.985Z"
   },
   {
     "id": "pub-tiktok-l10-spicy",
@@ -1695,10 +1695,10 @@
     "promoCode": "TIKTOK",
     "fullUrlWithPromo": "https://ulpana-hebrew.vercel.app/#lesson-10?promo=TIKTOK&utm_source=tiktok&utm_medium=profile&utm_campaign=lesson_10_spicy",
     "livePostUrl": "",
-    "status": "draft",
+    "status": "ready_for_upload",
     "notes": "TIKTOK (SPICY): Урок 10 • Такси на трассе Аялон • Яшар vs Яшан • промокод TIKTOK",
     "createdAt": "2026-09-28T08:33:54.010Z",
-    "updatedAt": "2026-09-28T08:33:54.010Z"
+    "updatedAt": "2026-10-03T15:08:45.985Z"
   },
   {
     "id": "pub-fb-l10-spicy",
@@ -1715,9 +1715,9 @@
     "promoCode": "FB",
     "fullUrlWithPromo": "https://ulpana-hebrew.vercel.app/#lesson-10?promo=FB&utm_source=facebook&utm_medium=reels&utm_campaign=lesson_10_spicy",
     "livePostUrl": "",
-    "status": "draft",
+    "status": "ready_for_upload",
     "notes": "FACEBOOK (SPICY): Урок 10 • Такси на трассе Аялон • Яшар vs Яшан • промокод FB",
     "createdAt": "2026-09-28T08:33:54.010Z",
-    "updatedAt": "2026-09-28T08:33:54.010Z"
+    "updatedAt": "2026-10-03T15:08:45.985Z"
   }
 ]
