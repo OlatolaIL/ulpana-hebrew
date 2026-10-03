@@ -851,3 +851,39 @@ useEffect(() => {
 
 
 
+
+---
+
+### Видеофабрика: Живые фото, OpenChatCut NLE-конвейер и пакетный выпуск 5 платформ (03 октября 2026)
+
+**Задача:**
+1. Разрешить языковую проблему в Уроке 10 Spicy: различие одушевлённости (`זָקֵן` — пожилой человек vs `יָשָׁן` — старая вещь/хлам).
+2. Собрать видеоролики для всех 5 целевых платформ с точными промокодами (`YT`, `TG`, `INSTA`, `TIKTOK`, `FB`).
+3. Интегрировать новый подход (живые фото, Ken Burns + Zero Shake, Библия персонажей, NLE-монтаж в OpenChatCut) в постоянную видеофабрику `growth/`.
+4. Безопасно выгрузить изменения на GitHub согласно регламенту `R-14`.
+
+**Что сделано и проверено:**
+1. **Языковая норма и Animacy Invariant (`R-04`, `R-08`):**
+   - Исправлены титры и оверлейные карточки: «תִּסַּע יָשָׁן» квалифицировано как ошибка «обозвал водителя старой вещью/хламом», а водитель объясняет: «человек — это זָקֵן (заке́н), а не старый хлам!».
+2. **Библия сквозных персонажей (`growth/characters/registry.json`):**
+   - Зафиксирован постоянный каст: Йоси (`yossi_taxi`), Ноа (`noa_barista`), Шломо (`shlomo_market`), Рина (`rina_official`), Диктор (`narrator`).
+   - Закреплены базовые промпты генерации фото эмоций, референсы и голоса Gemini TTS (`Orus`, `Aoede`, `Fenrir`, `Charon`).
+3. **Кинематографичный Ken Burns («Живое фото») с Zero Shake (`growth/scripts/create_dynamic_broll.mjs`):**
+   - Исключена случайная тряска камеры (camera shake); реализован плавный наезд/отъезд камеры и юмористический стоп-кадр 0.86с перед эмоциональной разрядкой.
+4. **Мастер-конвейер фабрики (`growth/scripts/occ_factory.mjs`):**
+   - Единый CLI-интерфейс сборки уроков: `node growth/scripts/occ_factory.mjs --lesson 10 --spicy --all`.
+   - Проект смонтирован в OpenChatCut (проект `399447d6-30b5-4eb1-9604-ec79fd6d8102`), доступен в веб-редакторе `http://127.0.0.1:3100/editor/...`.
+5. **Пакетная сборка для 5 платформ (`growth/scripts/render_occ_variants.mjs`):**
+   - Собраны 5 чистовых видеороликов в каноническом разрешении 1080x1920 (30 fps):
+     - `lesson_10_spicy_youtube_shorts.mp4` (промокод `YT`, 7.77 MB)
+     - `lesson_10_spicy_telegram.mp4` (промокод `TG`, 7.39 MB)
+     - `lesson_10_spicy_instagram_reels.mp4` (промокод `INSTA`, 7.39 MB)
+     - `lesson_10_spicy_tiktok.mp4` (промокод `TIKTOK`, 7.39 MB)
+     - `lesson_10_spicy_facebook_reels.mp4` (промокод `FB`, 7.39 MB)
+   - Обновлены `growth/lessons_video_registry.json` и `growth/data/publications.json`.
+6. **Документация и матрицы:**
+   - В `DECISION_MATRIX.md` (v2.0.9) актуализирован инвариант `R-25` и `Superseded Log`.
+   - В `growth/VIDEO_PRODUCTION_PLAYBOOK.md` зафиксированы Инварианты 7, 8, 9, 10 и 11.
+7. **Деплой на GitHub (`R-14`):**
+   - Точечный стейджинг без захвата бинарных MP4: коммит `21a4d686` отправлен в `main` (`git push origin main`).
+   - Тесты: `node tests/decision-matrix-invariants.test.cjs` (16/16 pass).
