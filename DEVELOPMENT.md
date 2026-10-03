@@ -927,7 +927,7 @@ useEffect(() => {
    - Плавный Ken Burns с Zero Shake, юмористический стоп-кадр 0.9с со звуком визга тормозов и скретча.
    - Сведение 8 звуковых дорожек со студийным звуком и SFX.
    - Сгенерированы оверлейные карточки с כתיב מלא (`לַעֲצוֹר` и `לַהֲרוֹג`).
-3. **CDN и реестры:**
-   - Ролик `lesson_10_clean_youtube_shorts.mp4` (5.24 MB) загружен в GitHub Releases CDN (`v-media-lessons-02-05`, статус HTTP 200).
-   - Статус `pub-yt-l10-clean` обновлен на `ready_for_upload` («🎬 Смонтирован»).
-   - Синхронизирован `src/data/marketingPublicationsData.ts`.
+3. **CDN и реестры (все 5 платформ):**
+   - Все 5 платформенных роликов (`lesson_10_clean_youtube_shorts.mp4`, `lesson_10_clean_telegram.mp4`, `lesson_10_clean_instagram_reels.mp4`, `lesson_10_clean_tiktok.mp4`, `lesson_10_clean_facebook_reels.mp4`) собраны в каноническом разрешении 1080x1920 и загружены в GitHub Releases CDN (`v-media-lessons-02-05`, все 5 возвращают статус HTTP 200).
+   - Все 5 кампаний Clean переведены в статус `ready_for_upload` («🎬 Смонтирован»).
+   - Синхронизированы `growth/lessons_video_registry.json`, `growth/data/publications.json` и `src/data/marketingPublicationsData.ts`.

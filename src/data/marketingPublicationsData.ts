@@ -1577,10 +1577,10 @@ export const MARKETING_PUBLICATIONS: PublicationItem[] = [
     "promoCode": "TG",
     "fullUrlWithPromo": "https://ulpana-hebrew.vercel.app/#lesson-10?promo=TG&utm_source=telegram&utm_medium=channel&utm_campaign=lesson_10_clean",
     "livePostUrl": "",
-    "status": "draft",
+    "status": "ready_for_upload",
     "notes": "TELEGRAM (CLEAN): Урок 10 • Автобус 25 на Ибн Гвироль • Остановить vs Убить • промокод TG",
     "createdAt": "2026-09-28T08:33:54.010Z",
-    "updatedAt": "2026-09-28T08:33:54.010Z"
+    "updatedAt": "2026-10-03T16:39:40.477Z"
   },
   {
     "id": "pub-insta-l10-clean",
@@ -1597,10 +1597,10 @@ export const MARKETING_PUBLICATIONS: PublicationItem[] = [
     "promoCode": "INSTA",
     "fullUrlWithPromo": "https://ulpana-hebrew.vercel.app/#lesson-10?promo=INSTA&utm_source=instagram&utm_medium=reels&utm_campaign=lesson_10_clean",
     "livePostUrl": "",
-    "status": "draft",
+    "status": "ready_for_upload",
     "notes": "INSTAGRAM (CLEAN): Урок 10 • Автобус 25 на Ибн Гвироль • Остановить vs Убить • промокод INSTA",
     "createdAt": "2026-09-28T08:33:54.010Z",
-    "updatedAt": "2026-09-28T08:33:54.010Z"
+    "updatedAt": "2026-10-03T16:39:40.477Z"
   },
   {
     "id": "pub-tiktok-l10-clean",
@@ -1617,10 +1617,10 @@ export const MARKETING_PUBLICATIONS: PublicationItem[] = [
     "promoCode": "TIKTOK",
     "fullUrlWithPromo": "https://ulpana-hebrew.vercel.app/#lesson-10?promo=TIKTOK&utm_source=tiktok&utm_medium=profile&utm_campaign=lesson_10_clean",
     "livePostUrl": "",
-    "status": "draft",
+    "status": "ready_for_upload",
     "notes": "TIKTOK (CLEAN): Урок 10 • Автобус 25 на Ибн Гвироль • Остановить vs Убить • промокод TIKTOK",
     "createdAt": "2026-09-28T08:33:54.010Z",
-    "updatedAt": "2026-09-28T08:33:54.010Z"
+    "updatedAt": "2026-10-03T16:39:40.477Z"
   },
   {
     "id": "pub-fb-l10-clean",
@@ -1637,10 +1637,10 @@ export const MARKETING_PUBLICATIONS: PublicationItem[] = [
     "promoCode": "FB",
     "fullUrlWithPromo": "https://ulpana-hebrew.vercel.app/#lesson-10?promo=FB&utm_source=facebook&utm_medium=reels&utm_campaign=lesson_10_clean",
     "livePostUrl": "",
-    "status": "draft",
+    "status": "ready_for_upload",
     "notes": "FACEBOOK (CLEAN): Урок 10 • Автобус 25 на Ибн Гвироль • Остановить vs Убить • промокод FB",
     "createdAt": "2026-09-28T08:33:54.010Z",
-    "updatedAt": "2026-09-28T08:33:54.010Z"
+    "updatedAt": "2026-10-03T16:39:40.477Z"
   },
   {
     "id": "pub-yt-l10-spicy",
