@@ -1,21 +1,8 @@
 import type { Metadata, Viewport } from 'next';
-import { Rubik, Assistant } from 'next/font/google';
 import Script from 'next/script';
 import './globals.css';
 import { PwaInstallPrompt } from '@/components/PwaInstallPrompt';
 import { AudioBlockedBanner } from '@/components/AudioBlockedBanner';
-
-const rubik = Rubik({
-  variable: '--font-rubik',
-  subsets: ['hebrew', 'latin', 'cyrillic'],
-  weight: ['400', '500', '600', '700', '800'],
-});
-
-const assistant = Assistant({
-  variable: '--font-assistant',
-  subsets: ['hebrew', 'latin'],
-  weight: ['400', '500', '600', '700', '800'],
-});
 
 export const viewport: Viewport = {
   themeColor: '#2563eb',
@@ -84,9 +71,15 @@ export default function RootLayout({
   return (
     <html
       lang="ru"
-      className={`${rubik.variable} ${assistant.variable} antialiased`}
+      className="antialiased"
     >
       <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Assistant:wght@400;500;600;700;800&family=Rubik:wght@400;500;600;700;800&family=Gveret+Levin&display=swap"
+          rel="stylesheet"
+        />
         <Script
           src="https://telegram.org/js/telegram-web-app.js"
           strategy="beforeInteractive"

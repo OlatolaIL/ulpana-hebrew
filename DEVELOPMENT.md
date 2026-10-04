@@ -961,3 +961,29 @@ useEffect(() => {
 6. **Верификация (R-10..R-12, R-25):**
    - `npm run typecheck` (`next typegen && tsc --noEmit`): 0 ошибок, код 0.
    - `node tests/decision-matrix-invariants.test.cjs`: 17 / 17 passed.
+
+---
+
+### Сборка и публикация Урока 7 Clean (все 5 платформ) по стандарту Фабрики-500 (04 октября 2026)
+
+**Задача:**
+Собрать полную линейку платформенных видеороликов Урока 7 Clean (Каньон Азриэли: שֵׁרוּת vs שֵׁרוּתִים) в разрешении 1080×1920 @ 30fps с живыми персонажами, сведением звука, загрузить на CDN и запушить в GitHub (R-14, R-25, R-27).
+
+**Что сделано и проверено:**
+1. **Character Bible и живые фото (`growth/characters/registry.json`):**
+   - Зарегистрирован персонаж `david_guard` (Давид, охранник ТЦ Азриэли).
+   - Сгенерированы кинематографичные фото 9:16: контекст ТЦ Азриэли, отчаявшийся студент, охранник Давид, указывающий на эскалатор.
+2. **Монтаж всех 5 платформ (1080×1920, 23.3с):**
+   - `lesson_07_clean_youtube_shorts.mp4` (`YT`, 4.55 MB)
+   - `lesson_07_clean_telegram.mp4` (`TG`, 4.52 MB)
+   - `lesson_07_clean_instagram_reels.mp4` (`INSTA`, 4.53 MB)
+   - `lesson_07_clean_tiktok.mp4` (`TIKTOK`, 4.52 MB)
+   - `lesson_07_clean_facebook_reels.mp4` (`FB`, 4.53 MB)
+3. **CDN и реестры:**
+   - Все 5 роликов загружены в GitHub Releases CDN (`v-media-lessons-02-05`, статус HTTP 200).
+   - Обновлен `growth/lessons_video_registry.json`.
+   - Добавлены и переведены в статус `ready_for_upload` 5 публикаций в `growth/data/publications.json`.
+   - Синхронизирован `src/data/marketingPublicationsData.ts`.
+4. **Верификация:**
+   - `node tests/decision-matrix-invariants.test.cjs`: 17/17 passed.
+   - `npm run typecheck`: 0 ошибок.

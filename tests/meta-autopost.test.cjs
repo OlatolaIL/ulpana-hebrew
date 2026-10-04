@@ -32,7 +32,7 @@ test('2. Health check route includes live Meta verification', () => {
   assert.ok(content.includes('FB_PAGE_ID'), 'Health check must read FB_PAGE_ID');
   assert.ok(content.includes('META_ACCESS_TOKEN'), 'Health check must read META_ACCESS_TOKEN');
   assert.ok(content.includes('graph.facebook.com'), 'Health check must query Meta Graph API');
-  assert.ok(content.includes('fields=name,id,link,tasks'), 'Health check must query page fields');
+  assert.ok(content.includes('fields=name,id,link'), 'Health check must query page fields');
   assert.ok(content.includes('instagram_business_account'), 'Health check must query instagram_business_account');
 });
 

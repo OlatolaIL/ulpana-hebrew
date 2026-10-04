@@ -229,7 +229,7 @@ export async function GET(req: NextRequest) {
       const t0 = Date.now();
       try {
         const fbRes = await fetch(
-          `https://graph.facebook.com/v26.0/${encodeURIComponent(fbPageId)}?fields=name,id,link,tasks,instagram_business_account{id,username}&access_token=${encodeURIComponent(metaToken)}`,
+          `https://graph.facebook.com/v26.0/${encodeURIComponent(fbPageId)}?fields=name,id,link,instagram_business_account{id,username}&access_token=${encodeURIComponent(metaToken)}`,
           { signal: AbortSignal.timeout(4000) }
         );
         const fbData = await fbRes.json();

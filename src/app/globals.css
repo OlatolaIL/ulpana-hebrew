@@ -1,7 +1,9 @@
-@import url('https://fonts.googleapis.com/css2?family=Gveret+Levin&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Assistant:wght@400;500;600;700;800&family=Rubik:wght@400;500;600;700;800&family=Gveret+Levin&display=swap');
 @import "tailwindcss";
 
 :root {
+  --font-rubik: 'Rubik', sans-serif;
+  --font-assistant: 'Assistant', sans-serif;
   --background: #fafafa;
   --foreground: #18181b;
   --font-hebrew: var(--font-assistant), var(--font-rubik), 'Segoe UI', Arial, sans-serif;
