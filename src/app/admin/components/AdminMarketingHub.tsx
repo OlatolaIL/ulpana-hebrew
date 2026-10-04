@@ -35,6 +35,9 @@ import {
   ChevronUp,
   Edit3,
   Image as ImageIcon,
+  Search,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 
 export interface TargetCommunity {
@@ -129,6 +132,9 @@ export function AdminMarketingHub() {
   const [channelFilter, setChannelFilter] = useState<string>('all');
   const [pubStatusFilter, setPubStatusFilter] = useState<string>('all');
   const [campaignFilter, setCampaignFilter] = useState<string>('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [pageSize, setPageSize] = useState<string>('25');
+  const [currentPage, setCurrentPage] = useState(1);
   const [isAddPubModalOpen, setIsAddPubModalOpen] = useState(false);
   const [previewVideo, setPreviewVideo] = useState<{ url: string; title: string; version?: string; channel?: string } | null>(null);
   const [copiedCaptionId, setCopiedCaptionId] = useState<string | null>(null);
@@ -916,9 +922,50 @@ export function AdminMarketingHub() {
         const norm = normalizeCampaign(p.campaignTitle);
         if (norm !== campaignFilter && p.campaignTitle !== campaignFilter) return false;
       }
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase().trim();
+        const matchTitle = (p.title || '').toLowerCase().includes(q);
+        const matchCampaign = (p.campaignTitle || '').toLowerCase().includes(q);
+        const matchCaption = (p.caption || '').toLowerCase().includes(q);
+        const matchPromo = (p.promoCode || '').toLowerCase().includes(q);
+        const matchChannel = (p.channel || '').toLowerCase().includes(q);
+        const matchAccount = (p.channelAccount || '').toLowerCase().includes(q);
+        const matchLink = (p.targetDeepLink || '').toLowerCase().includes(q);
+        const matchFormat = (p.format || '').toLowerCase().includes(q);
+        if (
+          !matchTitle &&
+          !matchCampaign &&
+          !matchCaption &&
+          !matchPromo &&
+          !matchChannel &&
+          !matchAccount &&
+          !matchLink &&
+          !matchFormat
+        ) {
+          return false;
+        }
+      }
       return true;
     });
-  }, [publications, channelFilter, pubStatusFilter, campaignFilter, normalizeCampaign]);
+  }, [publications, channelFilter, pubStatusFilter, campaignFilter, searchQuery, normalizeCampaign]);
+
+  const totalPages = useMemo(() => {
+    if (pageSize === 'all') return 1;
+    const size = parseInt(pageSize, 10) || 25;
+    return Math.max(1, Math.ceil(filteredPublications.length / size));
+  }, [filteredPublications.length, pageSize]);
+
+  const paginatedPublications = useMemo(() => {
+    if (pageSize === 'all') return filteredPublications;
+    const size = parseInt(pageSize, 10) || 25;
+    const start = (currentPage - 1) * size;
+    return filteredPublications.slice(start, start + size);
+  }, [filteredPublications, currentPage, pageSize]);
+
+  // Сброс страницы на 1 при изменении поисковых параметров
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [channelFilter, pubStatusFilter, campaignFilter, searchQuery, pageSize]);
 
   const filteredCommunities = communities.filter((c) => {
     if (selectedPlatformFilter !== 'all' && c.platform !== selectedPlatformFilter) return false;
@@ -1231,6 +1278,27 @@ export function AdminMarketingHub() {
                   <option value="draft">⚪ Черновики / Готовы</option>
                 </select>
               </div>
+
+              {/* Мгновенный поиск */}
+              <div className="relative">
+                <Search className="w-3.5 h-3.5 text-zinc-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <input
+                  type="text"
+                  placeholder="Поиск по уроку, тексту, промокоду..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="bg-zinc-800/90 text-xs text-zinc-100 rounded-lg pl-8 pr-6 py-1 border border-zinc-700 outline-none focus:border-blue-500 w-44 md:w-56 placeholder:text-zinc-500 transition"
+                />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-white text-[11px] p-0.5 cursor-pointer"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
             </div>
 
             <div className="flex items-center gap-2">
@@ -1300,367 +1368,458 @@ export function AdminMarketingHub() {
           )}
 
           <div className="bg-zinc-900 rounded-2xl border border-zinc-800 overflow-hidden shadow-xl">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs text-zinc-300">
-                <thead className="bg-zinc-950/80 text-zinc-400 font-semibold border-b border-zinc-800 uppercase tracking-wider text-[11px]">
+            <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-zinc-700 scrollbar-track-zinc-900">
+              <table className="w-full text-left text-xs text-zinc-300 border-separate border-spacing-0">
+                <thead className="bg-zinc-950/90 text-zinc-400 font-semibold border-b border-zinc-800 uppercase tracking-wider text-[11px] sticky top-0 z-10 backdrop-blur-sm">
                   <tr>
-                    <th className="px-4 py-3">Дата и Канал</th>
-                    <th className="px-4 py-3">Кампания и Версия</th>
-                    <th className="px-4 py-3">Видео</th>
-                    <th className="px-4 py-3 min-w-[280px]">Текст поста (Copywriting)</th>
-                    <th className="px-4 py-3">Ссылка и Промокод</th>
-                    <th className="px-4 py-3">Статус</th>
-                    <th className="px-4 py-3 text-right">Действия</th>
+                    <th className="px-3.5 py-3 whitespace-nowrap border-b border-zinc-800">Канал и Расписание</th>
+                    <th className="px-3.5 py-3 min-w-[210px] border-b border-zinc-800">Кампания и Видео</th>
+                    <th className="px-3.5 py-3 min-w-[240px] border-b border-zinc-800">Текст поста (Copywriting)</th>
+                    <th className="px-3.5 py-3 whitespace-nowrap border-b border-zinc-800">Ссылка и Промо</th>
+                    <th className="px-3.5 py-3 whitespace-nowrap text-center border-b border-zinc-800">Статус</th>
+                    <th className="px-3.5 py-3 text-right whitespace-nowrap sticky right-0 bg-zinc-950 border-b border-l border-zinc-800/80 shadow-[-8px_0_12px_rgba(0,0,0,0.7)] z-20">
+                      Действия
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-zinc-800/60 font-medium">
-                  {filteredPublications.map((pub) => (
-                    <tr key={pub.id} className="hover:bg-zinc-800/40 transition">
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        <div className="flex flex-col gap-1">
-                          <div className="flex items-center gap-1.5">
-                            {getChannelBadge(pub.channel)}
-                          </div>
-                          <span className="text-[10px] text-zinc-500 max-w-[140px] truncate" title={pub.channelAccount}>
-                            {pub.channelAccount}
-                          </span>
-
-                          {/* Инлайн-редактирование расписания прямо из списка */}
-                          {editingScheduleId === pub.id ? (
-                            <div className="mt-1 p-2 bg-zinc-950 rounded-xl border border-blue-500/60 shadow-xl space-y-1.5 min-w-[210px] z-10">
-                              <div className="flex items-center justify-between text-[10px]">
-                                <span className="font-bold text-blue-400 flex items-center gap-1">
-                                  <Clock className="w-3 h-3" />
-                                  Дата и время:
-                                </span>
-                                {pub.scheduledAt && (
-                                  <button
-                                    type="button"
-                                    onClick={() => handleClearSchedule(pub.id)}
-                                    disabled={savingScheduleId === pub.id}
-                                    className="text-red-400 hover:text-red-300 hover:underline cursor-pointer text-[10px]"
-                                    title="Сбросить расписание и вернуть в черновик"
-                                  >
-                                    Сбросить
-                                  </button>
-                                )}
-                              </div>
-                              <input
-                                type="datetime-local"
-                                value={editingScheduleVal}
-                                onChange={(e) => setEditingScheduleVal(e.target.value)}
-                                className="w-full bg-zinc-900 text-zinc-100 text-[11px] rounded-lg px-2 py-1 border border-zinc-700 outline-none focus:border-blue-500 font-mono"
-                              />
-                              <div className="flex items-center justify-end gap-1.5 pt-0.5">
-                                <button
-                                  type="button"
-                                  onClick={() => setEditingScheduleId(null)}
-                                  className="px-2 py-0.5 rounded text-[10px] bg-zinc-800 hover:bg-zinc-700 text-zinc-300 cursor-pointer"
-                                >
-                                  ✕
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => handleSaveSchedule(pub.id, editingScheduleVal)}
-                                  disabled={savingScheduleId === pub.id || !editingScheduleVal}
-                                  className="px-2.5 py-0.5 rounded text-[10px] font-bold bg-blue-600 hover:bg-blue-500 text-white flex items-center gap-1 cursor-pointer disabled:opacity-50"
-                                >
-                                  {savingScheduleId === pub.id ? (
-                                    <RefreshCw className="w-2.5 h-2.5 animate-spin" />
-                                  ) : (
-                                    <Check className="w-2.5 h-2.5" />
-                                  )}
-                                  <span>Сохранить</span>
-                                </button>
-                              </div>
-                            </div>
-                          ) : (
-                            <div className="flex flex-col gap-0.5 mt-0.5">
-                              {pub.scheduledAt ? (
-                                (() => {
-                                  const isDue = pub.status === 'scheduled' && new Date(pub.scheduledAt).getTime() <= Date.now();
-                                  const relText = getRelativeScheduleText(pub.scheduledAt);
-                                  return (
-                                    <button
-                                      type="button"
-                                      onClick={() => handleOpenScheduleEditor(pub)}
-                                      className={`flex items-center gap-1.5 px-2 py-1 rounded-lg text-[10px] font-mono font-semibold transition cursor-pointer text-left border ${
-                                        pub.status === 'published'
-                                          ? 'bg-zinc-800/60 text-zinc-400 border-zinc-700/50'
-                                          : isDue
-                                          ? 'bg-rose-500/15 text-rose-300 border-rose-500/30 hover:bg-rose-500/25'
-                                          : 'bg-amber-500/15 text-amber-300 border-amber-500/30 hover:bg-amber-500/25'
-                                      }`}
-                                      title="Нажмите, чтобы изменить дату и время выгрузки прямо из списка"
-                                    >
-                                      <Clock className="w-3 h-3 shrink-0" />
-                                      <span className="truncate">{formatScheduleDisplay(pub.scheduledAt)}</span>
-                                      {isDue ? (
-                                        <span className="text-[9px] px-1 py-0.2 bg-rose-600 text-white rounded font-bold shrink-0">
-                                          СОЗРЕЛ
-                                        </span>
-                                      ) : relText && pub.status === 'scheduled' ? (
-                                        <span className="text-[9px] text-amber-400/80 shrink-0">
-                                          ({relText})
-                                        </span>
-                                      ) : null}
-                                      <Edit3 className="w-2.5 h-2.5 opacity-60 ml-auto shrink-0" />
-                                    </button>
-                                  );
-                                })()
-                              ) : (
-                                <div className="flex items-center gap-1.5">
-                                  <span className="text-[10px] text-zinc-400 font-mono">{pub.date}</span>
-                                  {pub.status !== 'published' && (
-                                    <button
-                                      type="button"
-                                      onClick={() => handleOpenScheduleEditor(pub)}
-                                      className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] text-zinc-400 hover:text-blue-300 hover:bg-zinc-800 transition cursor-pointer border border-dashed border-zinc-700 hover:border-blue-500/40"
-                                      title="Задать дату и время для автоматической выгрузки по расписанию"
-                                    >
-                                      <Clock className="w-2.5 h-2.5 text-blue-400" />
-                                      <span>+ Время</span>
-                                    </button>
-                                  )}
-                                </div>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 max-w-xs">
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <span className="font-bold text-zinc-100 text-xs">
-                            {normalizeCampaign(pub.campaignTitle)}
-                          </span>
-                          {pub.version && (
-                            <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                              {pub.version}
-                            </span>
-                          )}
-                          {(pub.id.toLowerCase().includes('spicy') || pub.notes?.toLowerCase().includes('spicy') || pub.campaignTitle?.toLowerCase().includes('spicy')) && (
-                            <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-rose-500/20 text-rose-300 border border-rose-500/30">
-                              🌶️ Spicy
-                            </span>
-                          )}
-                          {(pub.id.toLowerCase().includes('clean') || pub.notes?.toLowerCase().includes('clean') || pub.campaignTitle?.toLowerCase().includes('clean')) && (
-                            <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-sky-500/20 text-sky-300 border border-sky-500/30">
-                              🧼 Clean
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-zinc-300 text-xs mt-0.5 line-clamp-2">{pub.title}</p>
-                        <span className="text-[10px] text-zinc-500 uppercase">{pub.format}</span>
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        {pub.videoPath ? (
-                          <div className="flex items-center gap-1.5">
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setPreviewVideo({
-                                  url: pub.videoPath!,
-                                  title: pub.title,
-                                  version: pub.version,
-                                  channel: pub.channel,
-                                })
-                              }
-                              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 border border-blue-500/30 text-xs font-semibold transition cursor-pointer"
-                              title="Смотреть видео прямо в админке"
-                            >
-                              <Play className="w-3.5 h-3.5 fill-blue-300 text-blue-300" />
-                              <span>Плеер</span>
-                            </button>
-                            <a
-                              href={pub.videoPath}
-                              download
-                              className="p-1 rounded-lg hover:bg-zinc-800 text-zinc-400 hover:text-white transition cursor-pointer"
-                              title="Скачать исходный видеофайл .mp4"
-                            >
-                              <Download className="w-3.5 h-3.5" />
-                            </a>
-                          </div>
-                        ) : pub.imagePath ? (
-                          <div className="flex items-center gap-1.5">
-                            <a
-                              href={pub.imagePath}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-600/20 hover:bg-amber-600/30 text-amber-300 border border-amber-500/30 text-xs font-semibold transition cursor-pointer"
-                              title="Открыть фото в полном размере"
-                            >
-                              <Film className="w-3.5 h-3.5 text-amber-300" />
-                              <span>Фото</span>
-                            </a>
-                            <a
-                              href={pub.imagePath}
-                              download
-                              className="p-1 rounded-lg hover:bg-zinc-800 text-zinc-400 hover:text-white transition cursor-pointer"
-                              title="Скачать фото для поста"
-                            >
-                              <Download className="w-3.5 h-3.5" />
-                            </a>
-                          </div>
-                        ) : (
-                          <span className="text-zinc-600 text-xs">—</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 min-w-[280px]">
-                        <div className="flex flex-col gap-1.5">
-                          <button
-                            type="button"
-                            onClick={() => copyCaption(pub.caption || pub.title, pub.id)}
-                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-semibold transition cursor-pointer border border-zinc-700 w-fit"
-                            title="Скопировать готовый авторский текст поста с хэштегами"
-                          >
-                            {copiedCaptionId === pub.id ? (
-                              <>
-                                <Check className="w-3.5 h-3.5 text-emerald-400" />
-                                <span className="text-emerald-400 font-bold">Скопировано!</span>
-                              </>
-                            ) : (
-                              <>
-                                <Copy className="w-3.5 h-3.5 text-zinc-400" />
-                                <span>📋 Скопировать текст</span>
-                              </>
-                            )}
-                          </button>
-                          <p
-                            className="text-[12px] text-zinc-300 line-clamp-3 leading-relaxed"
-                            title={pub.caption || pub.title}
-                          >
-                            {pub.caption || pub.title}
-                          </p>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        <div className="flex flex-col gap-1.5">
-                          <button
-                            type="button"
-                            onClick={() => copyToClipboard(pub.fullUrlWithPromo, pub.id)}
-                            className="flex items-center gap-1.5 px-2 py-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white transition cursor-pointer text-xs w-fit"
-                            title="Скопировать готовую ссылку с промокодом"
-                          >
-                            {copiedId === pub.id ? (
-                              <Check className="w-3.5 h-3.5 text-emerald-400" />
-                            ) : (
-                              <Copy className="w-3.5 h-3.5 text-zinc-400" />
-                            )}
-                            <span className="font-mono text-[11px]">{pub.targetDeepLink}</span>
-                          </button>
-
-                          {pub.promoCode && (
-                            <div className="flex items-center gap-1.5">
-                              {dbPromos.includes(pub.promoCode.toUpperCase()) ? (
-                                <span
-                                  className="font-mono font-bold text-emerald-400 px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20 text-[10px] w-fit flex items-center gap-1"
-                                  title="Промокод существует и активен в базе данных"
-                                >
-                                  <CheckCircle2 className="w-3 h-3 text-emerald-400" />
-                                  <span>Код: {pub.promoCode}</span>
-                                </span>
-                              ) : (
-                                <div className="flex items-center gap-1.5 flex-wrap">
-                                  <span
-                                    className="font-mono font-bold text-amber-400 px-1.5 py-0.5 rounded bg-amber-500/10 border border-amber-500/20 text-[10px] w-fit"
-                                    title="Код ещё не создан в базе промокодов"
-                                  >
-                                    Код: {pub.promoCode}
-                                  </span>
-                                  <button
-                                    type="button"
-                                    onClick={() => handleQuickCreatePromoForPub(pub)}
-                                    disabled={creatingPromoForPubId === pub.id}
-                                    className="flex items-center gap-1 px-2 py-0.5 rounded bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold text-[10px] transition disabled:opacity-50 cursor-pointer shadow-xs"
-                                    title="Создать промокод в базе данных и привязать к этой публикации в 1 клик"
-                                  >
-                                    <Sparkles className="w-2.5 h-2.5" />
-                                    <span>{creatingPromoForPubId === pub.id ? 'Создаём...' : '+ Создать в БД'}</span>
-                                  </button>
-                                </div>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        <div className="flex flex-col gap-1">
-                          <span
-                            className={`px-2 py-0.5 rounded-full text-[11px] font-semibold text-center ${
-                              pub.status === 'published'
-                                ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
-                                : pub.status === 'scheduled'
-                                ? 'bg-amber-500/10 text-amber-400 border border-amber-500/30'
-                                : pub.status === 'ready_for_upload'
-                                ? 'bg-indigo-500/15 text-indigo-300 border border-indigo-500/40'
-                                : 'bg-zinc-800 text-zinc-400 border border-zinc-700'
-                            }`}
-                          >
-                            {pub.status === 'published'
-                              ? '🟢 Вышел'
-                              : pub.status === 'scheduled'
-                              ? '🟡 План'
-                              : pub.status === 'ready_for_upload'
-                              ? '🎬 Смонтирован'
-                              : '⚪ Готов'}
-                          </span>
-                          {pub.livePostUrl ? (
-                            <a
-                              href={pub.livePostUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1 text-blue-400 hover:text-blue-300 font-semibold text-xs"
-                            >
-                              <span>В эфире</span>
-                              <ExternalLink className="w-3 h-3" />
-                            </a>
-                          ) : null}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-right whitespace-nowrap">
-                        <div className="flex items-center justify-end gap-1.5">
-                          {pub.status !== 'published' &&
-                            ['youtube', 'telegram', 'facebook', 'tiktok', 'instagram'].includes(pub.channel) && (
-                              <button
-                                type="button"
-                                onClick={() => handlePublishRow(pub)}
-                                disabled={publishingRowId === pub.id}
-                                className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-gradient-to-r from-red-600 to-amber-600 hover:from-red-500 hover:to-amber-500 text-white text-[11px] font-bold transition shadow shadow-red-600/20 cursor-pointer disabled:opacity-50"
-                                title="Опубликовать этот пост через API боевого сервера в 1 клик"
-                              >
-                                <Flame
-                                  className={`w-3.5 h-3.5 ${
-                                    publishingRowId === pub.id ? 'animate-spin' : ''
-                                  }`}
-                                />
-                                <span>{publishingRowId === pub.id ? '...' : '⚡ В 1 клик'}</span>
-                              </button>
-                            )}
-
-                          <button
-                            type="button"
-                            onClick={() => handleOpenEditModal(pub)}
-                            className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-[11px] font-semibold transition border border-zinc-700 cursor-pointer shadow-xs"
-                            title="Редактировать текст, фото, ссылку и параметры публикации"
-                          >
-                            <Edit3 className="w-3.5 h-3.5 text-blue-400" />
-                            <span>Редактировать</span>
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => handleDeletePublication(pub.id)}
-                            className="text-zinc-500 hover:text-red-400 p-1.5 rounded-lg hover:bg-zinc-800 transition cursor-pointer"
-                            title="Удалить публикацию"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
+                  {paginatedPublications.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="px-4 py-12 text-center text-zinc-500">
+                        {searchQuery
+                          ? `Ничего не найдено по запросу «${searchQuery}»`
+                          : 'В реестре пока нет публикаций с выбранными фильтрами'}
                       </td>
                     </tr>
-                  ))}
+                  ) : (
+                    paginatedPublications.map((pub) => (
+                      <tr key={pub.id} className="group hover:bg-zinc-800/40 transition">
+                        {/* 1. Канал и Расписание */}
+                        <td className="px-3.5 py-3 whitespace-nowrap align-top border-b border-zinc-800/40">
+                          <div className="flex flex-col gap-1">
+                            <div className="flex items-center gap-1.5">
+                              {getChannelBadge(pub.channel)}
+                            </div>
+                            <span className="text-[10px] text-zinc-500 max-w-[140px] truncate" title={pub.channelAccount}>
+                              {pub.channelAccount}
+                            </span>
+
+                            {/* Инлайн-редактирование расписания прямо из списка */}
+                            {editingScheduleId === pub.id ? (
+                              <div className="mt-1 p-2 bg-zinc-950 rounded-xl border border-blue-500/60 shadow-xl space-y-1.5 min-w-[210px] z-10">
+                                <div className="flex items-center justify-between text-[10px]">
+                                  <span className="font-bold text-blue-400 flex items-center gap-1">
+                                    <Clock className="w-3 h-3" />
+                                    Дата и время:
+                                  </span>
+                                  {pub.scheduledAt && (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleClearSchedule(pub.id)}
+                                      disabled={savingScheduleId === pub.id}
+                                      className="text-red-400 hover:text-red-300 hover:underline cursor-pointer text-[10px]"
+                                      title="Сбросить расписание и вернуть в черновик"
+                                    >
+                                      Сбросить
+                                    </button>
+                                  )}
+                                </div>
+                                <input
+                                  type="datetime-local"
+                                  value={editingScheduleVal}
+                                  onChange={(e) => setEditingScheduleVal(e.target.value)}
+                                  className="w-full bg-zinc-900 text-zinc-100 text-[11px] rounded-lg px-2 py-1 border border-zinc-700 outline-none focus:border-blue-500 font-mono"
+                                />
+                                <div className="flex items-center justify-end gap-1.5 pt-0.5">
+                                  <button
+                                    type="button"
+                                    onClick={() => setEditingScheduleId(null)}
+                                    className="px-2 py-0.5 rounded text-[10px] bg-zinc-800 hover:bg-zinc-700 text-zinc-300 cursor-pointer"
+                                  >
+                                    ✕
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleSaveSchedule(pub.id, editingScheduleVal)}
+                                    disabled={savingScheduleId === pub.id || !editingScheduleVal}
+                                    className="px-2.5 py-0.5 rounded text-[10px] font-bold bg-blue-600 hover:bg-blue-500 text-white flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                                  >
+                                    {savingScheduleId === pub.id ? (
+                                      <RefreshCw className="w-2.5 h-2.5 animate-spin" />
+                                    ) : (
+                                      <Check className="w-2.5 h-2.5" />
+                                    )}
+                                    <span>Сохранить</span>
+                                  </button>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="flex flex-col gap-0.5 mt-0.5">
+                                {pub.scheduledAt ? (
+                                  (() => {
+                                    const isDue = pub.status === 'scheduled' && new Date(pub.scheduledAt).getTime() <= Date.now();
+                                    const relText = getRelativeScheduleText(pub.scheduledAt);
+                                    return (
+                                      <button
+                                        type="button"
+                                        onClick={() => handleOpenScheduleEditor(pub)}
+                                        className={`flex items-center gap-1.5 px-2 py-1 rounded-lg text-[10px] font-mono font-semibold transition cursor-pointer text-left border ${
+                                          pub.status === 'published'
+                                            ? 'bg-zinc-800/60 text-zinc-400 border-zinc-700/50'
+                                            : isDue
+                                            ? 'bg-rose-500/15 text-rose-300 border-rose-500/30 hover:bg-rose-500/25'
+                                            : 'bg-amber-500/15 text-amber-300 border-amber-500/30 hover:bg-amber-500/25'
+                                        }`}
+                                        title="Нажмите, чтобы изменить дату и время выгрузки прямо из списка"
+                                      >
+                                        <Clock className="w-3 h-3 shrink-0" />
+                                        <span className="truncate">{formatScheduleDisplay(pub.scheduledAt)}</span>
+                                        {isDue ? (
+                                          <span className="text-[9px] px-1 py-0.2 bg-rose-600 text-white rounded font-bold shrink-0">
+                                            СОЗРЕЛ
+                                          </span>
+                                        ) : relText && pub.status === 'scheduled' ? (
+                                          <span className="text-[9px] text-amber-400/80 shrink-0">
+                                            ({relText})
+                                          </span>
+                                        ) : null}
+                                        <Edit3 className="w-2.5 h-2.5 opacity-60 ml-auto shrink-0" />
+                                      </button>
+                                    );
+                                  })()
+                                ) : (
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="text-[10px] text-zinc-400 font-mono">{pub.date}</span>
+                                    {pub.status !== 'published' && (
+                                      <button
+                                        type="button"
+                                        onClick={() => handleOpenScheduleEditor(pub)}
+                                        className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] text-zinc-400 hover:text-blue-300 hover:bg-zinc-800 transition cursor-pointer border border-dashed border-zinc-700 hover:border-blue-500/40"
+                                        title="Задать дату и время для автоматической выгрузки по расписанию"
+                                      >
+                                        <Clock className="w-2.5 h-2.5 text-blue-400" />
+                                        <span>+ Время</span>
+                                      </button>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </td>
+
+                        {/* 2. Кампания, Версия и Медиа */}
+                        <td className="px-3.5 py-3 align-top min-w-[210px] border-b border-zinc-800/40">
+                          <div className="flex flex-col gap-1.5">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="font-bold text-zinc-100 text-xs">
+                                {normalizeCampaign(pub.campaignTitle)}
+                              </span>
+                              {pub.version && (
+                                <span className="px-1.5 py-0.2 rounded text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                                  {pub.version}
+                                </span>
+                              )}
+                              {(pub.id.toLowerCase().includes('spicy') || pub.notes?.toLowerCase().includes('spicy') || pub.campaignTitle?.toLowerCase().includes('spicy')) && (
+                                <span className="px-1.5 py-0.2 rounded text-[10px] font-semibold bg-rose-500/20 text-rose-300 border border-rose-500/30">
+                                  🌶️ Spicy
+                                </span>
+                              )}
+                              {(pub.id.toLowerCase().includes('clean') || pub.notes?.toLowerCase().includes('clean') || pub.campaignTitle?.toLowerCase().includes('clean')) && (
+                                <span className="px-1.5 py-0.2 rounded text-[10px] font-semibold bg-sky-500/20 text-sky-300 border border-sky-500/30">
+                                  🧼 Clean
+                                </span>
+                              )}
+                            </div>
+
+                            <p className="text-zinc-300 text-xs line-clamp-2" title={pub.title}>{pub.title}</p>
+
+                            {/* Медиа-кнопки (Плеер и Скачать) прямо тут! */}
+                            {pub.videoPath ? (
+                              <div className="flex items-center gap-1.5 pt-0.5">
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setPreviewVideo({
+                                      url: pub.videoPath!,
+                                      title: pub.title,
+                                      version: pub.version,
+                                      channel: pub.channel,
+                                    })
+                                  }
+                                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-blue-600/20 hover:bg-blue-600/35 text-blue-300 border border-blue-500/30 text-[11px] font-semibold transition cursor-pointer"
+                                  title="Смотреть видео прямо в админке"
+                                >
+                                  <Play className="w-3 h-3 fill-blue-300 text-blue-300" />
+                                  <span>Плеер</span>
+                                </button>
+                                <a
+                                  href={pub.videoPath}
+                                  download
+                                  className="p-1 rounded-md hover:bg-zinc-800 text-zinc-400 hover:text-white transition cursor-pointer"
+                                  title="Скачать видеофайл .mp4"
+                                >
+                                  <Download className="w-3 h-3" />
+                                </a>
+                                <span className="text-[10px] text-zinc-500 uppercase">{pub.format}</span>
+                              </div>
+                            ) : pub.imagePath ? (
+                              <div className="flex items-center gap-1.5 pt-0.5">
+                                <a
+                                  href={pub.imagePath}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-600/20 hover:bg-amber-600/35 text-amber-300 border border-amber-500/30 text-[11px] font-semibold transition cursor-pointer"
+                                  title="Открыть фото"
+                                >
+                                  <Film className="w-3 h-3 text-amber-300" />
+                                  <span>Фото</span>
+                                </a>
+                                <a
+                                  href={pub.imagePath}
+                                  download
+                                  className="p-1 rounded-md hover:bg-zinc-800 text-zinc-400 hover:text-white transition cursor-pointer"
+                                  title="Скачать фото"
+                                >
+                                  <Download className="w-3 h-3" />
+                                </a>
+                              </div>
+                            ) : (
+                              <span className="text-[10px] text-zinc-500 uppercase">{pub.format}</span>
+                            )}
+                          </div>
+                        </td>
+
+                        {/* 3. Текст поста */}
+                        <td className="px-3.5 py-3 align-top min-w-[240px] border-b border-zinc-800/40">
+                          <div className="flex flex-col gap-1">
+                            <div className="flex items-center justify-between">
+                              <button
+                                type="button"
+                                onClick={() => copyCaption(pub.caption || pub.title, pub.id)}
+                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-zinc-800/80 hover:bg-zinc-700 text-zinc-300 text-[11px] font-semibold transition cursor-pointer border border-zinc-700/80"
+                                title="Скопировать готовый авторский текст поста с хэштегами"
+                              >
+                                {copiedCaptionId === pub.id ? (
+                                  <>
+                                    <Check className="w-3 h-3 text-emerald-400" />
+                                    <span className="text-emerald-400 font-bold">Скопировано!</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Copy className="w-3 h-3 text-zinc-400" />
+                                    <span>Скопировать</span>
+                                  </>
+                                )}
+                              </button>
+                            </div>
+                            <p
+                              className="text-[11px] text-zinc-300 line-clamp-2 leading-relaxed mt-0.5 cursor-pointer hover:text-zinc-100 transition"
+                              title="Нажмите, чтобы скопировать весь текст"
+                              onClick={() => copyCaption(pub.caption || pub.title, pub.id)}
+                            >
+                              {pub.caption || pub.title}
+                            </p>
+                          </div>
+                        </td>
+
+                        {/* 4. Ссылка и Промокод */}
+                        <td className="px-3.5 py-3 align-top whitespace-nowrap border-b border-zinc-800/40">
+                          <div className="flex flex-col gap-1">
+                            <button
+                              type="button"
+                              onClick={() => copyToClipboard(pub.fullUrlWithPromo, pub.id)}
+                              className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-zinc-800/80 hover:bg-zinc-700 text-zinc-300 hover:text-white transition cursor-pointer text-[11px] w-fit font-mono"
+                              title="Скопировать ссылку с промокодом"
+                            >
+                              {copiedId === pub.id ? (
+                                <Check className="w-3 h-3 text-emerald-400" />
+                              ) : (
+                                <Copy className="w-3 h-3 text-zinc-400" />
+                              )}
+                              <span>{pub.targetDeepLink}</span>
+                            </button>
+
+                            {pub.promoCode && (
+                              <div className="flex items-center gap-1">
+                                {dbPromos.includes(pub.promoCode.toUpperCase()) ? (
+                                  <span
+                                    className="font-mono font-bold text-emerald-400 px-1.5 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20 text-[10px] flex items-center gap-1"
+                                    title="Промокод активен в базе данных"
+                                  >
+                                    <CheckCircle2 className="w-2.5 h-2.5 text-emerald-400" />
+                                    <span>Код: {pub.promoCode}</span>
+                                  </span>
+                                ) : (
+                                  <div className="flex items-center gap-1">
+                                    <span className="font-mono font-bold text-amber-400 px-1.5 py-0.5 rounded bg-amber-500/10 border border-amber-500/20 text-[10px]">
+                                      Код: {pub.promoCode}
+                                    </span>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleQuickCreatePromoForPub(pub)}
+                                      disabled={creatingPromoForPubId === pub.id}
+                                      className="px-1.5 py-0.5 rounded bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold text-[10px] transition cursor-pointer"
+                                      title="Создать промокод в БД в 1 клик"
+                                    >
+                                      {creatingPromoForPubId === pub.id ? '...' : '+ В БД'}
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </td>
+
+                        {/* 5. Статус */}
+                        <td className="px-3.5 py-3 align-top whitespace-nowrap text-center border-b border-zinc-800/40">
+                          <div className="flex flex-col items-center gap-1">
+                            <span
+                              className={`px-2 py-0.5 rounded-full text-[11px] font-semibold text-center ${
+                                pub.status === 'published'
+                                  ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
+                                  : pub.status === 'scheduled'
+                                  ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30'
+                                  : pub.status === 'ready_for_upload'
+                                  ? 'bg-indigo-500/15 text-indigo-300 border border-indigo-500/40'
+                                  : 'bg-zinc-800 text-zinc-400 border border-zinc-700'
+                              }`}
+                            >
+                              {pub.status === 'published'
+                                ? '🟢 Вышел'
+                                : pub.status === 'scheduled'
+                                ? '🟡 План'
+                                : pub.status === 'ready_for_upload'
+                                ? '🎬 Смонтирован'
+                                : '⚪ Готов'}
+                            </span>
+                            {pub.livePostUrl ? (
+                              <a
+                                href={pub.livePostUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1 text-blue-400 hover:text-blue-300 font-semibold text-[11px]"
+                              >
+                                <span>В эфире</span>
+                                <ExternalLink className="w-2.5 h-2.5" />
+                              </a>
+                            ) : null}
+                          </div>
+                        </td>
+
+                        {/* 6. ДЕЙСТВИЯ (STICKY RIGHT — ВСЕГДА НА ВИДУ!) */}
+                        <td className="px-3.5 py-3 align-top text-right whitespace-nowrap sticky right-0 bg-zinc-900 group-hover:bg-zinc-800 border-b border-l border-zinc-800/80 shadow-[-8px_0_12px_rgba(0,0,0,0.7)] z-10 transition">
+                          <div className="flex items-center justify-end gap-1.5">
+                            {pub.status !== 'published' &&
+                              ['youtube', 'telegram', 'facebook', 'tiktok', 'instagram'].includes(pub.channel) ? (
+                                <button
+                                  type="button"
+                                  onClick={() => handlePublishRow(pub)}
+                                  disabled={publishingRowId === pub.id}
+                                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-gradient-to-r from-red-600 via-rose-600 to-amber-600 hover:from-red-500 hover:to-amber-500 text-white text-xs font-bold transition shadow-md shadow-red-600/25 cursor-pointer disabled:opacity-50"
+                                  title="Опубликовать в 1 клик прямо сейчас через боевой сервер"
+                                >
+                                  <Flame
+                                    className={`w-3.5 h-3.5 ${
+                                      publishingRowId === pub.id ? 'animate-spin' : ''
+                                    }`}
+                                  />
+                                  <span>{publishingRowId === pub.id ? '...' : '⚡ В 1 клик'}</span>
+                                </button>
+                              ) : pub.status === 'published' ? (
+                                <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-emerald-500/10 text-emerald-400 text-xs font-semibold border border-emerald-500/20">
+                                  <CheckCircle2 className="w-3.5 h-3.5" />
+                                  <span>Выгружен</span>
+                                </span>
+                              ) : null}
+
+                            <button
+                              type="button"
+                              onClick={() => handleOpenEditModal(pub)}
+                              className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-100 text-xs font-semibold transition border border-zinc-700 cursor-pointer shadow-xs"
+                              title="Редактировать публикацию"
+                            >
+                              <Edit3 className="w-3.5 h-3.5 text-blue-400" />
+                              <span>Ред.</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => handleDeletePublication(pub.id)}
+                              className="text-zinc-500 hover:text-red-400 p-1.5 rounded-lg hover:bg-zinc-800 transition cursor-pointer"
+                              title="Удалить публикацию"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
+            </div>
+
+            {/* ПАНЕЛЬ ПАГИНАЦИИ И УПРАВЛЕНИЯ КОЛИЧЕСТВОМ СТРОК */}
+            <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 bg-zinc-950/80 border-t border-zinc-800 text-xs text-zinc-400">
+              <div className="flex items-center gap-3">
+                <span>
+                  Показано{' '}
+                  <strong className="text-zinc-200">
+                    {filteredPublications.length === 0
+                      ? 0
+                      : `${(currentPage - 1) * (pageSize === 'all' ? filteredPublications.length : Number(pageSize)) + 1}–${Math.min(
+                          currentPage * (pageSize === 'all' ? filteredPublications.length : Number(pageSize)),
+                          filteredPublications.length
+                        )}`}
+                  </strong>{' '}
+                  из <strong className="text-zinc-200">{filteredPublications.length}</strong>
+                  {searchQuery && ` (по запросу «${searchQuery}»)`}
+                </span>
+
+                <div className="flex items-center gap-1.5 border-l border-zinc-800 pl-3">
+                  <span>На странице:</span>
+                  <select
+                    value={pageSize}
+                    onChange={(e) => {
+                      setPageSize(e.target.value);
+                      setCurrentPage(1);
+                    }}
+                    className="bg-zinc-800 text-zinc-200 text-xs rounded-lg px-2 py-1 border border-zinc-700 outline-none cursor-pointer"
+                  >
+                    <option value="15">15</option>
+                    <option value="25">25</option>
+                    <option value="50">50</option>
+                    <option value="all">Все ({filteredPublications.length})</option>
+                  </select>
+                </div>
+              </div>
+
+              {pageSize !== 'all' && totalPages > 1 && (
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                    className="p-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 disabled:opacity-30 disabled:hover:bg-zinc-800 cursor-pointer transition"
+                    title="Предыдущая страница"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </button>
+                  <span className="px-2.5 text-xs font-semibold text-zinc-300">
+                    Стр. {currentPage} из {totalPages}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                    className="p-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 disabled:opacity-30 disabled:hover:bg-zinc-800 cursor-pointer transition"
+                    title="Следующая страница"
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>

@@ -1432,10 +1432,10 @@
     "sentenceTranscription": "анӣ роца́ мáйим карӣ́м.",
     "gender": "female",
     "voice": "Aoede",
-    "engine": "gemini-3.8-flash-lite-tts",
+    "engine": "gemini-3.8-flash-tts",
     "modelFamily": "gemini-3.8",
     "status": "verified_gemini_3.8",
-    "generatedAt": "2026-10-04T05:05:06.629Z"
+    "generatedAt": "2026-10-04T06:05:05.188Z"
   },
   "s_0f3a3929d039.mp3": {
     "id": "tsv_female_2",
@@ -1792,10 +1792,10 @@
     "sentenceTranscription": "анӣ лока́хат тапӯ́ах у-мáйим.",
     "gender": "female",
     "voice": "Aoede",
-    "engine": "gemini-3.1-flash-tts-preview",
-    "modelFamily": "gemini-3.1",
-    "status": "verified_gemini_3.1",
-    "generatedAt": "2026-10-04T05:05:11.788Z"
+    "engine": "gemini-3.8-flash-lite-tts",
+    "modelFamily": "gemini-3.8",
+    "status": "verified_gemini_3.8",
+    "generatedAt": "2026-10-04T06:05:09.789Z"
   },
   "s_2dec5903941d.mp3": {
     "id": "tsv_female_32",
@@ -3484,10 +3484,10 @@
     "sentenceTranscription": "йибáшти эт hа-длатóт ми-типóт мáйим.",
     "gender": "female",
     "voice": "Aoede",
-    "engine": "gemini-3.8-flash-tts",
-    "modelFamily": "gemini-3.8",
-    "status": "verified_gemini_3.8",
-    "generatedAt": "2026-10-04T05:05:32.004Z"
+    "engine": "gemini-3.1-flash-tts-preview",
+    "modelFamily": "gemini-3.1",
+    "status": "verified_gemini_3.1",
+    "generatedAt": "2026-10-04T06:05:29.245Z"
   },
   "s_cb5cb64a33d3.mp3": {
     "id": "tsv_female_381",
@@ -3520,10 +3520,10 @@
     "sentenceTranscription": "hитáзти зéрем мáйим аль hа-боц.",
     "gender": "female",
     "voice": "Aoede",
-    "engine": "gemini-3.8-flash-lite-tts",
+    "engine": "gemini-3.8-flash-tts",
     "modelFamily": "gemini-3.8",
     "status": "verified_gemini_3.8",
-    "generatedAt": "2026-10-04T05:05:37.038Z"
+    "generatedAt": "2026-10-04T06:05:33.768Z"
   },
   "s_0d05e0a56c82.mp3": {
     "id": "tsv_female_384",
@@ -3940,10 +3940,10 @@
     "sentenceTranscription": "hа-мехӣ́р колéль хашмáль у-мáйим.",
     "gender": "female",
     "voice": "Aoede",
-    "engine": "gemini-3.1-flash-tts-preview",
-    "modelFamily": "gemini-3.1",
-    "status": "verified_gemini_3.1",
-    "generatedAt": "2026-10-04T05:05:42.843Z"
+    "engine": "gemini-3.8-flash-lite-tts",
+    "modelFamily": "gemini-3.8",
+    "status": "verified_gemini_3.8",
+    "generatedAt": "2026-10-04T06:05:38.801Z"
   },
   "s_d5c7307a3611.mp3": {
     "id": "tsv_female_421",
@@ -4276,10 +4276,10 @@
     "sentenceTranscription": "анӣ́ роца́ лишто́т мáйим.",
     "gender": "female",
     "voice": "Aoede",
-    "engine": "gemini-3.8-flash-tts",
-    "modelFamily": "gemini-3.8",
-    "status": "verified_gemini_3.8",
-    "generatedAt": "2026-10-04T05:05:49.348Z"
+    "engine": "gemini-3.1-flash-tts-preview",
+    "modelFamily": "gemini-3.1",
+    "status": "verified_gemini_3.1",
+    "generatedAt": "2026-10-04T06:05:43.663Z"
   },
   "s_025677454b4c_f.mp3": {
     "id": "tsv_female_450",
@@ -4660,10 +4660,10 @@
     "sentenceTranscription": "ани́ меваке́шет кос мáйим.",
     "gender": "female",
     "voice": "Aoede",
-    "engine": "gemini-3.8-flash-lite-tts",
+    "engine": "gemini-3.8-flash-tts",
     "modelFamily": "gemini-3.8",
     "status": "verified_gemini_3.8",
-    "generatedAt": "2026-10-04T05:05:54.458Z"
+    "generatedAt": "2026-10-04T06:05:48.384Z"
   },
   "s_5ea7ec7d4362.mp3": {
     "id": "tsv_female_485",
@@ -4996,10 +4996,10 @@
     "sentenceTranscription": "йеш по мáйим карӣ́м.",
     "gender": "female",
     "voice": "Aoede",
-    "engine": "gemini-3.1-flash-tts-preview",
-    "modelFamily": "gemini-3.1",
-    "status": "verified_gemini_3.1",
-    "generatedAt": "2026-10-04T05:06:00.031Z"
+    "engine": "gemini-3.8-flash-lite-tts",
+    "modelFamily": "gemini-3.8",
+    "status": "verified_gemini_3.8",
+    "generatedAt": "2026-10-04T06:05:52.668Z"
   },
   "s_e53a45a7c193_f.mp3": {
     "id": "tsv_female_514",
@@ -12736,10 +12736,10 @@
     "sentenceTranscription": "hи рохéцет эт hа-ядáйим бэ-мáйим.",
     "gender": "female",
     "voice": "Aoede",
-    "engine": "gemini-3.8-flash-tts",
-    "modelFamily": "gemini-3.8",
-    "status": "verified_gemini_3.8",
-    "generatedAt": "2026-10-04T05:05:16.902Z"
+    "engine": "gemini-3.1-flash-tts-preview",
+    "modelFamily": "gemini-3.1",
+    "status": "verified_gemini_3.1",
+    "generatedAt": "2026-10-04T06:05:14.944Z"
   },
   "s_f37d2d4597a0.mp3": {
     "id": "tsv_female_216",
@@ -12892,10 +12892,10 @@
     "sentenceTranscription": "химáмти мáйим хамӣ́м ла-те.",
     "gender": "female",
     "voice": "Aoede",
-    "engine": "gemini-3.8-flash-lite-tts",
+    "engine": "gemini-3.8-flash-tts",
     "modelFamily": "gemini-3.8",
     "status": "verified_gemini_3.8",
-    "generatedAt": "2026-10-04T05:05:22.138Z"
+    "generatedAt": "2026-10-04T06:05:19.395Z"
   },
   "s_2946c01023fb.mp3": {
     "id": "tsv_female_229",
@@ -13816,10 +13816,10 @@
     "sentenceTranscription": "никáзти эт hа-мáйим ме-hа-радьятóр.",
     "gender": "female",
     "voice": "Aoede",
-    "engine": "gemini-3.1-flash-tts-preview",
-    "modelFamily": "gemini-3.1",
-    "status": "verified_gemini_3.1",
-    "generatedAt": "2026-10-04T05:05:27.220Z"
+    "engine": "gemini-3.8-flash-lite-tts",
+    "modelFamily": "gemini-3.8",
+    "status": "verified_gemini_3.8",
+    "generatedAt": "2026-10-04T06:05:24.033Z"
   },
   "s_fcf96c699281.mp3": {
     "id": "tsv_female_334",
@@ -14071,7 +14071,7 @@
     "engine": "gemini-3.1-flash-tts-preview",
     "modelFamily": "gemini-3.1",
     "status": "verified_gemini_3.1",
-    "generatedAt": "2026-10-04T00:06:02.011Z"
+    "generatedAt": "2026-10-04T06:05:57.697Z"
   },
   "s_7d0bf51deab3.mp3": {
     "id": "tsv_female_1053",
