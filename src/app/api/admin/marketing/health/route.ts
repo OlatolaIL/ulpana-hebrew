@@ -229,7 +229,7 @@ export async function GET(req: NextRequest) {
       const t0 = Date.now();
       try {
         const fbRes = await fetch(
-          `https://graph.facebook.com/v26.0/${encodeURIComponent(fbPageId)}?fields=name,id,link,tasks&access_token=${encodeURIComponent(metaToken)}`,
+          `https://graph.facebook.com/v26.0/${encodeURIComponent(fbPageId)}?fields=name,id,link,tasks,instagram_business_account{id,username}&access_token=${encodeURIComponent(metaToken)}`,
           { signal: AbortSignal.timeout(4000) }
         );
         const fbData = await fbRes.json();
@@ -242,16 +242,23 @@ export async function GET(req: NextRequest) {
             details: fbData.error || {},
           };
         } else {
+          const igAccount = fbData.instagram_business_account;
+          const igConnected = Boolean(igAccount?.id);
+          const igMessage = igConnected
+            ? ` + Instagram @${igAccount.username || igAccount.id} подключен`
+            : ` (Instagram: требуется обновить токен с правами instagram_basic)`;
+
           metaHealth = {
             status: 'ok',
             latencyMs: Date.now() - t0,
-            message: `Страница Facebook "${fbData.name}" подключена (ID: ${fbData.id})`,
+            message: `Страница Facebook "${fbData.name}" подключена (ID: ${fbData.id})${igMessage}`,
             details: {
               pageName: fbData.name,
               pageId: fbData.id,
               pageLink: fbData.link,
               tasks: fbData.tasks,
-              mode: 'Graph API Direct Auto-post',
+              instagramAccount: igAccount || null,
+              mode: 'Graph API Direct Auto-post (Facebook & Instagram Reels)',
             },
           };
         }

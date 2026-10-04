@@ -38,6 +38,7 @@ const pageAccessToken = process.env.META_ACCESS_TOKEN?.trim();
 const args = process.argv.slice(2);
 const isSend = args.includes('--send');
 const isRegister = args.includes('--register');
+const isInstagram = args.includes('--instagram') || args.includes('--channel=instagram');
 const isPreview = args.includes('--preview') || !isSend;
 const fileArg = args.find(a => a.startsWith('--file='));
 const filePath = fileArg ? fileArg.split('=')[1] : null;
@@ -102,6 +103,110 @@ async function main() {
   if (!pageId || !pageAccessToken) {
     console.error('❌ ОШИБКА: FB_PAGE_ID или META_ACCESS_TOKEN не найдены в .env.local!');
     process.exit(1);
+  }
+
+  if (isInstagram) {
+    console.log('📸 РЕЖИМ: ПУБЛИКАЦИЯ В INSTAGRAM REELS (Meta Graph API)');
+    let igUserId = process.env.IG_USER_ID?.trim();
+    if (!igUserId) {
+      console.log(`🔍 Запрос ID связанного Instagram-аккаунта со страницы ${pageId}...`);
+      const pageRes = await fetch(`https://graph.facebook.com/v26.0/${encodeURIComponent(pageId)}?fields=instagram_business_account&access_token=${encodeURIComponent(pageAccessToken)}`);
+      const pageData = await pageRes.json();
+      if (pageData?.instagram_business_account?.id) {
+        igUserId = pageData.instagram_business_account.id;
+      }
+    }
+    if (!igUserId) {
+      console.error('❌ ОШИБКА: Не удалось получить ID Instagram Business аккаунта. Убедитесь, что токен META_ACCESS_TOKEN имеет права instagram_basic и instagram_content_publish.');
+      process.exit(1);
+    }
+    console.log(`✅ Найдена учетная запись Instagram ID: ${igUserId}`);
+
+    if (!customVideo) {
+      console.error('❌ ОШИБКА: Для публикации в Instagram Reels необходимо указать видеофайл через --video=<URL>');
+      process.exit(1);
+    }
+
+    let publicVideoUrl = customVideo;
+    if (!publicVideoUrl.startsWith('http://') && !publicVideoUrl.startsWith('https://')) {
+      console.error('❌ ОШИБКА: Instagram Reels API требует прямой публичный HTTPS URL видеофайла (например, ссылку на GitHub Releases CDN).');
+      process.exit(1);
+    }
+
+    console.log(`📦 Шаг 1: Создание медиа-контейнера Reels для ${publicVideoUrl}...`);
+    const containerParams = new URLSearchParams();
+    containerParams.append('media_type', 'REELS');
+    containerParams.append('video_url', publicVideoUrl);
+    containerParams.append('caption', messageText);
+    containerParams.append('share_to_feed', 'true');
+    containerParams.append('access_token', pageAccessToken);
+
+    const containerRes = await fetch(`https://graph.facebook.com/v26.0/${encodeURIComponent(igUserId)}/media`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: containerParams.toString()
+    });
+    const containerData = await containerRes.json();
+    if (!containerRes.ok || containerData.error || !containerData.id) {
+      console.error('❌ Ошибка создания контейнера Instagram:', containerData.error ? containerData.error.message : containerData);
+      process.exit(1);
+    }
+
+    const containerId = containerData.id;
+    console.log(`⏳ Контейнер создан (ID: ${containerId}). Ожидание обработки видео Instagram...`);
+
+    let isFinished = false;
+    let attempts = 0;
+    while (!isFinished && attempts < 25) {
+      await new Promise(r => setTimeout(r, 2500));
+      attempts++;
+      const statusRes = await fetch(`https://graph.facebook.com/v26.0/${encodeURIComponent(containerId)}?fields=status_code,status&access_token=${encodeURIComponent(pageAccessToken)}`);
+      const statusData = await statusRes.json();
+      const code = statusData.status_code;
+      if (code === 'FINISHED') {
+        isFinished = true;
+        console.log(`\n✅ Видео успешно обработано сервером Instagram!`);
+      } else if (code === 'ERROR') {
+        console.error('\n❌ Ошибка обработки видео сервером Instagram:', statusData);
+        process.exit(1);
+      } else {
+        process.stdout.write('.');
+      }
+    }
+
+    if (!isFinished) {
+      console.error('\n❌ Таймаут ожидания обработки видео в Instagram.');
+      process.exit(1);
+    }
+
+    console.log(`🚀 Шаг 2: Публикация контейнера...`);
+    const pubParams = new URLSearchParams();
+    pubParams.append('creation_id', containerId);
+    pubParams.append('access_token', pageAccessToken);
+
+    const pubRes = await fetch(`https://graph.facebook.com/v26.0/${encodeURIComponent(igUserId)}/media_publish`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: pubParams.toString()
+    });
+    const pubData = await pubRes.json();
+    if (!pubRes.ok || pubData.error || !pubData.id) {
+      console.error('❌ Ошибка публикации в Instagram:', pubData.error ? pubData.error.message : pubData);
+      process.exit(1);
+    }
+
+    const mediaId = pubData.id;
+    let liveUrl = `https://www.instagram.com/p/${mediaId}`;
+    try {
+      const linkRes = await fetch(`https://graph.facebook.com/v26.0/${encodeURIComponent(mediaId)}?fields=permalink&access_token=${encodeURIComponent(pageAccessToken)}`);
+      const linkData = await linkRes.json();
+      if (linkData.permalink) liveUrl = linkData.permalink;
+    } catch {}
+
+    console.log(`🎉 REELS УСПЕШНО ОПУБЛИКОВАН В INSTAGRAM!`);
+    console.log(`🆔 Media ID: ${mediaId}`);
+    console.log(`🔗 Ссылка: ${liveUrl}`);
+    return;
   }
 
   let tempVideoPath = null;

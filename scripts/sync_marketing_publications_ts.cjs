@@ -25,6 +25,7 @@ const tsCode = `export interface PublicationItem {
   livePostUrl: string;
   status: 'draft' | 'scheduled' | 'published' | 'archived' | 'ready_for_upload';
   notes?: string;
+  scheduledAt?: string;
   createdAt: string;
   updatedAt: string;
 }

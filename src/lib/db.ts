@@ -276,9 +276,12 @@ async function initializeDatabase() {
         live_post_url TEXT DEFAULT '',
         status TEXT DEFAULT 'draft',
         notes TEXT DEFAULT '',
+        scheduled_at TEXT,
         created_at TIMESTAMPTZ DEFAULT NOW(),
         updated_at TIMESTAMPTZ DEFAULT NOW()
       );
+      ALTER TABLE ulpana_publications ADD COLUMN IF NOT EXISTS scheduled_at TEXT;
+      CREATE INDEX IF NOT EXISTS ulpana_publications_status_sched_idx ON ulpana_publications(status, scheduled_at);
     `);
 
     await db.query('COMMIT');

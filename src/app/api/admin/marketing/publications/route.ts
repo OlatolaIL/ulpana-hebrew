@@ -23,6 +23,7 @@ export interface PublicationItem {
   livePostUrl: string;
   status: 'draft' | 'scheduled' | 'published' | 'archived' | 'ready_for_upload';
   notes?: string;
+  scheduledAt?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -47,8 +48,8 @@ async function seedFromFile(db: ReturnType<typeof getDbPool>) {
         `INSERT INTO ulpana_publications (
           id, date, channel, channel_account, format, title, campaign_title, version,
           video_path, image_path, caption, target_deep_link, promo_code,
-          full_url_with_promo, live_post_url, status, notes, created_at, updated_at
-        ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)
+          full_url_with_promo, live_post_url, status, notes, scheduled_at, created_at, updated_at
+        ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20)
         ON CONFLICT (id) DO UPDATE SET
           title = EXCLUDED.title,
           caption = EXCLUDED.caption,
@@ -63,6 +64,7 @@ async function seedFromFile(db: ReturnType<typeof getDbPool>) {
           format = EXCLUDED.format,
           live_post_url = CASE WHEN EXCLUDED.live_post_url <> '' THEN EXCLUDED.live_post_url ELSE ulpana_publications.live_post_url END,
           status = CASE WHEN EXCLUDED.status = 'published' THEN 'published' ELSE ulpana_publications.status END,
+          scheduled_at = CASE WHEN EXCLUDED.scheduled_at IS NOT NULL THEN EXCLUDED.scheduled_at ELSE ulpana_publications.scheduled_at END,
           updated_at = EXCLUDED.updated_at
         WHERE ulpana_publications.title IS DISTINCT FROM EXCLUDED.title
            OR ulpana_publications.caption IS DISTINCT FROM EXCLUDED.caption
@@ -79,6 +81,7 @@ async function seedFromFile(db: ReturnType<typeof getDbPool>) {
           item.targetDeepLink || '/lessons/1/call', item.promoCode || '',
           item.fullUrlWithPromo || '', item.livePostUrl || '',
           item.status || 'draft', item.notes || '',
+          item.scheduledAt || null,
           item.createdAt || new Date().toISOString(),
           item.updatedAt || new Date().toISOString(),
         ]
@@ -108,6 +111,7 @@ function rowToPublication(row: any): PublicationItem {
     livePostUrl: row.live_post_url || '',
     status: row.status || 'draft',
     notes: row.notes || undefined,
+    scheduledAt: row.scheduled_at || undefined,
     createdAt: row.created_at?.toISOString?.() || row.created_at || '',
     updatedAt: row.updated_at?.toISOString?.() || row.updated_at || '',
   };
@@ -183,6 +187,7 @@ export async function POST(req: NextRequest) {
       livePostUrl,
       status,
       notes,
+      scheduledAt,
     } = body;
 
     if (!title || !channel || !format) {
@@ -229,7 +234,8 @@ export async function POST(req: NextRequest) {
             live_post_url = COALESCE($15, live_post_url),
             status = COALESCE($16, status),
             notes = $17,
-            updated_at = $18
+            scheduled_at = CASE WHEN $18::text IS NOT NULL THEN NULLIF($18, '') ELSE ulpana_publications.scheduled_at END,
+            updated_at = $19
           WHERE id = $1
           RETURNING *`,
           [
@@ -243,7 +249,9 @@ export async function POST(req: NextRequest) {
             caption !== undefined ? caption : null,
             cleanLink, cleanPromo, fullUrl,
             livePostUrl ?? null,
-            status || null, notes ?? null, now,
+            status || null, notes ?? null,
+            scheduledAt !== undefined ? (scheduledAt ? String(scheduledAt).trim() : '') : null,
+            now,
           ]
         );
         return NextResponse.json({ success: true, publication: rowToPublication(result.rows[0]) });
@@ -256,8 +264,8 @@ export async function POST(req: NextRequest) {
       `INSERT INTO ulpana_publications (
         id, date, channel, channel_account, format, title, campaign_title, version,
         video_path, image_path, caption, target_deep_link, promo_code,
-        full_url_with_promo, live_post_url, status, notes, created_at, updated_at
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)
+        full_url_with_promo, live_post_url, status, notes, scheduled_at, created_at, updated_at
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20)
       RETURNING *`,
       [
         newId, date || now.split('T')[0], channel || 'telegram',
@@ -269,13 +277,102 @@ export async function POST(req: NextRequest) {
         caption ? String(caption).trim() : null,
         cleanLink, cleanPromo, fullUrl,
         String(livePostUrl || '').trim(),
-        status || 'draft', notes || '', now, now,
+        status || 'draft', notes || '',
+        scheduledAt ? String(scheduledAt).trim() : null,
+        now, now,
       ]
     );
 
     return NextResponse.json({ success: true, publication: rowToPublication(result.rows[0]) });
   } catch (error: any) {
     console.error('[API Admin Marketing Publications POST] Error:', error);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+  }
+}
+
+export async function PATCH(req: NextRequest) {
+  try {
+    const auth = await verifyAdminRequest(req);
+    if (!auth.authorized) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status || 403 });
+    }
+
+    const body = await req.json();
+    const { id, scheduledAt, date, status } = body;
+    if (!id) {
+      return NextResponse.json({ error: 'Параметр id обязателен' }, { status: 400 });
+    }
+
+    await initDatabase();
+    const db = getDbPool();
+    if (!db) {
+      return NextResponse.json({ error: 'Database not available' }, { status: 503 });
+    }
+
+    const now = new Date().toISOString();
+
+    // Determine status if not explicitly given:
+    let newStatus = status;
+    if (newStatus === undefined) {
+      if (scheduledAt) {
+        newStatus = 'scheduled';
+      } else if (scheduledAt === null || scheduledAt === '') {
+        newStatus = 'draft';
+      }
+    }
+
+    const cleanScheduledAt = scheduledAt !== undefined ? (scheduledAt ? String(scheduledAt).trim() : null) : undefined;
+    const cleanDate = date ? String(date).trim() : null;
+
+    const result = await db.query(
+      `UPDATE ulpana_publications SET
+        scheduled_at = CASE WHEN $2::boolean THEN $3 ELSE scheduled_at END,
+        date = COALESCE($4, date),
+        status = COALESCE($5, status),
+        updated_at = $6
+      WHERE id = $1
+      RETURNING *`,
+      [
+        id,
+        cleanScheduledAt !== undefined,
+        cleanScheduledAt || null,
+        cleanDate,
+        newStatus || null,
+        now,
+      ]
+    );
+
+    if (result.rows.length === 0) {
+      return NextResponse.json({ error: 'Публикация не найдена' }, { status: 404 });
+    }
+
+    const updatedPub = rowToPublication(result.rows[0]);
+
+    // Sync to growth/data/publications.json if it exists
+    try {
+      const filePath = path.join(process.cwd(), 'growth', 'data', 'publications.json');
+      if (fs.existsSync(filePath)) {
+        const fileItems: any[] = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+        const idx = fileItems.findIndex((i) => i.id === id);
+        if (idx !== -1) {
+          if (updatedPub.scheduledAt) {
+            fileItems[idx].scheduledAt = updatedPub.scheduledAt;
+          } else {
+            delete fileItems[idx].scheduledAt;
+          }
+          if (updatedPub.date) fileItems[idx].date = updatedPub.date;
+          if (updatedPub.status) fileItems[idx].status = updatedPub.status;
+          fileItems[idx].updatedAt = now;
+          fs.writeFileSync(filePath, JSON.stringify(fileItems, null, 2), 'utf-8');
+        }
+      }
+    } catch (fsErr) {
+      console.warn('[API Admin Marketing Publications PATCH] publications.json update warning:', fsErr);
+    }
+
+    return NextResponse.json({ success: true, publication: updatedPub });
+  } catch (error: any) {
+    console.error('[API Admin Marketing Publications PATCH] Error:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

@@ -15,6 +15,13 @@ const path = require('path');
 
 const repoRoot = path.join(__dirname, '..');
 const routePath = path.join(repoRoot, 'src/app/api/admin/marketing/publish/route.ts');
+const publisherPath = path.join(repoRoot, 'src/lib/marketingPublisher.ts');
+
+function getCombinedContent() {
+  const routeContent = fs.existsSync(routePath) ? fs.readFileSync(routePath, 'utf8') : '';
+  const publisherContent = fs.existsSync(publisherPath) ? fs.readFileSync(publisherPath, 'utf8') : '';
+  return `${routeContent}\n${publisherContent}`;
+}
 
 test('1. Marketing publish route exists and enforces verifyAdminRequest', () => {
   assert.ok(fs.existsSync(routePath), 'Publish API route must exist');
@@ -25,7 +32,7 @@ test('1. Marketing publish route exists and enforces verifyAdminRequest', () => 
 });
 
 test('2. Publish route supports YouTube Data API v3 with resumable upload', () => {
-  const content = fs.readFileSync(routePath, 'utf8');
+  const content = getCombinedContent();
 
   assert.ok(content.includes("channel === 'youtube'"), 'Must handle youtube channel');
   assert.ok(content.includes('YOUTUBE_CLIENT_ID'), 'Must read YOUTUBE_CLIENT_ID from env');
@@ -36,7 +43,7 @@ test('2. Publish route supports YouTube Data API v3 with resumable upload', () =
 });
 
 test('3. Publish route supports Telegram and Facebook channels', () => {
-  const content = fs.readFileSync(routePath, 'utf8');
+  const content = getCombinedContent();
 
   assert.ok(content.includes("channel === 'telegram'"), 'Must handle telegram channel');
   assert.ok(content.includes('TELEGRAM_BOT_TOKEN'), 'Must read TELEGRAM_BOT_TOKEN');
@@ -48,8 +55,18 @@ test('3. Publish route supports Telegram and Facebook channels', () => {
 });
 
 test('4. Publish route implements automatic registration in publications.json', () => {
-  const content = fs.readFileSync(routePath, 'utf8');
+  const content = getCombinedContent();
 
   assert.ok(content.includes('registerPublication'), 'Must define registerPublication helper');
   assert.ok(content.includes('publications.json'), 'Must write to publications.json');
 });
+
+test('5. Publish route supports Instagram Reels container publishing', () => {
+  const content = getCombinedContent();
+
+  assert.ok(content.includes("channel === 'instagram'"), 'Must handle instagram channel');
+  assert.ok(content.includes('instagram_business_account'), 'Must resolve instagram_business_account');
+  assert.ok(content.includes('media_type'), 'Must specify media_type REELS');
+  assert.ok(content.includes('media_publish'), 'Must call media_publish endpoint');
+});
+

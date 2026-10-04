@@ -170,6 +170,41 @@
       "assets": {}
     },
     {
+      "id": "david_guard",
+      "name": "Давид",
+      "nameHebrew": "דָּוִד",
+      "role": "Охранник в ТЦ Азриэли",
+      "roleHebrew": "מְאַבְטֵחַ בַּקַּנְיוֹן",
+      "archetype": "Доброжелательный израильский охранник торгового центра, знающий каждый уголок комплекса",
+      "dialogueTone": "Спокойный, уверенный, разговорный иврит с характерным обращением «ахи»",
+      "frequentCatchphrases": [
+        "מוֹדִיעִין בַּקּוֹמָה שְׁנִיָּה, אָחִי! (справочная на втором этаже, брат!)",
+        "תִּפְתַּח אֶת הַתִּיק בְּבַקָּשָׁה (откройте сумку, пожалуйста)",
+        "הַכֹּל בְּסֵדֶר, תִּכָּנֵס (всё в порядке, проходи)"
+      ],
+      "topics": [
+        "торговый центр",
+        "навигация",
+        "этажи и эскалаторы",
+        "безопасность",
+        "городской быт"
+      ],
+      "voice": {
+        "provider": "gemini_tts",
+        "preset": "Orus",
+        "rate": 1.1,
+        "pitch": 1.0,
+        "targetLanguage": "he-IL",
+        "notes": "Уверенный дружелюбный мужской баритон"
+      },
+      "appearancePrompt": "Hyperrealistic cinematic vertical 9:16 photo of a 46-year-old Israeli mall security guard named David. Rugged Mediterranean features, buzzcut dark hair with slight graying, wearing a navy blue security guard polo shirt with security badge patch and walkie-talkie on shoulder. Talking with an expressive helpful Israeli gesture, pointing his thumb or hand towards the second floor escalator.",
+      "assets": {
+        "context_mall": "growth/characters/david_guard/emotions/context_mall.jpg",
+        "david_guard": "growth/characters/david_guard/emotions/david_guard.jpg",
+        "student_desperate": "growth/characters/david_guard/emotions/student_desperate.jpg"
+      }
+    },
+    {
       "id": "narrator",
       "name": "Диктор Ульпана",
       "nameHebrew": "קַרְיָן",

@@ -88,6 +88,7 @@ interface PublicationItem {
   livePostUrl: string;
   status: 'draft' | 'scheduled' | 'published' | 'archived' | 'ready_for_upload';
   notes?: string;
+  scheduledAt?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -148,6 +149,7 @@ export function AdminMarketingHub() {
   const [newPubLiveUrl, setNewPubLiveUrl] = useState('');
   const [newPubStatus, setNewPubStatus] = useState<'draft' | 'scheduled' | 'published' | 'archived' | 'ready_for_upload'>('published');
   const [newPubNotes, setNewPubNotes] = useState('');
+  const [newPubScheduledAt, setNewPubScheduledAt] = useState('');
   const [pubSaving, setPubSaving] = useState(false);
 
   // Edit Publication state
@@ -166,7 +168,15 @@ export function AdminMarketingHub() {
   const [editPubLiveUrl, setEditPubLiveUrl] = useState('');
   const [editPubStatus, setEditPubStatus] = useState<'draft' | 'scheduled' | 'published' | 'archived' | 'ready_for_upload'>('draft');
   const [editPubNotes, setEditPubNotes] = useState('');
+  const [editPubScheduledAt, setEditPubScheduledAt] = useState('');
   const [editPubSaving, setEditPubSaving] = useState(false);
+
+  // Inline Schedule Edit State & Cron Runner
+  const [editingScheduleId, setEditingScheduleId] = useState<string | null>(null);
+  const [editingScheduleVal, setEditingScheduleVal] = useState<string>('');
+  const [savingScheduleId, setSavingScheduleId] = useState<string | null>(null);
+  const [cronRunning, setCronRunning] = useState<boolean>(false);
+  const [cronSummary, setCronSummary] = useState<string | null>(null);
 
   // Leads state
   const [leads, setLeads] = useState<LeadItem[]>([]);
@@ -205,7 +215,7 @@ export function AdminMarketingHub() {
   };
 
   const handlePublishRow = async (pub: PublicationItem) => {
-    if (!['youtube', 'telegram', 'facebook', 'tiktok'].includes(pub.channel)) return;
+    if (!['youtube', 'telegram', 'facebook', 'tiktok', 'instagram'].includes(pub.channel)) return;
     setPublishingRowId(pub.id);
     try {
       const res = await fetch('/api/admin/marketing/publish', {
@@ -251,7 +261,7 @@ export function AdminMarketingHub() {
 
   // Quick Publish state (1-клик выгрузка на боевом сервере)
   const [isQuickPublishModalOpen, setIsQuickPublishModalOpen] = useState(false);
-  const [quickChannel, setQuickChannel] = useState<'youtube' | 'telegram' | 'facebook' | 'tiktok'>('youtube');
+  const [quickChannel, setQuickChannel] = useState<'youtube' | 'telegram' | 'facebook' | 'tiktok' | 'instagram'>('youtube');
   const [quickTitle, setQuickTitle] = useState('🇮🇱 Как не впасть в ступор, когда звонит израильский курьер #Shorts');
   const [quickDesc, setQuickDesc] = useState('');
   const [quickVideo, setQuickVideo] = useState('public/demo/promo/reels_youtube.mp4');
@@ -405,6 +415,7 @@ export function AdminMarketingHub() {
           livePostUrl: newPubLiveUrl,
           status: newPubStatus,
           notes: newPubNotes,
+          scheduledAt: newPubScheduledAt ? new Date(newPubScheduledAt).toISOString() : undefined,
         }),
       });
 
@@ -418,6 +429,7 @@ export function AdminMarketingHub() {
         setNewPubCaption('');
         setNewPubLiveUrl('');
         setNewPubNotes('');
+        setNewPubScheduledAt('');
         fetchPublications();
       }
     } catch (e) {
@@ -462,6 +474,13 @@ export function AdminMarketingHub() {
     setEditPubLiveUrl(pub.livePostUrl || '');
     setEditPubStatus(pub.status || 'draft');
     setEditPubNotes(pub.notes || '');
+    setEditPubScheduledAt(
+      pub.scheduledAt
+        ? pub.scheduledAt.slice(0, 16)
+        : pub.date
+        ? `${pub.date}T12:00`
+        : ''
+    );
   };
 
   const handleSaveEditPublication = async (e: React.FormEvent) => {
@@ -488,6 +507,7 @@ export function AdminMarketingHub() {
           livePostUrl: editPubLiveUrl.trim(),
           status: editPubStatus,
           notes: editPubNotes ? editPubNotes.trim() : undefined,
+          scheduledAt: editPubScheduledAt ? new Date(editPubScheduledAt).toISOString() : null,
         }),
       });
       if (res.ok) {
@@ -503,6 +523,188 @@ export function AdminMarketingHub() {
       setEditPubSaving(false);
     }
   };
+
+  // Schedule Helpers & Quick Inline Handlers
+  const formatScheduleDisplay = (isoStr?: string) => {
+    if (!isoStr) return '';
+    try {
+      const d = new Date(isoStr);
+      if (isNaN(d.getTime())) return isoStr;
+      const day = String(d.getDate()).padStart(2, '0');
+      const monthNames = ['янв', 'фев', 'мар', 'апр', 'май', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
+      const month = monthNames[d.getMonth()];
+      const hours = String(d.getHours()).padStart(2, '0');
+      const mins = String(d.getMinutes()).padStart(2, '0');
+      return `${day} ${month}, ${hours}:${mins}`;
+    } catch {
+      return isoStr;
+    }
+  };
+
+  const getRelativeScheduleText = (isoStr?: string) => {
+    if (!isoStr) return '';
+    try {
+      const target = new Date(isoStr).getTime();
+      const now = Date.now();
+      const diffMs = target - now;
+      if (diffMs <= 0) return 'созрел';
+      const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+      const diffMins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+      if (diffHours > 24) {
+        const days = Math.floor(diffHours / 24);
+        return `через ${days} дн`;
+      }
+      if (diffHours > 0) return `через ${diffHours} ч`;
+      return `через ${diffMins} мин`;
+    } catch {
+      return '';
+    }
+  };
+
+  const handleOpenScheduleEditor = (pub: PublicationItem) => {
+    let initialVal = '';
+    if (pub.scheduledAt) {
+      try {
+        const d = new Date(pub.scheduledAt);
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const dd = String(d.getDate()).padStart(2, '0');
+        const hh = String(d.getHours()).padStart(2, '0');
+        const min = String(d.getMinutes()).padStart(2, '0');
+        initialVal = `${yyyy}-${mm}-${dd}T${hh}:${min}`;
+      } catch {
+        initialVal = pub.scheduledAt.slice(0, 16);
+      }
+    } else if (pub.date) {
+      initialVal = `${pub.date}T12:00`;
+    } else {
+      const d = new Date();
+      d.setHours(d.getHours() + 2, 0, 0, 0);
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      const hh = String(d.getHours()).padStart(2, '0');
+      const min = String(d.getMinutes()).padStart(2, '0');
+      initialVal = `${yyyy}-${mm}-${dd}T${hh}:${min}`;
+    }
+    setEditingScheduleId(pub.id);
+    setEditingScheduleVal(initialVal);
+  };
+
+  const handleSaveSchedule = async (id: string, dateTimeVal: string) => {
+    if (!dateTimeVal) return;
+    setSavingScheduleId(id);
+    try {
+      const isoString = new Date(dateTimeVal).toISOString();
+      const datePart = dateTimeVal.split('T')[0];
+
+      // Optimistic update
+      setPublications((prev) =>
+        prev.map((item) =>
+          item.id === id
+            ? { ...item, scheduledAt: isoString, date: datePart, status: 'scheduled' }
+            : item
+        )
+      );
+
+      const res = await fetch('/api/admin/marketing/publications', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id,
+          scheduledAt: isoString,
+          date: datePart,
+          status: 'scheduled',
+        }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        alert(data.error || 'Ошибка при сохранении расписания');
+        fetchPublications();
+      } else {
+        setEditingScheduleId(null);
+      }
+    } catch (err: any) {
+      alert(`Сетевая ошибка: ${err.message}`);
+      fetchPublications();
+    } finally {
+      setSavingScheduleId(null);
+    }
+  };
+
+  const handleClearSchedule = async (id: string) => {
+    setSavingScheduleId(id);
+    try {
+      // Optimistic update
+      setPublications((prev) =>
+        prev.map((item) =>
+          item.id === id
+            ? { ...item, scheduledAt: undefined, status: item.status === 'scheduled' ? 'draft' : item.status }
+            : item
+        )
+      );
+
+      const res = await fetch('/api/admin/marketing/publications', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id,
+          scheduledAt: null,
+          status: 'draft',
+        }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        alert(data.error || 'Ошибка при отмене расписания');
+        fetchPublications();
+      } else {
+        setEditingScheduleId(null);
+      }
+    } catch (err: any) {
+      alert(`Сетевая ошибка: ${err.message}`);
+      fetchPublications();
+    } finally {
+      setSavingScheduleId(null);
+    }
+  };
+
+  const handleTriggerCronPublish = async () => {
+    setCronRunning(true);
+    setCronSummary(null);
+    try {
+      const res = await fetch('/api/cron/publish', {
+        method: 'POST',
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setCronSummary(`✅ ${data.message}`);
+        fetchPublications();
+      } else {
+        setCronSummary(`⚠️ Ошибка: ${data.error || 'Не удалось выполнить выгрузку'}`);
+      }
+    } catch (err: any) {
+      setCronSummary(`❌ Сетевой сбой: ${err.message}`);
+    } finally {
+      setCronRunning(false);
+    }
+  };
+
+  const scheduledCount = useMemo(() => {
+    return publications.filter((p) => p.status === 'scheduled').length;
+  }, [publications]);
+
+  const dueCount = useMemo(() => {
+    const now = Date.now();
+    return publications.filter((p) => {
+      if (p.status !== 'scheduled') return false;
+      if (p.scheduledAt) {
+        return new Date(p.scheduledAt).getTime() <= now;
+      }
+      return false;
+    }).length;
+  }, [publications]);
 
   // Quick Publish Handler (Отправка на боевой сервер)
   const handleQuickPublish = async (e: React.FormEvent) => {
@@ -1034,6 +1236,31 @@ export function AdminMarketingHub() {
             <div className="flex items-center gap-2">
               <button
                 type="button"
+                onClick={handleTriggerCronPublish}
+                disabled={cronRunning}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition shadow-lg cursor-pointer disabled:opacity-50 ${
+                  dueCount > 0
+                    ? 'bg-amber-500 hover:bg-amber-400 text-zinc-950 shadow-amber-500/20 animate-pulse'
+                    : 'bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700'
+                }`}
+                title="Запустить проверку и автоматическую выгрузку созревших постов через крон-эндпоинт"
+              >
+                {cronRunning ? (
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Clock className="w-4 h-4 text-amber-400" />
+                )}
+                <span>
+                  {cronRunning
+                    ? 'Выгрузка...'
+                    : dueCount > 0
+                    ? `⚡ Выгрузить по расписанию (${dueCount})`
+                    : `Крон-выгрузка (${scheduledCount})`}
+                </span>
+              </button>
+
+              <button
+                type="button"
                 onClick={() => {
                   setQuickResult(null);
                   setIsQuickPublishModalOpen(true);
@@ -1054,6 +1281,23 @@ export function AdminMarketingHub() {
               </button>
             </div>
           </div>
+
+          {/* Уведомление о результатах крон-выгрузки */}
+          {cronSummary && (
+            <div className="p-3 bg-zinc-900 border border-blue-500/40 rounded-2xl text-xs text-blue-200 flex items-center justify-between shadow-lg">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-blue-400 shrink-0" />
+                <span>{cronSummary}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setCronSummary(null)}
+                className="text-zinc-400 hover:text-white p-1 rounded-lg hover:bg-zinc-800 cursor-pointer"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
 
           <div className="bg-zinc-900 rounded-2xl border border-zinc-800 overflow-hidden shadow-xl">
             <div className="overflow-x-auto">
@@ -1077,8 +1321,111 @@ export function AdminMarketingHub() {
                           <div className="flex items-center gap-1.5">
                             {getChannelBadge(pub.channel)}
                           </div>
-                          <span className="text-[10px] text-zinc-500">{pub.channelAccount}</span>
-                          <span className="text-[10px] text-zinc-400">{pub.date}</span>
+                          <span className="text-[10px] text-zinc-500 max-w-[140px] truncate" title={pub.channelAccount}>
+                            {pub.channelAccount}
+                          </span>
+
+                          {/* Инлайн-редактирование расписания прямо из списка */}
+                          {editingScheduleId === pub.id ? (
+                            <div className="mt-1 p-2 bg-zinc-950 rounded-xl border border-blue-500/60 shadow-xl space-y-1.5 min-w-[210px] z-10">
+                              <div className="flex items-center justify-between text-[10px]">
+                                <span className="font-bold text-blue-400 flex items-center gap-1">
+                                  <Clock className="w-3 h-3" />
+                                  Дата и время:
+                                </span>
+                                {pub.scheduledAt && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleClearSchedule(pub.id)}
+                                    disabled={savingScheduleId === pub.id}
+                                    className="text-red-400 hover:text-red-300 hover:underline cursor-pointer text-[10px]"
+                                    title="Сбросить расписание и вернуть в черновик"
+                                  >
+                                    Сбросить
+                                  </button>
+                                )}
+                              </div>
+                              <input
+                                type="datetime-local"
+                                value={editingScheduleVal}
+                                onChange={(e) => setEditingScheduleVal(e.target.value)}
+                                className="w-full bg-zinc-900 text-zinc-100 text-[11px] rounded-lg px-2 py-1 border border-zinc-700 outline-none focus:border-blue-500 font-mono"
+                              />
+                              <div className="flex items-center justify-end gap-1.5 pt-0.5">
+                                <button
+                                  type="button"
+                                  onClick={() => setEditingScheduleId(null)}
+                                  className="px-2 py-0.5 rounded text-[10px] bg-zinc-800 hover:bg-zinc-700 text-zinc-300 cursor-pointer"
+                                >
+                                  ✕
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleSaveSchedule(pub.id, editingScheduleVal)}
+                                  disabled={savingScheduleId === pub.id || !editingScheduleVal}
+                                  className="px-2.5 py-0.5 rounded text-[10px] font-bold bg-blue-600 hover:bg-blue-500 text-white flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                                >
+                                  {savingScheduleId === pub.id ? (
+                                    <RefreshCw className="w-2.5 h-2.5 animate-spin" />
+                                  ) : (
+                                    <Check className="w-2.5 h-2.5" />
+                                  )}
+                                  <span>Сохранить</span>
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="flex flex-col gap-0.5 mt-0.5">
+                              {pub.scheduledAt ? (
+                                (() => {
+                                  const isDue = pub.status === 'scheduled' && new Date(pub.scheduledAt).getTime() <= Date.now();
+                                  const relText = getRelativeScheduleText(pub.scheduledAt);
+                                  return (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleOpenScheduleEditor(pub)}
+                                      className={`flex items-center gap-1.5 px-2 py-1 rounded-lg text-[10px] font-mono font-semibold transition cursor-pointer text-left border ${
+                                        pub.status === 'published'
+                                          ? 'bg-zinc-800/60 text-zinc-400 border-zinc-700/50'
+                                          : isDue
+                                          ? 'bg-rose-500/15 text-rose-300 border-rose-500/30 hover:bg-rose-500/25'
+                                          : 'bg-amber-500/15 text-amber-300 border-amber-500/30 hover:bg-amber-500/25'
+                                      }`}
+                                      title="Нажмите, чтобы изменить дату и время выгрузки прямо из списка"
+                                    >
+                                      <Clock className="w-3 h-3 shrink-0" />
+                                      <span className="truncate">{formatScheduleDisplay(pub.scheduledAt)}</span>
+                                      {isDue ? (
+                                        <span className="text-[9px] px-1 py-0.2 bg-rose-600 text-white rounded font-bold shrink-0">
+                                          СОЗРЕЛ
+                                        </span>
+                                      ) : relText && pub.status === 'scheduled' ? (
+                                        <span className="text-[9px] text-amber-400/80 shrink-0">
+                                          ({relText})
+                                        </span>
+                                      ) : null}
+                                      <Edit3 className="w-2.5 h-2.5 opacity-60 ml-auto shrink-0" />
+                                    </button>
+                                  );
+                                })()
+                              ) : (
+                                <div className="flex items-center gap-1.5">
+                                  <span className="text-[10px] text-zinc-400 font-mono">{pub.date}</span>
+                                  {pub.status !== 'published' && (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleOpenScheduleEditor(pub)}
+                                      className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] text-zinc-400 hover:text-blue-300 hover:bg-zinc-800 transition cursor-pointer border border-dashed border-zinc-700 hover:border-blue-500/40"
+                                      title="Задать дату и время для автоматической выгрузки по расписанию"
+                                    >
+                                      <Clock className="w-2.5 h-2.5 text-blue-400" />
+                                      <span>+ Время</span>
+                                    </button>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </div>
                       </td>
                       <td className="px-4 py-3 max-w-xs">
@@ -1273,7 +1620,7 @@ export function AdminMarketingHub() {
                       <td className="px-4 py-3 text-right whitespace-nowrap">
                         <div className="flex items-center justify-end gap-1.5">
                           {pub.status !== 'published' &&
-                            ['youtube', 'telegram', 'facebook', 'tiktok'].includes(pub.channel) && (
+                            ['youtube', 'telegram', 'facebook', 'tiktok', 'instagram'].includes(pub.channel) && (
                               <button
                                 type="button"
                                 onClick={() => handlePublishRow(pub)}
@@ -2039,6 +2386,33 @@ export function AdminMarketingHub() {
                 />
               </div>
 
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-zinc-400 font-semibold mb-1">Статус:</label>
+                  <select
+                    value={newPubStatus}
+                    onChange={(e) => setNewPubStatus(e.target.value as any)}
+                    className="w-full bg-zinc-800 rounded-xl p-2.5 text-zinc-200 border border-zinc-700 outline-none font-semibold"
+                  >
+                    <option value="draft">⚪ Черновик / Готов</option>
+                    <option value="scheduled">🟡 Запланирован</option>
+                    <option value="published">🟢 Опубликован</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-zinc-400 font-semibold mb-1">Время выгрузки (расписание):</label>
+                  <input
+                    type="datetime-local"
+                    value={newPubScheduledAt}
+                    onChange={(e) => {
+                      setNewPubScheduledAt(e.target.value);
+                      if (e.target.value) setNewPubStatus('scheduled');
+                    }}
+                    className="w-full bg-zinc-800 rounded-xl p-2.5 text-zinc-200 border border-zinc-700 outline-none font-mono"
+                  />
+                </div>
+              </div>
+
               <div>
                 <label className="block text-zinc-400 font-semibold mb-1">Ссылка на опубликованный материал (URL):</label>
                 <input
@@ -2235,15 +2609,29 @@ export function AdminMarketingHub() {
                 </div>
               </div>
 
-              <div>
-                <label className="block text-zinc-400 font-semibold mb-1">Целевой экран (Deep Link):</label>
-                <input
-                  type="text"
-                  value={editPubDeepLink}
-                  onChange={(e) => setEditPubDeepLink(e.target.value)}
-                  placeholder="/decks/moms"
-                  className="w-full bg-zinc-800 rounded-xl p-2 text-zinc-200 border border-zinc-700 outline-none font-mono"
-                />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-zinc-400 font-semibold mb-1">Время выгрузки (по расписанию):</label>
+                  <input
+                    type="datetime-local"
+                    value={editPubScheduledAt}
+                    onChange={(e) => {
+                      setEditPubScheduledAt(e.target.value);
+                      if (e.target.value) setEditPubStatus('scheduled');
+                    }}
+                    className="w-full bg-zinc-800 rounded-xl p-2 text-zinc-200 border border-zinc-700 outline-none font-mono text-xs"
+                  />
+                </div>
+                <div>
+                  <label className="block text-zinc-400 font-semibold mb-1">Целевой экран (Deep Link):</label>
+                  <input
+                    type="text"
+                    value={editPubDeepLink}
+                    onChange={(e) => setEditPubDeepLink(e.target.value)}
+                    placeholder="/decks/moms"
+                    className="w-full bg-zinc-800 rounded-xl p-2 text-zinc-200 border border-zinc-700 outline-none font-mono"
+                  />
+                </div>
               </div>
 
               <div>
@@ -2332,6 +2720,7 @@ export function AdminMarketingHub() {
                   <option value="telegram">✈️ Telegram (@ulpana_il)</option>
                   <option value="facebook">📘 Facebook (Страница)</option>
                   <option value="tiktok">🎵 TikTok (@ulpana_il)</option>
+                  <option value="instagram">📸 Instagram Reels (@ulpana_alef)</option>
                 </select>
               </div>
 
@@ -2358,7 +2747,7 @@ export function AdminMarketingHub() {
                 />
               </div>
 
-              {(quickChannel === 'youtube' || quickChannel === 'telegram' || quickChannel === 'tiktok') && (
+              {(quickChannel === 'youtube' || quickChannel === 'telegram' || quickChannel === 'tiktok' || quickChannel === 'instagram') && (
                 <div>
                   <label className="block text-zinc-400 font-semibold mb-1">Видеофайл на сервере (public/demo/...):</label>
                   <select

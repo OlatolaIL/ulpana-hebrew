@@ -931,3 +931,33 @@ useEffect(() => {
    - Все 5 платформенных роликов (`lesson_10_clean_youtube_shorts.mp4`, `lesson_10_clean_telegram.mp4`, `lesson_10_clean_instagram_reels.mp4`, `lesson_10_clean_tiktok.mp4`, `lesson_10_clean_facebook_reels.mp4`) собраны в каноническом разрешении 1080x1920 и загружены в GitHub Releases CDN (`v-media-lessons-02-05`, все 5 возвращают статус HTTP 200).
    - Все 5 кампаний Clean переведены в статус `ready_for_upload` («🎬 Смонтирован»).
    - Синхронизированы `growth/lessons_video_registry.json`, `growth/data/publications.json` и `src/data/marketingPublicationsData.ts`.
+
+---
+
+### Автоматическая выгрузка публикаций по расписанию через Cron и инлайн-редактор даты/времени в админке (04 октября 2026)
+
+**Задача:**
+Реализовать автоматическую выгрузку маркетинговых публикаций по расписанию (через Cron) и дать возможность редактировать дату и точное время выгрузки прямо из списка (таблицы) публикаций в веб-админке `/admin` (R-16, R-23, R-25).
+
+**Что сделано и проверено:**
+1. **Схема базы данных и типы (`src/lib/db.ts`, `src/data/marketingPublicationsData.ts`):**
+   - В схему таблицы `ulpana_publications` добавлена колонка `scheduled_at TEXT` и составной индекс `ulpana_publications_status_sched_idx ON ulpana_publications(status, scheduled_at)`.
+   - В интерфейс `PublicationItem` добавлено опциональное поле `scheduledAt?: string`.
+   - Поддержана миграция существующей базы (`ALTER TABLE ... ADD COLUMN IF NOT EXISTS`).
+2. **Сервисный модуль публикации (`src/lib/marketingPublisher.ts`):**
+   - Выделена чистая серверная функция `executePublish(body)` для отправки видео и постов в YouTube Data API v3 (Shorts), Telegram Bot API (@ulpana_il), Meta Graph API (Facebook) и TikTok API v2.
+   - Устранён конфликт экспортов Next.js App Router (TS2344) в `src/app/api/admin/marketing/publish/route.ts`.
+3. **API-эндпоинты админки и крона:**
+   - **`PATCH /api/admin/marketing/publications`:** атомарное инлайн-обновление `{ id, scheduledAt, date, status }` из строки таблицы с двухсторонней синхронизацией в Neon Postgres и `growth/data/publications.json`.
+   - **`GET / POST /api/cron/publish`:** эндпоинт для автоматической крон-выгрузки по расписанию. Защищён проверкой заголовка `Authorization: Bearer <CRON_SECRET>` или активной сессией администратора. Выбирает до 10 публикаций со статусом `scheduled` и `scheduled_at <= NOW()`, выгружает через соцсетевые коннекторы и переводит в `published` (или логирует ошибку в `notes`).
+4. **Интеграция с Vercel Cron и автономным CLI-скриптом:**
+   - В `vercel.json` добавлен Cron-триггер: `path: "/api/cron/publish"`, `schedule: "0 9 * * *"`.
+   - Создан скрипт `growth/scripts/run_scheduled_publisher.cjs` для запуска локально, из Windows Task Scheduler, GitHub Actions или внешних демонов.
+5. **Интерактивный UI таблицы публикаций (`src/app/admin/components/AdminMarketingHub.tsx`):**
+   - **Инлайн-редактирование даты и времени прямо в строке:** клик по ячейке даты или кнопке `+ Время` открывает встроенный инпут `datetime-local` с кнопками «Сохранить», «Отмена» и «Сбросить».
+   - При сохранении статусу автоматически присваивается `🟡 Запланирован` (`scheduled`), выводится бейдж с датой, временем и обратным отсчетом (`через 3 ч` / `СОЗРЕЛ`).
+   - В тулбаре шапки выведена кнопка `⚡ Выгрузить по расписанию` со счетчиком созревших публикаций и интерактивный баннер статуса запуска крона.
+   - Поле точного времени добавлено также в модальные окна создания и редактирования публикаций.
+6. **Верификация (R-10..R-12, R-25):**
+   - `npm run typecheck` (`next typegen && tsc --noEmit`): 0 ошибок, код 0.
+   - `node tests/decision-matrix-invariants.test.cjs`: 17 / 17 passed.

@@ -605,32 +605,49 @@
       "descriptionsFile": "growth/content/lesson_07_descriptions.md",
       "variants": {
         "clean": {
-          "scenario": "Звонок арендодателю Эли в симуляторе звонков с ИИ",
-          "status": "legacy_ready",
+          "scenario": "Каньон Азриэли • Поиски туалета и разница שֵׁרוּת vs שֵׁרוּתִים",
+          "character": "david_guard",
+          "status": "ready",
           "files": {
             "YT": {
               "path": "public/demo/lessons/lesson_07_clean_youtube_shorts.mp4",
               "promoCode": "YT",
-              "durationSec": 23.7,
-              "resolution": "780x1688",
-              "fileSizeBytes": 2748920,
-              "generatedAt": "2026-09-28T09:36:03.078Z"
+              "durationSec": 23.3,
+              "resolution": "1080x1920",
+              "fileSizeBytes": 4776199,
+              "generatedAt": "2026-10-04T07:13:20.000Z"
             },
             "TG": {
-              "path": "public/demo/lessons/lesson_07_telegram.mp4",
-              "promoCode": "TG"
+              "path": "public/demo/lessons/lesson_07_clean_telegram.mp4",
+              "promoCode": "TG",
+              "durationSec": 23.3,
+              "resolution": "1080x1920",
+              "fileSizeBytes": 4742464,
+              "generatedAt": "2026-10-04T05:07:26.942Z"
             },
             "INSTA": {
-              "path": "public/demo/lessons/lesson_07_instagram_reels.mp4",
-              "promoCode": "INSTA"
+              "path": "public/demo/lessons/lesson_07_clean_instagram_reels.mp4",
+              "promoCode": "INSTA",
+              "durationSec": 23.3,
+              "resolution": "1080x1920",
+              "fileSizeBytes": 4745904,
+              "generatedAt": "2026-10-04T05:07:26.949Z"
             },
             "TIKTOK": {
-              "path": "public/demo/lessons/lesson_07_tiktok.mp4",
-              "promoCode": "TIKTOK"
+              "path": "public/demo/lessons/lesson_07_clean_tiktok.mp4",
+              "promoCode": "TIKTOK",
+              "durationSec": 23.3,
+              "resolution": "1080x1920",
+              "fileSizeBytes": 4742418,
+              "generatedAt": "2026-10-04T05:07:26.949Z"
             },
             "FB": {
-              "path": "public/demo/lessons/lesson_07_facebook_reels.mp4",
-              "promoCode": "FB"
+              "path": "public/demo/lessons/lesson_07_clean_facebook_reels.mp4",
+              "promoCode": "FB",
+              "durationSec": 23.3,
+              "resolution": "1080x1920",
+              "fileSizeBytes": 4745159,
+              "generatedAt": "2026-10-04T05:07:26.949Z"
             }
           }
         },
