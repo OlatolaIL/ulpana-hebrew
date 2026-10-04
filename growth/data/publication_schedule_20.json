@@ -1,0 +1,322 @@
+[
+  {
+    "scenarioId": "sc-01-kindergarten",
+    "topic": "Садик: малыш заболел",
+    "targetAudience": "Родители, мамы, семьи репатриантов",
+    "scheduledDate": "2026-10-05",
+    "scheduledTime": "08:15 IST",
+    "dayOfWeek": "Воскресенье",
+    "slot": "Утренний пик (открытие рабочей недели в Израиле)",
+    "networks": {
+      "facebook": { "format": "1:1 Video", "cta": "Первый комментарий (Zero-Link)", "promo": "FB_POST" },
+      "telegram": { "format": "1:1 Video + HTML", "cta": "Инлайн-кнопка", "promo": "TG" },
+      "instagram": { "format": "1:1 Carousel (5 слайдов) + Reels", "cta": "Ссылка в шапке + Директ «ИВРИТ»", "promo": "INSTA" },
+      "youtube": { "format": "9:16 Shorts", "cta": "Закреплённый комментарий", "promo": "YOUTUBE" },
+      "tiktok": { "format": "9:16 Short", "cta": "Ссылка в профиле", "promo": "TIKTOK" }
+    }
+  },
+  {
+    "scenarioId": "sc-02-wolt-courier",
+    "topic": "Курьер доставки Wolt",
+    "targetAudience": "Все олим, молодёжь, заказчики еды",
+    "scheduledDate": "2026-10-05",
+    "scheduledTime": "13:00 IST",
+    "dayOfWeek": "Воскресенье",
+    "slot": "Обеденный пик (время заказов ланча)",
+    "networks": {
+      "facebook": { "format": "1:1 Video", "cta": "Первый комментарий", "promo": "FB_POST" },
+      "telegram": { "format": "1:1 Video + HTML", "cta": "Инлайн-кнопка", "promo": "TG" },
+      "instagram": { "format": "1:1 Carousel + Reels", "cta": "Директ «ИВРИТ»", "promo": "INSTA" },
+      "youtube": { "format": "9:16 Shorts", "cta": "Закреплённый комментарий", "promo": "YOUTUBE" },
+      "tiktok": { "format": "9:16 Short", "cta": "Звуковой хук", "promo": "TIKTOK" }
+    }
+  },
+  {
+    "scenarioId": "sc-03-clinic-doctor",
+    "topic": "Поликлиника (купат холим)",
+    "targetAudience": "Все жители, взрослые, пожилые олим",
+    "scheduledDate": "2026-10-06",
+    "scheduledTime": "09:00 IST",
+    "dayOfWeek": "Понедельник",
+    "slot": "Утренний визит к терапевту",
+    "networks": {
+      "facebook": { "format": "1:1 Video", "cta": "Первый комментарий", "promo": "FB_POST" },
+      "telegram": { "format": "1:1 Video + HTML", "cta": "Инлайн-кнопка", "promo": "TG" },
+      "instagram": { "format": "1:1 Carousel + Reels", "cta": "Директ «ИВРИТ»", "promo": "INSTA" },
+      "youtube": { "format": "9:16 Shorts", "cta": "Закреплённый комментарий", "promo": "YOUTUBE" },
+      "tiktok": { "format": "9:16 Short", "cta": "Хештег #купатхолим", "promo": "TIKTOK" }
+    }
+  },
+  {
+    "scenarioId": "sc-04-supermarket",
+    "topic": "Супермаркет и касса",
+    "targetAudience": "Бытовые покупки, все категории олим",
+    "scheduledDate": "2026-10-06",
+    "scheduledTime": "17:30 IST",
+    "dayOfWeek": "Понедельник",
+    "slot": "Вечерний поход за продуктами",
+    "networks": {
+      "facebook": { "format": "1:1 Video", "cta": "Первый комментарий", "promo": "FB_POST" },
+      "telegram": { "format": "1:1 Video + HTML", "cta": "Инлайн-кнопка", "promo": "TG" },
+      "instagram": { "format": "1:1 Carousel + Reels", "cta": "Директ «ИВРИТ»", "promo": "INSTA" },
+      "youtube": { "format": "9:16 Shorts", "cta": "Закреплённый комментарий", "promo": "YOUTUBE" },
+      "tiktok": { "format": "9:16 Short", "cta": "Звуковой хук", "promo": "TIKTOK" }
+    }
+  },
+  {
+    "scenarioId": "sc-05-cafe-order",
+    "topic": "Заказ кофе в кофейне",
+    "targetAudience": "Студенты, хайтек, городские жители",
+    "scheduledDate": "2026-10-07",
+    "scheduledTime": "08:30 IST",
+    "dayOfWeek": "Вторник",
+    "slot": "Утренний кофе перед работой",
+    "networks": {
+      "facebook": { "format": "1:1 Video", "cta": "Первый комментарий", "promo": "FB_POST" },
+      "telegram": { "format": "1:1 Video + HTML", "cta": "Инлайн-кнопка", "promo": "TG" },
+      "instagram": { "format": "1:1 Carousel + Reels", "cta": "Директ «ИВРИТ»", "promo": "INSTA" },
+      "youtube": { "format": "9:16 Shorts", "cta": "Закреплённый комментарий", "promo": "YOUTUBE" },
+      "tiktok": { "format": "9:16 Short", "cta": "Афух катан", "promo": "TIKTOK" }
+    }
+  },
+  {
+    "scenarioId": "sc-06-apartment-rent",
+    "topic": "Аренда квартиры и хозяин",
+    "targetAudience": "Арендаторы квартир, олим 1-3 года",
+    "scheduledDate": "2026-10-07",
+    "scheduledTime": "19:30 IST",
+    "dayOfWeek": "Вторник",
+    "slot": "Вечернее решение бытовых проблем с жильем",
+    "networks": {
+      "facebook": { "format": "1:1 Video", "cta": "Первый комментарий", "promo": "FB_POST" },
+      "telegram": { "format": "1:1 Video + HTML", "cta": "Инлайн-кнопка", "promo": "TG" },
+      "instagram": { "format": "1:1 Carousel + Reels", "cta": "Директ «ИВРИТ»", "promo": "INSTA" },
+      "youtube": { "format": "9:16 Shorts", "cta": "Закреплённый комментарий", "promo": "YOUTUBE" },
+      "tiktok": { "format": "9:16 Short", "cta": "Бойлер / протечка", "promo": "TIKTOK" }
+    }
+  },
+  {
+    "scenarioId": "sc-07-bus-public-transport",
+    "topic": "Автобус и транспорт",
+    "targetAudience": "Пассажиры общественного транспорта",
+    "scheduledDate": "2026-10-08",
+    "scheduledTime": "08:00 IST",
+    "dayOfWeek": "Среда",
+    "slot": "Утренняя поездка на работу/учебу",
+    "networks": {
+      "facebook": { "format": "1:1 Video", "cta": "Первый комментарий", "promo": "FB_POST" },
+      "telegram": { "format": "1:1 Video + HTML", "cta": "Инлайн-кнопка", "promo": "TG" },
+      "instagram": { "format": "1:1 Carousel + Reels", "cta": "Директ «ИВРИТ»", "promo": "INSTA" },
+      "youtube": { "format": "9:16 Shorts", "cta": "Закреплённый комментарий", "promo": "YOUTUBE" },
+      "tiktok": { "format": "9:16 Short", "cta": "Рав-кав / задняя дверь", "promo": "TIKTOK" }
+    }
+  },
+  {
+    "scenarioId": "sc-08-bank-branch",
+    "topic": "Отделение банка",
+    "targetAudience": "Все олим, финансовые операции",
+    "scheduledDate": "2026-10-08",
+    "scheduledTime": "14:00 IST",
+    "dayOfWeek": "Среда",
+    "slot": "Дневные банковские часы",
+    "networks": {
+      "facebook": { "format": "1:1 Video", "cta": "Первый комментарий", "promo": "FB_POST" },
+      "telegram": { "format": "1:1 Video + HTML", "cta": "Инлайн-кнопка", "promo": "TG" },
+      "instagram": { "format": "1:1 Carousel + Reels", "cta": "Директ «ИВРИТ»", "promo": "INSTA" },
+      "youtube": { "format": "9:16 Shorts", "cta": "Закреплённый комментарий", "promo": "YOUTUBE" },
+      "tiktok": { "format": "9:16 Short", "cta": "Блокировка карты / выписка", "promo": "TIKTOK" }
+    }
+  },
+  {
+    "scenarioId": "sc-09-post-office",
+    "topic": "Почта Израиля (Доар Исраэль)",
+    "targetAudience": "Покупатели AliExpress/Amazon, посылки",
+    "scheduledDate": "2026-10-09",
+    "scheduledTime": "11:30 IST",
+    "dayOfWeek": "Четверг",
+    "slot": "Получение посылок перед выходными",
+    "networks": {
+      "facebook": { "format": "1:1 Video", "cta": "Первый комментарий", "promo": "FB_POST" },
+      "telegram": { "format": "1:1 Video + HTML", "cta": "Инлайн-кнопка", "promo": "TG" },
+      "instagram": { "format": "1:1 Carousel + Reels", "cta": "Директ «ИВРИТ»", "promo": "INSTA" },
+      "youtube": { "format": "9:16 Shorts", "cta": "Закреплённый комментарий", "promo": "YOUTUBE" },
+      "tiktok": { "format": "9:16 Short", "cta": "SMS код посылки", "promo": "TIKTOK" }
+    }
+  },
+  {
+    "scenarioId": "sc-10-pharmacy",
+    "topic": "Аптека (Супер-Фарм)",
+    "targetAudience": "Все жители, здоровье, лекарства",
+    "scheduledDate": "2026-10-09",
+    "scheduledTime": "18:00 IST",
+    "dayOfWeek": "Четверг",
+    "slot": "Вечерняя подготовка к шаббату",
+    "networks": {
+      "facebook": { "format": "1:1 Video", "cta": "Первый комментарий", "promo": "FB_POST" },
+      "telegram": { "format": "1:1 Video + HTML", "cta": "Инлайн-кнопка", "promo": "TG" },
+      "instagram": { "format": "1:1 Carousel + Reels", "cta": "Директ «ИВРИТ»", "promo": "INSTA" },
+      "youtube": { "format": "9:16 Shorts", "cta": "Закреплённый комментарий", "promo": "YOUTUBE" },
+      "tiktok": { "format": "9:16 Short", "cta": "Обезболивающее / без рецепта", "promo": "TIKTOK" }
+    }
+  },
+  {
+    "scenarioId": "sc-11-dating-compliments",
+    "topic": "Свидание и комплименты",
+    "targetAudience": "Одинокие олим, романтические знакомства",
+    "scheduledDate": "2026-10-11",
+    "scheduledTime": "19:00 IST",
+    "dayOfWeek": "Воскресенье",
+    "slot": "Вечерний расслабленный контент",
+    "networks": {
+      "facebook": { "format": "1:1 Video", "cta": "Первый комментарий", "promo": "FB_POST" },
+      "telegram": { "format": "1:1 Video + HTML", "cta": "Инлайн-кнопка", "promo": "TG" },
+      "instagram": { "format": "1:1 Carousel + Reels", "cta": "Директ «ИВРИТ»", "promo": "INSTA" },
+      "youtube": { "format": "9:16 Shorts", "cta": "Закреплённый комментарий", "promo": "YOUTUBE" },
+      "tiktok": { "format": "9:16 Short", "cta": "Разница родов в комплиментах", "promo": "TIKTOK" }
+    }
+  },
+  {
+    "scenarioId": "sc-12-restaurant-bill",
+    "topic": "Ресторан и оплата счета",
+    "targetAudience": "Посетители кафе и ресторанов",
+    "scheduledDate": "2026-10-12",
+    "scheduledTime": "20:30 IST",
+    "dayOfWeek": "Понедельник",
+    "slot": "Вечерние ужины и встречи",
+    "networks": {
+      "facebook": { "format": "1:1 Video", "cta": "Первый комментарий", "promo": "FB_POST" },
+      "telegram": { "format": "1:1 Video + HTML", "cta": "Инлайн-кнопка", "promo": "TG" },
+      "instagram": { "format": "1:1 Carousel + Reels", "cta": "Директ «ИВРИТ»", "promo": "INSTA" },
+      "youtube": { "format": "9:16 Shorts", "cta": "Закреплённый комментарий", "promo": "YOUTUBE" },
+      "tiktok": { "format": "9:16 Short", "cta": "Разделить счёт / чаевые", "promo": "TIKTOK" }
+    }
+  },
+  {
+    "scenarioId": "sc-13-clothes-fitting",
+    "topic": "Магазин одежды и примерочная",
+    "targetAudience": "Шопинг в ТЦ (каньонах)",
+    "scheduledDate": "2026-10-13",
+    "scheduledTime": "16:00 IST",
+    "dayOfWeek": "Вторник",
+    "slot": "Дневной шопинг",
+    "networks": {
+      "facebook": { "format": "1:1 Video", "cta": "Первый комментарий", "promo": "FB_POST" },
+      "telegram": { "format": "1:1 Video + HTML", "cta": "Инлайн-кнопка", "promo": "TG" },
+      "instagram": { "format": "1:1 Carousel + Reels", "cta": "Директ «ИВРИТ»", "promo": "INSTA" },
+      "youtube": { "format": "9:16 Shorts", "cta": "Закреплённый комментарий", "promo": "YOUTUBE" },
+      "tiktok": { "format": "9:16 Short", "cta": "Примерочная / размер", "promo": "TIKTOK" }
+    }
+  },
+  {
+    "scenarioId": "sc-14-weather-hamsin",
+    "topic": "Погода, хамсин и мазган",
+    "targetAudience": "Все жители Израиля",
+    "scheduledDate": "2026-10-14",
+    "scheduledTime": "11:00 IST",
+    "dayOfWeek": "Среда",
+    "slot": "Дневная израильская жара",
+    "networks": {
+      "facebook": { "format": "1:1 Video", "cta": "Первый комментарий", "promo": "FB_POST" },
+      "telegram": { "format": "1:1 Video + HTML", "cta": "Инлайн-кнопка", "promo": "TG" },
+      "instagram": { "format": "1:1 Carousel + Reels", "cta": "Директ «ИВРИТ»", "promo": "INSTA" },
+      "youtube": { "format": "9:16 Shorts", "cta": "Закреплённый комментарий", "promo": "YOUTUBE" },
+      "tiktok": { "format": "9:16 Short", "cta": "Хамсин / мазган", "promo": "TIKTOK" }
+    }
+  },
+  {
+    "scenarioId": "sc-15-queue-misrad-hapnim",
+    "topic": "Очередь в госучреждениях",
+    "targetAudience": "Мисрад апним, почта, банки, бюрократия",
+    "scheduledDate": "2026-10-15",
+    "scheduledTime": "09:30 IST",
+    "dayOfWeek": "Четверг",
+    "slot": "Утренние визиты по госинстанциям",
+    "networks": {
+      "facebook": { "format": "1:1 Video", "cta": "Первый комментарий", "promo": "FB_POST" },
+      "telegram": { "format": "1:1 Video + HTML", "cta": "Инлайн-кнопка", "promo": "TG" },
+      "instagram": { "format": "1:1 Carousel + Reels", "cta": "Директ «ИВРИТ»", "promo": "INSTA" },
+      "youtube": { "format": "9:16 Shorts", "cta": "Закреплённый комментарий", "promo": "YOUTUBE" },
+      "tiktok": { "format": "9:16 Short", "cta": "Кто последний / номер в талоне", "promo": "TIKTOK" }
+    }
+  },
+  {
+    "scenarioId": "sc-16-job-interview",
+    "topic": "Собеседование на работу",
+    "targetAudience": "Ищущие работу, специалисты, хайтек",
+    "scheduledDate": "2026-10-18",
+    "scheduledTime": "10:00 IST",
+    "dayOfWeek": "Воскресенье",
+    "slot": "Карьерный утренний слот",
+    "networks": {
+      "facebook": { "format": "1:1 Video", "cta": "Первый комментарий", "promo": "FB_POST" },
+      "telegram": { "format": "1:1 Video + HTML", "cta": "Инлайн-кнопка", "promo": "TG" },
+      "instagram": { "format": "1:1 Carousel + Reels", "cta": "Директ «ИВРИТ»", "promo": "INSTA" },
+      "youtube": { "format": "9:16 Shorts", "cta": "Закреплённый комментарий", "promo": "YOUTUBE" },
+      "tiktok": { "format": "9:16 Short", "cta": "Собеседование на иврите", "promo": "TIKTOK" }
+    }
+  },
+  {
+    "scenarioId": "sc-17-taxi-ride",
+    "topic": "Поездка в такси",
+    "targetAudience": "Пассажиры Gett, такси на улицах",
+    "scheduledDate": "2026-10-19",
+    "scheduledTime": "21:00 IST",
+    "dayOfWeek": "Понедельник",
+    "slot": "Вечерний возврат домой",
+    "networks": {
+      "facebook": { "format": "1:1 Video", "cta": "Первый комментарий", "promo": "FB_POST" },
+      "telegram": { "format": "1:1 Video + HTML", "cta": "Инлайн-кнопка", "promo": "TG" },
+      "instagram": { "format": "1:1 Carousel + Reels", "cta": "Директ «ИВРИТ»", "promo": "INSTA" },
+      "youtube": { "format": "9:16 Shorts", "cta": "Закреплённый комментарий", "promo": "YOUTUBE" },
+      "tiktok": { "format": "9:16 Short", "cta": "Включи счетчик (монэ)", "promo": "TIKTOK" }
+    }
+  },
+  {
+    "scenarioId": "sc-18-kiosk-street",
+    "topic": "Уличный киоск (пицуция)",
+    "targetAudience": "Повседневная жизнь, прохожие",
+    "scheduledDate": "2026-10-20",
+    "scheduledTime": "15:00 IST",
+    "dayOfWeek": "Вторник",
+    "slot": "Дневной перекус на улице",
+    "networks": {
+      "facebook": { "format": "1:1 Video", "cta": "Первый комментарий", "promo": "FB_POST" },
+      "telegram": { "format": "1:1 Video + HTML", "cta": "Инлайн-кнопка", "promo": "TG" },
+      "instagram": { "format": "1:1 Carousel + Reels", "cta": "Директ «ИВРИТ»", "promo": "INSTA" },
+      "youtube": { "format": "9:16 Shorts", "cta": "Закреплённый комментарий", "promo": "YOUTUBE" },
+      "tiktok": { "format": "9:16 Short", "cta": "Бутылка воды / сдача", "promo": "TIKTOK" }
+    }
+  },
+  {
+    "scenarioId": "sc-19-bit-paybox-payment",
+    "topic": "Оплата через Bit / PayBox",
+    "targetAudience": "Все пользователи мобильных банков",
+    "scheduledDate": "2026-10-21",
+    "scheduledTime": "12:00 IST",
+    "dayOfWeek": "Среда",
+    "slot": "Дневные переводы коллегам и друзьям",
+    "networks": {
+      "facebook": { "format": "1:1 Video", "cta": "Первый комментарий", "promo": "FB_POST" },
+      "telegram": { "format": "1:1 Video + HTML", "cta": "Инлайн-кнопка", "promo": "TG" },
+      "instagram": { "format": "1:1 Carousel + Reels", "cta": "Директ «ИВРИТ»", "promo": "INSTA" },
+      "youtube": { "format": "9:16 Shorts", "cta": "Закреплённый комментарий", "promo": "YOUTUBE" },
+      "tiktok": { "format": "9:16 Short", "cta": "Скинь в Бит / запрос денег", "promo": "TIKTOK" }
+    }
+  },
+  {
+    "scenarioId": "sc-20-security-emergency",
+    "topic": "Безопасность и сирена",
+    "targetAudience": "Все жители Израиля, знание безопасности",
+    "scheduledDate": "2026-10-22",
+    "scheduledTime": "18:30 IST",
+    "dayOfWeek": "Четверг",
+    "slot": "Жизненно важная лексика безопасности",
+    "networks": {
+      "facebook": { "format": "1:1 Video", "cta": "Первый комментарий", "promo": "FB_POST" },
+      "telegram": { "format": "1:1 Video + HTML", "cta": "Инлайн-кнопка", "promo": "TG" },
+      "instagram": { "format": "1:1 Carousel + Reels", "cta": "Директ «ИВРИТ»", "promo": "INSTA" },
+      "youtube": { "format": "9:16 Shorts", "cta": "Закреплённый комментарий", "promo": "YOUTUBE" },
+      "tiktok": { "format": "9:16 Short", "cta": "Мамад / сирена / 10 минут", "promo": "TIKTOK" }
+    }
+  }
+]

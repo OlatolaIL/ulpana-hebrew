@@ -46,6 +46,10 @@ const linkArg = args.find(a => a.startsWith('--link='));
 const customLink = linkArg ? linkArg.slice(linkArg.indexOf('=') + 1) : null;
 const videoArg = args.find(a => a.startsWith('--video='));
 const customVideo = videoArg ? videoArg.slice(videoArg.indexOf('=') + 1) : null;
+const titleArg = args.find(a => a.startsWith('--title='));
+const customTitle = titleArg ? titleArg.slice(titleArg.indexOf('=') + 1) : null;
+const commentArg = args.find(a => a.startsWith('--comment='));
+const customComment = commentArg ? commentArg.slice(commentArg.indexOf('=') + 1) : null;
 
 // Образец аутентичного поста для Facebook «Ульпан Алеф»
 const samplePost = {
@@ -74,7 +78,39 @@ const samplePost = {
   link: 'https://ulpana-hebrew.vercel.app/lessons/1/call?promo=FB_POST'
 };
 
+function registerPublication({ format, title, link, liveUrl }) {
+  const pubPath = path.join(process.cwd(), 'growth', 'data', 'publications.json');
+  if (fs.existsSync(pubPath)) {
+    try {
+      const raw = fs.readFileSync(pubPath, 'utf8');
+      const publications = JSON.parse(raw);
+      const newPub = {
+        id: `pub-fb-${Date.now().toString().slice(-4)}`,
+        date: new Date().toISOString().split('T')[0],
+        channel: 'facebook',
+        channelAccount: 'Ulpana - Иврит без паники',
+        format: format || 'post',
+        title: title,
+        targetDeepLink: '/lessons/1/call',
+        promoCode: 'FB_POST',
+        fullUrlWithPromo: link,
+        livePostUrl: liveUrl,
+        status: 'published',
+        notes: 'Автопостинг через Meta Graph API',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      publications.unshift(newPub);
+      fs.writeFileSync(pubPath, JSON.stringify(publications, null, 2), 'utf8');
+      console.log(`✅ Публикация успешно зарегистрирована в growth/data/publications.json!`);
+    } catch (e) {
+      console.warn('⚠️ Не удалось записать в publications.json:', e.message);
+    }
+  }
+}
+
 async function main() {
+  let postTitle = customTitle || samplePost.title;
   let messageText = samplePost.message;
   let postLink = customLink || samplePost.link;
 
@@ -85,8 +121,12 @@ async function main() {
   console.log('=====================================================');
   console.log(`🎯 ЦЕЛЕВАЯ СТРАНИЦА FB ID: ${pageId || 'НЕ ЗАДАН'}`);
   console.log(`🤖 РЕЖИМ: ${isSend ? '🚀 ОТПРАВКА В FACEBOOK' : '👀 ПРЕДПРОСМОТР (DRY RUN)'}`);
+  console.log(`📌 ЗАГОЛОВОК: ${postTitle}`);
   if (customVideo) {
     console.log(`🎬 ВИДЕО: ${customVideo}`);
+  }
+  if (customComment) {
+    console.log(`💬 ПЕРВЫЙ КОММЕНТАРИЙ (Zero-Link): ${customComment}`);
   }
   console.log('=====================================================\n');
   console.log(messageText);
@@ -232,7 +272,7 @@ async function main() {
       console.log(`📡 Загрузка ВИДЕО на страницу Facebook (${pageId})...`);
       const formData = new FormData();
       formData.append('access_token', pageAccessToken);
-      formData.append('title', samplePost.title);
+      formData.append('title', postTitle);
       formData.append('description', messageText);
       const buffer = fs.readFileSync(resolvedVideoPath);
       formData.append('source', new Blob([buffer], { type: 'video/mp4' }), path.basename(resolvedVideoPath));
@@ -253,6 +293,38 @@ async function main() {
       console.log(`🎉 ВИДЕО УСПЕШНО ОПУБЛИКОВАНО В FACEBOOK!`);
       console.log(`🆔 Video ID: ${videoId}`);
       console.log(`🔗 Ссылка на видео: ${publicPostUrl}`);
+
+      if (customComment) {
+        console.log(`💬 Публикация первого комментария со ссылкой (Zero-Link Protocol)...`);
+        try {
+          const commentParams = new URLSearchParams();
+          commentParams.append('message', customComment);
+          commentParams.append('access_token', pageAccessToken);
+          const commentRes = await fetch(`https://graph.facebook.com/v26.0/${encodeURIComponent(videoId)}/comments`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: commentParams.toString()
+          });
+          const commentData = await commentRes.json();
+          if (commentData.id) {
+            console.log(`✅ Первый комментарий успешно опубликован: ${commentData.id}`);
+          } else {
+            console.warn('⚠️ Не удалось опубликовать первый комментарий:', commentData);
+          }
+        } catch (e) {
+          console.warn('⚠️ Ошибка публикации первого комментария:', e.message);
+        }
+      }
+
+      if (isRegister) {
+        registerPublication({
+          channel: 'facebook',
+          format: 'video',
+          title: postTitle,
+          link: postLink,
+          liveUrl: publicPostUrl
+        });
+      }
       return;
     }
 
@@ -260,7 +332,7 @@ async function main() {
     const postUrl = `https://graph.facebook.com/v26.0/${encodeURIComponent(pageId)}/feed`;
     const bodyParams = new URLSearchParams();
     bodyParams.append('message', messageText);
-    if (postLink) {
+    if (postLink && !customComment) {
       bodyParams.append('link', postLink);
     }
     bodyParams.append('access_token', pageAccessToken);
@@ -287,36 +359,37 @@ async function main() {
     console.log(`🆔 Post ID: ${postId}`);
     console.log(`🔗 Ссылка на пост: ${publicPostUrl}`);
 
+    if (customComment) {
+      console.log(`💬 Публикация первого комментария со ссылкой (Zero-Link Protocol)...`);
+      try {
+        const commentParams = new URLSearchParams();
+        commentParams.append('message', customComment);
+        commentParams.append('access_token', pageAccessToken);
+        const commentRes = await fetch(`https://graph.facebook.com/v26.0/${encodeURIComponent(postId)}/comments`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: commentParams.toString()
+        });
+        const commentData = await commentRes.json();
+        if (commentData.id) {
+          console.log(`✅ Первый комментарий успешно опубликован: ${commentData.id}`);
+        } else {
+          console.warn('⚠️ Не удалось опубликовать первый комментарий:', commentData);
+        }
+      } catch (e) {
+        console.warn('⚠️ Ошибка публикации первого комментария:', e.message);
+      }
+    }
+
     // Автоматическая регистрация в publications.json, если передан флаг --register
     if (isRegister) {
-      const pubPath = path.join(process.cwd(), 'growth', 'data', 'publications.json');
-      if (fs.existsSync(pubPath)) {
-        try {
-          const raw = fs.readFileSync(pubPath, 'utf8');
-          const publications = JSON.parse(raw);
-          const newPub = {
-            id: `pub-fb-${Date.now().toString().slice(-4)}`,
-            date: new Date().toISOString().split('T')[0],
-            channel: 'facebook',
-            channelAccount: 'Ulpana - Иврит без паники',
-            format: 'post',
-            title: samplePost.title,
-            targetDeepLink: '/lessons/1/call',
-            promoCode: 'FB_POST',
-            fullUrlWithPromo: postLink,
-            livePostUrl: publicPostUrl,
-            status: 'published',
-            notes: 'Автопостинг через Meta Graph API',
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
-          };
-          publications.unshift(newPub);
-          fs.writeFileSync(pubPath, JSON.stringify(publications, null, 2), 'utf8');
-          console.log(`✅ Публикация успешно зарегистрирована в growth/data/publications.json!`);
-        } catch (e) {
-          console.warn('⚠️ Не удалось записать в publications.json:', e.message);
-        }
-      }
+      registerPublication({
+        channel: 'facebook',
+        format: 'post',
+        title: postTitle,
+        link: postLink,
+        liveUrl: publicPostUrl
+      });
     }
   } catch (err) {
     console.error('❌ Сетевая ошибка при отправке в Facebook:', err.message);

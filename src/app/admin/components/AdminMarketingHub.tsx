@@ -78,7 +78,7 @@ interface PublicationItem {
   date: string;
   channel: 'tiktok' | 'youtube' | 'telegram' | 'facebook' | 'instagram';
   channelAccount: string;
-  format: 'short_video' | 'post' | 'story' | 'storytelling' | 'poll';
+  format: 'short_video' | 'video' | 'carousel' | 'post' | 'story' | 'storytelling' | 'poll';
   title: string;
   campaignTitle?: string;
   version?: string;
@@ -149,7 +149,7 @@ export function AdminMarketingHub() {
   const [newPubCaption, setNewPubCaption] = useState('');
   const [newPubChannel, setNewPubChannel] = useState<'tiktok' | 'youtube' | 'telegram' | 'facebook' | 'instagram'>('tiktok');
   const [newPubAccount, setNewPubAccount] = useState('@ulpanaalef');
-  const [newPubFormat, setNewPubFormat] = useState<'short_video' | 'post' | 'story' | 'storytelling' | 'poll'>('short_video');
+  const [newPubFormat, setNewPubFormat] = useState<'short_video' | 'video' | 'carousel' | 'post' | 'story' | 'storytelling' | 'poll'>('short_video');
   const [newPubDeepLink, setNewPubDeepLink] = useState('/lessons/1/call');
   const [newPubPromo, setNewPubPromo] = useState('TIKTOK');
   const [newPubLiveUrl, setNewPubLiveUrl] = useState('');
@@ -168,7 +168,7 @@ export function AdminMarketingHub() {
   const [editPubCaption, setEditPubCaption] = useState('');
   const [editPubChannel, setEditPubChannel] = useState<'tiktok' | 'youtube' | 'telegram' | 'facebook' | 'instagram'>('facebook');
   const [editPubAccount, setEditPubAccount] = useState('');
-  const [editPubFormat, setEditPubFormat] = useState<'short_video' | 'post' | 'story' | 'storytelling' | 'poll'>('post');
+  const [editPubFormat, setEditPubFormat] = useState<'short_video' | 'video' | 'carousel' | 'post' | 'story' | 'storytelling' | 'poll'>('post');
   const [editPubDeepLink, setEditPubDeepLink] = useState('/decks/moms');
   const [editPubPromo, setEditPubPromo] = useState('LATTE_MAMA');
   const [editPubLiveUrl, setEditPubLiveUrl] = useState('');

@@ -32,6 +32,14 @@ const chatArg = args.find(a => a.startsWith('--chat='));
 const targetChat = chatArg ? chatArg.split('=')[1] : defaultTargetChat;
 const videoArg = args.find(a => a.startsWith('--video='));
 const videoPath = videoArg ? videoArg.split('=')[1] : null;
+const photoArg = args.find(a => a.startsWith('--photo='));
+const photoPath = photoArg ? photoArg.split('=')[1] : null;
+const audioArg = args.find(a => a.startsWith('--audio='));
+const audioPath = audioArg ? audioArg.split('=')[1] : null;
+const audioTitleArg = args.find(a => a.startsWith('--audio-title='));
+const audioTitle = audioTitleArg ? audioTitleArg.split('=')[1] : 'Памятка: 4 фразы на иврите';
+const audioCaptionArg = args.find(a => a.startsWith('--audio-caption='));
+const audioCaption = audioCaptionArg ? audioCaptionArg.split('=')[1] : '🎧 Озвучка фраз: слушайте и повторяйте с правильным произношением!';
 const btnTextArg = args.find(a => a.startsWith('--btn-text='));
 const customBtnText = btnTextArg ? btnTextArg.split('=')[1] : null;
 const btnUrlArg = args.find(a => a.startsWith('--btn-url='));
@@ -132,35 +140,153 @@ async function main() {
     return;
   }
 
-  console.log(`📡 Отправка текстового сообщения через Telegram Bot API в ${targetChat}...`);
+  // Обработка отправки фотографии
+  if (photoPath && fs.existsSync(photoPath)) {
+    console.log(`📡 Загрузка и отправка фото через sendPhoto в ${targetChat}...`);
+    console.log(`📁 Фото: ${photoPath} (${(fs.statSync(photoPath).size / 1024).toFixed(1)} KB)`);
 
-  const payload = {
-    chat_id: targetChat,
-    text: messageText,
-    parse_mode: 'HTML',
-    disable_web_page_preview: false,
-    reply_markup: {
-      inline_keyboard: [
-        [{ text: btnText, url: btnUrl }]
-      ]
-    }
-  };
+    const photoBuffer = fs.readFileSync(photoPath);
+    const mimeType = photoPath.toLowerCase().endsWith('.png') ? 'image/png' : 'image/jpeg';
 
-  try {
-    const res = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
+    if (messageText.length <= 1024) {
+      // Весь текст помещается в caption к фото
+      const formData = new FormData();
+      formData.append('chat_id', targetChat);
+      formData.append('photo', new Blob([photoBuffer], { type: mimeType }), path.basename(photoPath));
+      formData.append('caption', messageText);
+      formData.append('parse_mode', 'HTML');
+      if (btnText && btnUrl) {
+        formData.append('reply_markup', JSON.stringify({
+          inline_keyboard: [[{ text: btnText, url: btnUrl }]]
+        }));
+      }
 
-    const data = await res.json();
-    if (data.ok) {
-      console.log(`✅ УСПЕШНО ОПУБЛИКОВАНО! Message ID: ${data.result.message_id}`);
+      try {
+        const res = await fetch(`https://api.telegram.org/bot${botToken}/sendPhoto`, {
+          method: 'POST',
+          body: formData
+        });
+        const data = await res.json();
+        if (data.ok) {
+          console.log(`🎉 ФОТО-ПОСТ УСПЕШНО ОПУБЛИКОВАН! Message ID: ${data.result.message_id}`);
+        } else {
+          console.error('❌ Ошибка Telegram API sendPhoto:', data.description || data);
+        }
+      } catch (err) {
+        console.error('❌ Сетевая ошибка при отправке фото:', err.message);
+      }
     } else {
-      console.error('❌ Ошибка Telegram API:', data.description || data);
+      // Текст длинный (>1024 символов): сначала фото-обложка, затем полный текст с кнопкой
+      const formData = new FormData();
+      formData.append('chat_id', targetChat);
+      formData.append('photo', new Blob([photoBuffer], { type: mimeType }), path.basename(photoPath));
+      formData.append('caption', '🧸 <b>«Бокер тов, гоненет»: готовые сообщения для детского сада на иврите ⬇️</b>');
+      formData.append('parse_mode', 'HTML');
+
+      try {
+        const resPhoto = await fetch(`https://api.telegram.org/bot${botToken}/sendPhoto`, {
+          method: 'POST',
+          body: formData
+        });
+        const photoData = await resPhoto.json();
+        if (photoData.ok) {
+          console.log(`🎉 ФОТО-ОБЛОЖКА ОПУБЛИКОВАНА! Message ID: ${photoData.result.message_id}`);
+        }
+      } catch (err) {
+        console.error('❌ Ошибка отправки фото-обложки:', err.message);
+      }
+
+      // Публикация основного текста следом
+      const payload = {
+        chat_id: targetChat,
+        text: messageText,
+        parse_mode: 'HTML',
+        disable_web_page_preview: false,
+        reply_markup: {
+          inline_keyboard: [
+            [{ text: btnText, url: btnUrl }]
+          ]
+        }
+      };
+
+      try {
+        const res = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (data.ok) {
+          console.log(`✅ ТЕКСТ ПОСТА ОПУБЛИКОВАН! Message ID: ${data.result.message_id}`);
+        } else {
+          console.error('❌ Ошибка Telegram API sendMessage:', data.description || data);
+        }
+      } catch (err) {
+        console.error('❌ Сетевая ошибка при отправке текста:', err.message);
+      }
     }
-  } catch (err) {
-    console.error('❌ Сетевая ошибка при отправке:', err.message);
+  } else {
+    // Чистый текстовый пост без фото
+    console.log(`📡 Отправка текстового сообщения через Telegram Bot API в ${targetChat}...`);
+
+    const payload = {
+      chat_id: targetChat,
+      text: messageText,
+      parse_mode: 'HTML',
+      disable_web_page_preview: false,
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: btnText, url: btnUrl }]
+        ]
+      }
+    };
+
+    try {
+      const res = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await res.json();
+      if (data.ok) {
+        console.log(`✅ УСПЕШНО ОПУБЛИКОВАНО! Message ID: ${data.result.message_id}`);
+      } else {
+        console.error('❌ Ошибка Telegram API:', data.description || data);
+      }
+    } catch (err) {
+      console.error('❌ Сетевая ошибка при отправке:', err.message);
+    }
+  }
+
+  // Обработка отправки аудиофайла (озвучки)
+  if (audioPath && fs.existsSync(audioPath)) {
+    console.log(`📡 Отправка аудио-шпаргалки через sendAudio в ${targetChat}...`);
+    console.log(`📁 Аудио: ${audioPath} (${(fs.statSync(audioPath).size / 1024).toFixed(1)} KB)`);
+
+    const audioBuffer = fs.readFileSync(audioPath);
+    const audioForm = new FormData();
+    audioForm.append('chat_id', targetChat);
+    audioForm.append('audio', new Blob([audioBuffer], { type: 'audio/mpeg' }), path.basename(audioPath));
+    audioForm.append('title', audioTitle);
+    audioForm.append('performer', 'Ульпан Алеф');
+    audioForm.append('caption', audioCaption);
+    audioForm.append('parse_mode', 'HTML');
+
+    try {
+      const resAudio = await fetch(`https://api.telegram.org/bot${botToken}/sendAudio`, {
+        method: 'POST',
+        body: audioForm
+      });
+      const audioData = await resAudio.json();
+      if (audioData.ok) {
+        console.log(`🎧 АУДИО УСПЕШНО ОПУБЛИКОВАНО В ТЕЛЕГРАМ! Message ID: ${audioData.result.message_id}`);
+      } else {
+        console.error('❌ Ошибка Telegram API sendAudio:', audioData.description || audioData);
+      }
+    } catch (err) {
+      console.error('❌ Сетевая ошибка при отправке аудио:', err.message);
+    }
   }
 }
 

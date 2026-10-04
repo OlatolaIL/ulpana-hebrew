@@ -62,6 +62,8 @@ public/demo/*_timings.json
 public/audio/sentences/comparison_38_lite/
 public/audio/sentences/male_voice_cast/
 public/audio/sentences/test_38_lite/
+public/audio/factory/
+public/audio/moms/
 
 # scrapers and indexes
 src/data/pealimCatalogIndex.json

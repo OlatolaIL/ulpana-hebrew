@@ -10,7 +10,7 @@ export interface PublicationItem {
   date: string;
   channel: 'tiktok' | 'youtube' | 'telegram' | 'facebook' | 'instagram';
   channelAccount: string;
-  format: 'short_video' | 'post' | 'story' | 'storytelling' | 'poll';
+  format: 'short_video' | 'video' | 'carousel' | 'post' | 'story' | 'storytelling' | 'poll';
   title: string;
   campaignTitle?: string;
   version?: string;
