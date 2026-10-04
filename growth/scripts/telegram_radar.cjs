@@ -218,7 +218,14 @@ async function analyzePainWithAI(rawText) {
 // 5. Отправка алерта фаундеру в Telegram
 async function sendAlertToFounder(lead) {
   const botToken = process.env.TELEGRAM_BOT_TOKEN?.trim();
-  const adminChatId = process.env.TELEGRAM_ADMIN_CHAT_ID?.trim() || '@ulpana_il';
+  const adminChatId = process.env.TELEGRAM_ADMIN_CHAT_ID?.trim();
+
+  // Защита от утечки в публичный канал: никогда не слать служебные алерты в @ulpana_il!
+  if (!adminChatId || adminChatId.toLowerCase() === '@ulpana_il') {
+    console.log('⚠️ TELEGRAM_ADMIN_CHAT_ID не задан или указывает на публичный канал @ulpana_il.');
+    console.log('🔒 Служебный алерт НЕ отправлен в публичный чат во избежание утечки CRM-данных. Лид сохранён в базе.');
+    return;
+  }
 
   if (!botToken) {
     console.log('⚠️ TELEGRAM_BOT_TOKEN не задан, вывод алерта в консоль:');
@@ -426,30 +433,45 @@ async function main() {
       }
 
       let chatTitle = 'Группа Telegram';
+      let chatUsername = '';
       let messageUrl = null;
       try {
         const chat = await message.getChat();
         if (chat) {
           chatTitle = chat.title || chat.username || 'Группа Telegram';
+          chatUsername = (chat.username || '').toLowerCase();
           if (chat.username) {
             messageUrl = `https://t.me/${chat.username}/${message.id}`;
           }
         }
       } catch (e) {}
 
-      console.log(`\n🎯 [ТРИГГЕР в "${chatTitle}"]`);
-      console.log(`   Текст: "${text.slice(0, 90)}..."`);
+      // Фильтр 1: Игнорируем публикации из нашего собственного канала и группы обсуждений
+      if (chatUsername === 'ulpana_il' || chatTitle.toLowerCase().includes('ульпана')) {
+        return; // Это собственный контент Ульпаны, а не лид
+      }
 
       let authorName = 'Пользователь';
       let authorContact = 'Скрыт';
+      let senderUsername = '';
 
       try {
         const sender = await message.getSender();
         if (sender) {
+          if (sender.isSelf) return; // Игнорируем собственные сообщения аккаунта
+          senderUsername = (sender.username || '').toLowerCase();
           authorName = [sender.firstName, sender.lastName].filter(Boolean).join(' ') || sender.username || 'Пользователь';
           authorContact = sender.username ? `@${sender.username}` : (sender.phone ? `+${sender.phone}` : `ID: ${sender.id}`);
         }
       } catch (e) {}
+
+      // Фильтр 2: Игнорируем авторов из нашей команды/бота
+      if (senderUsername === 'ulpana_il' || senderUsername.includes('ulpana') || senderUsername === 'ulpana_hebrew_bot') {
+        return;
+      }
+
+      console.log(`\n🎯 [ТРИГГЕР в "${chatTitle}"]`);
+      console.log(`   Текст: "${text.slice(0, 90)}..."`);
 
       // ИИ-анализ боли
       const aiAnalysis = await analyzePainWithAI(text);
