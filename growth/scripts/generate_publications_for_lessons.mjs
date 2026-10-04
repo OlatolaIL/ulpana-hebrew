@@ -11,6 +11,32 @@ const REPO = 'OlatolaIL/ulpana-hebrew';
 const RELEASE_TAG = 'v-media-lessons-02-05';
 
 const LESSON_METAS = {
+  1: {
+    clean: {
+      topic: 'Приветствие и знакомство: в офисе',
+      scenario: 'Хайтек в Тель-Авиве • Вопрос тимлиду',
+      titles: {
+        youtube: 'Первый рабочий день в Израиле: как не опозориться перед тимлидом 💻 #shorts #иврит',
+        telegram: '💻 Мужской vs женский род: главная ошибка новичков в первый рабочий день',
+        instagram: 'Спросил у коллеги, свободен ли он, но назвал его девушкой 😂 Разбор 👇',
+        tiktok: 'Когда в первый день в хайтеке перепутал «ты» в иврите 💀 #иврит #израиль',
+        facebook: 'Этикет общения в израильском офисе: почему «ты» мужчине и женщине звучат по-разному',
+      },
+      ruleSummary: 'В иврите обращение «ты» строго зависит от пола: мужчине — אַתָּה (атá), а женщине — אַתְּ (ат). Перепутаешь букву — тимлид удивится!',
+    },
+    spicy: {
+      topic: 'Приветствие и комплименты: свидание',
+      scenario: 'Бар в Тель-Авиве • Комплимент на первом свидании',
+      titles: {
+        youtube: 'Сделал комплимент израильтянке и назвал её парнем 🤦‍♂️ #shorts #иврит',
+        telegram: '🔥 Опасный комплимент: атá яфэ vs ат яфа́',
+        instagram: 'Хотел похвалить девушку, а обратился как к таксисту 😅 Смотри разбор 👇',
+        tiktok: 'Когда романтика разбилась о грамматику иврита 💀 #иврит #свидания',
+        facebook: 'Знакомства в Тель-Авиве: как сделать комплимент на иврите и не сесть в лужу',
+      },
+      ruleSummary: 'Мужчине комплимент: אַתָּה יָפֶה (атá яфэ́). Девушке — только אַתְּ יָפָה (ат яфа́)! Не путай род в романтической обстановке.',
+    },
+  },
   2: {
     clean: {
       topic: 'В кафе: заказы и напитки',
@@ -293,7 +319,8 @@ export function buildCampaigns() {
 
         if (existingIds.has(id)) {
           const idx = existingPubs.findIndex((x) => x.id === id);
-          existingPubs[idx] = { ...existingPubs[idx], ...pubItem, updatedAt: new Date().toISOString() };
+          const currentStatus = existingPubs[idx].status || 'draft';
+          existingPubs[idx] = { ...existingPubs[idx], ...pubItem, status: currentStatus, updatedAt: new Date().toISOString() };
         } else {
           newPubs.push(pubItem);
         }

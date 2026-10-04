@@ -89,7 +89,7 @@ interface PublicationItem {
   promoCode: string;
   fullUrlWithPromo: string;
   livePostUrl: string;
-  status: 'draft' | 'scheduled' | 'published' | 'archived' | 'ready_for_upload';
+  status: 'draft' | 'scheduled' | 'published' | 'archived' | 'ready_for_upload' | 'ready';
   notes?: string;
   scheduledAt?: string;
   createdAt: string;
@@ -153,7 +153,7 @@ export function AdminMarketingHub() {
   const [newPubDeepLink, setNewPubDeepLink] = useState('/lessons/1/call');
   const [newPubPromo, setNewPubPromo] = useState('TIKTOK');
   const [newPubLiveUrl, setNewPubLiveUrl] = useState('');
-  const [newPubStatus, setNewPubStatus] = useState<'draft' | 'scheduled' | 'published' | 'archived' | 'ready_for_upload'>('published');
+  const [newPubStatus, setNewPubStatus] = useState<'draft' | 'scheduled' | 'published' | 'archived' | 'ready_for_upload' | 'ready'>('published');
   const [newPubNotes, setNewPubNotes] = useState('');
   const [newPubScheduledAt, setNewPubScheduledAt] = useState('');
   const [pubSaving, setPubSaving] = useState(false);
@@ -172,7 +172,7 @@ export function AdminMarketingHub() {
   const [editPubDeepLink, setEditPubDeepLink] = useState('/decks/moms');
   const [editPubPromo, setEditPubPromo] = useState('LATTE_MAMA');
   const [editPubLiveUrl, setEditPubLiveUrl] = useState('');
-  const [editPubStatus, setEditPubStatus] = useState<'draft' | 'scheduled' | 'published' | 'archived' | 'ready_for_upload'>('draft');
+  const [editPubStatus, setEditPubStatus] = useState<'draft' | 'scheduled' | 'published' | 'archived' | 'ready_for_upload' | 'ready'>('draft');
   const [editPubNotes, setEditPubNotes] = useState('');
   const [editPubScheduledAt, setEditPubScheduledAt] = useState('');
   const [editPubSaving, setEditPubSaving] = useState(false);
@@ -1680,7 +1680,7 @@ export function AdminMarketingHub() {
                                   ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
                                   : pub.status === 'scheduled'
                                   ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30'
-                                  : pub.status === 'ready_for_upload'
+                                  : pub.status === 'ready_for_upload' || pub.status === 'ready'
                                   ? 'bg-indigo-500/15 text-indigo-300 border border-indigo-500/40'
                                   : 'bg-zinc-800 text-zinc-400 border border-zinc-700'
                               }`}
@@ -1689,9 +1689,9 @@ export function AdminMarketingHub() {
                                 ? '🟢 Вышел'
                                 : pub.status === 'scheduled'
                                 ? '🟡 План'
-                                : pub.status === 'ready_for_upload'
-                                ? '🎬 Смонтирован'
-                                : '⚪ Готов'}
+                                : pub.status === 'ready_for_upload' || pub.status === 'ready'
+                                ? '🎬 Готов'
+                                : '⚪ Черновик'}
                             </span>
                             {pub.livePostUrl ? (
                               <a

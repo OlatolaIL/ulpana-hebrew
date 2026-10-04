@@ -232,11 +232,15 @@ async function main() {
 
   console.log('\n======================================================');
   console.log(`🎉 Все видео успешно опубликованы на GitHub Release CDN:`);
-  console.log(`👉 https://github.com/${REPO}/releases/tag/${tag}`);
   console.log(`======================================================\n`);
 }
 
-main().catch((err) => {
-  console.error('Fatal error:', err);
-  process.exit(1);
-});
+export { getOrCreateRelease, uploadAsset, updateReleaseBody, getGithubToken };
+
+const isMain = process.argv[1] && (process.argv[1].endsWith('upload_release_assets.mjs') || process.argv[1].includes('upload_release_assets'));
+if (isMain) {
+  main().catch((err) => {
+    console.error('Fatal error:', err);
+    process.exit(1);
+  });
+}

@@ -21,7 +21,7 @@ export interface PublicationItem {
   promoCode: string;
   fullUrlWithPromo: string;
   livePostUrl: string;
-  status: 'draft' | 'scheduled' | 'published' | 'archived' | 'ready_for_upload';
+  status: 'draft' | 'scheduled' | 'published' | 'archived' | 'ready_for_upload' | 'ready';
   notes?: string;
   scheduledAt?: string;
   createdAt: string;

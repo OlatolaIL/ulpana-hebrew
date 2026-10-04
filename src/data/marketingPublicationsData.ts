@@ -14,7 +14,7 @@ export interface PublicationItem {
   promoCode: string;
   fullUrlWithPromo: string;
   livePostUrl: string;
-  status: 'draft' | 'scheduled' | 'published' | 'archived' | 'ready_for_upload';
+  status: 'draft' | 'scheduled' | 'published' | 'archived' | 'ready_for_upload' | 'ready';
   notes?: string;
   scheduledAt?: string;
   createdAt: string;
@@ -24,43 +24,43 @@ export interface PublicationItem {
 export const MARKETING_PUBLICATIONS: PublicationItem[] = [
   {
     "id": "pub-yt-l01-clean",
-    "date": "2026-09-27",
+    "date": "2026-09-28",
     "channel": "youtube",
     "channelAccount": "Ульпан Алеф",
     "format": "short_video",
-    "title": "Как не назвать бородатого тимлида девушкой в первый день в Израиле 🤦‍♂️ #shorts #иврит",
+    "title": "Первый рабочий день в Израиле: как не опозориться перед тимлидом 💻 #shorts #иврит",
     "campaignTitle": "Урок 1",
     "version": "v1.0",
-    "videoPath": "https://github.com/OlatolaIL/ulpana-hebrew/releases/download/v-media-lesson-01/lesson_01_clean_youtube_shorts.mp4",
-    "caption": "Первый рабочий день в Израиле, подходишь к коллеге и говоришь: «Слиха́, ат пнуя́?»...\nПоздравляем, ты только что назвал брутального тимлида девушкой! 😂\n\nВ иврите обращение «ТЫ» строго зависит от пола:\n👨 Мужчине: אַתָּה [атá] + פָּנוּי [панýй] — ты свободен?\n👩 Женщине: אַתְּ [ат] + פְּנוּיָה [пнуя́] — ты свободна?\n\nВ интерактивном тренажёре «Ульпан Алеф» ты отрабатываешь живую речь с распознаванием голоса и сразу говоришь уверенно без страха опозориться!\n\n🎁 Промокод на 30 дней бесплатного премиум-доступа: YT\n👉 Начни Урок 1 прямо сейчас: https://ulpana-hebrew.vercel.app/#lesson-1?promo=YT&utm_source=youtube&utm_medium=shorts&utm_campaign=lesson_01_clean",
+    "videoPath": "https://github.com/OlatolaIL/ulpana-hebrew/releases/download/v-media-lessons-02-05/lesson_01_clean_youtube_shorts.mp4",
+    "caption": "Первый рабочий день в Израиле: как не опозориться перед тимлидом 💻 #shorts #иврит\n\nВ иврите обращение «ты» строго зависит от пола: мужчине — אַתָּה (атá), а женщине — אַתְּ (ат). Перепутаешь букву — тимлид удивится!\n\nВ интерактивном тренажёре «Ульпан Алеф» ты отрабатываешь живую речь с ИИ и говоришь свободно без паники!\n\n🎁 Промокод на 30 дней бесплатного премиума: YT\n👉 Начни Урок 1 прямо сейчас: https://ulpana-hebrew.vercel.app/#lesson-1?promo=YT&utm_source=youtube&utm_medium=shorts&utm_campaign=lesson_01_clean\n\n#shorts #иврит #ульпан #израиль #урокииврита #ульпаналеф",
     "targetDeepLink": "/lesson/1",
     "promoCode": "YT",
     "fullUrlWithPromo": "https://ulpana-hebrew.vercel.app/#lesson-1?promo=YT&utm_source=youtube&utm_medium=shorts&utm_campaign=lesson_01_clean",
     "livePostUrl": "",
-    "status": "draft",
-    "notes": "YouTube Shorts (32.8с): Clean • Офис в Тель-Авиве • промокод YT",
-    "createdAt": "2026-09-27T11:00:00.000Z",
-    "updatedAt": "2026-09-27T11:10:00.000Z"
+    "status": "ready",
+    "notes": "YOUTUBE (CLEAN): Урок 1 • Хайтек в Тель-Авиве • Вопрос тимлиду • промокод YT",
+    "createdAt": "2026-10-04T09:55:24.397Z",
+    "updatedAt": "2026-10-04T09:55:24.417Z"
   },
   {
     "id": "pub-tg-l01-clean",
-    "date": "2026-09-27",
+    "date": "2026-09-28",
     "channel": "telegram",
     "channelAccount": "@ulpana_il",
     "format": "short_video",
-    "title": "⚡️ Главный факап новичков в Израиле: как не перепутать «Атá» и «Ат»",
+    "title": "💻 Мужской vs женский род: главная ошибка новичков в первый рабочий день",
     "campaignTitle": "Урок 1",
     "version": "v1.0",
-    "videoPath": "https://github.com/OlatolaIL/ulpana-hebrew/releases/download/v-media-lesson-01/lesson_01_clean_telegram.mp4",
-    "caption": "⚡️ Главный факап новичков в Израиле: как не перепутать «Атá» и «Ат»\n\nСамая частая ошибка в первую неделю репатриации — обратиться к мужчине в женском роде или сказать девушке мужской комплимент.\n\nВ иврите обращение зависит от пола:\n• 👨 Мужчине: אַתָּה (атá) פָּנוּי (панýй) — ты свободен\n• 👩 Женщине: אַתְּ (ат) פְּנוּיָה (пнуя́) — ты свободна\n\n🎁 Промокод на 30 дней бесплатного премиума: TG\n👉 Запустить тренажер: https://ulpana-hebrew.vercel.app/#lesson-1?promo=TG&utm_source=telegram&utm_medium=channel&utm_campaign=lesson_01_clean",
+    "videoPath": "https://github.com/OlatolaIL/ulpana-hebrew/releases/download/v-media-lessons-02-05/lesson_01_clean_telegram.mp4",
+    "caption": "💻 Мужской vs женский род: главная ошибка новичков в первый рабочий день\n\nВ иврите обращение «ты» строго зависит от пола: мужчине — אַתָּה (атá), а женщине — אַתְּ (ат). Перепутаешь букву — тимлид удивится!\n\nВ интерактивном тренажёре «Ульпан Алеф» ты отрабатываешь живую речь с ИИ и говоришь свободно без паники!\n\n🎁 Промокод на 30 дней бесплатного премиума: TG\n👉 Начни Урок 1 прямо сейчас: https://ulpana-hebrew.vercel.app/#lesson-1?promo=TG&utm_source=telegram&utm_medium=channel&utm_campaign=lesson_01_clean\n\n#иврит #ульпаналеф #израиль",
     "targetDeepLink": "/lesson/1",
     "promoCode": "TG",
     "fullUrlWithPromo": "https://ulpana-hebrew.vercel.app/#lesson-1?promo=TG&utm_source=telegram&utm_medium=channel&utm_campaign=lesson_01_clean",
     "livePostUrl": "",
-    "status": "draft",
-    "notes": "Telegram (32.1с): Clean • Офис в Тель-Авиве • промокод TG",
-    "createdAt": "2026-09-27T11:01:00.000Z",
-    "updatedAt": "2026-09-27T11:10:00.000Z"
+    "status": "ready",
+    "notes": "TELEGRAM (CLEAN): Урок 1 • Хайтек в Тель-Авиве • Вопрос тимлиду • промокод TG",
+    "createdAt": "2026-10-04T09:55:24.398Z",
+    "updatedAt": "2026-10-04T09:55:24.417Z"
   },
   {
     "id": "pub-reels-l01-clean",
@@ -77,10 +77,10 @@ export const MARKETING_PUBLICATIONS: PublicationItem[] = [
     "promoCode": "INSTA",
     "fullUrlWithPromo": "https://ulpana-hebrew.vercel.app/#lesson-1?promo=INSTA&utm_source=instagram&utm_medium=reels&utm_campaign=lesson_01_clean",
     "livePostUrl": "",
-    "status": "draft",
+    "status": "ready",
     "notes": "Instagram Reels (31.1с): Clean • промокод INSTA",
     "createdAt": "2026-09-27T11:02:00.000Z",
-    "updatedAt": "2026-09-27T11:10:00.000Z"
+    "updatedAt": "2026-10-04T09:55:24.417Z"
   },
   {
     "id": "pub-tt-l01-clean",
@@ -97,70 +97,70 @@ export const MARKETING_PUBLICATIONS: PublicationItem[] = [
     "promoCode": "TIKTOK",
     "fullUrlWithPromo": "https://ulpana-hebrew.vercel.app/#lesson-1?promo=TIKTOK&utm_source=tiktok&utm_medium=short&utm_campaign=lesson_01_clean",
     "livePostUrl": "",
-    "status": "draft",
+    "status": "ready",
     "notes": "TikTok (31.3с): Clean • промокод TIKTOK",
     "createdAt": "2026-09-27T11:03:00.000Z",
-    "updatedAt": "2026-09-27T11:10:00.000Z"
+    "updatedAt": "2026-10-04T09:55:24.417Z"
   },
   {
     "id": "pub-fb-l01-clean",
-    "date": "2026-09-27",
+    "date": "2026-09-28",
     "channel": "facebook",
-    "channelAccount": "Facebook Page",
+    "channelAccount": "Facebook Ульпан Алеф",
     "format": "short_video",
-    "title": "Как избежать неловких ситуаций на работе в Израиле? 🇮🇱",
+    "title": "Этикет общения в израильском офисе: почему «ты» мужчине и женщине звучат по-разному",
     "campaignTitle": "Урок 1",
     "version": "v1.0",
-    "videoPath": "https://github.com/OlatolaIL/ulpana-hebrew/releases/download/v-media-lesson-01/lesson_01_clean_facebook_reels.mp4",
-    "caption": "Как избежать неловких ситуаций на работе в Израиле? 🇮🇱\n\nРазница между мужским и женским «ты»:\n👨 Мужчине: אַתָּה פָּנוּי (ата пануй)\n👩 Женщине: אַתְּ פְּנוּיָה (ат пнуя)\n\n🎁 Промокод: FB\n👉 Начните бесплатно: https://ulpana-hebrew.vercel.app/#lesson-1?promo=FB",
+    "videoPath": "https://github.com/OlatolaIL/ulpana-hebrew/releases/download/v-media-lessons-02-05/lesson_01_clean_facebook_reels.mp4",
+    "caption": "Этикет общения в израильском офисе: почему «ты» мужчине и женщине звучат по-разному\n\nВ иврите обращение «ты» строго зависит от пола: мужчине — אַתָּה (атá), а женщине — אַתְּ (ат). Перепутаешь букву — тимлид удивится!\n\nВ интерактивном тренажёре «Ульпан Алеф» ты отрабатываешь живую речь с ИИ и говоришь свободно без паники!\n\n🎁 Промокод на 30 дней бесплатного премиума: FB\n👉 Начни Урок 1 прямо сейчас: https://ulpana-hebrew.vercel.app/#lesson-1?promo=FB&utm_source=facebook&utm_medium=reels&utm_campaign=lesson_01_clean\n\n#иврит #израиль #репатриация #ульпан #жизньвизраиле",
     "targetDeepLink": "/lesson/1",
     "promoCode": "FB",
     "fullUrlWithPromo": "https://ulpana-hebrew.vercel.app/#lesson-1?promo=FB&utm_source=facebook&utm_medium=reels&utm_campaign=lesson_01_clean",
     "livePostUrl": "",
-    "status": "draft",
-    "notes": "Facebook Reels (30.8с): Clean • промокод FB",
-    "createdAt": "2026-09-27T11:05:00.000Z",
-    "updatedAt": "2026-09-27T11:10:00.000Z"
+    "status": "ready",
+    "notes": "FACEBOOK (CLEAN): Урок 1 • Хайтек в Тель-Авиве • Вопрос тимлиду • промокод FB",
+    "createdAt": "2026-10-04T09:55:24.398Z",
+    "updatedAt": "2026-10-04T09:55:24.417Z"
   },
   {
     "id": "pub-yt-l01-spicy",
-    "date": "2026-09-27",
+    "date": "2026-09-28",
     "channel": "youtube",
     "channelAccount": "Ульпан Алеф",
     "format": "short_video",
-    "title": "Сказал израильтянке на свидании: «Ата яфэ»... Её реакция убила 💀 #shorts #иврит",
+    "title": "Сделал комплимент израильтянке и назвал её парнем 🤦‍♂️ #shorts #иврит",
     "campaignTitle": "Урок 1",
     "version": "v1.0",
-    "videoPath": "https://github.com/OlatolaIL/ulpana-hebrew/releases/download/v-media-lesson-01/lesson_01_spicy_youtube_shorts.mp4",
-    "caption": "Пришёл на первое свидание в Тель-Авиве, хотел сделать романтичный комплимент, а сказал: «Шалóм! Атá яфэ́ мео́д»...\n«Ата яфэ» — это комплимент другу в спортзале! 😅\n\nЗапоминай:\n👩 Девушке: אַתְּ יָפָה [ат яфá] — ты красивая!\n👨 Мужчине: אַתָּה יָפֶה [атá яфэ́] — ты красивый!\n\n🎁 Промокод: YT\n👉 Попробуй бесплатно: https://ulpana-hebrew.vercel.app/#lesson-1?promo=YT&utm_source=youtube&utm_medium=shorts&utm_campaign=lesson_01_spicy",
+    "videoPath": "https://github.com/OlatolaIL/ulpana-hebrew/releases/download/v-media-lessons-02-05/lesson_01_spicy_youtube_shorts.mp4",
+    "caption": "Сделал комплимент израильтянке и назвал её парнем 🤦‍♂️ #shorts #иврит\n\nМужчине комплимент: אַתָּה יָפֶה (атá яфэ́). Девушке — только אַתְּ יָפָה (ат яфа́)! Не путай род в романтической обстановке.\n\nВ интерактивном тренажёре «Ульпан Алеф» ты отрабатываешь живую речь с ИИ и говоришь свободно без паники!\n\n🎁 Промокод на 30 дней бесплатного премиума: YT\n👉 Начни Урок 1 прямо сейчас: https://ulpana-hebrew.vercel.app/#lesson-1?promo=YT&utm_source=youtube&utm_medium=shorts&utm_campaign=lesson_01_spicy\n\n#shorts #иврит #ульпан #израиль #урокииврита #ульпаналеф",
     "targetDeepLink": "/lesson/1",
     "promoCode": "YT",
     "fullUrlWithPromo": "https://ulpana-hebrew.vercel.app/#lesson-1?promo=YT&utm_source=youtube&utm_medium=shorts&utm_campaign=lesson_01_spicy",
-    "livePostUrl": "https://www.youtube.com/shorts/YMZWGqlovEc",
+    "livePostUrl": "",
     "status": "published",
-    "notes": "YouTube Shorts (31.5с): Spicy • Свидание • промокод YT",
-    "createdAt": "2026-09-27T11:06:00.000Z",
-    "updatedAt": "2026-09-27T19:15:59.000Z"
+    "notes": "YOUTUBE (SPICY): Урок 1 • Бар в Тель-Авиве • Комплимент на первом свидании • промокод YT",
+    "createdAt": "2026-10-04T09:55:24.398Z",
+    "updatedAt": "2026-10-04T09:55:24.398Z"
   },
   {
     "id": "pub-tg-l01-spicy",
-    "date": "2026-09-27",
+    "date": "2026-09-28",
     "channel": "telegram",
     "channelAccount": "@ulpana_il",
     "format": "short_video",
-    "title": "💔 Как убить романтику на первом свидании в Тель-Авиве за 2 секунды",
+    "title": "🔥 Опасный комплимент: атá яфэ vs ат яфа́",
     "campaignTitle": "Урок 1",
     "version": "v1.0",
-    "videoPath": "https://github.com/OlatolaIL/ulpana-hebrew/releases/download/v-media-lesson-01/lesson_01_spicy_telegram.mp4",
-    "caption": "💔 Как убить романтику на свидании за 2 секунды:\n\nСказать девушке: «Атá яфэ́» (Ты красивый).\nПравильно:\n• Девушке: אַתְּ יָפָה (ат яфá)\n• Мужчине: אַתָּה יָפֶה (атá яфэ́)\n\n🎁 Промокод: TG\n👉 Тренируйся вслух: https://ulpana-hebrew.vercel.app/#lesson-1?promo=TG&utm_source=telegram&utm_medium=channel&utm_campaign=lesson_01_spicy",
+    "videoPath": "https://github.com/OlatolaIL/ulpana-hebrew/releases/download/v-media-lessons-02-05/lesson_01_spicy_telegram.mp4",
+    "caption": "🔥 Опасный комплимент: атá яфэ vs ат яфа́\n\nМужчине комплимент: אַתָּה יָפֶה (атá яфэ́). Девушке — только אַתְּ יָפָה (ат яфа́)! Не путай род в романтической обстановке.\n\nВ интерактивном тренажёре «Ульпан Алеф» ты отрабатываешь живую речь с ИИ и говоришь свободно без паники!\n\n🎁 Промокод на 30 дней бесплатного премиума: TG\n👉 Начни Урок 1 прямо сейчас: https://ulpana-hebrew.vercel.app/#lesson-1?promo=TG&utm_source=telegram&utm_medium=channel&utm_campaign=lesson_01_spicy\n\n#иврит #ульпаналеф #израиль",
     "targetDeepLink": "/lesson/1",
     "promoCode": "TG",
     "fullUrlWithPromo": "https://ulpana-hebrew.vercel.app/#lesson-1?promo=TG&utm_source=telegram&utm_medium=channel&utm_campaign=lesson_01_spicy",
     "livePostUrl": "",
     "status": "draft",
-    "notes": "Telegram (32.3с): Spicy • Свидание • промокод TG",
-    "createdAt": "2026-09-27T11:07:00.000Z",
-    "updatedAt": "2026-09-27T11:10:00.000Z"
+    "notes": "TELEGRAM (SPICY): Урок 1 • Бар в Тель-Авиве • Комплимент на первом свидании • промокод TG",
+    "createdAt": "2026-10-04T09:55:24.398Z",
+    "updatedAt": "2026-10-04T09:55:24.398Z"
   },
   {
     "id": "pub-reels-l01-spicy",
@@ -204,23 +204,23 @@ export const MARKETING_PUBLICATIONS: PublicationItem[] = [
   },
   {
     "id": "pub-fb-l01-spicy",
-    "date": "2026-09-27",
+    "date": "2026-09-28",
     "channel": "facebook",
-    "channelAccount": "Facebook Page",
+    "channelAccount": "Facebook Ульпан Алеф",
     "format": "short_video",
-    "title": "Свидания в Израиле и тонкости иврита: как сделать правильный комплимент 🌹",
+    "title": "Знакомства в Тель-Авиве: как сделать комплимент на иврите и не сесть в лужу",
     "campaignTitle": "Урок 1",
     "version": "v1.0",
-    "videoPath": "https://github.com/OlatolaIL/ulpana-hebrew/releases/download/v-media-lesson-01/lesson_01_spicy_facebook_reels.mp4",
-    "caption": "Свидания в Израиле и тонкости иврита: как сделать правильный комплимент 🌹\n\nДевушке: אַתְּ יָפָה (ат яфа)\nМужчине: אַתָּה יָפֶה (ата яфэ)\n\n🎁 Промокод на 30 дней: FB\n👉 Начните говорить свободно: https://ulpana-hebrew.vercel.app/#lesson-1?promo=FB",
+    "videoPath": "https://github.com/OlatolaIL/ulpana-hebrew/releases/download/v-media-lessons-02-05/lesson_01_spicy_facebook_reels.mp4",
+    "caption": "Знакомства в Тель-Авиве: как сделать комплимент на иврите и не сесть в лужу\n\nМужчине комплимент: אַתָּה יָפֶה (атá яфэ́). Девушке — только אַתְּ יָפָה (ат яфа́)! Не путай род в романтической обстановке.\n\nВ интерактивном тренажёре «Ульпан Алеф» ты отрабатываешь живую речь с ИИ и говоришь свободно без паники!\n\n🎁 Промокод на 30 дней бесплатного премиума: FB\n👉 Начни Урок 1 прямо сейчас: https://ulpana-hebrew.vercel.app/#lesson-1?promo=FB&utm_source=facebook&utm_medium=reels&utm_campaign=lesson_01_spicy\n\n#иврит #израиль #репатриация #ульпан #жизньвизраиле",
     "targetDeepLink": "/lesson/1",
     "promoCode": "FB",
     "fullUrlWithPromo": "https://ulpana-hebrew.vercel.app/#lesson-1?promo=FB&utm_source=facebook&utm_medium=reels&utm_campaign=lesson_01_spicy",
     "livePostUrl": "",
     "status": "draft",
-    "notes": "Facebook Reels (31.5с): Spicy • промокод FB",
-    "createdAt": "2026-09-27T11:10:00.000Z",
-    "updatedAt": "2026-09-27T11:10:00.000Z"
+    "notes": "FACEBOOK (SPICY): Урок 1 • Бар в Тель-Авиве • Комплимент на первом свидании • промокод FB",
+    "createdAt": "2026-10-04T09:55:24.398Z",
+    "updatedAt": "2026-10-04T09:55:24.398Z"
   },
   {
     "id": "pub-yt-l69",
@@ -558,10 +558,10 @@ export const MARKETING_PUBLICATIONS: PublicationItem[] = [
     "promoCode": "YT",
     "fullUrlWithPromo": "https://ulpana-hebrew.vercel.app/#lesson-2?promo=YT&utm_source=youtube&utm_medium=shorts&utm_campaign=lesson_02_clean",
     "livePostUrl": "",
-    "status": "draft",
+    "status": "ready",
     "notes": "YOUTUBE (CLEAN): Урок 2 • Aroma в Тель-Авиве • Перевёрнутый кофе • промокод YT",
-    "createdAt": "2026-10-04T05:19:13.615Z",
-    "updatedAt": "2026-10-04T05:19:13.616Z"
+    "createdAt": "2026-10-04T09:55:24.398Z",
+    "updatedAt": "2026-10-04T09:55:24.417Z"
   },
   {
     "id": "pub-tg-l02-clean",
@@ -578,10 +578,10 @@ export const MARKETING_PUBLICATIONS: PublicationItem[] = [
     "promoCode": "TG",
     "fullUrlWithPromo": "https://ulpana-hebrew.vercel.app/#lesson-2?promo=TG&utm_source=telegram&utm_medium=channel&utm_campaign=lesson_02_clean",
     "livePostUrl": "",
-    "status": "draft",
+    "status": "ready",
     "notes": "TELEGRAM (CLEAN): Урок 2 • Aroma в Тель-Авиве • Перевёрнутый кофе • промокод TG",
-    "createdAt": "2026-10-04T05:19:13.616Z",
-    "updatedAt": "2026-10-04T05:19:13.616Z"
+    "createdAt": "2026-10-04T09:55:24.398Z",
+    "updatedAt": "2026-10-04T09:55:24.417Z"
   },
   {
     "id": "pub-insta-l02-clean",
@@ -598,10 +598,10 @@ export const MARKETING_PUBLICATIONS: PublicationItem[] = [
     "promoCode": "INSTA",
     "fullUrlWithPromo": "https://ulpana-hebrew.vercel.app/#lesson-2?promo=INSTA&utm_source=instagram&utm_medium=reels&utm_campaign=lesson_02_clean",
     "livePostUrl": "",
-    "status": "draft",
+    "status": "ready",
     "notes": "INSTAGRAM (CLEAN): Урок 2 • Aroma в Тель-Авиве • Перевёрнутый кофе • промокод INSTA",
-    "createdAt": "2026-10-04T05:19:13.616Z",
-    "updatedAt": "2026-10-04T05:19:13.616Z"
+    "createdAt": "2026-10-04T09:55:24.398Z",
+    "updatedAt": "2026-10-04T09:55:24.417Z"
   },
   {
     "id": "pub-tiktok-l02-clean",
@@ -618,10 +618,10 @@ export const MARKETING_PUBLICATIONS: PublicationItem[] = [
     "promoCode": "TIKTOK",
     "fullUrlWithPromo": "https://ulpana-hebrew.vercel.app/#lesson-2?promo=TIKTOK&utm_source=tiktok&utm_medium=profile&utm_campaign=lesson_02_clean",
     "livePostUrl": "",
-    "status": "draft",
+    "status": "ready",
     "notes": "TIKTOK (CLEAN): Урок 2 • Aroma в Тель-Авиве • Перевёрнутый кофе • промокод TIKTOK",
-    "createdAt": "2026-10-04T05:19:13.616Z",
-    "updatedAt": "2026-10-04T05:19:13.616Z"
+    "createdAt": "2026-10-04T09:55:24.398Z",
+    "updatedAt": "2026-10-04T09:55:24.417Z"
   },
   {
     "id": "pub-fb-l02-clean",
@@ -638,10 +638,10 @@ export const MARKETING_PUBLICATIONS: PublicationItem[] = [
     "promoCode": "FB",
     "fullUrlWithPromo": "https://ulpana-hebrew.vercel.app/#lesson-2?promo=FB&utm_source=facebook&utm_medium=reels&utm_campaign=lesson_02_clean",
     "livePostUrl": "",
-    "status": "draft",
+    "status": "ready",
     "notes": "FACEBOOK (CLEAN): Урок 2 • Aroma в Тель-Авиве • Перевёрнутый кофе • промокод FB",
-    "createdAt": "2026-10-04T05:19:13.616Z",
-    "updatedAt": "2026-10-04T05:19:13.616Z"
+    "createdAt": "2026-10-04T09:55:24.398Z",
+    "updatedAt": "2026-10-04T09:55:24.417Z"
   },
   {
     "id": "pub-yt-l02-spicy",
@@ -660,8 +660,8 @@ export const MARKETING_PUBLICATIONS: PublicationItem[] = [
     "livePostUrl": "",
     "status": "draft",
     "notes": "YOUTUBE (SPICY): Урок 2 • Бар в Тель-Авиве • Случайное признание официантке • промокод YT",
-    "createdAt": "2026-10-04T05:19:13.616Z",
-    "updatedAt": "2026-10-04T05:19:13.616Z"
+    "createdAt": "2026-10-04T09:55:24.398Z",
+    "updatedAt": "2026-10-04T09:55:24.398Z"
   },
   {
     "id": "pub-tg-l02-spicy",
@@ -680,8 +680,8 @@ export const MARKETING_PUBLICATIONS: PublicationItem[] = [
     "livePostUrl": "",
     "status": "draft",
     "notes": "TELEGRAM (SPICY): Урок 2 • Бар в Тель-Авиве • Случайное признание официантке • промокод TG",
-    "createdAt": "2026-10-04T05:19:13.616Z",
-    "updatedAt": "2026-10-04T05:19:13.616Z"
+    "createdAt": "2026-10-04T09:55:24.398Z",
+    "updatedAt": "2026-10-04T09:55:24.398Z"
   },
   {
     "id": "pub-insta-l02-spicy",
@@ -700,8 +700,8 @@ export const MARKETING_PUBLICATIONS: PublicationItem[] = [
     "livePostUrl": "",
     "status": "draft",
     "notes": "INSTAGRAM (SPICY): Урок 2 • Бар в Тель-Авиве • Случайное признание официантке • промокод INSTA",
-    "createdAt": "2026-10-04T05:19:13.616Z",
-    "updatedAt": "2026-10-04T05:19:13.616Z"
+    "createdAt": "2026-10-04T09:55:24.398Z",
+    "updatedAt": "2026-10-04T09:55:24.398Z"
   },
   {
     "id": "pub-tiktok-l02-spicy",
@@ -720,8 +720,8 @@ export const MARKETING_PUBLICATIONS: PublicationItem[] = [
     "livePostUrl": "",
     "status": "draft",
     "notes": "TIKTOK (SPICY): Урок 2 • Бар в Тель-Авиве • Случайное признание официантке • промокод TIKTOK",
-    "createdAt": "2026-10-04T05:19:13.616Z",
-    "updatedAt": "2026-10-04T05:19:13.616Z"
+    "createdAt": "2026-10-04T09:55:24.398Z",
+    "updatedAt": "2026-10-04T09:55:24.398Z"
   },
   {
     "id": "pub-fb-l02-spicy",
@@ -740,8 +740,8 @@ export const MARKETING_PUBLICATIONS: PublicationItem[] = [
     "livePostUrl": "",
     "status": "draft",
     "notes": "FACEBOOK (SPICY): Урок 2 • Бар в Тель-Авиве • Случайное признание официантке • промокод FB",
-    "createdAt": "2026-10-04T05:19:13.616Z",
-    "updatedAt": "2026-10-04T05:19:13.616Z"
+    "createdAt": "2026-10-04T09:55:24.398Z",
+    "updatedAt": "2026-10-04T09:55:24.398Z"
   },
   {
     "id": "pub-yt-l03-clean",
@@ -758,10 +758,10 @@ export const MARKETING_PUBLICATIONS: PublicationItem[] = [
     "promoCode": "YT",
     "fullUrlWithPromo": "https://ulpana-hebrew.vercel.app/#lesson-3?promo=YT&utm_source=youtube&utm_medium=shorts&utm_campaign=lesson_03_clean",
     "livePostUrl": "",
-    "status": "draft",
+    "status": "ready",
     "notes": "YOUTUBE (CLEAN): Урок 3 • Такси в Тель-Авиве • Скороговорка водителя • промокод YT",
-    "createdAt": "2026-10-04T05:19:13.616Z",
-    "updatedAt": "2026-10-04T05:19:13.616Z"
+    "createdAt": "2026-10-04T09:55:24.398Z",
+    "updatedAt": "2026-10-04T09:55:24.417Z"
   },
   {
     "id": "pub-tg-l03-clean",
@@ -778,10 +778,10 @@ export const MARKETING_PUBLICATIONS: PublicationItem[] = [
     "promoCode": "TG",
     "fullUrlWithPromo": "https://ulpana-hebrew.vercel.app/#lesson-3?promo=TG&utm_source=telegram&utm_medium=channel&utm_campaign=lesson_03_clean",
     "livePostUrl": "",
-    "status": "draft",
+    "status": "ready",
     "notes": "TELEGRAM (CLEAN): Урок 3 • Такси в Тель-Авиве • Скороговорка водителя • промокод TG",
-    "createdAt": "2026-10-04T05:19:13.616Z",
-    "updatedAt": "2026-10-04T05:19:13.616Z"
+    "createdAt": "2026-10-04T09:55:24.398Z",
+    "updatedAt": "2026-10-04T09:55:24.417Z"
   },
   {
     "id": "pub-insta-l03-clean",
@@ -798,10 +798,10 @@ export const MARKETING_PUBLICATIONS: PublicationItem[] = [
     "promoCode": "INSTA",
     "fullUrlWithPromo": "https://ulpana-hebrew.vercel.app/#lesson-3?promo=INSTA&utm_source=instagram&utm_medium=reels&utm_campaign=lesson_03_clean",
     "livePostUrl": "",
-    "status": "draft",
+    "status": "ready",
     "notes": "INSTAGRAM (CLEAN): Урок 3 • Такси в Тель-Авиве • Скороговорка водителя • промокод INSTA",
-    "createdAt": "2026-10-04T05:19:13.616Z",
-    "updatedAt": "2026-10-04T05:19:13.616Z"
+    "createdAt": "2026-10-04T09:55:24.398Z",
+    "updatedAt": "2026-10-04T09:55:24.417Z"
   },
   {
     "id": "pub-tiktok-l03-clean",
@@ -818,10 +818,10 @@ export const MARKETING_PUBLICATIONS: PublicationItem[] = [
     "promoCode": "TIKTOK",
     "fullUrlWithPromo": "https://ulpana-hebrew.vercel.app/#lesson-3?promo=TIKTOK&utm_source=tiktok&utm_medium=profile&utm_campaign=lesson_03_clean",
     "livePostUrl": "",
-    "status": "draft",
+    "status": "ready",
     "notes": "TIKTOK (CLEAN): Урок 3 • Такси в Тель-Авиве • Скороговорка водителя • промокод TIKTOK",
-    "createdAt": "2026-10-04T05:19:13.617Z",
-    "updatedAt": "2026-10-04T05:19:13.617Z"
+    "createdAt": "2026-10-04T09:55:24.398Z",
+    "updatedAt": "2026-10-04T09:55:24.417Z"
   },
   {
     "id": "pub-fb-l03-clean",
@@ -838,10 +838,10 @@ export const MARKETING_PUBLICATIONS: PublicationItem[] = [
     "promoCode": "FB",
     "fullUrlWithPromo": "https://ulpana-hebrew.vercel.app/#lesson-3?promo=FB&utm_source=facebook&utm_medium=reels&utm_campaign=lesson_03_clean",
     "livePostUrl": "",
-    "status": "draft",
+    "status": "ready",
     "notes": "FACEBOOK (CLEAN): Урок 3 • Такси в Тель-Авиве • Скороговорка водителя • промокод FB",
-    "createdAt": "2026-10-04T05:19:13.617Z",
-    "updatedAt": "2026-10-04T05:19:13.617Z"
+    "createdAt": "2026-10-04T09:55:24.398Z",
+    "updatedAt": "2026-10-04T09:55:24.417Z"
   },
   {
     "id": "pub-yt-l03-spicy",
@@ -860,8 +860,8 @@ export const MARKETING_PUBLICATIONS: PublicationItem[] = [
     "livePostUrl": "",
     "status": "draft",
     "notes": "YOUTUBE (SPICY): Урок 3 • Вечеринка во Флорентине • Губы vs Язык • промокод YT",
-    "createdAt": "2026-10-04T05:19:13.617Z",
-    "updatedAt": "2026-10-04T05:19:13.617Z"
+    "createdAt": "2026-10-04T09:55:24.398Z",
+    "updatedAt": "2026-10-04T09:55:24.398Z"
   },
   {
     "id": "pub-tg-l03-spicy",
@@ -880,8 +880,8 @@ export const MARKETING_PUBLICATIONS: PublicationItem[] = [
     "livePostUrl": "",
     "status": "draft",
     "notes": "TELEGRAM (SPICY): Урок 3 • Вечеринка во Флорентине • Губы vs Язык • промокод TG",
-    "createdAt": "2026-10-04T05:19:13.617Z",
-    "updatedAt": "2026-10-04T05:19:13.617Z"
+    "createdAt": "2026-10-04T09:55:24.398Z",
+    "updatedAt": "2026-10-04T09:55:24.398Z"
   },
   {
     "id": "pub-insta-l03-spicy",
@@ -900,8 +900,8 @@ export const MARKETING_PUBLICATIONS: PublicationItem[] = [
     "livePostUrl": "",
     "status": "draft",
     "notes": "INSTAGRAM (SPICY): Урок 3 • Вечеринка во Флорентине • Губы vs Язык • промокод INSTA",
-    "createdAt": "2026-10-04T05:19:13.617Z",
-    "updatedAt": "2026-10-04T05:19:13.617Z"
+    "createdAt": "2026-10-04T09:55:24.398Z",
+    "updatedAt": "2026-10-04T09:55:24.398Z"
   },
   {
     "id": "pub-tiktok-l03-spicy",
@@ -920,8 +920,8 @@ export const MARKETING_PUBLICATIONS: PublicationItem[] = [
     "livePostUrl": "",
     "status": "draft",
     "notes": "TIKTOK (SPICY): Урок 3 • Вечеринка во Флорентине • Губы vs Язык • промокод TIKTOK",
-    "createdAt": "2026-10-04T05:19:13.617Z",
-    "updatedAt": "2026-10-04T05:19:13.617Z"
+    "createdAt": "2026-10-04T09:55:24.398Z",
+    "updatedAt": "2026-10-04T09:55:24.398Z"
   },
   {
     "id": "pub-fb-l03-spicy",
@@ -940,8 +940,8 @@ export const MARKETING_PUBLICATIONS: PublicationItem[] = [
     "livePostUrl": "",
     "status": "draft",
     "notes": "FACEBOOK (SPICY): Урок 3 • Вечеринка во Флорентине • Губы vs Язык • промокод FB",
-    "createdAt": "2026-10-04T05:19:13.617Z",
-    "updatedAt": "2026-10-04T05:19:13.617Z"
+    "createdAt": "2026-10-04T09:55:24.398Z",
+    "updatedAt": "2026-10-04T09:55:24.398Z"
   },
   {
     "id": "pub-yt-l04-clean",
@@ -958,10 +958,10 @@ export const MARKETING_PUBLICATIONS: PublicationItem[] = [
     "promoCode": "YT",
     "fullUrlWithPromo": "https://ulpana-hebrew.vercel.app/#lesson-4?promo=YT&utm_source=youtube&utm_medium=shorts&utm_campaign=lesson_04_clean",
     "livePostUrl": "",
-    "status": "draft",
+    "status": "ready",
     "notes": "YOUTUBE (CLEAN): Урок 4 • В гостях у марокканской бабушки • Таинственный хамин • промокод YT",
-    "createdAt": "2026-10-04T05:19:13.617Z",
-    "updatedAt": "2026-10-04T05:19:13.617Z"
+    "createdAt": "2026-10-04T09:55:24.398Z",
+    "updatedAt": "2026-10-04T09:55:24.417Z"
   },
   {
     "id": "pub-tg-l04-clean",
@@ -978,10 +978,10 @@ export const MARKETING_PUBLICATIONS: PublicationItem[] = [
     "promoCode": "TG",
     "fullUrlWithPromo": "https://ulpana-hebrew.vercel.app/#lesson-4?promo=TG&utm_source=telegram&utm_medium=channel&utm_campaign=lesson_04_clean",
     "livePostUrl": "",
-    "status": "draft",
+    "status": "ready",
     "notes": "TELEGRAM (CLEAN): Урок 4 • В гостях у марокканской бабушки • Таинственный хамин • промокод TG",
-    "createdAt": "2026-10-04T05:19:13.617Z",
-    "updatedAt": "2026-10-04T05:19:13.617Z"
+    "createdAt": "2026-10-04T09:55:24.398Z",
+    "updatedAt": "2026-10-04T09:55:24.417Z"
   },
   {
     "id": "pub-insta-l04-clean",
@@ -998,10 +998,10 @@ export const MARKETING_PUBLICATIONS: PublicationItem[] = [
     "promoCode": "INSTA",
     "fullUrlWithPromo": "https://ulpana-hebrew.vercel.app/#lesson-4?promo=INSTA&utm_source=instagram&utm_medium=reels&utm_campaign=lesson_04_clean",
     "livePostUrl": "",
-    "status": "draft",
+    "status": "ready",
     "notes": "INSTAGRAM (CLEAN): Урок 4 • В гостях у марокканской бабушки • Таинственный хамин • промокод INSTA",
-    "createdAt": "2026-10-04T05:19:13.617Z",
-    "updatedAt": "2026-10-04T05:19:13.617Z"
+    "createdAt": "2026-10-04T09:55:24.398Z",
+    "updatedAt": "2026-10-04T09:55:24.417Z"
   },
   {
     "id": "pub-tiktok-l04-clean",
@@ -1018,10 +1018,10 @@ export const MARKETING_PUBLICATIONS: PublicationItem[] = [
     "promoCode": "TIKTOK",
     "fullUrlWithPromo": "https://ulpana-hebrew.vercel.app/#lesson-4?promo=TIKTOK&utm_source=tiktok&utm_medium=profile&utm_campaign=lesson_04_clean",
     "livePostUrl": "",
-    "status": "draft",
+    "status": "ready",
     "notes": "TIKTOK (CLEAN): Урок 4 • В гостях у марокканской бабушки • Таинственный хамин • промокод TIKTOK",
-    "createdAt": "2026-10-04T05:19:13.617Z",
-    "updatedAt": "2026-10-04T05:19:13.617Z"
+    "createdAt": "2026-10-04T09:55:24.398Z",
+    "updatedAt": "2026-10-04T09:55:24.417Z"
   },
   {
     "id": "pub-fb-l04-clean",
@@ -1038,10 +1038,10 @@ export const MARKETING_PUBLICATIONS: PublicationItem[] = [
     "promoCode": "FB",
     "fullUrlWithPromo": "https://ulpana-hebrew.vercel.app/#lesson-4?promo=FB&utm_source=facebook&utm_medium=reels&utm_campaign=lesson_04_clean",
     "livePostUrl": "",
-    "status": "draft",
+    "status": "ready",
     "notes": "FACEBOOK (CLEAN): Урок 4 • В гостях у марокканской бабушки • Таинственный хамин • промокод FB",
-    "createdAt": "2026-10-04T05:19:13.617Z",
-    "updatedAt": "2026-10-04T05:19:13.617Z"
+    "createdAt": "2026-10-04T09:55:24.398Z",
+    "updatedAt": "2026-10-04T09:55:24.417Z"
   },
   {
     "id": "pub-yt-l04-spicy",
@@ -1060,8 +1060,8 @@ export const MARKETING_PUBLICATIONS: PublicationItem[] = [
     "livePostUrl": "",
     "status": "draft",
     "notes": "YOUTUBE (SPICY): Урок 4 • Бар • Знакомство с пассией друга • промокод YT",
-    "createdAt": "2026-10-04T05:19:13.617Z",
-    "updatedAt": "2026-10-04T05:19:13.617Z"
+    "createdAt": "2026-10-04T09:55:24.398Z",
+    "updatedAt": "2026-10-04T09:55:24.398Z"
   },
   {
     "id": "pub-tg-l04-spicy",
@@ -1080,8 +1080,8 @@ export const MARKETING_PUBLICATIONS: PublicationItem[] = [
     "livePostUrl": "",
     "status": "draft",
     "notes": "TELEGRAM (SPICY): Урок 4 • Бар • Знакомство с пассией друга • промокод TG",
-    "createdAt": "2026-10-04T05:19:13.617Z",
-    "updatedAt": "2026-10-04T05:19:13.617Z"
+    "createdAt": "2026-10-04T09:55:24.398Z",
+    "updatedAt": "2026-10-04T09:55:24.398Z"
   },
   {
     "id": "pub-insta-l04-spicy",
@@ -1100,8 +1100,8 @@ export const MARKETING_PUBLICATIONS: PublicationItem[] = [
     "livePostUrl": "",
     "status": "draft",
     "notes": "INSTAGRAM (SPICY): Урок 4 • Бар • Знакомство с пассией друга • промокод INSTA",
-    "createdAt": "2026-10-04T05:19:13.617Z",
-    "updatedAt": "2026-10-04T05:19:13.617Z"
+    "createdAt": "2026-10-04T09:55:24.398Z",
+    "updatedAt": "2026-10-04T09:55:24.398Z"
   },
   {
     "id": "pub-tiktok-l04-spicy",
@@ -1120,8 +1120,8 @@ export const MARKETING_PUBLICATIONS: PublicationItem[] = [
     "livePostUrl": "",
     "status": "draft",
     "notes": "TIKTOK (SPICY): Урок 4 • Бар • Знакомство с пассией друга • промокод TIKTOK",
-    "createdAt": "2026-10-04T05:19:13.617Z",
-    "updatedAt": "2026-10-04T05:19:13.617Z"
+    "createdAt": "2026-10-04T09:55:24.398Z",
+    "updatedAt": "2026-10-04T09:55:24.398Z"
   },
   {
     "id": "pub-fb-l04-spicy",
@@ -1140,8 +1140,8 @@ export const MARKETING_PUBLICATIONS: PublicationItem[] = [
     "livePostUrl": "",
     "status": "draft",
     "notes": "FACEBOOK (SPICY): Урок 4 • Бар • Знакомство с пассией друга • промокод FB",
-    "createdAt": "2026-10-04T05:19:13.617Z",
-    "updatedAt": "2026-10-04T05:19:13.617Z"
+    "createdAt": "2026-10-04T09:55:24.398Z",
+    "updatedAt": "2026-10-04T09:55:24.399Z"
   },
   {
     "id": "pub-yt-l05-clean",
@@ -1158,10 +1158,10 @@ export const MARKETING_PUBLICATIONS: PublicationItem[] = [
     "promoCode": "YT",
     "fullUrlWithPromo": "https://ulpana-hebrew.vercel.app/#lesson-5?promo=YT&utm_source=youtube&utm_medium=shorts&utm_campaign=lesson_05_clean",
     "livePostUrl": "",
-    "status": "draft",
+    "status": "ready",
     "notes": "YOUTUBE (CLEAN): Урок 5 • Киоск соков на Дизенгоф • Картофельный сок • промокод YT",
-    "createdAt": "2026-10-04T05:19:13.617Z",
-    "updatedAt": "2026-10-04T05:19:13.617Z"
+    "createdAt": "2026-10-04T09:55:24.399Z",
+    "updatedAt": "2026-10-04T09:55:24.417Z"
   },
   {
     "id": "pub-tg-l05-clean",
@@ -1178,10 +1178,10 @@ export const MARKETING_PUBLICATIONS: PublicationItem[] = [
     "promoCode": "TG",
     "fullUrlWithPromo": "https://ulpana-hebrew.vercel.app/#lesson-5?promo=TG&utm_source=telegram&utm_medium=channel&utm_campaign=lesson_05_clean",
     "livePostUrl": "",
-    "status": "draft",
+    "status": "ready",
     "notes": "TELEGRAM (CLEAN): Урок 5 • Киоск соков на Дизенгоф • Картофельный сок • промокод TG",
-    "createdAt": "2026-10-04T05:19:13.617Z",
-    "updatedAt": "2026-10-04T05:19:13.617Z"
+    "createdAt": "2026-10-04T09:55:24.399Z",
+    "updatedAt": "2026-10-04T09:55:24.417Z"
   },
   {
     "id": "pub-insta-l05-clean",
@@ -1198,10 +1198,10 @@ export const MARKETING_PUBLICATIONS: PublicationItem[] = [
     "promoCode": "INSTA",
     "fullUrlWithPromo": "https://ulpana-hebrew.vercel.app/#lesson-5?promo=INSTA&utm_source=instagram&utm_medium=reels&utm_campaign=lesson_05_clean",
     "livePostUrl": "",
-    "status": "draft",
+    "status": "ready",
     "notes": "INSTAGRAM (CLEAN): Урок 5 • Киоск соков на Дизенгоф • Картофельный сок • промокод INSTA",
-    "createdAt": "2026-10-04T05:19:13.617Z",
-    "updatedAt": "2026-10-04T05:19:13.617Z"
+    "createdAt": "2026-10-04T09:55:24.399Z",
+    "updatedAt": "2026-10-04T09:55:24.417Z"
   },
   {
     "id": "pub-tiktok-l05-clean",
@@ -1218,10 +1218,10 @@ export const MARKETING_PUBLICATIONS: PublicationItem[] = [
     "promoCode": "TIKTOK",
     "fullUrlWithPromo": "https://ulpana-hebrew.vercel.app/#lesson-5?promo=TIKTOK&utm_source=tiktok&utm_medium=profile&utm_campaign=lesson_05_clean",
     "livePostUrl": "",
-    "status": "draft",
+    "status": "ready",
     "notes": "TIKTOK (CLEAN): Урок 5 • Киоск соков на Дизенгоф • Картофельный сок • промокод TIKTOK",
-    "createdAt": "2026-10-04T05:19:13.617Z",
-    "updatedAt": "2026-10-04T05:19:13.617Z"
+    "createdAt": "2026-10-04T09:55:24.399Z",
+    "updatedAt": "2026-10-04T09:55:24.417Z"
   },
   {
     "id": "pub-fb-l05-clean",
@@ -1238,10 +1238,10 @@ export const MARKETING_PUBLICATIONS: PublicationItem[] = [
     "promoCode": "FB",
     "fullUrlWithPromo": "https://ulpana-hebrew.vercel.app/#lesson-5?promo=FB&utm_source=facebook&utm_medium=reels&utm_campaign=lesson_05_clean",
     "livePostUrl": "",
-    "status": "draft",
+    "status": "ready",
     "notes": "FACEBOOK (CLEAN): Урок 5 • Киоск соков на Дизенгоф • Картофельный сок • промокод FB",
-    "createdAt": "2026-10-04T05:19:13.617Z",
-    "updatedAt": "2026-10-04T05:19:13.617Z"
+    "createdAt": "2026-10-04T09:55:24.399Z",
+    "updatedAt": "2026-10-04T09:55:24.417Z"
   },
   {
     "id": "pub-yt-l05-spicy",
@@ -1260,8 +1260,8 @@ export const MARKETING_PUBLICATIONS: PublicationItem[] = [
     "livePostUrl": "",
     "status": "draft",
     "notes": "YOUTUBE (SPICY): Урок 5 • Рынок Кармель • Оливки vs Буква номер 7 • промокод YT",
-    "createdAt": "2026-10-04T05:19:13.617Z",
-    "updatedAt": "2026-10-04T05:19:13.617Z"
+    "createdAt": "2026-10-04T09:55:24.399Z",
+    "updatedAt": "2026-10-04T09:55:24.399Z"
   },
   {
     "id": "pub-tg-l05-spicy",
@@ -1280,8 +1280,8 @@ export const MARKETING_PUBLICATIONS: PublicationItem[] = [
     "livePostUrl": "",
     "status": "draft",
     "notes": "TELEGRAM (SPICY): Урок 5 • Рынок Кармель • Оливки vs Буква номер 7 • промокод TG",
-    "createdAt": "2026-10-04T05:19:13.617Z",
-    "updatedAt": "2026-10-04T05:19:13.617Z"
+    "createdAt": "2026-10-04T09:55:24.399Z",
+    "updatedAt": "2026-10-04T09:55:24.399Z"
   },
   {
     "id": "pub-insta-l05-spicy",
@@ -1300,8 +1300,8 @@ export const MARKETING_PUBLICATIONS: PublicationItem[] = [
     "livePostUrl": "",
     "status": "draft",
     "notes": "INSTAGRAM (SPICY): Урок 5 • Рынок Кармель • Оливки vs Буква номер 7 • промокод INSTA",
-    "createdAt": "2026-10-04T05:19:13.617Z",
-    "updatedAt": "2026-10-04T05:19:13.617Z"
+    "createdAt": "2026-10-04T09:55:24.399Z",
+    "updatedAt": "2026-10-04T09:55:24.399Z"
   },
   {
     "id": "pub-tiktok-l05-spicy",
@@ -1320,8 +1320,8 @@ export const MARKETING_PUBLICATIONS: PublicationItem[] = [
     "livePostUrl": "",
     "status": "draft",
     "notes": "TIKTOK (SPICY): Урок 5 • Рынок Кармель • Оливки vs Буква номер 7 • промокод TIKTOK",
-    "createdAt": "2026-10-04T05:19:13.617Z",
-    "updatedAt": "2026-10-04T05:19:13.617Z"
+    "createdAt": "2026-10-04T09:55:24.399Z",
+    "updatedAt": "2026-10-04T09:55:24.399Z"
   },
   {
     "id": "pub-fb-l05-spicy",
@@ -1340,8 +1340,8 @@ export const MARKETING_PUBLICATIONS: PublicationItem[] = [
     "livePostUrl": "",
     "status": "draft",
     "notes": "FACEBOOK (SPICY): Урок 5 • Рынок Кармель • Оливки vs Буква номер 7 • промокод FB",
-    "createdAt": "2026-10-04T05:19:13.617Z",
-    "updatedAt": "2026-10-04T05:19:13.617Z"
+    "createdAt": "2026-10-04T09:55:24.399Z",
+    "updatedAt": "2026-10-04T09:55:24.399Z"
   },
   {
     "id": "pub-yt-l06-clean",
@@ -1358,10 +1358,10 @@ export const MARKETING_PUBLICATIONS: PublicationItem[] = [
     "promoCode": "YT",
     "fullUrlWithPromo": "https://ulpana-hebrew.vercel.app/#lesson-6?promo=YT&utm_source=youtube&utm_medium=shorts&utm_campaign=lesson_06_clean",
     "livePostUrl": "",
-    "status": "draft",
+    "status": "ready",
     "notes": "YOUTUBE (CLEAN): Урок 6 • Детская площадка в Тель-Авиве • Шэльха vs Шэлах • промокод YT",
-    "createdAt": "2026-10-04T05:19:13.617Z",
-    "updatedAt": "2026-10-04T05:19:13.617Z"
+    "createdAt": "2026-10-04T09:55:24.399Z",
+    "updatedAt": "2026-10-04T09:55:24.417Z"
   },
   {
     "id": "pub-tg-l06-clean",
@@ -1378,10 +1378,10 @@ export const MARKETING_PUBLICATIONS: PublicationItem[] = [
     "promoCode": "TG",
     "fullUrlWithPromo": "https://ulpana-hebrew.vercel.app/#lesson-6?promo=TG&utm_source=telegram&utm_medium=channel&utm_campaign=lesson_06_clean",
     "livePostUrl": "",
-    "status": "draft",
+    "status": "ready",
     "notes": "TELEGRAM (CLEAN): Урок 6 • Детская площадка в Тель-Авиве • Шэльха vs Шэлах • промокод TG",
-    "createdAt": "2026-10-04T05:19:13.617Z",
-    "updatedAt": "2026-10-04T05:19:13.617Z"
+    "createdAt": "2026-10-04T09:55:24.399Z",
+    "updatedAt": "2026-10-04T09:55:24.417Z"
   },
   {
     "id": "pub-insta-l06-clean",
@@ -1398,10 +1398,10 @@ export const MARKETING_PUBLICATIONS: PublicationItem[] = [
     "promoCode": "INSTA",
     "fullUrlWithPromo": "https://ulpana-hebrew.vercel.app/#lesson-6?promo=INSTA&utm_source=instagram&utm_medium=reels&utm_campaign=lesson_06_clean",
     "livePostUrl": "",
-    "status": "draft",
+    "status": "ready",
     "notes": "INSTAGRAM (CLEAN): Урок 6 • Детская площадка в Тель-Авиве • Шэльха vs Шэлах • промокод INSTA",
-    "createdAt": "2026-10-04T05:19:13.617Z",
-    "updatedAt": "2026-10-04T05:19:13.617Z"
+    "createdAt": "2026-10-04T09:55:24.399Z",
+    "updatedAt": "2026-10-04T09:55:24.417Z"
   },
   {
     "id": "pub-tiktok-l06-clean",
@@ -1418,10 +1418,10 @@ export const MARKETING_PUBLICATIONS: PublicationItem[] = [
     "promoCode": "TIKTOK",
     "fullUrlWithPromo": "https://ulpana-hebrew.vercel.app/#lesson-6?promo=TIKTOK&utm_source=tiktok&utm_medium=profile&utm_campaign=lesson_06_clean",
     "livePostUrl": "",
-    "status": "draft",
+    "status": "ready",
     "notes": "TIKTOK (CLEAN): Урок 6 • Детская площадка в Тель-Авиве • Шэльха vs Шэлах • промокод TIKTOK",
-    "createdAt": "2026-10-04T05:19:13.617Z",
-    "updatedAt": "2026-10-04T05:19:13.617Z"
+    "createdAt": "2026-10-04T09:55:24.399Z",
+    "updatedAt": "2026-10-04T09:55:24.417Z"
   },
   {
     "id": "pub-fb-l06-clean",
@@ -1438,10 +1438,10 @@ export const MARKETING_PUBLICATIONS: PublicationItem[] = [
     "promoCode": "FB",
     "fullUrlWithPromo": "https://ulpana-hebrew.vercel.app/#lesson-6?promo=FB&utm_source=facebook&utm_medium=reels&utm_campaign=lesson_06_clean",
     "livePostUrl": "",
-    "status": "draft",
+    "status": "ready",
     "notes": "FACEBOOK (CLEAN): Урок 6 • Детская площадка в Тель-Авиве • Шэльха vs Шэлах • промокод FB",
-    "createdAt": "2026-10-04T05:19:13.617Z",
-    "updatedAt": "2026-10-04T05:19:13.617Z"
+    "createdAt": "2026-10-04T09:55:24.399Z",
+    "updatedAt": "2026-10-04T09:55:24.417Z"
   },
   {
     "id": "pub-yt-l06-spicy",
@@ -1460,8 +1460,8 @@ export const MARKETING_PUBLICATIONS: PublicationItem[] = [
     "livePostUrl": "",
     "status": "draft",
     "notes": "YOUTUBE (SPICY): Урок 6 • Подъезд в Бат-Яме • Бааль vs Бааль а-баит • промокод YT",
-    "createdAt": "2026-10-04T05:19:13.617Z",
-    "updatedAt": "2026-10-04T05:19:13.617Z"
+    "createdAt": "2026-10-04T09:55:24.399Z",
+    "updatedAt": "2026-10-04T09:55:24.399Z"
   },
   {
     "id": "pub-tg-l06-spicy",
@@ -1480,8 +1480,8 @@ export const MARKETING_PUBLICATIONS: PublicationItem[] = [
     "livePostUrl": "",
     "status": "draft",
     "notes": "TELEGRAM (SPICY): Урок 6 • Подъезд в Бат-Яме • Бааль vs Бааль а-баит • промокод TG",
-    "createdAt": "2026-10-04T05:19:13.617Z",
-    "updatedAt": "2026-10-04T05:19:13.617Z"
+    "createdAt": "2026-10-04T09:55:24.399Z",
+    "updatedAt": "2026-10-04T09:55:24.399Z"
   },
   {
     "id": "pub-insta-l06-spicy",
@@ -1500,8 +1500,8 @@ export const MARKETING_PUBLICATIONS: PublicationItem[] = [
     "livePostUrl": "",
     "status": "draft",
     "notes": "INSTAGRAM (SPICY): Урок 6 • Подъезд в Бат-Яме • Бааль vs Бааль а-баит • промокод INSTA",
-    "createdAt": "2026-10-04T05:19:13.617Z",
-    "updatedAt": "2026-10-04T05:19:13.617Z"
+    "createdAt": "2026-10-04T09:55:24.399Z",
+    "updatedAt": "2026-10-04T09:55:24.399Z"
   },
   {
     "id": "pub-tiktok-l06-spicy",
@@ -1520,8 +1520,8 @@ export const MARKETING_PUBLICATIONS: PublicationItem[] = [
     "livePostUrl": "",
     "status": "draft",
     "notes": "TIKTOK (SPICY): Урок 6 • Подъезд в Бат-Яме • Бааль vs Бааль а-баит • промокод TIKTOK",
-    "createdAt": "2026-10-04T05:19:13.617Z",
-    "updatedAt": "2026-10-04T05:19:13.617Z"
+    "createdAt": "2026-10-04T09:55:24.399Z",
+    "updatedAt": "2026-10-04T09:55:24.399Z"
   },
   {
     "id": "pub-fb-l06-spicy",
@@ -1540,8 +1540,8 @@ export const MARKETING_PUBLICATIONS: PublicationItem[] = [
     "livePostUrl": "",
     "status": "draft",
     "notes": "FACEBOOK (SPICY): Урок 6 • Подъезд в Бат-Яме • Бааль vs Бааль а-баит • промокод FB",
-    "createdAt": "2026-10-04T05:19:13.617Z",
-    "updatedAt": "2026-10-04T05:19:13.617Z"
+    "createdAt": "2026-10-04T09:55:24.399Z",
+    "updatedAt": "2026-10-04T09:55:24.399Z"
   },
   {
     "id": "pub-yt-l10-clean",
@@ -1560,8 +1560,8 @@ export const MARKETING_PUBLICATIONS: PublicationItem[] = [
     "livePostUrl": "",
     "status": "draft",
     "notes": "YOUTUBE (CLEAN): Урок 10 • Автобус 25 на Ибн Гвироль • Остановить vs Убить • промокод YT",
-    "createdAt": "2026-10-04T05:19:13.617Z",
-    "updatedAt": "2026-10-04T05:19:13.617Z"
+    "createdAt": "2026-10-04T09:55:24.399Z",
+    "updatedAt": "2026-10-04T09:55:24.399Z"
   },
   {
     "id": "pub-tg-l10-clean",
@@ -1580,8 +1580,8 @@ export const MARKETING_PUBLICATIONS: PublicationItem[] = [
     "livePostUrl": "",
     "status": "draft",
     "notes": "TELEGRAM (CLEAN): Урок 10 • Автобус 25 на Ибн Гвироль • Остановить vs Убить • промокод TG",
-    "createdAt": "2026-10-04T05:19:13.617Z",
-    "updatedAt": "2026-10-04T05:19:13.617Z"
+    "createdAt": "2026-10-04T09:55:24.399Z",
+    "updatedAt": "2026-10-04T09:55:24.399Z"
   },
   {
     "id": "pub-insta-l10-clean",
@@ -1600,8 +1600,8 @@ export const MARKETING_PUBLICATIONS: PublicationItem[] = [
     "livePostUrl": "",
     "status": "draft",
     "notes": "INSTAGRAM (CLEAN): Урок 10 • Автобус 25 на Ибн Гвироль • Остановить vs Убить • промокод INSTA",
-    "createdAt": "2026-10-04T05:19:13.617Z",
-    "updatedAt": "2026-10-04T05:19:13.617Z"
+    "createdAt": "2026-10-04T09:55:24.399Z",
+    "updatedAt": "2026-10-04T09:55:24.399Z"
   },
   {
     "id": "pub-tiktok-l10-clean",
@@ -1620,8 +1620,8 @@ export const MARKETING_PUBLICATIONS: PublicationItem[] = [
     "livePostUrl": "",
     "status": "draft",
     "notes": "TIKTOK (CLEAN): Урок 10 • Автобус 25 на Ибн Гвироль • Остановить vs Убить • промокод TIKTOK",
-    "createdAt": "2026-10-04T05:19:13.617Z",
-    "updatedAt": "2026-10-04T05:19:13.617Z"
+    "createdAt": "2026-10-04T09:55:24.399Z",
+    "updatedAt": "2026-10-04T09:55:24.399Z"
   },
   {
     "id": "pub-fb-l10-clean",
@@ -1640,8 +1640,8 @@ export const MARKETING_PUBLICATIONS: PublicationItem[] = [
     "livePostUrl": "",
     "status": "draft",
     "notes": "FACEBOOK (CLEAN): Урок 10 • Автобус 25 на Ибн Гвироль • Остановить vs Убить • промокод FB",
-    "createdAt": "2026-10-04T05:19:13.617Z",
-    "updatedAt": "2026-10-04T05:19:13.617Z"
+    "createdAt": "2026-10-04T09:55:24.399Z",
+    "updatedAt": "2026-10-04T09:55:24.399Z"
   },
   {
     "id": "pub-yt-l10-spicy",
@@ -1660,8 +1660,8 @@ export const MARKETING_PUBLICATIONS: PublicationItem[] = [
     "livePostUrl": "",
     "status": "draft",
     "notes": "YOUTUBE (SPICY): Урок 10 • Такси на трассе Аялон • Яшар vs Яшан • промокод YT",
-    "createdAt": "2026-10-04T05:19:13.617Z",
-    "updatedAt": "2026-10-04T05:19:13.617Z"
+    "createdAt": "2026-10-04T09:55:24.399Z",
+    "updatedAt": "2026-10-04T09:55:24.399Z"
   },
   {
     "id": "pub-tg-l10-spicy",
@@ -1680,8 +1680,8 @@ export const MARKETING_PUBLICATIONS: PublicationItem[] = [
     "livePostUrl": "",
     "status": "draft",
     "notes": "TELEGRAM (SPICY): Урок 10 • Такси на трассе Аялон • Яшар vs Яшан • промокод TG",
-    "createdAt": "2026-10-04T05:19:13.617Z",
-    "updatedAt": "2026-10-04T05:19:13.617Z"
+    "createdAt": "2026-10-04T09:55:24.399Z",
+    "updatedAt": "2026-10-04T09:55:24.399Z"
   },
   {
     "id": "pub-insta-l10-spicy",
@@ -1700,8 +1700,8 @@ export const MARKETING_PUBLICATIONS: PublicationItem[] = [
     "livePostUrl": "",
     "status": "draft",
     "notes": "INSTAGRAM (SPICY): Урок 10 • Такси на трассе Аялон • Яшар vs Яшан • промокод INSTA",
-    "createdAt": "2026-10-04T05:19:13.617Z",
-    "updatedAt": "2026-10-04T05:19:13.617Z"
+    "createdAt": "2026-10-04T09:55:24.399Z",
+    "updatedAt": "2026-10-04T09:55:24.399Z"
   },
   {
     "id": "pub-tiktok-l10-spicy",
@@ -1720,8 +1720,8 @@ export const MARKETING_PUBLICATIONS: PublicationItem[] = [
     "livePostUrl": "",
     "status": "draft",
     "notes": "TIKTOK (SPICY): Урок 10 • Такси на трассе Аялон • Яшар vs Яшан • промокод TIKTOK",
-    "createdAt": "2026-10-04T05:19:13.617Z",
-    "updatedAt": "2026-10-04T05:19:13.617Z"
+    "createdAt": "2026-10-04T09:55:24.399Z",
+    "updatedAt": "2026-10-04T09:55:24.399Z"
   },
   {
     "id": "pub-fb-l10-spicy",
@@ -1740,8 +1740,8 @@ export const MARKETING_PUBLICATIONS: PublicationItem[] = [
     "livePostUrl": "",
     "status": "draft",
     "notes": "FACEBOOK (SPICY): Урок 10 • Такси на трассе Аялон • Яшар vs Яшан • промокод FB",
-    "createdAt": "2026-10-04T05:19:13.617Z",
-    "updatedAt": "2026-10-04T05:19:13.617Z"
+    "createdAt": "2026-10-04T09:55:24.399Z",
+    "updatedAt": "2026-10-04T09:55:24.399Z"
   },
   {
     "id": "pub-yt-l07-clean",
@@ -1758,10 +1758,10 @@ export const MARKETING_PUBLICATIONS: PublicationItem[] = [
     "promoCode": "YT",
     "fullUrlWithPromo": "https://ulpana-hebrew.vercel.app/#lesson-7?promo=YT&utm_source=youtube&utm_medium=shorts&utm_campaign=lesson_07_clean",
     "livePostUrl": "",
-    "status": "ready_for_upload",
+    "status": "draft",
     "notes": "YOUTUBE (CLEAN): Урок 7 • Каньон Азриэли • Поиски туалета в ТЦ • промокод YT",
-    "createdAt": "2026-10-04T05:19:13.617Z",
-    "updatedAt": "2026-10-04T05:35:15.378Z"
+    "createdAt": "2026-10-04T09:55:24.399Z",
+    "updatedAt": "2026-10-04T09:55:24.399Z"
   },
   {
     "id": "pub-tg-l07-clean",
@@ -1778,10 +1778,10 @@ export const MARKETING_PUBLICATIONS: PublicationItem[] = [
     "promoCode": "TG",
     "fullUrlWithPromo": "https://ulpana-hebrew.vercel.app/#lesson-7?promo=TG&utm_source=telegram&utm_medium=channel&utm_campaign=lesson_07_clean",
     "livePostUrl": "",
-    "status": "ready_for_upload",
+    "status": "draft",
     "notes": "TELEGRAM (CLEAN): Урок 7 • Каньон Азриэли • Поиски туалета в ТЦ • промокод TG",
-    "createdAt": "2026-10-04T05:19:13.617Z",
-    "updatedAt": "2026-10-04T05:35:15.378Z"
+    "createdAt": "2026-10-04T09:55:24.399Z",
+    "updatedAt": "2026-10-04T09:55:24.399Z"
   },
   {
     "id": "pub-insta-l07-clean",
@@ -1798,10 +1798,10 @@ export const MARKETING_PUBLICATIONS: PublicationItem[] = [
     "promoCode": "INSTA",
     "fullUrlWithPromo": "https://ulpana-hebrew.vercel.app/#lesson-7?promo=INSTA&utm_source=instagram&utm_medium=reels&utm_campaign=lesson_07_clean",
     "livePostUrl": "",
-    "status": "ready_for_upload",
+    "status": "draft",
     "notes": "INSTAGRAM (CLEAN): Урок 7 • Каньон Азриэли • Поиски туалета в ТЦ • промокод INSTA",
-    "createdAt": "2026-10-04T05:19:13.617Z",
-    "updatedAt": "2026-10-04T05:35:15.378Z"
+    "createdAt": "2026-10-04T09:55:24.399Z",
+    "updatedAt": "2026-10-04T09:55:24.399Z"
   },
   {
     "id": "pub-tiktok-l07-clean",
@@ -1818,10 +1818,10 @@ export const MARKETING_PUBLICATIONS: PublicationItem[] = [
     "promoCode": "TIKTOK",
     "fullUrlWithPromo": "https://ulpana-hebrew.vercel.app/#lesson-7?promo=TIKTOK&utm_source=tiktok&utm_medium=profile&utm_campaign=lesson_07_clean",
     "livePostUrl": "",
-    "status": "ready_for_upload",
+    "status": "draft",
     "notes": "TIKTOK (CLEAN): Урок 7 • Каньон Азриэли • Поиски туалета в ТЦ • промокод TIKTOK",
-    "createdAt": "2026-10-04T05:19:13.617Z",
-    "updatedAt": "2026-10-04T05:35:15.378Z"
+    "createdAt": "2026-10-04T09:55:24.399Z",
+    "updatedAt": "2026-10-04T09:55:24.399Z"
   },
   {
     "id": "pub-fb-l07-clean",
@@ -1838,10 +1838,10 @@ export const MARKETING_PUBLICATIONS: PublicationItem[] = [
     "promoCode": "FB",
     "fullUrlWithPromo": "https://ulpana-hebrew.vercel.app/#lesson-7?promo=FB&utm_source=facebook&utm_medium=reels&utm_campaign=lesson_07_clean",
     "livePostUrl": "",
-    "status": "ready_for_upload",
+    "status": "draft",
     "notes": "FACEBOOK (CLEAN): Урок 7 • Каньон Азриэли • Поиски туалета в ТЦ • промокод FB",
-    "createdAt": "2026-10-04T05:19:13.617Z",
-    "updatedAt": "2026-10-04T05:35:15.378Z"
+    "createdAt": "2026-10-04T09:55:24.399Z",
+    "updatedAt": "2026-10-04T09:55:24.399Z"
   },
   {
     "id": "pub-yt-l07-spicy",
@@ -1860,8 +1860,8 @@ export const MARKETING_PUBLICATIONS: PublicationItem[] = [
     "livePostUrl": "",
     "status": "draft",
     "notes": "YOUTUBE (SPICY): Урок 7 • Бен-Йегуда • Подписание договора аренды • промокод YT",
-    "createdAt": "2026-10-04T05:19:13.617Z",
-    "updatedAt": "2026-10-04T05:19:13.617Z"
+    "createdAt": "2026-10-04T09:55:24.399Z",
+    "updatedAt": "2026-10-04T09:55:24.399Z"
   },
   {
     "id": "pub-tg-l07-spicy",
@@ -1880,8 +1880,8 @@ export const MARKETING_PUBLICATIONS: PublicationItem[] = [
     "livePostUrl": "",
     "status": "draft",
     "notes": "TELEGRAM (SPICY): Урок 7 • Бен-Йегуда • Подписание договора аренды • промокод TG",
-    "createdAt": "2026-10-04T05:19:13.617Z",
-    "updatedAt": "2026-10-04T05:19:13.617Z"
+    "createdAt": "2026-10-04T09:55:24.399Z",
+    "updatedAt": "2026-10-04T09:55:24.399Z"
   },
   {
     "id": "pub-insta-l07-spicy",
@@ -1900,8 +1900,8 @@ export const MARKETING_PUBLICATIONS: PublicationItem[] = [
     "livePostUrl": "",
     "status": "draft",
     "notes": "INSTAGRAM (SPICY): Урок 7 • Бен-Йегуда • Подписание договора аренды • промокод INSTA",
-    "createdAt": "2026-10-04T05:19:13.617Z",
-    "updatedAt": "2026-10-04T05:19:13.617Z"
+    "createdAt": "2026-10-04T09:55:24.399Z",
+    "updatedAt": "2026-10-04T09:55:24.399Z"
   },
   {
     "id": "pub-tiktok-l07-spicy",
@@ -1920,8 +1920,8 @@ export const MARKETING_PUBLICATIONS: PublicationItem[] = [
     "livePostUrl": "",
     "status": "draft",
     "notes": "TIKTOK (SPICY): Урок 7 • Бен-Йегуда • Подписание договора аренды • промокод TIKTOK",
-    "createdAt": "2026-10-04T05:19:13.617Z",
-    "updatedAt": "2026-10-04T05:19:13.617Z"
+    "createdAt": "2026-10-04T09:55:24.399Z",
+    "updatedAt": "2026-10-04T09:55:24.399Z"
   },
   {
     "id": "pub-fb-l07-spicy",
@@ -1940,7 +1940,87 @@ export const MARKETING_PUBLICATIONS: PublicationItem[] = [
     "livePostUrl": "",
     "status": "draft",
     "notes": "FACEBOOK (SPICY): Урок 7 • Бен-Йегуда • Подписание договора аренды • промокод FB",
-    "createdAt": "2026-10-04T05:19:13.617Z",
-    "updatedAt": "2026-10-04T05:19:13.617Z"
+    "createdAt": "2026-10-04T09:55:24.399Z",
+    "updatedAt": "2026-10-04T09:55:24.399Z"
+  },
+  {
+    "id": "pub-insta-l01-clean",
+    "date": "2026-09-28",
+    "channel": "instagram",
+    "channelAccount": "Instagram @ulpana_il",
+    "format": "short_video",
+    "title": "Спросил у коллеги, свободен ли он, но назвал его девушкой 😂 Разбор 👇",
+    "campaignTitle": "Урок 1",
+    "version": "v1.0",
+    "videoPath": "https://github.com/OlatolaIL/ulpana-hebrew/releases/download/v-media-lessons-02-05/lesson_01_clean_instagram_reels.mp4",
+    "caption": "Спросил у коллеги, свободен ли он, но назвал его девушкой 😂 Разбор 👇\n\nВ иврите обращение «ты» строго зависит от пола: мужчине — אַתָּה (атá), а женщине — אַתְּ (ат). Перепутаешь букву — тимлид удивится!\n\nВ интерактивном тренажёре «Ульпан Алеф» ты отрабатываешь живую речь с ИИ и говоришь свободно без паники!\n\n🎁 Промокод на 30 дней бесплатного премиума: INSTA\n👉 Начни Урок 1 прямо сейчас: https://ulpana-hebrew.vercel.app/#lesson-1?promo=INSTA&utm_source=instagram&utm_medium=reels&utm_campaign=lesson_01_clean\n\n#иврит #урокииврита #ивритдляначинающих #ивритизраиль #ульпан #ульпаналеф #репатриация #жизньвизраиле #тельавив #учимиврит #израиль #разговорныйиврит",
+    "targetDeepLink": "/lesson/1",
+    "promoCode": "INSTA",
+    "fullUrlWithPromo": "https://ulpana-hebrew.vercel.app/#lesson-1?promo=INSTA&utm_source=instagram&utm_medium=reels&utm_campaign=lesson_01_clean",
+    "livePostUrl": "",
+    "status": "ready",
+    "notes": "INSTAGRAM (CLEAN): Урок 1 • Хайтек в Тель-Авиве • Вопрос тимлиду • промокод INSTA",
+    "createdAt": "2026-10-04T09:55:24.398Z",
+    "updatedAt": "2026-10-04T09:55:24.417Z"
+  },
+  {
+    "id": "pub-tiktok-l01-clean",
+    "date": "2026-09-28",
+    "channel": "tiktok",
+    "channelAccount": "TikTok @ulpana_il",
+    "format": "short_video",
+    "title": "Когда в первый день в хайтеке перепутал «ты» в иврите 💀 #иврит #израиль",
+    "campaignTitle": "Урок 1",
+    "version": "v1.0",
+    "videoPath": "https://github.com/OlatolaIL/ulpana-hebrew/releases/download/v-media-lessons-02-05/lesson_01_clean_tiktok.mp4",
+    "caption": "Когда в первый день в хайтеке перепутал «ты» в иврите 💀 #иврит #израиль\n\nВ иврите обращение «ты» строго зависит от пола: мужчине — אַתָּה (атá), а женщине — אַתְּ (ат). Перепутаешь букву — тимлид удивится!\n\nВ интерактивном тренажёре «Ульпан Алеф» ты отрабатываешь живую речь с ИИ и говоришь свободно без паники!\n\n🎁 Промокод на 30 дней бесплатного премиума: TIKTOK\n👉 Начни Урок 1 прямо сейчас: https://ulpana-hebrew.vercel.app/#lesson-1?promo=TIKTOK&utm_source=tiktok&utm_medium=profile&utm_campaign=lesson_01_clean\n\n#иврит #ульпан #израиль #репатриация #жизньвизраиле #ивритдляначинающих #fyp #рек",
+    "targetDeepLink": "/lesson/1",
+    "promoCode": "TIKTOK",
+    "fullUrlWithPromo": "https://ulpana-hebrew.vercel.app/#lesson-1?promo=TIKTOK&utm_source=tiktok&utm_medium=profile&utm_campaign=lesson_01_clean",
+    "livePostUrl": "",
+    "status": "ready",
+    "notes": "TIKTOK (CLEAN): Урок 1 • Хайтек в Тель-Авиве • Вопрос тимлиду • промокод TIKTOK",
+    "createdAt": "2026-10-04T09:55:24.398Z",
+    "updatedAt": "2026-10-04T09:55:24.417Z"
+  },
+  {
+    "id": "pub-insta-l01-spicy",
+    "date": "2026-09-28",
+    "channel": "instagram",
+    "channelAccount": "Instagram @ulpana_il",
+    "format": "short_video",
+    "title": "Хотел похвалить девушку, а обратился как к таксисту 😅 Смотри разбор 👇",
+    "campaignTitle": "Урок 1",
+    "version": "v1.0",
+    "videoPath": "https://github.com/OlatolaIL/ulpana-hebrew/releases/download/v-media-lessons-02-05/lesson_01_spicy_instagram_reels.mp4",
+    "caption": "Хотел похвалить девушку, а обратился как к таксисту 😅 Смотри разбор 👇\n\nМужчине комплимент: אַתָּה יָפֶה (атá яфэ́). Девушке — только אַתְּ יָפָה (ат яфа́)! Не путай род в романтической обстановке.\n\nВ интерактивном тренажёре «Ульпан Алеф» ты отрабатываешь живую речь с ИИ и говоришь свободно без паники!\n\n🎁 Промокод на 30 дней бесплатного премиума: INSTA\n👉 Начни Урок 1 прямо сейчас: https://ulpana-hebrew.vercel.app/#lesson-1?promo=INSTA&utm_source=instagram&utm_medium=reels&utm_campaign=lesson_01_spicy\n\n#иврит #урокииврита #ивритдляначинающих #ивритизраиль #ульпан #ульпаналеф #репатриация #жизньвизраиле #тельавив #учимиврит #израиль #разговорныйиврит",
+    "targetDeepLink": "/lesson/1",
+    "promoCode": "INSTA",
+    "fullUrlWithPromo": "https://ulpana-hebrew.vercel.app/#lesson-1?promo=INSTA&utm_source=instagram&utm_medium=reels&utm_campaign=lesson_01_spicy",
+    "livePostUrl": "",
+    "status": "draft",
+    "notes": "INSTAGRAM (SPICY): Урок 1 • Бар в Тель-Авиве • Комплимент на первом свидании • промокод INSTA",
+    "createdAt": "2026-10-04T09:55:24.398Z",
+    "updatedAt": "2026-10-04T09:55:24.398Z"
+  },
+  {
+    "id": "pub-tiktok-l01-spicy",
+    "date": "2026-09-28",
+    "channel": "tiktok",
+    "channelAccount": "TikTok @ulpana_il",
+    "format": "short_video",
+    "title": "Когда романтика разбилась о грамматику иврита 💀 #иврит #свидания",
+    "campaignTitle": "Урок 1",
+    "version": "v1.0",
+    "videoPath": "https://github.com/OlatolaIL/ulpana-hebrew/releases/download/v-media-lessons-02-05/lesson_01_spicy_tiktok.mp4",
+    "caption": "Когда романтика разбилась о грамматику иврита 💀 #иврит #свидания\n\nМужчине комплимент: אַתָּה יָפֶה (атá яфэ́). Девушке — только אַתְּ יָפָה (ат яфа́)! Не путай род в романтической обстановке.\n\nВ интерактивном тренажёре «Ульпан Алеф» ты отрабатываешь живую речь с ИИ и говоришь свободно без паники!\n\n🎁 Промокод на 30 дней бесплатного премиума: TIKTOK\n👉 Начни Урок 1 прямо сейчас: https://ulpana-hebrew.vercel.app/#lesson-1?promo=TIKTOK&utm_source=tiktok&utm_medium=profile&utm_campaign=lesson_01_spicy\n\n#иврит #ульпан #израиль #репатриация #жизньвизраиле #ивритдляначинающих #fyp #рек",
+    "targetDeepLink": "/lesson/1",
+    "promoCode": "TIKTOK",
+    "fullUrlWithPromo": "https://ulpana-hebrew.vercel.app/#lesson-1?promo=TIKTOK&utm_source=tiktok&utm_medium=profile&utm_campaign=lesson_01_spicy",
+    "livePostUrl": "",
+    "status": "draft",
+    "notes": "TIKTOK (SPICY): Урок 1 • Бар в Тель-Авиве • Комплимент на первом свидании • промокод TIKTOK",
+    "createdAt": "2026-10-04T09:55:24.398Z",
+    "updatedAt": "2026-10-04T09:55:24.398Z"
   }
 ];

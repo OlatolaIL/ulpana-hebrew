@@ -104,7 +104,7 @@ function loadLessonScenario(lessonNumber, variant = 'clean') {
 
 // Поиск или выбор изображений персонажей
 function resolveCharacterImages(lessonNumber) {
-  if (lessonNumber === 11) {
+  if (lessonNumber === 2 || lessonNumber === 5 || lessonNumber === 11) {
     const restDir = path.join(CHARACTERS_DIR, 'restaurant_eli/emotions');
     if (fs.existsSync(restDir)) {
       return {
@@ -114,33 +114,39 @@ function resolveCharacterImages(lessonNumber) {
       };
     }
   }
-  if (lessonNumber === 8 || lessonNumber === 9 || lessonNumber === 12) {
+  if (lessonNumber === 3) {
+    const taxiDir = path.join(CHARACTERS_DIR, 'yossi_taxi/emotions');
+    const davidDir = path.join(CHARACTERS_DIR, 'david_guard/emotions');
+    if (fs.existsSync(taxiDir)) {
+      return {
+        context: path.join(taxiDir, 'context_night_taxi.jpg'),
+        student: path.join(davidDir, 'student_desperate.jpg'),
+        lead: path.join(taxiDir, 'shocked.jpg'),
+      };
+    }
+  }
+  if (lessonNumber === 6 || lessonNumber === 10) {
+    const itsikDir = path.join(CHARACTERS_DIR, 'itsik_bus/emotions');
+    if (fs.existsSync(itsikDir)) {
+      return {
+        context: path.join(itsikDir, 'context_bus.jpg'),
+        student: path.join(itsikDir, 'passenger_bus.jpg'),
+        lead: path.join(itsikDir, 'shocked.jpg'),
+      };
+    }
+  }
+  if (lessonNumber === 1 || lessonNumber === 4 || lessonNumber === 8 || lessonNumber === 9 || lessonNumber === 12) {
     const tomerDir = path.join(CHARACTERS_DIR, 'tomer_boss/emotions');
+    const davidDir = path.join(CHARACTERS_DIR, 'david_guard/emotions');
     if (fs.existsSync(tomerDir)) {
       return {
         context: path.join(tomerDir, 'context_office.jpg'),
-        student: path.join(tomerDir, 'sarah_employee.jpg'),
+        student: lessonNumber === 1 ? path.join(davidDir, 'student_desperate.jpg') : path.join(tomerDir, 'sarah_employee.jpg'),
         lead: path.join(tomerDir, 'tomer_boss.jpg'),
       };
     }
   }
-  if (lessonNumber === 7) {
-    const davidDir = path.join(CHARACTERS_DIR, 'david_guard/emotions');
-    return {
-      context: path.join(davidDir, 'context_mall.jpg'),
-      student: path.join(davidDir, 'student_desperate.jpg'),
-      lead: path.join(davidDir, 'david_guard.jpg'),
-    };
-  }
-  if (lessonNumber === 10) {
-    const itsikDir = path.join(CHARACTERS_DIR, 'itsik_bus/emotions');
-    return {
-      context: path.join(itsikDir, 'context_bus.jpg'),
-      student: path.join(itsikDir, 'passenger_bus.jpg'),
-      lead: path.join(itsikDir, 'shocked.jpg'),
-    };
-  }
-  // Фоллбэк на существующие качественные кадры
+  // Фоллбэк (уроки 1, 7 и др.)
   const defaultDir = path.join(CHARACTERS_DIR, 'david_guard/emotions');
   return {
     context: path.join(defaultDir, 'context_mall.jpg'),
@@ -638,6 +644,8 @@ async function produceCleanLesson(lessonNumber = 8) {
     const reg = JSON.parse(fs.readFileSync(REGISTRY_PATH, 'utf8'));
     if (!reg.lessons[String(lessonNumber)]) reg.lessons[String(lessonNumber)] = { lessonNumber, variants: {} };
     if (!reg.lessons[String(lessonNumber)].variants.clean) reg.lessons[String(lessonNumber)].variants.clean = { files: {} };
+    reg.lessons[String(lessonNumber)].variants.clean.status = 'ready';
+    reg.lessons[String(lessonNumber)].updatedAt = new Date().toISOString();
     for (const r of results) {
       reg.lessons[String(lessonNumber)].variants.clean.files[r.code] = {
         path: `public/demo/lessons/${r.filename}`,
@@ -659,17 +667,19 @@ async function produceCleanLesson(lessonNumber = 8) {
     fs.copyFileSync(ytMaster, ytLegacy);
   }
 
-  console.log(`\n======================================================`);
-  console.log(`🎉 УРОК ${lessonNumber} CLEAN УСПЕШНО СОБРАН ВО ВСЕХ 5 ВЕРСИЯХ!`);
-  console.log(`======================================================\n`);
   return results;
 }
 
-const args = process.argv.slice(2);
-const lessonArg = args.find(a => a.startsWith('--lesson='));
-const lessonNum = lessonArg ? parseInt(lessonArg.split('=')[1], 10) : 8;
+export { produceCleanLesson };
 
-produceCleanLesson(lessonNum).catch(err => {
-  console.error('❌ Ошибка сборки:', err);
-  process.exit(1);
-});
+const isMain = process.argv[1] && (process.argv[1].endsWith('produce_clean_lesson.mjs') || process.argv[1].includes('produce_clean_lesson'));
+if (isMain) {
+  const args = process.argv.slice(2);
+  const lessonArg = args.find(a => a.startsWith('--lesson='));
+  const lessonNum = lessonArg ? parseInt(lessonArg.split('=')[1], 10) : 8;
+
+  produceCleanLesson(lessonNum).catch(err => {
+    console.error('❌ Ошибка сборки:', err);
+    process.exit(1);
+  });
+}
