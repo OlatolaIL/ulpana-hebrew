@@ -736,10 +736,42 @@
             "YT": {
               "path": "public/demo/lessons/lesson_09_clean_youtube_shorts.mp4",
               "promoCode": "YT",
-              "durationSec": 24.6,
-              "resolution": "780x1688",
-              "fileSizeBytes": 2748526,
-              "generatedAt": "2026-09-28T09:38:39.194Z"
+              "durationSec": 26.79,
+              "resolution": "1080x1920",
+              "fileSizeBytes": 13206314,
+              "generatedAt": "2026-10-04T08:33:09.223Z"
+            },
+            "TG": {
+              "path": "public/demo/lessons/lesson_09_clean_telegram.mp4",
+              "promoCode": "TG",
+              "durationSec": 26.79,
+              "resolution": "1080x1920",
+              "fileSizeBytes": 13205693,
+              "generatedAt": "2026-10-04T08:33:09.223Z"
+            },
+            "INSTA": {
+              "path": "public/demo/lessons/lesson_09_clean_instagram_reels.mp4",
+              "promoCode": "INSTA",
+              "durationSec": 26.79,
+              "resolution": "1080x1920",
+              "fileSizeBytes": 13196794,
+              "generatedAt": "2026-10-04T08:33:09.223Z"
+            },
+            "TIKTOK": {
+              "path": "public/demo/lessons/lesson_09_clean_tiktok.mp4",
+              "promoCode": "TIKTOK",
+              "durationSec": 26.79,
+              "resolution": "1080x1920",
+              "fileSizeBytes": 13210107,
+              "generatedAt": "2026-10-04T08:33:09.223Z"
+            },
+            "FB": {
+              "path": "public/demo/lessons/lesson_09_clean_facebook_reels.mp4",
+              "promoCode": "FB",
+              "durationSec": 26.79,
+              "resolution": "1080x1920",
+              "fileSizeBytes": 13195226,
+              "generatedAt": "2026-10-04T08:33:09.223Z"
             }
           }
         },
@@ -846,6 +878,104 @@
               "resolution": "1080x1920",
               "fileSizeBytes": 7751786,
               "generatedAt": "2026-10-03T15:08:45.980Z"
+            }
+          }
+        }
+      }
+    },
+    "11": {
+      "lessonNumber": 11,
+      "variants": {
+        "clean": {
+          "files": {
+            "YT": {
+              "path": "public/demo/lessons/lesson_11_clean_youtube_shorts.mp4",
+              "promoCode": "YT",
+              "durationSec": 37.16,
+              "resolution": "1080x1920",
+              "fileSizeBytes": 20035083,
+              "generatedAt": "2026-10-04T09:11:57.727Z"
+            },
+            "TG": {
+              "path": "public/demo/lessons/lesson_11_clean_telegram.mp4",
+              "promoCode": "TG",
+              "durationSec": 37.16,
+              "resolution": "1080x1920",
+              "fileSizeBytes": 20034601,
+              "generatedAt": "2026-10-04T09:11:57.727Z"
+            },
+            "INSTA": {
+              "path": "public/demo/lessons/lesson_11_clean_instagram_reels.mp4",
+              "promoCode": "INSTA",
+              "durationSec": 37.16,
+              "resolution": "1080x1920",
+              "fileSizeBytes": 20024329,
+              "generatedAt": "2026-10-04T09:11:57.727Z"
+            },
+            "TIKTOK": {
+              "path": "public/demo/lessons/lesson_11_clean_tiktok.mp4",
+              "promoCode": "TIKTOK",
+              "durationSec": 37.16,
+              "resolution": "1080x1920",
+              "fileSizeBytes": 20040789,
+              "generatedAt": "2026-10-04T09:11:57.727Z"
+            },
+            "FB": {
+              "path": "public/demo/lessons/lesson_11_clean_facebook_reels.mp4",
+              "promoCode": "FB",
+              "durationSec": 37.16,
+              "resolution": "1080x1920",
+              "fileSizeBytes": 20020530,
+              "generatedAt": "2026-10-04T09:11:57.727Z"
+            }
+          }
+        }
+      }
+    },
+    "12": {
+      "lessonNumber": 12,
+      "variants": {
+        "clean": {
+          "files": {
+            "YT": {
+              "path": "public/demo/lessons/lesson_12_clean_youtube_shorts.mp4",
+              "promoCode": "YT",
+              "durationSec": 32.3,
+              "resolution": "1080x1920",
+              "fileSizeBytes": 15656565,
+              "generatedAt": "2026-10-04T09:19:04.464Z"
+            },
+            "TG": {
+              "path": "public/demo/lessons/lesson_12_clean_telegram.mp4",
+              "promoCode": "TG",
+              "durationSec": 32.3,
+              "resolution": "1080x1920",
+              "fileSizeBytes": 15655090,
+              "generatedAt": "2026-10-04T09:19:04.465Z"
+            },
+            "INSTA": {
+              "path": "public/demo/lessons/lesson_12_clean_instagram_reels.mp4",
+              "promoCode": "INSTA",
+              "durationSec": 32.3,
+              "resolution": "1080x1920",
+              "fileSizeBytes": 15648889,
+              "generatedAt": "2026-10-04T09:19:04.465Z"
+            },
+            "TIKTOK": {
+              "path": "public/demo/lessons/lesson_12_clean_tiktok.mp4",
+              "promoCode": "TIKTOK",
+              "durationSec": 32.3,
+              "resolution": "1080x1920",
+              "fileSizeBytes": 15660399,
+              "generatedAt": "2026-10-04T09:19:04.465Z"
+            },
+            "FB": {
+              "path": "public/demo/lessons/lesson_12_clean_facebook_reels.mp4",
+              "promoCode": "FB",
+              "durationSec": 32.3,
+              "resolution": "1080x1920",
+              "fileSizeBytes": 15646365,
+              "generatedAt": "2026-10-04T09:19:04.465Z"
             }
           }
         }

@@ -104,8 +104,17 @@ function loadLessonScenario(lessonNumber, variant = 'clean') {
 
 // Поиск или выбор изображений персонажей
 function resolveCharacterImages(lessonNumber) {
-  // Проверяем специализированные папки персонажей
-  if (lessonNumber === 8) {
+  if (lessonNumber === 11) {
+    const restDir = path.join(CHARACTERS_DIR, 'restaurant_eli/emotions');
+    if (fs.existsSync(restDir)) {
+      return {
+        context: path.join(restDir, 'context_restaurant.jpg'),
+        student: path.join(restDir, 'student_spicy.jpg'),
+        lead: path.join(restDir, 'waiter_eli.jpg'),
+      };
+    }
+  }
+  if (lessonNumber === 8 || lessonNumber === 9 || lessonNumber === 12) {
     const tomerDir = path.join(CHARACTERS_DIR, 'tomer_boss/emotions');
     if (fs.existsSync(tomerDir)) {
       return {
@@ -384,48 +393,48 @@ async function produceCleanLesson(lessonNumber = 8) {
       file: `l${numPad}_card_01_hook.png`,
       type: 'hook',
       data: {
-        badge: sceneConfig?.hookBadge || '🚨 СИТУАЦИЯ В ОФИСЕ',
-        location: sceneConfig?.hookLocation || 'ТЕЛЬ-АВИВ • САРОНА',
-        hookText: hookCue?.text || 'Босс ловит тебя в коридоре в 10 утра...'
+        badge: sceneConfig?.hookBadge || `🚨 УРОК ${lessonNumber}`,
+        location: sceneConfig?.hookLocation || 'ТЕЛЬ-АВИВ',
+        hookText: hookCue?.text || sceneConfig?.hookTitle || 'Неловкая ситуация в Израиле...'
       }
     },
     {
       file: `l${numPad}_card_02_student.png`,
       type: 'student',
       data: {
-        author: sceneConfig?.failAuthorStudent || '👩‍💻 СОТРУДНИЦА',
-        hebrew: sceneConfig?.failStudentHe || studentCue?.text || 'אֲנִי הוֹלֵךְ לֶאֱכוֹל שׁוּב!',
-        russian: sceneConfig?.failStudentRu || '«Я иду снова есть!»'
+        author: sceneConfig?.failAuthorStudent || '👨‍🎓 НОВИЧОК',
+        hebrew: sceneConfig?.failStudentHe || studentCue?.text || '',
+        russian: sceneConfig?.failStudentRu || ''
       }
     },
     {
       file: `l${numPad}_card_03_lead.png`,
       type: 'lead',
       data: {
-        author: sceneConfig?.characterName || '👨‍💼 ТОМЕР (ТИМЛИД)',
-        hebrew: sceneConfig?.failLeadHe || leadCue?.text || 'שָׁעָה עֶשֶׂר בַּבֹּקֶר, שָׂרָה! רַק הִגַּעַתְּ!',
-        russian: sceneConfig?.failLeadRu || '«10 утра, Сара! Ты только пришла!»'
+        author: sceneConfig?.characterName || '🇮🇱 ИЗРАИЛЬТЯНИН',
+        hebrew: sceneConfig?.failLeadHe || leadCue?.text || '',
+        russian: sceneConfig?.failLeadRu || ''
       }
     },
     {
       file: `l${numPad}_card_04_freeze.png`,
       type: 'freeze',
       data: {
-        wrongWord: sceneConfig?.errorWrong || 'אוֹכֵל (ем) вместо עוֹבֵד (работаю)'
+        wrongWord: sceneConfig?.errorWrong ? `${sceneConfig.errorWrong} вместо ${sceneConfig.errorCorrect || ''}` : 'Фатальная ошибка в слове'
       }
     },
     {
       file: `l${numPad}_card_05_rule.png`,
       type: 'rule',
       data: {
-        ruleTitle: 'Глаголы Пааль: работа vs обед',
-        col1Title: sceneConfig?.ruleCol1Title || 'ИДУ ЕСТЬ',
-        col1He: sceneConfig?.ruleCol1He || 'אוֹכֵל',
-        col1Trans: sceneConfig?.ruleCol1Trans || 'охэ́ль (ем)',
-        col2Title: sceneConfig?.ruleCol2Title || 'РАБОТАЮ',
-        col2He: sceneConfig?.ruleCol2He || 'עוֹבֵד',
-        col2Trans: sceneConfig?.ruleCol2Trans || 'овэ́д (работаю)',
-        ruleDesc: 'Оба глагола в настоящем времени звучат похоже (Пааль). Не путай работу с обедом перед боссом!'
+        ruleTitle: sceneConfig?.title || `Урок ${lessonNumber} • Правило`,
+        col1Title: sceneConfig?.ruleCol1Title || 'СЛОВО 1',
+        col1He: sceneConfig?.ruleCol1He || '',
+        col1Trans: sceneConfig?.ruleCol1Trans || '',
+        col2Title: sceneConfig?.ruleCol2Title || 'СЛОВО 2',
+        col2He: sceneConfig?.ruleCol2He || '',
+        col2Trans: sceneConfig?.ruleCol2Trans || '',
+        ruleDesc: sceneConfig?.failBadge || (ruleCue?.text ? ruleCue.text.slice(0, 150) : '')
       }
     }
   ];
