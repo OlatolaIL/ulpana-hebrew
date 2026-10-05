@@ -7,7 +7,11 @@ import { detectLinguisticTip } from '@/lib/linguisticTips';
 import { LinguisticTipDrawer } from '@/components/ThematicDecks/LinguisticTipDrawer';
 import { WordLookupModal } from '@/components/WordLookupModal';
 import { extractVerbTriad } from '@/lib/verbTriad';
+import { getVerbDrillSentences } from '@/data/verbSentencesData';
+import { adaptSentenceForGender } from '@/lib/drills/sentenceGenderAdapter';
+import { getRecordedSentenceAudio, speakHebrew, stopSpeech } from '@/lib/speech';
 import { VerbTriadBlock } from '../VerbTriadBlock';
+import { ComplexVerbHintBlock } from '../ComplexVerbHintBlock';
 
 interface FlipCardModeProps {
   currentWord: Word;
@@ -41,6 +45,102 @@ export const FlipCardMode: React.FC<FlipCardModeProps> = ({
   const [selectedLookupWord, setSelectedLookupWord] = useState<string | null>(null);
   const tip = currentWord ? detectLinguisticTip(currentWord) : null;
 
+  // Поиск предложений в матрице Комплекса (R-18) для глаголов
+  const rawWord = (currentWord?.hebrewPlain || currentWord?.hebrew || '').trim();
+  const drillSentences = useMemo(() => {
+    if (!rawWord) return [];
+    return getVerbDrillSentences(rawWord);
+  }, [rawWord]);
+
+  // Выбранное время фразы-подсказки (настоящее / прошедшее)
+  const [hintTense, setHintTense] = useState<'present' | 'past'>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('ulpana_flashcard_hint_tense');
+        if (saved === 'present' || saved === 'past') return saved;
+      } catch {}
+    }
+    return 'present';
+  });
+
+  const handleSelectTense = (tense: 'present' | 'past') => {
+    setHintTense(tense);
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('ulpana_flashcard_hint_tense', tense);
+      } catch {}
+    }
+  };
+
+  const [isPlayingHint, setIsPlayingHint] = useState(false);
+  const hintAudioRef = React.useRef<HTMLAudioElement | null>(null);
+
+  // Очистка воспроизведения при переключении карточки
+  React.useEffect(() => {
+    if (hintAudioRef.current) {
+      try {
+        hintAudioRef.current.pause();
+        hintAudioRef.current = null;
+      } catch {}
+    }
+    setIsPlayingHint(false);
+  }, [currentIndex, currentWord]);
+
+  // Воспроизведение фразы из комплекса (Инварианты R-17, R-18, R-24)
+  const handlePlayHintPhrase = async (targetTense?: 'present' | 'past') => {
+    const tenseToUse = targetTense || hintTense;
+    if (targetTense && targetTense !== hintTense) {
+      handleSelectTense(targetTense);
+    }
+
+    const targetSentence = drillSentences.find((s) => s.tense === tenseToUse) || drillSentences[0];
+    if (!targetSentence?.sentenceHe) return;
+
+    let textToPlay = targetSentence.sentenceHe;
+    if (userProfile.gender === 'female') {
+      textToPlay = adaptSentenceForGender(
+        targetSentence.sentenceHe,
+        targetSentence.sentenceTranscription || '',
+        'female'
+      ).sentenceHe;
+    }
+
+    if (hintAudioRef.current) {
+      try {
+        hintAudioRef.current.pause();
+        hintAudioRef.current = null;
+      } catch {}
+    }
+    stopSpeech();
+
+    setIsPlayingHint(true);
+    try {
+      const gender = userProfile.gender ?? 'male';
+      const speechRate = userProfile.speechRate || 1.0;
+      const mp3Url = await getRecordedSentenceAudio(textToPlay, gender);
+
+      if (mp3Url) {
+        const audio = new Audio(mp3Url);
+        hintAudioRef.current = audio;
+        audio.playbackRate = Math.max(0.5, Math.min(1.5, speechRate));
+        await new Promise<void>((resolve) => {
+          audio.onended = () => resolve();
+          audio.onerror = () => {
+            speakHebrew(textToPlay, { rate: speechRate, gender }).then(resolve);
+          };
+          audio.play().catch(() => {
+            speakHebrew(textToPlay, { rate: speechRate, gender }).then(resolve);
+          });
+        });
+        return;
+      }
+
+      await speakHebrew(textToPlay, { rate: speechRate, gender });
+    } finally {
+      setIsPlayingHint(false);
+    }
+  };
+
   const triad = useMemo(() => {
     if (!currentWord) return null;
     if (
@@ -65,16 +165,35 @@ export const FlipCardMode: React.FC<FlipCardModeProps> = ({
         onClick={onFlipCard}
         className="min-h-[200px] sm:min-h-[270px] bg-white dark:bg-zinc-900 border-2 border-zinc-200 dark:border-zinc-800 rounded-3xl p-4 sm:p-6 flex flex-col items-center justify-center text-center cursor-pointer shadow-lg hover:border-blue-500/50 transition duration-300 relative select-none"
       >
-        <div className="absolute top-3 right-3">
+        <div className="absolute top-3 right-3 flex items-center gap-1.5">
+          {drillSentences.length > 0 && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                handlePlayHintPhrase();
+              }}
+              className={`p-2 rounded-full transition shadow-sm cursor-pointer ${
+                isPlayingHint
+                  ? 'bg-amber-200 dark:bg-amber-800 text-amber-900 dark:text-amber-100 ring-2 ring-amber-400 animate-pulse'
+                  : 'bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/60'
+              }`}
+              title={`Фраза из комплекса: ${
+                hintTense === 'present' ? 'настоящее' : 'прошедшее'
+              } время (нажмите для воспроизведения)`}
+            >
+              <Sparkles className="w-4 h-4" />
+            </button>
+          )}
           <button
             onClick={(e) => {
               e.stopPropagation();
               onSpeakHebrew(currentWord.hebrew);
             }}
-            className="p-2 rounded-full bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 hover:bg-blue-100 transition shadow-sm"
+            className="p-2 rounded-full bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 hover:bg-blue-100 transition shadow-sm cursor-pointer"
             title={
               isCurrentCardFrontRussian && !isFlipped
-                ? 'Подсказка: прослушать на иврите'
+                ? 'Озвучить инфинитив'
                 : 'Озвучить'
             }
           >
@@ -143,6 +262,17 @@ export const FlipCardMode: React.FC<FlipCardModeProps> = ({
                 {currentWord.translation}
               </div>
 
+              {/* Подсказка: фраза из комплекса с переключателем времён */}
+              <ComplexVerbHintBlock
+                currentWord={currentWord}
+                userProfile={userProfile}
+                isFlipped={isFlipped}
+                selectedTense={hintTense}
+                onSelectTense={handleSelectTense}
+                onPlayHint={handlePlayHintPhrase}
+                isPlaying={isPlayingHint}
+              />
+
               <p className="text-xs text-zinc-400 font-medium">
                 Нажмите на карточку или пробел, чтобы увидеть иврит
               </p>
@@ -197,6 +327,17 @@ export const FlipCardMode: React.FC<FlipCardModeProps> = ({
                     [{getWordTranscription(currentWord)}]
                   </p>
                 )}
+
+              {/* Подсказка: фраза из комплекса с переключателем времён */}
+              <ComplexVerbHintBlock
+                currentWord={currentWord}
+                userProfile={userProfile}
+                isFlipped={isFlipped}
+                selectedTense={hintTense}
+                onSelectTense={handleSelectTense}
+                onPlayHint={handlePlayHintPhrase}
+                isPlaying={isPlayingHint}
+              />
             </div>
           )
         ) : isCurrentCardFrontRussian ? (
@@ -243,6 +384,17 @@ export const FlipCardMode: React.FC<FlipCardModeProps> = ({
             <div className="text-lg sm:text-2xl font-bold text-zinc-700 dark:text-zinc-300 pt-0.5">
               {currentWord.translation}
             </div>
+
+            {/* Подсказка: фраза из комплекса с переключателем времён */}
+            <ComplexVerbHintBlock
+              currentWord={currentWord}
+              userProfile={userProfile}
+              isFlipped={isFlipped}
+              selectedTense={hintTense}
+              onSelectTense={handleSelectTense}
+              onPlayHint={handlePlayHintPhrase}
+              isPlaying={isPlayingHint}
+            />
 
             {triad ? (
               <VerbTriadBlock
@@ -345,6 +497,18 @@ export const FlipCardMode: React.FC<FlipCardModeProps> = ({
                 [{getWordTranscription(currentWord)}]
               </p>
             )}
+
+            {/* Подсказка: фраза из комплекса с переключателем времён */}
+            <ComplexVerbHintBlock
+              currentWord={currentWord}
+              userProfile={userProfile}
+              isFlipped={isFlipped}
+              selectedTense={hintTense}
+              onSelectTense={handleSelectTense}
+              onPlayHint={handlePlayHintPhrase}
+              isPlaying={isPlayingHint}
+            />
+
             {triad ? (
               <VerbTriadBlock
                 triad={triad}

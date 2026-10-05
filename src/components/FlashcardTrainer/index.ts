@@ -9,4 +9,5 @@ export { ListeningMode } from './modes/ListeningMode';
 export { AutoAudioMode } from './modes/AutoAudioMode';
 export { ConjugationMode } from './modes/ConjugationMode';
 export { VerbTriadBlock } from './VerbTriadBlock';
+export { ComplexVerbHintBlock } from './ComplexVerbHintBlock';
 export { PealimModal } from './PealimModal';
