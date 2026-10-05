@@ -15,6 +15,7 @@ import { AudioHelpModal } from './AudioHelpModal';
 import { CallDiagnosticsModal } from './CallDiagnosticsModal';
 import { WordLookupModal } from '@/components/WordLookupModal';
 import { TextToken } from '@/lib/transcription';
+import { isMainAdmin } from '@/lib/vipUsers';
 
 export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
   lesson,
@@ -101,6 +102,8 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
     setLookupSentenceTranscription(sentenceTranscription);
   };
 
+  const isAdmin = isMainAdmin(userProfile);
+
   return (
     <div className="space-y-4">
       {/* 1. СОСТОЯНИЕ: ДО ЗВОНКА (IDLE) */}
@@ -110,7 +113,7 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
           userProfile={userProfile}
           onStartCall={handleStartCall}
           onOpenWordsDrawer={() => setIsWordsDrawerOpen(true)}
-          onOpenDiagnostics={() => setShowDiagnostics(true)}
+          onOpenDiagnostics={isAdmin ? () => setShowDiagnostics(true) : undefined}
         />
       )}
 
@@ -146,7 +149,7 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
             setAudioHelpUnlocked(false);
             setShowAudioHelp(true);
           }}
-          onOpenDiagnostics={() => setShowDiagnostics(true)}
+          onOpenDiagnostics={isAdmin ? () => setShowDiagnostics(true) : undefined}
           liveTranscript={liveTranscript}
           isEchoFromAi={isEchoFromAi}
           onSendMessage={handleSendMessage}
@@ -178,7 +181,7 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
           onOpenDialogueReview={() => setShowDialogueReviewModal(true)}
           onStartCall={handleStartCall}
           onBackToLesson={onBackToLesson}
-          onOpenDiagnostics={() => setShowDiagnostics(true)}
+          onOpenDiagnostics={isAdmin ? () => setShowDiagnostics(true) : undefined}
           onRetryDebrief={retryDebrief}
         />
       )}
@@ -258,13 +261,15 @@ export const PhoneCallSimulator: React.FC<PhoneCallSimulatorProps> = ({
       )}
 
       {/* 10. МОДАЛЬНОЕ ОКНО ТЕЛЕМЕТРИИ И ЧЕРНОГО ЯЩИКА ЗВОНКА */}
-      <CallDiagnosticsModal
-        isOpen={showDiagnostics}
-        onClose={() => setShowDiagnostics(false)}
-        mounted={mounted}
-        activeStream={activeMicStream}
-        audioContext={audioContext}
-      />
+      {isAdmin && (
+        <CallDiagnosticsModal
+          isOpen={showDiagnostics}
+          onClose={() => setShowDiagnostics(false)}
+          mounted={mounted}
+          activeStream={activeMicStream}
+          audioContext={audioContext}
+        />
+      )}
     </div>
   );
 };

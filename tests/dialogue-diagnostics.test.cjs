@@ -118,3 +118,37 @@ test('Stage 5 integration: DialogueHeader, PracticeView, and ScriptedDialogueTra
   assert.ok(hookCode.includes('createCombinedSignal'));
   assert.ok(hookCode.includes('Dialogue evaluation safety timeout triggered'));
 });
+
+test('Diagnostics restriction: Смотритель is visible strictly to main admin', () => {
+  const { isMainAdmin } = require('../src/lib/vipUsers.ts');
+  const trainerPath = path.join(__dirname, '../src/components/ScriptedDialogueTrainer/ScriptedDialogueTrainer.tsx');
+  const phonePath = path.join(__dirname, '../src/components/PhoneCallSimulator/PhoneCallSimulator.tsx');
+
+  const trainerCode = fs.readFileSync(trainerPath, 'utf8');
+  const phoneCode = fs.readFileSync(phonePath, 'utf8');
+
+  // 1. Проверка логики isMainAdmin
+  assert.equal(isMainAdmin(null), false);
+  assert.equal(isMainAdmin(undefined), false);
+  assert.equal(isMainAdmin({ name: 'Гость', gender: 'male', aiProvider: 'gemini', groqApiKey: '', geminiApiKey: '', showNikkud: true, showTranscription: true, fontStyle: 'print' }), false);
+  assert.equal(isMainAdmin({ name: 'Пользователь PRO', subscriptionTier: 'pro', gender: 'male', aiProvider: 'gemini', groqApiKey: '', geminiApiKey: '', showNikkud: true, showTranscription: true, fontStyle: 'print' }), false);
+  assert.equal(isMainAdmin({ name: 'Обычный юзер', telegramId: 1234567, gender: 'male', aiProvider: 'gemini', groqApiKey: '', geminiApiKey: '', showNikkud: true, showTranscription: true, fontStyle: 'print' }), false);
+
+  // Главный администратор по Telegram ID и по subscriptionTier
+  assert.equal(isMainAdmin({ name: 'Admin @Osa_IL', telegramId: 8903218603, gender: 'male', aiProvider: 'gemini', groqApiKey: '', geminiApiKey: '', showNikkud: true, showTranscription: true, fontStyle: 'print' }), true);
+  assert.equal(isMainAdmin({ name: 'Admin Backup', telegramId: 8215851, gender: 'male', aiProvider: 'gemini', groqApiKey: '', geminiApiKey: '', showNikkud: true, showTranscription: true, fontStyle: 'print' }), true);
+  assert.equal(isMainAdmin({ name: 'Admin Tier', subscriptionTier: 'admin', gender: 'male', aiProvider: 'gemini', groqApiKey: '', geminiApiKey: '', showNikkud: true, showTranscription: true, fontStyle: 'print' }), true);
+
+  // 2. Проверка ограничения в ScriptedDialogueTrainer
+  assert.ok(trainerCode.includes('isMainAdmin(userProfile)'));
+  assert.ok(trainerCode.includes('onOpenDiagnostics={isAdmin ? () => setShowDiagnostics(true) : undefined}'));
+  assert.ok(trainerCode.includes('{isAdmin &&'));
+  assert.ok(trainerCode.includes('<CallDiagnosticsModal'));
+
+  // 3. Проверка ограничения в PhoneCallSimulator
+  assert.ok(phoneCode.includes('isMainAdmin(userProfile)'));
+  assert.ok(phoneCode.includes('onOpenDiagnostics={isAdmin ? () => setShowDiagnostics(true) : undefined}'));
+  assert.ok(phoneCode.includes('{isAdmin &&'));
+  assert.ok(phoneCode.includes('<CallDiagnosticsModal'));
+});
+

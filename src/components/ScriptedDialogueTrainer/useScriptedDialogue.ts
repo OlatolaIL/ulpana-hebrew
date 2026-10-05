@@ -38,6 +38,7 @@ import { TrainerMode } from './types';
 import { isDialoguePracticeComplete, requestDialogueEvaluation } from '@/lib/dialoguePractice';
 import { isWhisperSilenceHallucination } from '@/lib/speechTranscription';
 import { callFlightRecorder } from '@/lib/callDiagnostics';
+import { isMainAdmin } from '@/lib/vipUsers';
 
 function createCombinedSignal(parentSignal?: AbortSignal, timeoutMs = 35000): AbortSignal {
   const controller = new AbortController();
@@ -84,6 +85,8 @@ export function useScriptedDialogue({
   const dialogue: ScriptedDialogue = useMemo(() => {
     return getScriptedDialogueForLesson(lesson.id);
   }, [lesson.id]);
+
+  const isAdmin = useMemo(() => isMainAdmin(userProfile), [userProfile]);
 
   // 2. Настройки пола: ученик (userGender) и оппонент (opponentGender)
   const [userGender, setUserGender] = useState<'male' | 'female'>(() => userProfile.gender || 'female');
@@ -699,7 +702,11 @@ export function useScriptedDialogue({
       }, 'error');
       setIsEvaluating(false);
       setEvaluatingPhase('idle');
-      setEvaluationError('Время ожидания ответа истекло (18с). Нажмите «Смотритель» для просмотра лога или запишите ответ ещё раз.');
+      setEvaluationError(
+        isAdmin
+          ? 'Время ожидания ответа истекло (18с). Нажмите «Смотритель» для просмотра лога или запишите ответ ещё раз.'
+          : 'Время ожидания ответа истекло (18с). Попробуйте записать ответ ещё раз.'
+      );
     }, 18000);
   };
 
@@ -904,7 +911,11 @@ export function useScriptedDialogue({
         callFlightRecorder.record('ERROR', 'Dialogue evaluation exception', {
           error: String(err?.message || err),
         }, 'error');
-        setEvaluationError('Проверка сейчас недоступна. Ответ не оценён. Можно открыть «Смотритель» для просмотра лога или повторить запись.');
+        setEvaluationError(
+          isAdmin
+            ? 'Проверка сейчас недоступна. Ответ не оценён. Можно открыть «Смотритель» для просмотра лога или повторить запись.'
+            : 'Проверка сейчас недоступна. Ответ не оценён. Попробуйте повторить запись через несколько секунд.'
+        );
       }
     } finally {
       if (isCurrent()) {

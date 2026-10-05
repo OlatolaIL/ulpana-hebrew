@@ -27,6 +27,20 @@ export function isVipUser(
 }
 
 /**
+ * Проверка прав главного администратора
+ * Доступ имеют пользователи с Telegram ID главного администратора (ADMIN_TELEGRAM_IDS)
+ * либо со статусом subscriptionTier === 'admin'.
+ */
+export function isMainAdmin(userProfile?: UserProfile | null): boolean {
+  if (!userProfile) return false;
+  return (
+    isVipUser(userProfile.username, userProfile.telegramId, userProfile.name) ||
+    userProfile.subscriptionTier === 'admin'
+  );
+}
+
+
+/**
  * Применяет VIP-привилегии (PRO подписка) без подделки истории уроков.
  * Также автоматически очищает старый фиктивно засеянный демо-прогресс.
  */

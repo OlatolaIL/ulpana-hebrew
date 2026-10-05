@@ -13,6 +13,7 @@ import { DialogueWordsDrawer } from './DialogueWordsDrawer';
 import { WordLookupModal } from '../WordLookupModal';
 import { CallDiagnosticsModal } from '../PhoneCallSimulator/CallDiagnosticsModal';
 import { TextToken } from '@/lib/transcription';
+import { isMainAdmin } from '@/lib/vipUsers';
 
 export const ScriptedDialogueTrainer: React.FC<ScriptedDialogueTrainerProps> = ({
   lesson,
@@ -27,6 +28,7 @@ export const ScriptedDialogueTrainer: React.FC<ScriptedDialogueTrainerProps> = (
   const [lookupSentenceTranscription, setLookupSentenceTranscription] = useState<string | undefined>(undefined);
   const [screenToast, setScreenToast] = useState<string | null>(null);
   const [showDiagnostics, setShowDiagnostics] = useState<boolean>(false);
+  const isAdmin = isMainAdmin(userProfile);
 
   const handleWordClick = (
     token: TextToken,
@@ -130,7 +132,7 @@ export const ScriptedDialogueTrainer: React.FC<ScriptedDialogueTrainerProps> = (
         onUpdateProfile={onUpdateProfile}
         speechRate={speechRate}
         setSpeechRate={setSpeechRate}
-        onOpenDiagnostics={() => setShowDiagnostics(true)}
+        onOpenDiagnostics={isAdmin ? () => setShowDiagnostics(true) : undefined}
       />
 
       {/* 2. Основное тело: переключение между режимами */}
@@ -216,7 +218,7 @@ export const ScriptedDialogueTrainer: React.FC<ScriptedDialogueTrainerProps> = (
           isRecording={isRecording}
           isOpponentSpeaking={isOpponentSpeaking}
           onWordClick={handleWordClick}
-          onOpenDiagnostics={() => setShowDiagnostics(true)}
+          onOpenDiagnostics={isAdmin ? () => setShowDiagnostics(true) : undefined}
         />
       )}
 
@@ -283,12 +285,14 @@ export const ScriptedDialogueTrainer: React.FC<ScriptedDialogueTrainerProps> = (
       )}
 
       {/* Модальное окно Смотрителя диалога (Flight Recorder) */}
-      <CallDiagnosticsModal
-        isOpen={showDiagnostics}
-        onClose={() => setShowDiagnostics(false)}
-        mounted={mounted}
-        title="Смотритель диалога (Flight Recorder)"
-      />
+      {isAdmin && (
+        <CallDiagnosticsModal
+          isOpen={showDiagnostics}
+          onClose={() => setShowDiagnostics(false)}
+          mounted={mounted}
+          title="Смотритель диалога (Flight Recorder)"
+        />
+      )}
     </div>
   );
 };
