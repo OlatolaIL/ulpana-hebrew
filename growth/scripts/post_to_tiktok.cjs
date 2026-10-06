@@ -8,6 +8,7 @@
  *   node growth/scripts/post_to_tiktok.cjs --auth                      # Мастер первичной авторизации OAuth 2.0 (порт 8085)
  *   node growth/scripts/post_to_tiktok.cjs --send                      # Загрузка видео в TikTok (по умолчанию SELF_ONLY)
  *   node growth/scripts/post_to_tiktok.cjs --video=path/to/video.mp4 --send
+ *   node growth/scripts/post_to_tiktok.cjs --video=path/to/video.mp4 --send --draft   # Отправка в черновики TikTok (Inbox Mode)
  *   node growth/scripts/post_to_tiktok.cjs --privacy=PUBLIC_TO_EVERYONE --send  # Публикация для всех (требует Audited статус)
  *   node growth/scripts/post_to_tiktok.cjs --send --register           # Загрузка и регистрация в growth/data/publications.json
  */
@@ -45,6 +46,8 @@ const args = process.argv.slice(2);
 const isSend = args.includes('--send');
 const isAuth = args.includes('--auth');
 const isRegister = args.includes('--register');
+const isDraft = args.includes('--draft') || args.includes('--inbox');
+const isDirectPublish = !isDraft; // По умолчанию Direct Post (видео + текст + хештеги)
 const isPreview = args.includes('--preview') || (!isSend && !isAuth);
 
 const videoArg = args.find(a => a.startsWith('--video='));
@@ -96,7 +99,7 @@ async function runOAuthFlow() {
   }
 
   const port = 8085;
-  const scopes = ['user.info.basic', 'video.publish', 'video.upload'];
+  const scopes = ['user.info.basic', 'video.upload', 'video.publish'];
   const state = 'ulpana_' + Math.random().toString(36).substring(2, 10);
 
   const authUrl = `https://www.tiktok.com/v2/auth/authorize/?` +
@@ -146,16 +149,15 @@ async function runOAuthFlow() {
         });
 
         const tokenData = await tokenRes.json();
+        const refreshTokenVal = tokenData.refresh_token || tokenData.data?.refresh_token;
+        const accessTokenVal = tokenData.access_token || tokenData.data?.access_token;
+        const openId = tokenData.open_id || tokenData.data?.open_id;
 
-        if (!tokenRes.ok || !tokenData.data?.refresh_token) {
+        if (!tokenRes.ok || !refreshTokenVal) {
           console.error('❌ Ошибка получения токена TikTok:', tokenData);
           reject(new Error(tokenData.error_description || tokenData.message || 'Failed to obtain tokens'));
           return;
         }
-
-        const refreshTokenVal = tokenData.data.refresh_token;
-        const accessTokenVal = tokenData.data.access_token;
-        const openId = tokenData.data.open_id;
 
         console.log('\n🎉 ПОЗДРАВЛЯЕМ! TikTok OAuth-токены успешно получены!');
         console.log(`👤 Open ID: ${openId}`);
@@ -266,37 +268,54 @@ async function getFreshAccessToken() {
   });
 
   const data = await res.json();
-  if (!res.ok || !data.data?.access_token) {
+  const accessToken = data.access_token || data.data?.access_token;
+  const newRefreshToken = data.refresh_token || data.data?.refresh_token;
+
+  if (!res.ok || !accessToken) {
     throw new Error(`Ошибка обновления токена TikTok: ${JSON.stringify(data)}`);
   }
 
   // Обновляем refresh_token, если TikTok вернул новый
-  if (data.data.refresh_token && data.data.refresh_token !== refreshToken) {
+  if (newRefreshToken && newRefreshToken !== refreshToken) {
     let envContent = fs.readFileSync('.env.local', 'utf8');
-    envContent = envContent.replace(/^TIKTOK_REFRESH_TOKEN=.*$/m, `TIKTOK_REFRESH_TOKEN=${data.data.refresh_token}`);
+    envContent = envContent.replace(/^TIKTOK_REFRESH_TOKEN=.*$/m, `TIKTOK_REFRESH_TOKEN=${newRefreshToken}`);
     fs.writeFileSync('.env.local', envContent.trim() + '\n', 'utf8');
   }
 
-  return data.data.access_token;
+  return accessToken;
 }
 
 /**
  * Получение информации об авторе (Creator Info Query)
  */
 async function queryCreatorInfo(accessToken) {
-  const res = await fetch('https://open.tiktokapis.com/v2/post/publish/creator_info/query/', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${accessToken}`,
-      'Content-Type': 'application/json; charset=UTF-8'
+  try {
+    const userRes = await fetch('https://open.tiktokapis.com/v2/user/info/?fields=open_id,display_name,avatar_url', {
+      headers: { 'Authorization': `Bearer ${accessToken}` }
+    });
+    const userData = await userRes.json();
+    if (userData.data?.user) {
+      return {
+        creator_nickname: userData.data.user.display_name,
+        creator_username: userData.data.user.display_name,
+        open_id: userData.data.user.open_id
+      };
     }
-  });
+  } catch (_) {}
 
-  const data = await res.json();
-  if (!res.ok || data.error?.code !== 'ok') {
-    console.warn('⚠️ Предупреждение creator_info:', data);
-  }
-  return data.data || {};
+  try {
+    const res = await fetch('https://open.tiktokapis.com/v2/post/publish/creator_info/query/', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json; charset=UTF-8'
+      }
+    });
+    const data = await res.json();
+    return data.data || {};
+  } catch (_) {}
+
+  return {};
 }
 
 /**
@@ -324,12 +343,13 @@ async function main() {
       console.log(`📦 Размер файла: ${(stats.size / (1024 * 1024)).toFixed(2)} MB`);
     }
     console.log(`📝 Заголовок/Caption: \x1b[32m${title}\x1b[0m`);
-    console.log(`🔒 Уровень приватности: \x1b[33m${privacy}\x1b[0m (SELF_ONLY = черновик/только себе, PUBLIC_TO_EVERYONE = для всех)`);
+    console.log(`🔒 Уровень приватности: \x1b[33m${isDraft ? 'ЧЕРНОВИК (INBOX MODE)' : privacy}\x1b[0m (SELF_ONLY = приватно, PUBLIC_TO_EVERYONE = для всех, --draft = черновик в inbox)`);
     console.log(`🔗 Целевой лендинг: https://ulpana-hebrew.vercel.app/?promo=TIKTOK`);
     console.log('\nДля авторизации выполните:');
     console.log('   node growth/scripts/post_to_tiktok.cjs --auth');
     console.log('\nДля реальной публикации выполните:');
     console.log('   node growth/scripts/post_to_tiktok.cjs --send');
+    console.log('   node growth/scripts/post_to_tiktok.cjs --send --draft');
     console.log('=====================================================\n');
     return;
   }
@@ -358,10 +378,25 @@ async function main() {
   const videoSize = stats.size;
   const videoSizeMb = (videoSize / (1024 * 1024)).toFixed(2);
 
-  console.log(`📦 3. Инициализация публикации видео (${videoSizeMb} MB, ${privacy})...`);
+  const isInboxMode = isDraft;
+  const endpoint = isInboxMode
+    ? 'https://open.tiktokapis.com/v2/post/publish/inbox/video/init/'
+    : 'https://open.tiktokapis.com/v2/post/publish/video/init/';
+
+  console.log(`📦 3. Инициализация публикации видео (${videoSizeMb} MB, ${isInboxMode ? 'ЧЕРНОВИК / INBOX MODE' : privacy})...`);
 
   // Инициализация видеопоста
-  const initPayload = {
+  const initPayload = isInboxMode ? {
+    post_info: {
+      title: title
+    },
+    source_info: {
+      source: 'FILE_UPLOAD',
+      video_size: videoSize,
+      chunk_size: videoSize,
+      total_chunk_count: 1
+    }
+  } : {
     post_info: {
       title: title,
       privacy_level: privacy,
@@ -378,7 +413,7 @@ async function main() {
     }
   };
 
-  const initRes = await fetch('https://open.tiktokapis.com/v2/post/publish/video/init/', {
+  const initRes = await fetch(endpoint, {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${accessToken}`,
@@ -444,9 +479,14 @@ async function main() {
 
     console.log(`⏳ Статус обработки [${attempts}]: ${status || 'CHECKING...'}`);
 
-    if (status === 'PUBLISH_COMPLETE') {
+    if (status === 'PUBLISH_COMPLETE' || status === 'SEND_TO_USER_INBOX') {
       isComplete = true;
-      console.log('\n🎉 ПОЗДРАВЛЯЕМ! Видео успешно опубликовано в TikTok!');
+      if (isInboxMode || status === 'SEND_TO_USER_INBOX') {
+        console.log('\n🎉 ПОЗДРАВЛЯЕМ! Видео успешно доставлено в черновики TikTok (Inbox)!');
+        console.log('📱 Откройте TikTok на телефоне -> вкладка "Входящие" (Inbox) -> нажмите на уведомление, чтобы опубликовать.');
+      } else {
+        console.log('\n🎉 ПОЗДРАВЛЯЕМ! Видео успешно опубликовано в TikTok!');
+      }
       break;
     } else if (status === 'FAILED') {
       console.error('❌ Ошибка публикации в TikTok:', statusData.data?.fail_reason || statusData);
