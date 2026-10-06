@@ -36,7 +36,7 @@ export const MARKETING_PUBLICATIONS: PublicationItem[] = [
     "status": "ready",
     "notes": "Вертикальное видео 9:16 в growth/output/campaigns/sc-02-wolt-courier/",
     "createdAt": "2026-10-05T17:48:44.675Z",
-    "updatedAt": "2026-10-06T05:15:24.434Z"
+    "updatedAt": "2026-10-06T06:53:20.188Z"
   },
   {
     "id": "pub-ig-sc-20-security-emergency",
@@ -1569,7 +1569,7 @@ export const MARKETING_PUBLICATIONS: PublicationItem[] = [
     "scheduledAt": "2026-10-05T13:00:00.000+03:00",
     "notes": "Карусель 5 слайдов 1:1 + Reel 9:16 + текст в growth/output/campaigns/sc-02-wolt-courier/",
     "createdAt": "2026-10-04T16:31:56.939Z",
-    "updatedAt": "2026-10-06T05:15:24.204Z"
+    "updatedAt": "2026-10-06T06:53:19.975Z"
   },
   {
     "id": "pub-yt-sc-02-wolt-courier",
@@ -1590,7 +1590,7 @@ export const MARKETING_PUBLICATIONS: PublicationItem[] = [
     "scheduledAt": "2026-10-05T13:00:00.000+03:00",
     "notes": "Вертикальное видео 9:16 + текст с таймкодами в growth/output/campaigns/sc-02-wolt-courier/",
     "createdAt": "2026-10-04T16:31:56.939Z",
-    "updatedAt": "2026-10-06T05:15:24.309Z"
+    "updatedAt": "2026-10-06T06:53:20.079Z"
   },
   {
     "id": "pub-tg-sc-02-wolt-courier",
@@ -1615,7 +1615,7 @@ export const MARKETING_PUBLICATIONS: PublicationItem[] = [
   },
   {
     "id": "pub-fb-sc-02-wolt-courier",
-    "date": "2026-10-05",
+    "date": "2026-10-06",
     "channel": "facebook",
     "channelAccount": "Ulpana - Иврит без паники",
     "format": "video",
@@ -1627,12 +1627,12 @@ export const MARKETING_PUBLICATIONS: PublicationItem[] = [
     "targetDeepLink": "/lesson/10",
     "promoCode": "FB_POST",
     "fullUrlWithPromo": "https://ulpana-hebrew.vercel.app/#lesson-10?promo=FB_POST&utm_source=facebook&utm_medium=video&utm_campaign=sc-02-wolt-courier",
-    "livePostUrl": "https://www.facebook.com/1641822233997127",
+    "livePostUrl": "https://www.facebook.com/1410025284653658",
     "status": "published",
     "scheduledAt": "2026-10-05T13:00:00.000+03:00",
-    "notes": "Автопостинг из фабрики: Курьер доставки Wolt",
+    "notes": "Автопостинг из фабрики: Курьер доставки Wolt (прямая ссылка в описании)",
     "createdAt": "2026-10-04T16:31:56.939Z",
-    "updatedAt": "2026-10-05T17:48:42.124Z"
+    "updatedAt": "2026-10-06T06:53:19.837Z"
   },
   {
     "id": "pub-tg-sc-01-kindergarten",
@@ -1657,10 +1657,10 @@ export const MARKETING_PUBLICATIONS: PublicationItem[] = [
   },
   {
     "id": "pub-fb-sc-01-kindergarten",
-    "date": "2026-10-05",
+    "date": "2026-10-06",
     "channel": "facebook",
     "channelAccount": "Ulpana - Иврит без паники",
-    "format": "short_video",
+    "format": "video",
     "title": "УЧИМ ИВРИТ • САДИК 🧸: 4 фразы на иврите",
     "campaignTitle": "Садик: малыш заболел",
     "version": "v1.0",
@@ -1669,12 +1669,12 @@ export const MARKETING_PUBLICATIONS: PublicationItem[] = [
     "targetDeepLink": "/lesson/1",
     "promoCode": "FB_POST",
     "fullUrlWithPromo": "https://ulpana-hebrew.vercel.app/#lesson-1?promo=FB_POST&utm_source=facebook&utm_medium=video&utm_campaign=sc-01-kindergarten",
-    "livePostUrl": "https://www.facebook.com/3321701661373844",
+    "livePostUrl": "https://www.facebook.com/1099651412981109",
     "status": "published",
     "scheduledAt": "2026-10-05T08:15:00.000+03:00",
-    "notes": "Zero-Link протокол (ссылка в первом комменте) • Фабрика 2026",
+    "notes": "Автопостинг из фабрики: Садик: малыш заболел (прямая ссылка в описании)",
     "createdAt": "2026-10-04T16:31:56.938Z",
-    "updatedAt": "2026-10-04T16:31:56.939Z"
+    "updatedAt": "2026-10-06T06:53:07.116Z"
   },
   {
     "id": "pub-tt-sc-01-kindergarten",
@@ -1690,7 +1690,7 @@ export const MARKETING_PUBLICATIONS: PublicationItem[] = [
     "status": "ready",
     "notes": "Вертикальное видео 9:16 в growth/output/campaigns/sc-01-kindergarten/",
     "createdAt": "2026-10-04T15:54:52.046Z",
-    "updatedAt": "2026-10-06T05:15:05.907Z"
+    "updatedAt": "2026-10-06T06:53:07.499Z"
   },
   {
     "id": "pub-yt-sc-01-kindergarten",
@@ -1706,7 +1706,7 @@ export const MARKETING_PUBLICATIONS: PublicationItem[] = [
     "status": "published",
     "notes": "Вертикальное видео 9:16 + текст с таймкодами в growth/output/campaigns/sc-01-kindergarten/",
     "createdAt": "2026-10-04T16:31:56.939Z",
-    "updatedAt": "2026-10-06T05:15:05.795Z",
+    "updatedAt": "2026-10-06T06:53:07.366Z",
     "campaignTitle": "Садик: малыш заболел",
     "version": "v1.0",
     "videoPath": "https://github.com/OlatolaIL/ulpana-hebrew/releases/download/v-media-campaigns-01-20/sc-01-kindergarten_vertical.mp4",
@@ -1727,7 +1727,7 @@ export const MARKETING_PUBLICATIONS: PublicationItem[] = [
     "status": "published",
     "notes": "Карусель 5 слайдов 1:1 + Reel 9:16 + текст в growth/output/campaigns/sc-01-kindergarten/",
     "createdAt": "2026-10-04T16:31:56.939Z",
-    "updatedAt": "2026-10-06T05:15:05.683Z",
+    "updatedAt": "2026-10-06T06:53:07.245Z",
     "campaignTitle": "Садик: малыш заболел",
     "version": "v1.0",
     "videoPath": "https://github.com/OlatolaIL/ulpana-hebrew/releases/download/v-media-campaigns-01-20/sc-01-kindergarten_vertical.mp4",

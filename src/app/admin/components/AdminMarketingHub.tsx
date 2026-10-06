@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import type { PublicationItem } from '@/data/marketingPublicationsData';
 import {
   Activity,
   RefreshCw,
@@ -73,29 +74,6 @@ interface HealthCheckData {
   };
 }
 
-interface PublicationItem {
-  id: string;
-  date: string;
-  channel: 'tiktok' | 'youtube' | 'telegram' | 'facebook' | 'instagram';
-  channelAccount: string;
-  format: 'short_video' | 'video' | 'carousel' | 'post' | 'story' | 'storytelling' | 'poll';
-  title: string;
-  campaignTitle?: string;
-  version?: string;
-  videoPath?: string;
-  imagePath?: string;
-  caption?: string;
-  targetDeepLink: string;
-  promoCode: string;
-  fullUrlWithPromo: string;
-  livePostUrl: string;
-  status: 'draft' | 'scheduled' | 'published' | 'archived' | 'ready_for_upload' | 'ready';
-  notes?: string;
-  scheduledAt?: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
 interface LeadItem {
   id: string;
   timestamp: string;
@@ -166,13 +144,13 @@ export function AdminMarketingHub() {
   const [editPubVideoPath, setEditPubVideoPath] = useState('');
   const [editPubImagePath, setEditPubImagePath] = useState('');
   const [editPubCaption, setEditPubCaption] = useState('');
-  const [editPubChannel, setEditPubChannel] = useState<'tiktok' | 'youtube' | 'telegram' | 'facebook' | 'instagram'>('facebook');
+  const [editPubChannel, setEditPubChannel] = useState<PublicationItem['channel']>('facebook');
   const [editPubAccount, setEditPubAccount] = useState('');
-  const [editPubFormat, setEditPubFormat] = useState<'short_video' | 'video' | 'carousel' | 'post' | 'story' | 'storytelling' | 'poll'>('post');
+  const [editPubFormat, setEditPubFormat] = useState<PublicationItem['format']>('post');
   const [editPubDeepLink, setEditPubDeepLink] = useState('/decks/moms');
   const [editPubPromo, setEditPubPromo] = useState('LATTE_MAMA');
   const [editPubLiveUrl, setEditPubLiveUrl] = useState('');
-  const [editPubStatus, setEditPubStatus] = useState<'draft' | 'scheduled' | 'published' | 'archived' | 'ready_for_upload' | 'ready'>('draft');
+  const [editPubStatus, setEditPubStatus] = useState<PublicationItem['status']>('draft');
   const [editPubNotes, setEditPubNotes] = useState('');
   const [editPubScheduledAt, setEditPubScheduledAt] = useState('');
   const [editPubSaving, setEditPubSaving] = useState(false);

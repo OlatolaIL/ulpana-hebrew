@@ -18,7 +18,7 @@ test('R-00-A: DECISION_MATRIX.md exists and contains all required blocks, versio
   assert.ok(matrixContent.includes('Дата обновления:'), 'DECISION_MATRIX.md must include update date');
 
   // Check required rule anchors
-  const expectedRules = ['R-01', 'R-02', 'R-03', 'R-04', 'R-05', 'R-07', 'R-08', 'R-10', 'R-11', 'R-13', 'R-14', 'R-15', 'R-16', 'R-17', 'R-23', 'R-24', 'R-25', 'R-26', 'R-27', 'R-28'];
+  const expectedRules = ['R-01', 'R-02', 'R-03', 'R-04', 'R-05', 'R-07', 'R-08', 'R-10', 'R-11', 'R-13', 'R-14', 'R-15', 'R-16', 'R-17', 'R-23', 'R-24', 'R-25', 'R-26', 'R-27', 'R-28', 'R-29'];
   for (const rule of expectedRules) {
     assert.ok(matrixContent.includes(rule), `DECISION_MATRIX.md must define rule ${rule}`);
   }
@@ -382,6 +382,27 @@ test('R-28: Dialogue Model Homogeneity and Anti-Click Fade-out are defined and e
 
   const fixScriptPath = path.join(repoRoot, 'scripts/fix_dialogue_audio_clicks.cjs');
   assert.ok(fs.existsSync(fixScriptPath), 'scripts/fix_dialogue_audio_clicks.cjs must exist');
+});
+
+test('R-29: Cross-platform content standards mechanics passport exists and specifies platform invariants', () => {
+  const passportPath = path.join(repoRoot, 'docs/mechanics/cross-platform-content-standards.md');
+  assert.ok(fs.existsSync(passportPath), 'cross-platform-content-standards.md must exist in docs/mechanics');
+  const content = fs.readFileSync(passportPath, 'utf8');
+
+  // Verify Telegram sequence invariant
+  assert.ok(content.includes('СЕРИЯ из 5 сообщений'), 'Must specify 5-message series for Telegram');
+  assert.ok(content.includes('sendPhoto'), 'Must specify sendPhoto for Telegram cover');
+  assert.ok(content.includes('sendVoice'), 'Must specify sendVoice for Telegram voice messages');
+  assert.ok(content.includes('чистый иврит носителя'), 'Must require pure native Hebrew without narrator in Telegram voice');
+
+  // Verify Facebook link-in-body invariant
+  assert.ok(content.includes('Обязательная прямая ссылка в теле поста'), 'Must specify direct link in Facebook post body');
+
+  // Verify Instagram carousel invariant
+  assert.ok(content.includes('Обучающая Карусель из 5 слайдов 1:1'), 'Must specify 5-slide carousel for Instagram');
+
+  // Verify Lead Radar isolation invariant
+  assert.ok(content.includes('ГОРИТ ЛИД В ЧАТЕ') || content.includes('CRM-алерты'), 'Must specify Lead Radar alert isolation');
 });
 
 

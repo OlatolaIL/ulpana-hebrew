@@ -3,94 +3,10 @@ import { verifyAdminRequest } from '@/lib/adminAuth';
 import { getDbPool, initDatabase } from '@/lib/db';
 import fs from 'fs';
 import path from 'path';
-import { MARKETING_PUBLICATIONS } from '@/data/marketingPublicationsData';
+import { MARKETING_PUBLICATIONS, PublicationItem } from '@/data/marketingPublicationsData';
+import { seedPublications } from '@/lib/marketingSeeder';
 
-export interface PublicationItem {
-  id: string;
-  date: string;
-  channel: 'tiktok' | 'youtube' | 'telegram' | 'facebook' | 'instagram';
-  channelAccount: string;
-  format: 'short_video' | 'video' | 'carousel' | 'post' | 'story' | 'storytelling' | 'poll';
-  title: string;
-  campaignTitle?: string;
-  version?: string;
-  videoPath?: string;
-  imagePath?: string;
-  caption?: string;
-  targetDeepLink: string;
-  promoCode: string;
-  fullUrlWithPromo: string;
-  livePostUrl: string;
-  status: 'draft' | 'scheduled' | 'published' | 'archived' | 'ready_for_upload' | 'ready';
-  notes?: string;
-  scheduledAt?: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-// Seed publications from the JSON file or compiled module into the database
-async function seedFromFile(db: ReturnType<typeof getDbPool>) {
-  if (!db) return;
-  let items: PublicationItem[] = MARKETING_PUBLICATIONS;
-  const filePath = path.join(process.cwd(), 'growth', 'data', 'publications.json');
-  try {
-    if (fs.existsSync(filePath)) {
-      items = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
-    }
-  } catch {
-    // Keep in-memory MARKETING_PUBLICATIONS
-  }
-  if (!items || !items.length) return;
-
-  for (const item of items) {
-    try {
-      await db.query(
-        `INSERT INTO ulpana_publications (
-          id, date, channel, channel_account, format, title, campaign_title, version,
-          video_path, image_path, caption, target_deep_link, promo_code,
-          full_url_with_promo, live_post_url, status, notes, scheduled_at, created_at, updated_at
-        ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20)
-        ON CONFLICT (id) DO UPDATE SET
-          title = EXCLUDED.title,
-          caption = EXCLUDED.caption,
-          notes = EXCLUDED.notes,
-          campaign_title = EXCLUDED.campaign_title,
-          version = EXCLUDED.version,
-          video_path = EXCLUDED.video_path,
-          image_path = EXCLUDED.image_path,
-          target_deep_link = EXCLUDED.target_deep_link,
-          promo_code = EXCLUDED.promo_code,
-          full_url_with_promo = EXCLUDED.full_url_with_promo,
-          format = EXCLUDED.format,
-          live_post_url = CASE WHEN EXCLUDED.live_post_url <> '' THEN EXCLUDED.live_post_url ELSE ulpana_publications.live_post_url END,
-          status = CASE WHEN EXCLUDED.status = 'published' THEN 'published' ELSE ulpana_publications.status END,
-          scheduled_at = CASE WHEN EXCLUDED.scheduled_at IS NOT NULL THEN EXCLUDED.scheduled_at ELSE ulpana_publications.scheduled_at END,
-          updated_at = EXCLUDED.updated_at
-        WHERE ulpana_publications.title IS DISTINCT FROM EXCLUDED.title
-           OR ulpana_publications.caption IS DISTINCT FROM EXCLUDED.caption
-           OR ulpana_publications.notes IS DISTINCT FROM EXCLUDED.notes
-           OR ulpana_publications.campaign_title IS DISTINCT FROM EXCLUDED.campaign_title
-           OR ulpana_publications.video_path IS DISTINCT FROM EXCLUDED.video_path
-           OR ulpana_publications.full_url_with_promo IS DISTINCT FROM EXCLUDED.full_url_with_promo
-           OR (EXCLUDED.status = 'published' AND ulpana_publications.status <> 'published')
-           OR (EXCLUDED.live_post_url <> '' AND ulpana_publications.live_post_url IS DISTINCT FROM EXCLUDED.live_post_url)`,
-        [
-          item.id, item.date, item.channel, item.channelAccount || '',
-          item.format, item.title, item.campaignTitle || null, item.version || null,
-          item.videoPath || null, item.imagePath || null, item.caption || null,
-          item.targetDeepLink || '/lessons/1/call', item.promoCode || '',
-          item.fullUrlWithPromo || '', item.livePostUrl || '',
-          item.status || 'draft', item.notes || '',
-          item.scheduledAt || null,
-          item.createdAt || new Date().toISOString(),
-          item.updatedAt || new Date().toISOString(),
-        ]
-      );
-    } catch (itemErr) {
-      console.warn(`[seedFromFile] Non-fatal item seed error for ${item.id}:`, itemErr);
-    }
-  }
-}
+export type { PublicationItem };
 
 function rowToPublication(row: any): PublicationItem {
   return {
@@ -141,9 +57,9 @@ export async function GET(req: NextRequest) {
 
     // Sync any missing publications from JSON file into database (idempotent)
     try {
-      await seedFromFile(db);
+      await seedPublications(db);
     } catch (seedErr) {
-      console.warn('[API Admin Marketing Publications GET] seedFromFile non-fatal error:', seedErr);
+      console.warn('[API Admin Marketing Publications GET] seedPublications non-fatal error:', seedErr);
     }
 
     try {

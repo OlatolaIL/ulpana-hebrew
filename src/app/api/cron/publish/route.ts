@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyAdminRequest } from '@/lib/adminAuth';
 import { getDbPool, initDatabase } from '@/lib/db';
 import { executePublish, PublishRequestBody } from '@/lib/marketingPublisher';
+import { seedPublications } from '@/lib/marketingSeeder';
 
 export async function GET(req: NextRequest) {
   return handleCronPublish(req);
@@ -40,6 +41,9 @@ async function handleCronPublish(req: NextRequest) {
       return NextResponse.json({ error: 'Database unavailable' }, { status: 503 });
     }
 
+    // 1.5 Автоматическая синхронизация расписания в базу данных (автопилот)
+    await seedPublications(db);
+
     const nowIso = new Date().toISOString();
 
     // 2. Query for pending scheduled publications that are due
@@ -71,7 +75,7 @@ async function handleCronPublish(req: NextRequest) {
 
     // 3. Process each due item sequentially
     for (const row of dueItems) {
-      const channel = row.channel as 'youtube' | 'telegram' | 'facebook' | 'tiktok';
+      const channel = row.channel as 'youtube' | 'telegram' | 'facebook' | 'tiktok' | 'instagram';
       const publishParams: PublishRequestBody = {
         channel,
         publicationId: row.id,

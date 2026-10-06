@@ -120,7 +120,7 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
               <div className="text-xs">
                 <p className="font-bold text-emerald-900 dark:text-emerald-200">Промокод зафиксирован!</p>
                 <p className="text-emerald-700/80 dark:text-emerald-300/80">
-                  PRO-доступ активируется автоматически после окончания беты.
+                  Бесплатный PRO-доступ на 30 дней активируется автоматически после окончания беты.
                 </p>
               </div>
             </div>
@@ -138,7 +138,7 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
                 <span>Есть промокод? Зафиксируйте его сейчас</span>
               </div>
               <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                Он будет привязан к вашему аккаунту и автоматически активируется после беты.
+                Он предоставит 30 дней бесплатного PRO-доступа и будет автоматически активирован после окончания беты.
               </p>
               {!userProfile.isLoggedIn ? (
                 <button
@@ -283,7 +283,7 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
         <div className="p-4 rounded-2xl bg-amber-500/5 border border-amber-500/20 space-y-3">
           <div className="flex items-center gap-2 text-xs font-bold text-amber-900 dark:text-amber-300">
             <KeyRound className="w-4 h-4 text-amber-500" />
-            <span>Активация промокода</span>
+            <span>Активация промокода (30 дней PRO)</span>
           </div>
 
           <form onSubmit={handleActivatePromo} className="flex gap-2">

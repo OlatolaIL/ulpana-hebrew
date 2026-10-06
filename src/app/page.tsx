@@ -75,6 +75,16 @@ function getTelegramInitData(): string | null {
   return null;
 }
 
+function getPlatformPromoBadge(promoCode: string): string {
+  const p = promoCode.trim().toUpperCase();
+  if (p === 'INSTA' || p.includes('INSTA') || p.includes('IG')) return 'Instagram · 30 дней PRO';
+  if (p === 'YT' || p.includes('YOUTUBE') || p === 'SHORTS') return 'YouTube · 30 дней PRO';
+  if (p === 'TG' || p.includes('TELEGRAM') || p.startsWith('TG_')) return 'Telegram · 30 дней PRO';
+  if (p === 'TIKTOK' || p === 'TT') return 'TikTok · 30 дней PRO';
+  if (p === 'FB' || p.includes('FACEBOOK') || p.includes('LATTE')) return 'Facebook · 30 дней PRO';
+  return 'Специальный доступ · 30 дней PRO';
+}
+
 export default function Home() {
   const [syncError, setSyncError] = useState<string | null>(null);
   const [syncBusy, setSyncBusy] = useState(false);
@@ -358,8 +368,15 @@ export default function Home() {
         const loginToken = url.searchParams.get('login_token');
         const initData = getTelegramInitData();
 
-        // Захват промокода или реферального источника из URL (?promo=FB или ?ref=FB)
-        const promoParam = (url.searchParams.get('promo') || url.searchParams.get('ref'))?.trim().toUpperCase();
+        // Захват промокода или реферального источника из URL (?promo=FB или ?ref=FB или в hash)
+        let hashPromo = '';
+        if (url.hash && url.hash.includes('?')) {
+          try {
+            const hashSearch = new URLSearchParams(url.hash.split('?')[1]);
+            hashPromo = (hashSearch.get('promo') || hashSearch.get('ref'))?.trim().toUpperCase() || '';
+          } catch {}
+        }
+        const promoParam = (url.searchParams.get('promo') || url.searchParams.get('ref') || hashPromo)?.trim().toUpperCase();
         if (promoParam) {
           try {
             localStorage.setItem('ulpana_pending_promo', promoParam);
@@ -372,6 +389,9 @@ export default function Home() {
           setCapturedPromoToast(promoParam);
           url.searchParams.delete('promo');
           url.searchParams.delete('ref');
+          if (hashPromo && url.hash.includes('?')) {
+            url.hash = url.hash.split('?')[0];
+          }
           window.history.replaceState({}, '', url.pathname + (url.search ? url.search : '') + url.hash);
         }
         if (loginToken) {
@@ -1362,9 +1382,9 @@ export default function Home() {
               </div>
               <div className="min-w-0 flex-1">
                 <span className="inline-block text-[11px] font-bold tracking-wider uppercase px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 mb-1">
-                  Специальный доступ
+                  {getPlatformPromoBadge(capturedPromoToast)}
                 </span>
-                <h3 className="text-lg md:text-xl font-extrabold text-white truncate">
+                <h3 className="text-lg md:text-xl font-extrabold text-white leading-tight break-words">
                   Промокод «{capturedPromoToast}» зафиксирован!
                 </h3>
               </div>
@@ -1372,14 +1392,18 @@ export default function Home() {
 
             {/* Описание оффера */}
             <p className="text-sm text-zinc-300 mb-5 leading-relaxed">
-              За вами закреплен <strong className="text-amber-400 font-semibold">бесплатный PRO-доступ</strong>: 100 уроков живого иврита, симулятор звонков курьера и банка, речевые комплексы и словарь Pealim.
+              За вами закреплен <strong className="text-amber-400 font-semibold">бесплатный PRO-доступ на 30 дней</strong>: 100 уроков живого иврита, симулятор звонков курьера и банка, речевые комплексы и словарь Pealim.
             </p>
 
             {/* Гарантии и преимущества */}
             <div className="space-y-2.5 bg-zinc-800/60 rounded-2xl p-4 border border-zinc-700/50 mb-6 text-xs text-zinc-300">
               <div className="flex items-center gap-2.5">
+                <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
+                <span><strong className="text-white">30 дней бесплатно</strong> — полный доступ ко всем 100 урокам и звонкам</span>
+              </div>
+              <div className="flex items-center gap-2.5">
                 <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                <span><strong className="text-white">Без привязки карты</strong> — никаких скрытых списаний</span>
+                <span><strong className="text-white">Без привязки карты</strong> — никаких скрытых списаний и оплат</span>
               </div>
               <div className="flex items-center gap-2.5">
                 <Zap className="w-4 h-4 text-amber-400 shrink-0" />
@@ -1387,7 +1411,7 @@ export default function Home() {
               </div>
               <div className="flex items-center gap-2.5">
                 <ShieldCheck className="w-4 h-4 text-blue-400 shrink-0" />
-                <span><strong className="text-white">Сохранение прогресса</strong> на смартфоне и компьютере</span>
+                <span><strong className="text-white">Синхронизация прогресса</strong> на смартфоне, планшете и компьютере</span>
               </div>
             </div>
 
@@ -1402,13 +1426,13 @@ export default function Home() {
                       setCapturedPromoToast(null);
                       setAuthModalReason({
                         title: `Активация промокода «${promo}»`,
-                        description: 'Войдите через Google или Telegram в 1 клик, чтобы привязать PRO-доступ к вашему профилю и сохранить прогресс уроков.',
+                        description: 'Войдите через Google или Telegram в 1 клик, чтобы привязать бесплатный PRO-доступ на 30 дней к вашему профилю и сохранить прогресс уроков.',
                       });
                       setIsAuthModalOpen(true);
                     }}
                     className="w-full flex items-center justify-center gap-2 py-3.5 px-5 rounded-xl font-bold text-sm bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-zinc-950 shadow-lg shadow-amber-500/20 active:scale-[0.99] transition cursor-pointer"
                   >
-                    <span>Войти и закрепить PRO</span>
+                    <span>Войти и закрепить 30 дней PRO</span>
                     <ArrowRight className="w-4 h-4" />
                   </button>
 
@@ -1426,7 +1450,7 @@ export default function Home() {
                   onClick={() => setCapturedPromoToast(null)}
                   className="w-full py-3.5 px-5 rounded-xl font-bold text-sm bg-amber-500 hover:bg-amber-600 text-zinc-950 shadow-lg shadow-amber-500/20 transition cursor-pointer"
                 >
-                  Отлично, перейти к урокам
+                  Отлично, перейти к урокам (30 дней PRO)
                 </button>
               )}
             </div>

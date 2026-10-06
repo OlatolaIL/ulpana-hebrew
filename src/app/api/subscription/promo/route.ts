@@ -111,7 +111,7 @@ export async function POST(req: NextRequest) {
       const response = NextResponse.json({
         success: true,
         pending: true,
-        message: `Промокод «${normalizedCode}» зафиксирован! PRO-доступ активируется автоматически после окончания беты.${
+        message: `Промокод «${normalizedCode}» зафиксирован! Бесплатный PRO-доступ на 30 дней активируется автоматически после окончания беты.${
           promo.bundle_name ? ` Бессрочно открыт: «${promo.bundle_name}».` : ''
         }`,
         user: updatedUser,
