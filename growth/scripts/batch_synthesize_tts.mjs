@@ -154,6 +154,7 @@ function getApiKeys() {
 
 // Каскадный список моделей Gemini TTS для ротации квот
 const GEMINI_MODELS = [
+  'gemini-2.5-flash-preview-tts',
   'gemini-3.8-flash-tts',
   'gemini-3.8-flash-lite-tts',
   'gemini-3.1-flash-tts-preview',
@@ -238,8 +239,13 @@ async function synthesizeGeminiTtsWithCarousel(text, voiceName, langCode, outPat
 
     const slotKey = `${slot.keyIndex}_${slot.model}`;
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${slot.model}:generateContent?key=${slot.key}`;
+    const isModel25 = slot.model.startsWith('gemini-2.5');
+    const promptText = isModel25
+      ? `Read the following text aloud exactly as written: ${text}`
+      : text;
+
     const payload = {
-      contents: [{ parts: [{ text }] }],
+      contents: [{ parts: [{ text: promptText }] }],
       generationConfig: {
         responseModalities: ['AUDIO'],
         speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName } } },
@@ -264,7 +270,7 @@ async function synthesizeGeminiTtsWithCarousel(text, voiceName, langCode, outPat
 
       if (res.status === 429 || data.error?.code === 429) {
         const msg = data.error?.message || '';
-        const isDaily = /exceeded your current quota|per_day|per_model_per_day|Please retry in|Resource has been exhausted|quota.*exceeded/i.test(msg);
+        const isDaily = /per_model_per_day|per_day|limit:\s*\d+.*model|QuotaFailure/i.test(msg) || /QuotaFailure/i.test(JSON.stringify(data));
 
         if (isDaily) {
           console.warn(`  🛑 [${slot.model}] суточный лимит 100 запросов на ключе #${slot.keyIndex}. Ротация слота...`);
@@ -272,9 +278,9 @@ async function synthesizeGeminiTtsWithCarousel(text, voiceName, langCode, outPat
           currentSlotIdx++;
           continue;
         } else {
-          console.warn(`  ⏳ [429 RPM] Модель ${slot.model} на ключе #${slot.keyIndex}. Пауза 2с и переход к следующему слоту...`);
+          console.warn(`  ⏳ [429 RPM] Модель ${slot.model} на ключе #${slot.keyIndex}. Пауза 3с и ротация слота...`);
           currentSlotIdx++;
-          await sleep(2000);
+          await sleep(3000);
           continue;
         }
       }
