@@ -114,7 +114,7 @@ function resolveCharacterImages(lessonNumber) {
       };
     }
   }
-  if (lessonNumber === 3) {
+  if (lessonNumber === 3 || lessonNumber === 16 || lessonNumber === 18) {
     const taxiDir = path.join(CHARACTERS_DIR, 'yossi_taxi/emotions');
     const davidDir = path.join(CHARACTERS_DIR, 'david_guard/emotions');
     if (fs.existsSync(taxiDir)) {
@@ -125,7 +125,7 @@ function resolveCharacterImages(lessonNumber) {
       };
     }
   }
-  if (lessonNumber === 6 || lessonNumber === 10) {
+  if (lessonNumber === 6 || lessonNumber === 10 || lessonNumber === 19 || lessonNumber === 20) {
     const itsikDir = path.join(CHARACTERS_DIR, 'itsik_bus/emotions');
     if (fs.existsSync(itsikDir)) {
       return {
@@ -135,7 +135,7 @@ function resolveCharacterImages(lessonNumber) {
       };
     }
   }
-  if (lessonNumber === 1 || lessonNumber === 4 || lessonNumber === 8 || lessonNumber === 9 || lessonNumber === 12) {
+  if (lessonNumber === 1 || lessonNumber === 4 || lessonNumber === 8 || lessonNumber === 9 || lessonNumber === 12 || lessonNumber === 17) {
     const tomerDir = path.join(CHARACTERS_DIR, 'tomer_boss/emotions');
     const davidDir = path.join(CHARACTERS_DIR, 'david_guard/emotions');
     if (fs.existsSync(tomerDir)) {
@@ -146,7 +146,7 @@ function resolveCharacterImages(lessonNumber) {
       };
     }
   }
-  // Фоллбэк (уроки 1, 7 и др.)
+  // Фоллбэк (уроки 7, 13, 14, 15 и др.)
   const defaultDir = path.join(CHARACTERS_DIR, 'david_guard/emotions');
   return {
     context: path.join(defaultDir, 'context_mall.jpg'),
@@ -309,20 +309,24 @@ async function produceCleanLesson(lessonNumber = 8) {
   // 1. Загрузка сценария
   console.log(`📜 [1/6] Загрузка сценария урока ${lessonNumber}...`);
   const { sceneConfig, catalogCues } = loadLessonScenario(lessonNumber, 'clean');
+
+  const hasExtraLine = fs.existsSync(path.join(AUDIO_BANK, `l${numPad}_clean_s2_04.mp3`));
   
   const hookCue = catalogCues.find(c => c.id.endsWith('_s1_01'));
   const studentCue = catalogCues.find(c => c.id.endsWith('_s2_02'));
   const leadCue = catalogCues.find(c => c.id.endsWith('_s2_03'));
-  const ruleCue = catalogCues.find(c => c.id.endsWith('_s3_04'));
-  const ctaCue = catalogCues.find(c => c.id.endsWith('_s4_05'));
+  const lead2Cue = hasExtraLine ? catalogCues.find(c => c.id.endsWith('_s2_04')) : null;
+  const ruleCue = catalogCues.find(c => c.id.endsWith(hasExtraLine ? '_s3_05' : '_s3_04'));
+  const ctaCue = catalogCues.find(c => c.id.endsWith(hasExtraLine ? '_s4_06' : '_s4_05'));
 
   const s1Path = path.join(AUDIO_BANK, `l${numPad}_clean_s1_01.mp3`);
   const s2Path = path.join(AUDIO_BANK, `l${numPad}_clean_s2_02.mp3`);
   const s3Path = path.join(AUDIO_BANK, `l${numPad}_clean_s2_03.mp3`);
-  const s4Path = path.join(AUDIO_BANK, `l${numPad}_clean_s3_04.mp3`);
-  const s5Path = path.join(AUDIO_BANK, `l${numPad}_clean_s4_05.mp3`);
+  const s3bPath = hasExtraLine ? path.join(AUDIO_BANK, `l${numPad}_clean_s2_04.mp3`) : null;
+  const s4Path = path.join(AUDIO_BANK, `l${numPad}_clean_${hasExtraLine ? 's3_05' : 's3_04'}.mp3`);
+  const s5Path = path.join(AUDIO_BANK, `l${numPad}_clean_${hasExtraLine ? 's4_06' : 's4_05'}.mp3`);
 
-  if (!fs.existsSync(s1Path) || !fs.existsSync(s2Path) || !fs.existsSync(s3Path) || !fs.existsSync(s4Path) || !fs.existsSync(s5Path)) {
+  if (!fs.existsSync(s1Path) || !fs.existsSync(s2Path) || !fs.existsSync(s3Path) || !fs.existsSync(s4Path) || !fs.existsSync(s5Path) || (hasExtraLine && !fs.existsSync(s3bPath))) {
     throw new Error(`❌ Не найдены базовые аудиофайлы для урока ${lessonNumber} в audio_bank!`);
   }
 
@@ -331,17 +335,19 @@ async function produceCleanLesson(lessonNumber = 8) {
   const dS1 = getAudioDurationSec(s1Path);
   const dS2 = getAudioDurationSec(s2Path);
   const dS3 = getAudioDurationSec(s3Path);
+  const dS3b = hasExtraLine ? getAudioDurationSec(s3bPath) : 0;
   const dS4 = getAudioDurationSec(s4Path);
   const dS5 = getAudioDurationSec(s5Path);
 
   const tHookEnd = parseFloat((dS1 + 0.35).toFixed(2));
   const tStudentEnd = parseFloat((tHookEnd + dS2 + 0.35).toFixed(2));
-  const tLeadEnd = parseFloat((tStudentEnd + dS3 + 0.40).toFixed(2));
-  const tFreezeEnd = parseFloat((tLeadEnd + 1.80).toFixed(2));
+  const tLeadEnd = parseFloat((tStudentEnd + dS3 + (hasExtraLine ? 0.35 : 0.40)).toFixed(2));
+  const tLead2End = hasExtraLine ? parseFloat((tLeadEnd + dS3b + 0.40).toFixed(2)) : tLeadEnd;
+  const tFreezeEnd = parseFloat((tLead2End + 1.80).toFixed(2));
   const tRuleEnd = parseFloat((tFreezeEnd + dS4 + 0.40).toFixed(2));
   const tTotal = parseFloat((tRuleEnd + dS5 + 0.50).toFixed(2));
 
-  console.log(`   Таймлайн: Hook=0..${tHookEnd}s, Student=..${tStudentEnd}s, Lead=..${tLeadEnd}s, Freeze=..${tFreezeEnd}s, Rule=..${tRuleEnd}s, Total=${tTotal}s`);
+  console.log(`   Таймлайн: Hook=0..${tHookEnd}s, Line1=..${tStudentEnd}s, Line2=..${tLeadEnd}s, ${hasExtraLine ? `Line3=..${tLead2End}s, ` : ''}Freeze=..${tFreezeEnd}s, Rule=..${tRuleEnd}s, Total=${tTotal}s`);
 
   // 3. Сведение мастер-аудио
   console.log(`🔊 [3/6] Сведение мастер-аудио со звуковыми эффектами...`);
@@ -349,41 +355,82 @@ async function produceCleanLesson(lessonNumber = 8) {
   const chimeWav = path.join(SFX_DIR, 'chime_ding.wav');
   const masterAudioWav = path.join(ASSETS_DIR, `l${numPad}_clean_master_audio.wav`);
 
-  const s1Delay = 0;
-  const s2Delay = Math.round(tHookEnd * 1000);
-  const scratchDelay = Math.round((tStudentEnd + dS3 * 0.75) * 1000);
-  const s3Delay = Math.round((tStudentEnd + 0.3) * 1000);
-  const chimeDelay = Math.round((tFreezeEnd - 0.3) * 1000);
-  const s4Delay = Math.round(tFreezeEnd * 1000);
-  const s5Delay = Math.round(tRuleEnd * 1000);
+  if (!hasExtraLine) {
+    const s1Delay = 0;
+    const s2Delay = Math.round(tHookEnd * 1000);
+    const scratchDelay = Math.round((tStudentEnd + dS3 * 0.75) * 1000);
+    const s3Delay = Math.round((tStudentEnd + 0.3) * 1000);
+    const chimeDelay = Math.round((tFreezeEnd - 0.3) * 1000);
+    const s4Delay = Math.round(tFreezeEnd * 1000);
+    const s5Delay = Math.round(tRuleEnd * 1000);
 
-  const filterAudio = [
-    `[0:a]adelay=${s1Delay}|${s1Delay},volume=1.0[a0]`,
-    `[1:a]adelay=${s2Delay}|${s2Delay},volume=1.1[a1]`,
-    `[2:a]adelay=${scratchDelay}|${scratchDelay},volume=0.85[a2]`,
-    `[3:a]adelay=${s3Delay}|${s3Delay},volume=1.1,equalizer=f=2500:width_type=h:width=1200:g=2[a3]`,
-    `[4:a]adelay=${chimeDelay}|${chimeDelay},volume=0.8[a4]`,
-    `[5:a]adelay=${s4Delay}|${s4Delay},volume=1.05[a5]`,
-    `[6:a]adelay=${s5Delay}|${s5Delay},volume=1.0[a6]`,
-    `[a0][a1][a2][a3][a4][a5][a6]amix=inputs=7:dropout_transition=0,dynaudnorm=f=75:g=15:p=0.95[out]`
-  ].join(';');
+    const filterAudio = [
+      `[0:a]adelay=${s1Delay}|${s1Delay},volume=1.0[a0]`,
+      `[1:a]adelay=${s2Delay}|${s2Delay},volume=1.1[a1]`,
+      `[2:a]adelay=${scratchDelay}|${scratchDelay},volume=0.85[a2]`,
+      `[3:a]adelay=${s3Delay}|${s3Delay},volume=1.1,equalizer=f=2500:width_type=h:width=1200:g=2[a3]`,
+      `[4:a]adelay=${chimeDelay}|${chimeDelay},volume=0.8[a4]`,
+      `[5:a]adelay=${s4Delay}|${s4Delay},volume=1.05[a5]`,
+      `[6:a]adelay=${s5Delay}|${s5Delay},volume=1.0[a6]`,
+      `[a0][a1][a2][a3][a4][a5][a6]amix=inputs=7:dropout_transition=0,dynaudnorm=f=75:g=15:p=0.95[out]`
+    ].join(';');
 
-  cp.spawnSync(ffmpeg, [
-    '-y',
-    '-i', s1Path,
-    '-i', s2Path,
-    '-i', scratchWav,
-    '-i', s3Path,
-    '-i', chimeWav,
-    '-i', s4Path,
-    '-i', s5Path,
-    '-filter_complex', filterAudio,
-    '-map', '[out]',
-    '-ar', '44100',
-    '-ac', '2',
-    '-t', String(tTotal),
-    masterAudioWav
-  ]);
+    cp.spawnSync(ffmpeg, [
+      '-y',
+      '-i', s1Path,
+      '-i', s2Path,
+      '-i', scratchWav,
+      '-i', s3Path,
+      '-i', chimeWav,
+      '-i', s4Path,
+      '-i', s5Path,
+      '-filter_complex', filterAudio,
+      '-map', '[out]',
+      '-ar', '44100',
+      '-ac', '2',
+      '-t', String(tTotal),
+      masterAudioWav
+    ]);
+  } else {
+    const s1Delay = 0;
+    const s2Delay = Math.round(tHookEnd * 1000);
+    const s3Delay = Math.round((tStudentEnd + 0.25) * 1000);
+    const s3bDelay = Math.round((tLeadEnd + 0.25) * 1000);
+    const scratchDelay = Math.round((tLeadEnd + dS3b * 0.75) * 1000);
+    const chimeDelay = Math.round((tFreezeEnd - 0.3) * 1000);
+    const s4Delay = Math.round(tFreezeEnd * 1000);
+    const s5Delay = Math.round(tRuleEnd * 1000);
+
+    const filterAudio = [
+      `[0:a]adelay=${s1Delay}|${s1Delay},volume=1.0[a0]`,
+      `[1:a]adelay=${s2Delay}|${s2Delay},volume=1.1[a1]`,
+      `[2:a]adelay=${s3Delay}|${s3Delay},volume=1.1[a2]`,
+      `[3:a]adelay=${s3bDelay}|${s3bDelay},volume=1.1[a3]`,
+      `[4:a]adelay=${scratchDelay}|${scratchDelay},volume=0.85[a4]`,
+      `[5:a]adelay=${chimeDelay}|${chimeDelay},volume=0.8[a5]`,
+      `[6:a]adelay=${s4Delay}|${s4Delay},volume=1.05[a6]`,
+      `[7:a]adelay=${s5Delay}|${s5Delay},volume=1.0[a7]`,
+      `[a0][a1][a2][a3][a4][a5][a6][a7]amix=inputs=8:dropout_transition=0,dynaudnorm=f=75:g=15:p=0.95[out]`
+    ].join(';');
+
+    cp.spawnSync(ffmpeg, [
+      '-y',
+      '-i', s1Path,
+      '-i', s2Path,
+      '-i', s3Path,
+      '-i', s3bPath,
+      '-i', scratchWav,
+      '-i', chimeWav,
+      '-i', s4Path,
+      '-i', s5Path,
+      '-filter_complex', filterAudio,
+      '-map', '[out]',
+      '-ar', '44100',
+      '-ac', '2',
+      '-t', String(tTotal),
+      masterAudioWav
+    ]);
+  }
 
   // 4. Генерация оверлейных карточек (Playwright параллельно)
   console.log(`🎨 [4/6] Генерация оверлейных карточек (Playwright параллельно)...`);
@@ -421,7 +468,22 @@ async function produceCleanLesson(lessonNumber = 8) {
         hebrew: sceneConfig?.failLeadHe || leadCue?.text || '',
         russian: sceneConfig?.failLeadRu || ''
       }
-    },
+    }
+  ];
+
+  if (hasExtraLine) {
+    cardDefs.push({
+      file: `l${numPad}_card_03b_lead2.png`,
+      type: 'lead',
+      data: {
+        author: sceneConfig?.characterName || '🇮🇱 ИЗРАИЛЬТЯНИН',
+        hebrew: lead2Cue?.text || '',
+        russian: ''
+      }
+    });
+  }
+
+  cardDefs.push(
     {
       file: `l${numPad}_card_04_freeze.png`,
       type: 'freeze',
@@ -443,7 +505,7 @@ async function produceCleanLesson(lessonNumber = 8) {
         ruleDesc: sceneConfig?.failBadge || (ruleCue?.text ? ruleCue.text.slice(0, 150) : '')
       }
     }
-  ];
+  );
 
   // Добавляем 5 CTA карточек для всех платформ
   for (const p of PLATFORMS) {
@@ -475,37 +537,48 @@ async function produceCleanLesson(lessonNumber = 8) {
   const dur1 = tHookEnd;
   const dur2 = parseFloat((tStudentEnd - tHookEnd).toFixed(2));
   const dur3 = parseFloat((tLeadEnd - tStudentEnd).toFixed(2));
-  const dur4 = parseFloat((tFreezeEnd - tLeadEnd).toFixed(2));
+  const dur3b = hasExtraLine ? parseFloat((tLead2End - tLeadEnd).toFixed(2)) : 0;
+  const dur4 = parseFloat((tFreezeEnd - (hasExtraLine ? tLead2End : tLeadEnd)).toFixed(2));
   const dur5 = parseFloat((tRuleEnd - tFreezeEnd).toFixed(2));
   const dur6 = parseFloat((tTotal - tRuleEnd).toFixed(2));
 
   const clip1 = path.join(ASSETS_DIR, `l${numPad}_broll_01.mp4`);
   const clip2 = path.join(ASSETS_DIR, `l${numPad}_broll_02.mp4`);
   const clip3 = path.join(ASSETS_DIR, `l${numPad}_broll_03.mp4`);
+  const clip3b = path.join(ASSETS_DIR, `l${numPad}_broll_03b.mp4`);
   const clip4 = path.join(ASSETS_DIR, `l${numPad}_broll_04.mp4`);
   const clip5 = path.join(ASSETS_DIR, `l${numPad}_broll_05.mp4`);
   const clip6 = path.join(ASSETS_DIR, `l${numPad}_broll_06.mp4`);
 
-  // B-Roll 1 (Хук - Офис)
+  // B-Roll 1 (Хук)
   cp.spawnSync(ffmpeg, [
     '-y', '-loop', '1', '-i', charImgs.context,
     '-vf', `zoompan=z='min(zoom+0.0006,1.08)':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d=${Math.round(dur1*30)}:s=1080x1920:fps=30`,
     '-c:v', 'libx264', '-t', String(dur1), '-pix_fmt', 'yuv420p', clip1
   ]);
 
-  // B-Roll 2 (Сотрудница Сара)
+  // B-Roll 2 (Линия 1)
   cp.spawnSync(ffmpeg, [
     '-y', '-loop', '1', '-i', charImgs.student,
     '-vf', `zoompan=z='min(1.04+on*0.0007,1.12)':x='iw/2-(iw/zoom/2)':y='ih*0.35-(ih/zoom/2)':d=${Math.round(dur2*30)}:s=1080x1920:fps=30`,
     '-c:v', 'libx264', '-t', String(dur2), '-pix_fmt', 'yuv420p', clip2
   ]);
 
-  // B-Roll 3 (Босс Томер)
+  // B-Roll 3 (Линия 2)
   cp.spawnSync(ffmpeg, [
     '-y', '-loop', '1', '-i', charImgs.lead,
     '-vf', `zoompan=z='min(1.05+on*0.0006,1.15)':x='iw/2-(iw/zoom/2)':y='ih*0.38-(ih/zoom/2)':d=${Math.round(dur3*30)}:s=1080x1920:fps=30`,
     '-c:v', 'libx264', '-t', String(dur3), '-pix_fmt', 'yuv420p', clip3
   ]);
+
+  // B-Roll 3b (Линия 3, если есть)
+  if (hasExtraLine) {
+    cp.spawnSync(ffmpeg, [
+      '-y', '-loop', '1', '-i', charImgs.student,
+      '-vf', `zoompan=z='min(1.05+on*0.0006,1.15)':x='iw/2-(iw/zoom/2)':y='ih*0.35-(ih/zoom/2)':d=${Math.round(dur3b*30)}:s=1080x1920:fps=30`,
+      '-c:v', 'libx264', '-t', String(dur3b), '-pix_fmt', 'yuv420p', clip3b
+    ]);
+  }
 
   // B-Roll 4 (Стоп-кадр комический)
   cp.spawnSync(ffmpeg, [
@@ -514,14 +587,14 @@ async function produceCleanLesson(lessonNumber = 8) {
     '-c:v', 'libx264', '-t', String(dur4), '-r', '30', '-pix_fmt', 'yuv420p', clip4
   ]);
 
-  // B-Roll 5 (Правило / Офис)
+  // B-Roll 5 (Правило)
   cp.spawnSync(ffmpeg, [
     '-y', '-loop', '1', '-i', charImgs.context,
     '-vf', `zoompan=z='min(1.10-on*0.0004,1.06)':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d=${Math.round(dur5*30)}:s=1080x1920:fps=30,eq=brightness=-0.12`,
     '-c:v', 'libx264', '-t', String(dur5), '-pix_fmt', 'yuv420p', clip5
   ]);
 
-  // B-Roll 6 (CTA / Босс)
+  // B-Roll 6 (CTA)
   cp.spawnSync(ffmpeg, [
     '-y', '-loop', '1', '-i', charImgs.lead,
     '-vf', `zoompan=z='min(1.12-on*0.00035,1.06)':x='iw/2-(iw/zoom/2)':y='ih*0.35-(ih/zoom/2)':d=${Math.round(dur6*30)}:s=1080x1920:fps=30,eq=brightness=-0.1`,
@@ -530,13 +603,11 @@ async function produceCleanLesson(lessonNumber = 8) {
 
   // Concat B-Rolls
   const brollStemList = path.join(ASSETS_DIR, `l${numPad}_stem_broll.txt`);
-  fs.writeFileSync(brollStemList, [
-    `file '${clip1.replace(/\\/g, '/')}'`,
-    `file '${clip2.replace(/\\/g, '/')}'`,
-    `file '${clip3.replace(/\\/g, '/')}'`,
-    `file '${clip4.replace(/\\/g, '/')}'`,
-    `file '${clip5.replace(/\\/g, '/')}'`
-  ].join('\n'));
+  const stemClips = [clip1, clip2, clip3];
+  if (hasExtraLine) stemClips.push(clip3b);
+  stemClips.push(clip4, clip5);
+
+  fs.writeFileSync(brollStemList, stemClips.map(c => `file '${c.replace(/\\/g, '/')}'`).join('\n'));
 
   const mergedStemBroll = path.join(ASSETS_DIR, `l${numPad}_merged_stem_broll.mp4`);
   cp.spawnSync(ffmpeg, ['-y', '-f', 'concat', '-safe', '0', '-i', brollStemList, '-c', 'copy', mergedStemBroll]);
@@ -547,42 +618,83 @@ async function produceCleanLesson(lessonNumber = 8) {
   const card1 = path.join(ASSETS_DIR, `l${numPad}_card_01_hook.png`);
   const card2 = path.join(ASSETS_DIR, `l${numPad}_card_02_student.png`);
   const card3 = path.join(ASSETS_DIR, `l${numPad}_card_03_lead.png`);
+  const card3b = path.join(ASSETS_DIR, `l${numPad}_card_03b_lead2.png`);
   const card4 = path.join(ASSETS_DIR, `l${numPad}_card_04_freeze.png`);
   const card5 = path.join(ASSETS_DIR, `l${numPad}_card_05_rule.png`);
 
-  const filterStem = [
-    `[0:v][1:v]overlay=0:0:enable='between(t,0,${tHookEnd})'[v1]`,
-    `[v1][2:v]overlay=0:0:enable='between(t,${tHookEnd},${tStudentEnd})'[v2]`,
-    `[v2][3:v]overlay=0:0:enable='between(t,${tStudentEnd},${tLeadEnd})'[v3]`,
-    `[v3][4:v]overlay=0:0:enable='between(t,${tLeadEnd},${tFreezeEnd})'[v4]`,
-    `[v4][5:v]overlay=0:0:enable='gte(t,${tFreezeEnd})'[vfinal]`
-  ].join(';');
-
   const baseStemMp4 = path.join(ASSETS_DIR, `l${numPad}_clean_base_stem.mp4`);
   console.log(`   🎞️ Рендер общего ствола (0.0s – ${tRuleEnd}s)...`);
-  const resStem = cp.spawnSync(ffmpeg, [
-    '-y',
-    '-i', mergedStemBroll,
-    '-loop', '1', '-i', card1,
-    '-loop', '1', '-i', card2,
-    '-loop', '1', '-i', card3,
-    '-loop', '1', '-i', card4,
-    '-loop', '1', '-i', card5,
-    '-i', masterAudioWav,
-    '-filter_complex', filterStem,
-    '-map', '[vfinal]',
-    '-map', '6:a',
-    '-c:v', 'libx264',
-    '-preset', 'fast',
-    '-crf', '19',
-    '-g', '30',
-    '-keyint_min', '30',
-    '-pix_fmt', 'yuv420p',
-    '-c:a', 'aac',
-    '-b:a', '192k',
-    '-t', String(tRuleEnd),
-    baseStemMp4
-  ]);
+
+  let stemFfmpegArgs = [];
+  if (!hasExtraLine) {
+    const filterStem = [
+      `[0:v][1:v]overlay=0:0:enable='between(t,0,${tHookEnd})'[v1]`,
+      `[v1][2:v]overlay=0:0:enable='between(t,${tHookEnd},${tStudentEnd})'[v2]`,
+      `[v2][3:v]overlay=0:0:enable='between(t,${tStudentEnd},${tLeadEnd})'[v3]`,
+      `[v3][4:v]overlay=0:0:enable='between(t,${tLeadEnd},${tFreezeEnd})'[v4]`,
+      `[v4][5:v]overlay=0:0:enable='gte(t,${tFreezeEnd})'[vfinal]`
+    ].join(';');
+
+    stemFfmpegArgs = [
+      '-y',
+      '-i', mergedStemBroll,
+      '-loop', '1', '-i', card1,
+      '-loop', '1', '-i', card2,
+      '-loop', '1', '-i', card3,
+      '-loop', '1', '-i', card4,
+      '-loop', '1', '-i', card5,
+      '-i', masterAudioWav,
+      '-filter_complex', filterStem,
+      '-map', '[vfinal]',
+      '-map', '6:a',
+      '-c:v', 'libx264',
+      '-preset', 'fast',
+      '-crf', '19',
+      '-g', '30',
+      '-keyint_min', '30',
+      '-pix_fmt', 'yuv420p',
+      '-c:a', 'aac',
+      '-b:a', '192k',
+      '-t', String(tRuleEnd),
+      baseStemMp4
+    ];
+  } else {
+    const filterStem = [
+      `[0:v][1:v]overlay=0:0:enable='between(t,0,${tHookEnd})'[v1]`,
+      `[v1][2:v]overlay=0:0:enable='between(t,${tHookEnd},${tStudentEnd})'[v2]`,
+      `[v2][3:v]overlay=0:0:enable='between(t,${tStudentEnd},${tLeadEnd})'[v3]`,
+      `[v3][4:v]overlay=0:0:enable='between(t,${tLeadEnd},${tLead2End})'[v4]`,
+      `[v4][5:v]overlay=0:0:enable='between(t,${tLead2End},${tFreezeEnd})'[v5]`,
+      `[v5][6:v]overlay=0:0:enable='gte(t,${tFreezeEnd})'[vfinal]`
+    ].join(';');
+
+    stemFfmpegArgs = [
+      '-y',
+      '-i', mergedStemBroll,
+      '-loop', '1', '-i', card1,
+      '-loop', '1', '-i', card2,
+      '-loop', '1', '-i', card3,
+      '-loop', '1', '-i', card3b,
+      '-loop', '1', '-i', card4,
+      '-loop', '1', '-i', card5,
+      '-i', masterAudioWav,
+      '-filter_complex', filterStem,
+      '-map', '[vfinal]',
+      '-map', '7:a',
+      '-c:v', 'libx264',
+      '-preset', 'fast',
+      '-crf', '19',
+      '-g', '30',
+      '-keyint_min', '30',
+      '-pix_fmt', 'yuv420p',
+      '-c:a', 'aac',
+      '-b:a', '192k',
+      '-t', String(tRuleEnd),
+      baseStemMp4
+    ];
+  }
+
+  const resStem = cp.spawnSync(ffmpeg, stemFfmpegArgs);
 
   if (resStem.status !== 0) {
     throw new Error(`Ошибка рендера Base Stem: ${resStem.stderr?.toString()}`);

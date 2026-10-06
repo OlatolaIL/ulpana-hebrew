@@ -986,6 +986,142 @@
         }
       }
     },
+    "13": {
+      "lessonNumber": 13,
+      "variants": {
+        "clean": {
+          "status": "ready",
+          "updatedAt": "2026-10-06T06:04:42.443Z",
+          "platforms": [
+            "youtube",
+            "telegram",
+            "instagram",
+            "tiktok",
+            "facebook"
+          ]
+        }
+      },
+      "updatedAt": "2026-10-06T06:04:42.443Z"
+    },
+    "14": {
+      "lessonNumber": 14,
+      "variants": {
+        "clean": {
+          "status": "ready",
+          "updatedAt": "2026-10-06T06:26:38.885Z",
+          "platforms": [
+            "youtube",
+            "telegram",
+            "instagram",
+            "tiktok",
+            "facebook"
+          ]
+        }
+      },
+      "updatedAt": "2026-10-06T06:26:38.885Z"
+    },
+    "15": {
+      "lessonNumber": 15,
+      "variants": {
+        "clean": {
+          "status": "ready",
+          "updatedAt": "2026-10-06T06:26:38.885Z",
+          "platforms": [
+            "youtube",
+            "telegram",
+            "instagram",
+            "tiktok",
+            "facebook"
+          ]
+        }
+      },
+      "updatedAt": "2026-10-06T06:26:38.885Z"
+    },
+    "16": {
+      "lessonNumber": 16,
+      "variants": {
+        "clean": {
+          "status": "ready",
+          "updatedAt": "2026-10-06T06:26:38.885Z",
+          "platforms": [
+            "youtube",
+            "telegram",
+            "instagram",
+            "tiktok",
+            "facebook"
+          ]
+        }
+      },
+      "updatedAt": "2026-10-06T06:26:38.885Z"
+    },
+    "17": {
+      "lessonNumber": 17,
+      "variants": {
+        "clean": {
+          "status": "ready",
+          "updatedAt": "2026-10-06T06:26:38.885Z",
+          "platforms": [
+            "youtube",
+            "telegram",
+            "instagram",
+            "tiktok",
+            "facebook"
+          ]
+        }
+      },
+      "updatedAt": "2026-10-06T06:26:38.885Z"
+    },
+    "18": {
+      "lessonNumber": 18,
+      "variants": {
+        "clean": {
+          "status": "ready",
+          "updatedAt": "2026-10-06T06:26:38.885Z",
+          "platforms": [
+            "youtube",
+            "telegram",
+            "instagram",
+            "tiktok",
+            "facebook"
+          ]
+        }
+      },
+      "updatedAt": "2026-10-06T06:26:38.885Z"
+    },
+    "19": {
+      "lessonNumber": 19,
+      "variants": {
+        "clean": {
+          "status": "ready",
+          "updatedAt": "2026-10-06T06:26:38.885Z",
+          "platforms": [
+            "youtube",
+            "telegram",
+            "instagram",
+            "tiktok",
+            "facebook"
+          ]
+        }
+      },
+      "updatedAt": "2026-10-06T06:26:38.885Z"
+    },
+    "20": {
+      "lessonNumber": 20,
+      "variants": {
+        "clean": {
+          "status": "ready",
+          "updatedAt": "2026-10-06T06:26:38.885Z",
+          "platforms": [
+            "youtube",
+            "telegram",
+            "instagram",
+            "tiktok",
+            "facebook"
+          ]
+        }
+      },
+      "updatedAt": "2026-10-06T06:26:38.885Z"
+    },
     "69": {
       "lessonNumber": 69,
       "topic": "Израильский сленг: «Зе алай» (זה עליי — «Я угощаю / За мой счёт»)",
