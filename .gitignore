@@ -83,3 +83,4 @@ logs/
 
 # scratch directory
 /scratch/
+.env*
