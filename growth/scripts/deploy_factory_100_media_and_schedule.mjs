@@ -199,8 +199,31 @@ export async function run() {
 
   console.log(`\n🎉 Загрузка ассетов завершена! Загружено: ${uploadedCount}, Уже было на CDN: ${skippedCount}`);
 
+  // Вспомогательный парсер черновиков платформенных текстов
+  function parseDraftMarkdown(filePath) {
+    if (!fs.existsSync(filePath)) return null;
+    const content = fs.readFileSync(filePath, 'utf8');
+    const sections = {};
+    let currentSection = null;
+    const lines = content.split('\n');
+    for (const rawLine of lines) {
+      const line = rawLine.trim();
+      if (line.startsWith('## ')) {
+        currentSection = line.replace('## ', '').trim();
+        sections[currentSection] = [];
+      } else if (currentSection) {
+        sections[currentSection].push(rawLine);
+      }
+    }
+    const result = {};
+    for (const [key, valLines] of Object.entries(sections)) {
+      result[key] = valLines.join('\n').trim();
+    }
+    return result;
+  }
+
   // Генерация записей публикаций
-  console.log('\n📅 Генерация 100-дневного расписания публикаций (вечерний слот 18:30 IL)...');
+  console.log('\n📅 Генерация 100-дневного расписания публикаций на ВСЕ 5 платформ (вечерний слот 18:30 IL)...');
   
   let existingPubs = [];
   if (fs.existsSync(PUBLICATIONS_JSON)) {
@@ -216,39 +239,35 @@ export async function run() {
 
     const schedDate = new Date(startDate.getTime() + i * 24 * 60 * 60 * 1000);
     const ymd = schedDate.toISOString().split('T')[0];
-    const isoSched = schedDate.toISOString().replace('.000Z', '.000+03:00');
+    const isoSched = `${ymd}T18:30:00.000+03:00`;
 
-    // Прочитаем youtube.md если доступен
-    let ytTitle = `${ep.verb} в предложении | Иврит с Ульпаной`;
-    let ytCaption = `Учимся понимать и говорить на иврите: ${ep.verb}\n\n🔹 Фраза: ${ep.sentence}\n\n💡 Тренируйте живые диалоги в приложении «Ульпан Алеф»:\n👉 https://ulpana-hebrew.vercel.app/?promo=YOUTUBE\n\n#Shorts #иврит #ульпан #израиль #ульпаналеф`;
-
-    const ytDraftPath = path.join(
+    const genDir = path.join(
       CODEX_ROOT,
       'growth/video-factory/episodes',
       ep.id,
       'revisions',
       ep.revision,
-      'generated/youtube.md'
+      'generated'
     );
-    if (fs.existsSync(ytDraftPath)) {
-      const rawYt = fs.readFileSync(ytDraftPath, 'utf8');
-      const lines = rawYt.split('\n');
-      for (let l = 0; l < lines.length; l++) {
-        if (lines[l].includes('в предложении и семья корня')) {
-          ytTitle = lines[l].trim();
-          break;
-        }
-      }
-      ytCaption = `${ytTitle}\n\n${ep.sentence}\n\n💡 Тренируйте живые диалоги в приложении «Ульпан Алеф»:\n👉 https://ulpana-hebrew.vercel.app/?promo=YOUTUBE\n\n#Shorts #иврит #ульпан #израиль #ульпаналеф`;
-    }
 
-    // 1. YouTube Shorts публикация
+    const parsedYt = parseDraftMarkdown(path.join(genDir, 'youtube.md'));
+    const parsedTg = parseDraftMarkdown(path.join(genDir, 'telegram.md'));
+    const parsedIg = parseDraftMarkdown(path.join(genDir, 'instagram.md'));
+    const parsedTt = parseDraftMarkdown(path.join(genDir, 'tiktok.md'));
+    const parsedFb = parseDraftMarkdown(path.join(genDir, 'facebook.md'));
+
+    const commonNotes = `Урок ${i + 1} (${ep.verb}) • Фабрика 100 • Вечерний эфир 18:30`;
+
+    // 1. YouTube Shorts
+    const ytTitle = parsedYt?.['Заголовок или первая строка'] || `${ep.verb} в предложении и семья корня | Иврит с Ульпаной`;
+    const ytStudy = parsedYt?.['Учебный блок'] || `«${ep.sentence}»`;
+    const ytCaption = `${ytTitle}\n\n${ytStudy}\n\n💡 Тренируйте живые диалоги в приложении «Ульпан Алеф»:\n👉 https://ulpana-hebrew.vercel.app/?promo=YOUTUBE\n\n#Shorts #иврит #ульпан #израиль #ульпаналеф`;
     const ytId = `pub-yt-${ep.id.toLowerCase()}`;
     const ytItem = {
       id: ytId,
       date: ymd,
       channel: 'youtube',
-      channelAccount: 'Ульпана',
+      channelAccount: 'Ульпан Алеф',
       format: 'short_video',
       title: ytTitle,
       campaignTitle: `100 уроков: ${ep.verb}`,
@@ -261,12 +280,15 @@ export async function run() {
       livePostUrl: '',
       status: 'scheduled',
       scheduledAt: isoSched,
-      notes: `Урок ${i + 1} (${ep.verb}) • Фабрика 100`,
+      notes: commonNotes,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
 
-    // 2. Telegram публикация
+    // 2. Telegram
+    const tgHeader = parsedTg?.['Заголовок или первая строка'] || 'тренировка памяти и речи';
+    const tgStudy = parsedTg?.['Учебный блок'] || `«${ep.sentence}»`;
+    const tgCaption = `🎬 <b>${ep.verb} в предложении</b>\n\n${tgStudy}\n\n💡 Попробуйте повторить фразу вслух и проверьте себя в приложении:\n👉 https://ulpana-hebrew.vercel.app/?promo=TG`;
     const tgId = `pub-tg-${ep.id.toLowerCase()}`;
     const tgItem = {
       id: tgId,
@@ -274,23 +296,104 @@ export async function run() {
       channel: 'telegram',
       channelAccount: '@ulpana_il',
       format: 'short_video',
-      title: `${ep.verb} — тренировка памяти и речи`,
+      title: `${ep.verb} — ${tgHeader}`,
       campaignTitle: `100 уроков: ${ep.verb}`,
       version: ep.revision,
       videoPath: cdnUrl,
-      caption: `🎬 <b>${ep.verb} в предложении</b>\n\n«${ep.sentence}»\n\n💡 Попробуйте повторить фразу вслух и проверьте себя в приложении:\n👉 https://ulpana-hebrew.vercel.app/?promo=TG`,
+      caption: tgCaption,
       targetDeepLink: `/lesson/${i + 1}`,
       promoCode: 'TG',
       fullUrlWithPromo: `https://ulpana-hebrew.vercel.app/?promo=TG&utm_source=telegram&utm_medium=channel&utm_campaign=${ep.id.toLowerCase()}`,
       livePostUrl: '',
       status: 'scheduled',
       scheduledAt: isoSched,
-      notes: `Урок ${i + 1} (${ep.verb}) • Фабрика 100`,
+      notes: commonNotes,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
 
-    newPubs.push(ytItem, tgItem);
+    // 3. Instagram Reels
+    const igHeader = parsedIg?.['Заголовок или первая строка'] || 'Сможете сказать целую фразу на иврите за 5 секунд?';
+    const igStudy = parsedIg?.['Учебный блок'] || `«${ep.sentence}»`;
+    const igCaption = `${igHeader}\n\n${igStudy}\n\n💡 Тренируйте живую речь и звонки в приложении «Ульпан Алеф»!\n🎁 Промокод на 30 дней: INSTA\n👉 Ссылка в шапке профиля @ulpana_alef\n\n#иврит #учимиврит #ульпан #ульпаналеф #израиль #репатриация #reels`;
+    const igId = `pub-ig-${ep.id.toLowerCase()}`;
+    const igItem = {
+      id: igId,
+      date: ymd,
+      channel: 'instagram',
+      channelAccount: 'Instagram @ulpana_alef',
+      format: 'short_video',
+      title: `${ep.verb}: ${igHeader}`,
+      campaignTitle: `100 уроков: ${ep.verb}`,
+      version: ep.revision,
+      videoPath: cdnUrl,
+      caption: igCaption,
+      targetDeepLink: `/lesson/${i + 1}`,
+      promoCode: 'INSTA',
+      fullUrlWithPromo: `https://ulpana-hebrew.vercel.app/?promo=INSTA&utm_source=instagram&utm_medium=reels&utm_campaign=${ep.id.toLowerCase()}`,
+      livePostUrl: '',
+      status: 'scheduled',
+      scheduledAt: isoSched,
+      notes: commonNotes,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    // 4. TikTok
+    const ttHeader = parsedTt?.['Заголовок или первая строка'] || 'Вспомните глагол и скажите фразу до появления ответа';
+    const ttStudy = parsedTt?.['Учебный блок'] || `«${ep.sentence}»`;
+    const ttCaption = `${ttHeader} 🇮🇱\n\n${ttStudy}\n\n🔥 Тренируйтесь в приложении «Ульпан Алеф» (промокод: TIKTOK)\n#иврит #учимиврит #ульпаналеф #израиль #shorts`;
+    const ttId = `pub-tt-${ep.id.toLowerCase()}`;
+    const ttItem = {
+      id: ttId,
+      date: ymd,
+      channel: 'tiktok',
+      channelAccount: 'TikTok @ulpana_alef',
+      format: 'short_video',
+      title: `${ep.verb}: ${ttHeader}`,
+      campaignTitle: `100 уроков: ${ep.verb}`,
+      version: ep.revision,
+      videoPath: cdnUrl,
+      caption: ttCaption,
+      targetDeepLink: `/lesson/${i + 1}`,
+      promoCode: 'TIKTOK',
+      fullUrlWithPromo: `https://ulpana-hebrew.vercel.app/?promo=TIKTOK&utm_source=tiktok&utm_medium=short&utm_campaign=${ep.id.toLowerCase()}`,
+      livePostUrl: '',
+      status: 'scheduled',
+      scheduledAt: isoSched,
+      notes: commonNotes,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    // 5. Facebook Reels
+    const fbHeader = parsedFb?.['Заголовок или первая строка'] || 'Как связать глагол, предложение и семью слов на иврите';
+    const fbStudy = parsedFb?.['Учебный блок'] || `«${ep.sentence}»`;
+    const fbCaption = `${fbHeader}\n\n${fbStudy}\n\n💡 Тренируйте живые диалоги и звонки в приложении «Ульпан Алеф»:\n👉 https://ulpana-hebrew.vercel.app/?promo=FB\n\n#иврит #ульпан #израиль #ульпаналеф #репатриация`;
+    const fbId = `pub-fb-${ep.id.toLowerCase()}`;
+    const fbItem = {
+      id: fbId,
+      date: ymd,
+      channel: 'facebook',
+      channelAccount: 'Ulpana - Иврит без паники',
+      format: 'short_video',
+      title: `${ep.verb}: ${fbHeader}`,
+      campaignTitle: `100 уроков: ${ep.verb}`,
+      version: ep.revision,
+      videoPath: cdnUrl,
+      caption: fbCaption,
+      targetDeepLink: `/lesson/${i + 1}`,
+      promoCode: 'FB',
+      fullUrlWithPromo: `https://ulpana-hebrew.vercel.app/?promo=FB&utm_source=facebook&utm_medium=reels&utm_campaign=${ep.id.toLowerCase()}`,
+      livePostUrl: '',
+      status: 'scheduled',
+      scheduledAt: isoSched,
+      notes: commonNotes,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    newPubs.push(ytItem, tgItem, igItem, ttItem, fbItem);
   }
 
   // Обновляем существующие или добавляем новые

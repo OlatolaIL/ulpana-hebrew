@@ -85,6 +85,7 @@ export const DEFAULT_PROMO_BUNDLE_MAPPINGS: Record<string, string> = {
   ALEF69: 'bundle_all_free',
   ULPANA69: 'bundle_all_free',
   YT: 'bundle_all_free',
+  YOUTUBE: 'bundle_all_free',
   TG: 'bundle_all_free',
   INSTA: 'bundle_all_free',
   TIKTOK: 'bundle_all_free',
