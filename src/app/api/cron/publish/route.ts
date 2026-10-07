@@ -4,6 +4,8 @@ import { getDbPool, initDatabase } from '@/lib/db';
 import { executePublish, PublishRequestBody } from '@/lib/marketingPublisher';
 import { seedPublications } from '@/lib/marketingSeeder';
 
+export const maxDuration = 120;
+
 export async function GET(req: NextRequest) {
   return handleCronPublish(req);
 }
@@ -14,12 +16,19 @@ export async function POST(req: NextRequest) {
 
 async function handleCronPublish(req: NextRequest) {
   try {
-    // 1. Authorization: either valid CRON_SECRET or Admin Session
+    // 1. Authorization: either valid CRON_SECRET, JWT_SECRET, Vercel cron invocation header, or Admin Session
     const authHeader = req.headers.get('authorization');
     const cronSecret = process.env.CRON_SECRET?.trim();
+    const jwtSecret = process.env.JWT_SECRET?.trim();
+    const isVercelCron = req.headers.get('x-vercel-cron') === '1' || req.headers.get('user-agent')?.includes('vercel-cron');
+
     let isAuthorized = false;
 
     if (cronSecret && authHeader === `Bearer ${cronSecret}`) {
+      isAuthorized = true;
+    } else if (jwtSecret && authHeader === `Bearer ${jwtSecret}`) {
+      isAuthorized = true;
+    } else if (isVercelCron) {
       isAuthorized = true;
     } else {
       const adminAuth = await verifyAdminRequest(req);
@@ -45,22 +54,29 @@ async function handleCronPublish(req: NextRequest) {
     await seedPublications(db);
 
     const nowIso = new Date().toISOString();
+    const nowMs = Date.now();
+    const todayYmd = nowIso.split('T')[0];
 
-    // 2. Query for pending scheduled publications that are due
-    // Supports both scheduled_at timestamp and legacy date (YYYY-MM-DD)
-    const dueResult = await db.query(
+    // 2. Query for pending scheduled publications
+    const scheduledResult = await db.query(
       `SELECT * FROM ulpana_publications
        WHERE status = 'scheduled'
-         AND (
-           (scheduled_at IS NOT NULL AND scheduled_at <= $1)
-           OR (scheduled_at IS NULL AND date <= CURRENT_DATE::text)
-         )
-       ORDER BY scheduled_at ASC NULLS LAST, created_at ASC
-       LIMIT 10`,
-      [nowIso]
+       ORDER BY scheduled_at ASC NULLS LAST, created_at ASC`
     );
 
-    const dueItems = dueResult.rows;
+    // 2.1 Точная фильтрация созревших публикаций по реальному времени (с учётом часовых поясов)
+    const dueItems = scheduledResult.rows.filter((row) => {
+      if (row.scheduled_at) {
+        const parsedMs = Date.parse(row.scheduled_at);
+        if (!isNaN(parsedMs)) {
+          return parsedMs <= nowMs;
+        }
+      }
+      if (row.date) {
+        return row.date <= todayYmd;
+      }
+      return false;
+    }).slice(0, 10);
     if (dueItems.length === 0) {
       return NextResponse.json({
         success: true,

@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyAdminRequest } from '@/lib/adminAuth';
 import { executePublish, PublishRequestBody } from '@/lib/marketingPublisher';
 
+export const maxDuration = 120;
+
 export async function POST(req: NextRequest) {
   try {
     const auth = await verifyAdminRequest(req);

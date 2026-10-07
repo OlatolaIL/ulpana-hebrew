@@ -62,6 +62,7 @@ export async function seedPublications(db: Pool | null): Promise<number> {
            OR ulpana_publications.video_path IS DISTINCT FROM EXCLUDED.video_path
            OR ulpana_publications.full_url_with_promo IS DISTINCT FROM EXCLUDED.full_url_with_promo
            OR (EXCLUDED.status = 'published' AND ulpana_publications.status <> 'published')
+           OR (ulpana_publications.status <> 'published' AND ulpana_publications.status IS DISTINCT FROM EXCLUDED.status)
            OR (EXCLUDED.live_post_url <> '' AND ulpana_publications.live_post_url IS DISTINCT FROM EXCLUDED.live_post_url)
            OR (EXCLUDED.scheduled_at IS NOT NULL AND ulpana_publications.scheduled_at IS DISTINCT FROM EXCLUDED.scheduled_at)`,
         [
