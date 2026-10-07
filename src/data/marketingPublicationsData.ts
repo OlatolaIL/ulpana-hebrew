@@ -1228,12 +1228,12 @@ export const MARKETING_PUBLICATIONS: PublicationItem[] = [
     "targetDeepLink": "/lesson/7",
     "promoCode": "INSTA",
     "fullUrlWithPromo": "https://ulpana-hebrew.vercel.app/#lesson-7?promo=INSTA&utm_source=instagram&utm_medium=carousel&utm_campaign=sc-06-apartment-rent",
-    "livePostUrl": "",
-    "status": "scheduled",
+    "livePostUrl": "https://www.instagram.com/reel/DeNBM_QDgPP/",
+    "status": "published",
     "scheduledAt": "2026-10-07T19:30:00.000+03:00",
     "notes": "Карусель 5 слайдов 1:1 + Reels 9:16 • Фабрика 2026",
     "createdAt": "2026-10-04T16:31:56.943Z",
-    "updatedAt": "2026-10-04T16:31:56.943Z"
+    "updatedAt": "2026-10-07T18:56:54.739Z"
   },
   {
     "id": "pub-yt-sc-06-apartment-rent",
@@ -1249,12 +1249,12 @@ export const MARKETING_PUBLICATIONS: PublicationItem[] = [
     "targetDeepLink": "/lesson/7",
     "promoCode": "YOUTUBE",
     "fullUrlWithPromo": "https://ulpana-hebrew.vercel.app/#lesson-7?promo=YOUTUBE&utm_source=youtube&utm_medium=shorts&utm_campaign=sc-06-apartment-rent",
-    "livePostUrl": "",
-    "status": "scheduled",
+    "livePostUrl": "https://www.youtube.com/shorts/F5zCvT1oGRQ",
+    "status": "published",
     "scheduledAt": "2026-10-07T19:30:00.000+03:00",
     "notes": "Вертикал 9:16 + таймкоды фраз • Фабрика 2026",
     "createdAt": "2026-10-04T16:31:56.943Z",
-    "updatedAt": "2026-10-04T16:31:56.943Z"
+    "updatedAt": "2026-10-07T18:56:54.740Z"
   },
   {
     "id": "pub-tg-sc-06-apartment-rent",
@@ -1270,12 +1270,12 @@ export const MARKETING_PUBLICATIONS: PublicationItem[] = [
     "targetDeepLink": "/lesson/7",
     "promoCode": "TG",
     "fullUrlWithPromo": "https://ulpana-hebrew.vercel.app/#lesson-7?promo=TG&utm_source=telegram&utm_medium=channel&utm_campaign=sc-06-apartment-rent",
-    "livePostUrl": "",
-    "status": "scheduled",
+    "livePostUrl": "https://t.me/ulpana_il/63",
+    "status": "published",
     "scheduledAt": "2026-10-07T19:30:00.000+03:00",
     "notes": "Видео 1:1 + HTML + Инлайн-кнопка промокода TG • Фабрика 2026",
     "createdAt": "2026-10-04T16:31:56.943Z",
-    "updatedAt": "2026-10-04T16:31:56.943Z"
+    "updatedAt": "2026-10-07T18:56:54.740Z"
   },
   {
     "id": "pub-fb-sc-06-apartment-rent",
