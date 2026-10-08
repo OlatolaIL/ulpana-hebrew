@@ -1060,12 +1060,12 @@ export const MARKETING_PUBLICATIONS: PublicationItem[] = [
     "targetDeepLink": "/lesson/19",
     "promoCode": "INSTA",
     "fullUrlWithPromo": "https://ulpana-hebrew.vercel.app/#lesson-19?promo=INSTA&utm_source=instagram&utm_medium=carousel&utm_campaign=sc-08-bank-branch",
-    "livePostUrl": "",
-    "status": "scheduled",
+    "livePostUrl": "https://www.instagram.com/reel/DeO3M5Xgkyw/",
+    "status": "published",
     "scheduledAt": "2026-10-08T14:00:00.000+03:00",
     "notes": "Карусель 5 слайдов 1:1 + Reels 9:16 • Фабрика 2026",
     "createdAt": "2026-10-04T16:31:56.945Z",
-    "updatedAt": "2026-10-04T16:31:56.945Z"
+    "updatedAt": "2026-10-08T11:48:48.891Z"
   },
   {
     "id": "pub-yt-sc-08-bank-branch",
@@ -1102,12 +1102,12 @@ export const MARKETING_PUBLICATIONS: PublicationItem[] = [
     "targetDeepLink": "/lesson/19",
     "promoCode": "TG",
     "fullUrlWithPromo": "https://ulpana-hebrew.vercel.app/#lesson-19?promo=TG&utm_source=telegram&utm_medium=channel&utm_campaign=sc-08-bank-branch",
-    "livePostUrl": "",
-    "status": "scheduled",
+    "livePostUrl": "https://t.me/ulpana_il/69",
+    "status": "published",
     "scheduledAt": "2026-10-08T14:00:00.000+03:00",
     "notes": "Видео 1:1 + HTML + Инлайн-кнопка промокода TG • Фабрика 2026",
     "createdAt": "2026-10-04T16:31:56.945Z",
-    "updatedAt": "2026-10-04T16:31:56.945Z"
+    "updatedAt": "2026-10-08T11:48:51.596Z"
   },
   {
     "id": "pub-fb-sc-08-bank-branch",
@@ -1123,12 +1123,12 @@ export const MARKETING_PUBLICATIONS: PublicationItem[] = [
     "targetDeepLink": "/lesson/19",
     "promoCode": "FB_POST",
     "fullUrlWithPromo": "https://ulpana-hebrew.vercel.app/#lesson-19?promo=FB_POST&utm_source=facebook&utm_medium=video&utm_campaign=sc-08-bank-branch",
-    "livePostUrl": "",
-    "status": "scheduled",
+    "livePostUrl": "https://www.facebook.com/1790496665523726",
+    "status": "published",
     "scheduledAt": "2026-10-08T14:00:00.000+03:00",
     "notes": "Zero-Link протокол (ссылка в первом комменте) • Фабрика 2026",
     "createdAt": "2026-10-04T16:31:56.945Z",
-    "updatedAt": "2026-10-04T16:31:56.945Z"
+    "updatedAt": "2026-10-08T11:48:56.810Z"
   },
   {
     "id": "pub-ig-sc-07-bus-public-transport",
@@ -1144,12 +1144,12 @@ export const MARKETING_PUBLICATIONS: PublicationItem[] = [
     "targetDeepLink": "/lesson/10",
     "promoCode": "INSTA",
     "fullUrlWithPromo": "https://ulpana-hebrew.vercel.app/#lesson-10?promo=INSTA&utm_source=instagram&utm_medium=carousel&utm_campaign=sc-07-bus-public-transport",
-    "livePostUrl": "",
-    "status": "scheduled",
+    "livePostUrl": "https://www.instagram.com/reel/DeO3Sfhjpsj/",
+    "status": "published",
     "scheduledAt": "2026-10-08T08:00:00.000+03:00",
     "notes": "Карусель 5 слайдов 1:1 + Reels 9:16 • Фабрика 2026",
     "createdAt": "2026-10-04T16:31:56.944Z",
-    "updatedAt": "2026-10-04T16:31:56.944Z"
+    "updatedAt": "2026-10-08T11:49:32.584Z"
   },
   {
     "id": "pub-yt-sc-07-bus-public-transport",
@@ -1186,12 +1186,12 @@ export const MARKETING_PUBLICATIONS: PublicationItem[] = [
     "targetDeepLink": "/lesson/10",
     "promoCode": "TG",
     "fullUrlWithPromo": "https://ulpana-hebrew.vercel.app/#lesson-10?promo=TG&utm_source=telegram&utm_medium=channel&utm_campaign=sc-07-bus-public-transport",
-    "livePostUrl": "",
-    "status": "scheduled",
+    "livePostUrl": "https://t.me/ulpana_il/71",
+    "status": "published",
     "scheduledAt": "2026-10-08T08:00:00.000+03:00",
     "notes": "Видео 1:1 + HTML + Инлайн-кнопка промокода TG • Фабрика 2026",
     "createdAt": "2026-10-04T16:31:56.944Z",
-    "updatedAt": "2026-10-04T16:31:56.944Z"
+    "updatedAt": "2026-10-08T11:49:34.939Z"
   },
   {
     "id": "pub-fb-sc-07-bus-public-transport",
@@ -1207,12 +1207,12 @@ export const MARKETING_PUBLICATIONS: PublicationItem[] = [
     "targetDeepLink": "/lesson/10",
     "promoCode": "FB_POST",
     "fullUrlWithPromo": "https://ulpana-hebrew.vercel.app/#lesson-10?promo=FB_POST&utm_source=facebook&utm_medium=video&utm_campaign=sc-07-bus-public-transport",
-    "livePostUrl": "",
-    "status": "scheduled",
+    "livePostUrl": "https://www.facebook.com/1153787927222990",
+    "status": "published",
     "scheduledAt": "2026-10-08T08:00:00.000+03:00",
     "notes": "Zero-Link протокол (ссылка в первом комменте) • Фабрика 2026",
     "createdAt": "2026-10-04T16:31:56.944Z",
-    "updatedAt": "2026-10-04T16:31:56.944Z"
+    "updatedAt": "2026-10-08T11:49:39.765Z"
   },
   {
     "id": "pub-ig-sc-06-apartment-rent",
@@ -1291,12 +1291,12 @@ export const MARKETING_PUBLICATIONS: PublicationItem[] = [
     "targetDeepLink": "/lesson/7",
     "promoCode": "FB_POST",
     "fullUrlWithPromo": "https://ulpana-hebrew.vercel.app/#lesson-7?promo=FB_POST&utm_source=facebook&utm_medium=video&utm_campaign=sc-06-apartment-rent",
-    "livePostUrl": "",
-    "status": "scheduled",
+    "livePostUrl": "https://www.facebook.com/1097669475971484",
+    "status": "published",
     "scheduledAt": "2026-10-07T19:30:00.000+03:00",
     "notes": "Zero-Link протокол (ссылка в первом комменте) • Фабрика 2026",
     "createdAt": "2026-10-04T16:31:56.943Z",
-    "updatedAt": "2026-10-04T16:31:56.943Z"
+    "updatedAt": "2026-10-08T11:49:44.718Z"
   },
   {
     "id": "pub-ig-sc-05-cafe-order",
@@ -1312,12 +1312,12 @@ export const MARKETING_PUBLICATIONS: PublicationItem[] = [
     "targetDeepLink": "/lesson/2",
     "promoCode": "INSTA",
     "fullUrlWithPromo": "https://ulpana-hebrew.vercel.app/#lesson-2?promo=INSTA&utm_source=instagram&utm_medium=carousel&utm_campaign=sc-05-cafe-order",
-    "livePostUrl": "",
-    "status": "scheduled",
+    "livePostUrl": "https://www.instagram.com/reel/DeO3YX-FO93/",
+    "status": "published",
     "scheduledAt": "2026-10-07T08:30:00.000+03:00",
     "notes": "Карусель 5 слайдов 1:1 + Reels 9:16 • Фабрика 2026",
     "createdAt": "2026-10-04T16:31:56.942Z",
-    "updatedAt": "2026-10-04T16:31:56.942Z"
+    "updatedAt": "2026-10-08T11:50:12.547Z"
   },
   {
     "id": "pub-yt-sc-05-cafe-order",
@@ -1354,12 +1354,12 @@ export const MARKETING_PUBLICATIONS: PublicationItem[] = [
     "targetDeepLink": "/lesson/2",
     "promoCode": "TG",
     "fullUrlWithPromo": "https://ulpana-hebrew.vercel.app/#lesson-2?promo=TG&utm_source=telegram&utm_medium=channel&utm_campaign=sc-05-cafe-order",
-    "livePostUrl": "",
-    "status": "scheduled",
+    "livePostUrl": "https://t.me/ulpana_il/72",
+    "status": "published",
     "scheduledAt": "2026-10-07T08:30:00.000+03:00",
     "notes": "Видео 1:1 + HTML + Инлайн-кнопка промокода TG • Фабрика 2026",
     "createdAt": "2026-10-04T16:31:56.942Z",
-    "updatedAt": "2026-10-04T16:31:56.942Z"
+    "updatedAt": "2026-10-08T11:50:14.851Z"
   },
   {
     "id": "pub-fb-sc-05-cafe-order",
@@ -1375,12 +1375,12 @@ export const MARKETING_PUBLICATIONS: PublicationItem[] = [
     "targetDeepLink": "/lesson/2",
     "promoCode": "FB_POST",
     "fullUrlWithPromo": "https://ulpana-hebrew.vercel.app/#lesson-2?promo=FB_POST&utm_source=facebook&utm_medium=video&utm_campaign=sc-05-cafe-order",
-    "livePostUrl": "",
-    "status": "scheduled",
+    "livePostUrl": "https://www.facebook.com/1454663543272893",
+    "status": "published",
     "scheduledAt": "2026-10-07T08:30:00.000+03:00",
     "notes": "Zero-Link протокол (ссылка в первом комменте) • Фабрика 2026",
     "createdAt": "2026-10-04T16:31:56.942Z",
-    "updatedAt": "2026-10-04T16:31:56.942Z"
+    "updatedAt": "2026-10-08T11:50:19.391Z"
   },
   {
     "id": "pub-ig-sc-04-supermarket",
@@ -1396,12 +1396,12 @@ export const MARKETING_PUBLICATIONS: PublicationItem[] = [
     "targetDeepLink": "/lesson/5",
     "promoCode": "INSTA",
     "fullUrlWithPromo": "https://ulpana-hebrew.vercel.app/#lesson-5?promo=INSTA&utm_source=instagram&utm_medium=carousel&utm_campaign=sc-04-supermarket",
-    "livePostUrl": "",
-    "status": "scheduled",
+    "livePostUrl": "https://www.instagram.com/reel/DeO3ciSESHD/",
+    "status": "published",
     "scheduledAt": "2026-10-06T17:30:00.000+03:00",
     "notes": "Карусель 5 слайдов 1:1 + Reels 9:16 • Фабрика 2026",
     "createdAt": "2026-10-04T16:31:56.941Z",
-    "updatedAt": "2026-10-04T16:31:56.941Z"
+    "updatedAt": "2026-10-08T11:50:49.334Z"
   },
   {
     "id": "pub-yt-sc-04-supermarket",
@@ -1438,12 +1438,12 @@ export const MARKETING_PUBLICATIONS: PublicationItem[] = [
     "targetDeepLink": "/lesson/5",
     "promoCode": "TG",
     "fullUrlWithPromo": "https://ulpana-hebrew.vercel.app/#lesson-5?promo=TG&utm_source=telegram&utm_medium=channel&utm_campaign=sc-04-supermarket",
-    "livePostUrl": "",
-    "status": "scheduled",
+    "livePostUrl": "https://t.me/ulpana_il/73",
+    "status": "published",
     "scheduledAt": "2026-10-06T17:30:00.000+03:00",
     "notes": "Видео 1:1 + HTML + Инлайн-кнопка промокода TG • Фабрика 2026",
     "createdAt": "2026-10-04T16:31:56.941Z",
-    "updatedAt": "2026-10-04T16:31:56.941Z"
+    "updatedAt": "2026-10-08T11:50:51.786Z"
   },
   {
     "id": "pub-fb-sc-04-supermarket",
@@ -1459,12 +1459,12 @@ export const MARKETING_PUBLICATIONS: PublicationItem[] = [
     "targetDeepLink": "/lesson/5",
     "promoCode": "FB_POST",
     "fullUrlWithPromo": "https://ulpana-hebrew.vercel.app/#lesson-5?promo=FB_POST&utm_source=facebook&utm_medium=video&utm_campaign=sc-04-supermarket",
-    "livePostUrl": "",
-    "status": "scheduled",
+    "livePostUrl": "https://www.facebook.com/1579986993926059",
+    "status": "published",
     "scheduledAt": "2026-10-06T17:30:00.000+03:00",
     "notes": "Zero-Link протокол (ссылка в первом комменте) • Фабрика 2026",
     "createdAt": "2026-10-04T16:31:56.941Z",
-    "updatedAt": "2026-10-04T16:31:56.941Z"
+    "updatedAt": "2026-10-08T11:50:55.779Z"
   },
   {
     "id": "pub-ig-sc-03-clinic-doctor",
@@ -1480,12 +1480,12 @@ export const MARKETING_PUBLICATIONS: PublicationItem[] = [
     "targetDeepLink": "/lesson/14",
     "promoCode": "INSTA",
     "fullUrlWithPromo": "https://ulpana-hebrew.vercel.app/#lesson-14?promo=INSTA&utm_source=instagram&utm_medium=carousel&utm_campaign=sc-03-clinic-doctor",
-    "livePostUrl": "",
-    "status": "scheduled",
+    "livePostUrl": "https://www.instagram.com/reel/DeO3g8Wkifg/",
+    "status": "published",
     "scheduledAt": "2026-10-06T09:00:00.000+03:00",
     "notes": "Карусель 5 слайдов 1:1 + Reels 9:16 • Фабрика 2026",
     "createdAt": "2026-10-04T16:31:56.940Z",
-    "updatedAt": "2026-10-04T16:31:56.940Z"
+    "updatedAt": "2026-10-08T11:51:29.899Z"
   },
   {
     "id": "pub-yt-sc-03-clinic-doctor",
@@ -1522,12 +1522,12 @@ export const MARKETING_PUBLICATIONS: PublicationItem[] = [
     "targetDeepLink": "/lesson/14",
     "promoCode": "TG",
     "fullUrlWithPromo": "https://ulpana-hebrew.vercel.app/#lesson-14?promo=TG&utm_source=telegram&utm_medium=channel&utm_campaign=sc-03-clinic-doctor",
-    "livePostUrl": "",
-    "status": "scheduled",
+    "livePostUrl": "https://t.me/ulpana_il/75",
+    "status": "published",
     "scheduledAt": "2026-10-06T09:00:00.000+03:00",
     "notes": "Видео 1:1 + HTML + Инлайн-кнопка промокода TG • Фабрика 2026",
     "createdAt": "2026-10-04T16:31:56.940Z",
-    "updatedAt": "2026-10-04T16:31:56.940Z"
+    "updatedAt": "2026-10-08T11:51:33.091Z"
   },
   {
     "id": "pub-fb-sc-03-clinic-doctor",
@@ -1543,12 +1543,12 @@ export const MARKETING_PUBLICATIONS: PublicationItem[] = [
     "targetDeepLink": "/lesson/14",
     "promoCode": "FB_POST",
     "fullUrlWithPromo": "https://ulpana-hebrew.vercel.app/#lesson-14?promo=FB_POST&utm_source=facebook&utm_medium=video&utm_campaign=sc-03-clinic-doctor",
-    "livePostUrl": "",
-    "status": "scheduled",
+    "livePostUrl": "https://www.facebook.com/1372324234675232",
+    "status": "published",
     "scheduledAt": "2026-10-06T09:00:00.000+03:00",
     "notes": "Zero-Link протокол (ссылка в первом комменте) • Фабрика 2026",
     "createdAt": "2026-10-04T16:31:56.940Z",
-    "updatedAt": "2026-10-04T16:31:56.940Z"
+    "updatedAt": "2026-10-08T11:51:38.022Z"
   },
   {
     "id": "pub-ig-sc-02-wolt-courier",
@@ -15318,12 +15318,12 @@ export const MARKETING_PUBLICATIONS: PublicationItem[] = [
     "targetDeepLink": "/dialogues/1",
     "promoCode": "TG",
     "fullUrlWithPromo": "https://ulpana-hebrew.vercel.app/dialogues/1?promo=TG&utm_source=telegram&utm_medium=channel&utm_campaign=ulp-0113",
-    "livePostUrl": "",
-    "status": "scheduled",
+    "livePostUrl": "https://t.me/ulpana_il/76",
+    "status": "published",
     "scheduledAt": "2026-10-08T13:30:00.000+03:00",
     "notes": "Урок ULP-0113 • Фабрика 200 (Вторая сотня) • Дневной эфир 13:30 • промокод TG",
     "createdAt": "2026-10-08T10:14:51.929Z",
-    "updatedAt": "2026-10-08T10:14:51.929Z"
+    "updatedAt": "2026-10-08T11:51:39.899Z"
   },
   {
     "id": "pub-ig-ulp-0113",
