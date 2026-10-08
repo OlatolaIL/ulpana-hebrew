@@ -241,20 +241,21 @@ export async function run() {
   const nowMs = Date.now();
   const todayYmd = new Date().toISOString().split('T')[0];
 
-  // Ищем запланированные публикации, время которых наступило
+  // Ищем запланированные публикации строго на СЕГОДНЯШНИЙ день (защита от пакетного сброса старых очередей)
   const dueItems = pubs.filter((p) => {
     if (p.status !== 'scheduled') return false;
+    // Строго дата сегодняшнего дня
+    if (p.date !== todayYmd) return false;
     if (p.scheduledAt) {
       const ms = Date.parse(p.scheduledAt);
       if (!isNaN(ms)) return ms <= nowMs;
     }
-    if (p.date) return p.date <= todayYmd;
-    return false;
+    return true;
   });
 
-  log(`📋 Найдено созревших публикаций: ${dueItems.length}`);
+  log(`📋 Найдено созревших публикаций на сегодня (${todayYmd}): ${dueItems.length}`);
   if (dueItems.length === 0) {
-    log('✅ Все текущие публикации уже отправлены или запланированы на будущее время.');
+    log('✅ Все текущие публикации на сегодня уже отправлены или ещё не наступило время.');
     return;
   }
 
@@ -275,8 +276,15 @@ export async function run() {
   }
 
   let processedCount = 0;
+  // Жёсткий предохранитель: строго 1 публикация на платформу за запуск
+  const sentPerChannel = { facebook: 0, instagram: 0, telegram: 0, youtube: 0, tiktok: 0 };
 
   for (const pub of dueItems) {
+    if ((sentPerChannel[pub.channel] || 0) >= 1) {
+      log(`⏭️ Канал ${pub.channel} уже получил публикацию на сегодня, пропускаем ${pub.id}.`);
+      continue;
+    }
+
     log(`\n⏳ Обработка [${pub.channel.toUpperCase()}] ${pub.id}: "${pub.title}"...`);
     try {
       let liveUrl = '';
@@ -308,6 +316,7 @@ export async function run() {
         pub.status = 'published';
         pub.livePostUrl = liveUrl;
         pub.updatedAt = new Date().toISOString();
+        sentPerChannel[pub.channel] = (sentPerChannel[pub.channel] || 0) + 1;
         processedCount++;
       }
     } catch (err) {
