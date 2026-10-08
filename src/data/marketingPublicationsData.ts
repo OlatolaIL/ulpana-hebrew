@@ -15339,12 +15339,12 @@ export const MARKETING_PUBLICATIONS: PublicationItem[] = [
     "targetDeepLink": "/dialogues/1",
     "promoCode": "INSTA",
     "fullUrlWithPromo": "https://ulpana-hebrew.vercel.app/dialogues/1?promo=INSTA&utm_source=instagram&utm_medium=reels&utm_campaign=ulp-0113",
-    "livePostUrl": "",
-    "status": "scheduled",
+    "livePostUrl": "https://www.instagram.com/reel/DeOxz7vgb8o/",
+    "status": "published",
     "scheduledAt": "2026-10-08T13:30:00.000+03:00",
     "notes": "Урок ULP-0113 • Фабрика 200 (Вторая сотня) • Дневной эфир 13:30 • промокод INSTA",
     "createdAt": "2026-10-08T10:14:51.929Z",
-    "updatedAt": "2026-10-08T10:14:51.929Z"
+    "updatedAt": "2026-10-08T11:01:52.396Z"
   },
   {
     "id": "pub-tt-ulp-0113",
@@ -15381,12 +15381,12 @@ export const MARKETING_PUBLICATIONS: PublicationItem[] = [
     "targetDeepLink": "/dialogues/1",
     "promoCode": "FB",
     "fullUrlWithPromo": "https://ulpana-hebrew.vercel.app/dialogues/1?promo=FB&utm_source=facebook&utm_medium=reels&utm_campaign=ulp-0113",
-    "livePostUrl": "",
-    "status": "scheduled",
+    "livePostUrl": "https://www.facebook.com/1975954513071483",
+    "status": "published",
     "scheduledAt": "2026-10-08T13:30:00.000+03:00",
     "notes": "Урок ULP-0113 • Фабрика 200 (Вторая сотня) • Дневной эфир 13:30 • промокод FB",
     "createdAt": "2026-10-08T10:14:51.929Z",
-    "updatedAt": "2026-10-08T10:14:51.929Z"
+    "updatedAt": "2026-10-08T11:01:52.394Z"
   },
   {
     "id": "pub-yt-ulp-0114",
