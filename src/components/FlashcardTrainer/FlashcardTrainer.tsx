@@ -24,7 +24,6 @@ import { FlipCardMode } from './modes/FlipCardMode';
 import { BuilderMode } from './modes/BuilderMode';
 import { ListeningMode } from './modes/ListeningMode';
 import { AutoAudioMode } from './modes/AutoAudioMode';
-import { ConjugationMode } from './modes/ConjugationMode';
 import { ComplexDrillMode } from './modes/ComplexDrillMode';
 import { hasComplexDrill } from '@/data/drills';
 import { extractVerbTriad } from '@/lib/verbTriad';
@@ -83,7 +82,9 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
     'idle' | 'part_completed' | 'all_parts_completed'
   >('idle');
 
-  const [mode, setMode] = useState<TrainerMode>(initialMode || 'flip');
+  const [mode, setMode] = useState<TrainerMode>(
+    initialMode === 'conjugation' ? 'flip' : initialMode || 'flip'
+  );
   const [isShuffled, setIsShuffled] = useState(Boolean(initialShuffle));
   const [shuffleToast, setShuffleToast] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(() => {
@@ -1150,18 +1151,6 @@ export const FlashcardTrainer: React.FC<FlashcardTrainerProps> = ({
           onPrevWord={handlePrevWord}
           onAdvanceNext={handleAdvanceNext}
           onSpeakHebrew={speakHebrew}
-        />
-      )}
-
-      {mode === 'conjugation' && (
-        <ConjugationMode
-          currentWord={currentWord}
-          userProfile={userProfile}
-          currentIndex={currentIndex}
-          wordsLength={words.length}
-          onAdvanceNext={handleAdvanceNext}
-          onSpeakHebrew={speakHebrew}
-          onOpenPealim={handleOpenPealim}
         />
       )}
 

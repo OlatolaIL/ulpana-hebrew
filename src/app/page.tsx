@@ -309,7 +309,7 @@ export default function Home() {
         initialView = 'flashcards';
         setFlashcardWords(recoveredWords);
         setFlashcardTitle(recoveredTitle);
-        setFlashcardMode(recoveredMode);
+        setFlashcardMode(recoveredMode === 'conjugation' ? 'flip' : recoveredMode);
         setFlashcardDirection(recoveredDirection);
         setFlashcardShuffle(recoveredShuffle);
         setFlashcardSourceLessonId(recoveredLessonId);
@@ -736,7 +736,7 @@ export default function Home() {
           setCurrentView('flashcards');
           setFlashcardWords(recoveredWords);
           setFlashcardTitle(recoveredTitle);
-          setFlashcardMode(recoveredMode);
+          setFlashcardMode(recoveredMode === 'conjugation' ? 'flip' : recoveredMode);
           setFlashcardDirection(recoveredDirection);
           setFlashcardShuffle(recoveredShuffle);
           setFlashcardSourceLessonId(recoveredLessonId);

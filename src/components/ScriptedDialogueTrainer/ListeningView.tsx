@@ -1,8 +1,8 @@
 import React from 'react';
-import { Volume2, CheckCircle2, ArrowRight, BookOpen, Sparkles } from 'lucide-react';
+import { Volume2, CheckCircle2, ArrowRight, BookOpen } from 'lucide-react';
 import { ScriptedDialogue, ScriptedDialogueTurn, GenderVariant, DialogueParticipant } from '@/types';
 import { stripNikkud, tokenizeText, TextToken } from '@/lib/transcription';
-import { getDialogueTurnKey, DialogueAudioManifest } from '@/lib/dialogueAudio';
+import { DialogueAudioManifest } from '@/lib/dialogueAudio';
 
 interface ListeningViewProps {
   dialogue: ScriptedDialogue;
@@ -71,13 +71,6 @@ export const ListeningView: React.FC<ListeningViewProps> = ({
           const isTurnActive = isPlayingAll && activeListeningTurnIndex === idx;
           const character = isSpeakerA ? characterA : characterB;
 
-          const isTurnUser = turn.speaker === userRoleSide;
-          const isSpeakerFemale = isTurnUser ? userGender === 'female' : opponentGender === 'female';
-          const speakerGender = isSpeakerFemale ? 'female' : 'male';
-          const listenerGender = isTurnUser ? opponentGender : userGender;
-          const turnKey = getDialogueTurnKey(dialogue.lessonId, turn.id, speakerGender, listenerGender);
-          const audioMeta = dialogueManifest?.[turnKey];
-
           return (
             <div
               key={turn.id}
@@ -108,7 +101,7 @@ export const ListeningView: React.FC<ListeningViewProps> = ({
                     : 'bg-indigo-50/70 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900/60'
                 }`}
               >
-                {/* Имя и роль спикера + бейдж озвучки */}
+                {/* Имя и роль спикера */}
                 <div className="flex items-center justify-between gap-2 mb-1.5 flex-wrap">
                   <div className="flex items-center gap-1.5 flex-wrap">
                     <span className="text-xs font-bold text-zinc-800 dark:text-zinc-200">
@@ -117,25 +110,6 @@ export const ListeningView: React.FC<ListeningViewProps> = ({
                         ({character.roleRu})
                       </span>
                     </span>
-
-                    {/* Бейдж движка озвучки (Gemini TTS vs Edge Neural) */}
-                    {audioMeta?.engine === 'gemini' ? (
-                      <span
-                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-gradient-to-r from-purple-500/15 to-amber-500/15 border border-purple-300 dark:border-purple-700/60 text-purple-700 dark:text-purple-300 font-bold text-[10px] shadow-2xs"
-                        title="Озвучено чистовым студийным ИИ Gemini 3.1"
-                      >
-                        <Sparkles className="w-3 h-3 text-amber-500 fill-amber-400" />
-                        <span>✨ Студия Gemini 3.1 ({audioMeta.voice || (speakerGender === 'male' ? 'Orus' : 'Aoede')})</span>
-                      </span>
-                    ) : audioMeta?.engine === 'edge' ? (
-                      <span
-                        className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 text-[10px] font-medium"
-                        title="Озвучено Microsoft Edge Neural TTS"
-                      >
-                        <Volume2 className="w-2.5 h-2.5 opacity-60" />
-                        <span>Edge Neural</span>
-                      </span>
-                    ) : null}
                   </div>
 
                   <button

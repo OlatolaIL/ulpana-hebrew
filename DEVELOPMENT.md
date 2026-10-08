@@ -1,5 +1,12 @@
 # Разработка открытой беты
 
+## Упразднение бейджиков озвучки в боевом UI и удаление вкладки «Спряжения» — 08.10.2026
+
+По указанию пользователя:
+1. **Удаление бейджиков озвучки:** В ListeningView.tsx, PracticeView.tsx и ComplexDrillMode.tsx убраны служебные плашки синтеза речи («✨ Студия Gemini 3.1...», «Edge Neural», «Стандартный синтез»). Интерфейс диалога и карточек очищен от служебного шума.
+2. **Удаление вкладки «Спряжения»:** Из шапки тренажёра TrainerHeader.tsx и FlashcardTrainer.tsx исключён режим conjugation. В page.tsx добавлен защитный fallback на flip для сохранённых ссылок и состояний.
+3. **Верификация:** npm run typecheck PASS (0 ошибок), 31 профильный тест (flashcard-render, flashcard-deep-routing, dialogue-practice, decision-matrix-invariants) PASS (31/31).
+
 ## Фабрика-500: Сдача 10 видео Урока 1, мастер-реестр TTS и Audio-Bank First — 27.09.2026
 
 По указанию пользователя:

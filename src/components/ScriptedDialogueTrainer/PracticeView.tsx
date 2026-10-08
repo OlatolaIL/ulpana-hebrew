@@ -24,7 +24,7 @@ import {
 } from '@/types';
 import { stripNikkud, tokenizeText, TextToken } from '@/lib/transcription';
 import { speakHebrew } from '@/lib/speech';
-import { getDialogueTurnKey, DialogueAudioManifest } from '@/lib/dialogueAudio';
+import { DialogueAudioManifest } from '@/lib/dialogueAudio';
 
 interface PracticeViewProps {
   lesson: Lesson;
@@ -149,13 +149,6 @@ export const PracticeView: React.FC<PracticeViewProps> = ({
           const variant = getTurnText(turn);
           const character = turn.speaker === 'a' ? characterA : characterB;
 
-          const isTurnUser = isSpeakerUser;
-          const isSpeakerFemale = isTurnUser ? userGender === 'female' : opponentGender === 'female';
-          const speakerGender = isSpeakerFemale ? 'female' : 'male';
-          const listenerGender = isTurnUser ? opponentGender : userGender;
-          const turnKey = getDialogueTurnKey(dialogue.lessonId, turn.id, speakerGender, listenerGender);
-          const audioMeta = dialogueManifest?.[turnKey];
-
           return (
             <div
               key={turn.id}
@@ -185,24 +178,6 @@ export const PracticeView: React.FC<PracticeViewProps> = ({
                     <span className="text-xs font-bold text-zinc-800 dark:text-zinc-200">
                       {character.nameRu} {isSpeakerUser && ' (Вы)'}
                     </span>
-
-                    {!isSpeakerUser && audioMeta?.engine === 'gemini' ? (
-                      <span
-                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-gradient-to-r from-purple-500/15 to-amber-500/15 border border-purple-300 dark:border-purple-700/60 text-purple-700 dark:text-purple-300 font-bold text-[10px] shadow-2xs"
-                        title="Озвучено чистовым студийным ИИ Gemini 3.1"
-                      >
-                        <Sparkles className="w-3 h-3 text-amber-500 fill-amber-400" />
-                        <span>✨ Студия Gemini 3.1 ({audioMeta.voice || (speakerGender === 'male' ? 'Orus' : 'Aoede')})</span>
-                      </span>
-                    ) : !isSpeakerUser && audioMeta?.engine === 'edge' ? (
-                      <span
-                        className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 text-[10px] font-medium"
-                        title="Озвучено Microsoft Edge Neural TTS"
-                      >
-                        <Volume2 className="w-2.5 h-2.5 opacity-60" />
-                        <span>Edge Neural</span>
-                      </span>
-                    ) : null}
                   </div>
                   {!isSpeakerUser ? (
                     <button

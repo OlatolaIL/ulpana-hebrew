@@ -11,7 +11,6 @@ import {
   ArrowRight,
   CheckCircle2,
   Sparkles,
-  GitBranch,
 } from 'lucide-react';
 import { Word, UserProfile } from '@/types';
 import { stripNikkud } from '@/lib/transcription';
@@ -166,22 +165,6 @@ export const TrainerHeader: React.FC<TrainerHeaderProps> = ({
             <Play className="w-4 h-4 sm:w-3.5 sm:h-3.5 fill-current flex-shrink-0" />
             <span className="hidden sm:inline">Авто</span>
           </button>
-          {/* Спряжения (Трансформация времён) */}
-          {hasVerbs && (
-            <button
-              onClick={() => onSetMode('conjugation')}
-              title="Спряжения (Трансформация времён)"
-              aria-label="Спряжения"
-              className={`flex-1 min-w-0 sm:min-w-[85px] flex items-center justify-center gap-1.5 p-2 sm:px-2.5 sm:py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
-                mode === 'conjugation'
-                  ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-xs'
-                  : 'text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300'
-              }`}
-            >
-              <GitBranch className="w-4 h-4 sm:w-3.5 sm:h-3.5 flex-shrink-0" />
-              <span className="hidden sm:inline">Спряжения</span>
-            </button>
-          )}
           {/* Комплекс (Слуховой тренажер с активной паузой) */}
           {(hasComplex ?? hasVerbs) && (
             <button
